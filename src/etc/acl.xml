@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<!--
+ ~ Copyright (c) 2026 Polkurier.pl
+ ~ All Rights Reserved
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:Acl/etc/acl.xsd">
+    <acl>
+        <resources>
+            <resource id="Magento_Backend::admin">
+                <resource id="Polkurier_Shipping::root" title="Polkurier" sortOrder="1000">
+                    <resource id="Polkurier_Shipping::sales" title="Sales" translate="title" sortOrder="10">
+                        <resource id="Polkurier_Shipping::orders" title="Orders" translate="title" sortOrder="10" />
+                    </resource>
+                    <resource id="Polkurier_Shipping::settings" title="Settings" translate="title" sortOrder="20">
+                        <resource id="Polkurier_Shipping::addresses" title="Addresses" translate="title" sortOrder="10" />
+                        <resource id="Polkurier_Shipping::bank_accounts" title="Bank accounts" translate="title" sortOrder="20" />
+                        <resource id="Polkurier_Shipping::pack_templates" title="Pack templates" translate="title" sortOrder="30" />
+                        <resource id="Polkurier_Shipping::module" title="Module" translate="title" sortOrder="40" />
+                        <resource id="Polkurier_Shipping::carriers" title="Carriers" translate="title" sortOrder="50" />
+                    </resource>
+                </resource>
+            </resource>
+        </resources>
+    </acl>
+</config>

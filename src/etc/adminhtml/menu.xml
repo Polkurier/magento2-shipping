@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+<!--
+ ~ Copyright (c) 2026 Polkurier.pl
+ ~ All Rights Reserved
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Backend:etc/menu.xsd">
+    <menu>
+        <add id="Polkurier_Shipping::root" title="Polkurier" module="Polkurier_Shipping"
+             sortOrder="17" dependsOnModule="Polkurier_Shipping" resource="Polkurier_Shipping::root" />
+
+        <add id="Polkurier_Shipping::sales" title="Sales" translate="title" module="Polkurier_Shipping"
+             sortOrder="10" parent="Polkurier_Shipping::root" resource="Polkurier_Shipping::sales" />
+        <add id="Polkurier_Shipping::orders" title="Orders" translate="title" module="Polkurier_Shipping"
+             sortOrder="10" parent="Polkurier_Shipping::sales" action="polkurier/order/index"
+             resource="Polkurier_Shipping::orders" />
+
+        <add id="Polkurier_Shipping::settings" title="Settings" translate="title" module="Polkurier_Shipping"
+             sortOrder="20" parent="Polkurier_Shipping::root" resource="Polkurier_Shipping::settings" />
+        <add id="Polkurier_Shipping::addresses" title="Addresses" translate="title" module="Polkurier_Shipping"
+             sortOrder="10" parent="Polkurier_Shipping::settings" action="polkurier/address/index"
+             resource="Polkurier_Shipping::addresses" />
+        <add id="Polkurier_Shipping::bank_accounts" title="Bank accounts" translate="title" module="Polkurier_Shipping"
+             sortOrder="20" parent="Polkurier_Shipping::settings" action="polkurier/bank_account/index"
+             resource="Polkurier_Shipping::bank_accounts" />
+        <add id="Polkurier_Shipping::pack_templates" title="Pack templates" translate="title" module="Polkurier_Shipping"
+             sortOrder="30" parent="Polkurier_Shipping::settings" action="polkurier/pack_template/index"
+             resource="Polkurier_Shipping::pack_templates" />
+        <add id="Polkurier_Shipping::carriers" title="Carriers" translate="title" module="Polkurier_Shipping"
+             sortOrder="40" parent="Polkurier_Shipping::settings" action="polkurier/carrier_config/index"
+             resource="Polkurier_Shipping::carriers" />
+        <add id="Polkurier_Shipping::module" title="Module" translate="title" module="Polkurier_Shipping"
+             sortOrder="50" parent="Polkurier_Shipping::settings" action="adminhtml/system_config/edit/section/carriers"
+             resource="Polkurier_Shipping::module" />
+    </menu>
+</config>

@@ -1,0 +1,286 @@
+<?xml version="1.0"?>
+<!--
+ ~ Copyright (c) 2026 Polkurier.pl
+ ~ All Rights Reserved
+-->
+<listing xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Ui:etc/ui_configuration.xsd">
+    <argument name="data" xsi:type="array">
+        <item name="js_config" xsi:type="array">
+            <item name="provider" xsi:type="string">
+                polkurier_pack_template_listing.polkurier_pack_template_listing_data_source
+            </item>
+        </item>
+    </argument>
+    <settings>
+        <buttons>
+            <button name="add">
+                <url path="*/*/new"/>
+                <class>primary</class>
+                <label translate="true">Add new template</label>
+            </button>
+        </buttons>
+        <spinner>polkurier_pack_template_columns</spinner>
+        <deps>
+            <dep>polkurier_pack_template_listing.polkurier_pack_template_listing_data_source</dep>
+        </deps>
+    </settings>
+    <dataSource name="polkurier_pack_template_listing_data_source" component="Magento_Ui/js/grid/provider">
+        <settings>
+            <updateUrl path="mui/index/render"/>
+        </settings>
+        <aclResource>Polkurier_Shipping::addresses</aclResource>
+        <dataProvider name="polkurier_pack_template_listing_data_source"
+                      class="Polkurier\Shipping\Ui\Component\Listing\DataProvider">
+            <settings>
+                <requestFieldName>id</requestFieldName>
+                <primaryFieldName>template_id</primaryFieldName>
+            </settings>
+        </dataProvider>
+    </dataSource>
+    <listingToolbar name="listing_top">
+        <columnsControls name="columns_controls" />
+        <filterSearch name="fulltext" />
+        <filters name="listing_filters" component="Magento_Ui/js/grid/filters/filters">
+            <settings>
+                <storageConfig>
+                    <param name="provider" xsi:type="string">
+                        polkurier_pack_template_listing.polkurier_pack_template_listing.listing_top.bookmarks
+                    </param>
+                    <param name="namespace" xsi:type="string">current.filters</param>
+                </storageConfig>
+                <childDefaults>
+                    <param name="provider" xsi:type="string">
+                        polkurier_pack_template_listing.polkurier_pack_template_listing.listing_top.listing_filters
+                    </param>
+                    <param name="imports" xsi:type="array">
+                        <item name="visible" xsi:type="string">
+                            polkurier_pack_template_listing.polkurier_pack_template_listing.listing_top.bookmarks:current.columns.${ $.index }.visible
+                        </item>
+                    </param>
+                </childDefaults>
+            </settings>
+        </filters>
+        <massaction name="listing_massaction" component="Magento_Ui/js/grid/massactions">
+            <action name="delete">
+                <argument name="data" xsi:type="array">
+                    <item name="config" xsi:type="array">
+                        <item name="isAjax" xsi:type="boolean">true</item>
+                    </item>
+                </argument>
+                <settings>
+                    <url path="*/*/massDelete"/>
+                    <type>delete</type>
+                    <label translate="true">Delete</label>
+                    <confirm>
+                        <title translate="true">Delete items</title>
+                        <message translate="true">Are you sure you want to delete selected addresses?</message>
+                    </confirm>
+                </settings>
+            </action>
+        </massaction>
+        <paging name="listing_paging"/>
+    </listingToolbar>
+    <columns name="polkurier_pack_template_columns" class="Magento\Ui\Component\Listing\Columns">
+        <settings>
+            <editorConfig>
+                <param name="clientConfig" xsi:type="array">
+                    <item name="saveUrl" xsi:type="url" path="*/*/inlineEdit" />
+                    <item name="validateBeforeSave" xsi:type="boolean">false</item>
+                </param>
+                <param name="indexField" xsi:type="string">template_id</param>
+                <param name="enabled" xsi:type="boolean">true</param>
+                <param name="selectProvider" xsi:type="string">
+                    polkurier_pack_template_listing.polkurier_pack_template_listing.polkurier_pack_template_columns.template_id
+                </param>
+            </editorConfig>
+            <childDefaults>
+                <param name="fieldAction" xsi:type="array">
+                    <item name="provider" xsi:type="string">
+                        polkurier_pack_template_listing.polkurier_pack_template_listing.polkurier_pack_template_columns_editor
+                    </item>
+                    <item name="target" xsi:type="string">startEdit</item>
+                    <item name="params" xsi:type="array">
+                        <item name="0" xsi:type="string">${ $.$data.rowIndex }</item>
+                        <item name="1" xsi:type="boolean">true</item>
+                    </item>
+                </param>
+            </childDefaults>
+        </settings>
+        <selectionsColumn name="template_id">
+            <settings>
+                <indexField>template_id</indexField>
+            </settings>
+        </selectionsColumn>
+        <column name="name" sortOrder="10">
+            <settings>
+                <label translate="true">Label</label>
+                <filter>text</filter>
+                <editor>
+                    <editorType>text</editorType>
+                    <validation>
+                        <rule name="required-entry" xsi:type="boolean">true</rule>
+                    </validation>
+                </editor>
+            </settings>
+        </column>
+        <column name="description" sortOrder="20">
+            <settings>
+                <label translate="true">Description</label>
+                <filter>text</filter>
+                <editor>
+                    <editorType>text</editorType>
+                </editor>
+            </settings>
+        </column>
+        <column name="type" component="Magento_Ui/js/grid/columns/select" sortOrder="30">
+            <settings>
+                <label translate="true">Type</label>
+                <filter>select</filter>
+                <dataType>select</dataType>
+                <options class="Polkurier\Shipping\Model\Config\Source\PackType" />
+                <editor>
+                    <editorType>select</editorType>
+                </editor>
+            </settings>
+        </column>
+        <column name="length" sortOrder="40">
+            <settings>
+                <label translate="true">Length [cm]</label>
+                <filter>text</filter>
+                <editor>
+                    <editorType>text</editorType>
+                    <validation>
+                        <rule name="required-entry" xsi:type="boolean">true</rule>
+                        <rule name="validate-number" xsi:type="boolean">true</rule>
+                        <rule name="validate-zero-or-greater" xsi:type="boolean">true</rule>
+                    </validation>
+                </editor>
+            </settings>
+        </column>
+        <column name="height" sortOrder="50">
+            <settings>
+                <label translate="true">Height [cm]</label>
+                <filter>text</filter>
+                <editor>
+                    <editorType>text</editorType>
+                    <validation>
+                        <rule name="required-entry" xsi:type="boolean">true</rule>
+                        <rule name="validate-number" xsi:type="boolean">true</rule>
+                        <rule name="validate-zero-or-greater" xsi:type="boolean">true</rule>
+                    </validation>
+                </editor>
+            </settings>
+        </column>
+        <column name="width" sortOrder="60">
+            <settings>
+                <label translate="true">Width [cm]</label>
+                <filter>text</filter>
+                <editor>
+                    <editorType>text</editorType>
+                    <validation>
+                        <rule name="required-entry" xsi:type="boolean">true</rule>
+                        <rule name="validate-number" xsi:type="boolean">true</rule>
+                        <rule name="validate-zero-or-greater" xsi:type="boolean">true</rule>
+                    </validation>
+                </editor>
+            </settings>
+        </column>
+        <column name="weight" sortOrder="70">
+            <settings>
+                <label translate="true">Weight [kg]</label>
+                <filter>text</filter>
+                <editor>
+                    <editorType>text</editorType>
+                    <validation>
+                        <rule name="required-entry" xsi:type="boolean">true</rule>
+                        <rule name="validate-number" xsi:type="boolean">true</rule>
+                        <rule name="validate-zero-or-greater" xsi:type="boolean">true</rule>
+                    </validation>
+                </editor>
+            </settings>
+        </column>
+        <column name="cod" sortOrder="80">
+            <settings>
+                <label translate="true">Cash on delivery</label>
+                <filter>text</filter>
+                <editor>
+                    <editorType>text</editorType>
+                    <validation>
+                        <rule name="validate-number" xsi:type="boolean">true</rule>
+                        <rule name="validate-zero-or-greater" xsi:type="boolean">true</rule>
+                    </validation>
+                </editor>
+            </settings>
+        </column>
+        <column name="insurance" sortOrder="90">
+            <settings>
+                <label translate="true">Insurance amount</label>
+                <filter>text</filter>
+                <editor>
+                    <editorType>text</editorType>
+                    <validation>
+                        <rule name="validate-number" xsi:type="boolean">true</rule>
+                        <rule name="validate-zero-or-greater" xsi:type="boolean">true</rule>
+                    </validation>
+                </editor>
+            </settings>
+        </column>
+        <column name="shipment_type" component="Magento_Ui/js/grid/columns/select" sortOrder="100">
+            <settings>
+                <label translate="true">Type</label>
+                <filter>select</filter>
+                <dataType>select</dataType>
+                <options class="Polkurier\Shipping\Model\Config\Source\ShipmentType" />
+                <editor>
+                    <editorType>select</editorType>
+                </editor>
+            </settings>
+        </column>
+        <column name="carrier_code" component="Magento_Ui/js/grid/columns/select" sortOrder="110">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="editor" xsi:type="array">
+                        <item name="caption" xsi:type="string" translate="true">Select carrier...</item>
+                    </item>
+                </item>
+            </argument>
+            <settings>
+                <label translate="true">Carrier</label>
+                <filter>select</filter>
+                <dataType>select</dataType>
+                <options class="Polkurier\Shipping\Model\Config\Source\AvailableCarriers" />
+                <editor>
+                    <editorType>select</editorType>
+                </editor>
+            </settings>
+        </column>
+        <column name="services" component="Magento_Ui/js/grid/columns/select" sortOrder="120">
+            <settings>
+                <label translate="true">Additional services</label>
+                <filter>select</filter>
+                <dataType>select</dataType>
+                <options class="Polkurier\Shipping\Model\Config\Source\AdditionalService" />
+                <editor>
+                    <editorType>multiselect</editorType>
+                </editor>
+            </settings>
+        </column>
+        <column name="default" component="Magento_Ui/js/grid/columns/select" sortOrder="130">
+            <settings>
+                <label translate="true">Default</label>
+                <filter>select</filter>
+                <dataType>select</dataType>
+                <options class="Magento\Config\Model\Config\Source\Yesno" />
+                <editor>
+                    <editorType>select</editorType>
+                </editor>
+            </settings>
+        </column>
+        <actionsColumn name="actions" class="Polkurier\Shipping\Ui\Component\Listing\PackTemplate\Column\Actions">
+            <settings>
+                <indexField>template_id</indexField>
+            </settings>
+        </actionsColumn>
+    </columns>
+</listing>

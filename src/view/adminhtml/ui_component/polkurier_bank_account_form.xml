@@ -1,0 +1,118 @@
+<?xml version="1.0"?>
+<!--
+ ~ Copyright (c) 2026 Polkurier.pl
+ ~ All Rights Reserved
+-->
+<form xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Ui:etc/ui_configuration.xsd">
+    <argument name="data" xsi:type="array">
+        <item name="js_config" xsi:type="array">
+            <item name="provider" xsi:type="string">
+                polkurier_bank_account_form.polkurier_bank_account_form_data_source
+            </item>
+        </item>
+        <item name="config" xsi:type="array">
+            <item name="deleteConfirmationMessage" translate="true" xsi:type="string">
+                Are you sure you want to delete this account number?
+            </item>
+        </item>
+        <item name="label" xsi:type="string" translate="true">Update bank account number</item>
+        <item name="reverseMetadataMerge" xsi:type="boolean">true</item>
+        <item name="template" xsi:type="string">templates/form/collapsible</item>
+    </argument>
+    <settings>
+        <buttons>
+            <button name="back" class="Polkurier\Shipping\Block\Adminhtml\Edit\BackButton" />
+            <button name="delete" class="Polkurier\Shipping\Block\Adminhtml\Edit\DeleteButton" />
+            <button name="save" class="Polkurier\Shipping\Block\Adminhtml\Edit\SaveButton" />
+            <button name="save_and_continue" class="Polkurier\Shipping\Block\Adminhtml\Edit\SaveAndContinueButton" />
+        </buttons>
+        <namespace>polkurier_bank_account_form</namespace>
+        <ajaxSave>true</ajaxSave>
+        <ajaxSaveType>simple</ajaxSaveType>
+        <dataScope>data</dataScope>
+        <deps>
+            <dep>polkurier_bank_account_form.polkurier_bank_account_form_data_source</dep>
+        </deps>
+    </settings>
+    <dataSource name="polkurier_bank_account_form_data_source">
+        <argument name="data" xsi:type="array">
+            <item name="js_config" xsi:type="array">
+                <item name="component" xsi:type="string">Magento_Ui/js/form/provider</item>
+            </item>
+        </argument>
+        <settings>
+            <submitUrl path="*/*/save" />
+<!--            <validateUrl path="*/*/validate" />-->
+        </settings>
+        <aclResource>Polkurier_Shipping::bank_accounts</aclResource>
+        <dataProvider class="Polkurier\Shipping\Ui\Component\Form\BankAccount\DataProviderVirtual"
+                      name="polkurier_bank_account_form_data_source">
+            <settings>
+                <requestFieldName>id</requestFieldName>
+                <primaryFieldName>account_id</primaryFieldName>
+            </settings>
+        </dataProvider>
+    </dataSource>
+    <container name="messages" component="Magento_Ui/js/form/components/html">
+        <argument name="data" xsi:type="array">
+            <item name="config" xsi:type="array">
+                <item name="additionalClasses" xsi:type="string">message message-error</item>
+                <item name="visible" xsi:type="boolean">false</item>
+                <item name="imports" xsi:type="array">
+                    <item name="responseData" xsi:type="string">${ $.parentName }:responseData</item>
+                </item>
+                <item name="listens" xsi:type="array">
+                    <item name="responseData.error" xsi:type="string">visible</item>
+                    <item name="responseData.messages" xsi:type="string">content</item>
+                </item>
+            </item>
+        </argument>
+    </container>
+    <fieldset name="general" sortOrder="10">
+        <settings>
+            <label />
+            <collapsible>false</collapsible>
+        </settings>
+        <field name="account_id" formElement="hidden">
+            <settings>
+                <dataType>text</dataType>
+                <dataScope>account_id</dataScope>
+            </settings>
+        </field>
+        <field name="name" formElement="input" sortOrder="10">
+            <settings>
+                <label translate="true">Label</label>
+                <dataType>text</dataType>
+                <dataScope>name</dataScope>
+                <validation>
+                    <rule name="required-entry" xsi:type="boolean">true</rule>
+                </validation>
+            </settings>
+        </field>
+        <field name="default" formElement="select" sortOrder="20">
+            <settings>
+                <label translate="true">Default</label>
+                <dataType>boolean</dataType>
+                <dataScope>default</dataScope>
+            </settings>
+            <formElements>
+                <select>
+                    <settings>
+                        <options class="Magento\Config\Model\Config\Source\Yesno" />
+                    </settings>
+                </select>
+            </formElements>
+        </field>
+        <field name="number" formElement="input" sortOrder="30">
+            <settings>
+                <label translate="true">Account number (IBAN)</label>
+                <dataType>text</dataType>
+                <dataScope>number</dataScope>
+                <validation>
+                    <rule name="required-entry" xsi:type="boolean">true</rule>
+                </validation>
+            </settings>
+        </field>
+    </fieldset>
+</form>

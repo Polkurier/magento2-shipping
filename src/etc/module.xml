@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<!--
+ ~ Copyright (c) 2026 Polkurier.pl
+ ~ All Rights Reserved
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:Module/etc/module.xsd">
+    <module name="Polkurier_Shipping">
+        <sequence>
+            <module name="Magento_Checkout" />
+            <module name="Magento_Shipping" />
+        </sequence>
+    </module>
+</config>

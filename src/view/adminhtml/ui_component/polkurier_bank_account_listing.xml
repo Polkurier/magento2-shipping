@@ -1,0 +1,156 @@
+<?xml version="1.0"?>
+<!--
+ ~ Copyright (c) 2026 Polkurier.pl
+ ~ All Rights Reserved
+-->
+<listing xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Ui:etc/ui_configuration.xsd">
+    <argument name="data" xsi:type="array">
+        <item name="js_config" xsi:type="array">
+            <item name="provider" xsi:type="string">
+                polkurier_bank_account_listing.polkurier_bank_account_listing_data_source
+            </item>
+        </item>
+    </argument>
+    <settings>
+        <buttons>
+            <button name="add">
+                <url path="*/*/new" />
+                <class>primary</class>
+                <label translate="true">Add new account number</label>
+            </button>
+        </buttons>
+        <spinner>polkurier_bank_account_columns</spinner>
+        <deps>
+            <dep>polkurier_bank_account_listing.polkurier_bank_account_listing_data_source</dep>
+        </deps>
+    </settings>
+    <dataSource name="polkurier_bank_account_listing_data_source" component="Magento_Ui/js/grid/provider">
+        <settings>
+            <updateUrl path="mui/index/render"/>
+        </settings>
+        <aclResource>Polkurier_Shipping::bank_accounts</aclResource>
+        <dataProvider name="polkurier_bank_account_listing_data_source"
+                      class="Polkurier\Shipping\Ui\Component\Listing\DataProvider">
+            <settings>
+                <requestFieldName>id</requestFieldName>
+                <primaryFieldName>account_id</primaryFieldName>
+            </settings>
+        </dataProvider>
+    </dataSource>
+    <listingToolbar name="listing_top">
+        <columnsControls name="columns_controls" />
+        <filterSearch name="fulltext" />
+        <filters name="listing_filters" component="Magento_Ui/js/grid/filters/filters">
+            <settings>
+                <storageConfig>
+                    <param name="provider" xsi:type="string">
+                        polkurier_bank_account_listing.polkurier_bank_account_listing.listing_top.bookmarks
+                    </param>
+                    <param name="namespace" xsi:type="string">current.filters</param>
+                </storageConfig>
+                <childDefaults>
+                    <param name="provider" xsi:type="string">
+                        polkurier_bank_account_listing.polkurier_bank_account_listing.listing_top.listing_filters
+                    </param>
+                    <param name="imports" xsi:type="array">
+                        <item name="visible" xsi:type="string">
+                            polkurier_bank_account_listing.polkurier_bank_account_listing.listing_top.bookmarks:current.columns.${ $.index }.visible
+                        </item>
+                    </param>
+                </childDefaults>
+            </settings>
+        </filters>
+        <massaction name="listing_massaction" component="Magento_Ui/js/grid/massactions">
+            <action name="delete">
+                <argument name="data" xsi:type="array">
+                    <item name="config" xsi:type="array">
+                        <item name="isAjax" xsi:type="boolean">true</item>
+                    </item>
+                </argument>
+                <settings>
+                    <url path="*/*/massDelete"/>
+                    <type>delete</type>
+                    <label translate="true">Delete</label>
+                    <confirm>
+                        <title translate="true">Delete items</title>
+                        <message translate="true">Are you sure you want to delete selected bank accounts?</message>
+                    </confirm>
+                </settings>
+            </action>
+        </massaction>
+        <paging name="listing_paging"/>
+    </listingToolbar>
+    <columns name="polkurier_bank_account_columns" class="Magento\Ui\Component\Listing\Columns">
+        <settings>
+            <editorConfig>
+                <param name="clientConfig" xsi:type="array">
+                    <item name="saveUrl" xsi:type="url" path="*/*/inlineEdit" />
+                    <item name="validateBeforeSave" xsi:type="boolean">false</item>
+                </param>
+                <param name="indexField" xsi:type="string">account_id</param>
+                <param name="enabled" xsi:type="boolean">true</param>
+                <param name="selectProvider" xsi:type="string">
+                    polkurier_bank_account_listing.polkurier_bank_account_listing.polkurier_bank_account_columns.account_id
+                </param>
+            </editorConfig>
+            <childDefaults>
+                <param name="fieldAction" xsi:type="array">
+                    <item name="provider" xsi:type="string">
+                        polkurier_bank_account_listing.polkurier_bank_account_listing.polkurier_bank_account_columns_editor
+                    </item>
+                    <item name="target" xsi:type="string">startEdit</item>
+                    <item name="params" xsi:type="array">
+                        <item name="0" xsi:type="string">${ $.$data.rowIndex }</item>
+                        <item name="1" xsi:type="boolean">true</item>
+                    </item>
+                </param>
+            </childDefaults>
+        </settings>
+        <selectionsColumn name="account_id">
+            <settings>
+                <indexField>account_id</indexField>
+            </settings>
+        </selectionsColumn>
+        <column name="name" sortOrder="10">
+            <settings>
+                <label translate="true">Label</label>
+                <filter>text</filter>
+                <editor>
+                    <editorType>text</editorType>
+                    <validation>
+                        <rule name="required-entry" xsi:type="boolean">true</rule>
+                    </validation>
+                </editor>
+            </settings>
+        </column>
+        <column name="number" sortOrder="20">
+            <settings>
+                <label translate="true">Account number (IBAN)</label>
+                <filter>text</filter>
+                <editor>
+                    <editorType>text</editorType>
+                    <validation>
+                        <rule name="required-entry" xsi:type="boolean">true</rule>
+                    </validation>
+                </editor>
+            </settings>
+        </column>
+        <column name="default" component="Magento_Ui/js/grid/columns/select" sortOrder="30">
+            <settings>
+                <label translate="true">Default</label>
+                <filter>select</filter>
+                <dataType>select</dataType>
+                <options class="Magento\Config\Model\Config\Source\Yesno" />
+                <editor>
+                    <editorType>select</editorType>
+                </editor>
+            </settings>
+        </column>
+        <actionsColumn name="actions" class="Polkurier\Shipping\Ui\Component\Listing\BankAccount\Column\Actions">
+            <settings>
+                <indexField>account_id</indexField>
+            </settings>
+        </actionsColumn>
+    </columns>
+</listing>

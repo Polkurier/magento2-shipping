@@ -8,7 +8,7 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Model\Config\Source;
 
 use Magento\Framework\Data\OptionSourceInterface;
-use Polkurier\Webservice\Api\Data\ShipmentTypeEnum;
+use Polkurier\Webservice\Enum\ShipmentTypeEnum;
 
 class ShipmentType implements OptionSourceInterface
 {

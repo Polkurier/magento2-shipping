@@ -1,0 +1,8 @@
+<?php /** @var \Polkurier\Shipping\Block\Adminhtml\System\Config\ApiAvailability $block */ ?>
+<div class="messages">
+<?php if ($error = $block->getConnectionError()): ?>
+    <div class="message message-error error"><?= $error ?></div>
+<?php else: ?>
+    <div class="message message-success success"><?= __('The connection with polkurier.pl API is OK') ?></div>
+<?php endif; ?>
+</div>

@@ -14,6 +14,14 @@ use Polkurier\Shipping\Model\ResourceModel\CarrierConfig as CarrierConfigResourc
 class Collection extends SearchResult
 {
     /**
+     * @return void
+     */
+    protected function _construct(): void
+    {
+        $this->_init(CarrierConfig::class, CarrierConfigResource::class);
+    }
+
+    /**
      * @return $this
      */
     protected function _initSelect(): self

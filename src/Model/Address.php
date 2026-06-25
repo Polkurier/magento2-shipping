@@ -12,7 +12,7 @@ use Magento\Framework\Model\AbstractModel;
 use Polkurier\Shipping\Api\Data\AddressInterface;
 use Polkurier\Shipping\Api\Data\ExternalEntityInterface;
 use Polkurier\Shipping\Model\ResourceModel\Address as AddressResource;
-use Polkurier\Webservice\Api\Data\Entity\Address\TypeEnum;
+use Polkurier\Webservice\Enum\AddressTypeEnum;
 use Polkurier\Webservice\Model\Entity\Address as AddressSdk;
 use Polkurier\Webservice\Model\Entity\BaseAddress;
 
@@ -142,19 +142,19 @@ class Address extends AbstractModel implements AddressInterface, ExternalEntityI
     }
 
     /**
-     * @return TypeEnum
+     * @return AddressTypeEnum
      */
-    public function getType(): TypeEnum
+    public function getType(): AddressTypeEnum
     {
         return $this->getData(static::FIELD_TYPE);
     }
 
     /**
-     * @param TypeEnum $type
+     * @param AddressTypeEnum $type
      *
      * @return void
      */
-    public function setType(TypeEnum $type): void
+    public function setType(AddressTypeEnum $type): void
     {
         $this->setData(static::FIELD_TYPE, $type);
     }

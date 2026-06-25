@@ -7,39 +7,46 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Controller\Adminhtml\Carrier\Config;
 
-use Magento\Backend\App\Action;
 use Magento\Backend\App\Action\Context;
+use Magento\Backend\Model\View\Result\ForwardFactory;
+use Magento\Framework\Controller\Result\Json;
 use Magento\Framework\Controller\Result\JsonFactory;
-use Magento\Framework\Controller\ResultInterface;
-use Magento\Framework\Message\MessageInterface;
-use Magento\Framework\Phrase;
+use Magento\Framework\View\Result\PageFactory;
 use Polkurier\Shipping\Api\CarrierConfigRepositoryInterface;
 use Polkurier\Shipping\Api\Data\CarrierConfigInterface;
+use Polkurier\Shipping\Controller\Adminhtml\Index as BaseAction;
 use Polkurier\Shipping\Enum\PricingModelEnum;
 use Polkurier\Shipping\Model\CarrierConfig;
 use Polkurier\Shipping\Model\Shipment\PriceCalculator\Fixed;
+use Psr\Log\LoggerInterface;
 
-class InlineEdit extends Action
+class InlineEdit extends BaseAction
 {
     public const string ADMIN_RESOURCE = 'Polkurier_Shipping::carriers';
 
     /**
      * @param CarrierConfigRepositoryInterface $carrierConfigRepository
+     * @param PageFactory $resultPageFactory
+     * @param ForwardFactory $resultForwardFactory
      * @param JsonFactory $resultJsonFactory
+     * @param LoggerInterface $logger
      * @param Context $context
      */
     public function __construct(
         private readonly CarrierConfigRepositoryInterface $carrierConfigRepository,
-        private readonly JsonFactory $resultJsonFactory,
+        PageFactory $resultPageFactory,
+        ForwardFactory $resultForwardFactory,
+        JsonFactory $resultJsonFactory,
+        LoggerInterface $logger,
         Context $context
     ) {
-        parent::__construct($context);
+        parent::__construct($resultPageFactory, $resultForwardFactory, $resultJsonFactory, $logger, $context);
     }
 
     /**
-     * @return ResultInterface
+     * @return Json
      */
-    public function execute(): ResultInterface
+    public function execute(): Json
     {
         $resultJson = $this->resultJsonFactory->create();
         $postItems = $this->getRequest()->getParam('items', []);
@@ -88,41 +95,5 @@ class InlineEdit extends Action
                 [Fixed::PRICE_INFO_PRICE => (float)$carrierConfigData[Fixed::PRICE_INFO_PRICE]]
             );
         }
-    }
-
-    /**
-     * Get array with errors
-     *
-     * @return string[]
-     */
-    private function getErrorMessages(): array
-    {
-        $messages = [];
-        foreach ($this->getMessageManager()->getMessages()->getErrors() as $error) {
-            $messages[] = $error->getText();
-        }
-
-        return $messages;
-    }
-
-    /**
-     * Check if errors exists
-     *
-     * @return bool
-     */
-    private function isErrorExists(): bool
-    {
-        return (bool)$this->getMessageManager()->getMessages(true)
-            ->getCountByType(MessageInterface::TYPE_ERROR);
-    }
-
-    /**
-     * @param Phrase $message
-     *
-     * @return void
-     */
-    private function addError(Phrase $message): void
-    {
-        $this->getMessageManager()->addErrorMessage($message);
     }
 }

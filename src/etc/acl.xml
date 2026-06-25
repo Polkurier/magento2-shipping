@@ -11,6 +11,7 @@
                 <resource id="Polkurier_Shipping::root" title="Polkurier" sortOrder="1000">
                     <resource id="Polkurier_Shipping::sales" title="Sales" translate="title" sortOrder="10">
                         <resource id="Polkurier_Shipping::orders" title="Orders" translate="title" sortOrder="10" />
+                        <resource id="Polkurier_Shipping::shipments" title="Shipments" translate="title" sortOrder="20" />
                     </resource>
                     <resource id="Polkurier_Shipping::settings" title="Settings" translate="title" sortOrder="20">
                         <resource id="Polkurier_Shipping::addresses" title="Addresses" translate="title" sortOrder="10" />

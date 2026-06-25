@@ -19,6 +19,7 @@ use Magento\Framework\Registry;
 use Polkurier\Shipping\Api\CarrierConfigRepositoryInterface;
 use Polkurier\Shipping\Model\CarrierConfigFactory;
 use Polkurier\Shipping\Model\Ext\CarrierProvider;
+use Polkurier\Webservice\Exception\AuthorizationException;
 
 class AvailableCarriers extends Value
 {
@@ -72,27 +73,30 @@ class AvailableCarriers extends Value
         /** @var string[] $value */
         $value = $this->getValue() ?: [];
         $carriersToAdd = \array_flip($value);
-        $carrierConfigs = $this->configRepository->findAll();
-        $extCarriersData = $this->carrierProvider->getAvailableCarriers(true);
+        try {
+            $carrierConfigs = $this->configRepository->findAll();
+            $extCarriersData = $this->carrierProvider->getAvailableCarriers(true);
 
-        // Update existing entries and remove the redundant
-        foreach ($carrierConfigs as $config) {
-            unset($carriersToAdd[$config->getCarrierCode()]);
-            if (!\in_array($config->getCarrierCode(), $value)) {
-                $this->configRepository->delete($config);
-            } else {
-                $config->setExtData($this->serializer->toArray($extCarriersData[$config->getCarrierCode()]));
+            // Update existing entries and remove the redundant
+            foreach ($carrierConfigs as $config) {
+                unset($carriersToAdd[$config->getCarrierCode()]);
+                if (!\in_array($config->getCarrierCode(), $value)) {
+                    $this->configRepository->delete($config);
+                } else {
+                    $config->setExtData($this->serializer->toArray($extCarriersData[$config->getCarrierCode()]));
+                    $this->configRepository->save($config);
+                }
+            }
+
+            // Create new entries
+            $carriersToAdd = \array_flip($carriersToAdd);
+            foreach ($carriersToAdd as $carrierCode) {
+                $config = $this->configFactory->create();
+                $config->setCarrierCode($carrierCode);
+                $config->setExtData($this->serializer->toArray($extCarriersData[$carrierCode]));
                 $this->configRepository->save($config);
             }
-        }
-
-        // Create new entries
-        $carriersToAdd = \array_flip($carriersToAdd);
-        foreach ($carriersToAdd as $carrierCode) {
-            $config = $this->configFactory->create();
-            $config->setCarrierCode($carrierCode);
-            $config->setExtData($this->serializer->toArray($extCarriersData[$carrierCode]));
-            $this->configRepository->save($config);
+        } catch (AuthorizationException $e) {
         }
     }
 }

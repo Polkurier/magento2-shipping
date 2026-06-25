@@ -12,9 +12,9 @@ use Magento\Framework\Model\AbstractModel;
 use Polkurier\Shipping\Api\Data\PackTemplateInterface;
 use Polkurier\Shipping\Api\Data\ExternalEntityInterface;
 use Polkurier\Shipping\Model\ResourceModel\PackTemplate as PackTemplateResource;
-use Polkurier\Webservice\Api\Data\AdditionalServiceEnum;
-use Polkurier\Webservice\Api\Data\PackTypeEnum;
-use Polkurier\Webservice\Api\Data\ShipmentTypeEnum;
+use Polkurier\Webservice\Enum\AdditionalServiceEnum;
+use Polkurier\Webservice\Enum\PackTypeEnum;
+use Polkurier\Webservice\Enum\ShipmentTypeEnum;
 
 class PackTemplate extends AbstractModel implements PackTemplateInterface, ExternalEntityInterface
 {

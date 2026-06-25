@@ -11,6 +11,8 @@ use Magento\Backend\App\Action;
 use Magento\Backend\App\Action\Context;
 use Magento\Backend\Model\View\Result\ForwardFactory;
 use Magento\Framework\Controller\Result\JsonFactory;
+use Magento\Framework\Message\MessageInterface;
+use Magento\Framework\Phrase;
 use Magento\Framework\View\Result\PageFactory;
 use Psr\Log\LoggerInterface;
 
@@ -49,5 +51,41 @@ abstract class Index extends Action
         Context $context
     ) {
         parent::__construct($context);
+    }
+
+    /**
+     * Get array with errors
+     *
+     * @return string[]
+     */
+    protected function getErrorMessages(): array
+    {
+        $messages = [];
+        foreach ($this->getMessageManager()->getMessages()->getErrors() as $error) {
+            $messages[] = $error->getText();
+        }
+
+        return $messages;
+    }
+
+    /**
+     * Check if errors exists
+     *
+     * @return bool
+     */
+    protected function isErrorExists(): bool
+    {
+        return (bool)$this->getMessageManager()->getMessages(true)
+            ->getCountByType(MessageInterface::TYPE_ERROR);
+    }
+
+    /**
+     * @param Phrase $message
+     *
+     * @return void
+     */
+    protected function addError(Phrase $message): void
+    {
+        $this->getMessageManager()->addErrorMessage($message);
     }
 }

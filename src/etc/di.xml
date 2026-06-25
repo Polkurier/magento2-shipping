@@ -11,6 +11,7 @@
     <preference for="Polkurier\Shipping\Api\Data\BankAccountInterface" type="Polkurier\Shipping\Model\BankAccount" />
     <preference for="Polkurier\Shipping\Api\Data\CarrierConfigInterface" type="Polkurier\Shipping\Model\CarrierConfig" />
     <preference for="Polkurier\Shipping\Api\Data\PackTemplateInterface" type="Polkurier\Shipping\Model\PackTemplate" />
+    <preference for="Polkurier\Shipping\Api\Data\Quote\ShipmentDataInterface" type="Polkurier\Shipping\Model\Quote\ShipmentData" />
 
     <!-- Repositories -->
     <preference for="Polkurier\Shipping\Api\AddressRepositoryInterface"
@@ -63,8 +64,14 @@
     <type name="Magento\Framework\View\Element\UiComponent\DataProvider\CollectionFactory">
         <arguments>
             <argument name="collections" xsi:type="array">
+                <item name="polkurier_order_listing_data_source" xsi:type="string">
+                    Polkurier\Shipping\Model\ResourceModel\Order\Grid\Collection
+                </item>
+                <item name="polkurier_shipment_listing_data_source" xsi:type="string">
+                    Polkurier\Shipping\Model\ResourceModel\Order\Shipment\Grid\Collection
+                </item>
                 <item name="polkurier_carrier_config_listing_data_source" xsi:type="string">
-                    Polkurier\Shipping\Model\ResourceModel\CarrierConfig\Grid\CollectionVirtual
+                    Polkurier\Shipping\Model\ResourceModel\CarrierConfig\Grid\Collection
                 </item>
                 <item name="polkurier_address_listing_data_source" xsi:type="string">
                     Polkurier\Shipping\Model\ResourceModel\Address\Grid\CollectionVirtual
@@ -109,6 +116,15 @@
     </virtualType>
 
     <!-- Business logic -->
+    <type name="Magento\Quote\Api\CartRepositoryInterface">
+        <plugin name="polkurier_quote_extension_attributes" type="Polkurier\Shipping\Plugin\QuoteRepositoryPlugin" />
+    </type>
+    <type name="Magento\Sales\Api\OrderRepositoryInterface">
+        <plugin name="polkurier_order_extension_attributes" type="Polkurier\Shipping\Plugin\OrderRepositoryPlugin" />
+    </type>
+    <type name="Magento\Sales\Api\ShipmentRepositoryInterface">
+        <plugin name="polkurier_shipment_extension_attributes" type="Polkurier\Shipping\Plugin\ShipmentRepositoryPlugin" />
+    </type>
     <type name="Polkurier\Shipping\Model\Shipment\PriceCalculatorPool">
         <arguments>
             <argument name="priceCalculators" xsi:type="array">
@@ -230,6 +246,11 @@
                  type="Polkurier\Webservice\Model\Entity\Carrier\AdditionalData\Pickup" />
     <preference for="Polkurier\Webservice\Api\Data\Entity\Carrier\AdditionalData\PickupInterface"
                 type="Polkurier\Shipping\Model\Entity\Carrier\AdditionalData\PickupVirtual" />
+
+    <virtualType name="Polkurier\Shipping\Model\Entity\Carrier\AdditionalData\PointsMapVirtual"
+                 type="Polkurier\Webservice\Model\Entity\Carrier\AdditionalData\PointsMap" />
+    <preference for="Polkurier\Webservice\Api\Data\Entity\Carrier\AdditionalData\PointsMapInterface"
+                type="Polkurier\Shipping\Model\Entity\Carrier\AdditionalData\PointsMapVirtual" />
 
     <virtualType name="Polkurier\Shipping\Model\Entity\Carrier\AdditionalData\PropertyVirtual"
                  type="Polkurier\Webservice\Model\Entity\Carrier\AdditionalData\Property" />

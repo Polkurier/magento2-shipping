@@ -14,6 +14,9 @@
         <add id="Polkurier_Shipping::orders" title="Orders" translate="title" module="Polkurier_Shipping"
              sortOrder="10" parent="Polkurier_Shipping::sales" action="polkurier/order/index"
              resource="Polkurier_Shipping::orders" />
+        <add id="Polkurier_Shipping::shipments" title="Shipments" translate="title" module="Polkurier_Shipping"
+             sortOrder="20" parent="Polkurier_Shipping::sales" action="polkurier/shipment/index"
+             resource="Polkurier_Shipping::shipments" />
 
         <add id="Polkurier_Shipping::settings" title="Settings" translate="title" module="Polkurier_Shipping"
              sortOrder="20" parent="Polkurier_Shipping::root" resource="Polkurier_Shipping::settings" />

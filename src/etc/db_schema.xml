@@ -108,6 +108,20 @@
         </constraint>
     </table>
 
+    <!-- Cart -->
+    <table name="polkurier_quote" resource="checkout" engine="innodb">
+        <column xsi:type="int" name="quote_id" nullable="false" unsigned="true" />
+        <column xsi:type="varchar" name="carrier_code" nullable="false" length="50" />
+        <column xsi:type="varchar" name="point_id" nullable="true" length="50" />
+
+        <constraint xsi:type="primary" referenceId="PRIMARY">
+            <column name="quote_id" />
+        </constraint>
+        <constraint xsi:type="foreign" referenceId="POLKURIER_QUOTE_QUOTE_ID_QUOTE_QUOTE_ID"
+                    table="polkurier_quote" column="quote_id" referenceTable="quote"
+                    referenceColumn="entity_id" onDelete="CASCADE" />
+    </table>
+
     <!-- Orders -->
     <table name="polkurier_order" resource="sales" engine="innodb">
         <column xsi:type="int" name="order_id" identity="true" nullable="false" unsigned="true" />
@@ -127,7 +141,7 @@
         <column xsi:type="smallint" name="paid" nullable="false" default="0" />
         <column xsi:type="smallint" name="invoice" nullable="false" default="0" />
         <column xsi:type="decimal" name="insurance" scale="4" precision="20" unsigned="true" nullable="true" />
-        <column xsi:type="json" name="courier_service" nullable="false" />
+        <column xsi:type="json" name="courier_service" nullable="true" />
         <column xsi:type="datetime" name="pickup_from" nullable="true" />
         <column xsi:type="datetime" name="pickup_to" nullable="true" />
         <column xsi:type="smallint" name="pickup_no_courier_order" nullable="false" default="0" />

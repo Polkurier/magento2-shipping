@@ -7,6 +7,8 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Api\Data;
 
+use Polkurier\Shipping\Enum\PricingModelEnum;
+
 interface CarrierConfigInterface
 {
     /**
@@ -58,16 +60,16 @@ interface CarrierConfigInterface
     public function setImage(?string $image): void;
 
     /**
-     * @return \Polkurier\Shipping\Enum\PricingModelEnum
+     * @return PricingModelEnum
      */
-    public function getPricingModel(): \Polkurier\Shipping\Enum\PricingModelEnum;
+    public function getPricingModel(): PricingModelEnum;
 
     /**
-     * @param \Polkurier\Shipping\Enum\PricingModelEnum $pricingModel
+     * @param PricingModelEnum $pricingModel
      *
      * @return void
      */
-    public function setPricingModel(\Polkurier\Shipping\Enum\PricingModelEnum $pricingModel): void;
+    public function setPricingModel(PricingModelEnum $pricingModel): void;
 
     /**
      * @return array|null

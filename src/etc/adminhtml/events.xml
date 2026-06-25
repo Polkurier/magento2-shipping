@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<!--
+ ~ Copyright (c) 2026 Polkurier.pl
+ ~ All Rights Reserved
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:Event/etc/events.xsd">
+    <event name="sales_order_shipment_save_before">
+        <observer name="polkurier_shipping_save_shipment_data"
+                  instance="Polkurier\Shipping\Observer\ShipmentSaveBeforeObserver" />
+    </event>
+</config>

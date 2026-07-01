@@ -12,6 +12,13 @@
     <preference for="Polkurier\Shipping\Api\Data\CarrierConfigInterface" type="Polkurier\Shipping\Model\CarrierConfig" />
     <preference for="Polkurier\Shipping\Api\Data\PackTemplateInterface" type="Polkurier\Shipping\Model\PackTemplate" />
     <preference for="Polkurier\Shipping\Api\Data\Quote\ShipmentDataInterface" type="Polkurier\Shipping\Model\Quote\ShipmentData" />
+    <preference for="Polkurier\Shipping\Api\Data\OrderInterface" type="Polkurier\Shipping\Model\Order" />
+    <preference for="Polkurier\Shipping\Api\Data\Order\AddressInterface" type="Polkurier\Shipping\Model\Order\Address" />
+    <preference for="Polkurier\Shipping\Api\Data\Order\CodInterface" type="Polkurier\Shipping\Model\Order\Cod" />
+    <preference for="Polkurier\Shipping\Api\Data\Order\Cod\ReturnDetailsInterface" type="Polkurier\Shipping\Model\Order\Cod\ReturnDetails" />
+    <preference for="Polkurier\Shipping\Api\Data\Order\ItemInterface" type="Polkurier\Shipping\Model\Order\Item" />
+    <preference for="Polkurier\Shipping\Api\Data\Order\PackInterface" type="Polkurier\Shipping\Model\Order\Pack" />
+    <preference for="Polkurier\Shipping\Api\Data\Order\WaybillInterface" type="Polkurier\Shipping\Model\Order\Waybill" />
 
     <!-- Repositories -->
     <preference for="Polkurier\Shipping\Api\AddressRepositoryInterface"
@@ -22,6 +29,8 @@
                 type="Polkurier\Shipping\Model\Repository\CarrierConfigRepository" />
     <preference for="Polkurier\Shipping\Api\PackTemplateRepositoryInterface"
                 type="Polkurier\Shipping\Model\Repository\PackTemplateRepository" />
+    <preference for="Polkurier\Shipping\Api\OrderRepositoryInterface"
+                type="Polkurier\Shipping\Model\Repository\OrderRepository" />
 
     <!-- System configuration -->
     <type name="Magento\Config\Model\Config\TypePool">

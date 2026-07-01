@@ -91,8 +91,8 @@
         <column xsi:type="int" name="height" nullable="false" unsigned="true" />
         <column xsi:type="int" name="width" nullable="false" unsigned="true" />
         <column xsi:type="decimal" name="weight" scale="4" precision="12" unsigned="true" nullable="false" />
-        <column xsi:type="decimal" name="cod" scale="4" precision="20" unsigned="true" nullable="true" />
-        <column xsi:type="decimal" name="insurance" scale="4" precision="20" unsigned="true" nullable="true" />
+        <column xsi:type="decimal" name="cod_amount" scale="4" precision="20" unsigned="true" nullable="true" />
+        <column xsi:type="decimal" name="insurance_amount" scale="4" precision="20" unsigned="true" nullable="true" />
         <column xsi:type="varchar" name="shipment_type" nullable="false" length="50" />
         <column xsi:type="varchar" name="carrier_code" nullable="true" length="50" />
         <column xsi:type="text" name="services" nullable="true" />
@@ -113,6 +113,7 @@
         <column xsi:type="int" name="quote_id" nullable="false" unsigned="true" />
         <column xsi:type="varchar" name="carrier_code" nullable="false" length="50" />
         <column xsi:type="varchar" name="point_id" nullable="true" length="50" />
+        <column xsi:type="smallint" name="cod_available" nullable="false" default="0" />
 
         <constraint xsi:type="primary" referenceId="PRIMARY">
             <column name="quote_id" />
@@ -140,7 +141,7 @@
         <column xsi:type="decimal" name="unpaid_amount" scale="4" precision="20" unsigned="true" nullable="false" />
         <column xsi:type="smallint" name="paid" nullable="false" default="0" />
         <column xsi:type="smallint" name="invoice" nullable="false" default="0" />
-        <column xsi:type="decimal" name="insurance" scale="4" precision="20" unsigned="true" nullable="true" />
+        <column xsi:type="decimal" name="insurance_amount" scale="4" precision="20" unsigned="true" nullable="true" />
         <column xsi:type="json" name="courier_service" nullable="true" />
         <column xsi:type="datetime" name="pickup_from" nullable="true" />
         <column xsi:type="datetime" name="pickup_to" nullable="true" />
@@ -200,6 +201,10 @@
         <constraint xsi:type="primary" referenceId="PRIMARY">
             <column name="address_id" />
         </constraint>
+        <constraint xsi:type="unique" referenceId="ORDER_ID_TYPE">
+            <column name="order_id" />
+            <column name="type" />
+        </constraint>
         <constraint xsi:type="foreign" referenceId="POLKURIER_ORDER_ADDRESS_ORDER_ID_POLKURIER_ORDER_ORDER_ID"
                     table="polkurier_order_address" column="order_id" referenceTable="polkurier_order"
                     referenceColumn="order_id" onDelete="CASCADE" />
@@ -214,10 +219,8 @@
         <column xsi:type="int" name="width" nullable="false" unsigned="true" />
         <column xsi:type="decimal" name="weight" scale="4" precision="12" unsigned="true" nullable="false" />
         <column xsi:type="int" name="amount" nullable="false" unsigned="false" />
-        <column xsi:type="decimal" name="cod" scale="4" precision="20" unsigned="true" nullable="true" />
-        <column xsi:type="decimal" name="insurance" scale="4" precision="20" unsigned="true" nullable="true" />
-        <column xsi:type="decimal" name="price_net" scale="4" precision="20" unsigned="true" nullable="false" />
-        <column xsi:type="decimal" name="price_gross" scale="4" precision="20" unsigned="true" nullable="false" />
+        <column xsi:type="decimal" name="price_net" scale="4" precision="20" unsigned="true" nullable="true" />
+        <column xsi:type="decimal" name="price_gross" scale="4" precision="20" unsigned="true" nullable="true" />
 
         <constraint xsi:type="primary" referenceId="PRIMARY">
             <column name="pack_id" />
@@ -243,7 +246,7 @@
                     referenceColumn="order_id" onDelete="CASCADE" />
     </table>
 
-    <table name="polkurier_order_cod_history" resource="sales" engine="innodb">
+    <table name="polkurier_order_cod_return_details" resource="sales" engine="innodb">
         <column xsi:type="int" name="item_id" identity="true" nullable="false" unsigned="true" />
         <column xsi:type="int" name="order_id" nullable="false" unsigned="true" />
         <column xsi:type="varchar" name="reason" nullable="false" length="50" />

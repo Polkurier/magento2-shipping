@@ -20,4 +20,16 @@ class Collection extends AbstractCollection
     {
         $this->_init(Item::class, ItemResource::class);
     }
+
+    /**
+     * @param int $orderId
+     *
+     * @return $this
+     */
+    public function addOrderFilter(int $orderId): self
+    {
+        $this->addFieldToFilter(Item::FIELD_ORDER_ID, ['eq' => $orderId]);
+
+        return $this;
+    }
 }

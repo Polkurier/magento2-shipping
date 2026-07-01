@@ -8,22 +8,60 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Model;
 
 use Magento\Quote\Api\Data\AddressInterface as QuoteAddressInterface;
-use Polkurier\Webservice\Api\Data\Entity\BaseAddressInterface;
-use Polkurier\Webservice\Api\Data\Entity\BaseAddressInterfaceFactory;
+use Polkurier\Shipping\Api\Data\AddressInterface as ConfigAddressInterface;
+use Polkurier\Shipping\Api\Data\Order\AddressInterface;
+use Polkurier\Shipping\Api\Data\Order\AddressInterfaceFactory;
 
 readonly class AddressMapper
 {
+    /**
+     * @param AddressInterfaceFactory $addressFactory
+     */
     public function __construct(
-        private BaseAddressInterfaceFactory $addressFactory,
+        private AddressInterfaceFactory $addressFactory,
     ) {}
 
-    public function mapToWebservice(QuoteAddressInterface $address): BaseAddressInterface
+    /**
+     * @param QuoteAddressInterface $quoteAddress
+     *
+     * @return AddressInterface
+     */
+    public function mapQuoteAddress(QuoteAddressInterface $quoteAddress): AddressInterface
     {
-//        preg_match('/^(?:(\d+\w?) )?([\w\s\d\-\.]+)(?: (\d+\w?))?$/', $address->getStreet(), $matches);
-//        $this->addressFactory->create([
-//            'person' => $address->getFirstname() . ' ' . $address->getLastname(),
-//            'company' => $address->getCompany(),
-//            'street' => $address->getStreet(),
-//        ]);
+        $address = $this->addressFactory->create();
+        $address->setPerson($quoteAddress->getFirstname() . ' ' . $quoteAddress->getLastname());
+        $address->setCompany($quoteAddress->getCompany());
+        $address->setStreet(\implode("\n", $quoteAddress->getStreet()));
+        $address->setCity($quoteAddress->getCity());
+        $address->setPostcode($quoteAddress->getPostcode());
+        $address->setCountry($quoteAddress->getCountryId());
+        $address->setEmail($quoteAddress->getEmail());
+        $address->setPhone($quoteAddress->getTelephone());
+
+        return $address;
+    }
+
+    /**
+     * @param ConfigAddressInterface $configAddress
+     *
+     * @return AddressInterface
+     */
+    public function mapConfigAddress(ConfigAddressInterface $configAddress): AddressInterface
+    {
+        $address = $this->addressFactory->create();
+        $address->setPerson($configAddress->getPerson());
+        $address->setCompany($configAddress->getCompany());
+        $street = $configAddress->getStreet() . ' ' . $configAddress->getHouseNumber();
+        if ($configAddress->getFlatNumber()) {
+            $street .= '/' . $configAddress->getFlatNumber();
+        }
+        $address->setStreet($street);
+        $address->setCity($configAddress->getCity());
+        $address->setPostcode($configAddress->getPostcode());
+        $address->setCountry($configAddress->getCountry());
+        $address->setEmail($configAddress->getEmail());
+        $address->setPhone($configAddress->getPhone());
+
+        return $address;
     }
 }

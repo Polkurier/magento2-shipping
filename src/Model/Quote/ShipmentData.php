@@ -15,8 +15,9 @@ use Polkurier\Shipping\Model\ResourceModel\Quote\ShipmentData as ShipmentDataRes
 class ShipmentData extends AbstractModel implements ShipmentDataInterface
 {
     public const string FIELD_QUOTE_ID = 'quote_id';
-    public const string FIELD_CARRIER_CODE = 'carrier_codee';
+    public const string FIELD_CARRIER_CODE = 'carrier_code';
     public const string FIELD_POINT_ID = 'point_id';
+    public const string FIELD_COD_AVAILABLE = 'cod_available';
 
     /**
      * @return void
@@ -28,19 +29,19 @@ class ShipmentData extends AbstractModel implements ShipmentDataInterface
     }
 
     /**
-     * @return int
+     * @return int|null
      */
-    public function getQuoteId(): int
+    public function getQuoteId(): ?int
     {
-        return (int)$this->getData(static::FIELD_QUOTE_ID);
+        return (int)$this->getData(static::FIELD_QUOTE_ID) ?: null;
     }
 
     /**
-     * @param int $quoteId
+     * @param int|null $quoteId
      *
      * @return void
      */
-    public function setQuoteId(int $quoteId): void
+    public function setQuoteId(?int $quoteId): void
     {
         $this->setData(static::FIELD_QUOTE_ID, $quoteId);
     }
@@ -79,5 +80,23 @@ class ShipmentData extends AbstractModel implements ShipmentDataInterface
     public function setPointId(?string $pointId): void
     {
         $this->setData(static::FIELD_POINT_ID, $pointId);
+    }
+
+    /**
+     * @return bool
+     */
+    public function isCodAvailable(): bool
+    {
+        return (bool)$this->getData(static::FIELD_COD_AVAILABLE);
+    }
+
+    /**
+     * @param bool $codAvailable
+     *
+     * @return void
+     */
+    public function setCodAvailable(bool $codAvailable): void
+    {
+        $this->setData(static::FIELD_COD_AVAILABLE, $codAvailable);
     }
 }

@@ -21,6 +21,7 @@ readonly class ShipmentRepositoryPlugin
      * @param ShipmentExtensionFactory $extensionFactory
      * @param OrderInterfaceFactory $orderFactory
      * @param OrderRepositoryInterface $orderRepository
+     * @param ShipmentHelper $shipmentHelper
      */
     public function __construct(
         /**
@@ -37,6 +38,11 @@ readonly class ShipmentRepositoryPlugin
          * @var OrderRepositoryInterface
          */
         private OrderRepositoryInterface $orderRepository,
+
+        /**
+         * @var ShipmentHelper
+         */
+        private ShipmentHelper $shipmentHelper,
     ) {}
 
     /**
@@ -71,18 +77,18 @@ readonly class ShipmentRepositoryPlugin
      * @param ShipmentRepositoryInterface $subject
      * @param ShipmentInterface $shipment
      *
-     * @return array
+     * @return ShipmentInterface
      */
-    public function beforeSave(ShipmentRepositoryInterface $subject, ShipmentInterface $shipment): array
+    public function afterSave(ShipmentRepositoryInterface $subject, ShipmentInterface $shipment): ShipmentInterface
     {
-        if (ShipmentHelper::isShipmentPolkurierShipment($shipment)
+        if ($this->shipmentHelper->isShipmentPolkurierShipment($shipment)
             && $polkurierOrder = $shipment->getExtensionAttributes()?->getPolkurierShipmentData()
         ) {
-            $polkurierOrder->setParentShipmentId($shipment->getId());
+            $polkurierOrder->setParentShipmentId((int)$shipment->getId());
             $this->orderRepository->save($polkurierOrder);
         }
 
-        return [$shipment];
+        return $shipment;
     }
 
     /**
@@ -94,7 +100,7 @@ readonly class ShipmentRepositoryPlugin
     {
         $extensionAttributes = $shipment->getExtensionAttributes() ?: $this->extensionFactory->create();
         $polkurierOrder = $this->orderFactory->create();
-        if (ShipmentHelper::isShipmentPolkurierShipment($shipment)) {
+        if ($this->shipmentHelper->isShipmentPolkurierShipment($shipment)) {
             $this->orderRepository->findOneByOrderId($shipment->getOrder()->getId());
         }
         $extensionAttributes->setPolkurierShipmentData($polkurierOrder);

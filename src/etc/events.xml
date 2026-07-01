@@ -9,4 +9,8 @@
         <observer name="polkurier_shipping_copy_shipment_data_to_order"
                   instance="Polkurier\Shipping\Observer\QuoteSubmitBeforeObserver" />
     </event>
+    <event name="polkurier_order_save_after">
+        <observer name="polkurier_shipping_order_save_after"
+                  instance="Polkurier\Shipping\Observer\PolkurierOrderSaveAfterObserver" />
+    </event>
 </config>

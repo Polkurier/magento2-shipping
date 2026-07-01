@@ -21,4 +21,5 @@ class Order extends AbstractDb
     {
         $this->_init(static::TABLE_NAME, static::ID_FIELD);
     }
+
 }

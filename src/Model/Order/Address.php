@@ -8,23 +8,32 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Model\Order;
 
 use Magento\Framework\Exception\LocalizedException;
-use Magento\Framework\Model\AbstractModel;
+use Polkurier\Shipping\Api\Data\Order\AddressInterface;
+use Polkurier\Shipping\Api\Data\OrderInterface;
+use Polkurier\Shipping\Model\AbstractAddress;
 use Polkurier\Shipping\Model\ResourceModel\Order\Address as AddressResource;
 
-class Address extends AbstractModel
+/**
+ * @property AddressResource $_resource
+ */
+class Address extends AbstractAddress implements AddressInterface
 {
-    public const string FIELD_ADDRESS_ID = 'address_id';
     public const string FIELD_ORDER_ID = 'order_id';
-    public const string FIELD_TYPE = 'type';
-    public const string FIELD_PERSON = 'person';
-    public const string FIELD_COMPANY = 'company';
-    public const string FIELD_STREET = 'street';
-    public const string FIELD_CITY = 'city';
-    public const string FIELD_POSTCODE = 'postcode';
-    public const string FIELD_COUNTRY = 'country';
-    public const string FIELD_POINT_ID = 'point_id';
-    public const string FIELD_EMAIL = 'email';
-    public const string FIELD_PHONE = 'phone';
+
+    /**
+     * @var string
+     */
+    protected $_eventPrefix = 'polkurier_order_address';
+
+    /**
+     * @var string
+     */
+    protected $_eventObject = 'polkurier_order_address';
+
+    /**
+     * @var OrderInterface|null
+     */
+    private ?OrderInterface $order = null;
 
     /**
      * @return void
@@ -33,5 +42,66 @@ class Address extends AbstractModel
     protected function _construct(): void
     {
         $this->_init(AddressResource::class);
+    }
+
+    /**
+     * @return int
+     */
+    public function getOrderId(): int
+    {
+        return $this->getData(static::FIELD_ORDER_ID);
+    }
+
+    /**
+     * @param int $orderId
+     *
+     * @return void
+     */
+    public function setOrderId(int $orderId): void
+    {
+        $this->setData(static::FIELD_ORDER_ID, $orderId);
+        if ($this->order?->getOrderId() !== $orderId) {
+            $this->order = null;
+        }
+    }
+
+    /**
+     * @return OrderInterface
+     */
+    public function getOrder(): OrderInterface
+    {
+        if (!$this->order) {
+            $this->order = $this->_resource->loadOrder($this);
+        }
+
+        return $this->order;
+    }
+
+    /**
+     * @param OrderInterface $order
+     *
+     * @return void
+     */
+    public function setOrder(OrderInterface $order): void
+    {
+        $this->order = $order;
+        $this->setOrderId($order->getOrderId());
+    }
+
+    /**
+     * @return string|null
+     */
+    public function getProvince(): ?string
+    {
+        return null;
+    }
+
+    /**
+     * @param string|null $province
+     *
+     * @return void
+     */
+    public function setProvince(?string $province): void
+    {
     }
 }

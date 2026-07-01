@@ -62,6 +62,17 @@ readonly class AddressRepository implements AddressRepositoryInterface, External
     }
 
     /**
+     * @return AddressInterface|null
+     */
+    public function findOneDefault(): ?AddressInterface
+    {
+        $address = $this->entityFactory->create();
+        $this->resource->load($address, 1, Address::FIELD_DEFAULT);
+
+        return $address->getId() ? $address : null;
+    }
+
+    /**
      * @param AddressInterface $address
      *
      * @return AddressInterface

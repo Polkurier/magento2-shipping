@@ -13,16 +13,16 @@ namespace Polkurier\Shipping\Api\Data\Quote;
 interface ShipmentDataInterface
 {
     /**
-     * @return int
+     * @return int|null
      */
-    public function getQuoteId(): int;
+    public function getQuoteId(): ?int;
 
     /**
-     * @param int $quoteId
+     * @param int|null $quoteId
      *
      * @return void
      */
-    public function setQuoteId(int $quoteId): void;
+    public function setQuoteId(?int $quoteId): void;
 
     /**
      * @return string
@@ -47,4 +47,16 @@ interface ShipmentDataInterface
      * @return void
      */
     public function setPointId(?string $pointId): void;
+
+    /**
+     * @return bool
+     */
+    public function isCodAvailable(): bool;
+
+    /**
+     * @param bool $codAvailable
+     *
+     * @return void
+     */
+    public function setCodAvailable(bool $codAvailable): void;
 }

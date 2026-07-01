@@ -20,4 +20,26 @@ class Collection extends AbstractCollection
     {
         $this->_init(Waybill::class, WaybillResource::class);
     }
+
+    /**
+     * @param int $orderId
+     *
+     * @return $this
+     */
+    public function addOrderFilter(int $orderId): self
+    {
+        $this->addFieldToFilter(Waybill::FIELD_ORDER_ID, ['eq' => $orderId]);
+
+        return $this;
+    }
+
+    /**
+     * @return $this
+     */
+    public function sortDefault(): self
+    {
+        $this->getSelect()->order(Waybill::FIELD_NUMBER . ' ' . static::SORT_ORDER_DESC);
+
+        return $this;
+    }
 }

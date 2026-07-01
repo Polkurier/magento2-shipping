@@ -28,6 +28,16 @@ class CarrierConfig extends AbstractModel implements CarrierConfigInterface
     public const PricingModelEnum DEFAULT_PRICING_MODEL = PricingModelEnum::FIXED;
 
     /**
+     * @var string
+     */
+    protected $_eventPrefix = 'polkurier_carrier_config';
+
+    /**
+     * @var string
+     */
+    protected $_eventObject = 'polkurier_carrier_config';
+
+    /**
      * @return void
      * @throws LocalizedException
      */

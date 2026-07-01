@@ -10,18 +10,44 @@ namespace Polkurier\Shipping\Helper;
 use Magento\Quote\Api\Data\CartInterface;
 use Magento\Sales\Api\Data\OrderInterface;
 use Magento\Sales\Api\Data\ShipmentInterface;
+use Polkurier\Shipping\Api\CarrierConfigRepositoryInterface;
 use Polkurier\Shipping\Model\PolkurierCarrier;
+use Polkurier\Webservice\Model\Entity\Carrier;
+use Polkurier\Webservice\Model\Entity\Carrier\AdditionalData;
+use Polkurier\Webservice\Model\Entity\Carrier\AdditionalData\Property;
 
 readonly class ShipmentHelper
 {
+    /**
+     * @param CarrierConfigRepositoryInterface $carrierConfigRepository
+     */
+    public function __construct(
+        private CarrierConfigRepositoryInterface $carrierConfigRepository,
+    ) {}
+
+    /**
+     * @param string $carrierCode
+     *
+     * @return bool
+     */
+    public function isCodAvailableForCarrier(string $carrierCode): bool
+    {
+        $carrierConfig = $this->carrierConfigRepository->findOneByCode($carrierCode)?->getExtData();
+
+        return $carrierConfig[Carrier::FIELD_ADDITIONAL_DATA][AdditionalData::FIELD_COD][Property::FIELD_AVAILABLE]
+            ?? false;
+    }
+
     /**
      * @param CartInterface $quote
      *
      * @return bool
      */
-    public static function isQuotePolkurierShipment(CartInterface $quote): bool
+    public function isQuotePolkurierShipment(CartInterface $quote): bool
     {
-        return \explode('_', $quote->getShippingAddress()->getShippingMethod())[0] === PolkurierCarrier::CODE;
+        $carrierCode = \explode('_', (string)$quote->getShippingAddress()->getShippingMethod())[0];
+
+        return $carrierCode === PolkurierCarrier::CODE;
     }
 
     /**
@@ -29,9 +55,11 @@ readonly class ShipmentHelper
      *
      * @return bool
      */
-    public static function isOrderPolkurierShipment(OrderInterface $order): bool
+    public function isOrderPolkurierShipment(OrderInterface $order): bool
     {
-        return \explode('_', $order->getShippingMethod())[0] === PolkurierCarrier::CODE;
+        $carrierCode = \explode('_', (string)$order->getShippingMethod())[0];
+
+        return $carrierCode === PolkurierCarrier::CODE;
     }
 
     /**
@@ -39,8 +67,24 @@ readonly class ShipmentHelper
      *
      * @return bool
      */
-    public static function isShipmentPolkurierShipment(ShipmentInterface $shipment): bool
+    public function isShipmentPolkurierShipment(ShipmentInterface $shipment): bool
     {
-        return \explode('_', $shipment->getOrder()->getShippingMethod())[0] === PolkurierCarrier::CODE;
+        $carrierCode = \explode('_', (string)$shipment->getOrder()->getShippingMethod())[0];
+
+        return $carrierCode === PolkurierCarrier::CODE;
+    }
+
+    /**
+     * @param CartInterface $quote
+     *
+     * @return string
+     */
+    public function getCarrierCode(CartInterface $quote): string
+    {
+        return \preg_replace(
+            '/^' . PolkurierCarrier::CODE . '_/',
+            '',
+            $quote->getShippingAddress()->getShippingMethod()
+        );
     }
 }

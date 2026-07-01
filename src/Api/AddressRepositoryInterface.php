@@ -24,6 +24,11 @@ interface AddressRepositoryInterface
     public function findOneById(int $id): ?AddressInterface;
 
     /**
+     * @return AddressInterface|null
+     */
+    public function findOneDefault(): ?AddressInterface;
+
+    /**
      * @param AddressInterface $address
      *
      * @return AddressInterface

@@ -11,6 +11,7 @@ use Magento\Framework\Exception\AlreadyExistsException;
 use Magento\Framework\Exception\LocalizedException;
 use Polkurier\Shipping\Api\CarrierConfigRepositoryInterface;
 use Polkurier\Shipping\Api\Data\CarrierConfigInterface;
+use Polkurier\Shipping\Model\CarrierConfig;
 use Polkurier\Shipping\Model\CarrierConfigFactory;
 use Polkurier\Shipping\Model\ResourceModel\CarrierConfig as CarrierConfigResource;
 use Polkurier\Shipping\Model\ResourceModel\CarrierConfig\CollectionFactory;
@@ -76,14 +77,10 @@ readonly class CarrierConfigRepository implements CarrierConfigRepositoryInterfa
      */
     public function findOneByCode(string $code): ?CarrierConfigInterface
     {
-        $data = $this->resource->loadByCode($code);
-        if (!$data) {
-            return null;
-        }
         $carrierConfig = $this->entityFactory->create();
-        $carrierConfig->setData($data);
+        $this->resource->load($carrierConfig, $code, CarrierConfig::FIELD_CARRIER_CODE);
 
-        return $carrierConfig;
+        return $carrierConfig->getId() ? $carrierConfig : null;
     }
 
     /**

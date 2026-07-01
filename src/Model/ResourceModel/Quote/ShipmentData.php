@@ -15,6 +15,11 @@ class ShipmentData extends AbstractDb
     public const string ID_FIELD = 'quote_id';
 
     /**
+     * @var bool
+     */
+    protected $_isPkAutoIncrement = false;
+
+    /**
      * @return void
      */
     protected function _construct(): void

@@ -8,32 +8,34 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Model;
 
 use Magento\Framework\Exception\LocalizedException;
-use Magento\Framework\Model\AbstractModel;
 use Polkurier\Shipping\Api\Data\PackTemplateInterface;
 use Polkurier\Shipping\Api\Data\ExternalEntityInterface;
 use Polkurier\Shipping\Model\ResourceModel\PackTemplate as PackTemplateResource;
 use Polkurier\Webservice\Enum\AdditionalServiceEnum;
-use Polkurier\Webservice\Enum\PackTypeEnum;
 use Polkurier\Webservice\Enum\ShipmentTypeEnum;
 
-class PackTemplate extends AbstractModel implements PackTemplateInterface, ExternalEntityInterface
+class PackTemplate extends AbstractPack implements PackTemplateInterface, ExternalEntityInterface
 {
+    use ExternalEntityTrait;
+
     public const string FIELD_TEMPLATE_ID = 'template_id';
-    public const string FIELD_EXT_ID = 'ext_id';
-    public const string FIELD_CREATED_AT = 'created_at';
-    public const string FIELD_UPDATED_AT = 'updated_at';
     public const string FIELD_NAME = 'name';
     public const string FIELD_DESCRIPTION = 'description';
-    public const string FIELD_TYPE = 'type';
-    public const string FIELD_LENGTH = 'length';
-    public const string FIELD_HEIGHT = 'height';
-    public const string FIELD_WIDTH = 'width';
-    public const string FIELD_WEIGHT = 'weight';
     public const string FIELD_SHIPMENT_TYPE = 'shipment_type';
     public const string FIELD_COD = 'cod';
     public const string FIELD_INSURANCE = 'insurance';
     public const string FIELD_CARRIER_CODE = 'carrier_code';
     public const string FIELD_SERVICES = 'services';
+
+    /**
+     * @var string
+     */
+    protected $_eventPrefix = 'polkurier_pack_template';
+
+    /**
+     * @var string
+     */
+    protected $_eventObject = 'polkurier_pack_template';
 
     /**
      * @return void
@@ -63,150 +65,6 @@ class PackTemplate extends AbstractModel implements PackTemplateInterface, Exter
     }
 
     /**
-     * @return string|null
-     */
-    public function getExtId(): ?string
-    {
-        return $this->getData(static::FIELD_EXT_ID);
-    }
-
-    /**
-     * @param string|null $extId
-     *
-     * @return void
-     */
-    public function setExtId(?string $extId): void
-    {
-        $this->setData(static::FIELD_EXT_ID, $extId);
-    }
-
-    /**
-     * @return \DateTimeInterface
-     */
-    public function getCreatedAt(): \DateTimeInterface
-    {
-        return $this->getData(static::FIELD_CREATED_AT);
-    }
-
-    /**
-     * @param \DateTimeInterface $createdAt
-     *
-     * @return void
-     */
-    public function setCreatedAt(\DateTimeInterface $createdAt): void
-    {
-        $this->setData(static::FIELD_CREATED_AT, $createdAt);
-    }
-
-    /**
-     * @return \DateTimeInterface
-     */
-    public function getUpdatedAt(): \DateTimeInterface
-    {
-        return $this->getData(static::FIELD_UPDATED_AT);
-    }
-
-    /**
-     * @param \DateTimeInterface $updatedAt
-     *
-     * @return void
-     */
-    public function setUpdatedAt(\DateTimeInterface $updatedAt): void
-    {
-        $this->setData(static::FIELD_UPDATED_AT, $updatedAt);
-    }
-
-    /**
-     * @return int
-     */
-    public function getLength(): int
-    {
-        return $this->getData(static::FIELD_LENGTH);
-    }
-
-    /**
-     * @param int $length
-     *
-     * @return void
-     */
-    public function setLength(int $length): void
-    {
-        $this->setData(static::FIELD_LENGTH, $length);
-    }
-
-    /**
-     * @return int
-     */
-    public function getWidth(): int
-    {
-        return $this->getData(static::FIELD_WIDTH);
-    }
-
-    /**
-     * @param int $width
-     *
-     * @return void
-     */
-    public function setWidth(int $width): void
-    {
-        $this->setData(static::FIELD_WIDTH, $width);
-    }
-
-    /**
-     * @return int
-     */
-    public function getHeight(): int
-    {
-        return $this->getData(static::FIELD_HEIGHT);
-    }
-
-    /**
-     * @param int $height
-     *
-     * @return void
-     */
-    public function setHeight(int $height): void
-    {
-        $this->setData(static::FIELD_HEIGHT, $height);
-    }
-
-    /**
-     * @return float
-     */
-    public function getWeight(): float
-    {
-        return $this->getData(static::FIELD_WEIGHT);
-    }
-
-    /**
-     * @param float $weight
-     *
-     * @return void
-     */
-    public function setWeight(float $weight): void
-    {
-        $this->setData(static::FIELD_WEIGHT, $weight);
-    }
-
-    /**
-     * @return PackTypeEnum
-     */
-    public function getType(): PackTypeEnum
-    {
-        return $this->getData(static::FIELD_TYPE);
-    }
-
-    /**
-     * @param PackTypeEnum $type
-     *
-     * @return void
-     */
-    public function setType(PackTypeEnum $type): void
-    {
-        $this->setData(static::FIELD_TYPE, $type);
-    }
-
-    /**
      * @return string
      */
     public function getName(): string
@@ -229,7 +87,7 @@ class PackTemplate extends AbstractModel implements PackTemplateInterface, Exter
      */
     public function getShipmentType(): ShipmentTypeEnum
     {
-        return $this->getData(static::FIELD_SHIPMENT_TYPE);
+        return ShipmentTypeEnum::from($this->getData(static::FIELD_SHIPMENT_TYPE));
     }
 
     /**
@@ -239,7 +97,7 @@ class PackTemplate extends AbstractModel implements PackTemplateInterface, Exter
      */
     public function setShipmentType(ShipmentTypeEnum $shipmentType): void
     {
-        $this->setData(static::FIELD_SHIPMENT_TYPE, $shipmentType);
+        $this->setData(static::FIELD_SHIPMENT_TYPE, $shipmentType->value);
     }
 
     /**
@@ -319,7 +177,10 @@ class PackTemplate extends AbstractModel implements PackTemplateInterface, Exter
      */
     public function getServices(): array
     {
-        return $this->getData(static::FIELD_SERVICES);
+        return \array_map(
+            fn (string $service) => AdditionalServiceEnum::from($service),
+            \explode(',', (string)$this->getData(static::FIELD_SERVICES))
+        );
     }
 
     /**
@@ -329,6 +190,9 @@ class PackTemplate extends AbstractModel implements PackTemplateInterface, Exter
      */
     public function setServices(array $services): void
     {
-        $this->setData(static::FIELD_SERVICES, $services);
+        $this->setData(
+            static::FIELD_SERVICES,
+            \implode(',', \array_map(fn (AdditionalServiceEnum $service) => $service->value, $services))
+        );
     }
 }

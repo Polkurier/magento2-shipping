@@ -11,6 +11,7 @@ use Magento\Sales\Api\Data\OrderExtensionFactory;
 use Magento\Sales\Api\Data\OrderInterface;
 use Magento\Sales\Api\Data\OrderSearchResultInterface;
 use Magento\Sales\Api\OrderRepositoryInterface;
+use Polkurier\Shipping\Api\Data\OrderInterface as PolkurierOrderInterface;
 use Polkurier\Shipping\Api\Data\OrderInterfaceFactory;
 use Polkurier\Shipping\Api\OrderRepositoryInterface as PolkurierOrderRepositoryInterface;
 use Polkurier\Shipping\Helper\ShipmentHelper;
@@ -21,6 +22,7 @@ readonly class OrderRepositoryPlugin
      * @param OrderExtensionFactory $extensionFactory
      * @param OrderInterfaceFactory $polkurierOrderFactory
      * @param PolkurierOrderRepositoryInterface $polkurierOrderRepository
+     * @param ShipmentHelper $shipmentHelper
      */
     public function __construct(
         /**
@@ -37,6 +39,11 @@ readonly class OrderRepositoryPlugin
          * @var PolkurierOrderRepositoryInterface
          */
         private PolkurierOrderRepositoryInterface $polkurierOrderRepository,
+
+        /**
+         * @var ShipmentHelper
+         */
+        private ShipmentHelper $shipmentHelper,
     ) {}
 
     /**
@@ -47,7 +54,6 @@ readonly class OrderRepositoryPlugin
      */
     public function afterGet(OrderRepositoryInterface $subject, OrderInterface $order): OrderInterface
     {
-
         return $this->loadExtensionAttributes($order);
     }
 
@@ -72,18 +78,18 @@ readonly class OrderRepositoryPlugin
      * @param OrderRepositoryInterface $subject
      * @param OrderInterface $order
      *
-     * @return array
+     * @return OrderInterface
      */
-    public function beforeSave(OrderRepositoryInterface $subject, OrderInterface $order): array
+    public function afterSave(OrderRepositoryInterface $subject, OrderInterface $order): OrderInterface
     {
-        if (ShipmentHelper::isOrderPolkurierShipment($order)
+        if ($this->shipmentHelper->isOrderPolkurierShipment($order)
             && $polkurierOrder = $order->getExtensionAttributes()?->getPolkurierShipmentData()
         ) {
-            $polkurierOrder->setParentOrderId($order->getId());
+            $polkurierOrder->setParentOrderId((int)$order->getId());
             $this->polkurierOrderRepository->save($polkurierOrder);
         }
 
-        return [$order];
+        return $order;
     }
 
     /**
@@ -93,14 +99,24 @@ readonly class OrderRepositoryPlugin
      */
     private function loadExtensionAttributes(OrderInterface $order): OrderInterface
     {
-        $extensionAttributes = $order->getExtensionAttributes() ?: $this->extensionFactory->create();
-        $polkurierOrder = $this->polkurierOrderFactory->create();
-        if (ShipmentHelper::isOrderPolkurierShipment($order)) {
-            $this->polkurierOrderRepository->findOneByOrderId($order->getId());
+        if (!$this->shipmentHelper->isOrderPolkurierShipment($order)) {
+            return $order;
         }
-        $extensionAttributes->setPolkurierShipmentData($polkurierOrder);
+        $extensionAttributes = $order->getExtensionAttributes() ?: $this->extensionFactory->create();
+        $extensionAttributes->setPolkurierShipmentData(
+            $extensionAttributes->getPolkurierShipmentData()
+                ?: $this->initPolkurierShipmentData($order)
+        );
         $order->setExtensionAttributes($extensionAttributes);
 
         return $order;
+    }
+
+    /**
+     * @return PolkurierOrderInterface
+     */
+    public function initPolkurierShipmentData(): PolkurierOrderInterface
+    {
+
     }
 }

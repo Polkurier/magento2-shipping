@@ -7,7 +7,7 @@
         xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Config:etc/system_file.xsd">
     <system>
         <section id="carriers">
-            <group id="polkurier" translate="label" type="text" sortOrder="1000" showInDefault="1" showInWebsite="1" showInStore="1">
+            <group id="polkurier" translate="label" sortOrder="1000" showInDefault="1" showInWebsite="1">
                 <label>Polkurier</label>
                 <field id="api_availability" translate="label" type="label" sortOrder="1" showInDefault="1" showInWebsite="1">
                     <frontend_model>Polkurier\Shipping\Block\Adminhtml\System\Config\ApiAvailability</frontend_model>
@@ -19,7 +19,7 @@
                 <field id="sandbox_mode" translate="label comment" type="select" sortOrder="10" showInDefault="1" showInWebsite="1">
                     <label>Sandbox mode</label>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
-                    <comment>Contact api@polkurier.pl to receive access to sandbox instance of the service</comment>
+                    <comment><![CDATA[Contact api@polkurier.pl to receive access to sandbox instance of the service]]></comment>
                 </field>
                 <field id="customer_id" translate="label" type="obscure" sortOrder="20" showInDefault="1" showInWebsite="1">
                     <label>Customer ID</label>
@@ -35,13 +35,40 @@
                     <backend_model>Polkurier\Shipping\Model\Config\Backend\AvailableCarriers</backend_model>
                     <can_be_empty>1</can_be_empty>
                 </field>
-<!--                <field id="carrier_config" translate="label" sortOrder="60" showInDefault="1" showInWebsite="1">-->
-<!--                    <label>Carriers config</label>-->
-<!--                    <frontend_model>Polkurier\Shipping\Block\Adminhtml\System\Config\Form\Field\UiComponentRenderer</frontend_model>-->
-<!--&lt;!&ndash;                    <frontend_model>Polkurier\Shipping\Block\Adminhtml\System\Config\Form\Field\CarrierConfig</frontend_model>&ndash;&gt;-->
-<!--                    <backend_model>Magento\Config\Model\Config\Backend\Serialized\ArraySerialized</backend_model>-->
-<!--&lt;!&ndash;                    <backend_model>Polkurier\Shipping\Model\Config\Backend\ArraySerializedWithFiles</backend_model>&ndash;&gt;-->
-<!--                </field>-->
+                <group id="map" translate="label" sortOrder="1000" showInDefault="1" showInWebsite="1">
+                    <label>Map settings</label>
+                    <field id="default_latitude" translate="label comment" type="text" sortOrder="10" showInDefault="1" showInWebsite="1" canRestore="1">
+                        <label>Default latitude</label>
+                        <validate>validate-number</validate>
+                        <comment>Default latitude on which the map will be centered after initialization</comment>
+                    </field>
+                    <field id="default_longitude" translate="label comment" type="text" sortOrder="20" showInDefault="1" showInWebsite="1" canRestore="1">
+                        <label>Default longitude</label>
+                        <validate>validate-number</validate>
+                        <comment>Default longitude on which the map will be centered after initialization</comment>
+                    </field>
+                    <field id="default_zoom" translate="label comment" type="text" sortOrder="30" showInDefault="1" showInWebsite="1" canRestore="1">
+                        <label>Default zoom</label>
+                        <validate>validate-digits validate-zero-or-greater</validate>
+                        <comment>Default zoom with which the map will be initialized</comment>
+                    </field>
+                    <field id="show_list" translate="label comment" type="select" sortOrder="40" showInDefault="1" showInWebsite="1" canRestore="1">
+                        <label>Show point list</label>
+                        <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                        <comment>Displays a list of available pickup points next to the map</comment>
+                    </field>
+                    <field id="show_search_input" translate="label comment" type="select" sortOrder="50" showInDefault="1" showInWebsite="1" canRestore="1">
+                        <label>Show select button</label>
+                        <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                        <comment>Displays a search field for the pickup points</comment>
+                    </field>
+                    <field id="required_point_functions" translate="label comment" type="multiselect" sortOrder="60" showInDefault="1" showInWebsite="1" canRestore="1">
+                        <label>Required point functions</label>
+                        <source_model>Polkurier\Shipping\Model\Config\Source\PointFunctions</source_model>
+                        <can_be_empty>1</can_be_empty>
+                        <comment>Functions which have to be available at the pickup point for the pickup point to be shown on the map</comment>
+                    </field>
+                </group>
             </group>
         </section>
     </system>

@@ -128,9 +128,6 @@
     <type name="Magento\Quote\Api\CartRepositoryInterface">
         <plugin name="polkurier_quote_extension_attributes" type="Polkurier\Shipping\Plugin\QuoteRepositoryPlugin" />
     </type>
-    <type name="Magento\Sales\Api\OrderRepositoryInterface">
-        <plugin name="polkurier_order_extension_attributes" type="Polkurier\Shipping\Plugin\OrderRepositoryPlugin" />
-    </type>
     <type name="Magento\Sales\Api\ShipmentRepositoryInterface">
         <plugin name="polkurier_shipment_extension_attributes" type="Polkurier\Shipping\Plugin\ShipmentRepositoryPlugin" />
     </type>

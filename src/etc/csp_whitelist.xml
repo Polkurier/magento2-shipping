@@ -1,0 +1,49 @@
+<?xml version="1.0"?>
+<!--
+ ~ Copyright (c) 2026 Polkurier.pl
+ ~ All Rights Reserved
+-->
+<csp_whitelist xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+               xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Csp:etc/csp_whitelist.xsd">
+    <policies>
+        <policy id="style-src">
+            <values>
+                <value id="polkurier_maps" type="host">maps.polkurier.pl</value>
+                <value id="polkurier_maps_sandbox" type="host">maps-sandbox.polkurier.pl</value>
+                <!-- TODO: remove after development -->
+                <value id="polkurier_maps_local" type="host">maps.polkurier.local</value>
+                <value id="polkurier_maps_sandbox_local" type="host">maps-sandbox.polkurier.local</value>
+            </values>
+        </policy>
+        <policy id="script-src">
+            <values>
+                <value id="polkurier_maps" type="host">maps.polkurier.pl</value>
+                <value id="polkurier_maps_sandbox" type="host">maps-sandbox.polkurier.pl</value>
+                <!-- TODO: remove after development -->
+                <value id="polkurier_maps_local" type="host">maps.polkurier.local</value>
+                <value id="polkurier_maps_sandbox_local" type="host">maps-sandbox.polkurier.local</value>
+            </values>
+        </policy>
+        <policy id="connect-src">
+            <values>
+                <value id="polkurier_maps" type="host">maps.polkurier.pl</value>
+                <value id="polkurier_maps_sandbox" type="host">maps-sandbox.polkurier.pl</value>
+                <!-- TODO: remove after development -->
+                <value id="polkurier_maps_local" type="host">maps.polkurier.local</value>
+                <value id="polkurier_maps_sandbox_local" type="host">maps-sandbox.polkurier.local</value>
+            </values>
+        </policy>
+        <policy id="img-src">
+            <values>
+                <value id="polkurier_www" type="host">www.polkurier.pl</value>
+                <value id="polkurier_maps" type="host">maps.polkurier.pl</value>
+                <value id="polkurier_maps_sandbox" type="host">maps-sandbox.polkurier.pl</value>
+                <value id="polkurier_maps_openstreetmap" type="host">tile.openstreetmap.org</value>
+
+                <!-- TODO: remove after development -->
+                <value id="polkurier_maps_local" type="host">maps.polkurier.local</value>
+                <value id="polkurier_maps_sandbox_local" type="host">maps-sandbox.polkurier.local</value>
+            </values>
+        </policy>
+    </policies>
+</csp_whitelist>

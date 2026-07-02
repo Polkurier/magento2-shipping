@@ -8,7 +8,6 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Helper;
 
 use Magento\Quote\Api\Data\CartInterface;
-use Magento\Sales\Api\Data\OrderInterface;
 use Magento\Sales\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Api\CarrierConfigRepositoryInterface;
 use Polkurier\Shipping\Model\PolkurierCarrier;
@@ -46,18 +45,6 @@ readonly class ShipmentHelper
     public function isQuotePolkurierShipment(CartInterface $quote): bool
     {
         $carrierCode = \explode('_', (string)$quote->getShippingAddress()->getShippingMethod())[0];
-
-        return $carrierCode === PolkurierCarrier::CODE;
-    }
-
-    /**
-     * @param OrderInterface $order
-     *
-     * @return bool
-     */
-    public function isOrderPolkurierShipment(OrderInterface $order): bool
-    {
-        $carrierCode = \explode('_', (string)$order->getShippingMethod())[0];
 
         return $carrierCode === PolkurierCarrier::CODE;
     }

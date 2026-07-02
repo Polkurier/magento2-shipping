@@ -14,6 +14,14 @@
                 <api_token backend_model="Magento\Config\Model\Config\Backend\Encrypted" />
                 <home_country_id>PL</home_country_id>
                 <model>Polkurier\Shipping\Model\PolkurierCarrier</model>
+                <map>
+                    <default_latitude>52.2252606</default_latitude>
+                    <default_longitude>20.9986249</default_longitude>
+                    <default_zoom>13</default_zoom>
+                    <show_list>1</show_list>
+                    <show_search_input>1</show_search_input>
+                    <required_point_functions>collect</required_point_functions>
+                </map>
             </polkurier>
         </carriers>
     </default>

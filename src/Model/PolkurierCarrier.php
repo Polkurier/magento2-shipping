@@ -26,6 +26,7 @@ use Magento\Shipping\Model\Tracking\Result\ErrorFactory as TrackingErrorFactory;
 use Magento\Shipping\Model\Tracking\Result\StatusFactory;
 use Magento\Shipping\Model\Tracking\ResultFactory as TrackingResultFactory;
 use Polkurier\Shipping\Api\CarrierConfigRepositoryInterface;
+use Polkurier\Shipping\Api\Data\CarrierConfigInterface;
 use Polkurier\Shipping\Api\Shipment\PriceCalculatorInterface;
 use Polkurier\Webservice\Model\Entity\Carrier;
 use Psr\Log\LoggerInterface;
@@ -126,6 +127,9 @@ class PolkurierCarrier extends AbstractCarrierOnline implements CarrierInterface
 
         $result = $this->_rateFactory->create();
         foreach ($this->carrierConfigRepository->findActive() as $carrierConfig) {
+            if ($this->isForeignShipment($request) && !$this->isForeignShipmentAllowed($carrierConfig)) {
+                continue;
+            }
             $method = $this->_rateMethodFactory->create();
             $method->setCarrier($this->_code);
             $method->setMethod($carrierConfig->getCarrierCode());
@@ -144,6 +148,26 @@ class PolkurierCarrier extends AbstractCarrierOnline implements CarrierInterface
     protected function _doShipmentRequest(\Magento\Framework\DataObject $request)
     {
         // TODO: Implement _doShipmentRequest() method.
+    }
+
+    /**
+     * @param RateRequest $request
+     *
+     * @return bool
+     */
+    private function isForeignShipment(RateRequest $request): bool
+    {
+        return $request->getDestCountryId() !== $this->configProvider->getHomeCountryId();
+    }
+
+    /**
+     * @param CarrierConfigInterface $carrierConfig
+     *
+     * @return bool
+     */
+    private function isForeignShipmentAllowed(CarrierConfigInterface $carrierConfig): bool
+    {
+        return $carrierConfig->getExtData()[Carrier::FIELD_FOREIGN_SHIPMENTS];
     }
 
     /**

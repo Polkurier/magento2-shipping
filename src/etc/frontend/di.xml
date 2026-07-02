@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<!--
+ ~ Copyright (c) 2026 Polkurier.pl
+ ~ All Rights Reserved
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+    <!-- Checkout map config -->
+    <type name="Magento\Checkout\Model\CompositeConfigProvider">
+        <arguments>
+            <argument name="configProviders" xsi:type="array">
+                <item name="polkurier_shipping_map_config_provider"
+                      xsi:type="object">Polkurier\Shipping\Model\Checkout\MapConfigProvider</item>
+            </argument>
+        </arguments>
+    </type>
+</config>

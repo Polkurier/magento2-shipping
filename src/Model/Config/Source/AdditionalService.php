@@ -10,7 +10,7 @@ namespace Polkurier\Shipping\Model\Config\Source;
 use Magento\Framework\Data\OptionSourceInterface;
 use Polkurier\Webservice\Enum\AdditionalServiceEnum;
 
-class AdditionalService implements OptionSourceInterface
+readonly class AdditionalService implements OptionSourceInterface
 {
     /**
      * @return array[]

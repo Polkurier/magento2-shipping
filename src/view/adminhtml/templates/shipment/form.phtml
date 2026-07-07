@@ -1,22 +1,17 @@
 <?php /** @var \Polkurier\Shipping\Block\Adminhtml\Shipment\Form $block */ ?>
-<?php if ($block->isTargetCarrier()): ?>
-    <div class="entry-edit card">
-        <div class="card-header"><h2 class="title"><?= __('Carrier Specific Options') ?></h2></div>
-        <div class="fieldset-wrapper-content admin__fieldset">
-            <div class="admin__field">
-                <label class="admin__field-label" for="custom_insurance_value"><span><?= __('Insurance Value') ?></span></label>
-                <div class="admin__field-control">
-                    <input type="text" id="custom_insurance_value" name="shipment[custom_insurance_value]" class="admin__control-text" />
-                </div>
-            </div>
+<?php if ($block->isPolkurierCarrier()): ?>
+    <section class="admin__page-section order-view-account-information">
+        <div class="admin__page-section-title">
+            <span class="title"><?= $block->escapeHtml(__('Carrier and packages')) ?></span>
         </div>
-    </div>
-    <script>
-        require(['jquery'], function($){
-            $(document).ready(function(){
-                // Moves this custom block inside the main shipment creation form
-                $('.entry-edit.card').first().before($('#custom_carrier_shipment_form'));
-            });
-        });
-    </script>
+        <div class="admin__page-section-content"></div>
+    </section>
+
+    <section class="admin__page-section order-addresses">
+        <div class="admin__page-section-title">
+            <span class="title"><?= $block->escapeHtml(__('Sender Address Information')) ?></span>
+        </div>
+        <div class="admin__page-section-content">
+        </div>
+    </section>
 <?php endif; ?>

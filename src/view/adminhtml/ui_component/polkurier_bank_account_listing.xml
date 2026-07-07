@@ -27,7 +27,10 @@
     </settings>
     <dataSource name="polkurier_bank_account_listing_data_source" component="Magento_Ui/js/grid/provider">
         <settings>
-            <updateUrl path="mui/index/render"/>
+            <updateUrl path="mui/index/render" />
+            <storageConfig>
+                <param name="indexField" xsi:type="string">account_id</param>
+            </storageConfig>
         </settings>
         <aclResource>Polkurier_Shipping::bank_accounts</aclResource>
         <dataProvider name="polkurier_bank_account_listing_data_source"

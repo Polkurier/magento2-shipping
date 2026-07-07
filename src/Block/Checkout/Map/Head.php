@@ -9,7 +9,7 @@ namespace Polkurier\Shipping\Block\Checkout\Map;
 
 use Magento\Framework\View\Element\Template;
 use Magento\Framework\View\Element\Template\Context;
-use Polkurier\Shipping\Model\ConfigProvider;
+use Polkurier\Shipping\Model\Provider\ConfigProvider;
 
 class Head extends Template
 {

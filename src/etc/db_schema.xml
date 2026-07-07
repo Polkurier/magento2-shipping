@@ -96,7 +96,6 @@
         <column xsi:type="varchar" name="shipment_type" nullable="false" length="50" />
         <column xsi:type="varchar" name="carrier_code" nullable="true" length="50" />
         <column xsi:type="text" name="services" nullable="true" />
-        <column xsi:type="smallint" name="default" nullable="false" default="0" />
         <column xsi:type="datetime" name="created_at" on_update="false" nullable="false" default="CURRENT_TIMESTAMP" />
         <column xsi:type="datetime" name="updated_at" on_update="true" nullable="false" default="CURRENT_TIMESTAMP" />
 
@@ -142,7 +141,7 @@
         <column xsi:type="smallint" name="paid" nullable="false" default="0" />
         <column xsi:type="smallint" name="invoice" nullable="false" default="0" />
         <column xsi:type="decimal" name="insurance_amount" scale="4" precision="20" unsigned="true" nullable="true" />
-        <column xsi:type="json" name="courier_service" nullable="true" />
+        <column xsi:type="text" name="courier_service" nullable="true" />
         <column xsi:type="datetime" name="pickup_from" nullable="true" />
         <column xsi:type="datetime" name="pickup_to" nullable="true" />
         <column xsi:type="smallint" name="pickup_no_courier_order" nullable="false" default="0" />
@@ -187,6 +186,8 @@
     <table name="polkurier_order_address" resource="sales" engine="innodb">
         <column xsi:type="int" name="address_id" identity="true" nullable="false" unsigned="true" />
         <column xsi:type="int" name="order_id" nullable="false" unsigned="true" />
+        <column xsi:type="int" name="parent_id" nullable="true" unsigned="true" comment="Sender and cover parent address" />
+        <column xsi:type="int" name="parent_address_id" nullable="true" unsigned="true" comment="Recipient parent address" />
         <column xsi:type="varchar" name="type" nullable="false" length="50" />
         <column xsi:type="varchar" name="person" nullable="false" length="255" />
         <column xsi:type="varchar" name="company" nullable="true" length="255" />
@@ -208,6 +209,12 @@
         <constraint xsi:type="foreign" referenceId="POLKURIER_ORDER_ADDRESS_ORDER_ID_POLKURIER_ORDER_ORDER_ID"
                     table="polkurier_order_address" column="order_id" referenceTable="polkurier_order"
                     referenceColumn="order_id" onDelete="CASCADE" />
+        <constraint xsi:type="foreign" referenceId="POLKURIER_ORDER_ADDRESS_PARENT_ADDRESS_ID_POLKURIER_ADDRESS_ADDRESS_ID"
+                    table="polkurier_order_address" column="parent_id" referenceTable="polkurier_address"
+                    referenceColumn="address_id" onDelete="SET NULL" />
+        <constraint xsi:type="foreign" referenceId="POLKURIER_ORDER_ADDRESS_PARENT_ADDRESS_ID_SALES_ORDER_ADDRESS_ENTITY_ID"
+                    table="polkurier_order_address" column="parent_address_id" referenceTable="sales_order_address"
+                    referenceColumn="entity_id" onDelete="SET NULL" />
     </table>
 
     <table name="polkurier_order_pack" resource="sales" engine="innodb">
@@ -235,6 +242,7 @@
         <column xsi:type="varchar" name="type" nullable="false" length="50" />
         <column xsi:type="varchar" name="status" nullable="false" length="50" />
         <column xsi:type="decimal" name="amount" scale="4" precision="20" unsigned="true" nullable="false" />
+        <column xsi:type="int" name="bank_account_id" nullable="true" unsigned="true" />
         <column xsi:type="varchar" name="bank_account" nullable="false" length="255" />
         <column xsi:type="varchar" name="return_type" nullable="false" length="50" />
 
@@ -244,6 +252,9 @@
         <constraint xsi:type="foreign" referenceId="POLKURIER_ORDER_COD_ORDER_ID_POLKURIER_ORDER_ORDER_ID"
                     table="polkurier_order_cod" column="order_id" referenceTable="polkurier_order"
                     referenceColumn="order_id" onDelete="CASCADE" />
+        <constraint xsi:type="foreign" referenceId="POLKURIER_ORDER_COD_BANK_ACCOUNT_ID_POLKURIER_BANK_ACCOUNT_ACCOUNT_ID"
+                    table="polkurier_order_cod" column="bank_account_id" referenceTable="polkurier_bank_account"
+                    referenceColumn="account_id" onDelete="SET NULL" />
     </table>
 
     <table name="polkurier_order_cod_return_details" resource="sales" engine="innodb">

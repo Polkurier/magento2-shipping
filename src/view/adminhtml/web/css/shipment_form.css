@@ -1,0 +1,12 @@
+.admin__page-section-item {
+    margin-bottom: 2rem;
+}
+
+.admin__page-section.order-addresses {
+    margin-bottom: 3rem;
+}
+
+.polkurier-cod, .polkurier-insurance, polkurier-cover-address {
+    float: left;
+    width: calc((100%) * 0.33 - 30px);
+}

@@ -19,7 +19,7 @@ class DeleteButton extends GenericButton
                 'label' => \__('Delete'),
                 'class' => 'delete',
                 'sort_order' => 20,
-                'on_click' => sprintf(
+                'on_click' => \sprintf(
                     "deleteConfirm('%s', '%s')",
                     \__('Are you sure you want to delete this?'),
                     $this->getUrl('*/*/delete', ['id' => $this->getId()])

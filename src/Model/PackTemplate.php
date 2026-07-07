@@ -26,6 +26,7 @@ class PackTemplate extends AbstractPack implements PackTemplateInterface, Extern
     public const string FIELD_INSURANCE = 'insurance';
     public const string FIELD_CARRIER_CODE = 'carrier_code';
     public const string FIELD_SERVICES = 'services';
+    public const string FIELD_DEFAULT = 'default';
 
     /**
      * @var string
@@ -194,5 +195,23 @@ class PackTemplate extends AbstractPack implements PackTemplateInterface, Extern
             static::FIELD_SERVICES,
             \implode(',', \array_map(fn (AdditionalServiceEnum $service) => $service->value, $services))
         );
+    }
+
+    /**
+     * @return bool
+     */
+    public function isDefault(): bool
+    {
+        return (bool)$this->getData(static::FIELD_DEFAULT);
+    }
+
+    /**
+     * @param bool $default
+     *
+     * @return void
+     */
+    public function setDefault(bool $default): void
+    {
+        $this->setData(static::FIELD_DEFAULT, $default);
     }
 }

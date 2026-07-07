@@ -10,7 +10,7 @@
         <arguments>
             <argument name="configProviders" xsi:type="array">
                 <item name="polkurier_shipping_map_config_provider"
-                      xsi:type="object">Polkurier\Shipping\Model\Checkout\MapConfigProvider</item>
+                      xsi:type="object">Polkurier\Shipping\Model\Provider\Checkout\MapConfigProvider</item>
             </argument>
         </arguments>
     </type>

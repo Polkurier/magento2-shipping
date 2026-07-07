@@ -28,8 +28,6 @@
             <button name="save_and_continue" class="Polkurier\Shipping\Block\Adminhtml\Edit\SaveAndContinueButton" />
         </buttons>
         <namespace>polkurier_bank_account_form</namespace>
-        <ajaxSave>true</ajaxSave>
-        <ajaxSaveType>simple</ajaxSaveType>
         <dataScope>data</dataScope>
         <deps>
             <dep>polkurier_bank_account_form.polkurier_bank_account_form_data_source</dep>

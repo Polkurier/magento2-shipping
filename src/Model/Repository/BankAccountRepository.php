@@ -55,10 +55,21 @@ readonly class BankAccountRepository implements BankAccountRepositoryInterface, 
      */
     public function findOneById(int $id): ?BankAccountInterface
     {
-        $address = $this->entityFactory->create();
-        $this->resource->load($address, $id);
+        $account = $this->entityFactory->create();
+        $this->resource->load($account, $id);
 
-        return $address->getId() ? $address : null;
+        return $account->getId() ? $account : null;
+    }
+
+    /**
+     * @return BankAccountInterface|null
+     */
+    public function findOneDefault(): ?BankAccountInterface
+    {
+        $account = $this->entityFactory->create();
+        $this->resource->load($account, 1, BankAccount::FIELD_DEFAULT);
+
+        return $account->getId() ? $account : null;
     }
 
     /**

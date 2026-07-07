@@ -46,7 +46,7 @@ class BankAccount extends AbstractModel implements BankAccountInterface, Externa
      */
     public function getAccountId(): ?int
     {
-        return $this->getData(static::FIELD_ACCOUNT_ID);
+        return (int)$this->getData(static::FIELD_ACCOUNT_ID) ?: null;
     }
 
     /**
@@ -64,7 +64,7 @@ class BankAccount extends AbstractModel implements BankAccountInterface, Externa
      */
     public function getName(): string
     {
-        return $this->getData(static::FIELD_NAME);
+        return (string)$this->getData(static::FIELD_NAME);
     }
 
     /**
@@ -82,7 +82,7 @@ class BankAccount extends AbstractModel implements BankAccountInterface, Externa
      */
     public function getNumber(): string
     {
-        return $this->getData(static::FIELD_NUMBER);
+        return (string)$this->getData(static::FIELD_NUMBER);
     }
 
     /**
@@ -100,7 +100,7 @@ class BankAccount extends AbstractModel implements BankAccountInterface, Externa
      */
     public function isDefault(): bool
     {
-        return $this->getData(static::FIELD_DEFAULT);
+        return (bool)$this->getData(static::FIELD_DEFAULT);
     }
 
     /**

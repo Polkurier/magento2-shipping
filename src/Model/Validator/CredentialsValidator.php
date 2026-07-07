@@ -7,7 +7,7 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Model\Validator;
 
-use Polkurier\Shipping\Model\ConfigProvider;
+use Polkurier\Shipping\Model\Provider\ConfigProvider;
 use Polkurier\Webservice\Api\UtilsServiceInterface;
 
 readonly class CredentialsValidator

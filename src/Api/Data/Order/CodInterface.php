@@ -40,4 +40,16 @@ interface CodInterface extends BaseCodInterface
      * @return void
      */
     public function setOrder(OrderInterface $order): void;
+
+    /**
+     * @return int|null
+     */
+    public function getBankAccountId(): ?int;
+
+    /**
+     * @param int|null $accountId
+     *
+     * @return void
+     */
+    public function setBankAccountId(?int $accountId): void;
 }

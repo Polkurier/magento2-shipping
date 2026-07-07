@@ -8,12 +8,22 @@
     <default>
         <carriers>
             <polkurier>
-                <active>0</active>
-                <sandbox_mode>0</sandbox_mode>
-                <customer_id backend_model="Magento\Config\Model\Config\Backend\Encrypted" />
-                <api_token backend_model="Magento\Config\Model\Config\Backend\Encrypted" />
-                <home_country_id>PL</home_country_id>
                 <model>Polkurier\Shipping\Model\PolkurierCarrier</model>
+                <active>0</active>
+                <general>
+                    <sandbox_mode>0</sandbox_mode>
+                    <customer_id backend_model="Magento\Config\Model\Config\Backend\Encrypted" />
+                    <api_token backend_model="Magento\Config\Model\Config\Backend\Encrypted" />
+                </general>
+                <shipments>
+                    <home_country_id>PL</home_country_id>
+                    <use_store_information_address>1</use_store_information_address>
+                    <use_store_origin_address>1</use_store_origin_address>
+                    <default_sender_email>support</default_sender_email>
+                    <default_additional_services>INSURANCE</default_additional_services>
+                    <default_cod_type>S</default_cod_type>
+                    <default_cod_refund_type>BA</default_cod_refund_type>
+                </shipments>
                 <map>
                     <default_latitude>52.2252606</default_latitude>
                     <default_longitude>20.9986249</default_longitude>

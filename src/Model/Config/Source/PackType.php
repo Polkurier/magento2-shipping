@@ -18,11 +18,11 @@ readonly class PackType implements OptionSourceInterface
     public function toOptionArray(): array
     {
         return [
-            ['value' => PackTypeEnum::STANDARD, 'label' => __('Standard')],
-            ['value' => PackTypeEnum::NON_STANDARD, 'label' => __('Non standard')],
-            ['value' => PackTypeEnum::PALETTE, 'label' => __('Palette')],
-            ['value' => PackTypeEnum::HALF_PALETTE, 'label' => __('Half palette')],
-            ['value' => PackTypeEnum::LONG, 'label' => __('Long')],
+            ['value' => PackTypeEnum::STANDARD->value, 'label' => __('Standard')],
+            ['value' => PackTypeEnum::NON_STANDARD->value, 'label' => __('Non standard')],
+            ['value' => PackTypeEnum::PALETTE->value, 'label' => __('Palette')],
+            ['value' => PackTypeEnum::HALF_PALETTE->value, 'label' => __('Half palette')],
+            ['value' => PackTypeEnum::LONG->value, 'label' => __('Long')],
         ];
     }
 }

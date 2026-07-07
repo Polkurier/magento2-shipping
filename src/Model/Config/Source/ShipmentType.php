@@ -10,7 +10,7 @@ namespace Polkurier\Shipping\Model\Config\Source;
 use Magento\Framework\Data\OptionSourceInterface;
 use Polkurier\Webservice\Enum\ShipmentTypeEnum;
 
-class ShipmentType implements OptionSourceInterface
+readonly class ShipmentType implements OptionSourceInterface
 {
     /**
      * @return array[]
@@ -18,9 +18,9 @@ class ShipmentType implements OptionSourceInterface
     public function toOptionArray(): array
     {
         return [
-            ['value' => ShipmentTypeEnum::ENVELOPE, 'label' => __('Envelope')],
-            ['value' => ShipmentTypeEnum::BOX, 'label' => __('Box')],
-            ['value' => ShipmentTypeEnum::PALETTE, 'label' => __('Palette')],
+            ['value' => ShipmentTypeEnum::ENVELOPE->value, 'label' => __('Envelope')],
+            ['value' => ShipmentTypeEnum::BOX->value, 'label' => __('Box')],
+            ['value' => ShipmentTypeEnum::PALETTE->value, 'label' => __('Palette')],
         ];
     }
 }

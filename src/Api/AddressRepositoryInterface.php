@@ -17,6 +17,11 @@ interface AddressRepositoryInterface
     public function findAll(): iterable;
 
     /**
+     * @return iterable<AddressInterface>
+     */
+    public function findCover(): iterable;
+
+    /**
      * @param int $id
      *
      * @return AddressInterface|null

@@ -12,7 +12,7 @@ use Magento\Config\Block\System\Config\Form\Field;
 use Magento\Framework\Data\Form\Element\AbstractElement;
 use Magento\Framework\Phrase;
 use Magento\Framework\View\Helper\SecureHtmlRenderer;
-use Polkurier\Shipping\Model\ConfigProvider;
+use Polkurier\Shipping\Model\Provider\ConfigProvider;
 use Polkurier\Webservice\Api\UtilsServiceInterface;
 use Polkurier\Webservice\Exception\AuthorizationException;
 use Polkurier\Webservice\Exception\ConnectionException;
@@ -41,6 +41,7 @@ class ApiAvailability extends Field
          * @var ConfigProvider
          */
         private readonly ConfigProvider $configProvider,
+
         Context $context,
         array $data = [],
         ?SecureHtmlRenderer $secureRenderer = null

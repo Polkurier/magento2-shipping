@@ -18,7 +18,7 @@ readonly class PricingModel implements OptionSourceInterface
     public function toOptionArray(): array
     {
         return [
-            ['value' => PricingModelEnum::FIXED, 'label' => __('Fixed')],
+            ['value' => PricingModelEnum::FIXED->value, 'label' => __('Fixed')],
         ];
     }
 }

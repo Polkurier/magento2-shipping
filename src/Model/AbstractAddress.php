@@ -29,7 +29,7 @@ abstract class AbstractAddress extends AbstractModel
      */
     public function getAddressId(): ?int
     {
-        return $this->getData(static::FIELD_ADDRESS_ID);
+        return (int)$this->getData(static::FIELD_ADDRESS_ID) ?: null;
     }
 
     /**
@@ -101,7 +101,7 @@ abstract class AbstractAddress extends AbstractModel
      */
     public function getStreet(): string
     {
-        return $this->getData(static::FIELD_STREET);
+        return (string)$this->getData(static::FIELD_STREET);
     }
 
     /**
@@ -119,7 +119,7 @@ abstract class AbstractAddress extends AbstractModel
      */
     public function getCity(): string
     {
-        return $this->getData(static::FIELD_CITY);
+        return (string)$this->getData(static::FIELD_CITY);
     }
 
     /**
@@ -137,7 +137,7 @@ abstract class AbstractAddress extends AbstractModel
      */
     public function getPostcode(): string
     {
-        return $this->getData(static::FIELD_POSTCODE);
+        return (string)$this->getData(static::FIELD_POSTCODE);
     }
 
     /**
@@ -155,7 +155,7 @@ abstract class AbstractAddress extends AbstractModel
      */
     public function getCountry(): string
     {
-        return $this->getData(static::FIELD_COUNTRY);
+        return (string)$this->getData(static::FIELD_COUNTRY);
     }
 
     /**
@@ -191,7 +191,7 @@ abstract class AbstractAddress extends AbstractModel
      */
     public function getEmail(): string
     {
-        return $this->getData(static::FIELD_EMAIL);
+        return (string)$this->getData(static::FIELD_EMAIL);
     }
 
     /**
@@ -209,7 +209,7 @@ abstract class AbstractAddress extends AbstractModel
      */
     public function getPhone(): string
     {
-        return $this->getData(static::FIELD_PHONE);
+        return (string)$this->getData(static::FIELD_PHONE);
     }
 
     /**

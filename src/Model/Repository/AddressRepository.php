@@ -49,6 +49,14 @@ readonly class AddressRepository implements AddressRepositoryInterface, External
     }
 
     /**
+     * @return iterable<AddressInterface>
+     */
+    public function findCover(): iterable
+    {
+        return $this->collectionFactory->create()->addCoverFilter()->load();
+    }
+
+    /**
      * @param int $id
      *
      * @return AddressInterface|null

@@ -28,8 +28,6 @@
             <button name="save_and_continue" class="Polkurier\Shipping\Block\Adminhtml\Edit\SaveAndContinueButton" />
         </buttons>
         <namespace>polkurier_address_form</namespace>
-        <ajaxSave>true</ajaxSave>
-        <ajaxSaveType>simple</ajaxSaveType>
         <dataScope>data</dataScope>
         <deps>
             <dep>polkurier_address_form.polkurier_address_form_data_source</dep>
@@ -95,6 +93,20 @@
                 <label translate="true">Default</label>
                 <dataType>boolean</dataType>
                 <dataScope>default</dataScope>
+            </settings>
+            <formElements>
+                <select>
+                    <settings>
+                        <options class="Magento\Config\Model\Config\Source\Yesno" />
+                    </settings>
+                </select>
+            </formElements>
+        </field>
+        <field name="cover" formElement="select" sortOrder="30">
+            <settings>
+                <label translate="true">Cover</label>
+                <dataType>boolean</dataType>
+                <dataScope>cover</dataScope>
             </settings>
             <formElements>
                 <select>

@@ -54,7 +54,10 @@ class Save extends BaseAction
     public function execute(): Redirect
     {
         $resultRedirect = $this->resultRedirectFactory->create();
-        $packTemplateData = $this->getRequest()->getPostValue();
+        $packTemplateData = \array_map(
+            fn ($value) => $value ?: null,
+            $this->getRequest()->getPostValue()
+        );
         if (!$packTemplateData) {
             return $resultRedirect->setPath('*/*/');
         }

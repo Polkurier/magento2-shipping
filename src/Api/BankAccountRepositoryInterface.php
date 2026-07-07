@@ -24,6 +24,11 @@ interface BankAccountRepositoryInterface
     public function findOneById(int $id): ?BankAccountInterface;
 
     /**
+     * @return BankAccountInterface|null
+     */
+    public function findOneDefault(): ?BankAccountInterface;
+
+    /**
      * @param BankAccountInterface $bankAccount
      *
      * @return BankAccountInterface

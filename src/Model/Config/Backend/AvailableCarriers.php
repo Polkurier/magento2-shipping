@@ -18,7 +18,7 @@ use Magento\Framework\Model\ResourceModel\AbstractResource;
 use Magento\Framework\Registry;
 use Polkurier\Shipping\Api\CarrierConfigRepositoryInterface;
 use Polkurier\Shipping\Model\CarrierConfigFactory;
-use Polkurier\Shipping\Model\Ext\CarrierProvider;
+use Polkurier\Shipping\Model\Provider\Ext\CarrierProvider;
 use Polkurier\Webservice\Exception\AuthorizationException;
 
 class AvailableCarriers extends Value

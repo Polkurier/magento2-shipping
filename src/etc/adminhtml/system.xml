@@ -9,33 +9,74 @@
         <section id="carriers">
             <group id="polkurier" translate="label" sortOrder="1000" showInDefault="1" showInWebsite="1">
                 <label>Polkurier</label>
-                <field id="api_availability" translate="label" type="label" sortOrder="1" showInDefault="1" showInWebsite="1">
-                    <frontend_model>Polkurier\Shipping\Block\Adminhtml\System\Config\ApiAvailability</frontend_model>
-                </field>
                 <field id="active" translate="label" type="select" sortOrder="10" showInDefault="1" showInWebsite="1">
                     <label>Enabled</label>
                     <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                 </field>
-                <field id="sandbox_mode" translate="label comment" type="select" sortOrder="10" showInDefault="1" showInWebsite="1">
-                    <label>Sandbox mode</label>
-                    <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
-                    <comment><![CDATA[Contact api@polkurier.pl to receive access to sandbox instance of the service]]></comment>
-                </field>
-                <field id="customer_id" translate="label" type="obscure" sortOrder="20" showInDefault="1" showInWebsite="1">
-                    <label>Customer ID</label>
-                    <backend_model>Magento\Config\Model\Config\Backend\Encrypted</backend_model>
-                </field>
-                <field id="api_token" translate="label" type="obscure" sortOrder="30" showInDefault="1" showInWebsite="1">
-                    <label>Api token</label>
-                    <backend_model>Magento\Config\Model\Config\Backend\Encrypted</backend_model>
-                </field>
-                <field id="available_carriers" translate="label" type="multiselect" sortOrder="40" showInDefault="1" showInWebsite="1">
-                    <label>Available carriers</label>
-                    <source_model>Polkurier\Shipping\Model\Config\Source\AvailableCarriers</source_model>
-                    <backend_model>Polkurier\Shipping\Model\Config\Backend\AvailableCarriers</backend_model>
-                    <can_be_empty>1</can_be_empty>
-                </field>
-                <group id="map" translate="label" sortOrder="1000" showInDefault="1" showInWebsite="1">
+                <group id="general" translate="label" sortOrder="10" showInDefault="1" showInWebsite="1">
+                    <label>General settings</label>
+                    <field id="api_availability" translate="label" type="label" sortOrder="1" showInDefault="1" showInWebsite="1">
+                        <frontend_model>Polkurier\Shipping\Block\Adminhtml\System\Config\ApiAvailability</frontend_model>
+                    </field>
+                    <field id="sandbox_mode" translate="label comment" type="select" sortOrder="10" showInDefault="1" showInWebsite="1">
+                        <label>Sandbox mode</label>
+                        <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                        <comment><![CDATA[Contact api@polkurier.pl to receive access to sandbox instance of the service]]></comment>
+                    </field>
+                    <field id="customer_id" translate="label" type="obscure" sortOrder="20" showInDefault="1" showInWebsite="1">
+                        <label>Customer ID</label>
+                        <backend_model>Magento\Config\Model\Config\Backend\Encrypted</backend_model>
+                    </field>
+                    <field id="api_token" translate="label" type="obscure" sortOrder="30" showInDefault="1" showInWebsite="1">
+                        <label>Api token</label>
+                        <backend_model>Magento\Config\Model\Config\Backend\Encrypted</backend_model>
+                    </field>
+                </group>
+                <group id="shipments" translate="label" sortOrder="10" showInDefault="1" showInWebsite="1">
+                    <label>Shipment settings</label>
+                    <field id="use_store_information_address" translate="label" type="select" sortOrder="10" showInDefault="1" showInWebsite="1" canRestore="1">
+                        <label>Use store default address</label>
+                        <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                        <comment><![CDATA[Use store address configured in [Stores > Settings > Configuration > General > General > Store] Information as default sender address. Note: if any of the addresses configured in [Polkurier > Settings > Addresses] is marked as default it will be used instead.]]></comment>
+                    </field>
+                    <field id="use_store_origin_address" translate="label" type="select" sortOrder="20" showInDefault="1" showInWebsite="1" canRestore="1">
+                        <label>Use store origin address</label>
+                        <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                        <comment><![CDATA[Use store address configured in [Stores > Settings > Configuration > Sales > Shipping Settings > Origin] as default sender address. It takes the priority over store default address if both options are set to 'Yes'. Note: if any of the addresses configured in [Polkurier > Settings > Addresses] is marked as default it will be used instead.]]></comment>
+                    </field>
+                    <field id="default_sender_email" translate="label" type="select" sortOrder="30" showInDefault="1" showInWebsite="1" canRestore="1">
+                        <label>Default sender e-mail</label>
+                        <source_model>Magento\Config\Model\Config\Source\Email\Identity</source_model>
+                        <comment>Used as sender email if store address is used as sender address</comment>
+                    </field>
+                    <field id="default_carrier" translate="label" type="select" sortOrder="40" showInDefault="1" showInWebsite="1">
+                        <label>Default carrier</label>
+                        <source_model>Polkurier\Shipping\Model\Config\Source\AvailableCarriersExt</source_model>
+                        <comment>Options will appear after configuring API connection</comment>
+                    </field>
+                    <field id="available_carriers" translate="label" type="multiselect" sortOrder="50" showInDefault="1" showInWebsite="1">
+                        <label>Available carriers</label>
+                        <source_model>Polkurier\Shipping\Model\Config\Source\AvailableCarriers</source_model>
+                        <backend_model>Polkurier\Shipping\Model\Config\Backend\AvailableCarriers</backend_model>
+                        <can_be_empty>1</can_be_empty>
+                        <comment><![CDATA[Options will appear after configuring API connection. It narrows down the list of carriers for configuration available in [Polkurier > Settings > Carriers]]]></comment>
+                    </field>
+                    <field id="default_additional_services" translate="label" type="multiselect" sortOrder="60" showInDefault="1" showInWebsite="1" canRestore="1">
+                        <label>Additional services enabled by default</label>
+                        <source_model>Polkurier\Shipping\Model\Config\Source\DefaultAdditionalService</source_model>
+                        <can_be_empty>1</can_be_empty>
+                        <comment>These services (if available) will be active by default in the shipment creation form</comment>
+                    </field>
+                    <field id="default_cod_type" translate="label" type="select" sortOrder="70" showInDefault="1" showInWebsite="1" canRestore="1">
+                        <label>Default cash on delivery type</label>
+                        <source_model>Polkurier\Shipping\Model\Config\Source\CodType</source_model>
+                    </field>
+                    <field id="default_cod_refund_type" translate="label" type="select" sortOrder="80" showInDefault="1" showInWebsite="1" canRestore="1">
+                        <label>Default cash on delivery refund type</label>
+                        <source_model>Polkurier\Shipping\Model\Config\Source\CodReturnType</source_model>
+                    </field>
+                </group>
+                <group id="map" translate="label" sortOrder="30" showInDefault="1" showInWebsite="1">
                     <label>Map settings</label>
                     <field id="default_latitude" translate="label comment" type="text" sortOrder="10" showInDefault="1" showInWebsite="1" canRestore="1">
                         <label>Default latitude</label>

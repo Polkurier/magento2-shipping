@@ -28,6 +28,7 @@ use Magento\Shipping\Model\Tracking\ResultFactory as TrackingResultFactory;
 use Polkurier\Shipping\Api\CarrierConfigRepositoryInterface;
 use Polkurier\Shipping\Api\Data\CarrierConfigInterface;
 use Polkurier\Shipping\Api\Shipment\PriceCalculatorInterface;
+use Polkurier\Shipping\Model\Provider\ConfigProvider;
 use Polkurier\Webservice\Model\Entity\Carrier;
 use Psr\Log\LoggerInterface;
 

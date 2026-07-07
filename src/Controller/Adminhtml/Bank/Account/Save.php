@@ -54,7 +54,10 @@ class Save extends BaseAction
     public function execute(): Redirect
     {
         $resultRedirect = $this->resultRedirectFactory->create();
-        $bankAccountData = $this->getRequest()->getPostValue();
+        $bankAccountData = \array_map(
+            fn ($value) => $value ?: null,
+            $this->getRequest()->getPostValue()
+        );
         if (!$bankAccountData) {
             return $resultRedirect->setPath('*/*/');
         }

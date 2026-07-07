@@ -32,6 +32,7 @@ class Cod extends AbstractModel implements CodInterface
     public const string FIELD_TYPE = 'type';
     public const string FIELD_STATUS = 'status';
     public const string FIELD_AMOUNT = 'amount';
+    public const string FIELD_BANK_ACCOUNT_ID = 'bank_account_id';
     public const string FIELD_BANK_ACCOUNT = 'bank_account';
     public const string FIELD_RETURN_TYPE = 'return_type';
 
@@ -185,6 +186,24 @@ class Cod extends AbstractModel implements CodInterface
     public function setAmount(float $amount): void
     {
         $this->setData(static::FIELD_AMOUNT, $amount);
+    }
+
+    /**
+     * @return int|null
+     */
+    public function getBankAccountId(): ?int
+    {
+        return (int)$this->getData(static::FIELD_BANK_ACCOUNT_ID) ?: null;
+    }
+
+    /**
+     * @param int|null $accountId
+     *
+     * @return void
+     */
+    public function setBankAccountId(?int $accountId): void
+    {
+        $this->setData(static::FIELD_BANK_ACCOUNT_ID, $accountId);
     }
 
     /**

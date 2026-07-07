@@ -8,11 +8,15 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Helper;
 
 use Magento\Quote\Api\Data\CartInterface;
+use Magento\Sales\Api\Data\OrderAddressInterface;
+use Magento\Sales\Api\Data\OrderInterface;
 use Magento\Sales\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Api\CarrierConfigRepositoryInterface;
 use Polkurier\Shipping\Model\PolkurierCarrier;
+use Polkurier\Webservice\Enum\PointRequirementEnum;
 use Polkurier\Webservice\Model\Entity\Carrier;
 use Polkurier\Webservice\Model\Entity\Carrier\AdditionalData;
+use Polkurier\Webservice\Model\Entity\Carrier\AdditionalData\PointsMap;
 use Polkurier\Webservice\Model\Entity\Carrier\AdditionalData\Property;
 
 readonly class ShipmentHelper
@@ -38,6 +42,21 @@ readonly class ShipmentHelper
     }
 
     /**
+     * @param string $carrierCode
+     *
+     * @return bool
+     */
+    public function isPointIdRequired(string $carrierCode): bool
+    {
+        $carrierConfig = $this->carrierConfigRepository->findOneByCode($carrierCode)?->getExtData();
+        $pointsMap = $carrierConfig
+            ? $carrierConfig[Carrier::FIELD_ADDITIONAL_DATA][AdditionalData::FIELD_POINTS_MAP]
+            : null;
+
+        return $pointsMap && $pointsMap[PointsMap::FIELD_RECIPIENT_POINT] === PointRequirementEnum::REQUIRED;
+    }
+
+    /**
      * @param CartInterface $quote
      *
      * @return bool
@@ -56,9 +75,27 @@ readonly class ShipmentHelper
      */
     public function isShipmentPolkurierShipment(ShipmentInterface $shipment): bool
     {
-        $carrierCode = \explode('_', (string)$shipment->getOrder()->getShippingMethod())[0];
+        return $shipment->getOrder()->getShippingMethod(true)->getCarrierCode() === PolkurierCarrier::CODE;
+    }
 
-        return $carrierCode === PolkurierCarrier::CODE;
+    /**
+     * @param OrderInterface $order
+     *
+     * @return bool
+     */
+    public function isOrderPolkurierShipment(OrderInterface $order): bool
+    {
+        return $order->getShippingMethod(true)->getCarrierCode() === PolkurierCarrier::CODE;
+    }
+
+    /**
+     * @param OrderAddressInterface $orderAddress
+     *
+     * @return bool
+     */
+    public function isOrderAddressPolkurierShipment(OrderAddressInterface $orderAddress): bool
+    {
+        return $this->isOrderPolkurierShipment($orderAddress->getOrder());
     }
 
     /**

@@ -21,6 +21,8 @@ use Polkurier\Webservice\Api\Data\Entity\OrderInterface as BaseOrderInterface;
  * @method void setRecipient(OrderAddressInterface $recipient)
  * @method OrderAddressInterface getSender(void)
  * @method void setSender(OrderAddressInterface $sender)
+ * @method OrderAddressInterface getCoverAddress(void)
+ * @method void setCoverAddress(OrderAddressInterface $sender)
  * @method CodInterface|null getCod(void)
  * @method void setCod(CodInterface|null $cod)
  * @method iterable<ItemInterface> getItems(void)

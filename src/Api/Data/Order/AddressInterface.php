@@ -7,12 +7,15 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Api\Data\Order;
 
+use Magento\Sales\Api\Data\OrderAddressInterface;
 use Polkurier\Shipping\Api\Data\OrderInterface;
 use Polkurier\Webservice\Api\Data\Entity\BaseAddressInterface;
 use Polkurier\Webservice\Enum\AddressTypeEnum;
 
 interface AddressInterface extends BaseAddressInterface
 {
+    public const string TYPE_COVER = 'COVER';
+
     /**
      * @return int|null
      */
@@ -48,6 +51,42 @@ interface AddressInterface extends BaseAddressInterface
      * @return void
      */
     public function setOrder(OrderInterface $order): void;
+
+    /**
+     * @return int|null
+     */
+    public function getParentId(): ?int;
+
+    /**
+     * @param int|null $parentId
+     *
+     * @return void
+     */
+    public function setParentId(?int $parentId): void;
+
+    /**
+     * @return int|null
+     */
+    public function getParentAddressId(): ?int;
+
+    /**
+     * @param int|null $parentAddressId
+     *
+     * @return void
+     */
+    public function setParentAddressId(?int $parentAddressId): void;
+
+    /**
+     * @return OrderAddressInterface|null
+     */
+    public function getParentAddress(): ?OrderAddressInterface;
+
+    /**
+     * @param OrderAddressInterface|null $parentAddress
+     *
+     * @return void
+     */
+    public function setParentAddress(?OrderAddressInterface $parentAddress): void;
 
     /**
      * @return AddressTypeEnum

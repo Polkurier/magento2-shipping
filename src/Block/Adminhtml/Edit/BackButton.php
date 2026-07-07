@@ -16,7 +16,7 @@ class BackButton extends GenericButton
     {
         return [
             'label' => \__('Back'),
-            'on_click' => sprintf(
+            'on_click' => \sprintf(
                 "location.href = '%s';",
                 $this->getUrl('*/*/')
             ),

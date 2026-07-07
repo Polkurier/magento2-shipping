@@ -8,7 +8,7 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Model\Config\Source;
 
 use Magento\Framework\Data\OptionSourceInterface;
-use Polkurier\Shipping\Model\Ext\CarrierProvider;
+use Polkurier\Shipping\Model\Provider\Ext\CarrierProvider;
 use Polkurier\Webservice\Api\Data\Entity\CarrierInterface;
 use Polkurier\Webservice\Exception\AuthorizationException;
 

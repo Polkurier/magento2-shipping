@@ -7,7 +7,7 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Model;
 
-use Magento\Quote\Api\Data\AddressInterface as QuoteAddressInterface;
+use Magento\Sales\Api\Data\OrderAddressInterface;
 use Polkurier\Shipping\Api\Data\AddressInterface as ConfigAddressInterface;
 use Polkurier\Shipping\Api\Data\Order\AddressInterface;
 use Polkurier\Shipping\Api\Data\Order\AddressInterfaceFactory;
@@ -22,21 +22,21 @@ readonly class AddressMapper
     ) {}
 
     /**
-     * @param QuoteAddressInterface $quoteAddress
+     * @param OrderAddressInterface $orderAddress
      *
      * @return AddressInterface
      */
-    public function mapQuoteAddress(QuoteAddressInterface $quoteAddress): AddressInterface
+    public function mapOrderAddress(OrderAddressInterface $orderAddress): AddressInterface
     {
         $address = $this->addressFactory->create();
-        $address->setPerson($quoteAddress->getFirstname() . ' ' . $quoteAddress->getLastname());
-        $address->setCompany($quoteAddress->getCompany());
-        $address->setStreet(\implode("\n", $quoteAddress->getStreet()));
-        $address->setCity($quoteAddress->getCity());
-        $address->setPostcode($quoteAddress->getPostcode());
-        $address->setCountry($quoteAddress->getCountryId());
-        $address->setEmail($quoteAddress->getEmail());
-        $address->setPhone($quoteAddress->getTelephone());
+        $address->setPerson($orderAddress->getFirstname() . ' ' . $orderAddress->getLastname());
+        $address->setCompany($orderAddress->getCompany());
+        $address->setStreet(\implode("\n", $orderAddress->getStreet()));
+        $address->setCity($orderAddress->getCity());
+        $address->setPostcode($orderAddress->getPostcode());
+        $address->setCountry($orderAddress->getCountryId());
+        $address->setEmail($orderAddress->getEmail());
+        $address->setPhone($orderAddress->getTelephone());
 
         return $address;
     }

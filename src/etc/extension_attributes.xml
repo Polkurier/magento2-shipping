@@ -15,4 +15,7 @@
     <extension_attributes for="Magento\Sales\Api\Data\ShipmentInterface">
         <attribute code="polkurier_shipment_data" type="Polkurier\Shipping\Api\Data\OrderInterface" />
     </extension_attributes>
+    <extension_attributes for="Magento\Sales\Api\Data\OrderAddressInterface">
+        <attribute code="polkurier_address" type="Polkurier\Shipping\Api\Data\Order\AddressInterface" />
+    </extension_attributes>
 </config>

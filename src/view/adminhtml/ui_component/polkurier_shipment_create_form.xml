@@ -1,0 +1,177 @@
+<?xml version="1.0"?>
+<!--
+ ~ Copyright (c) 2026 Polkurier.pl
+ ~ All Rights Reserved
+-->
+<form xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Ui:etc/ui_configuration.xsd">
+    <argument name="data" xsi:type="array">
+        <item name="js_config" xsi:type="array">
+            <item name="provider" xsi:type="string">
+                polkurier_shipment_create_form.polkurier_shipment_create_form_data_source
+            </item>
+            <item name="component" xsi:type="string">Polkurier_Shipping/js/shipment-form</item>
+        </item>
+        <item name="reverseMetadataMerge" xsi:type="boolean">true</item>
+        <item name="template" xsi:type="string">templates/form/collapsible</item>
+    </argument>
+    <settings>
+        <namespace>polkurier_shipment_create_form</namespace>
+        <dataScope>data</dataScope>
+        <deps>
+            <dep>polkurier_shipment_create_form.polkurier_shipment_create_form_data_source</dep>
+        </deps>
+    </settings>
+    <dataSource name="polkurier_shipment_create_form_data_source">
+        <argument name="data" xsi:type="array">
+            <item name="js_config" xsi:type="array">
+                <item name="component" xsi:type="string">Magento_Ui/js/form/provider</item>
+            </item>
+        </argument>
+        <dataProvider class="Polkurier\Shipping\Ui\Component\Form\Shipment\DataProvider"
+                      name="polkurier_shipment_create_form_data_source">
+            <settings>
+                <requestFieldName>order_id</requestFieldName>
+                <primaryFieldName>parent_order_id</primaryFieldName>
+            </settings>
+        </dataProvider>
+    </dataSource>
+    <container name="polkurier_modal_manager" component="Polkurier_Shipping/js/modal-manager" />
+    <fieldset name="polkurier_cod">
+        <settings>
+            <label translate="true">Cash on delivery</label>
+            <visible>false</visible>
+        </settings>
+        <field name="cod_amount" formElement="input" sortOrder="10">
+            <settings>
+                <label translate="true">Cash on delivery amount</label>
+                <dataType>text</dataType>
+                <dataScope>cod_amount</dataScope>
+                <validation>
+                    <rule name="required-entry" xsi:type="boolean">true</rule>
+                    <rule name="validate-number" xsi:type="boolean">true</rule>
+                    <rule name="validate-zero-or-greater" xsi:type="boolean">true</rule>
+                </validation>
+            </settings>
+        </field>
+        <field name="cod_type" formElement="select" sortOrder="20">
+            <settings>
+                <label translate="true">Cash on delivery type</label>
+                <dataType>text</dataType>
+                <dataScope>cover_address</dataScope>
+            </settings>
+            <formElements>
+                <select>
+                    <settings>
+                        <options class="Polkurier\Shipping\Model\Config\Source\CodType" />
+                    </settings>
+                </select>
+            </formElements>
+        </field>
+        <field name="cod_return_type" formElement="select" sortOrder="30">
+            <settings>
+                <label translate="true">Refund to</label>
+                <dataType>text</dataType>
+                <dataScope>cover_address</dataScope>
+            </settings>
+            <formElements>
+                <select>
+                    <settings>
+                        <options class="Polkurier\Shipping\Model\Config\Source\CodReturnType" />
+                    </settings>
+                </select>
+            </formElements>
+        </field>
+        <field name="cod_bank_account_id" formElement="select" sortOrder="40">
+            <settings>
+                <label translate="true">Bank account</label>
+                <dataType>text</dataType>
+                <dataScope>cover_address</dataScope>
+            </settings>
+            <formElements>
+                <select>
+                    <settings>
+                        <options class="Polkurier\Shipping\Model\Config\Source\BankAccount" />
+                    </settings>
+                </select>
+            </formElements>
+        </field>
+    </fieldset>
+    <fieldset name="polkurier_insurance">
+        <settings>
+            <label translate="true">Insurance</label>
+            <visible>false</visible>
+        </settings>
+        <field name="insurance_amount" formElement="input">
+            <settings>
+                <label translate="true">Insurance amount</label>
+                <dataType>text</dataType>
+                <dataScope>insurance_amount</dataScope>
+                <validation>
+                    <rule name="required-entry" xsi:type="boolean">true</rule>
+                    <rule name="validate-number" xsi:type="boolean">true</rule>
+                    <rule name="validate-zero-or-greater" xsi:type="boolean">true</rule>
+                </validation>
+            </settings>
+        </field>
+    </fieldset>
+    <fieldset name="polkurier_cover_address">
+        <settings>
+            <label translate="true">Cover address</label>
+            <visible>false</visible>
+        </settings>
+        <field name="cover_address_id" formElement="select">
+            <settings>
+                <label translate="true">Address</label>
+                <dataType>text</dataType>
+                <dataScope>cover_address</dataScope>
+            </settings>
+            <formElements>
+                <select>
+                    <settings>
+                        <options class="Polkurier\Shipping\Model\Config\Source\CoverAddress" />
+                    </settings>
+                </select>
+            </formElements>
+        </field>
+    </fieldset>
+    <fieldset name="polkurier_additional_services" sortOrder="10">
+        <settings>
+            <label translate="true">Additional services</label>
+        </settings>
+        <field name="additional_services" formElement="checkboxset"
+               component="Polkurier_Shipping/js/form/element/additional-services">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="template" xsi:type="string">Polkurier_Shipping/form/element/additional-services</item>
+                    <item name="configurable" xsi:type="array">
+                        <item name="COD" xsi:type="array">
+                            <item name="fieldset" xsi:type="string">polkurier_cod</item>
+                            <item name="overviewFormat" xsi:type="string">{$cod_amount}zł ({$cod_type})</item>
+                        </item>
+                        <item name="INSURANCE" xsi:type="array">
+                            <item name="fieldset" xsi:type="string">polkurier_insurance</item>
+                            <item name="overviewFormat" xsi:type="string">{$insurance_amount}zł</item>
+                        </item>
+                        <item name="COVER_ADDRESS" xsi:type="array">
+                            <item name="fieldset" xsi:type="string">polkurier_cover_address</item>
+                            <item name="overviewFormat" xsi:type="string">{$cover_address}</item>
+                        </item>
+                    </item>
+                </item>
+            </argument>
+            <settings>
+                <label translate="true">Services</label>
+                <dataType>text</dataType>
+                <dataScope>additional_services</dataScope>
+            </settings>
+            <formElements>
+                <checkboxset>
+                    <settings>
+                        <options class="Polkurier\Shipping\Model\Config\Source\AdditionalServiceExtended" />
+                    </settings>
+                </checkboxset>
+            </formElements>
+        </field>
+    </fieldset>
+</form>

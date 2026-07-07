@@ -68,7 +68,7 @@ class Thumbnail extends Column
             if (empty($item[CarrierConfig::FIELD_IMAGE])) {
                 continue;
             }
-            $url = sprintf(
+            $url = \sprintf(
                 '%s/%s/%s',
                 $mediaBaseUrl,
                 static::IMAGE_DIR,

@@ -27,7 +27,10 @@
     </settings>
     <dataSource name="polkurier_pack_template_listing_data_source" component="Magento_Ui/js/grid/provider">
         <settings>
-            <updateUrl path="mui/index/render"/>
+            <updateUrl path="mui/index/render" />
+            <storageConfig>
+                <param name="indexField" xsi:type="string">template_id</param>
+            </storageConfig>
         </settings>
         <aclResource>Polkurier_Shipping::addresses</aclResource>
         <dataProvider name="polkurier_pack_template_listing_data_source"
@@ -263,17 +266,6 @@
                 <options class="Polkurier\Shipping\Model\Config\Source\AdditionalService" />
                 <editor>
                     <editorType>multiselect</editorType>
-                </editor>
-            </settings>
-        </column>
-        <column name="default" component="Magento_Ui/js/grid/columns/select" sortOrder="130">
-            <settings>
-                <label translate="true">Default</label>
-                <filter>select</filter>
-                <dataType>select</dataType>
-                <options class="Magento\Config\Model\Config\Source\Yesno" />
-                <editor>
-                    <editorType>select</editorType>
                 </editor>
             </settings>
         </column>

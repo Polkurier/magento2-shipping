@@ -70,7 +70,7 @@ class Address extends AbstractAddress implements AddressInterface, ExternalEntit
      */
     public function isDefault(): bool
     {
-        return $this->getData(static::FIELD_DEFAULT);
+        return (bool)$this->getData(static::FIELD_DEFAULT);
     }
 
     /**
@@ -88,7 +88,7 @@ class Address extends AbstractAddress implements AddressInterface, ExternalEntit
      */
     public function isShared(): bool
     {
-        return $this->getData(static::FIELD_SHARED);
+        return (bool)$this->getData(static::FIELD_SHARED);
     }
 
     /**
@@ -106,7 +106,7 @@ class Address extends AbstractAddress implements AddressInterface, ExternalEntit
      */
     public function isCoverAddress(): bool
     {
-        return $this->getData(static::FIELD_COVER);
+        return (bool)$this->getData(static::FIELD_COVER);
     }
 
     /**

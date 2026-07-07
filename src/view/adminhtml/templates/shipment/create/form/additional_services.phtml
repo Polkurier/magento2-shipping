@@ -1,0 +1,60 @@
+<?php
+/**
+ * Copyright (c) 2026 Polkurier.pl
+ * All Rights Reserved
+ */
+
+/**
+ * @var \Polkurier\Shipping\Block\Adminhtml\Shipment\Create\Form\AdditionalServices $block
+ * @var \Magento\Framework\Escaper $escaper
+ */
+?>
+<section class="admin__page-section order-addresses">
+    <div class="admin__page-section-title">
+        <span class="title"><?= $escaper->escapeHtml(__('Additional Services')) ?></span>
+    </div>
+    <div class="admin__page-section-content">
+        <div class="admin__page-section-item polkurier-cod">
+            <div class="admin__page-section-item-title">
+                <span class="title"><?= $escaper->escapeHtml(__('Cash on delivery')); ?></span>
+            </div>
+            <div class="admin__page-section-item-content">
+                <?= $block->getChildHtml('polkurier_cod') ?>
+            </div>
+        </div>
+        <div class="admin__page-section-item polkurier-insurance">
+            <div class="admin__page-section-item-title">
+                <span class="title"><?= $escaper->escapeHtml(__('Insurance')); ?></span>
+            </div>
+            <div class="admin__page-section-item-content">
+                <?= $block->getChildHtml('polkurier_insurance') ?>
+            </div>
+        </div>
+        <div class="admin__page-section-item polkurier-cover-address">
+            <div class="admin__page-section-item-title">
+                <span class="title"><?= $escaper->escapeHtml(__('Cover address')); ?></span>
+            </div>
+            <div class="admin__page-section-item-content">
+                <?= $block->getChildHtml('polkurier_cover_address') ?>
+            </div>
+        </div>
+        <div class="admin__page-section-item polkurier-other-services">
+            <div class="admin__page-section-item-title">
+                <span class="title"><?= $escaper->escapeHtml(__('Other services')); ?></span>
+            </div>
+            <div class="admin__page-section-item-content">
+            <?php foreach ($block->getOptions() as $option): ?>
+                <div class="field choice admin__field admin__field-option field-<?= $escaper->escapeHtml($option['value']->value) ?>">
+                    <input id="<?= $escaper->escapeHtml($option['value']->value) ?>"
+                           class="admin__control-checkbox"
+                           name="shipment[additional_services][]"
+                           value="<?= $escaper->escapeHtml($option['value']->value) ?>"
+                           type="checkbox" />
+                    <label class="admin__field-label" for="<?= $escaper->escapeHtml($option['value']->value) ?>">
+                        <span><?= $escaper->escapeHtml($option['label']) ?></span>
+                    </label>
+                </div>
+            <?php endforeach; ?>
+        </div>
+    </div>
+</section>

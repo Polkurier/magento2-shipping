@@ -20,4 +20,14 @@ class Collection extends AbstractCollection
     {
         $this->_init(Address::class, AddressResource::class);
     }
+
+    /**
+     * @return $this
+     */
+    public function addCoverFilter(): self
+    {
+        $this->addFieldToFilter(Address::FIELD_COVER, ['eq' => '1']);
+
+        return $this;
+    }
 }

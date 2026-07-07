@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<!--
+ ~ Copyright (c) 2026 Polkurier.pl
+ ~ All Rights Reserved
+-->
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <update handle="adminhtml_order_shipment_new" />
+    <head>
+        <css src="Polkurier_Shipping::css/shipment-form.css" />
+    </head>
+    <body>
+        <referenceBlock name="form" template="Polkurier_Shipping::shipment/create/form.phtml">
+            <container name="polkurier">
+                <uiComponent name="polkurier_shipment_create_form" />
+            </container>
+        </referenceBlock>
+        <referenceBlock name="order_info" class="Polkurier\Shipping\Block\Adminhtml\Order\View\Info"
+                        template="Polkurier_Shipping::order/view/info.phtml" />
+    </body>
+</page>

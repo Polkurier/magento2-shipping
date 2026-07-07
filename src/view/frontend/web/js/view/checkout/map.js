@@ -25,7 +25,8 @@ define([
             mapShowSearchInput: mapConfig.showSearchInput,
             mapRequiredPointFunctions: mapConfig.requiredPointFunctions
         },
-        initialize: function () {
+
+        initialize() {
             this._super();
             this.selectedPoint = ko.observable();
             this.selectedPoints = {};
@@ -33,44 +34,64 @@ define([
                 this.selectedPoints[allowedMethod] = ko.observable();
             }
         },
-        hasModalButton: function (methodCode) {
+
+        hasModalButton(methodCode) {
             return this.allowedMethods.includes(methodCode);
         },
-        openModalWindow: function (methodCode) {
+
+        openModalWindow(methodCode) {
+            const self = this,
+                selectedPoint = this.getSelectedPoint(methodCode);
+            if (selectedPoint) {
+                this.initMap(methodCode, selectedPoint.latitude, selectedPoint.longitude);
+            } else if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(function (position) {
+                    this.initMap(methodCode, position.coords.latitude, position.coords.longitude);
+                }.bind(this), function () {
+                    this.initMap(methodCode, this.mapDefaultLatitude, this.mapDefaultLongitude);
+                }.bind(this))
+            } else {
+                this.initMap(methodCode, this.mapDefaultLatitude, this.mapDefaultLongitude);
+            }
+        },
+
+        initMap(methodCode, latitude, longitude) {
             const self = this;
             const map = new POLKURIER.PointsMap({
                 token: this.mapToken,
                 baseUrl: this.mapBaseUrl,
                 providers: this.methodProviders[methodCode],
                 functions: this.mapRequiredPointFunctions,
-                latitude: this.mapDefaultLatitude,
-                longitude: this.mapDefaultLongitude,
+                latitude: latitude,
+                longitude: longitude,
                 zoom: this.mapDefaultZoom,
                 showList: this.mapShowList,
                 showSearchInput: this.mapShowSearchInput
             });
             map.showMapDialog();
             map.onConfirm(function (point) {
-                self.updateQuote(point);
-                self.setSelectedPoint(point, methodCode);
+                this.updateQuote(point, methodCode);
+                this.setSelectedPoint(point, methodCode);
                 map.closeMapDialog();
-            });
+            }.bind(this));
         },
-        updateQuote: function (point) {
-            quote.extension_attributes = quote.extension_attributes || {};
-            quote.extension_attributes.polkurier_point = point;
+
+        updateQuote(point, methodCode) {
+            quote.extensionAttributes = quote.extensionAttributes || {};
+            quote.extensionAttributes.polkurier_point = quote.extensionAttributes.polkurier_point || {};
+            quote.extensionAttributes.polkurier_point[methodCode] = point;
         },
-        getSelectedPoint: function (methodCode) {
+
+        getSelectedPoint(methodCode) {
             return this.selectedPoints[methodCode]();
         },
-        setSelectedPoint: function (point, methodCode) {
-            for (const allowedMethod of this.allowedMethods) {
-                this.selectedPoints[allowedMethod](null);
-            }
+
+        setSelectedPoint(point, methodCode) {
             this.selectedPoints[methodCode](point);
             this.selectedPoint(point);
         },
-        getPointInfo: function (methodCode) {
+
+        getPointInfo(methodCode) {
             const point = this.getSelectedPoint(methodCode);
             if (!point) {
                 return $t('No point selected');

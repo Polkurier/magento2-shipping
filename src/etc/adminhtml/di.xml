@@ -1,0 +1,16 @@
+<?xml version="1.0"?>
+<!--
+ ~ Copyright (c) 2026 Polkurier.pl
+ ~ All Rights Reserved
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+    <!-- Order address form -->
+    <type name="Magento\Sales\Block\Adminhtml\Order\Address\Form">
+        <plugin name="polkurier_order_address_form"
+                type="Polkurier\Shipping\Plugin\Block\Adminhtml\Order\Address\FormPlugin" />
+    </type>
+    <type name="Magento\Sales\Block\Adminhtml\Order\View">
+        <plugin name="polkurier_swap_ship_button" type="Polkurier\Shipping\Plugin\Block\Adminhtml\Order\ViewPlugin" />
+    </type>
+</config>

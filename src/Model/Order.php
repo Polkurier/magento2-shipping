@@ -36,6 +36,7 @@ use Polkurier\Shipping\Model\ResourceModel\Order\Waybill\CollectionFactory as Wa
 use Polkurier\Webservice\Api\Data\Entity\Order\PickupInterface;
 use Polkurier\Webservice\Api\Data\Entity\BaseAddressInterface;
 use Polkurier\Webservice\Api\Data\Entity\Order\CodInterface as BaseCodInterface;
+use Polkurier\Webservice\Enum\AdditionalServiceEnum;
 use Polkurier\Webservice\Enum\AddressTypeEnum;
 use Polkurier\Webservice\Enum\ShipmentTypeEnum;
 
@@ -81,6 +82,11 @@ class Order extends AbstractModel implements OrderInterface
     protected $_eventObject = 'polkurier_order';
 
     /**
+     * @var bool
+     */
+    private bool $addressesLoaded = false;
+
+    /**
      * @var BaseOrderInterface|null
      */
     private ?BaseOrderInterface $order = null;
@@ -99,6 +105,11 @@ class Order extends AbstractModel implements OrderInterface
      * @var AddressInterface|null
      */
     private ?AddressInterface $recipient = null;
+
+    /**
+     * @var AddressInterface|null
+     */
+    private ?AddressInterface $coverAddress = null;
 
     /**
      * @var CodInterface|null
@@ -174,7 +185,7 @@ class Order extends AbstractModel implements OrderInterface
      */
     public function getOrderId(): ?int
     {
-        return (int)$this->getData(static::FIELD_ORDER_ID);
+        return (int)$this->getData(static::FIELD_ORDER_ID) ?: null;
     }
 
     /**
@@ -192,7 +203,7 @@ class Order extends AbstractModel implements OrderInterface
      */
     public function getParentOrderId(): ?int
     {
-        return $this->getData(static::FIELD_PARENT_ORDER_ID);
+        return (int)$this->getData(static::FIELD_PARENT_ORDER_ID) ?: null;
     }
 
     /**
@@ -233,7 +244,7 @@ class Order extends AbstractModel implements OrderInterface
      */
     public function getParentShipmentId(): ?int
     {
-        return $this->getData(static::FIELD_PARENT_SHIPMENT_ID);
+        return (int)$this->getData(static::FIELD_PARENT_SHIPMENT_ID) ?: null;
     }
 
     /**
@@ -612,21 +623,23 @@ class Order extends AbstractModel implements OrderInterface
     }
 
     /**
-     * @return array|null
+     * @return string[]|null
      */
     public function getCourierService(): ?array
     {
-        return $this->getData(static::FIELD_COURIER_SERVICE);
+        return $this->getData(static::FIELD_COURIER_SERVICE)
+            ? \explode(',', (string)$this->getData(static::FIELD_COURIER_SERVICE))
+            : null;
     }
 
     /**
-     * @param array|null $courierService
+     * @param string[]|null $courierService
      *
      * @return void
      */
     public function setCourierService(?array $courierService): void
     {
-        $this->setData(static::FIELD_COURIER_SERVICE, $courierService);
+        $this->setData(static::FIELD_COURIER_SERVICE, \implode(',', $courierService));
     }
 
     /**
@@ -708,7 +721,7 @@ class Order extends AbstractModel implements OrderInterface
      */
     public function getSender(): BaseAddressInterface
     {
-        if (!$this->sender) {
+        if (!$this->addressesLoaded) {
             $this->loadAddresses();
         }
 
@@ -723,6 +736,7 @@ class Order extends AbstractModel implements OrderInterface
     public function setSender(BaseAddressInterface $sender): void
     {
         $this->sender = $sender;
+        $this->sender->setOrder($this);
     }
 
     /**
@@ -730,7 +744,7 @@ class Order extends AbstractModel implements OrderInterface
      */
     public function getRecipient(): BaseAddressInterface
     {
-        if (!$this->recipient) {
+        if (!$this->addressesLoaded) {
             $this->loadAddresses();
         }
 
@@ -745,6 +759,30 @@ class Order extends AbstractModel implements OrderInterface
     public function setRecipient(BaseAddressInterface $recipient): void
     {
         $this->recipient = $recipient;
+        $this->recipient->setOrder($this);
+    }
+
+    /**
+     * @return AddressInterface|null
+     */
+    public function getCoverAddress(): ?BaseAddressInterface
+    {
+        if (!$this->addressesLoaded) {
+            $this->loadAddresses();
+        }
+
+        return $this->coverAddress;
+    }
+
+    /**
+     * @param AddressInterface|null $coverAddress
+     *
+     * @return void
+     */
+    public function setCoverAddress(?BaseAddressInterface $coverAddress): void
+    {
+        $this->coverAddress = $coverAddress;
+        $this->coverAddress->setOrder($this);
     }
 
     /**
@@ -763,6 +801,9 @@ class Order extends AbstractModel implements OrderInterface
     public function setCod(?BaseCodInterface $cod): void
     {
         $this->cod = $cod;
+        if ($this->getOrderId()) {
+            $this->cod?->setOrderId($this->getOrderId());
+        }
     }
 
     /**
@@ -843,15 +884,11 @@ class Order extends AbstractModel implements OrderInterface
             ->addOrderFilter($this->getOrderId());
         /** @var AddressInterface $address */
         foreach ($addresses as $address) {
-            switch ($address->getType()) {
-                case AddressTypeEnum::RECIPIENT:
-                    $this->setRecipient($address);
-                    break;
-
-                case AddressTypeEnum::SENDER:
-                    $this->setSender($address);
-                    break;
-            }
+            match ($address->getType()) {
+                AddressTypeEnum::RECIPIENT => $this->setRecipient($address),
+                AddressTypeEnum::SENDER => $this->setSender($address),
+                AddressInterface::TYPE_COVER => $this->setCoverAddress($address)
+            };
         }
 
         if (!$this->sender) {
@@ -861,6 +898,8 @@ class Order extends AbstractModel implements OrderInterface
         if (!$this->recipient) {
             $this->recipient = $this->addressFactory->create();
         }
+
+        $this->addressesLoaded = true;
     }
 
     /**

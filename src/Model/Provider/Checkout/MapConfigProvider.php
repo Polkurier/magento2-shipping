@@ -14,9 +14,6 @@ use Polkurier\Shipping\Model\Provider\ConfigProvider;
 use Polkurier\Shipping\Model\Provider\Ext\MapTokenProvider;
 use Polkurier\Webservice\Enum\PointFunctionEnum;
 use Polkurier\Webservice\Enum\PointRequirementEnum;
-use Polkurier\Webservice\Model\Entity\Carrier;
-use Polkurier\Webservice\Model\Entity\Carrier\AdditionalData;
-use Polkurier\Webservice\Model\Entity\Carrier\AdditionalData\PointsMap;
 
 readonly class MapConfigProvider implements ConfigProviderInterface
 {
@@ -39,8 +36,7 @@ readonly class MapConfigProvider implements ConfigProviderInterface
         $allowedMethods = $this->getAllowedMethods();
         $methodProviders = [];
         foreach ($allowedMethods as $carrier) {
-            $methodProviders[$carrier->getCarrierCode()] =
-                $carrier->getExtData()[Carrier::FIELD_ADDITIONAL_DATA][AdditionalData::FIELD_POINTS_MAP][PointsMap::FIELD_AVAILABLE_PROVIDERS];
+            $methodProviders[$carrier->getCarrierCode()] = $carrier->getPointMapProviders();
         }
 
         return ['polkurier' => ['map' => [
@@ -81,9 +77,6 @@ readonly class MapConfigProvider implements ConfigProviderInterface
      */
     private function isMethodAllowed(CarrierConfigInterface $carrierConfig): bool
     {
-        $pointsMap = $carrierConfig->getExtData()[Carrier::FIELD_ADDITIONAL_DATA][AdditionalData::FIELD_POINTS_MAP] ?? null;
-
-        return $pointsMap !== null
-            && $pointsMap[PointsMap::FIELD_RECIPIENT_POINT] === PointRequirementEnum::REQUIRED->value;
+        return $carrierConfig->getPointMapRecipientPoint() === PointRequirementEnum::REQUIRED;
     }
 }

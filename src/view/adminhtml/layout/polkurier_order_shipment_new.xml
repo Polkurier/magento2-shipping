@@ -17,5 +17,8 @@
         </referenceBlock>
         <referenceBlock name="order_info" class="Polkurier\Shipping\Block\Adminhtml\Order\View\Info"
                         template="Polkurier_Shipping::order/view/info.phtml" />
+
+        <referenceBlock name="shipment_tracking" remove="true" />
+        <referenceBlock name="shipment_packaging" remove="true" />
     </body>
-</page>
+ </page>

@@ -11,8 +11,8 @@ use Magento\Sales\Api\Data\OrderAddressInterface;
 use Magento\Sales\Api\OrderAddressRepositoryInterface;
 use Magento\Sales\Model\Order\Address;
 use Polkurier\Shipping\Api\Order\AddressRepositoryInterface;
+use Polkurier\Shipping\Helper\AddressMapper;
 use Polkurier\Shipping\Helper\ShipmentHelper;
-use Polkurier\Shipping\Model\AddressMapper;
 
 readonly class OrderAddressRepositoryPlugin
 {

@@ -170,7 +170,7 @@
     <type name="Magento\Payment\Model\Checks\SpecificationFactory">
         <arguments>
             <argument name="mapping" xsi:type="array">
-                <item name="polkurier_delivery" xsi:type="object">Polkurier\Shipping\Model\Payment\Checks\CanUseForDefivery</item>
+                <item name="polkurier_delivery" xsi:type="object">Polkurier\Shipping\Model\Payment\Checks\CanUseForDelivery</item>
             </argument>
         </arguments>
     </type>

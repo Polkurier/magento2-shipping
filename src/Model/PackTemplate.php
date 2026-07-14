@@ -52,7 +52,7 @@ class PackTemplate extends AbstractPack implements PackTemplateInterface, Extern
      */
     public function getTemplateId(): ?int
     {
-        return $this->getData(static::FIELD_TEMPLATE_ID);
+        return (int)$this->getData(static::FIELD_TEMPLATE_ID) ?: null;
     }
 
     /**

@@ -24,7 +24,6 @@ class DataProvider extends BaseDataProvider
     protected function getModelData(DataObject $model): array
     {
         $data = $model->getData();
-        $data['carrier_name'] = $model->getExtData()[Carrier::FIELD_NAME];
         if ($model->getPricingModel() === PricingModelEnum::FIXED) {
             $data['price'] = $model->getPriceInfo()[Fixed::PRICE_INFO_PRICE] ?? 0.0;
         }

@@ -6,13 +6,15 @@ define([
     'use strict';
 
     return CheckboxSet.extend({
-        configStatus: {},
-        configOverview: {},
+        servicesAvailability: {},
         defaults: {
             template: 'Polkurier_Shipping/form/element/additional-services',
             configurable: {},
             listens: {
                 value: 'servicesChanged'
+            },
+            imports: {
+                servicesAvailability: '${ $.provider }:data.services_availability'
             }
         },
 
@@ -20,54 +22,61 @@ define([
             this._super();
             this.previous = [];
             for (let service in this.configurable) {
-                this.configStatus[service] = {
-                    valid: ko.observable(true),
-                    dirty: ko.observable(false)
-                };
-                this.configOverview[service] = ko.observable();
+                this.configurable[service].valid = ko.observable(true);
+                this.configurable[service].dirty = ko.observable(false);
+                this.configurable[service].overview = ko.observable();
+                registry.async('index = ' + this.configurable[service].fieldset)(function (fieldset) {
+                    this.configurable[service].fieldsetElement = fieldset;
+                    this.setConfigOverview(service);
+                }.bind(this));
             }
 
             return this;
         },
 
         isConfigValid(service) {
-            return this.configStatus[service] ? this.configStatus[service].valid() : true;
+            return this.configurable[service] ? this.configurable[service].valid() : true;
         },
 
         setConfigValid(service, valid) {
-            if (this.configStatus[service]) {
-                this.configStatus[service].valid(valid);
+            if (this.configurable[service]) {
+                this.configurable[service].valid(valid);
             }
         },
 
         getConfigOverview(service) {
             return this.configurable[service].overviewFormat
-                ? this.configOverview[service]()
+                ? this.configurable[service].overview()
                 : '';
         },
 
-        setConfigOverview(service, fieldset) {
+        setConfigOverview(service) {
             if (this.configurable[service].overviewFormat === undefined) {
                 return;
             }
-            const overview = this.configurable[service].overviewFormat.replace(
+
+            this.configurable[service].overview(this.buildOverview(service));
+        },
+
+        buildOverview(service) {
+            return this.configurable[service].overviewFormat.replace(
                 /\{\$([a-zA-Z_]\w*)\}/g,
                 function (match, name) {
-                    return this.getFieldValue(fieldset, name);
+                    return this.getFieldValue(this.configurable[service].fieldsetElement, name);
                 }.bind(this)
             );
-
-            this.configOverview[service](overview);
         },
 
         getFieldValue(fieldset, fieldName) {
             const field = fieldset.elems().find((element) => element.name.indexOf(fieldName) !== -1);
-            switch (field.formElement) {
-                case 'select':
-                    return field.getOption(field.value()).label;
-                case 'input':
-                default:
-                    return field.value();
+            if (field !== undefined) {
+                switch (field.formElement) {
+                    case 'select':
+                        return field.getOption(field.value()).label;
+                    case 'input':
+                    default:
+                        return field.value();
+                }
             }
         },
 
@@ -75,9 +84,15 @@ define([
             values = values || [];
             registry.async('index = polkurier_modal_manager')(function (manager) {
                 values.forEach(function (service) {
-                    if (this.previous.indexOf(service) === -1 && this.configStatus[service].dirty() === false) {
-                        this.configStatus[service].dirty(true);
-                        manager.configure(this.configurable[service].fieldset, service, this.setConfigOverview.bind(this));
+                    if (this.previous && this.previous.indexOf(service) === -1
+                        // && this.configurable[service].dirty() === false
+                    ) {
+                        this.configurable[service].dirty(true);
+                        manager.configure(
+                            this.configurable[service].fieldsetElement,
+                            service,
+                            this.setConfigOverview.bind(this)
+                        );
                     }
                 }, this);
                 this.previous = values.slice();
@@ -98,7 +113,7 @@ define([
 
         configure(service) {
             registry.async('index = polkurier_modal_manager')(function (manager) {
-                manager.configure(this.configurable[service].fieldset, service, this.setConfigOverview.bind(this));
+                manager.configure(this.configurable[service].fieldsetElement, service, this.setConfigOverview.bind(this));
             }.bind(this));
         }
     });

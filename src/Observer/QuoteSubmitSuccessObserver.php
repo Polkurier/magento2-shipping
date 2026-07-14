@@ -14,19 +14,20 @@ use Magento\Sales\Api\Data\OrderInterface;
 use Polkurier\Shipping\Api\Data\OrderInterface as PolkurierOrderInterface;
 use Polkurier\Shipping\Api\Data\OrderInterfaceFactory;
 use Polkurier\Shipping\Api\OrderRepositoryInterface;
+use Polkurier\Shipping\Helper\AddressMapper;
 use Polkurier\Shipping\Helper\PaymentHelper;
 use Polkurier\Shipping\Helper\ShipmentHelper;
-use Polkurier\Shipping\Model\AddressMapper;
-use Polkurier\Shipping\Model\Provider\Shipment\DefaultCodProvider;
-use Polkurier\Shipping\Model\Provider\Shipment\DefaultSenderProvider;
+use Polkurier\Shipping\Model\Provider\Shipment\Default\CodProvider;
+use Polkurier\Shipping\Model\Provider\Shipment\Default\InsuranceProvider;
+use Polkurier\Shipping\Model\Provider\Shipment\Default\SenderProvider;
 
 readonly class QuoteSubmitSuccessObserver implements ObserverInterface
 {
     /**
      * @param OrderInterfaceFactory $polkurierOrderFactory
      * @param OrderRepositoryInterface $polkurierOrderRepository
-     * @param DefaultSenderProvider $defaultSenderProvider
-     * @param DefaultCodProvider $defaultCodProvider
+     * @param SenderProvider $defaultSenderProvider
+     * @param CodProvider $defaultCodProvider
      * @param AddressMapper $addressMapper
      * @param ShipmentHelper $shipmentHelper
      * @param PaymentHelper $paymentHelper
@@ -43,14 +44,19 @@ readonly class QuoteSubmitSuccessObserver implements ObserverInterface
         private OrderRepositoryInterface $polkurierOrderRepository,
 
         /**
-         * @var DefaultSenderProvider
+         * @var SenderProvider
          */
-        private DefaultSenderProvider $defaultSenderProvider,
+        private SenderProvider $defaultSenderProvider,
 
         /**
-         * @var DefaultCodProvider
+         * @var CodProvider
          */
-        private DefaultCodProvider $defaultCodProvider,
+        private CodProvider $defaultCodProvider,
+
+        /**
+         * @var InsuranceProvider
+         */
+        private InsuranceProvider $defaultInsuranceProvider,
 
         /**
          * @var AddressMapper
@@ -66,7 +72,8 @@ readonly class QuoteSubmitSuccessObserver implements ObserverInterface
          * @var PaymentHelper
          */
         private PaymentHelper $paymentHelper,
-    ) {}
+    ) {
+    }
 
     /**
      * @param Observer $observer
@@ -106,6 +113,9 @@ readonly class QuoteSubmitSuccessObserver implements ObserverInterface
         $polkurierOrder->setSender($this->defaultSenderProvider->getDefaultSender());
         if ($this->paymentHelper->isOrderCod($order)) {
             $polkurierOrder->setCod($this->defaultCodProvider->createDefaultCod($order));
+        }
+        if ($this->shipmentHelper->isInsuranceRequired($shipmentData->getCarrierCode())) {
+            $polkurierOrder->setInsuranceAmount($this->defaultInsuranceProvider->getDefaultInsuranceAmount($order));
         }
 
         return $polkurierOrder;

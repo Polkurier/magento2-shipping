@@ -28,12 +28,15 @@ readonly class PackTemplate implements OptionSourceInterface
      */
     public function toOptionArray(): array
     {
-        return \array_map(
+        $templates = \array_map(
             fn (PackTemplateInterface $template) => [
                 'value' => $template->getTemplateId(),
                 'label' => $template->getName()
             ],
             $this->packTemplateRepository->findAll()->getItems()
         );
+        array_unshift($templates, ['value' => 0, 'label' => \__('Custom package')]);
+
+        return $templates;
     }
 }

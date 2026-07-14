@@ -128,15 +128,13 @@ class PolkurierCarrier extends AbstractCarrierOnline implements CarrierInterface
 
         $result = $this->_rateFactory->create();
         foreach ($this->carrierConfigRepository->findActive() as $carrierConfig) {
-            if ($this->isForeignShipment($request) && !$this->isForeignShipmentAllowed($carrierConfig)) {
+            if ($this->isForeignShipment($request) && !$carrierConfig->isForeignShipment()) {
                 continue;
             }
             $method = $this->_rateMethodFactory->create();
             $method->setCarrier($this->_code);
             $method->setMethod($carrierConfig->getCarrierCode());
-            $method->setMethodTitle(
-                $carrierConfig->getCustomLabel() ?: $carrierConfig->getExtData()[Carrier::FIELD_NAME]
-            );
+            $method->setMethodTitle($carrierConfig->getCustomLabel() ?: $carrierConfig->getCarrierName());
             $price = $this->priceCalculator->calculatePrice($carrierConfig, $request);
             $method->setPrice($price);
             $method->setCost($price);
@@ -162,24 +160,13 @@ class PolkurierCarrier extends AbstractCarrierOnline implements CarrierInterface
     }
 
     /**
-     * @param CarrierConfigInterface $carrierConfig
-     *
-     * @return bool
-     */
-    private function isForeignShipmentAllowed(CarrierConfigInterface $carrierConfig): bool
-    {
-        return $carrierConfig->getExtData()[Carrier::FIELD_FOREIGN_SHIPMENTS];
-    }
-
-    /**
      * @return string[]
      */
     public function getAllowedMethods(): array
     {
-        $activeCarriers = $this->carrierConfigRepository->findActive();
         $result = [];
-        foreach ($activeCarriers as $carrier) {
-            $result[$carrier->getCarrierCode()] = $carrier->getCustomLabel() ?: $carrier->getExtData()->getName();
+        foreach ($this->carrierConfigRepository->findActive() as $carrier) {
+            $result[$carrier->getCarrierCode()] = $carrier->getCustomLabel() ?: $carrier->getCarrierName();
         }
 
         return $result;

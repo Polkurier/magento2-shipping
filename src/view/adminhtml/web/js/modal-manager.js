@@ -32,16 +32,14 @@ define([
             return this;
         },
 
-        configure(fieldsetName, value, callback) {
-            registry.async('index = ' + fieldsetName)(function (fieldset) {
-                const element = fieldset.element
-                    ? $(fieldset.element)
-                    : $('[data-index="' + fieldset.index + '"]');
-                if (!element.length) {
-                    return;
-                }
-                this.open(fieldset, element, value, callback);
-            }.bind(this));
+        configure(fieldset, value, callback) {
+            const element = fieldset.element
+                ? $(fieldset.element)
+                : $('[data-index="' + fieldset.index + '"]');
+            if (!element.length) {
+                return;
+            }
+            this.open(fieldset, element, value, callback);
         },
 
         open(fieldset, element, value, callback) {

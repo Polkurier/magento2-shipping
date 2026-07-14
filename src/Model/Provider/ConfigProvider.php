@@ -154,7 +154,7 @@ readonly class ConfigProvider implements ConfigProviderInterface
     {
         return \explode(
             ',',
-            $this->scopeConfig->getValue(ConfigPathEnum::SHIPMENTS_DEFAULT_ADDITIONAL_SERVICES)
+            $this->scopeConfig->getValue(ConfigPathEnum::SHIPMENTS_DEFAULT_ADDITIONAL_SERVICES->value)
         );
     }
 
@@ -163,7 +163,7 @@ readonly class ConfigProvider implements ConfigProviderInterface
      */
     public function getDefaultCodType(): CodTypeEnum
     {
-        return CodTypeEnum::from($this->scopeConfig->getValue(ConfigPathEnum::SHIPMENTS_DEFAULT_COD_TYPE));
+        return CodTypeEnum::from($this->scopeConfig->getValue(ConfigPathEnum::SHIPMENTS_DEFAULT_COD_TYPE->value));
     }
 
     /**
@@ -172,7 +172,7 @@ readonly class ConfigProvider implements ConfigProviderInterface
     public function getDefaultCodRefundType(): CodReturnTypeEnum
     {
         return CodReturnTypeEnum::from(
-            $this->scopeConfig->getValue(ConfigPathEnum::SHIPMENTS_DEFAULT_COD_REFUND_TYPE)
+            $this->scopeConfig->getValue(ConfigPathEnum::SHIPMENTS_DEFAULT_COD_REFUND_TYPE->value)
         );
     }
 

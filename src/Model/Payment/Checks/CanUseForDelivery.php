@@ -36,7 +36,7 @@ readonly class CanUseForDelivery implements SpecificationInterface
      *
      * @return bool
      */
-    public function isApplicable(MethodInterface $paymentMethod, Quote $quote)
+    public function isApplicable(MethodInterface $paymentMethod, Quote $quote): bool
     {
         if (\in_array($paymentMethod->getCode(), $this->codPayments)
             && $this->shipmentHelper->isQuotePolkurierShipment($quote)

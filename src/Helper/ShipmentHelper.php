@@ -14,10 +14,6 @@ use Magento\Sales\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Api\CarrierConfigRepositoryInterface;
 use Polkurier\Shipping\Model\PolkurierCarrier;
 use Polkurier\Webservice\Enum\PointRequirementEnum;
-use Polkurier\Webservice\Model\Entity\Carrier;
-use Polkurier\Webservice\Model\Entity\Carrier\AdditionalData;
-use Polkurier\Webservice\Model\Entity\Carrier\AdditionalData\PointsMap;
-use Polkurier\Webservice\Model\Entity\Carrier\AdditionalData\Property;
 
 readonly class ShipmentHelper
 {
@@ -35,10 +31,7 @@ readonly class ShipmentHelper
      */
     public function isCodAvailableForCarrier(string $carrierCode): bool
     {
-        $carrierConfig = $this->carrierConfigRepository->findOneByCode($carrierCode)?->getExtData();
-
-        return $carrierConfig[Carrier::FIELD_ADDITIONAL_DATA][AdditionalData::FIELD_COD][Property::FIELD_AVAILABLE]
-            ?? false;
+        return (bool)$this->carrierConfigRepository->findOneByCode($carrierCode)?->isCodAvailable();
     }
 
     /**
@@ -48,12 +41,18 @@ readonly class ShipmentHelper
      */
     public function isPointIdRequired(string $carrierCode): bool
     {
-        $carrierConfig = $this->carrierConfigRepository->findOneByCode($carrierCode)?->getExtData();
-        $pointsMap = $carrierConfig
-            ? $carrierConfig[Carrier::FIELD_ADDITIONAL_DATA][AdditionalData::FIELD_POINTS_MAP]
-            : null;
+        return $this->carrierConfigRepository->findOneByCode($carrierCode)?->getPointMapRecipientPoint()
+            === PointRequirementEnum::REQUIRED;
+    }
 
-        return $pointsMap && $pointsMap[PointsMap::FIELD_RECIPIENT_POINT] === PointRequirementEnum::REQUIRED;
+    /**
+     * @param string $carrierCode
+     *
+     * @return bool
+     */
+    public function isInsuranceRequired(string $carrierCode): bool
+    {
+        return (bool)$this->carrierConfigRepository->findOneByCode($carrierCode)?->isCodInsuranceRequired();
     }
 
     /**
@@ -63,9 +62,8 @@ readonly class ShipmentHelper
      */
     public function isQuotePolkurierShipment(CartInterface $quote): bool
     {
-        $carrierCode = \explode('_', (string)$quote->getShippingAddress()->getShippingMethod())[0];
-
-        return $carrierCode === PolkurierCarrier::CODE;
+        return \explode('_', (string)$quote->getShippingAddress()->getShippingMethod())[0]
+            === PolkurierCarrier::CODE;
     }
 
     /**

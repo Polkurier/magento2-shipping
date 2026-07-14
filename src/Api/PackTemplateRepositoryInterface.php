@@ -24,6 +24,11 @@ interface PackTemplateRepositoryInterface
     public function findOneById(int $id): ?PackTemplateInterface;
 
     /**
+     * @return PackTemplateInterface|null
+     */
+    public function findOneDefault(): ?PackTemplateInterface;
+
+    /**
      * @param PackTemplateInterface $packTemplate
      *
      * @return PackTemplateInterface

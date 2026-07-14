@@ -115,22 +115,23 @@ readonly class QuoteRepositoryPlugin
 
     /**
      * @param CartRepositoryInterface $subject
+     * @param $result
      * @param CartInterface $quote
      *
-     * @return array
+     * @return mixed
      * @throws AlreadyExistsException
      */
-    public function beforeSave(CartRepositoryInterface $subject, CartInterface $quote): array
+    public function afterSave(CartRepositoryInterface $subject, $result, CartInterface $quote)
     {
         if (!$this->shipmentHelper->isQuotePolkurierShipment($quote)) {
-            return [$quote];
+            return $result;
         }
         $this->shipmentDataResource->save(
             $quote->getExtensionAttributes()?->getPolkurierShipmentData()
                 ?? $this->initPolkurierShipmentData($quote)
         );
 
-        return [$quote];
+        return $result;
     }
 
     /**

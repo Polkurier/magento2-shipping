@@ -20,23 +20,22 @@ use Magento\Sales\Api\ShipmentRepositoryInterface;
 use Polkurier\Shipping\Api\Data\Order\AddressInterface;
 use Polkurier\Shipping\Api\Data\Order\AddressInterfaceFactory;
 use Polkurier\Shipping\Api\Data\Order\CodInterface;
+use Polkurier\Shipping\Api\Data\Order\CodInterfaceFactory;
 use Polkurier\Shipping\Api\Data\Order\ItemInterface;
 use Polkurier\Shipping\Api\Data\Order\PackInterface;
 use Polkurier\Shipping\Api\Data\Order\WaybillInterface;
 use Polkurier\Shipping\Api\Data\OrderInterface;
-use Polkurier\Shipping\Model\ResourceModel\Order as OrderResource;
 use Polkurier\Shipping\Model\ResourceModel\Order\Address\CollectionFactory as AddressCollectionFactory;
-use Polkurier\Shipping\Model\ResourceModel\Order\Cod as CodResource;
+use Polkurier\Shipping\Model\ResourceModel\Order as OrderResource;
 use Polkurier\Shipping\Model\ResourceModel\Order\Item\Collection as ItemCollection;
 use Polkurier\Shipping\Model\ResourceModel\Order\Item\CollectionFactory as ItemCollectionFactory;
 use Polkurier\Shipping\Model\ResourceModel\Order\Pack\Collection as PackCollection;
 use Polkurier\Shipping\Model\ResourceModel\Order\Pack\CollectionFactory as PackCollectionFactory;
 use Polkurier\Shipping\Model\ResourceModel\Order\Waybill\Collection as WaybillCollection;
 use Polkurier\Shipping\Model\ResourceModel\Order\Waybill\CollectionFactory as WaybillCollectionFactory;
-use Polkurier\Webservice\Api\Data\Entity\Order\PickupInterface;
 use Polkurier\Webservice\Api\Data\Entity\BaseAddressInterface;
 use Polkurier\Webservice\Api\Data\Entity\Order\CodInterface as BaseCodInterface;
-use Polkurier\Webservice\Enum\AdditionalServiceEnum;
+use Polkurier\Webservice\Api\Data\Entity\Order\PickupInterface;
 use Polkurier\Webservice\Enum\AddressTypeEnum;
 use Polkurier\Webservice\Enum\ShipmentTypeEnum;
 
@@ -144,7 +143,7 @@ class Order extends AbstractModel implements OrderInterface
      * @param PackCollectionFactory $packCollectionFactory
      * @param WaybillCollectionFactory $waybillCollectionFactory
      * @param AddressCollectionFactory $addressCollectionFactory
-     * @param CodResource $codResource
+     * @param CodInterfaceFactory $codFactory
      * @param Context $context
      * @param Registry $registry
      * @param AbstractResource|null $resource
@@ -161,7 +160,6 @@ class Order extends AbstractModel implements OrderInterface
         private readonly PackCollectionFactory $packCollectionFactory,
         private readonly WaybillCollectionFactory $waybillCollectionFactory,
         private readonly AddressCollectionFactory $addressCollectionFactory,
-        private readonly CodResource $codResource,
         Context $context,
         Registry $registry,
         ?AbstractResource $resource = null,

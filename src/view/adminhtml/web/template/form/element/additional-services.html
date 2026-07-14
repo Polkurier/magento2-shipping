@@ -32,6 +32,10 @@
             <div class="admin__field admin__field-overview" if="$parent.isConfigurableOverview(value)">
                 <span data-bind="text: $parent.getConfigOverview(value)"></span>
             </div>
+            <div if="$parent.isSelected(value) && !$parent.isConfigValid(value)"
+                 class="admin__field admin__field-error message message-warning">
+                <span translate="'Invalid configuration'"></span>
+            </div>
         </div>
 
         <label class="admin__field-error" if="error" attr="for: uid" text="error"></label>

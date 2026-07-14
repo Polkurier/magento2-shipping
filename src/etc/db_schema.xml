@@ -9,11 +9,29 @@
     <table name="polkurier_carrier_config" resource="default" engine="innodb">
         <column xsi:type="int" name="config_id" identity="true" nullable="false" unsigned="true" />
         <column xsi:type="varchar" name="carrier_code" nullable="false" length="50" />
+        <column xsi:type="varchar" name="carrier_name" nullable="false" length="255" />
         <column xsi:type="varchar" name="custom_label" nullable="true" length="255" />
         <column xsi:type="varchar" name="image" nullable="true" length="255" />
         <column xsi:type="varchar" name="pricing_model" nullable="false" length="50" />
         <column xsi:type="json" name="price_info" nullable="true" />
-        <column xsi:type="json" name="ext_data" nullable="false" />
+        <column xsi:type="smallint" name="foreign_shipments" nullable="false" default="0" />
+        <column xsi:type="smallint" name="cod_available" nullable="false" default="0" />
+        <column xsi:type="smallint" name="cod_insurance_required" nullable="false" default="0" />
+        <column xsi:type="smallint" name="insurance_available" nullable="false" default="0" />
+        <column xsi:type="text" name="shipment_types" nullable="true" />
+        <column xsi:type="smallint" name="pickup_date_available" nullable="false" default="0" />
+        <column xsi:type="smallint" name="pickup_date_required" nullable="false" default="0" />
+        <column xsi:type="smallint" name="pickup_time_from_available" nullable="false" default="0" />
+        <column xsi:type="smallint" name="pickup_time_from_required" nullable="false" default="0" />
+        <column xsi:type="smallint" name="pickup_time_to_available" nullable="false" default="0" />
+        <column xsi:type="smallint" name="pickup_time_to_required" nullable="false" default="0" />
+        <column xsi:type="smallint" name="no_courier_order_available" nullable="false" default="0" />
+        <column xsi:type="smallint" name="no_courier_order_default" nullable="false" default="0" />
+        <column xsi:type="text" name="points_map_providers" nullable="true" />
+        <column xsi:type="varchar" name="points_map_sender_point" nullable="true" length="50" />
+        <column xsi:type="varchar" name="points_map_recipient_point" nullable="true" length="50" />
+        <column xsi:type="text" name="additional_services" nullable="true" />
+        <column xsi:type="json" name="additional_fields" nullable="true" />
         <column xsi:type="int" name="sort_order" nullable="false" default="0" />
         <column xsi:type="smallint" name="active" nullable="false" default="0" />
         <column xsi:type="smallint" name="website_id" nullable="false" default="0" unsigned="true" />

@@ -51,12 +51,12 @@
                     </field>
                     <field id="default_carrier" translate="label" type="select" sortOrder="40" showInDefault="1" showInWebsite="1">
                         <label>Default carrier</label>
-                        <source_model>Polkurier\Shipping\Model\Config\Source\AvailableCarriersExt</source_model>
+                        <source_model>Polkurier\Shipping\Model\Config\Source\AvailableCarrierExt</source_model>
                         <comment>Options will appear after configuring API connection</comment>
                     </field>
                     <field id="available_carriers" translate="label" type="multiselect" sortOrder="50" showInDefault="1" showInWebsite="1">
                         <label>Available carriers</label>
-                        <source_model>Polkurier\Shipping\Model\Config\Source\AvailableCarriers</source_model>
+                        <source_model>Polkurier\Shipping\Model\Config\Source\AvailableCarrier</source_model>
                         <backend_model>Polkurier\Shipping\Model\Config\Backend\AvailableCarriers</backend_model>
                         <can_be_empty>1</can_be_empty>
                         <comment><![CDATA[Options will appear after configuring API connection. It narrows down the list of carriers for configuration available in [Polkurier > Settings > Carriers]]]></comment>
@@ -105,7 +105,7 @@
                     </field>
                     <field id="required_point_functions" translate="label comment" type="multiselect" sortOrder="60" showInDefault="1" showInWebsite="1" canRestore="1">
                         <label>Required point functions</label>
-                        <source_model>Polkurier\Shipping\Model\Config\Source\PointFunctions</source_model>
+                        <source_model>Polkurier\Shipping\Model\Config\Source\PointFunction</source_model>
                         <can_be_empty>1</can_be_empty>
                         <comment>Functions which have to be available at the pickup point for the pickup point to be shown on the map</comment>
                     </field>

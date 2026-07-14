@@ -157,7 +157,7 @@
             <formElements>
                 <select>
                     <settings>
-                        <options class="Polkurier\Shipping\Model\Config\Source\AvailableCarriers" />
+                        <options class="Polkurier\Shipping\Model\Config\Source\AvailableCarrier" />
                     </settings>
                 </select>
             </formElements>

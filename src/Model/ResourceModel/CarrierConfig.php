@@ -21,7 +21,7 @@ class CarrierConfig extends AbstractDb
      */
     protected $_serializableFields = [
         CarrierConfigModel::FIELD_PRICE_INFO => [null, []],
-        CarrierConfigModel::FIELD_EXT_DATA => [[], []],
+        CarrierConfigModel::FIELD_ADDITIONAL_FIELDS => [null, []],
     ];
 
     /**

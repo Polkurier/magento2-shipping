@@ -55,10 +55,21 @@ readonly class PackTemplateRepository implements PackTemplateRepositoryInterface
      */
     public function findOneById(int $id): ?PackTemplateInterface
     {
-        $address = $this->entityFactory->create();
-        $this->resource->load($address, $id);
+        $template = $this->entityFactory->create();
+        $this->resource->load($template, $id);
 
-        return $address->getId() ? $address : null;
+        return $template->getId() ? $template : null;
+    }
+
+    /**
+     * @return PackTemplateInterface|null
+     */
+    public function findOneDefault(): ?PackTemplateInterface
+    {
+        $template = $this->entityFactory->create();
+        $this->resource->load($template, 1, PackTemplate::FIELD_DEFAULT);
+
+        return $template->getId() ? $template : null;
     }
 
     /**

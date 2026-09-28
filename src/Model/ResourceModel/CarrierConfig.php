@@ -7,45 +7,98 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Model\ResourceModel;
 
-use Magento\Framework\Exception\LocalizedException;
+use Magento\Framework\Model\AbstractModel;
 use Magento\Framework\Model\ResourceModel\Db\AbstractDb;
-use Polkurier\Shipping\Model\CarrierConfig as CarrierConfigModel;
+use Magento\Framework\Model\ResourceModel\Db\Context;
+use Polkurier\Shipping\Api\Data\CarrierConfigInterface;
+use Polkurier\Shipping\Api\Data\CarrierLabelInterface;
+use Polkurier\Shipping\Api\Data\CarrierLabelInterfaceFactory;
 
+/**
+ * Carrier settings, with their store view labels kept in a table of their own.
+ */
 class CarrierConfig extends AbstractDb
 {
     public const string TABLE_NAME = 'polkurier_carrier_config';
-    public const string ID_FIELD = 'config_id';
+    public const string LABEL_TABLE_NAME = 'polkurier_carrier_label';
 
-    /**
-     * @var array<string, array>
-     */
-    protected $_serializableFields = [
-        CarrierConfigModel::FIELD_PRICE_INFO => [null, []],
-        CarrierConfigModel::FIELD_ADDITIONAL_FIELDS => [null, []],
-    ];
+    public function __construct(
+        Context $context,
+        private readonly CarrierLabelInterfaceFactory $labelFactory,
+        ?string $connectionName = null,
+    ) {
+        parent::__construct($context, $connectionName);
+    }
 
-    /**
-     * @return void
-     */
     protected function _construct(): void
     {
-        $this->_init(static::TABLE_NAME, static::ID_FIELD);
+        $this->_init(self::TABLE_NAME, 'config_id');
     }
 
     /**
-     * @param string $code
-     *
-     * @return mixed
-     * @throws LocalizedException
+     * @param int[] $configIds
+     * @return array<int, CarrierLabelInterface[]> keyed by config id
      */
-    public function loadByCode(string $code)
+    public function loadStoreLabels(array $configIds): array
     {
+        if ($configIds === []) {
+            return [];
+        }
         $connection = $this->getConnection();
-        $select = $connection->select()
-            ->from($this->getMainTable())
-            ->where(CarrierConfigModel::FIELD_CARRIER_CODE . ' = ?', $code)
-            ->limit(1);
+        $rows = $connection->fetchAll(
+            $connection->select()
+                ->from($this->getTable(self::LABEL_TABLE_NAME))
+                ->where('config_id IN (?)', $configIds)
+                ->order('store_id'),
+        );
+        $labels = [];
+        foreach ($rows as $row) {
+            $labels[(int)$row['config_id']][] = $this->labelFactory->create()
+                ->setStoreId((int)$row['store_id'])
+                ->setLabel((string)$row['label']);
+        }
 
-        return $connection->fetchRow($select);
+        return $labels;
+    }
+
+    protected function _afterLoad(AbstractModel $object): static
+    {
+        if ($object->getId()) {
+            $object->setData(
+                CarrierConfigInterface::STORE_LABELS,
+                $this->loadStoreLabels([(int)$object->getId()])[(int)$object->getId()] ?? [],
+            );
+        }
+
+        return parent::_afterLoad($object);
+    }
+
+    /**
+     * Replaces the store view labels, but only when they were set on the model: a save that never
+     * loaded them (e.g. the carrier list refresh) leaves them alone.
+     */
+    protected function _afterSave(AbstractModel $object): static
+    {
+        if ($object->hasData(CarrierConfigInterface::STORE_LABELS)) {
+            $connection = $this->getConnection();
+            $table = $this->getTable(self::LABEL_TABLE_NAME);
+            $configId = (int)$object->getId();
+            $rows = [];
+            foreach ((array)$object->getData(CarrierConfigInterface::STORE_LABELS) as $label) {
+                if ($label instanceof CarrierLabelInterface && \trim($label->getLabel()) !== '') {
+                    $rows[$label->getStoreId()] = [
+                        'config_id' => $configId,
+                        'store_id' => $label->getStoreId(),
+                        'label' => \trim($label->getLabel()),
+                    ];
+                }
+            }
+            $connection->delete($table, ['config_id = ?' => $configId]);
+            if ($rows !== []) {
+                $connection->insertMultiple($table, \array_values($rows));
+            }
+        }
+
+        return parent::_afterSave($object);
     }
 }

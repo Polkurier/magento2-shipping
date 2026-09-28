@@ -7,34 +7,32 @@
          xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Ui:etc/ui_configuration.xsd">
     <argument name="data" xsi:type="array">
         <item name="js_config" xsi:type="array">
-            <item name="provider" xsi:type="string">
-                polkurier_address_listing.polkurier_address_listing_data_source
-            </item>
+            <item name="provider" xsi:type="string">polkurier_address_listing.polkurier_address_listing_data_source</item>
         </item>
     </argument>
     <settings>
         <buttons>
             <button name="add">
-                <url path="*/*/new"/>
+                <url path="polkurier/address/edit"/>
                 <class>primary</class>
-                <label translate="true">Add new address</label>
+                <label translate="true">Add address</label>
             </button>
+            <button name="sync" class="Polkurier\Shipping\Ui\Component\Control\SyncAddressesButton"/>
         </buttons>
-        <spinner>polkurier_address_columns</spinner>
+        <spinner>polkurier_address_listing_columns</spinner>
         <deps>
             <dep>polkurier_address_listing.polkurier_address_listing_data_source</dep>
         </deps>
     </settings>
     <dataSource name="polkurier_address_listing_data_source" component="Magento_Ui/js/grid/provider">
         <settings>
-            <updateUrl path="mui/index/render" />
             <storageConfig>
                 <param name="indexField" xsi:type="string">address_id</param>
             </storageConfig>
+            <updateUrl path="mui/index/render"/>
         </settings>
         <aclResource>Polkurier_Shipping::addresses</aclResource>
-        <dataProvider name="polkurier_address_listing_data_source"
-                      class="Polkurier\Shipping\Ui\Component\Listing\DataProvider">
+        <dataProvider class="Magento\Framework\View\Element\UiComponent\DataProvider\DataProvider" name="polkurier_address_listing_data_source">
             <settings>
                 <requestFieldName>id</requestFieldName>
                 <primaryFieldName>address_id</primaryFieldName>
@@ -42,67 +40,38 @@
         </dataProvider>
     </dataSource>
     <listingToolbar name="listing_top">
-        <columnsControls name="columns_controls" />
-        <filterSearch name="fulltext" />
-        <filters name="listing_filters" component="Magento_Ui/js/grid/filters/filters">
-            <settings>
-                <storageConfig>
-                    <param name="provider" xsi:type="string">
-                        polkurier_address_listing.polkurier_address_listing.listing_top.bookmarks
-                    </param>
-                    <param name="namespace" xsi:type="string">current.filters</param>
-                </storageConfig>
-                <childDefaults>
-                    <param name="provider" xsi:type="string">
-                        polkurier_address_listing.polkurier_address_listing.listing_top.listing_filters
-                    </param>
-                    <param name="imports" xsi:type="array">
-                        <item name="visible" xsi:type="string">
-                            polkurier_address_listing.polkurier_address_listing.listing_top.bookmarks:current.columns.${ $.index }.visible
-                        </item>
-                    </param>
-                </childDefaults>
-            </settings>
-        </filters>
-        <massaction name="listing_massaction" component="Magento_Ui/js/grid/massactions">
+        <bookmark name="bookmarks"/>
+        <columnsControls name="columns_controls"/>
+        <filters name="listing_filters"/>
+        <massaction name="listing_massaction">
             <action name="delete">
-                <argument name="data" xsi:type="array">
-                    <item name="config" xsi:type="array">
-                        <item name="isAjax" xsi:type="boolean">true</item>
-<!--                        <item name="selectProvider" xsi:type="string">polkurier_address_listing.polkurier_address_listing.polkurier_address_columns.address_id</item>-->
-                    </item>
-                </argument>
                 <settings>
-                    <url path="*/*/massDelete" />
+                    <url path="polkurier/address/massDelete"/>
                     <type>delete</type>
                     <label translate="true">Delete</label>
                     <confirm>
-                        <title translate="true">Delete items</title>
-                        <message translate="true">Are you sure you want to delete selected addresses?</message>
+                        <title translate="true">Delete addresses</title>
+                        <message translate="true">The addresses are deleted here and, at the next synchronization, in Polkurier.</message>
                     </confirm>
                 </settings>
             </action>
         </massaction>
         <paging name="listing_paging"/>
     </listingToolbar>
-    <columns name="polkurier_address_columns" class="Magento\Ui\Component\Listing\Columns">
+    <columns name="polkurier_address_listing_columns">
         <settings>
             <editorConfig>
                 <param name="clientConfig" xsi:type="array">
-                    <item name="saveUrl" xsi:type="url" path="*/*/inlineEdit" />
+                    <item name="saveUrl" xsi:type="url" path="polkurier/address/inlineEdit"/>
                     <item name="validateBeforeSave" xsi:type="boolean">false</item>
                 </param>
                 <param name="indexField" xsi:type="string">address_id</param>
                 <param name="enabled" xsi:type="boolean">true</param>
-                <param name="selectProvider" xsi:type="string">
-                    polkurier_address_listing.polkurier_address_listing.polkurier_address_columns.ids
-                </param>
+                <param name="selectProvider" xsi:type="string">polkurier_address_listing.polkurier_address_listing.polkurier_address_listing_columns.ids</param>
             </editorConfig>
             <childDefaults>
                 <param name="fieldAction" xsi:type="array">
-                    <item name="provider" xsi:type="string">
-                        polkurier_address_listing.polkurier_address_listing.polkurier_address_columns_editor
-                    </item>
+                    <item name="provider" xsi:type="string">polkurier_address_listing.polkurier_address_listing.polkurier_address_listing_columns_editor</item>
                     <item name="target" xsi:type="string">startEdit</item>
                     <item name="params" xsi:type="array">
                         <item name="0" xsi:type="string">${ $.$data.rowIndex }</item>
@@ -116,31 +85,40 @@
                 <indexField>address_id</indexField>
             </settings>
         </selectionsColumn>
-        <column name="name" sortOrder="10">
+        <column name="address_id">
+            <settings>
+                <label translate="true">ID</label>
+                <filter>textRange</filter>
+                <visible>false</visible>
+            </settings>
+        </column>
+        <column name="website_id" component="Magento_Ui/js/grid/columns/select">
+            <settings>
+                <label translate="true">Website</label>
+                <options class="Magento\Config\Model\Config\Source\Website"/>
+                <filter>select</filter>
+                <dataType>select</dataType>
+            </settings>
+        </column>
+        <column name="name">
             <settings>
                 <label translate="true">Label</label>
                 <filter>text</filter>
                 <editor>
                     <editorType>text</editorType>
-                    <validation>
-                        <rule name="required-entry" xsi:type="boolean">true</rule>
-                    </validation>
                 </editor>
             </settings>
         </column>
-        <column name="person" sortOrder="20">
+        <column name="person">
             <settings>
                 <label translate="true">Name</label>
                 <filter>text</filter>
                 <editor>
                     <editorType>text</editorType>
-                    <validation>
-                        <rule name="required-entry" xsi:type="boolean">true</rule>
-                    </validation>
                 </editor>
             </settings>
         </column>
-        <column name="company" sortOrder="30">
+        <column name="company">
             <settings>
                 <label translate="true">Company</label>
                 <filter>text</filter>
@@ -149,136 +127,115 @@
                 </editor>
             </settings>
         </column>
-        <column name="street" sortOrder="40">
+        <column name="street">
             <settings>
                 <label translate="true">Street</label>
                 <filter>text</filter>
                 <editor>
                     <editorType>text</editorType>
-                    <validation>
-                        <rule name="required-entry" xsi:type="boolean">true</rule>
-                    </validation>
                 </editor>
             </settings>
         </column>
-        <column name="house_number" sortOrder="50">
+        <column name="house_number">
             <settings>
-                <label translate="true">House number</label>
-                <filter>text</filter>
-                <editor>
-                    <editorType>text</editorType>
-                    <validation>
-                        <rule name="required-entry" xsi:type="boolean">true</rule>
-                    </validation>
-                </editor>
-            </settings>
-        </column>
-        <column name="flat_number" sortOrder="60">
-            <settings>
-                <label translate="true">Flat number</label>
+                <label translate="true">No.</label>
                 <filter>text</filter>
                 <editor>
                     <editorType>text</editorType>
                 </editor>
             </settings>
         </column>
-        <column name="postcode" sortOrder="70">
+        <column name="postcode">
             <settings>
                 <label translate="true">Postcode</label>
                 <filter>text</filter>
                 <editor>
                     <editorType>text</editorType>
-                    <validation>
-                        <rule name="required-entry" xsi:type="boolean">true</rule>
-                    </validation>
                 </editor>
             </settings>
         </column>
-        <column name="city" sortOrder="80">
+        <column name="city">
             <settings>
                 <label translate="true">City</label>
                 <filter>text</filter>
                 <editor>
                     <editorType>text</editorType>
-                    <validation>
-                        <rule name="required-entry" xsi:type="boolean">true</rule>
-                    </validation>
                 </editor>
             </settings>
         </column>
-        <column name="province" sortOrder="90">
-            <settings>
-                <label translate="true">Province</label>
-                <filter>text</filter>
-                <editor>
-                    <editorType>text</editorType>
-                </editor>
-            </settings>
-        </column>
-        <column name="country" component="Magento_Ui/js/grid/columns/select" sortOrder="100">
-            <settings>
-                <label translate="true">Country</label>
-                <filter>select</filter>
-                <dataType>select</dataType>
-                <options class="Magento\Directory\Model\Config\Source\Country" />
-                <editor>
-                    <editorType>select</editorType>
-                    <validation>
-                        <rule name="required-entry" xsi:type="boolean">true</rule>
-                    </validation>
-                </editor>
-            </settings>
-        </column>
-        <column name="phone" sortOrder="110">
+        <column name="phone">
             <settings>
                 <label translate="true">Phone</label>
                 <filter>text</filter>
                 <editor>
                     <editorType>text</editorType>
-                    <validation>
-                        <rule name="required-entry" xsi:type="boolean">true</rule>
-                    </validation>
                 </editor>
             </settings>
         </column>
-        <column name="email" sortOrder="120">
+        <column name="email">
             <settings>
-                <label translate="true">Email</label>
+                <label translate="true">E-mail</label>
                 <filter>text</filter>
                 <editor>
                     <editorType>text</editorType>
-                    <validation>
-                        <rule name="required-entry" xsi:type="boolean">true</rule>
-                        <rule name="validate-email" xsi:type="boolean">true</rule>
-                    </validation>
                 </editor>
             </settings>
         </column>
-        <column name="cover" component="Magento_Ui/js/grid/columns/select" sortOrder="130">
+        <column name="is_default" component="Magento_Ui/js/grid/columns/select">
             <settings>
-                <label translate="true">Cover</label>
+                <label translate="true">Default sender</label>
+                <options class="Magento\Config\Model\Config\Source\Yesno"/>
                 <filter>select</filter>
                 <dataType>select</dataType>
-                <options class="Magento\Config\Model\Config\Source\Yesno" />
                 <editor>
                     <editorType>select</editorType>
                 </editor>
             </settings>
         </column>
-        <column name="default" component="Magento_Ui/js/grid/columns/select" sortOrder="140">
+        <column name="is_cover" component="Magento_Ui/js/grid/columns/select">
             <settings>
-                <label translate="true">Default</label>
+                <label translate="true">Cover address</label>
+                <options class="Magento\Config\Model\Config\Source\Yesno"/>
                 <filter>select</filter>
                 <dataType>select</dataType>
-                <options class="Magento\Config\Model\Config\Source\Yesno" />
                 <editor>
                     <editorType>select</editorType>
                 </editor>
             </settings>
         </column>
-        <actionsColumn name="actions" class="Polkurier\Shipping\Ui\Component\Listing\Address\Column\Actions">
+        <column name="sync_state" component="Magento_Ui/js/grid/columns/select">
+            <settings>
+                <label translate="true">Synchronization</label>
+                <options class="Polkurier\Shipping\Model\Config\Source\SyncState"/>
+                <filter>select</filter>
+                <dataType>select</dataType>
+            </settings>
+        </column>
+        <column name="sync_error">
+            <settings>
+                <label translate="true">Sync error</label>
+                <filter>text</filter>
+                <visible>false</visible>
+            </settings>
+        </column>
+        <column name="synced_at" component="Magento_Ui/js/grid/columns/date">
+            <settings>
+                <label translate="true">Last synchronized</label>
+                <filter>dateRange</filter>
+                <dataType>date</dataType>
+            </settings>
+        </column>
+        <column name="ext_id">
+            <settings>
+                <label translate="true">Polkurier ID</label>
+                <filter>text</filter>
+                <visible>false</visible>
+            </settings>
+        </column>
+        <actionsColumn name="actions" class="Polkurier\Shipping\Ui\Component\Listing\Column\EditActions">
             <settings>
                 <indexField>address_id</indexField>
+                <label translate="true">Actions</label>
             </settings>
         </actionsColumn>
     </columns>

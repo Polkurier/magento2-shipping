@@ -1,0 +1,154 @@
+<?xml version="1.0"?>
+<!--
+ ~ Copyright (c) 2026 Polkurier.pl
+ ~ All Rights Reserved
+-->
+<form xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Ui:etc/ui_configuration.xsd">
+    <argument name="data" xsi:type="array">
+        <item name="js_config" xsi:type="array">
+            <item name="provider" xsi:type="string">polkurier_payout_form.polkurier_payout_form_data_source</item>
+        </item>
+        <item name="template" xsi:type="string">templates/form/collapsible</item>
+    </argument>
+    <settings>
+        <namespace>polkurier_payout_form</namespace>
+        <dataScope>data</dataScope>
+        <deps>
+            <dep>polkurier_payout_form.polkurier_payout_form_data_source</dep>
+        </deps>
+        <buttons>
+            <button name="back">
+                <url path="*/*/index"/>
+                <class>back</class>
+                <label translate="true">Back</label>
+            </button>
+            <button name="save" class="Polkurier\Shipping\Ui\Component\Control\RequestPayoutButton"/>
+        </buttons>
+    </settings>
+    <dataSource name="polkurier_payout_form_data_source">
+        <argument name="data" xsi:type="array">
+            <item name="js_config" xsi:type="array">
+                <item name="component" xsi:type="string">Magento_Ui/js/form/provider</item>
+            </item>
+        </argument>
+        <settings>
+            <submitUrl path="*/*/save"/>
+        </settings>
+        <dataProvider class="Polkurier\Shipping\Ui\Component\Form\Payout\DataProvider" name="polkurier_payout_form_data_source">
+            <settings>
+                <requestFieldName>website</requestFieldName>
+                <primaryFieldName>website</primaryFieldName>
+            </settings>
+        </dataProvider>
+    </dataSource>
+    <fieldset name="payout">
+        <settings>
+            <label translate="true">Payout</label>
+        </settings>
+        <field name="website_id" formElement="select">
+            <settings>
+                <label translate="true">Website</label>
+                <dataType>text</dataType>
+                <dataScope>website_id</dataScope>
+                <validation><rule name="required-entry" xsi:type="boolean">true</rule></validation>
+            </settings>
+            <formElements>
+                <select>
+                    <settings>
+                        <options class="Magento\Config\Model\Config\Source\Website"/>
+                    </settings>
+                </select>
+            </formElements>
+        </field>
+        <field name="orders" formElement="textarea">
+            <settings>
+                <label translate="true">Polkurier orders</label>
+                <dataType>text</dataType>
+                <dataScope>orders</dataScope>
+                <notice translate="true">One number per line: the cash of these orders is paid out. Empty: everything available. Prefilled with the shipments whose cash is in the money box, as of their last status update.</notice>
+            </settings>
+        </field>
+        <field name="payout_type" formElement="select">
+            <settings>
+                <label translate="true">Payout by</label>
+                <dataType>text</dataType>
+                <dataScope>payout_type</dataScope>
+                <validation><rule name="required-entry" xsi:type="boolean">true</rule></validation>
+            </settings>
+            <formElements>
+                <select>
+                    <settings>
+                        <options class="Polkurier\Shipping\Model\Config\Source\PayoutType"/>
+                    </settings>
+                </select>
+            </formElements>
+        </field>
+        <field name="fee_payment_type" formElement="select">
+            <settings>
+                <label translate="true">Fee paid</label>
+                <dataType>text</dataType>
+                <dataScope>fee_payment_type</dataScope>
+                <validation><rule name="required-entry" xsi:type="boolean">true</rule></validation>
+            </settings>
+            <formElements>
+                <select>
+                    <settings>
+                        <options class="Polkurier\Shipping\Model\Config\Source\FeePaymentType"/>
+                    </settings>
+                </select>
+            </formElements>
+        </field>
+        <field name="bank_account_number" formElement="input">
+            <settings>
+                <label translate="true">Bank account number</label>
+                <dataType>text</dataType>
+                <dataScope>bank_account_number</dataScope>
+                <notice translate="true">For transfers; empty uses the money box setting.</notice>
+            </settings>
+        </field>
+        <container name="fee_quote" component="Polkurier_Shipping/js/moneybox/action" sortOrder="60">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="action" xsi:type="string">quote</item>
+                    <item name="buttonLabel" xsi:type="string" translate="true">Show the fee</item>
+                    <item name="template" xsi:type="string">Polkurier_Shipping/moneybox/action</item>
+                </item>
+            </argument>
+        </container>
+        <field name="two_factor_token" formElement="input">
+            <settings>
+                <label translate="true">Confirmation token</label>
+                <dataType>text</dataType>
+                <dataScope>two_factor_token</dataScope>
+                <visible>false</visible>
+            </settings>
+        </field>
+        <container name="send_code" component="Polkurier_Shipping/js/moneybox/action" sortOrder="80">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="action" xsi:type="string">send_code</item>
+                    <item name="buttonLabel" xsi:type="string" translate="true">Send me the confirmation code</item>
+                    <item name="template" xsi:type="string">Polkurier_Shipping/moneybox/action</item>
+                </item>
+            </argument>
+        </container>
+        <field name="two_factor_code" formElement="input">
+            <settings>
+                <label translate="true">Confirmation code</label>
+                <dataType>text</dataType>
+                <dataScope>two_factor_code</dataScope>
+                <validation><rule name="required-entry" xsi:type="boolean">true</rule></validation>
+            </settings>
+        </field>
+        <field name="security_pin" formElement="input">
+            <settings>
+                <label translate="true">Security PIN</label>
+                <dataType>text</dataType>
+                <dataScope>security_pin</dataScope>
+                <elementTmpl>Polkurier_Shipping/form/element/password</elementTmpl>
+                <notice translate="true">Only if the money box settings are locked with a PIN.</notice>
+            </settings>
+        </field>
+    </fieldset>
+</form>

@@ -7,50 +7,42 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Api;
 
+use Magento\Framework\Api\SearchCriteriaInterface;
+use Magento\Framework\Exception\CouldNotDeleteException;
+use Magento\Framework\Exception\CouldNotSaveException;
+use Magento\Framework\Exception\NoSuchEntityException;
 use Polkurier\Shipping\Api\Data\AddressInterface;
+use Polkurier\Shipping\Api\Data\AddressSearchResultsInterface;
 
+/**
+ * Stores the address records kept in Magento.
+ */
 interface AddressRepositoryInterface
 {
     /**
-     * @return iterable<AddressInterface>
-     */
-    public function findAll(): iterable;
-
-    /**
-     * @return iterable<AddressInterface>
-     */
-    public function findCover(): iterable;
-
-    /**
      * @param int $id
-     *
-     * @return AddressInterface|null
+     * @return \Polkurier\Shipping\Api\Data\AddressInterface
+     * @throws NoSuchEntityException
      */
-    public function findOneById(int $id): ?AddressInterface;
+    public function get(int $id): AddressInterface;
 
     /**
-     * @return AddressInterface|null
+     * @param \Magento\Framework\Api\SearchCriteriaInterface $searchCriteria
+     * @return \Polkurier\Shipping\Api\Data\AddressSearchResultsInterface
      */
-    public function findOneDefault(): ?AddressInterface;
+    public function getList(SearchCriteriaInterface $searchCriteria): AddressSearchResultsInterface;
 
     /**
-     * @param AddressInterface $address
-     *
-     * @return AddressInterface
+     * @param \Polkurier\Shipping\Api\Data\AddressInterface $entity
+     * @return \Polkurier\Shipping\Api\Data\AddressInterface
+     * @throws CouldNotSaveException
      */
-    public function save(AddressInterface $address): AddressInterface;
+    public function save(AddressInterface $entity): AddressInterface;
 
     /**
-     * @param AddressInterface $address
-     *
-     * @return void
+     * @param \Polkurier\Shipping\Api\Data\AddressInterface $entity
+     * @return bool
+     * @throws CouldNotDeleteException
      */
-    public function delete(AddressInterface $address): void;
-
-    /**
-     * @param int $id
-     *
-     * @return void
-     */
-    public function deleteById(int $id): void;
+    public function delete(AddressInterface $entity): bool;
 }

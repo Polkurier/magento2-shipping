@@ -1,0 +1,18 @@
+<!--
+ ~ Copyright (c) 2026 Polkurier.pl
+ ~ All Rights Reserved
+-->
+<div class="admin__field" if="editable">
+    <div class="admin__field-label"></div>
+    <div class="admin__field-control">
+        <button type="button" class="action-secondary" click="save" disable="saving">
+            <span translate="'Save the pickup point'"></span>
+        </button>
+        <button type="button" class="action-secondary" if="map" click="chooseOnMap" disable="saving">
+            <span translate="'Choose on map'"></span>
+        </button>
+        <div class="message" if="message" css="'message-error': failed(), 'message-success': !failed()">
+            <span text="message"></span>
+        </div>
+    </div>
+</div>

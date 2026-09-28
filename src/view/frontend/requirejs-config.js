@@ -10,6 +10,12 @@ var config = {
             },
             'Magento_Checkout/js/view/shipping': {
                 'Polkurier_Shipping/js/view/shipping-validation-mixin': true
+            },
+            'Magento_Checkout/js/view/shipping-information': {
+                'Polkurier_Shipping/js/view/method-title-mixin': true
+            },
+            'Magento_Checkout/js/view/summary/shipping': {
+                'Polkurier_Shipping/js/view/method-title-mixin': true
             }
         }
     }

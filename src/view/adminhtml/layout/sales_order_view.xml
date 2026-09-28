@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<!--
+ ~ Copyright (c) 2026 Polkurier.pl
+ ~ All Rights Reserved
+-->
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <body>
+        <!-- The order's pickup point and its Polkurier shipments, on the Information tab -->
+        <referenceContainer name="order_additional_info">
+            <uiComponent name="polkurier_order_point_form" aclResource="Polkurier_Shipping::shipments"/>
+            <uiComponent name="polkurier_order_shipment_listing" aclResource="Polkurier_Shipping::shipments"/>
+        </referenceContainer>
+    </body>
+</page>

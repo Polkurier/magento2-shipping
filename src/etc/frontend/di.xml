@@ -5,13 +5,21 @@
 -->
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
-    <!-- Checkout map config -->
     <type name="Magento\Checkout\Model\CompositeConfigProvider">
         <arguments>
             <argument name="configProviders" xsi:type="array">
-                <item name="polkurier_shipping_map_config_provider"
-                      xsi:type="object">Polkurier\Shipping\Model\Provider\Checkout\MapConfigProvider</item>
+                <item name="polkurier_map" xsi:type="object">Polkurier\Shipping\Model\Checkout\MapConfigProvider</item>
             </argument>
         </arguments>
+    </type>
+    <!-- Multi-address checkout: a pickup point per address -->
+    <type name="Magento\Multishipping\Block\Checkout\Shipping">
+        <plugin name="polkurier_pickup_point_picker" type="Polkurier\Shipping\Plugin\Multishipping\ShippingStepPlugin" />
+    </type>
+    <type name="Magento\Multishipping\Block\Checkout\Overview">
+        <plugin name="polkurier_method_title" type="Polkurier\Shipping\Plugin\Multishipping\OverviewPlugin" />
+    </type>
+    <type name="Magento\Multishipping\Model\Checkout\Type\Multishipping">
+        <plugin name="polkurier_pickup_points" type="Polkurier\Shipping\Plugin\Multishipping\CheckoutPlugin" />
     </type>
 </config>

@@ -1,0 +1,18 @@
+{"status":"success","response":[
+ {"servicecode":"INPOST_PACZKOMAT","name":"InPost Paczkomat","foreign_shipments":false,"additional_data":{
+   "COD":{"available":true,"description":"","require_insurance":true},
+   "insurance":{"available":true,"description":""},
+   "courierservice":{"ROD":{"available":false,"description":""},"END_OF_WEEK_COLLECTION":{"available":true,"description":""}},
+   "shipmenttype":{"envelope":{"available":false,"description":""},"box":{"available":true,"description":""},"palette":{"available":false,"description":""}},
+   "pickup":{"pickupdate":{"status":false,"required":false,"description":""},"pickuptimefrom":{"status":false,"required":false,"description":""},"pickuptimeto":{"status":false,"required":false,"description":""},"nocourierorder":{"available":true,"description":"","default":true}},
+   "points_map":{"available_providers":["INPOST"],"sender_point":"OPTIONAL","recipient_point":"REQUIRED"},
+   "additional_fields":[]}},
+ {"servicecode":"DPD","name":"DPD Classic","foreign_shipments":true,"additional_data":{
+   "COD":{"available":true,"description":"","require_insurance":false},
+   "insurance":{"available":true,"description":""},
+   "courierservice":{"ROD":{"available":true,"description":""}},
+   "shipmenttype":{"envelope":{"available":true,"description":""},"box":{"available":true,"description":""},"palette":{"available":false,"description":""}},
+   "pickup":{"pickupdate":{"status":true,"required":true,"description":""},"pickuptimefrom":{"status":true,"required":true,"description":""},"pickuptimeto":{"status":true,"required":true,"description":""},"nocourierorder":{"available":false,"description":""}},
+   "points_map":null,
+   "additional_fields":[{"name":"external_transport_security","label":"Zabezpieczenie","description":"","type":"SELECT","required":false,"enabled":true}]}}
+]}

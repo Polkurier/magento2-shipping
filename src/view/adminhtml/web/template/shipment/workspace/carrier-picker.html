@@ -1,0 +1,38 @@
+<!--
+ ~ Copyright (c) 2026 Polkurier.pl
+ ~ All Rights Reserved
+-->
+<div class="polkurier-carriers">
+    <input type="search" class="admin__control-text polkurier-carriers__search"
+           data-bind="textInput: search, attr: {placeholder: searchPlaceholder, 'aria-label': searchPlaceholder}"/>
+    <div class="polkurier-carriers__status" if="quoting">
+        <span translate="'Updating prices…'"></span>
+    </div>
+    <ul class="polkurier-carriers__list" role="listbox" data-bind="attr: {'aria-label': label}">
+        <!-- ko foreach: tiles -->
+        <li class="polkurier-carriers__item" role="option" tabindex="0"
+            data-bind="css: {'_selected': selected, '_unpriced': !priced, '_cheapest': cheapest},
+                       attr: {'aria-selected': selected ? 'true' : 'false'},
+                       click: $parent.choose.bind($parent),
+                       event: {keydown: $parent.onKey.bind($parent)}">
+            <span class="polkurier-carriers__name" text="name"></span>
+            <span class="polkurier-carriers__price" text="priceText"></span>
+            <span class="polkurier-carriers__meta">
+                <span class="polkurier-carriers__code" text="code"></span>
+                <!-- ko if: pointOnly --><span class="polkurier-badge" translate="'Points only'"></span><!-- /ko -->
+                <!-- ko if: point && !pointOnly --><span class="polkurier-badge" translate="'Points'"></span><!-- /ko -->
+                <!-- ko if: cod --><span class="polkurier-badge" translate="'COD'"></span><!-- /ko -->
+                <!-- ko if: cheapest --><span class="polkurier-badge _cheapest" translate="'Cheapest'"></span><!-- /ko -->
+            </span>
+        </li>
+        <!-- /ko -->
+    </ul>
+    <button type="button" class="action-tertiary polkurier-carriers__more" if="hiddenCount() > 0 || showAll()" click="toggleAll">
+        <!-- ko if: showAll -->
+        <span translate="'Only carriers that can take it'"></span>
+        <!-- /ko -->
+        <!-- ko ifnot: showAll -->
+        <span data-bind="text: $t('Show %1 more').replace('%1', hiddenCount())"></span>
+        <!-- /ko -->
+    </button>
+</div>

@@ -1,0 +1,18 @@
+/**
+ * Copyright (c) 2026 Polkurier.pl
+ * All Rights Reserved
+ */
+/* The pickup point button in the delivery method list: kept small so it fits the table's cell. */
+.action.primary.action-show-map {
+    padding: 2px 8px;
+    font-size: 11px;
+}
+
+/* The carrier's logo in front of the method name. */
+.shipping-method-logo {
+    display: inline-block;
+    max-width: 60px;
+    max-height: 24px;
+    margin-right: 8px;
+    vertical-align: middle;
+}

@@ -7,45 +7,42 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Api;
 
+use Magento\Framework\Api\SearchCriteriaInterface;
+use Magento\Framework\Exception\CouldNotDeleteException;
+use Magento\Framework\Exception\CouldNotSaveException;
+use Magento\Framework\Exception\NoSuchEntityException;
 use Polkurier\Shipping\Api\Data\PackTemplateInterface;
+use Polkurier\Shipping\Api\Data\PackTemplateSearchResultsInterface;
 
+/**
+ * Stores the pack template records kept in Magento.
+ */
 interface PackTemplateRepositoryInterface
 {
     /**
-     * @return iterable<PackTemplateInterface>
-     */
-    public function findAll(): iterable;
-
-    /**
      * @param int $id
-     *
-     * @return PackTemplateInterface|null
+     * @return \Polkurier\Shipping\Api\Data\PackTemplateInterface
+     * @throws NoSuchEntityException
      */
-    public function findOneById(int $id): ?PackTemplateInterface;
+    public function get(int $id): PackTemplateInterface;
 
     /**
-     * @return PackTemplateInterface|null
+     * @param \Magento\Framework\Api\SearchCriteriaInterface $searchCriteria
+     * @return \Polkurier\Shipping\Api\Data\PackTemplateSearchResultsInterface
      */
-    public function findOneDefault(): ?PackTemplateInterface;
+    public function getList(SearchCriteriaInterface $searchCriteria): PackTemplateSearchResultsInterface;
 
     /**
-     * @param PackTemplateInterface $packTemplate
-     *
-     * @return PackTemplateInterface
+     * @param \Polkurier\Shipping\Api\Data\PackTemplateInterface $entity
+     * @return \Polkurier\Shipping\Api\Data\PackTemplateInterface
+     * @throws CouldNotSaveException
      */
-    public function save(PackTemplateInterface $packTemplate): PackTemplateInterface;
+    public function save(PackTemplateInterface $entity): PackTemplateInterface;
 
     /**
-     * @param PackTemplateInterface $packTemplate
-     *
-     * @return void
+     * @param \Polkurier\Shipping\Api\Data\PackTemplateInterface $entity
+     * @return bool
+     * @throws CouldNotDeleteException
      */
-    public function delete(PackTemplateInterface $packTemplate): void;
-
-    /**
-     * @param int $id
-     *
-     * @return void
-     */
-    public function deleteById(int $id): void;
+    public function delete(PackTemplateInterface $entity): bool;
 }

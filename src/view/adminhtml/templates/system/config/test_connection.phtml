@@ -1,0 +1,18 @@
+<?php
+/**
+ * Copyright (c) 2026 Polkurier.pl
+ * All Rights Reserved
+ */
+declare(strict_types=1);
+
+/** @var \Polkurier\Shipping\Block\Adminhtml\System\Config\TestConnection $block */
+/** @var \Magento\Framework\Escaper $escaper */
+?>
+<div data-mage-init='<?= $escaper->escapeHtmlAttr((string)json_encode([
+    'Polkurier_Shipping/js/system/config/test-connection' => ['url' => $block->getTestUrl()],
+])) ?>'>
+    <button type="button" class="action-secondary polkurier-test-connection">
+        <span><?= $escaper->escapeHtml($block->getButtonLabel()) ?></span>
+    </button>
+    <p class="note polkurier-test-connection__result"></p>
+</div>

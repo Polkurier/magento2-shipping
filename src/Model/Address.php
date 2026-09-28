@@ -7,24 +7,17 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Model;
 
-use Magento\Framework\Exception\LocalizedException;
+use Magento\Framework\Model\AbstractModel;
 use Polkurier\Shipping\Api\Data\AddressInterface;
-use Polkurier\Shipping\Api\Data\ExternalEntityInterface;
-use Polkurier\Shipping\Model\ResourceModel\Address as AddressResource;
-use Polkurier\Webservice\Model\Entity\Address as AddressSdk;
-use Polkurier\Webservice\Model\Entity\BaseAddress;
 
-class Address extends AbstractAddress implements AddressInterface, ExternalEntityInterface
+/**
+ * An address book entry kept in Magento and mirrored with Polkurier.
+ */
+class Address extends AbstractModel implements AddressInterface
 {
-    use ExternalEntityTrait;
+    use SyncableTrait;
 
-    public const string FIELD_NAME = 'name';
-    public const string FIELD_HOUSE_NUMBER = 'house_number';
-    public const string FIELD_FLAT_NUMBER = 'flat_number';
-    public const string FIELD_PROVINCE = 'province';
-    public const string FIELD_DEFAULT = 'default';
-    public const string FIELD_SHARED = 'shared';
-    public const string FIELD_COVER = 'cover';
+    public const string ID_FIELD = 'address_id';
 
     /**
      * @var string
@@ -34,142 +27,214 @@ class Address extends AbstractAddress implements AddressInterface, ExternalEntit
     /**
      * @var string
      */
-    protected $_eventObject = 'polkurier_address';
+    protected $_eventObject = 'address';
 
-    /**
-     * @return void
-     * @throws LocalizedException
-     */
     protected function _construct(): void
     {
-        $this->_init(AddressResource::class);
-        $this->setCountry(BaseAddress::DEFAULT_COUNTRY);
-        $this->setType(AddressSdk::DEFAULT_TYPE);
+        $this->_init(ResourceModel\Address::class);
     }
 
-    /**
-     * @return string
-     */
     public function getName(): string
     {
-        return $this->getData(static::FIELD_NAME);
+        $value = $this->getData(self::NAME);
+
+        return (string)$value;
     }
 
-    /**
-     * @param string $name
-     *
-     * @return void
-     */
-    public function setName(string $name): void
+    public function setName(string $name): static
     {
-        $this->setData(static::FIELD_NAME, $name);
+        return $this->setData(self::NAME, $name);
     }
 
-    /**
-     * @return bool
-     */
-    public function isDefault(): bool
+    public function getType(): string
     {
-        return (bool)$this->getData(static::FIELD_DEFAULT);
+        $value = $this->getData(self::TYPE);
+
+        return (string)$value;
     }
 
-    /**
-     * @param bool $default
-     *
-     * @return void
-     */
-    public function setDefault(bool $default): void
+    public function setType(string $type): static
     {
-        $this->setData(static::FIELD_DEFAULT, $default);
+        return $this->setData(self::TYPE, $type);
     }
 
-    /**
-     * @return bool
-     */
-    public function isShared(): bool
+    public function getPerson(): string
     {
-        return (bool)$this->getData(static::FIELD_SHARED);
+        $value = $this->getData(self::PERSON);
+
+        return (string)$value;
     }
 
-    /**
-     * @param bool $shared
-     *
-     * @return void
-     */
-    public function setShared(bool $shared): void
+    public function setPerson(string $person): static
     {
-        $this->setData(static::FIELD_SHARED, $shared);
+        return $this->setData(self::PERSON, $person);
     }
 
-    /**
-     * @return bool
-     */
-    public function isCoverAddress(): bool
+    public function getCompany(): ?string
     {
-        return (bool)$this->getData(static::FIELD_COVER);
+        $value = $this->getData(self::COMPANY);
+
+        return $value === null || $value === '' ? null : (string)$value;
     }
 
-    /**
-     * @param bool $coverAddress
-     *
-     * @return void
-     */
-    public function setCoverAddress(bool $coverAddress): void
+    public function setCompany(?string $company): static
     {
-        $this->setData(static::FIELD_COVER, $coverAddress);
+        return $this->setData(self::COMPANY, $company);
     }
 
-    /**
-     * @return string
-     */
+    public function getStreet(): string
+    {
+        $value = $this->getData(self::STREET);
+
+        return (string)$value;
+    }
+
+    public function setStreet(string $street): static
+    {
+        return $this->setData(self::STREET, $street);
+    }
+
     public function getHouseNumber(): string
     {
-        return $this->getData(static::FIELD_HOUSE_NUMBER);
+        $value = $this->getData(self::HOUSE_NUMBER);
+
+        return (string)$value;
     }
 
-    /**
-     * @param string $houseNumber
-     *
-     * @return void
-     */
-    public function setHouseNumber(string $houseNumber): void
+    public function setHouseNumber(string $houseNumber): static
     {
-        $this->setData(static::FIELD_HOUSE_NUMBER, $houseNumber);
+        return $this->setData(self::HOUSE_NUMBER, $houseNumber);
     }
 
-    /**
-     * @return string
-     */
-    public function getFlatNumber(): string
+    public function getFlatNumber(): ?string
     {
-        return $this->getData(static::FIELD_FLAT_NUMBER);
+        $value = $this->getData(self::FLAT_NUMBER);
+
+        return $value === null || $value === '' ? null : (string)$value;
     }
 
-    /**
-     * @param string $flatNumber
-     *
-     * @return void
-     */
-    public function setFlatNumber(string $flatNumber): void
+    public function setFlatNumber(?string $flatNumber): static
     {
-        $this->setData(static::FIELD_FLAT_NUMBER, $flatNumber);
+        return $this->setData(self::FLAT_NUMBER, $flatNumber);
     }
 
-    /**
-     * @return string|null
-     */
+    public function getCity(): string
+    {
+        $value = $this->getData(self::CITY);
+
+        return (string)$value;
+    }
+
+    public function setCity(string $city): static
+    {
+        return $this->setData(self::CITY, $city);
+    }
+
+    public function getPostcode(): string
+    {
+        $value = $this->getData(self::POSTCODE);
+
+        return (string)$value;
+    }
+
+    public function setPostcode(string $postcode): static
+    {
+        return $this->setData(self::POSTCODE, $postcode);
+    }
+
     public function getProvince(): ?string
     {
-        return $this->getData(static::FIELD_PROVINCE);
+        $value = $this->getData(self::PROVINCE);
+
+        return $value === null || $value === '' ? null : (string)$value;
     }
 
-    /**
-     * @param string|null $province
-     *
-     * @return void
-     */
-    public function setProvince(?string $province): void
+    public function setProvince(?string $province): static
     {
-        $this->setData(static::FIELD_PROVINCE, $province);
+        return $this->setData(self::PROVINCE, $province);
+    }
+
+    public function getCountry(): string
+    {
+        $value = $this->getData(self::COUNTRY);
+
+        return (string)$value;
+    }
+
+    public function setCountry(string $country): static
+    {
+        return $this->setData(self::COUNTRY, $country);
+    }
+
+    public function getPointId(): ?string
+    {
+        $value = $this->getData(self::POINT_ID);
+
+        return $value === null || $value === '' ? null : (string)$value;
+    }
+
+    public function setPointId(?string $pointId): static
+    {
+        return $this->setData(self::POINT_ID, $pointId);
+    }
+
+    public function getEmail(): string
+    {
+        $value = $this->getData(self::EMAIL);
+
+        return (string)$value;
+    }
+
+    public function setEmail(string $email): static
+    {
+        return $this->setData(self::EMAIL, $email);
+    }
+
+    public function getPhone(): string
+    {
+        $value = $this->getData(self::PHONE);
+
+        return (string)$value;
+    }
+
+    public function setPhone(string $phone): static
+    {
+        return $this->setData(self::PHONE, $phone);
+    }
+
+    public function isDefault(): bool
+    {
+        $value = $this->getData(self::IS_DEFAULT);
+
+        return (bool)$value;
+    }
+
+    public function setDefault(bool $default): static
+    {
+        return $this->setData(self::IS_DEFAULT, (int)$default);
+    }
+
+    public function isCover(): bool
+    {
+        $value = $this->getData(self::IS_COVER);
+
+        return (bool)$value;
+    }
+
+    public function setCover(bool $cover): static
+    {
+        return $this->setData(self::IS_COVER, (int)$cover);
+    }
+
+    public function isShared(): bool
+    {
+        $value = $this->getData(self::SHARED);
+
+        return (bool)$value;
+    }
+
+    public function setShared(bool $shared): static
+    {
+        return $this->setData(self::SHARED, (int)$shared);
     }
 }

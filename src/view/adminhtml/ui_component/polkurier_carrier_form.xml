@@ -1,0 +1,252 @@
+<?xml version="1.0"?>
+<!--
+ ~ Copyright (c) 2026 Polkurier.pl
+ ~ All Rights Reserved
+-->
+<form xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Ui:etc/ui_configuration.xsd">
+    <argument name="data" xsi:type="array">
+        <item name="js_config" xsi:type="array">
+            <item name="provider" xsi:type="string">polkurier_carrier_form.polkurier_carrier_form_data_source</item>
+        </item>
+        <item name="template" xsi:type="string">templates/form/collapsible</item>
+    </argument>
+    <settings>
+        <namespace>polkurier_carrier_form</namespace>
+        <dataScope>data</dataScope>
+        <deps>
+            <dep>polkurier_carrier_form.polkurier_carrier_form_data_source</dep>
+        </deps>
+        <buttons>
+            <button name="back">
+                <url path="*/*/index"/>
+                <class>back</class>
+                <label translate="true">Back</label>
+            </button>
+            <button name="save_and_continue" class="Polkurier\Shipping\Ui\Component\Control\SaveAndContinueCarrier"/>
+            <button name="save" class="Polkurier\Shipping\Ui\Component\Control\SaveButton"/>
+        </buttons>
+    </settings>
+    <dataSource name="polkurier_carrier_form_data_source">
+        <argument name="data" xsi:type="array">
+            <item name="js_config" xsi:type="array">
+                <item name="component" xsi:type="string">Magento_Ui/js/form/provider</item>
+            </item>
+        </argument>
+        <settings>
+            <submitUrl path="*/*/save"/>
+        </settings>
+        <dataProvider class="Polkurier\Shipping\Ui\Component\Form\Carrier\DataProvider" name="polkurier_carrier_form_data_source">
+            <settings>
+                <requestFieldName>id</requestFieldName>
+                <primaryFieldName>id</primaryFieldName>
+            </settings>
+        </dataProvider>
+    </dataSource>
+    <fieldset name="general">
+        <settings>
+            <label translate="true">Checkout</label>
+        </settings>
+        <field name="id" formElement="input">
+            <settings>
+                <dataType>text</dataType>
+                <visible>false</visible>
+                <dataScope>id</dataScope>
+            </settings>
+        </field>
+        <field name="carrier_name" formElement="input" sortOrder="10">
+            <settings>
+                <label translate="true">Carrier</label>
+                <dataType>text</dataType>
+                <disabled>true</disabled>
+                <dataScope>carrier_name</dataScope>
+            </settings>
+        </field>
+        <field name="custom_label" formElement="input" sortOrder="20">
+            <settings>
+                <label translate="true">Label in checkout</label>
+                <dataType>text</dataType>
+                <notice translate="true">Shown in every store view without a label of its own. Empty: the carrier's name.</notice>
+                <dataScope>custom_label</dataScope>
+            </settings>
+        </field>
+        <dynamicRows name="store_labels" sortOrder="25">
+            <settings>
+                <label translate="true">Label per store view</label>
+                <addButtonLabel translate="true">Add a store view label</addButtonLabel>
+                <componentType>dynamicRows</componentType>
+                <dndConfig>
+                    <param name="enabled" xsi:type="boolean">false</param>
+                </dndConfig>
+            </settings>
+            <container name="record" component="Magento_Ui/js/dynamic-rows/record">
+                <argument name="data" xsi:type="array">
+                    <item name="config" xsi:type="array">
+                        <item name="isTemplate" xsi:type="boolean">true</item>
+                        <item name="is_collection" xsi:type="boolean">true</item>
+                        <item name="componentType" xsi:type="string">container</item>
+                    </item>
+                </argument>
+                <field name="store_id" formElement="select" sortOrder="10">
+                    <settings>
+                        <label translate="true">Store view</label>
+                        <dataType>text</dataType>
+                        <dataScope>store_id</dataScope>
+                        <validation><rule name="required-entry" xsi:type="boolean">true</rule></validation>
+                    </settings>
+                </field>
+                <field name="store_label" formElement="input" sortOrder="20">
+                    <settings>
+                        <label translate="true">Label</label>
+                        <dataType>text</dataType>
+                        <dataScope>label</dataScope>
+                        <validation><rule name="required-entry" xsi:type="boolean">true</rule></validation>
+                    </settings>
+                </field>
+                <actionDelete template="Magento_Backend/dynamic-rows/cells/action-delete" sortOrder="90">
+                    <settings>
+                        <componentType>actionDelete</componentType>
+                        <dataType>text</dataType>
+                        <label translate="true">Actions</label>
+                    </settings>
+                </actionDelete>
+            </container>
+        </dynamicRows>
+        <field name="logo" formElement="fileUploader" sortOrder="27">
+            <settings>
+                <label translate="true">Logo in checkout</label>
+                <notice translate="true">Shown next to the method name. JPG, PNG, GIF or WebP, about 60 × 30 pixels.</notice>
+                <dataScope>logo</dataScope>
+            </settings>
+            <formElements>
+                <fileUploader>
+                    <settings>
+                        <allowedExtensions>jpg jpeg png gif webp</allowedExtensions>
+                        <maxFileSize>1048576</maxFileSize>
+                        <uploaderConfig>
+                            <param xsi:type="url" name="url" path="polkurier/carrier/uploadLogo"/>
+                        </uploaderConfig>
+                    </settings>
+                </fileUploader>
+            </formElements>
+        </field>
+        <field name="active" formElement="checkbox" sortOrder="30">
+            <settings>
+                <label translate="true">Offered in checkout</label>
+                <dataType>boolean</dataType>
+                <dataScope>active</dataScope>
+            </settings>
+            <formElements>
+                <checkbox>
+                    <settings>
+                        <valueMap>
+                            <map name="false" xsi:type="string">0</map>
+                            <map name="true" xsi:type="string">1</map>
+                        </valueMap>
+                        <prefer>toggle</prefer>
+                    </settings>
+                </checkbox>
+            </formElements>
+        </field>
+        <field name="sort_order" formElement="input" sortOrder="40">
+            <settings>
+                <label translate="true">Sort order</label>
+                <dataType>number</dataType>
+                <validation><rule name="validate-number" xsi:type="boolean">true</rule></validation>
+                <dataScope>sort_order</dataScope>
+            </settings>
+        </field>
+    </fieldset>
+    <fieldset name="pricing">
+        <settings>
+            <label translate="true">Price</label>
+        </settings>
+        <field name="pricing_model" formElement="select" sortOrder="10">
+            <settings>
+                <label translate="true">Pricing</label>
+                <dataType>text</dataType>
+                <dataScope>pricing_model</dataScope>
+                <switcherConfig>
+                    <rules><rule name="0"><value>FIXED</value><actions><action name="0"><target>polkurier_carrier_form.polkurier_carrier_form.pricing.price</target><callback>show</callback></action><action name="1"><target>polkurier_carrier_form.polkurier_carrier_form.pricing.tiers</target><callback>hide</callback></action></actions></rule><rule name="1"><value>TIER_SUBTOTAL</value><actions><action name="0"><target>polkurier_carrier_form.polkurier_carrier_form.pricing.tiers</target><callback>show</callback></action><action name="1"><target>polkurier_carrier_form.polkurier_carrier_form.pricing.price</target><callback>hide</callback></action></actions></rule><rule name="2"><value>TIER_WEIGHT</value><actions><action name="0"><target>polkurier_carrier_form.polkurier_carrier_form.pricing.tiers</target><callback>show</callback></action><action name="1"><target>polkurier_carrier_form.polkurier_carrier_form.pricing.price</target><callback>hide</callback></action></actions></rule><rule name="3"><value>TIER_SUBTOTAL_WEIGHT</value><actions><action name="0"><target>polkurier_carrier_form.polkurier_carrier_form.pricing.tiers</target><callback>show</callback></action><action name="1"><target>polkurier_carrier_form.polkurier_carrier_form.pricing.price</target><callback>hide</callback></action></actions></rule></rules>
+                    <enabled>true</enabled>
+                </switcherConfig>
+            </settings>
+            <formElements>
+                <select>
+                    <settings>
+                        <options class="Polkurier\Shipping\Model\Config\Source\PricingModel"/>
+                    </settings>
+                </select>
+            </formElements>
+        </field>
+        <field name="price" formElement="input" sortOrder="20">
+            <settings>
+                <label translate="true">Price</label>
+                <dataType>number</dataType>
+                <validation><rule name="validate-number" xsi:type="boolean">true</rule><rule name="validate-zero-or-greater" xsi:type="boolean">true</rule></validation>
+                <dataScope>price</dataScope>
+            </settings>
+        </field>
+        <dynamicRows name="tiers" sortOrder="30">
+            <settings>
+                <label translate="true">Price tiers</label>
+                <addButtonLabel translate="true">Add a tier</addButtonLabel>
+                <componentType>dynamicRows</componentType>
+                <dndConfig>
+                    <param name="enabled" xsi:type="boolean">false</param>
+                </dndConfig>
+                <additionalClasses>
+                    <class name="admin__field-wide">true</class>
+                </additionalClasses>
+            </settings>
+            <container name="record" component="Magento_Ui/js/dynamic-rows/record">
+                <argument name="data" xsi:type="array">
+                    <item name="config" xsi:type="array">
+                        <item name="isTemplate" xsi:type="boolean">true</item>
+                        <item name="is_collection" xsi:type="boolean">true</item>
+                        <item name="componentType" xsi:type="string">container</item>
+                    </item>
+                </argument>
+                <field name="subtotal_from" formElement="input" sortOrder="10">
+                    <settings>
+                        <label translate="true">Subtotal from</label>
+                        <dataType>number</dataType>
+                        <dataScope>subtotal_from</dataScope>
+                        <validation><rule name="validate-number" xsi:type="boolean">true</rule><rule name="validate-zero-or-greater" xsi:type="boolean">true</rule></validation>
+                    </settings>
+                </field>
+                <field name="weight_from" formElement="input" sortOrder="20">
+                    <settings>
+                        <label translate="true">Weight from [kg]</label>
+                        <dataType>number</dataType>
+                        <dataScope>weight_from</dataScope>
+                        <validation><rule name="validate-number" xsi:type="boolean">true</rule><rule name="validate-zero-or-greater" xsi:type="boolean">true</rule></validation>
+                    </settings>
+                </field>
+                <field name="price" formElement="input" sortOrder="30">
+                    <settings>
+                        <label translate="true">Price</label>
+                        <dataType>number</dataType>
+                        <dataScope>price</dataScope>
+                        <validation><rule name="required-entry" xsi:type="boolean">true</rule><rule name="validate-number" xsi:type="boolean">true</rule><rule name="validate-zero-or-greater" xsi:type="boolean">true</rule></validation>
+                    </settings>
+                </field>
+                <actionDelete template="Magento_Backend/dynamic-rows/cells/action-delete" sortOrder="90">
+                    <settings>
+                        <componentType>actionDelete</componentType>
+                        <dataType>text</dataType>
+                        <label translate="true">Actions</label>
+                    </settings>
+                </actionDelete>
+            </container>
+        </dynamicRows>
+        <container name="tiers_note" sortOrder="40">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="component" xsi:type="string">Magento_Ui/js/form/components/html</item>
+                    <item name="content" xsi:type="string" translate="true">The tier with the highest threshold the cart reaches applies: subtotal first, then weight. Thresholds the pricing does not use are ignored. A cart below every tier is not offered this carrier.</item>
+                </item>
+            </argument>
+        </container>
+    </fieldset>
+</form>

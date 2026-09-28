@@ -7,119 +7,75 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Model\Repository;
 
-use Magento\Framework\Exception\AlreadyExistsException;
-use Polkurier\Shipping\Api\Data\PackTemplateInterface;
-use Polkurier\Shipping\Api\ExternalEntityRepositoryInterface;
+use Magento\Framework\Api\SearchCriteria\CollectionProcessorInterface;
+use Magento\Framework\Api\SearchCriteriaInterface;
+use Magento\Framework\Exception\CouldNotDeleteException;
+use Magento\Framework\Exception\CouldNotSaveException;
+use Magento\Framework\Exception\NoSuchEntityException;
 use Polkurier\Shipping\Api\PackTemplateRepositoryInterface;
+use Polkurier\Shipping\Api\Data\PackTemplateInterface;
+use Polkurier\Shipping\Api\Data\PackTemplateSearchResultsInterface;
+use Polkurier\Shipping\Api\Data\PackTemplateSearchResultsInterfaceFactory;
 use Polkurier\Shipping\Model\PackTemplate;
 use Polkurier\Shipping\Model\PackTemplateFactory;
-use Polkurier\Shipping\Model\ResourceModel\PackTemplate as PackTemplateResource;
+use Polkurier\Shipping\Model\ResourceModel\PackTemplate as ResourceModel;
 use Polkurier\Shipping\Model\ResourceModel\PackTemplate\CollectionFactory;
 
-readonly class PackTemplateRepository implements PackTemplateRepositoryInterface, ExternalEntityRepositoryInterface
+class PackTemplateRepository implements PackTemplateRepositoryInterface
 {
-    /**
-     * @param PackTemplateFactory $entityFactory
-     * @param PackTemplateResource $resource
-     * @param CollectionFactory $collectionFactory
-     */
     public function __construct(
-        /**
-         * @var PackTemplateFactory
-         */
-        private PackTemplateFactory $entityFactory,
-
-        /**
-         * @var PackTemplateResource
-         */
-        private PackTemplateResource $resource,
-
-        /**
-         * @var CollectionFactory
-         */
-        private CollectionFactory $collectionFactory,
+        private readonly PackTemplateFactory $entityFactory,
+        private readonly ResourceModel $resource,
+        private readonly CollectionFactory $collectionFactory,
+        private readonly CollectionProcessorInterface $collectionProcessor,
+        private readonly PackTemplateSearchResultsInterfaceFactory $searchResultsFactory,
     ) {}
 
-    /**
-     * @return iterable<PackTemplateInterface>
-     */
-    public function findAll(): iterable
+    public function get(int $id): PackTemplateInterface
     {
-        return $this->collectionFactory->create()->load();
-    }
-
-    /**
-     * @param int $id
-     *
-     * @return PackTemplateInterface|null
-     */
-    public function findOneById(int $id): ?PackTemplateInterface
-    {
-        $template = $this->entityFactory->create();
-        $this->resource->load($template, $id);
-
-        return $template->getId() ? $template : null;
-    }
-
-    /**
-     * @return PackTemplateInterface|null
-     */
-    public function findOneDefault(): ?PackTemplateInterface
-    {
-        $template = $this->entityFactory->create();
-        $this->resource->load($template, 1, PackTemplate::FIELD_DEFAULT);
-
-        return $template->getId() ? $template : null;
-    }
-
-    /**
-     * @param PackTemplateInterface $packTemplate
-     *
-     * @return PackTemplateInterface
-     * @throws AlreadyExistsException
-     */
-    public function save(PackTemplateInterface $packTemplate): PackTemplateInterface
-    {
-        $this->resource->save($packTemplate);
-
-        return $packTemplate;
-    }
-
-    /**
-     * @param PackTemplateInterface $packTemplate
-     *
-     * @return void
-     * @throws \Exception
-     */
-    public function delete(PackTemplateInterface $packTemplate): void
-    {
-        $this->resource->delete($packTemplate);
-    }
-
-    /**
-     * @param int $id
-     *
-     * @return void
-     * @throws \Exception
-     */
-    public function deleteById(int $id): void
-    {
-        $packTemplate = $this->findOneById($id);
-        if ($packTemplate) {
-            $this->delete($packTemplate);
+        $entity = $this->entityFactory->create();
+        $this->resource->load($entity, $id);
+        if (!$entity->getId()) {
+            throw new NoSuchEntityException(\__('The pack template with id "%1" does not exist.', $id));
         }
+
+        return $entity;
     }
 
-    /**
-     * @param string $extId
-     *
-     * @return PackTemplateInterface|null
-     */
-    public function findOneByExtId(string $extId): ?PackTemplateInterface
+    public function getList(SearchCriteriaInterface $searchCriteria): PackTemplateSearchResultsInterface
     {
-        $packTemplate = $this->entityFactory->create();
-        $this->resource->load($packTemplate, $extId, PackTemplate::FIELD_EXT_ID);
+        $collection = $this->collectionFactory->create();
+        $this->collectionProcessor->process($searchCriteria, $collection);
 
-        return $packTemplate->getId() ? $packTemplate : null;
+        $searchResults = $this->searchResultsFactory->create();
+        $searchResults->setSearchCriteria($searchCriteria);
+        $searchResults->setItems($collection->getItems());
+        $searchResults->setTotalCount($collection->getSize());
+
+        return $searchResults;
+    }
+
+    public function save(PackTemplateInterface $entity): PackTemplateInterface
+    {
+        try {
+            /** @var PackTemplate $entity */
+            $this->resource->save($entity);
+        } catch (\Exception $e) {
+            throw new CouldNotSaveException(\__('Could not save the pack template: %1', $e->getMessage()), $e);
+        }
+
+        return $entity;
+    }
+
+    public function delete(PackTemplateInterface $entity): bool
+    {
+        try {
+            /** @var PackTemplate $entity */
+            $this->resource->delete($entity);
+        } catch (\Exception $e) {
+            throw new CouldNotDeleteException(\__('Could not delete the pack template: %1', $e->getMessage()), $e);
+        }
+
+        return true;
     }
 }

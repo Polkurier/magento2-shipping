@@ -1,11 +1,14 @@
 <?xml version="1.0"?>
+<!--
+ ~ Copyright (c) 2026 Polkurier.pl
+ ~ All Rights Reserved
+-->
 <page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
       xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <head>
+        <css src="Polkurier_Shipping::css/pickup-point.css"/>
+    </head>
     <body>
-        <referenceBlock name="head.additional">
-            <block class="Polkurier\Shipping\Block\Checkout\Map\Head" name="polkurier_shipping.map.head"
-                   template="Polkurier_Shipping::checkout/map/head.phtml" />
-        </referenceBlock>
         <referenceBlock name="checkout.root">
             <arguments>
                 <argument name="jsLayout" xsi:type="array">
@@ -18,15 +21,14 @@
                                             <item name="children" xsi:type="array">
                                                 <item name="shippingAddress" xsi:type="array">
                                                     <item name="config" xsi:type="array">
-                                                        <item name="shippingMethodListTemplate" xsi:type="string">Polkurier_Shipping/shipping-address/shipping-method-list</item>
                                                         <item name="shippingMethodItemTemplate" xsi:type="string">Polkurier_Shipping/shipping-address/shipping-method-item</item>
                                                     </item>
                                                     <item name="children" xsi:type="array">
-                                                        <item name="polkurier-map-component" xsi:type="array">
-                                                            <item name="component" xsi:type="string">Polkurier_Shipping/js/view/checkout/map</item>
-                                                            <item name="displayArea" xsi:type="string">polkurier-map-button</item>
+                                                        <item name="pickup-point-choice" xsi:type="array">
+                                                            <item name="component" xsi:type="string">Polkurier_Shipping/js/view/checkout/pickup-point</item>
+                                                            <item name="displayArea" xsi:type="string">pickup-point-choice</item>
                                                             <item name="config" xsi:type="array">
-                                                                <item name="template" xsi:type="string">Polkurier_Shipping/shipping-address/shipping-method-item/button</item>
+                                                                <item name="template" xsi:type="string">Polkurier_Shipping/shipping-address/shipping-method-item/pickup-point</item>
                                                             </item>
                                                         </item>
                                                     </item>

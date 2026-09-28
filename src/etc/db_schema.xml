@@ -5,305 +5,260 @@
 -->
 <schema xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:noNamespaceSchemaLocation="urn:magento:framework:Setup/Declaration/Schema/etc/schema.xsd">
-    <!-- Carrier configurations -->
-    <table name="polkurier_carrier_config" resource="default" engine="innodb">
+    <!-- The merchant's settings per Polkurier carrier: visibility, label and price in checkout -->
+    <table name="polkurier_carrier_config" resource="default" engine="innodb" comment="Polkurier carrier settings">
         <column xsi:type="int" name="config_id" identity="true" nullable="false" unsigned="true" />
-        <column xsi:type="varchar" name="carrier_code" nullable="false" length="50" />
-        <column xsi:type="varchar" name="carrier_name" nullable="false" length="255" />
+        <column xsi:type="smallint" name="website_id" nullable="false" unsigned="true" />
+        <column xsi:type="varchar" name="carrier_code" nullable="false" length="64" />
+        <column xsi:type="varchar" name="carrier_name" nullable="false" length="255" comment="Name reported by the API" />
         <column xsi:type="varchar" name="custom_label" nullable="true" length="255" />
-        <column xsi:type="varchar" name="image" nullable="true" length="255" />
-        <column xsi:type="varchar" name="pricing_model" nullable="false" length="50" />
-        <column xsi:type="json" name="price_info" nullable="true" />
-        <column xsi:type="smallint" name="foreign_shipments" nullable="false" default="0" />
-        <column xsi:type="smallint" name="cod_available" nullable="false" default="0" />
-        <column xsi:type="smallint" name="cod_insurance_required" nullable="false" default="0" />
-        <column xsi:type="smallint" name="insurance_available" nullable="false" default="0" />
-        <column xsi:type="text" name="shipment_types" nullable="true" />
-        <column xsi:type="smallint" name="pickup_date_available" nullable="false" default="0" />
-        <column xsi:type="smallint" name="pickup_date_required" nullable="false" default="0" />
-        <column xsi:type="smallint" name="pickup_time_from_available" nullable="false" default="0" />
-        <column xsi:type="smallint" name="pickup_time_from_required" nullable="false" default="0" />
-        <column xsi:type="smallint" name="pickup_time_to_available" nullable="false" default="0" />
-        <column xsi:type="smallint" name="pickup_time_to_required" nullable="false" default="0" />
-        <column xsi:type="smallint" name="no_courier_order_available" nullable="false" default="0" />
-        <column xsi:type="smallint" name="no_courier_order_default" nullable="false" default="0" />
-        <column xsi:type="text" name="points_map_providers" nullable="true" />
-        <column xsi:type="varchar" name="points_map_sender_point" nullable="true" length="50" />
-        <column xsi:type="varchar" name="points_map_recipient_point" nullable="true" length="50" />
-        <column xsi:type="text" name="additional_services" nullable="true" />
-        <column xsi:type="json" name="additional_fields" nullable="true" />
+        <column xsi:type="varchar" name="logo" nullable="true" length="255"
+                comment="Logo shown next to the method in checkout, relative to the media directory" />
+        <column xsi:type="smallint" name="active" nullable="false" unsigned="true" default="0" />
         <column xsi:type="int" name="sort_order" nullable="false" default="0" />
-        <column xsi:type="smallint" name="active" nullable="false" default="0" />
-        <column xsi:type="smallint" name="website_id" nullable="false" default="0" unsigned="true" />
-
+        <column xsi:type="varchar" name="pricing_model" nullable="false" length="32" default="FIXED" />
+        <column xsi:type="text" name="price_info" nullable="true" comment="JSON, shape depends on pricing_model" />
+        <column xsi:type="smallint" name="available" nullable="false" unsigned="true" default="1"
+                comment="Whether the account still offers the carrier" />
+        <column xsi:type="timestamp" name="created_at" nullable="false" default="CURRENT_TIMESTAMP" on_update="false" />
+        <column xsi:type="timestamp" name="updated_at" nullable="false" default="CURRENT_TIMESTAMP" on_update="true" />
         <constraint xsi:type="primary" referenceId="PRIMARY">
             <column name="config_id" />
         </constraint>
-        <constraint xsi:type="unique" referenceId="POLKURIER_CARRIER_CONFIG_CARRIER_CODE_WEBSITE_ID">
-            <column name="carrier_code" />
+        <constraint xsi:type="unique" referenceId="POLKURIER_CARRIER_CONFIG_WEBSITE_ID_CARRIER_CODE">
             <column name="website_id" />
+            <column name="carrier_code" />
         </constraint>
         <constraint xsi:type="foreign" referenceId="POLKURIER_CARRIER_CONFIG_WEBSITE_ID_STORE_WEBSITE_WEBSITE_ID"
                     table="polkurier_carrier_config" column="website_id" referenceTable="store_website"
                     referenceColumn="website_id" onDelete="CASCADE" />
     </table>
+    <table name="polkurier_carrier_label" resource="default" engine="innodb"
+           comment="Polkurier carrier labels per store view">
+        <column xsi:type="int" name="config_id" nullable="false" unsigned="true" />
+        <column xsi:type="smallint" name="store_id" nullable="false" unsigned="true" />
+        <column xsi:type="varchar" name="label" nullable="false" length="255" />
+        <constraint xsi:type="primary" referenceId="PRIMARY">
+            <column name="config_id" />
+            <column name="store_id" />
+        </constraint>
+        <constraint xsi:type="foreign" referenceId="POLKURIER_CARRIER_LABEL_CONFIG_ID_POLKURIER_CARRIER_CONFIG_CONFIG_ID"
+                    table="polkurier_carrier_label" column="config_id" referenceTable="polkurier_carrier_config"
+                    referenceColumn="config_id" onDelete="CASCADE" />
+        <constraint xsi:type="foreign" referenceId="POLKURIER_CARRIER_LABEL_STORE_ID_STORE_STORE_ID"
+                    table="polkurier_carrier_label" column="store_id" referenceTable="store"
+                    referenceColumn="store_id" onDelete="CASCADE" />
+    </table>
 
-    <!-- Addresses -->
-    <table name="polkurier_address" resource="default" engine="innodb">
+    <!-- Address book, mirrored with the Polkurier account's -->
+    <table name="polkurier_address" resource="default" engine="innodb" comment="Polkurier address book">
         <column xsi:type="int" name="address_id" identity="true" nullable="false" unsigned="true" />
-        <column xsi:type="varchar" name="ext_id" nullable="true" length="50" />
+        <column xsi:type="smallint" name="website_id" nullable="false" unsigned="true" />
+        <column xsi:type="varchar" name="ext_id" nullable="true" length="64" comment="Id in Polkurier" />
         <column xsi:type="varchar" name="name" nullable="false" length="255" />
-        <column xsi:type="varchar" name="type" nullable="false" length="50" />
+        <column xsi:type="varchar" name="type" nullable="false" length="16" default="SENDER" />
         <column xsi:type="varchar" name="person" nullable="false" length="255" />
         <column xsi:type="varchar" name="company" nullable="true" length="255" />
         <column xsi:type="varchar" name="street" nullable="false" length="255" />
-        <column xsi:type="varchar" name="house_number" nullable="false" length="50" />
-        <column xsi:type="varchar" name="flat_number" nullable="true" length="50" />
+        <column xsi:type="varchar" name="house_number" nullable="false" length="32" />
+        <column xsi:type="varchar" name="flat_number" nullable="true" length="32" />
         <column xsi:type="varchar" name="city" nullable="false" length="255" />
-        <column xsi:type="varchar" name="postcode" nullable="false" length="50" />
-        <column xsi:type="varchar" name="province" nullable="true" length="255" />
-        <column xsi:type="varchar" name="country" nullable="false" length="255" />
-        <column xsi:type="varchar" name="point_id" nullable="true" length="50" />
+        <column xsi:type="varchar" name="postcode" nullable="false" length="32" />
+        <column xsi:type="varchar" name="province" nullable="true" length="64" />
+        <column xsi:type="varchar" name="country" nullable="false" length="2" default="PL" />
+        <column xsi:type="varchar" name="point_id" nullable="true" length="64" />
         <column xsi:type="varchar" name="email" nullable="false" length="255" />
-        <column xsi:type="varchar" name="phone" nullable="false" length="255" />
-        <column xsi:type="smallint" name="default" nullable="false" default="0" />
-        <column xsi:type="smallint" name="shared" nullable="false" default="0" />
-        <column xsi:type="smallint" name="cover" nullable="false" default="0" />
-        <column xsi:type="datetime" name="created_at" on_update="false" nullable="false" default="CURRENT_TIMESTAMP" />
-        <column xsi:type="datetime" name="updated_at" on_update="true" nullable="false" default="CURRENT_TIMESTAMP" />
-
+        <column xsi:type="varchar" name="phone" nullable="false" length="64" />
+        <column xsi:type="smallint" name="is_default" nullable="false" unsigned="true" default="0" />
+        <column xsi:type="smallint" name="is_cover" nullable="false" unsigned="true" default="0"
+                comment="Usable as the cover (return) address" />
+        <column xsi:type="smallint" name="shared" nullable="false" unsigned="true" default="0" />
+        <column xsi:type="varchar" name="sync_state" nullable="false" length="16" default="pending" />
+        <column xsi:type="text" name="sync_error" nullable="true" />
+        <column xsi:type="varchar" name="remote_hash" nullable="true" length="64" />
+        <column xsi:type="datetime" name="remote_updated_at" nullable="true" />
+        <column xsi:type="datetime" name="synced_at" nullable="true" />
+        <column xsi:type="datetime" name="deleted_at" nullable="true" comment="Deleted locally, awaiting sync" />
+        <column xsi:type="timestamp" name="created_at" nullable="false" default="CURRENT_TIMESTAMP" on_update="false" />
+        <column xsi:type="timestamp" name="updated_at" nullable="false" default="CURRENT_TIMESTAMP" on_update="false" />
         <constraint xsi:type="primary" referenceId="PRIMARY">
             <column name="address_id" />
         </constraint>
-        <constraint xsi:type="unique" referenceId="EXT_ID">
+        <constraint xsi:type="unique" referenceId="POLKURIER_ADDRESS_WEBSITE_ID_EXT_ID">
+            <column name="website_id" />
             <column name="ext_id" />
         </constraint>
+        <constraint xsi:type="foreign" referenceId="POLKURIER_ADDRESS_WEBSITE_ID_STORE_WEBSITE_WEBSITE_ID"
+                    table="polkurier_address" column="website_id" referenceTable="store_website"
+                    referenceColumn="website_id" onDelete="CASCADE" />
     </table>
 
-    <!-- Bank accounts -->
-    <table name="polkurier_bank_account" resource="default" engine="innodb">
+    <!-- Bank accounts cash on delivery is paid out to, mirrored from the Polkurier account -->
+    <table name="polkurier_bank_account" resource="default" engine="innodb" comment="Polkurier bank accounts">
         <column xsi:type="int" name="account_id" identity="true" nullable="false" unsigned="true" />
-        <column xsi:type="varchar" name="ext_id" nullable="true" length="50" />
+        <column xsi:type="smallint" name="website_id" nullable="false" unsigned="true" />
+        <column xsi:type="varchar" name="ext_id" nullable="true" length="64" comment="Id in Polkurier" />
         <column xsi:type="varchar" name="name" nullable="false" length="255" />
-        <column xsi:type="varchar" name="number" nullable="false" length="255" />
-        <column xsi:type="smallint" name="default" nullable="false" default="0" />
-        <column xsi:type="datetime" name="created_at" on_update="false" nullable="false" default="CURRENT_TIMESTAMP" />
-        <column xsi:type="datetime" name="updated_at" on_update="true" nullable="false" default="CURRENT_TIMESTAMP" />
-
+        <column xsi:type="varchar" name="number" nullable="false" length="64" />
+        <column xsi:type="smallint" name="is_default" nullable="false" unsigned="true" default="0" />
+        <column xsi:type="varchar" name="sync_state" nullable="false" length="16" default="pending" />
+        <column xsi:type="text" name="sync_error" nullable="true" />
+        <column xsi:type="varchar" name="remote_hash" nullable="true" length="64" />
+        <column xsi:type="datetime" name="remote_updated_at" nullable="true" />
+        <column xsi:type="datetime" name="synced_at" nullable="true" />
+        <column xsi:type="datetime" name="deleted_at" nullable="true" comment="Deleted locally, awaiting sync" />
+        <column xsi:type="timestamp" name="created_at" nullable="false" default="CURRENT_TIMESTAMP" on_update="false" />
+        <column xsi:type="timestamp" name="updated_at" nullable="false" default="CURRENT_TIMESTAMP" on_update="false" />
         <constraint xsi:type="primary" referenceId="PRIMARY">
             <column name="account_id" />
         </constraint>
-        <constraint xsi:type="unique" referenceId="EXT_ID">
+        <constraint xsi:type="unique" referenceId="POLKURIER_BANK_ACCOUNT_WEBSITE_ID_EXT_ID">
+            <column name="website_id" />
             <column name="ext_id" />
         </constraint>
+        <constraint xsi:type="foreign" referenceId="POLKURIER_BANK_ACCOUNT_WEBSITE_ID_STORE_WEBSITE_WEBSITE_ID"
+                    table="polkurier_bank_account" column="website_id" referenceTable="store_website"
+                    referenceColumn="website_id" onDelete="CASCADE" />
     </table>
 
-    <!-- Pack templates -->
-    <table name="polkurier_pack_template" resource="default" engine="innodb">
+    <!-- Parcel templates, mirrored with the Polkurier account's -->
+    <table name="polkurier_pack_template" resource="default" engine="innodb" comment="Polkurier pack templates">
         <column xsi:type="int" name="template_id" identity="true" nullable="false" unsigned="true" />
-        <column xsi:type="varchar" name="ext_id" nullable="true" length="50" />
+        <column xsi:type="smallint" name="website_id" nullable="false" unsigned="true" />
+        <column xsi:type="varchar" name="ext_id" nullable="true" length="64" comment="Id in Polkurier" />
         <column xsi:type="varchar" name="name" nullable="false" length="255" />
         <column xsi:type="text" name="description" nullable="true" />
-        <column xsi:type="varchar" name="type" nullable="false" length="50" />
+        <column xsi:type="varchar" name="shipment_type" nullable="false" length="16" default="box" />
+        <column xsi:type="varchar" name="pack_type" nullable="false" length="16" default="ST" />
         <column xsi:type="int" name="length" nullable="false" unsigned="true" />
-        <column xsi:type="int" name="height" nullable="false" unsigned="true" />
         <column xsi:type="int" name="width" nullable="false" unsigned="true" />
-        <column xsi:type="decimal" name="weight" scale="4" precision="12" unsigned="true" nullable="false" />
-        <column xsi:type="decimal" name="cod_amount" scale="4" precision="20" unsigned="true" nullable="true" />
-        <column xsi:type="decimal" name="insurance_amount" scale="4" precision="20" unsigned="true" nullable="true" />
-        <column xsi:type="varchar" name="shipment_type" nullable="false" length="50" />
-        <column xsi:type="varchar" name="carrier_code" nullable="true" length="50" />
-        <column xsi:type="text" name="services" nullable="true" />
-        <column xsi:type="datetime" name="created_at" on_update="false" nullable="false" default="CURRENT_TIMESTAMP" />
-        <column xsi:type="datetime" name="updated_at" on_update="true" nullable="false" default="CURRENT_TIMESTAMP" />
-
+        <column xsi:type="int" name="height" nullable="false" unsigned="true" />
+        <column xsi:type="decimal" name="weight" scale="3" precision="12" unsigned="true" nullable="false" />
+        <column xsi:type="decimal" name="cod_amount" scale="2" precision="12" unsigned="true" nullable="false" default="0" />
+        <column xsi:type="decimal" name="insurance_amount" scale="2" precision="12" unsigned="true" nullable="false" default="0" />
+        <column xsi:type="varchar" name="carrier_code" nullable="true" length="64" />
+        <column xsi:type="text" name="services" nullable="true" comment="Comma-separated service codes" />
+        <column xsi:type="smallint" name="is_default" nullable="false" unsigned="true" default="0" />
+        <column xsi:type="varchar" name="sync_state" nullable="false" length="16" default="pending" />
+        <column xsi:type="text" name="sync_error" nullable="true" />
+        <column xsi:type="varchar" name="remote_hash" nullable="true" length="64" />
+        <column xsi:type="datetime" name="remote_updated_at" nullable="true" />
+        <column xsi:type="datetime" name="synced_at" nullable="true" />
+        <column xsi:type="datetime" name="deleted_at" nullable="true" comment="Deleted locally, awaiting sync" />
+        <column xsi:type="timestamp" name="created_at" nullable="false" default="CURRENT_TIMESTAMP" on_update="false" />
+        <column xsi:type="timestamp" name="updated_at" nullable="false" default="CURRENT_TIMESTAMP" on_update="false" />
         <constraint xsi:type="primary" referenceId="PRIMARY">
             <column name="template_id" />
         </constraint>
-        <constraint xsi:type="unique" referenceId="EXT_ID">
+        <constraint xsi:type="unique" referenceId="POLKURIER_PACK_TEMPLATE_WEBSITE_ID_EXT_ID">
+            <column name="website_id" />
             <column name="ext_id" />
         </constraint>
+        <constraint xsi:type="foreign" referenceId="POLKURIER_PACK_TEMPLATE_WEBSITE_ID_STORE_WEBSITE_WEBSITE_ID"
+                    table="polkurier_pack_template" column="website_id" referenceTable="store_website"
+                    referenceColumn="website_id" onDelete="CASCADE" />
     </table>
 
-    <!-- Cart -->
-    <table name="polkurier_quote" resource="checkout" engine="innodb">
+    <!-- The pickup point chosen in checkout -->
+    <table name="polkurier_quote_point" resource="checkout" engine="innodb" comment="Polkurier pickup point on a quote">
+        <column xsi:type="int" name="entity_id" identity="true" nullable="false" unsigned="true" />
         <column xsi:type="int" name="quote_id" nullable="false" unsigned="true" />
-        <column xsi:type="varchar" name="carrier_code" nullable="false" length="50" />
-        <column xsi:type="varchar" name="point_id" nullable="true" length="50" />
-        <column xsi:type="smallint" name="cod_available" nullable="false" default="0" />
-
+        <column xsi:type="int" name="quote_address_id" nullable="false" unsigned="true" default="0"
+                comment="The shipping address in multi-address checkout; 0 in the regular checkout" />
+        <column xsi:type="varchar" name="method_code" nullable="false" length="64" />
+        <column xsi:type="varchar" name="point_id" nullable="false" length="64" />
+        <column xsi:type="varchar" name="point_label" nullable="true" length="512" />
+        <column xsi:type="smallint" name="point_cod" nullable="false" unsigned="true" default="0"
+                comment="Whether the point accepts cash on delivery, as reported by the API" />
+        <column xsi:type="timestamp" name="updated_at" nullable="false" default="CURRENT_TIMESTAMP" on_update="true" />
         <constraint xsi:type="primary" referenceId="PRIMARY">
-            <column name="quote_id" />
+            <column name="entity_id" />
         </constraint>
-        <constraint xsi:type="foreign" referenceId="POLKURIER_QUOTE_QUOTE_ID_QUOTE_QUOTE_ID"
-                    table="polkurier_quote" column="quote_id" referenceTable="quote"
+        <constraint xsi:type="unique" referenceId="POLKURIER_QUOTE_POINT_QUOTE_ID_QUOTE_ADDRESS_ID">
+            <column name="quote_id" />
+            <column name="quote_address_id" />
+        </constraint>
+        <constraint xsi:type="foreign" referenceId="POLKURIER_QUOTE_POINT_QUOTE_ID_QUOTE_ENTITY_ID"
+                    table="polkurier_quote_point" column="quote_id" referenceTable="quote"
                     referenceColumn="entity_id" onDelete="CASCADE" />
     </table>
 
-    <!-- Orders -->
-    <table name="polkurier_order" resource="sales" engine="innodb">
-        <column xsi:type="int" name="order_id" identity="true" nullable="false" unsigned="true" />
-        <column xsi:type="int" name="parent_order_id" nullable="true" unsigned="true" />
-        <column xsi:type="int" name="parent_shipment_id" nullable="true" unsigned="true" />
-        <column xsi:type="varchar" name="ext_id" nullable="true" length="50" />
-        <column xsi:type="varchar" name="status" nullable="true" length="255" />
-        <column xsi:type="varchar" name="status_code" nullable="true" length="50" />
-        <column xsi:type="datetime" name="ext_created_at" nullable="true" />
+    <!-- The pickup point carried onto the order -->
+    <table name="polkurier_order_point" resource="sales" engine="innodb" comment="Polkurier pickup point on an order">
+        <column xsi:type="int" name="order_id" nullable="false" unsigned="true" />
+        <column xsi:type="varchar" name="method_code" nullable="false" length="64" />
+        <column xsi:type="varchar" name="point_id" nullable="false" length="64" />
+        <column xsi:type="varchar" name="point_label" nullable="true" length="512" />
+        <column xsi:type="smallint" name="point_cod" nullable="false" unsigned="true" default="0" />
+        <constraint xsi:type="primary" referenceId="PRIMARY">
+            <column name="order_id" />
+        </constraint>
+        <constraint xsi:type="foreign" referenceId="POLKURIER_ORDER_POINT_ORDER_ID_SALES_ORDER_ENTITY_ID"
+                    table="polkurier_order_point" column="order_id" referenceTable="sales_order"
+                    referenceColumn="entity_id" onDelete="CASCADE" />
+    </table>
+
+    <!-- A Polkurier order placed for a Magento order -->
+    <table name="polkurier_shipment" resource="sales" engine="innodb" comment="Polkurier orders">
+        <column xsi:type="int" name="entity_id" identity="true" nullable="false" unsigned="true" />
+        <column xsi:type="int" name="order_id" nullable="false" unsigned="true" />
+        <column xsi:type="smallint" name="store_id" nullable="true" unsigned="true" />
+        <column xsi:type="int" name="shipment_id" nullable="true" unsigned="true" comment="Magento shipment" />
+        <column xsi:type="varchar" name="state" nullable="false" length="16" default="pending"
+                comment="pending, created, unknown, failed, cancelled" />
+        <column xsi:type="varchar" name="polkurier_number" nullable="true" length="64" />
+        <column xsi:type="varchar" name="carrier_code" nullable="false" length="64" />
+        <column xsi:type="varchar" name="description" nullable="false" length="64" />
+        <column xsi:type="varchar" name="recipient_postcode" nullable="true" length="32" />
+        <column xsi:type="varchar" name="recipient_phone" nullable="true" length="64" />
+        <column xsi:type="smallint" name="pack_count" nullable="false" unsigned="true" default="1" />
+        <column xsi:type="text" name="waybills" nullable="true" comment="Comma-separated waybill numbers" />
+        <column xsi:type="varchar" name="status_code" nullable="true" length="16" />
+        <column xsi:type="varchar" name="status_label" nullable="true" length="255" />
         <column xsi:type="datetime" name="status_date" nullable="true" />
-        <column xsi:type="varchar" name="shipment_type" nullable="false" length="50" />
-        <column xsi:type="varchar" name="carrier_code" nullable="false" length="50" />
-        <column xsi:type="varchar" name="description" nullable="true" length="255" />
-        <column xsi:type="decimal" name="price_net" scale="4" precision="20" unsigned="true" nullable="false" />
-        <column xsi:type="decimal" name="price_gross" scale="4" precision="20" unsigned="true" nullable="false" />
-        <column xsi:type="decimal" name="unpaid_amount" scale="4" precision="20" unsigned="true" nullable="false" />
-        <column xsi:type="smallint" name="paid" nullable="false" default="0" />
-        <column xsi:type="smallint" name="invoice" nullable="false" default="0" />
-        <column xsi:type="decimal" name="insurance_amount" scale="4" precision="20" unsigned="true" nullable="true" />
-        <column xsi:type="text" name="courier_service" nullable="true" />
-        <column xsi:type="datetime" name="pickup_from" nullable="true" />
-        <column xsi:type="datetime" name="pickup_to" nullable="true" />
-        <column xsi:type="smallint" name="pickup_no_courier_order" nullable="false" default="0" />
-        <column xsi:type="varchar" name="tracking_uri" nullable="true" length="255" />
         <column xsi:type="datetime" name="delivered_at" nullable="true" />
-        <column xsi:type="json" name="additional_fields" nullable="true" />
-        <column xsi:type="datetime" name="created_at" on_update="false" nullable="false" default="CURRENT_TIMESTAMP" />
-        <column xsi:type="datetime" name="updated_at" on_update="true" nullable="false" default="CURRENT_TIMESTAMP" />
-
+        <column xsi:type="varchar" name="tracking_url" nullable="true" length="1024" />
+        <column xsi:type="decimal" name="price_net" scale="2" precision="12" nullable="true" />
+        <column xsi:type="decimal" name="price_gross" scale="2" precision="12" nullable="true" />
+        <column xsi:type="decimal" name="insurance_amount" scale="2" precision="12" nullable="true" />
+        <column xsi:type="decimal" name="cod_amount" scale="2" precision="12" nullable="true" />
+        <column xsi:type="varchar" name="cod_status" nullable="true" length="32" />
+        <column xsi:type="smallint" name="multi_pickup" nullable="false" unsigned="true" default="0"
+                comment="Created for a later collective pickup" />
+        <column xsi:type="smallint" name="pickup_booked" nullable="false" unsigned="true" default="0" />
+        <column xsi:type="smallint" name="is_final" nullable="false" unsigned="true" default="0"
+                comment="Statuses can no longer change: no more refreshing" />
+        <column xsi:type="datetime" name="status_checked_at" nullable="true"
+                comment="Last time the statuses were read, whether or not they changed" />
+        <column xsi:type="mediumtext" name="request" nullable="true" comment="The create_order payload sent, as JSON" />
+        <column xsi:type="text" name="last_error" nullable="true" />
+        <column xsi:type="timestamp" name="created_at" nullable="false" default="CURRENT_TIMESTAMP" on_update="false" />
+        <column xsi:type="timestamp" name="updated_at" nullable="false" default="CURRENT_TIMESTAMP" on_update="true" />
         <constraint xsi:type="primary" referenceId="PRIMARY">
+            <column name="entity_id" />
+        </constraint>
+        <constraint xsi:type="unique" referenceId="POLKURIER_SHIPMENT_POLKURIER_NUMBER">
+            <column name="polkurier_number" />
+        </constraint>
+        <index referenceId="POLKURIER_SHIPMENT_ORDER_ID" indexType="btree">
             <column name="order_id" />
-        </constraint>
-        <constraint xsi:type="unique" referenceId="EXT_ID">
-            <column name="ext_id" />
-        </constraint>
-        <constraint xsi:type="foreign" referenceId="POLKURIER_ORDER_PARENT_ORDER_ID_SALES_ORDER_ENTITY_ID"
-                    table="polkurier_order" column="parent_order_id" referenceTable="sales_order"
+        </index>
+        <index referenceId="POLKURIER_SHIPMENT_STATE" indexType="btree">
+            <column name="state" />
+        </index>
+        <index referenceId="POLKURIER_SHIPMENT_STATE_IS_FINAL_STATUS_CHECKED_AT" indexType="btree">
+            <column name="state" />
+            <column name="is_final" />
+            <column name="status_checked_at" />
+        </index>
+        <constraint xsi:type="foreign" referenceId="POLKURIER_SHIPMENT_ORDER_ID_SALES_ORDER_ENTITY_ID"
+                    table="polkurier_shipment" column="order_id" referenceTable="sales_order"
+                    referenceColumn="entity_id" onDelete="CASCADE" />
+        <constraint xsi:type="foreign" referenceId="POLKURIER_SHIPMENT_SHIPMENT_ID_SALES_SHIPMENT_ENTITY_ID"
+                    table="polkurier_shipment" column="shipment_id" referenceTable="sales_shipment"
                     referenceColumn="entity_id" onDelete="SET NULL" />
-        <constraint xsi:type="foreign" referenceId="POLKURIER_ORDER_PARENT_SHIPMENT_ID_SALES_SHIPMENT_ENTITY_ID"
-                    table="polkurier_order" column="parent_shipment_id" referenceTable="sales_shipment"
-                    referenceColumn="entity_id" onDelete="SET NULL" />
-    </table>
-
-    <table name="polkurier_order_item" resource="sales" engine="innodb">
-        <column xsi:type="int" name="item_id" identity="true" nullable="false" unsigned="true" />
-        <column xsi:type="int" name="order_id" nullable="false" unsigned="true" />
-        <column xsi:type="varchar" name="description" nullable="false" length="255" />
-        <column xsi:type="int" name="amount" nullable="false" unsigned="true" />
-        <column xsi:type="decimal" name="price" scale="4" precision="20" unsigned="true" nullable="false" />
-        <column xsi:type="decimal" name="value_net" scale="4" precision="20" unsigned="true" nullable="false" />
-        <column xsi:type="decimal" name="value_gross" scale="4" precision="20" unsigned="true" nullable="false" />
-        <column xsi:type="varchar" name="type" nullable="false" length="50" />
-
-        <constraint xsi:type="primary" referenceId="PRIMARY">
-            <column name="item_id" />
-        </constraint>
-        <constraint xsi:type="foreign" referenceId="POLKURIER_ORDER_ITEM_ORDER_ID_POLKURIER_ORDER_ORDER_ID"
-                    table="polkurier_order_item" column="order_id" referenceTable="polkurier_order"
-                    referenceColumn="order_id" onDelete="CASCADE" />
-    </table>
-
-    <table name="polkurier_order_address" resource="sales" engine="innodb">
-        <column xsi:type="int" name="address_id" identity="true" nullable="false" unsigned="true" />
-        <column xsi:type="int" name="order_id" nullable="false" unsigned="true" />
-        <column xsi:type="int" name="parent_id" nullable="true" unsigned="true" comment="Sender and cover parent address" />
-        <column xsi:type="int" name="parent_address_id" nullable="true" unsigned="true" comment="Recipient parent address" />
-        <column xsi:type="varchar" name="type" nullable="false" length="50" />
-        <column xsi:type="varchar" name="person" nullable="false" length="255" />
-        <column xsi:type="varchar" name="company" nullable="true" length="255" />
-        <column xsi:type="varchar" name="street" nullable="false" length="255" />
-        <column xsi:type="varchar" name="city" nullable="false" length="255" />
-        <column xsi:type="varchar" name="postcode" nullable="false" length="50" />
-        <column xsi:type="varchar" name="country" nullable="false" length="255" />
-        <column xsi:type="varchar" name="point_id" nullable="true" length="50" />
-        <column xsi:type="varchar" name="email" nullable="false" length="255" />
-        <column xsi:type="varchar" name="phone" nullable="false" length="255" />
-
-        <constraint xsi:type="primary" referenceId="PRIMARY">
-            <column name="address_id" />
-        </constraint>
-        <constraint xsi:type="unique" referenceId="ORDER_ID_TYPE">
-            <column name="order_id" />
-            <column name="type" />
-        </constraint>
-        <constraint xsi:type="foreign" referenceId="POLKURIER_ORDER_ADDRESS_ORDER_ID_POLKURIER_ORDER_ORDER_ID"
-                    table="polkurier_order_address" column="order_id" referenceTable="polkurier_order"
-                    referenceColumn="order_id" onDelete="CASCADE" />
-        <constraint xsi:type="foreign" referenceId="POLKURIER_ORDER_ADDRESS_PARENT_ADDRESS_ID_POLKURIER_ADDRESS_ADDRESS_ID"
-                    table="polkurier_order_address" column="parent_id" referenceTable="polkurier_address"
-                    referenceColumn="address_id" onDelete="SET NULL" />
-        <constraint xsi:type="foreign" referenceId="POLKURIER_ORDER_ADDRESS_PARENT_ADDRESS_ID_SALES_ORDER_ADDRESS_ENTITY_ID"
-                    table="polkurier_order_address" column="parent_address_id" referenceTable="sales_order_address"
-                    referenceColumn="entity_id" onDelete="SET NULL" />
-    </table>
-
-    <table name="polkurier_order_pack" resource="sales" engine="innodb">
-        <column xsi:type="int" name="pack_id" identity="true" nullable="false" unsigned="true" />
-        <column xsi:type="int" name="order_id" nullable="false" unsigned="true" />
-        <column xsi:type="varchar" name="type" nullable="false" length="50" />
-        <column xsi:type="int" name="length" nullable="false" unsigned="true" />
-        <column xsi:type="int" name="height" nullable="false" unsigned="true" />
-        <column xsi:type="int" name="width" nullable="false" unsigned="true" />
-        <column xsi:type="decimal" name="weight" scale="4" precision="12" unsigned="true" nullable="false" />
-        <column xsi:type="int" name="amount" nullable="false" unsigned="false" />
-        <column xsi:type="decimal" name="price_net" scale="4" precision="20" unsigned="true" nullable="true" />
-        <column xsi:type="decimal" name="price_gross" scale="4" precision="20" unsigned="true" nullable="true" />
-
-        <constraint xsi:type="primary" referenceId="PRIMARY">
-            <column name="pack_id" />
-        </constraint>
-        <constraint xsi:type="foreign" referenceId="POLKURIER_ORDER_PACK_ORDER_ID_POLKURIER_ORDER_ORDER_ID"
-                    table="polkurier_order_pack" column="order_id" referenceTable="polkurier_order"
-                    referenceColumn="order_id" onDelete="CASCADE" />
-    </table>
-
-    <table name="polkurier_order_cod" resource="sales" engine="innodb">
-        <column xsi:type="int" name="order_id" nullable="false" unsigned="true" />
-        <column xsi:type="varchar" name="type" nullable="false" length="50" />
-        <column xsi:type="varchar" name="status" nullable="false" length="50" />
-        <column xsi:type="decimal" name="amount" scale="4" precision="20" unsigned="true" nullable="false" />
-        <column xsi:type="int" name="bank_account_id" nullable="true" unsigned="true" />
-        <column xsi:type="varchar" name="bank_account" nullable="false" length="255" />
-        <column xsi:type="varchar" name="return_type" nullable="false" length="50" />
-
-        <constraint xsi:type="primary" referenceId="PRIMARY">
-            <column name="order_id" />
-        </constraint>
-        <constraint xsi:type="foreign" referenceId="POLKURIER_ORDER_COD_ORDER_ID_POLKURIER_ORDER_ORDER_ID"
-                    table="polkurier_order_cod" column="order_id" referenceTable="polkurier_order"
-                    referenceColumn="order_id" onDelete="CASCADE" />
-        <constraint xsi:type="foreign" referenceId="POLKURIER_ORDER_COD_BANK_ACCOUNT_ID_POLKURIER_BANK_ACCOUNT_ACCOUNT_ID"
-                    table="polkurier_order_cod" column="bank_account_id" referenceTable="polkurier_bank_account"
-                    referenceColumn="account_id" onDelete="SET NULL" />
-    </table>
-
-    <table name="polkurier_order_cod_return_details" resource="sales" engine="innodb">
-        <column xsi:type="int" name="item_id" identity="true" nullable="false" unsigned="true" />
-        <column xsi:type="int" name="order_id" nullable="false" unsigned="true" />
-        <column xsi:type="varchar" name="reason" nullable="false" length="50" />
-        <column xsi:type="varchar" name="description" nullable="false" length="255" />
-        <column xsi:type="varchar" name="document_number" nullable="false" length="255" />
-        <column xsi:type="text" name="invoice_number" nullable="true" />
-        <column xsi:type="decimal" name="amount" scale="4" precision="20" unsigned="true" nullable="false" />
-        <column xsi:type="datetime" name="date" nullable="false" />
-
-        <constraint xsi:type="primary" referenceId="PRIMARY">
-            <column name="item_id" />
-        </constraint>
-        <constraint xsi:type="foreign" referenceId="POLKURIER_ORDER_COD_HISTORY_ORDER_ID_POLKURIER_ORDER_COD_ORDER_ID"
-                    table="polkurier_order_cod_history" column="order_id" referenceTable="polkurier_order_cod"
-                    referenceColumn="order_id" onDelete="CASCADE" />
-    </table>
-
-    <table name="polkurier_order_waybill" resource="sales" engine="innodb">
-        <column xsi:type="int" name="waybill_id" identity="true" nullable="false" unsigned="true" />
-        <column xsi:type="int" name="order_id" nullable="false" unsigned="true" />
-        <column xsi:type="varchar" name="number" nullable="false" length="255" />
-        <column xsi:type="smallint" name="default" nullable="false" default="0" />
-
-        <constraint xsi:type="primary" referenceId="PRIMARY">
-            <column name="waybill_id" />
-        </constraint>
-        <constraint xsi:type="foreign" referenceId="POLKURIER_ORDER_WAYBILL_ORDER_ID_POLKURIER_ORDER_ORDER_ID"
-                    table="polkurier_order_waybill" column="order_id" referenceTable="polkurier_order"
-                    referenceColumn="order_id" onDelete="CASCADE" />
+        <constraint xsi:type="foreign" referenceId="POLKURIER_SHIPMENT_STORE_ID_STORE_STORE_ID"
+                    table="polkurier_shipment" column="store_id" referenceTable="store"
+                    referenceColumn="store_id" onDelete="SET NULL" />
     </table>
 </schema>

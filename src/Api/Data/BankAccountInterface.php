@@ -7,19 +7,45 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Api\Data;
 
-use Polkurier\Webservice\Api\Data\Entity\BankAccountInterface as BaseBankAccountInterface;
-
-interface BankAccountInterface extends BaseBankAccountInterface
+/**
+ * A bank account cash on delivery is paid out to.
+ */
+interface BankAccountInterface extends SyncableInterface
 {
-    /**
-     * @return int|null
-     */
-    public function getAccountId(): ?int;
+    public const string NAME = 'name';
+    public const string NUMBER = 'number';
+    public const string IS_DEFAULT = 'is_default';
 
     /**
-     * @param int|null $accountId
-     *
-     * @return void
+     * @return string
      */
-    public function setAccountId(?int $accountId): void;
+    public function getName(): string;
+
+    /**
+     * @param string $name
+     * @return $this
+     */
+    public function setName(string $name): static;
+
+    /**
+     * @return string
+     */
+    public function getNumber(): string;
+
+    /**
+     * @param string $number
+     * @return $this
+     */
+    public function setNumber(string $number): static;
+
+    /**
+     * @return bool
+     */
+    public function isDefault(): bool;
+
+    /**
+     * @param bool $default
+     * @return $this
+     */
+    public function setDefault(bool $default): static;
 }

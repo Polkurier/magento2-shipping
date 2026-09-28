@@ -1,0 +1,24 @@
+<?php
+/**
+ * Copyright (c) 2026 Polkurier.pl
+ * All Rights Reserved
+ */
+declare(strict_types=1);
+
+/** @var \Polkurier\Shipping\Block\Multishipping\PickupPoint $block */
+/** @var \Magento\Framework\Escaper $escaper */
+$config = $block->getWidgetConfig();
+if ($config === null) {
+    return;
+}
+?>
+<div class="pickup-point" hidden
+     data-mage-init="<?= $escaper->escapeHtmlAttr((string)json_encode(['Polkurier_Shipping/js/multishipping/pickup-point' => $config])) ?>">
+    <input type="hidden" name="pickup_point[<?= (int)$config['addressId'] ?>]" value=""/>
+    <div class="selected-point">
+        <span data-role="point-label"></span>
+    </div>
+    <button type="button" class="action primary action-show-map" data-role="choose-point">
+        <span><?= $escaper->escapeHtml(__('Choose a pickup point')) ?></span>
+    </button>
+</div>

@@ -1,0 +1,23 @@
+<!--
+ ~ Copyright (c) 2026 Polkurier.pl
+ ~ All Rights Reserved
+-->
+<div class="admin__field polkurier-pickup-times" if="visible">
+    <div class="admin__field-label"></div>
+    <div class="admin__field-control">
+        <button type="button" class="action-secondary" click="load" disable="loading">
+            <span translate="'Show collection dates'"></span>
+        </button>
+        <div class="message message-error" if="error"><span text="error"></span></div>
+        <ul class="polkurier-pickup-times__days" if="days().length">
+            <!-- ko foreach: days -->
+            <li>
+                <strong text="date"></strong>
+                <!-- ko foreach: windows -->
+                <button type="button" class="action-tertiary" data-bind="click: choose, text: label"></button>
+                <!-- /ko -->
+            </li>
+            <!-- /ko -->
+        </ul>
+    </div>
+</div>

@@ -5,17 +5,16 @@
 -->
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:noNamespaceSchemaLocation="urn:magento:framework:Api/etc/extension_attributes.xsd">
+    <!-- The pickup point chosen in checkout, sent along with the shipping method -->
     <extension_attributes for="Magento\Checkout\Api\Data\ShippingInformationInterface">
-        <attribute code="polkurier_point_id" type="string" />
-        <attribute code="polkurier_point_cod" type="bool" />
+        <attribute code="pickup_point_id" type="string" />
     </extension_attributes>
-    <extension_attributes for="Magento\Quote\Api\Data\CartInterface">
-        <attribute code="polkurier_shipment_data" type="Polkurier\Shipping\Api\Data\Quote\ShipmentDataInterface" />
+    <!-- The carrier's logo, shown next to the method in checkout. Named neutrally: it reaches the storefront. -->
+    <extension_attributes for="Magento\Quote\Api\Data\ShippingMethodInterface">
+        <attribute code="method_logo" type="string" />
     </extension_attributes>
-    <extension_attributes for="Magento\Sales\Api\Data\ShipmentInterface">
-        <attribute code="polkurier_shipment_data" type="Polkurier\Shipping\Api\Data\OrderInterface" />
-    </extension_attributes>
-    <extension_attributes for="Magento\Sales\Api\Data\OrderAddressInterface">
-        <attribute code="polkurier_address" type="Polkurier\Shipping\Api\Data\Order\AddressInterface" />
+    <!-- The pickup point carried onto the order -->
+    <extension_attributes for="Magento\Sales\Api\Data\OrderInterface">
+        <attribute code="polkurier_point" type="Polkurier\Shipping\Api\Data\OrderPointInterface" />
     </extension_attributes>
 </config>

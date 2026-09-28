@@ -7,18 +7,20 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Model\Config\Source;
 
-use Magento\Framework\Data\OptionSourceInterface;
-use Polkurier\Shipping\Enum\PricingModelEnum;
+use Polkurier\Shipping\Model\Pricing\PricingModelEnum;
 
-readonly class PricingModel implements OptionSourceInterface
+/**
+ * Checkout pricing models.
+ */
+class PricingModel extends AbstractOptions
 {
-    /**
-     * @return array[]
-     */
-    public function toOptionArray(): array
+    public function toArray(): array
     {
-        return [
-            ['value' => PricingModelEnum::FIXED->value, 'label' => __('Fixed')],
-        ];
+        $models = [];
+        foreach (PricingModelEnum::cases() as $model) {
+            $models[$model->value] = $model->label();
+        }
+
+        return $models;
     }
 }

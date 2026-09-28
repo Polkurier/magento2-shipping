@@ -2,31 +2,26 @@
  * Copyright (c) 2026 Polkurier.pl
  * All Rights Reserved
  */
+/**
+ * Sends the pickup point chosen for the selected method along with the shipping method.
+ */
 define([
-    'underscore',
     'mage/utils/wrapper',
-    'Magento_Checkout/js/model/quote'
-], function (_, wrapper, quote) {
+    'Magento_Checkout/js/model/quote',
+    'Polkurier_Shipping/js/model/pickup-point'
+], function (wrapper, quote, pickupPoint) {
     'use strict';
 
     return function (payloadExtender) {
-        return wrapper.wrap(payloadExtender, function (originalPayloadExtender, payload) {
-            const shippingMethod = quote.shippingMethod();
-            originalPayloadExtender(payload);
+        return wrapper.wrap(payloadExtender, function (original, payload) {
+            const method = quote.shippingMethod(),
+                point = pickupPoint.isOwnMethod(method) ? pickupPoint.get(method.method_code) : null;
 
-            if (shippingMethod.carrier_code === 'polkurier'
-                && quote.extensionAttributes
-                && quote.extensionAttributes.polkurier_point
-                && quote.extensionAttributes.polkurier_point[shippingMethod.method_code]
-            ) {
-                _.extend(
-                    payload.addressInformation.extension_attributes,
-                    {
-                        polkurier_point_id: quote.extensionAttributes.polkurier_point[shippingMethod.method_code].id,
-                        polkurier_point_cod: quote.extensionAttributes.polkurier_point[shippingMethod.method_code].cod
-                    }
-                );
-            }
+            original(payload);
+            payload.addressInformation.extension_attributes = payload.addressInformation.extension_attributes || {};
+            payload.addressInformation.extension_attributes.pickup_point_id = point ? point.id : null;
+
+            return payload;
         });
     };
 });

@@ -1,0 +1,44 @@
+<?php
+/**
+ * Copyright (c) 2026 Polkurier.pl
+ * All Rights Reserved
+ */
+declare(strict_types=1);
+
+namespace Polkurier\Shipping\Test\Unit\Model\Mapper;
+
+use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\TestCase;
+use Polkurier\Shipping\Model\Mapper\StreetParser;
+
+#[CoversClass(StreetParser::class)]
+class StreetParserTest extends TestCase
+{
+    /**
+     * @return array<string, array{0: string[], 1: array{street: string, house_number: ?string, flat_number: ?string}}>
+     */
+    public static function streets(): array
+    {
+        return [
+            'number at the end' => [['Długa 12'], ['street' => 'Długa', 'house_number' => '12', 'flat_number' => null]],
+            'number and flat' => [['Długa 12/3'], ['street' => 'Długa', 'house_number' => '12', 'flat_number' => '3']],
+            'flat after m.' => [['ul. Krótka 5A m. 7'], ['street' => 'ul. Krótka', 'house_number' => '5A', 'flat_number' => '7']],
+            'roman numeral in the name' => [['al. Jana Pawła II 5 lok. 2'], ['street' => 'al. Jana Pawła II', 'house_number' => '5', 'flat_number' => '2']],
+            'number on the second line' => [['Długa', '12/3'], ['street' => 'Długa', 'house_number' => '12', 'flat_number' => '3']],
+            'three lines' => [['Długa', '12', '3'], ['street' => 'Długa', 'house_number' => '12', 'flat_number' => '3']],
+            'no number' => [['Rynek'], ['street' => 'Rynek', 'house_number' => null, 'flat_number' => null]],
+            'range' => [['Polna 10-12'], ['street' => 'Polna', 'house_number' => '10-12', 'flat_number' => null]],
+        ];
+    }
+
+    /**
+     * @param string[] $lines
+     * @param array{street: string, house_number: ?string, flat_number: ?string} $expected
+     */
+    #[DataProvider('streets')]
+    public function testParses(array $lines, array $expected): void
+    {
+        self::assertSame($expected, (new StreetParser())->parse($lines));
+    }
+}

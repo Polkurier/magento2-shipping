@@ -8,30 +8,52 @@
     <default>
         <carriers>
             <polkurier>
-                <model>Polkurier\Shipping\Model\PolkurierCarrier</model>
+                <model>Polkurier\Shipping\Model\Carrier\Polkurier</model>
                 <active>0</active>
+                <title>Polkurier</title>
+                <sallowspecific>0</sallowspecific>
+                <showmethod>0</showmethod>
+                <specificerrmsg>This shipping method is not available.</specificerrmsg>
+                <sort_order>10</sort_order>
                 <general>
-                    <sandbox_mode>0</sandbox_mode>
-                    <customer_id backend_model="Magento\Config\Model\Config\Backend\Encrypted" />
-                    <api_token backend_model="Magento\Config\Model\Config\Backend\Encrypted" />
+                    <sandbox_mode>1</sandbox_mode>
+                    <timeout>30</timeout>
+                    <logging>1</logging>
+                    <log_methods>create_order,cancel_order,create_multi_order_pickup,create_money_box_payout</log_methods>
+                    <!-- TODO: remove before publishing. Local development instance of the API; empty
+                         lets the SDK choose between production and sandbox. -->
+                    <api_url>http://api.polkurier.local</api_url>
                 </general>
                 <shipments>
-                    <home_country_id>PL</home_country_id>
-                    <use_store_information_address>1</use_store_information_address>
+                    <default_shipment_type>box</default_shipment_type>
+                    <use_store_information_address>0</use_store_information_address>
                     <use_store_origin_address>1</use_store_origin_address>
-                    <default_sender_email>support</default_sender_email>
-                    <default_additional_services>INSURANCE</default_additional_services>
+                    <default_sender_email>general</default_sender_email>
+                    <insure_by_default>0</insure_by_default>
                     <default_cod_type>S</default_cod_type>
                     <default_cod_refund_type>BA</default_cod_refund_type>
+                    <cod_payment_methods>cashondelivery</cod_payment_methods>
+                    <description_format>%s</description_format>
+                    <label_format />
+                    <notify_customer>1</notify_customer>
+                    <native_labels>1</native_labels>
+                    <shipment_screen>1</shipment_screen>
                 </shipments>
                 <map>
-                    <default_latitude>52.2252606</default_latitude>
-                    <default_longitude>20.9986249</default_longitude>
+                    <default_latitude>52.2297</default_latitude>
+                    <default_longitude>21.0122</default_longitude>
                     <default_zoom>13</default_zoom>
                     <show_list>1</show_list>
                     <show_search_input>1</show_search_input>
                     <required_point_functions>collect</required_point_functions>
+                    <!-- TODO: remove before publishing. Local development instance of the map; its
+                         tokens come from the local API only. -->
+                    <url>http://maps.polkurier.local</url>
                 </map>
+                <sync>
+                    <enabled>1</enabled>
+                    <status_enabled>1</status_enabled>
+                </sync>
             </polkurier>
         </carriers>
     </default>

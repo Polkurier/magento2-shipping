@@ -7,22 +7,21 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Model\Config\Source;
 
-use Magento\Framework\Data\OptionSourceInterface;
-use Polkurier\Webservice\Enum\PackTypeEnum;
+use Polkurier\Webservice\Enum\Order\PackTypeEnum;
 
-readonly class PackType implements OptionSourceInterface
+/**
+ * Parcel types.
+ */
+class PackType extends AbstractOptions
 {
-    /**
-     * @return array[]
-     */
-    public function toOptionArray(): array
+    public function toArray(): array
     {
         return [
-            ['value' => PackTypeEnum::STANDARD->value, 'label' => __('Standard')],
-            ['value' => PackTypeEnum::NON_STANDARD->value, 'label' => __('Non standard')],
-            ['value' => PackTypeEnum::PALETTE->value, 'label' => __('Palette')],
-            ['value' => PackTypeEnum::HALF_PALETTE->value, 'label' => __('Half palette')],
-            ['value' => PackTypeEnum::LONG->value, 'label' => __('Long')],
+            PackTypeEnum::Standard->value => (string)\__('Standard'),
+            PackTypeEnum::NonStandard->value => (string)\__('Non-standard'),
+            PackTypeEnum::Long->value => (string)\__('Long'),
+            PackTypeEnum::HalfPalette->value => (string)\__('Half pallet'),
+            PackTypeEnum::Palette->value => (string)\__('Pallet'),
         ];
     }
 }

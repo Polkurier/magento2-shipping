@@ -7,21 +7,19 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Model\Config\Source;
 
-use Magento\Framework\Data\OptionSourceInterface;
-use Polkurier\Webservice\Enum\CodReturnTypeEnum;
+use Polkurier\Webservice\Enum\Order\CodReturnTypeEnum;
 
-
-readonly class CodReturnType implements OptionSourceInterface
+/**
+ * Where cash on delivery is paid out to.
+ */
+class CodReturnType extends AbstractOptions
 {
-    /**
-     * @return array[]
-     */
-    public function toOptionArray(): array
+    public function toArray(): array
     {
         return [
-            ['value' => CodReturnTypeEnum::BANK_ACCOUNT->value, 'label' => \__('Refund to a bank account')],
-            ['value' => CodReturnTypeEnum::POST_OFFICE->value, 'label' => \__('Refund via postal order')],
-            ['value' => CodReturnTypeEnum::MONEY_BOX->value, 'label' => \__('Refund to the money box')],
+            CodReturnTypeEnum::BankAccount->value => (string)\__('Bank account'),
+            CodReturnTypeEnum::MoneyBox->value => (string)\__('Polkurier money box'),
+            CodReturnTypeEnum::PostOffice->value => (string)\__('Postal order'),
         ];
     }
 }

@@ -3,20 +3,24 @@
  ~ Copyright (c) 2026 Polkurier.pl
  ~ All Rights Reserved
 -->
-<listing xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Ui:etc/ui_configuration.xsd">
+<listing xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Ui:etc/ui_configuration.xsd">
     <argument name="data" xsi:type="array">
         <item name="js_config" xsi:type="array">
             <item name="provider" xsi:type="string">polkurier_shipment_listing.polkurier_shipment_listing_data_source</item>
         </item>
     </argument>
     <settings>
-        <spinner>polkurier_shipment_columns</spinner>
+        <spinner>polkurier_shipment_listing_columns</spinner>
         <deps>
             <dep>polkurier_shipment_listing.polkurier_shipment_listing_data_source</dep>
         </deps>
     </settings>
     <dataSource name="polkurier_shipment_listing_data_source" component="Magento_Ui/js/grid/provider">
         <settings>
+            <storageConfig>
+                <param name="indexField" xsi:type="string">entity_id</param>
+            </storageConfig>
             <updateUrl path="mui/index/render"/>
         </settings>
         <aclResource>Polkurier_Shipping::shipments</aclResource>
@@ -30,177 +34,152 @@
     <listingToolbar name="listing_top">
         <bookmark name="bookmarks"/>
         <columnsControls name="columns_controls"/>
-        <exportButton name="export_button"/>
-        <filterSearch name="fulltext"/>
-        <filters name="listing_filters">
-            <filterSelect name="store_id" provider="${ $.parentName }">
-                <settings>
-                    <options class="Magento\Store\Ui\Component\Listing\Column\Store\Options"/>
-                    <caption translate="true">All Store Views</caption>
-                    <label translate="true">Purchased From</label>
-                    <dataScope>store_id</dataScope>
-                    <imports>
-                        <link name="visible">ns = ${ $.ns }, index = ${ $.index }:visible</link>
-                    </imports>
-                </settings>
-            </filterSelect>
-        </filters>
+        <filters name="listing_filters"/>
         <massaction name="listing_massaction">
-            <action name="pdfshipments_order">
+            <action name="label">
                 <settings>
-                    <url path="sales/shipment/pdfshipments"/>
-                    <type>pdfshipments_order</type>
-                    <label translate="true">PDF Shipments</label>
+                    <url path="polkurier/shipment/label"/>
+                    <type>label</type>
+                    <label translate="true">Print labels</label>
                 </settings>
             </action>
-            <action name="print_shipping_label">
+            <action name="protocol">
                 <settings>
-                    <url path="adminhtml/shipment/massPrintShippingLabel"/>
-                    <type>print_shipping_label</type>
-                    <label translate="true">Print Shipping Labels</label>
+                    <url path="polkurier/shipment/protocol"/>
+                    <type>protocol</type>
+                    <label translate="true">Print handover protocol</label>
+                </settings>
+            </action>
+            <action name="refresh">
+                <settings>
+                    <url path="polkurier/shipment/massRefresh"/>
+                    <type>refresh</type>
+                    <label translate="true">Update statuses</label>
+                </settings>
+            </action>
+            <action name="pickup">
+                <settings>
+                    <url path="polkurier/shipment/massPickup"/>
+                    <type>pickup</type>
+                    <label translate="true">Book a collective pickup</label>
                 </settings>
             </action>
         </massaction>
         <paging name="listing_paging"/>
     </listingToolbar>
-    <columns name="polkurier_shipment_columns">
-        <settings>
-            <childDefaults>
-                <param name="fieldAction" xsi:type="array">
-                    <item name="provider" xsi:type="string">polkurier_shipment_listing.polkurier_shipment_listing.polkurier_shipment_columns.actions</item>
-                    <item name="target" xsi:type="string">applyAction</item>
-                    <item name="params" xsi:type="array">
-                        <item name="0" xsi:type="string">view</item>
-                        <item name="1" xsi:type="string">${ $.$data.rowIndex }</item>
-                    </item>
-                </param>
-            </childDefaults>
-        </settings>
+    <columns name="polkurier_shipment_listing_columns">
         <selectionsColumn name="ids">
             <settings>
                 <indexField>entity_id</indexField>
             </settings>
         </selectionsColumn>
+        <column name="entity_id">
+            <settings>
+                <label translate="true">ID</label>
+                <filter>textRange</filter>
+                <visible>false</visible>
+            </settings>
+        </column>
         <column name="increment_id">
             <settings>
+                <label translate="true">Order</label>
                 <filter>text</filter>
-                <label translate="true">Shipment</label>
-                <sorting>asc</sorting>
             </settings>
         </column>
-        <column name="created_at" class="Magento\Ui\Component\Listing\Columns\Date" component="Magento_Ui/js/grid/columns/date">
+        <column name="created_at" component="Magento_Ui/js/grid/columns/date">
             <settings>
+                <label translate="true">Created</label>
                 <filter>dateRange</filter>
                 <dataType>date</dataType>
-                <label translate="true">Ship Date</label>
             </settings>
         </column>
-        <column name="order_increment_id">
+        <column name="carrier_code">
             <settings>
+                <label translate="true">Carrier</label>
                 <filter>text</filter>
-                <label translate="true">Order #</label>
             </settings>
         </column>
-        <column name="order_created_at" class="Magento\Ui\Component\Listing\Columns\Date" component="Magento_Ui/js/grid/columns/date">
+        <column name="state" component="Magento_Ui/js/grid/columns/select">
             <settings>
+                <label translate="true">State</label>
+                <options class="Polkurier\Shipping\Model\Config\Source\ShipmentState"/>
+                <filter>select</filter>
+                <dataType>select</dataType>
+            </settings>
+        </column>
+        <column name="polkurier_number">
+            <settings>
+                <label translate="true">Polkurier order</label>
+                <filter>text</filter>
+            </settings>
+        </column>
+        <column name="waybills" class="Polkurier\Shipping\Ui\Component\Listing\Column\Waybills">
+            <settings>
+                <label translate="true">Waybills</label>
+                <bodyTmpl>ui/grid/cells/html</bodyTmpl>
+                <filter>text</filter>
+            </settings>
+        </column>
+        <column name="status_label">
+            <settings>
+                <label translate="true">Delivery status</label>
+                <filter>text</filter>
+            </settings>
+        </column>
+        <column name="status_date" component="Magento_Ui/js/grid/columns/date">
+            <settings>
+                <label translate="true">Status date</label>
                 <filter>dateRange</filter>
                 <dataType>date</dataType>
-                <label translate="true">Order Date</label>
             </settings>
         </column>
-        <column name="shipping_name">
+        <column name="cod_amount">
             <settings>
-                <filter>text</filter>
-                <label translate="true">Ship-to Name</label>
-            </settings>
-        </column>
-        <column name="total_qty">
-            <settings>
+                <label translate="true">Cash on delivery</label>
                 <filter>textRange</filter>
-                <label translate="true">Total Quantity</label>
             </settings>
         </column>
-        <column name="order_status" component="Magento_Ui/js/grid/columns/select">
+        <column name="cod_status" component="Magento_Ui/js/grid/columns/select">
             <settings>
+                <label translate="true">COD status</label>
+                <options class="Polkurier\Shipping\Model\Config\Source\CodStatus"/>
                 <filter>select</filter>
-                <options class="Magento\Sales\Ui\Component\Listing\Column\Status\Options"/>
                 <dataType>select</dataType>
-                <label translate="true">Order Status</label>
-                <visible>false</visible>
             </settings>
         </column>
-        <column name="store_id" class="Magento\Store\Ui\Component\Listing\Column\Store">
+        <column name="price_gross">
             <settings>
-                <label translate="true">Purchased From</label>
-                <bodyTmpl>ui/grid/cells/html</bodyTmpl>
-                <sortable>false</sortable>
-                <visible>false</visible>
+                <label translate="true">Cost (gross)</label>
+                <filter>textRange</filter>
             </settings>
         </column>
-        <column name="customer_name">
+        <column name="multi_pickup" component="Magento_Ui/js/grid/columns/select">
             <settings>
-                <filter>text</filter>
-                <label translate="true">Customer Name</label>
-                <visible>false</visible>
-            </settings>
-        </column>
-        <column name="customer_email">
-            <settings>
-                <filter>text</filter>
-                <label translate="true">Email</label>
-                <visible>false</visible>
-            </settings>
-        </column>
-        <column name="customer_group_id" component="Magento_Ui/js/grid/columns/select">
-            <settings>
+                <label translate="true">Collective pickup</label>
+                <options class="Magento\Config\Model\Config\Source\Yesno"/>
                 <filter>select</filter>
-                <options class="Magento\Customer\Ui\Component\Listing\Column\Group\Options"/>
                 <dataType>select</dataType>
-                <label translate="true">Customer Group</label>
-                <visible>false</visible>
             </settings>
         </column>
-        <column name="billing_address" class="Magento\Sales\Ui\Component\Listing\Column\Address">
+        <column name="pickup_booked" component="Magento_Ui/js/grid/columns/select">
             <settings>
-                <filter>text</filter>
-                <label translate="true">Billing Address</label>
-                <bodyTmpl>ui/grid/cells/html</bodyTmpl>
-                <visible>false</visible>
-            </settings>
-        </column>
-        <column name="shipping_address" class="Magento\Sales\Ui\Component\Listing\Column\Address">
-            <settings>
-                <filter>text</filter>
-                <label translate="true">Shipping Address</label>
-                <bodyTmpl>ui/grid/cells/html</bodyTmpl>
-                <visible>false</visible>
-            </settings>
-        </column>
-        <column name="payment_method" component="Magento_Ui/js/grid/columns/select">
-            <settings>
+                <label translate="true">Pickup booked</label>
+                <options class="Magento\Config\Model\Config\Source\Yesno"/>
                 <filter>select</filter>
-                <options class="Magento\Payment\Ui\Component\Listing\Column\Method\Options"/>
                 <dataType>select</dataType>
-                <label translate="true">Payment Method</label>
-                <visible>false</visible>
             </settings>
         </column>
-        <column name="shipping_information">
+        <column name="last_error">
             <settings>
+                <label translate="true">Last error</label>
                 <filter>text</filter>
-                <label translate="true">Shipping Information</label>
                 <visible>false</visible>
             </settings>
         </column>
-        <actionsColumn name="actions" class="Magento\Sales\Ui\Component\Listing\Column\ViewAction">
-            <argument name="data" xsi:type="array">
-                <item name="config" xsi:type="array">
-                    <item name="viewUrlPath" xsi:type="string">sales/shipment/view</item>
-                    <item name="urlEntityParamName" xsi:type="string">shipment_id</item>
-                </item>
-            </argument>
+        <actionsColumn name="actions" class="Polkurier\Shipping\Ui\Component\Listing\Column\ShipmentActions">
             <settings>
                 <indexField>entity_id</indexField>
+                <label translate="true">Actions</label>
             </settings>
         </actionsColumn>
     </columns>

@@ -5,12 +5,13 @@
 -->
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:noNamespaceSchemaLocation="urn:magento:framework:Event/etc/events.xsd">
-    <event name="sales_model_service_quote_submit_success">
-        <observer name="polkurier_shipping_copy_shipment_data_to_order"
-                  instance="Polkurier\Shipping\Observer\QuoteSubmitSuccessObserver" />
+    <event name="sales_model_service_quote_submit_before">
+        <observer name="polkurier_validate_pickup_point" instance="Polkurier\Shipping\Observer\ValidatePickupPoint" />
     </event>
-    <event name="polkurier_order_save_after">
-        <observer name="polkurier_shipping_order_save_after"
-                  instance="Polkurier\Shipping\Observer\PolkurierOrderSaveAfterObserver" />
+    <event name="sales_model_service_quote_submit_success">
+        <observer name="polkurier_copy_pickup_point" instance="Polkurier\Shipping\Observer\CopyPickupPointToOrder" />
+    </event>
+    <event name="payment_method_is_active">
+        <observer name="polkurier_restrict_cash_on_delivery" instance="Polkurier\Shipping\Observer\RestrictCashOnDelivery" />
     </event>
 </config>

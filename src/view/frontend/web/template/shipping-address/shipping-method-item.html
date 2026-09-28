@@ -2,6 +2,7 @@
  ~ Copyright (c) 2026 Polkurier.pl
  ~ All Rights Reserved
 -->
+<!-- Magento_Checkout/shipping-address/shipping-method-item, plus the carrier's logo and the pickup point in a last column -->
 <tr class="row"
     click="element.selectShippingMethod">
     <td class="col col-method">
@@ -14,24 +15,23 @@
                     'checked': element.rates().length == 1 || element.isSelected" />
     </td>
     <!-- ko ifnot: (method.error_message) -->
-    <td1 class="col col-price">
+    <td class="col col-price">
         <each args="element.getRegion('price')" render=""></each>
-    </td1>
-    <!-- /ko -->
-    <td class="col col-image"
-        attr="'id': 'label_button_' + method.method_code + '_' + method.carrier_code">
     </td>
+    <!-- /ko -->
     <td class="col col-method"
-        attr="'id': 'label_method_' + method.method_code + '_' + method.carrier_code"
-        text="method.method_title">
+        attr="'id': 'label_method_' + method.method_code + '_' + method.carrier_code">
+        <img class="shipping-method-logo" alt="" loading="lazy"
+             if="method.extension_attributes && method.extension_attributes.method_logo"
+             attr="src: method.extension_attributes.method_logo"/>
+        <span text="method.method_title"></span>
     </td>
     <td class="col col-carrier"
         attr="'id': 'label_carrier_' + method.method_code + '_' + method.carrier_code"
         text="method.carrier_title"></td>
-    <td class="col col-button"
-        attr="'id': 'label_button_' + method.method_code + '_' + method.carrier_code">
-        <!-- ko foreach: $parent.getRegion('polkurier-map-button') -->
-            <!-- ko template: { name: getTemplate(), data: $data, as: 'element' } --><!-- /ko -->
+    <td class="col col-button">
+        <!-- ko foreach: element.getRegion('pickup-point-choice') -->
+        <!-- ko template: { name: getTemplate(), data: {element: $data, method: method} } --><!-- /ko -->
         <!-- /ko -->
     </td>
 </tr>

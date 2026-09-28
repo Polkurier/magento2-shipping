@@ -8,16 +8,29 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Model\ResourceModel\PackTemplate;
 
 use Magento\Framework\Model\ResourceModel\Db\Collection\AbstractCollection;
-use Polkurier\Shipping\Model\PackTemplate;
-use Polkurier\Shipping\Model\ResourceModel\PackTemplate as PackTemplateResource;
+use Polkurier\Shipping\Model\PackTemplate as Model;
+use Polkurier\Shipping\Model\ResourceModel\PackTemplate as ResourceModel;
 
 class Collection extends AbstractCollection
 {
     /**
-     * @return void
+     * @var string
      */
+    protected $_idFieldName = 'template_id';
+
     protected function _construct(): void
     {
-        $this->_init(PackTemplate::class, PackTemplateResource::class);
+        $this->_init(Model::class, ResourceModel::class);
+    }
+
+    /**
+     * @return Model[]
+     */
+    public function getItems(): array
+    {
+        /** @var Model[] $items */
+        $items = parent::getItems();
+
+        return $items;
     }
 }

@@ -7,31 +7,27 @@
       xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Ui:etc/ui_configuration.xsd">
     <argument name="data" xsi:type="array">
         <item name="js_config" xsi:type="array">
-            <item name="provider" xsi:type="string">
-                polkurier_bank_account_form.polkurier_bank_account_form_data_source
-            </item>
+            <item name="provider" xsi:type="string">polkurier_bank_account_form.polkurier_bank_account_form_data_source</item>
         </item>
-        <item name="config" xsi:type="array">
-            <item name="deleteConfirmationMessage" translate="true" xsi:type="string">
-                Are you sure you want to delete this account number?
-            </item>
-        </item>
-        <item name="label" xsi:type="string" translate="true">Update bank account number</item>
-        <item name="reverseMetadataMerge" xsi:type="boolean">true</item>
+        <item name="label" xsi:type="string" translate="true">Bank account</item>
         <item name="template" xsi:type="string">templates/form/collapsible</item>
     </argument>
     <settings>
-        <buttons>
-            <button name="back" class="Polkurier\Shipping\Block\Adminhtml\Edit\BackButton" />
-            <button name="delete" class="Polkurier\Shipping\Block\Adminhtml\Edit\DeleteButton" />
-            <button name="save" class="Polkurier\Shipping\Block\Adminhtml\Edit\SaveButton" />
-            <button name="save_and_continue" class="Polkurier\Shipping\Block\Adminhtml\Edit\SaveAndContinueButton" />
-        </buttons>
         <namespace>polkurier_bank_account_form</namespace>
         <dataScope>data</dataScope>
         <deps>
             <dep>polkurier_bank_account_form.polkurier_bank_account_form_data_source</dep>
         </deps>
+        <buttons>
+            <button name="back">
+                <url path="*/*/index"/>
+                <class>back</class>
+                <label translate="true">Back</label>
+            </button>
+            <button name="delete" class="Polkurier\Shipping\Ui\Component\Control\DeleteBankAccountButton"/>
+            <button name="save_and_continue" class="Polkurier\Shipping\Ui\Component\Control\SaveAndContinueBankAccount"/>
+            <button name="save" class="Polkurier\Shipping\Ui\Component\Control\SaveButton"/>
+        </buttons>
     </settings>
     <dataSource name="polkurier_bank_account_form_data_source">
         <argument name="data" xsi:type="array">
@@ -40,76 +36,174 @@
             </item>
         </argument>
         <settings>
-            <submitUrl path="*/*/save" />
-<!--            <validateUrl path="*/*/validate" />-->
+            <submitUrl path="*/*/save"/>
         </settings>
-        <aclResource>Polkurier_Shipping::bank_accounts</aclResource>
-        <dataProvider class="Polkurier\Shipping\Ui\Component\Form\BankAccount\DataProviderVirtual"
-                      name="polkurier_bank_account_form_data_source">
+        <dataProvider class="Polkurier\Shipping\Ui\Component\Form\BankAccount\DataProvider" name="polkurier_bank_account_form_data_source">
             <settings>
                 <requestFieldName>id</requestFieldName>
-                <primaryFieldName>account_id</primaryFieldName>
+                <primaryFieldName>id</primaryFieldName>
             </settings>
         </dataProvider>
     </dataSource>
-    <container name="messages" component="Magento_Ui/js/form/components/html">
-        <argument name="data" xsi:type="array">
-            <item name="config" xsi:type="array">
-                <item name="additionalClasses" xsi:type="string">message message-error</item>
-                <item name="visible" xsi:type="boolean">false</item>
-                <item name="imports" xsi:type="array">
-                    <item name="responseData" xsi:type="string">${ $.parentName }:responseData</item>
-                </item>
-                <item name="listens" xsi:type="array">
-                    <item name="responseData.error" xsi:type="string">visible</item>
-                    <item name="responseData.messages" xsi:type="string">content</item>
-                </item>
-            </item>
-        </argument>
-    </container>
-    <fieldset name="general" sortOrder="10">
+    <fieldset name="general">
         <settings>
-            <label />
-            <collapsible>false</collapsible>
+            <label/>
         </settings>
-        <field name="account_id" formElement="hidden">
+        <field name="id" formElement="input">
             <settings>
                 <dataType>text</dataType>
-                <dataScope>account_id</dataScope>
+                <visible>false</visible>
+                <dataScope>id</dataScope>
             </settings>
         </field>
-        <field name="name" formElement="input" sortOrder="10">
+        <field name="website_id" formElement="select">
             <settings>
-                <label translate="true">Label</label>
+                <label translate="true">Website</label>
                 <dataType>text</dataType>
-                <dataScope>name</dataScope>
-                <validation>
-                    <rule name="required-entry" xsi:type="boolean">true</rule>
-                </validation>
-            </settings>
-        </field>
-        <field name="default" formElement="select" sortOrder="20">
-            <settings>
-                <label translate="true">Default</label>
-                <dataType>boolean</dataType>
-                <dataScope>default</dataScope>
+                <dataScope>website_id</dataScope>
+                <validation><rule name="required-entry" xsi:type="boolean">true</rule></validation>
+                <notice translate="true">The Polkurier account of this website keeps the entry.</notice>
             </settings>
             <formElements>
                 <select>
                     <settings>
-                        <options class="Magento\Config\Model\Config\Source\Yesno" />
+                        <options class="Magento\Config\Model\Config\Source\Website"/>
                     </settings>
                 </select>
             </formElements>
         </field>
-        <field name="number" formElement="input" sortOrder="30">
+        <field name="name" formElement="input">
             <settings>
-                <label translate="true">Account number (IBAN)</label>
+                <label translate="true">Account name</label>
+                <dataType>text</dataType>
+                <dataScope>name</dataScope>
+                <validation><rule name="required-entry" xsi:type="boolean">true</rule></validation>
+            </settings>
+        </field>
+        <field name="number" formElement="input">
+            <settings>
+                <label translate="true">Account number</label>
                 <dataType>text</dataType>
                 <dataScope>number</dataScope>
-                <validation>
-                    <rule name="required-entry" xsi:type="boolean">true</rule>
-                </validation>
+                <validation><rule name="required-entry" xsi:type="boolean">true</rule></validation>
+                <notice translate="true">IBAN or Polish account number (26 digits).</notice>
+            </settings>
+        </field>
+        <field name="is_default" formElement="checkbox">
+            <settings>
+                <label translate="true">Default</label>
+                <dataType>boolean</dataType>
+                <dataScope>is_default</dataScope>
+            </settings>
+            <formElements>
+                <checkbox>
+                    <settings>
+                        <valueMap>
+                            <map name="false" xsi:type="string">0</map>
+                            <map name="true" xsi:type="string">1</map>
+                        </valueMap>
+                        <prefer>toggle</prefer>
+                    </settings>
+                </checkbox>
+            </formElements>
+        </field>
+    </fieldset>
+    <fieldset name="confirmation">
+        <settings>
+            <label translate="true">Confirmation with Polkurier</label>
+        </settings>
+        <container name="confirmation_note" sortOrder="10">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="component" xsi:type="string">Magento_Ui/js/form/components/html</item>
+                    <item name="content" xsi:type="string" translate="true">Polkurier accepts a new or changed bank account only with your confirmation. Without it, the account is saved in Magento and waits for it.</item>
+                </item>
+            </argument>
+        </container>
+        <field name="confirmation_pin" formElement="input" sortOrder="20">
+            <settings>
+                <label translate="true">Security PIN</label>
+                <dataType>text</dataType>
+                <dataScope>confirmation_pin</dataScope>
+                <elementTmpl>Polkurier_Shipping/form/element/password</elementTmpl>
+                <notice translate="true">Your account locks bank accounts with a PIN. It is needed to save or delete one.</notice>
+                <imports>
+                    <link name="visible">${ $.provider }:data.pin_locked</link>
+                </imports>
+            </settings>
+        </field>
+        <field name="two_factor_token" formElement="input" sortOrder="30">
+            <settings>
+                <dataType>text</dataType>
+                <dataScope>two_factor_token</dataScope>
+                <visible>false</visible>
+            </settings>
+        </field>
+        <container name="send_code" component="Polkurier_Shipping/js/moneybox/action" sortOrder="40">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="action" xsi:type="string">send_code</item>
+                    <item name="buttonLabel" xsi:type="string" translate="true">Send me the confirmation code</item>
+                    <item name="template" xsi:type="string">Polkurier_Shipping/moneybox/action</item>
+                    <item name="imports" xsi:type="array">
+                        <item name="visible" xsi:type="string">!${ $.provider }:data.pin_locked</item>
+                    </item>
+                </item>
+            </argument>
+        </container>
+        <field name="two_factor_code" formElement="input" sortOrder="50">
+            <settings>
+                <label translate="true">Confirmation code</label>
+                <dataType>text</dataType>
+                <dataScope>two_factor_code</dataScope>
+                <imports>
+                    <link name="visible">!${ $.provider }:data.pin_locked</link>
+                </imports>
+            </settings>
+        </field>
+    </fieldset>
+    <fieldset name="synchronization">
+        <settings>
+            <label translate="true">Synchronization with Polkurier</label>
+            <collapsible>true</collapsible>
+        </settings>
+        <field name="sync_state" formElement="select">
+            <settings>
+                <label translate="true">State</label>
+                <dataType>text</dataType>
+                <dataScope>sync_state</dataScope>
+                <disabled>true</disabled>
+            </settings>
+            <formElements>
+                <select>
+                    <settings>
+                        <options class="Polkurier\Shipping\Model\Config\Source\SyncState"/>
+                    </settings>
+                </select>
+            </formElements>
+        </field>
+        <field name="sync_error" formElement="textarea">
+            <settings>
+                <label translate="true">Last error</label>
+                <dataType>text</dataType>
+                <dataScope>sync_error</dataScope>
+                <disabled>true</disabled>
+            </settings>
+        </field>
+        <field name="ext_id" formElement="input">
+            <settings>
+                <label translate="true">Polkurier ID</label>
+                <dataType>text</dataType>
+                <dataScope>ext_id</dataScope>
+                <disabled>true</disabled>
+            </settings>
+        </field>
+        <field name="synced_at" formElement="input">
+            <settings>
+                <label translate="true">Last synchronized</label>
+                <dataType>text</dataType>
+                <dataScope>synced_at</dataScope>
+                <disabled>true</disabled>
             </settings>
         </field>
     </fieldset>

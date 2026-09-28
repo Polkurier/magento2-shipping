@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<!--
+ ~ Copyright (c) 2026 Polkurier.pl
+ ~ All Rights Reserved
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Cron:etc/crontab.xsd">
+    <group id="default">
+        <job name="polkurier_refresh_shipment_status" instance="Polkurier\Shipping\Cron\RefreshShipmentStatus" method="execute">
+            <schedule>*/30 * * * *</schedule>
+        </job>
+        <job name="polkurier_reconcile_shipments" instance="Polkurier\Shipping\Cron\ReconcileShipments" method="execute">
+            <schedule>*/10 * * * *</schedule>
+        </job>
+        <job name="polkurier_synchronize" instance="Polkurier\Shipping\Cron\Synchronize" method="execute">
+            <schedule>15 * * * *</schedule>
+        </job>
+    </group>
+</config>

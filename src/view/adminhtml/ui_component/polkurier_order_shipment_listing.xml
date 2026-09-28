@@ -1,0 +1,153 @@
+<?xml version="1.0"?>
+<!--
+ ~ Copyright (c) 2026 Polkurier.pl
+ ~ All Rights Reserved
+-->
+<listing xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Ui:etc/ui_configuration.xsd">
+    <argument name="data" xsi:type="array">
+        <item name="js_config" xsi:type="array">
+            <item name="provider" xsi:type="string">polkurier_order_shipment_listing.polkurier_order_shipment_listing_data_source</item>
+        </item>
+    </argument>
+    <settings>
+        <spinner>polkurier_order_shipment_listing_columns</spinner>
+        <deps>
+            <dep>polkurier_order_shipment_listing.polkurier_order_shipment_listing_data_source</dep>
+        </deps>
+    </settings>
+    <dataSource name="polkurier_order_shipment_listing_data_source" component="Magento_Ui/js/grid/provider">
+        <settings>
+            <storageConfig>
+                <param name="indexField" xsi:type="string">entity_id</param>
+            </storageConfig>
+            <updateUrl path="mui/index/render"/>
+            <filterUrlParams>
+                <param name="order_id">*</param>
+            </filterUrlParams>
+        </settings>
+        <aclResource>Polkurier_Shipping::shipments</aclResource>
+        <dataProvider class="Magento\Framework\View\Element\UiComponent\DataProvider\DataProvider" name="polkurier_order_shipment_listing_data_source">
+            <settings>
+                <requestFieldName>id</requestFieldName>
+                <primaryFieldName>entity_id</primaryFieldName>
+            </settings>
+        </dataProvider>
+    </dataSource>
+    <listingToolbar name="listing_top">
+        <bookmark name="bookmarks"/>
+        <columnsControls name="columns_controls"/>
+        <filters name="listing_filters"/>
+        <massaction name="listing_massaction">
+            <action name="label">
+                <settings>
+                    <url path="polkurier/shipment/label"/>
+                    <type>label</type>
+                    <label translate="true">Print labels</label>
+                </settings>
+            </action>
+            <action name="protocol">
+                <settings>
+                    <url path="polkurier/shipment/protocol"/>
+                    <type>protocol</type>
+                    <label translate="true">Print handover protocol</label>
+                </settings>
+            </action>
+        </massaction>
+        <paging name="listing_paging"/>
+    </listingToolbar>
+    <columns name="polkurier_order_shipment_listing_columns">
+        <selectionsColumn name="ids">
+            <settings>
+                <indexField>entity_id</indexField>
+            </settings>
+        </selectionsColumn>
+        <column name="entity_id">
+            <settings>
+                <label translate="true">ID</label>
+                <filter>textRange</filter>
+                <visible>false</visible>
+            </settings>
+        </column>
+        <column name="created_at" component="Magento_Ui/js/grid/columns/date">
+            <settings>
+                <label translate="true">Created</label>
+                <filter>dateRange</filter>
+                <dataType>date</dataType>
+            </settings>
+        </column>
+        <column name="carrier_code">
+            <settings>
+                <label translate="true">Carrier</label>
+                <filter>text</filter>
+            </settings>
+        </column>
+        <column name="state" component="Magento_Ui/js/grid/columns/select">
+            <settings>
+                <label translate="true">State</label>
+                <options class="Polkurier\Shipping\Model\Config\Source\ShipmentState"/>
+                <filter>select</filter>
+                <dataType>select</dataType>
+            </settings>
+        </column>
+        <column name="polkurier_number">
+            <settings>
+                <label translate="true">Polkurier order</label>
+                <filter>text</filter>
+            </settings>
+        </column>
+        <column name="waybills" class="Polkurier\Shipping\Ui\Component\Listing\Column\Waybills">
+            <settings>
+                <label translate="true">Waybills</label>
+                <bodyTmpl>ui/grid/cells/html</bodyTmpl>
+                <filter>text</filter>
+            </settings>
+        </column>
+        <column name="status_label">
+            <settings>
+                <label translate="true">Delivery status</label>
+                <filter>text</filter>
+            </settings>
+        </column>
+        <column name="status_date" component="Magento_Ui/js/grid/columns/date">
+            <settings>
+                <label translate="true">Status date</label>
+                <filter>dateRange</filter>
+                <dataType>date</dataType>
+            </settings>
+        </column>
+        <column name="cod_amount">
+            <settings>
+                <label translate="true">Cash on delivery</label>
+                <filter>textRange</filter>
+            </settings>
+        </column>
+        <column name="cod_status" component="Magento_Ui/js/grid/columns/select">
+            <settings>
+                <label translate="true">COD status</label>
+                <options class="Polkurier\Shipping\Model\Config\Source\CodStatus"/>
+                <filter>select</filter>
+                <dataType>select</dataType>
+            </settings>
+        </column>
+        <column name="price_gross">
+            <settings>
+                <label translate="true">Cost (gross)</label>
+                <filter>textRange</filter>
+            </settings>
+        </column>
+        <column name="last_error">
+            <settings>
+                <label translate="true">Last error</label>
+                <filter>text</filter>
+                <visible>false</visible>
+            </settings>
+        </column>
+        <actionsColumn name="actions" class="Polkurier\Shipping\Ui\Component\Listing\Column\ShipmentActions">
+            <settings>
+                <indexField>entity_id</indexField>
+                <label translate="true">Actions</label>
+            </settings>
+        </actionsColumn>
+    </columns>
+</listing>

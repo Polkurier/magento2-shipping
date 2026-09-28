@@ -7,28 +7,15 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Controller\Adminhtml\Address;
 
-use Polkurier\Shipping\Controller\Adminhtml\Index as BaseAction;
+use Magento\Backend\App\Action\Context;
 
-class Index extends BaseAction
+use Polkurier\Shipping\Controller\Adminhtml\MasterData\AbstractIndex;
+use Polkurier\Shipping\Model\Admin\AddressHandler;
+
+class Index extends AbstractIndex
 {
-    public const string ADMIN_RESOURCE = 'Polkurier_Shipping::addresses';
-
-    public function execute()
+    public function __construct(Context $context, AddressHandler $handler)
     {
-        if ($this->getRequest()->getQuery('ajax')) {
-            $resultForward = $this->resultForwardFactory->create();
-            $resultForward->forward('grid');
-
-            return $resultForward;
-        }
-
-        $resultPage = $this->resultPageFactory->create();
-        $resultPage->setActiveMenu('Polkurier_Shipping::addresses');
-        $resultPage->getConfig()->getTitle()->prepend(\__('Manage addresses'));
-        $resultPage->addBreadcrumb('Polkurier', 'Polkurier');
-        $resultPage->addBreadcrumb(\__('Settings'), \__('Settings'));
-        $resultPage->addBreadcrumb(\__('Manage addresses'), \__('Manage addresses'));
-
-        return $resultPage;
+        parent::__construct($context, $handler);
     }
 }

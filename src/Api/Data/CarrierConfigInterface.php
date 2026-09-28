@@ -7,22 +7,34 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Api\Data;
 
-use Polkurier\Shipping\Enum\PricingModelEnum;
-use Polkurier\Webservice\Enum\PointRequirementEnum;
-
+/**
+ * The merchant's settings for one Polkurier carrier on one website.
+ */
 interface CarrierConfigInterface
 {
-    /**
-     * @return int|null
-     */
-    public function getConfigId(): ?int;
+    public const string CONFIG_ID = 'config_id';
+    public const string WEBSITE_ID = 'website_id';
+    public const string CARRIER_CODE = 'carrier_code';
+    public const string CARRIER_NAME = 'carrier_name';
+    public const string CUSTOM_LABEL = 'custom_label';
+    public const string LOGO = 'logo';
+    public const string ACTIVE = 'active';
+    public const string SORT_ORDER = 'sort_order';
+    public const string PRICING_MODEL = 'pricing_model';
+    public const string PRICE_INFO = 'price_info';
+    public const string AVAILABLE = 'available';
+    public const string STORE_LABELS = 'store_labels';
 
     /**
-     * @param int|null $configId
-     *
-     * @return void
+     * @return int
      */
-    public function setConfigId(?int $configId): void;
+    public function getWebsiteId(): int;
+
+    /**
+     * @param int $websiteId
+     * @return $this
+     */
+    public function setWebsiteId(int $websiteId): static;
 
     /**
      * @return string
@@ -31,10 +43,9 @@ interface CarrierConfigInterface
 
     /**
      * @param string $carrierCode
-     *
-     * @return void
+     * @return $this
      */
-    public function setCarrierCode(string $carrierCode): void;
+    public function setCarrierCode(string $carrierCode): static;
 
     /**
      * @return string
@@ -43,10 +54,9 @@ interface CarrierConfigInterface
 
     /**
      * @param string $carrierName
-     *
-     * @return void
+     * @return $this
      */
-    public function setCarrierName(string $carrierName): void;
+    public function setCarrierName(string $carrierName): static;
 
     /**
      * @return string|null
@@ -55,274 +65,44 @@ interface CarrierConfigInterface
 
     /**
      * @param string|null $customLabel
-     *
-     * @return void
+     * @return $this
      */
-    public function setCustomLabel(?string $customLabel): void;
+    public function setCustomLabel(?string $customLabel): static;
 
     /**
+     * The logo shown next to the method in checkout: a path relative to the media directory.
+     *
      * @return string|null
      */
-    public function getImage(): ?string;
+    public function getLogo(): ?string;
 
     /**
-     * @param string|null $image
+     * @param string|null $logo
+     * @return $this
+     */
+    public function setLogo(?string $logo): static;
+
+    /**
+     * Labels for single store views, overriding the custom label there.
      *
-     * @return void
+     * @return \Polkurier\Shipping\Api\Data\CarrierLabelInterface[]
      */
-    public function setImage(?string $image): void;
+    public function getStoreLabels(): array;
 
     /**
-     * @return PricingModelEnum
+     * @param \Polkurier\Shipping\Api\Data\CarrierLabelInterface[] $storeLabels
+     * @return $this
      */
-    public function getPricingModel(): PricingModelEnum;
+    public function setStoreLabels(array $storeLabels): static;
 
     /**
-     * @param PricingModelEnum $pricingModel
+     * The name customers see in a store view: the store view's label, else the custom label, else
+     * the carrier's own name.
      *
-     * @return void
+     * @param int $storeId
+     * @return string
      */
-    public function setPricingModel(PricingModelEnum $pricingModel): void;
-
-    /**
-     * @return array|null
-     */
-    public function getPriceInfo(): ?array;
-
-    /**
-     * @param array $priceInfo
-     *
-     * @return void
-     */
-    public function setPriceInfo(array $priceInfo): void;
-
-    /**
-     * @return bool
-     */
-    public function isForeignShipment(): bool;
-
-    /**
-     * @param bool $foreignShipment
-     *
-     * @return void
-     */
-    public function setForeignShipment(bool $foreignShipment): void;
-
-    /**
-     * @return bool
-     */
-    public function isCodAvailable(): bool;
-
-    /**
-     * @param bool $codAvailable
-     *
-     * @return void
-     */
-    public function setCodAvailable(bool $codAvailable): void;
-
-    /**
-     * @return bool
-     */
-    public function isCodInsuranceRequired(): bool;
-
-    /**
-     * @param bool $codInsuranceRequired
-     *
-     * @return void
-     */
-    public function setCodInsuranceRequired(bool $codInsuranceRequired): void;
-
-    /**
-     * @return bool
-     */
-    public function isInsuranceAvailable(): bool;
-
-    /**
-     * @param bool $insuranceAvailable
-     *
-     * @return void
-     */
-    public function setInsuranceAvailable(bool $insuranceAvailable): void;
-
-    /**
-     * @return array|null
-     */
-    public function getShipmentTypes(): ?array;
-
-    /**
-     * @param array|null $shipmentTypes
-     *
-     * @return void
-     */
-    public function setShipmentTypes(?array $shipmentTypes): void;
-
-    /**
-     * @return bool
-     */
-    public function isPickupDateAvailable(): bool;
-
-    /**
-     * @param bool $pickupDateAvailable
-     *
-     * @return void
-     */
-    public function setPickupDateAvailable(bool $pickupDateAvailable): void;
-
-    /**
-     * @return bool
-     */
-    public function isPickupDateRequired(): bool;
-
-    /**
-     * @param bool $pickupDateRequired
-     *
-     * @return void
-     */
-    public function setPickupDateRequired(bool $pickupDateRequired): void;
-
-    /**
-     * @return bool
-     */
-    public function isPickupTimeFromAvailable(): bool;
-
-    /**
-     * @param bool $pickupTimeFromAvailable
-     *
-     * @return void
-     */
-    public function setPickupTimeFromAvailable(bool $pickupTimeFromAvailable): void;
-
-    /**
-     * @return bool
-     */
-    public function isPickupTimeFromRequired(): bool;
-
-    /**
-     * @param bool $pickupTimeFromRequired
-     *
-     * @return void
-     */
-    public function setPickupTimeFromRequired(bool $pickupTimeFromRequired): void;
-
-    /**
-     * @return bool
-     */
-    public function isPickupTimeToAvailable(): bool;
-
-    /**
-     * @param bool $pickupTimeToAvailable
-     *
-     * @return void
-     */
-    public function setPickupTimeToAvailable(bool $pickupTimeToAvailable): void;
-
-    /**
-     * @return bool
-     */
-    public function isPickupTimeToRequired(): bool;
-
-    /**
-     * @param bool $pickupTimeToRequired
-     *
-     * @return void
-     */
-    public function setPickupTimeToRequired(bool $pickupTimeToRequired): void;
-
-    /**
-     * @return bool
-     */
-    public function isNoCourierOrderAvailable(): bool;
-
-    /**
-     * @param bool $noCourierOrderAvailable
-     *
-     * @return void
-     */
-    public function setNoCourierOrderAvailable(bool $noCourierOrderAvailable): void;
-
-    /**
-     * @return bool
-     */
-    public function isNoCourierOrderDefault(): bool;
-
-    /**
-     * @param bool $noCourierOrderDefault
-     *
-     * @return void
-     */
-    public function setNoCourierOrderDefault(bool $noCourierOrderDefault): void;
-
-    /**
-     * @return array|null
-     */
-    public function getPointMapProviders(): ?array;
-
-    /**
-     * @param array|null $pointMapProviders
-     *
-     * @return void
-     */
-    public function setPointMapProviders(?array $pointMapProviders): void;
-
-    /**
-     * @return PointRequirementEnum|null
-     */
-    public function getPointMapSenderPoint(): ?PointRequirementEnum;
-
-    /**
-     * @param PointRequirementEnum|null $senderPoint
-     *
-     * @return void
-     */
-    public function setPointMapSenderPoint(?PointRequirementEnum $senderPoint): void;
-
-    /**
-     * @return PointRequirementEnum|null
-     */
-    public function getPointMapRecipientPoint(): ?PointRequirementEnum;
-
-    /**
-     * @param PointRequirementEnum|null $recipientPoint
-     *
-     * @return void
-     */
-    public function setPointMapRecipientPoint(?PointRequirementEnum $recipientPoint): void;
-
-    /**
-     * @return array|null
-     */
-    public function getAdditionalServices(): ?array;
-
-    /**
-     * @param array|null $additionalServices
-     *
-     * @return void
-     */
-    public function setAdditionalServices(?array $additionalServices): void;
-
-    /**
-     * @return array|null
-     */
-    public function getAdditionalFields(): ?array;
-
-    /**
-     * @param array|null $additionalFields
-     *
-     * @return void
-     */
-    public function setAdditionalFields(?array $additionalFields): void;
-
-    /**
-     * @return int
-     */
-    public function getSortOrder(): int;
-
-    /**
-     * @param int $sortOrder
-     *
-     * @return void
-     */
-    public function setSortOrder(int $sortOrder): void;
+    public function getLabelForStore(int $storeId): string;
 
     /**
      * @return bool
@@ -331,8 +111,51 @@ interface CarrierConfigInterface
 
     /**
      * @param bool $active
-     *
-     * @return void
+     * @return $this
      */
-    public function setActive(bool $active): void;
+    public function setActive(bool $active): static;
+
+    /**
+     * @return int
+     */
+    public function getSortOrder(): int;
+
+    /**
+     * @param int $sortOrder
+     * @return $this
+     */
+    public function setSortOrder(int $sortOrder): static;
+
+    /**
+     * @return string
+     */
+    public function getPricingModel(): string;
+
+    /**
+     * @param string $pricingModel
+     * @return $this
+     */
+    public function setPricingModel(string $pricingModel): static;
+
+    /**
+     * @return mixed[]
+     */
+    public function getPriceInfo(): array;
+
+    /**
+     * @param mixed[] $priceInfo
+     * @return $this
+     */
+    public function setPriceInfo(array $priceInfo): static;
+
+    /**
+     * @return bool
+     */
+    public function isAvailable(): bool;
+
+    /**
+     * @param bool $available
+     * @return $this
+     */
+    public function setAvailable(bool $available): static;
 }

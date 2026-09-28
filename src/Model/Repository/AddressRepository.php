@@ -7,127 +7,75 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Model\Repository;
 
-use Magento\Framework\Exception\AlreadyExistsException;
+use Magento\Framework\Api\SearchCriteria\CollectionProcessorInterface;
+use Magento\Framework\Api\SearchCriteriaInterface;
+use Magento\Framework\Exception\CouldNotDeleteException;
+use Magento\Framework\Exception\CouldNotSaveException;
+use Magento\Framework\Exception\NoSuchEntityException;
 use Polkurier\Shipping\Api\AddressRepositoryInterface;
 use Polkurier\Shipping\Api\Data\AddressInterface;
-use Polkurier\Shipping\Api\ExternalEntityRepositoryInterface;
+use Polkurier\Shipping\Api\Data\AddressSearchResultsInterface;
+use Polkurier\Shipping\Api\Data\AddressSearchResultsInterfaceFactory;
 use Polkurier\Shipping\Model\Address;
 use Polkurier\Shipping\Model\AddressFactory;
-use Polkurier\Shipping\Model\ResourceModel\Address as AddressResource;
+use Polkurier\Shipping\Model\ResourceModel\Address as ResourceModel;
 use Polkurier\Shipping\Model\ResourceModel\Address\CollectionFactory;
 
-readonly class AddressRepository implements AddressRepositoryInterface, ExternalEntityRepositoryInterface
+class AddressRepository implements AddressRepositoryInterface
 {
-    /**
-     * @param AddressFactory $entityFactory
-     * @param AddressResource $resource
-     * @param CollectionFactory $collectionFactory
-     */
     public function __construct(
-        /**
-         * @var AddressFactory
-         */
-        private AddressFactory $entityFactory,
-
-        /**
-         * @var AddressResource
-         */
-        private AddressResource $resource,
-
-        /**
-         * @var CollectionFactory
-         */
-        private CollectionFactory $collectionFactory,
+        private readonly AddressFactory $entityFactory,
+        private readonly ResourceModel $resource,
+        private readonly CollectionFactory $collectionFactory,
+        private readonly CollectionProcessorInterface $collectionProcessor,
+        private readonly AddressSearchResultsInterfaceFactory $searchResultsFactory,
     ) {}
 
-    /**
-     * @return iterable<AddressInterface>
-     */
-    public function findAll(): iterable
+    public function get(int $id): AddressInterface
     {
-        return $this->collectionFactory->create()->load();
-    }
-
-    /**
-     * @return iterable<AddressInterface>
-     */
-    public function findCover(): iterable
-    {
-        return $this->collectionFactory->create()->addCoverFilter()->load();
-    }
-
-    /**
-     * @param int $id
-     *
-     * @return AddressInterface|null
-     */
-    public function findOneById(int $id): ?AddressInterface
-    {
-        $address = $this->entityFactory->create();
-        $this->resource->load($address, $id);
-
-        return $address->getId() ? $address : null;
-    }
-
-    /**
-     * @return AddressInterface|null
-     */
-    public function findOneDefault(): ?AddressInterface
-    {
-        $address = $this->entityFactory->create();
-        $this->resource->load($address, 1, Address::FIELD_DEFAULT);
-
-        return $address->getId() ? $address : null;
-    }
-
-    /**
-     * @param AddressInterface $address
-     *
-     * @return AddressInterface
-     * @throws AlreadyExistsException
-     */
-    public function save(AddressInterface $address): AddressInterface
-    {
-        $this->resource->save($address);
-
-        return $address;
-    }
-
-    /**
-     * @param AddressInterface $address
-     *
-     * @return void
-     * @throws \Exception
-     */
-    public function delete(AddressInterface $address): void
-    {
-        $this->resource->delete($address);
-    }
-
-    /**
-     * @param int $id
-     *
-     * @return void
-     * @throws \Exception
-     */
-    public function deleteById(int $id): void
-    {
-        $address = $this->findOneById($id);
-        if ($address) {
-            $this->delete($address);
+        $entity = $this->entityFactory->create();
+        $this->resource->load($entity, $id);
+        if (!$entity->getId()) {
+            throw new NoSuchEntityException(\__('The address with id "%1" does not exist.', $id));
         }
+
+        return $entity;
     }
 
-    /**
-     * @param string $extId
-     *
-     * @return AddressInterface|null
-     */
-    public function findOneByExtId(string $extId): ?AddressInterface
+    public function getList(SearchCriteriaInterface $searchCriteria): AddressSearchResultsInterface
     {
-        $address = $this->entityFactory->create();
-        $this->resource->load($address, $extId, Address::FIELD_EXT_ID);
+        $collection = $this->collectionFactory->create();
+        $this->collectionProcessor->process($searchCriteria, $collection);
 
-        return $address->getId() ? $address : null;
+        $searchResults = $this->searchResultsFactory->create();
+        $searchResults->setSearchCriteria($searchCriteria);
+        $searchResults->setItems($collection->getItems());
+        $searchResults->setTotalCount($collection->getSize());
+
+        return $searchResults;
+    }
+
+    public function save(AddressInterface $entity): AddressInterface
+    {
+        try {
+            /** @var Address $entity */
+            $this->resource->save($entity);
+        } catch (\Exception $e) {
+            throw new CouldNotSaveException(\__('Could not save the address: %1', $e->getMessage()), $e);
+        }
+
+        return $entity;
+    }
+
+    public function delete(AddressInterface $entity): bool
+    {
+        try {
+            /** @var Address $entity */
+            $this->resource->delete($entity);
+        } catch (\Exception $e) {
+            throw new CouldNotDeleteException(\__('Could not delete the address: %1', $e->getMessage()), $e);
+        }
+
+        return true;
     }
 }

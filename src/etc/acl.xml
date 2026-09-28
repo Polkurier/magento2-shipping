@@ -8,17 +8,28 @@
     <acl>
         <resources>
             <resource id="Magento_Backend::admin">
-                <resource id="Polkurier_Shipping::root" title="Polkurier" sortOrder="1000">
-                    <resource id="Polkurier_Shipping::sales" title="Sales" translate="title" sortOrder="10">
-                        <resource id="Polkurier_Shipping::orders" title="Orders" translate="title" sortOrder="10" />
-                        <resource id="Polkurier_Shipping::shipments" title="Shipments" translate="title" sortOrder="20" />
+                <resource id="Polkurier_Shipping::root" title="Polkurier" translate="title" sortOrder="1000">
+                    <resource id="Polkurier_Shipping::orders" title="Orders" translate="title" sortOrder="5" />
+                    <resource id="Polkurier_Shipping::sales_shipments" title="Store shipments" translate="title" sortOrder="15" />
+                    <resource id="Polkurier_Shipping::shipments" title="Shipments" translate="title" sortOrder="10">
+                        <resource id="Polkurier_Shipping::shipment_create" title="Create shipments" translate="title" sortOrder="10" />
+                        <resource id="Polkurier_Shipping::shipment_cancel" title="Cancel shipments" translate="title" sortOrder="20" />
                     </resource>
-                    <resource id="Polkurier_Shipping::settings" title="Settings" translate="title" sortOrder="20">
+                    <resource id="Polkurier_Shipping::money_box" title="Cash on delivery" translate="title" sortOrder="20">
+                        <resource id="Polkurier_Shipping::money_box_payout" title="Request payouts" translate="title" sortOrder="10" />
+                    </resource>
+                    <resource id="Polkurier_Shipping::settings" title="Settings" translate="title" sortOrder="30">
                         <resource id="Polkurier_Shipping::addresses" title="Addresses" translate="title" sortOrder="10" />
                         <resource id="Polkurier_Shipping::bank_accounts" title="Bank accounts" translate="title" sortOrder="20" />
                         <resource id="Polkurier_Shipping::pack_templates" title="Pack templates" translate="title" sortOrder="30" />
-                        <resource id="Polkurier_Shipping::module" title="Module" translate="title" sortOrder="40" />
-                        <resource id="Polkurier_Shipping::carriers" title="Carriers" translate="title" sortOrder="50" />
+                        <resource id="Polkurier_Shipping::carriers" title="Carriers" translate="title" sortOrder="40" />
+                    </resource>
+                </resource>
+                <resource id="Magento_Backend::stores">
+                    <resource id="Magento_Backend::stores_settings">
+                        <resource id="Magento_Config::config">
+                            <resource id="Polkurier_Shipping::config" title="Polkurier" translate="title" />
+                        </resource>
                     </resource>
                 </resource>
             </resource>

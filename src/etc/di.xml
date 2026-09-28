@@ -5,461 +5,216 @@
 -->
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
-    <!-- MAGENTO MODULE -->
-    <!-- Entities -->
-    <preference for="Polkurier\Shipping\Api\Data\AddressInterface"
-                type="Polkurier\Shipping\Model\Address" />
-    <preference for="Polkurier\Shipping\Api\Data\BankAccountInterface"
-                type="Polkurier\Shipping\Model\BankAccount" />
-    <preference for="Polkurier\Shipping\Api\Data\CarrierConfigInterface"
-                type="Polkurier\Shipping\Model\CarrierConfig" />
-    <preference for="Polkurier\Shipping\Api\Data\PackTemplateInterface"
-                type="Polkurier\Shipping\Model\PackTemplate" />
-    <preference for="Polkurier\Shipping\Api\Data\Quote\ShipmentDataInterface"
-                type="Polkurier\Shipping\Model\Quote\ShipmentData" />
-    <preference for="Polkurier\Shipping\Api\Data\OrderInterface"
-                type="Polkurier\Shipping\Model\Order" />
-    <preference for="Polkurier\Shipping\Api\Data\Order\AddressInterface"
-                type="Polkurier\Shipping\Model\Order\Address" />
-    <preference for="Polkurier\Shipping\Api\Data\Order\CodInterface"
-                type="Polkurier\Shipping\Model\Order\Cod" />
-    <preference for="Polkurier\Shipping\Api\Data\Order\Cod\ReturnDetailsInterface"
-                type="Polkurier\Shipping\Model\Order\Cod\ReturnDetails" />
-    <preference for="Polkurier\Shipping\Api\Data\Order\ItemInterface"
-                type="Polkurier\Shipping\Model\Order\Item" />
-    <preference for="Polkurier\Shipping\Api\Data\Order\PackInterface"
-                type="Polkurier\Shipping\Model\Order\Pack" />
-    <preference for="Polkurier\Shipping\Api\Data\Order\WaybillInterface"
-                type="Polkurier\Shipping\Model\Order\Waybill" />
-
-    <!-- Repositories -->
-    <preference for="Polkurier\Shipping\Api\AddressRepositoryInterface"
-                type="Polkurier\Shipping\Model\Repository\AddressRepository" />
-    <preference for="Polkurier\Shipping\Api\BankAccountRepositoryInterface"
-                type="Polkurier\Shipping\Model\Repository\BankAccountRepository" />
-    <preference for="Polkurier\Shipping\Api\CarrierConfigRepositoryInterface"
-                type="Polkurier\Shipping\Model\Repository\CarrierConfigRepository" />
-    <preference for="Polkurier\Shipping\Api\PackTemplateRepositoryInterface"
-                type="Polkurier\Shipping\Model\Repository\PackTemplateRepository" />
-    <preference for="Polkurier\Shipping\Api\OrderRepositoryInterface"
-                type="Polkurier\Shipping\Model\Repository\OrderRepository" />
-    <preference for="Polkurier\Shipping\Api\Order\AddressRepositoryInterface"
-                type="Polkurier\Shipping\Model\Repository\Order\AddressRepository" />
+    <!-- Polkurier SDK -->
+    <preference for="Polkurier\Webservice\Serializer\SerializerProviderInterface"
+                type="Polkurier\Shipping\Model\Sdk\SerializerProvider" />
+    <preference for="Polkurier\Webservice\Api\Validation\ValidatorInterface"
+                type="Polkurier\Shipping\Model\Sdk\Validator" />
+    <type name="Polkurier\Shipping\Model\Sdk\SerializerProvider" shared="true" />
+    <type name="Polkurier\Shipping\Model\Sdk\ClientPool">
+        <arguments>
+            <argument name="logger" xsi:type="object">Polkurier\Shipping\Logger\Logger</argument>
+        </arguments>
+    </type>
+    <virtualType name="Polkurier\Shipping\Logger\Logger" type="Magento\Framework\Logger\Monolog">
+        <arguments>
+            <argument name="name" xsi:type="string">polkurier</argument>
+            <argument name="handlers" xsi:type="array">
+                <item name="file" xsi:type="object">Polkurier\Shipping\Logger\Handler</item>
+            </argument>
+            <argument name="processors" xsi:type="array">
+                <item name="redact_token" xsi:type="object">Polkurier\Shipping\Logger\TokenRedactingProcessor</item>
+            </argument>
+        </arguments>
+    </virtualType>
 
     <!-- System configuration -->
     <type name="Magento\Config\Model\Config\TypePool">
         <arguments>
             <argument name="sensitive" xsi:type="array">
-                <item name="carriers/polkurier/customer_id" xsi:type="string">1</item>
-                <item name="carriers/polkurier/api_token" xsi:type="string">1</item>
+                <item name="carriers/polkurier/general/customer_id" xsi:type="string">1</item>
+                <item name="carriers/polkurier/general/api_token" xsi:type="string">1</item>
             </argument>
         </arguments>
     </type>
 
-    <!-- Admin grids -->
-    <type name="Polkurier\Shipping\Model\ResourceModel\CarrierConfig\Grid\Collection">
+    <!-- Service contracts -->
+    <preference for="Polkurier\Shipping\Api\Data\AddressInterface" type="Polkurier\Shipping\Model\Address" />
+    <preference for="Polkurier\Shipping\Api\Data\AddressSearchResultsInterface" type="Polkurier\Shipping\Model\SearchResults\AddressSearchResults" />
+    <preference for="Polkurier\Shipping\Api\AddressRepositoryInterface" type="Polkurier\Shipping\Model\Repository\AddressRepository" />
+    <preference for="Polkurier\Shipping\Api\Data\BankAccountInterface" type="Polkurier\Shipping\Model\BankAccount" />
+    <preference for="Polkurier\Shipping\Api\Data\BankAccountSearchResultsInterface" type="Polkurier\Shipping\Model\SearchResults\BankAccountSearchResults" />
+    <preference for="Polkurier\Shipping\Api\BankAccountRepositoryInterface" type="Polkurier\Shipping\Model\Repository\BankAccountRepository" />
+    <preference for="Polkurier\Shipping\Api\Data\PackTemplateInterface" type="Polkurier\Shipping\Model\PackTemplate" />
+    <preference for="Polkurier\Shipping\Api\Data\PackTemplateSearchResultsInterface" type="Polkurier\Shipping\Model\SearchResults\PackTemplateSearchResults" />
+    <preference for="Polkurier\Shipping\Api\PackTemplateRepositoryInterface" type="Polkurier\Shipping\Model\Repository\PackTemplateRepository" />
+    <preference for="Polkurier\Shipping\Api\Data\CarrierConfigInterface" type="Polkurier\Shipping\Model\CarrierConfig" />
+    <preference for="Polkurier\Shipping\Api\Data\CarrierConfigSearchResultsInterface" type="Polkurier\Shipping\Model\SearchResults\CarrierConfigSearchResults" />
+    <preference for="Polkurier\Shipping\Api\CarrierConfigRepositoryInterface" type="Polkurier\Shipping\Model\Repository\CarrierConfigRepository" />
+    <preference for="Polkurier\Shipping\Api\Data\CarrierLabelInterface" type="Polkurier\Shipping\Model\CarrierLabel" />
+    <preference for="Polkurier\Shipping\Api\Data\ShipmentInterface" type="Polkurier\Shipping\Model\Shipment" />
+    <preference for="Polkurier\Shipping\Api\Data\ShipmentSearchResultsInterface" type="Polkurier\Shipping\Model\SearchResults\ShipmentSearchResults" />
+    <preference for="Polkurier\Shipping\Api\ShipmentRepositoryInterface" type="Polkurier\Shipping\Model\Repository\ShipmentRepository" />
+    <preference for="Polkurier\Shipping\Api\Data\OrderPointInterface" type="Polkurier\Shipping\Model\OrderPoint" />
+    <preference for="Polkurier\Shipping\Api\Data\ShipmentDraftInterface" type="Polkurier\Shipping\Model\Shipment\Draft" />
+    <preference for="Polkurier\Shipping\Api\Data\ShipmentDraft\PackInterface" type="Polkurier\Shipping\Model\Shipment\Draft\Pack" />
+    <preference for="Polkurier\Shipping\Api\ShipmentManagementInterface" type="Polkurier\Shipping\Model\Shipment\ShipmentManagement" />
+    <preference for="Polkurier\Shipping\Api\SynchronizationInterface" type="Polkurier\Shipping\Model\Sync\Synchronization" />
+
+    <!-- Checkout pricing -->
+    <type name="Polkurier\Shipping\Model\Carrier\Polkurier">
         <arguments>
-            <argument name="mainTable" xsi:type="string">polkurier_carrier_config</argument>
-            <argument name="resourceModel"
-                      xsi:type="string">Polkurier\Shipping\Model\ResourceModel\CarrierConfig</argument>
+            <argument name="priceCalculator" xsi:type="object">Polkurier\Shipping\Model\Pricing\PriceCalculatorPool</argument>
+            <argument name="logger" xsi:type="object">Polkurier\Shipping\Logger\Logger</argument>
+            <!-- Only the admin's shipment pages use it; checkout never builds it -->
+            <argument name="nativeLabel" xsi:type="object">Polkurier\Shipping\Model\Shipment\NativeLabel\Proxy</argument>
         </arguments>
     </type>
-    <virtualType name="Polkurier\Shipping\Model\ResourceModel\Address\Grid\CollectionVirtual"
+    <type name="Polkurier\Shipping\Model\Shipment\NativeLabel">
+        <arguments>
+            <argument name="logger" xsi:type="object">Polkurier\Shipping\Logger\Logger</argument>
+        </arguments>
+    </type>
+    <type name="Polkurier\Shipping\Model\Pricing\PriceCalculatorPool">
+        <arguments>
+            <argument name="calculators" xsi:type="array">
+                <item name="FIXED" xsi:type="object">Polkurier\Shipping\Model\Pricing\Fixed</item>
+                <item name="TIER_SUBTOTAL" xsi:type="object">Polkurier\Shipping\Model\Pricing\SubtotalTiers</item>
+                <item name="TIER_WEIGHT" xsi:type="object">Polkurier\Shipping\Model\Pricing\WeightTiers</item>
+                <item name="TIER_SUBTOTAL_WEIGHT" xsi:type="object">Polkurier\Shipping\Model\Pricing\SubtotalWeightTiers</item>
+            </argument>
+        </arguments>
+    </type>
+    <virtualType name="Polkurier\Shipping\Model\Pricing\SubtotalTiers" type="Polkurier\Shipping\Model\Pricing\Tiers">
+        <arguments>
+            <argument name="bySubtotal" xsi:type="boolean">true</argument>
+            <argument name="byWeight" xsi:type="boolean">false</argument>
+        </arguments>
+    </virtualType>
+    <virtualType name="Polkurier\Shipping\Model\Pricing\WeightTiers" type="Polkurier\Shipping\Model\Pricing\Tiers">
+        <arguments>
+            <argument name="bySubtotal" xsi:type="boolean">false</argument>
+            <argument name="byWeight" xsi:type="boolean">true</argument>
+        </arguments>
+    </virtualType>
+    <virtualType name="Polkurier\Shipping\Model\Pricing\SubtotalWeightTiers" type="Polkurier\Shipping\Model\Pricing\Tiers">
+        <arguments>
+            <argument name="bySubtotal" xsi:type="boolean">true</argument>
+            <argument name="byWeight" xsi:type="boolean">true</argument>
+        </arguments>
+    </virtualType>
+
+    <!-- Synchronization with the Polkurier account -->
+    <preference for="Polkurier\Shipping\Model\Sync\RemoteClockInterface" type="Polkurier\Shipping\Model\Sync\DetectedChangeClock" />
+    <type name="Polkurier\Shipping\Model\Sync\Synchronization">
+        <arguments>
+            <argument name="adapters" xsi:type="array">
+                <item name="address" xsi:type="object">Polkurier\Shipping\Model\Sync\Adapter\AddressAdapter</item>
+                <item name="bank_account" xsi:type="object">Polkurier\Shipping\Model\Sync\Adapter\BankAccountAdapter</item>
+                <item name="pack_template" xsi:type="object">Polkurier\Shipping\Model\Sync\Adapter\PackTemplateAdapter</item>
+            </argument>
+        </arguments>
+    </type>
+    <type name="Polkurier\Shipping\Model\Sync\SyncEngine">
+        <arguments>
+            <argument name="logger" xsi:type="object">Polkurier\Shipping\Logger\Logger</argument>
+        </arguments>
+    </type>
+
+    <!-- The module logs to its own file -->
+    <type name="Polkurier\Shipping\Model\ApiEventDispatcher">
+        <arguments>
+            <argument name="logger" xsi:type="object">Polkurier\Shipping\Logger\Logger</argument>
+        </arguments>
+    </type>
+    <type name="Polkurier\Shipping\Model\Shipment\ShipmentManagement">
+        <arguments>
+            <argument name="logger" xsi:type="object">Polkurier\Shipping\Logger\Logger</argument>
+        </arguments>
+    </type>
+    <type name="Polkurier\Shipping\Model\Shipment\AutoReconciler">
+        <arguments>
+            <argument name="logger" xsi:type="object">Polkurier\Shipping\Logger\Logger</argument>
+        </arguments>
+    </type>
+    <type name="Polkurier\Shipping\Model\Shipment\StatusRefresher">
+        <arguments>
+            <argument name="logger" xsi:type="object">Polkurier\Shipping\Logger\Logger</argument>
+        </arguments>
+    </type>
+    <type name="Polkurier\Shipping\Model\Checkout\MapConfigProvider">
+        <arguments>
+            <argument name="logger" xsi:type="object">Polkurier\Shipping\Logger\Logger</argument>
+        </arguments>
+    </type>
+    <type name="Polkurier\Shipping\Model\Checkout\PointSelection">
+        <arguments>
+            <argument name="logger" xsi:type="object">Polkurier\Shipping\Logger\Logger</argument>
+        </arguments>
+    </type>
+    <type name="Polkurier\Shipping\Model\Shipment\DefaultDraftBuilder">
+        <arguments>
+            <argument name="logger" xsi:type="object">Polkurier\Shipping\Logger\Logger</argument>
+        </arguments>
+    </type>
+    <type name="Polkurier\Shipping\Cron\Synchronize">
+        <arguments>
+            <argument name="logger" xsi:type="object">Polkurier\Shipping\Logger\Logger</argument>
+        </arguments>
+    </type>
+
+    <!-- Checkout: the pickup point travels with the shipping method, in every area -->
+    <type name="Magento\Checkout\Api\ShippingInformationManagementInterface">
+        <plugin name="polkurier_pickup_point" type="Polkurier\Shipping\Plugin\Checkout\ShippingInformationManagementPlugin" />
+    </type>
+    <type name="Magento\Sales\Api\OrderRepositoryInterface">
+        <plugin name="polkurier_order_point" type="Polkurier\Shipping\Plugin\Sales\OrderRepositoryPlugin" />
+    </type>
+    <!-- Carrier logos next to the methods in checkout -->
+    <type name="Magento\Quote\Model\Cart\ShippingMethodConverter">
+        <plugin name="polkurier_method_logo" type="Polkurier\Shipping\Plugin\Quote\ShippingMethodLogoPlugin" />
+    </type>
+
+    <!-- Admin grids -->
+    <type name="Polkurier\Shipping\Model\ResourceModel\Shipment\Grid\Collection">
+        <arguments>
+            <argument name="mainTable" xsi:type="string">polkurier_shipment</argument>
+            <argument name="resourceModel" xsi:type="string">Polkurier\Shipping\Model\ResourceModel\Shipment</argument>
+        </arguments>
+    </type>
+    <virtualType name="Polkurier\Shipping\Model\ResourceModel\Address\Grid\Collection"
                  type="Magento\Framework\View\Element\UiComponent\DataProvider\SearchResult">
         <arguments>
-            <argument name="name" xsi:type="string">polkurier_address_listing_data_source</argument>
-            <argument name="primaryFieldName" xsi:type="string">address_id</argument>
-            <argument name="requestFieldName" xsi:type="string">id</argument>
             <argument name="mainTable" xsi:type="string">polkurier_address</argument>
-            <argument name="resourceModel"
-                      xsi:type="string">Polkurier\Shipping\Model\ResourceModel\Address</argument>
+            <argument name="resourceModel" xsi:type="string">Polkurier\Shipping\Model\ResourceModel\Address</argument>
         </arguments>
     </virtualType>
-    <virtualType name="Polkurier\Shipping\Model\ResourceModel\BankAccount\Grid\CollectionVirtual"
+    <virtualType name="Polkurier\Shipping\Model\ResourceModel\BankAccount\Grid\Collection"
                  type="Magento\Framework\View\Element\UiComponent\DataProvider\SearchResult">
         <arguments>
-            <argument name="name" xsi:type="string">polkurier_bank_account_listing_data_source</argument>
-            <argument name="primaryFieldName" xsi:type="string">account_id</argument>
-            <argument name="requestFieldName" xsi:type="string">id</argument>
             <argument name="mainTable" xsi:type="string">polkurier_bank_account</argument>
-            <argument name="resourceModel"
-                      xsi:type="string">Polkurier\Shipping\Model\ResourceModel\BankAccount</argument>
+            <argument name="resourceModel" xsi:type="string">Polkurier\Shipping\Model\ResourceModel\BankAccount</argument>
         </arguments>
     </virtualType>
-    <virtualType name="Polkurier\Shipping\Model\ResourceModel\PackTemplate\Grid\CollectionVirtual"
+    <virtualType name="Polkurier\Shipping\Model\ResourceModel\PackTemplate\Grid\Collection"
                  type="Magento\Framework\View\Element\UiComponent\DataProvider\SearchResult">
         <arguments>
-            <argument name="name" xsi:type="string">polkurier_pack_template_listing_data_source</argument>
-            <argument name="primaryFieldName" xsi:type="string">template_id</argument>
-            <argument name="requestFieldName" xsi:type="string">id</argument>
             <argument name="mainTable" xsi:type="string">polkurier_pack_template</argument>
-            <argument name="resourceModel"
-                      xsi:type="string">Polkurier\Shipping\Model\ResourceModel\PackTemplate</argument>
+            <argument name="resourceModel" xsi:type="string">Polkurier\Shipping\Model\ResourceModel\PackTemplate</argument>
         </arguments>
     </virtualType>
     <type name="Magento\Framework\View\Element\UiComponent\DataProvider\CollectionFactory">
         <arguments>
             <argument name="collections" xsi:type="array">
-                <item name="polkurier_order_listing_data_source"
-                      xsi:type="string">Polkurier\Shipping\Model\ResourceModel\Order\Grid\Collection</item>
-                <item name="polkurier_shipment_listing_data_source"
-                      xsi:type="string">Polkurier\Shipping\Model\ResourceModel\Order\Shipment\Grid\Collection</item>
-                <item name="polkurier_carrier_config_listing_data_source"
-                      xsi:type="string">Polkurier\Shipping\Model\ResourceModel\CarrierConfig\Grid\Collection</item>
-                <item name="polkurier_address_listing_data_source"
-                      xsi:type="string">Polkurier\Shipping\Model\ResourceModel\Address\Grid\CollectionVirtual</item>
-                <item name="polkurier_bank_account_listing_data_source"
-                      xsi:type="string">Polkurier\Shipping\Model\ResourceModel\BankAccount\Grid\CollectionVirtual</item>
-                <item name="polkurier_pack_template_listing_data_source"
-                      xsi:type="string">Polkurier\Shipping\Model\ResourceModel\PackTemplate\Grid\CollectionVirtual</item>
+                <item name="polkurier_order_listing_data_source" xsi:type="string">Polkurier\Shipping\Model\ResourceModel\SalesOrder\Grid\Collection</item>
+                <item name="polkurier_sales_shipment_listing_data_source" xsi:type="string">Polkurier\Shipping\Model\ResourceModel\SalesShipment\Grid\Collection</item>
+                <item name="polkurier_shipment_listing_data_source" xsi:type="string">Polkurier\Shipping\Model\ResourceModel\Shipment\Grid\Collection</item>
+                <item name="polkurier_order_shipment_listing_data_source" xsi:type="string">Polkurier\Shipping\Model\ResourceModel\Shipment\Grid\Collection</item>
+                <item name="polkurier_address_listing_data_source" xsi:type="string">Polkurier\Shipping\Model\ResourceModel\Address\Grid\Collection</item>
+                <item name="polkurier_bank_account_listing_data_source" xsi:type="string">Polkurier\Shipping\Model\ResourceModel\BankAccount\Grid\Collection</item>
+                <item name="polkurier_pack_template_listing_data_source" xsi:type="string">Polkurier\Shipping\Model\ResourceModel\PackTemplate\Grid\Collection</item>
+                <item name="polkurier_carrier_listing_data_source" xsi:type="string">Polkurier\Shipping\Model\ResourceModel\CarrierConfig\Grid\Collection</item>
             </argument>
         </arguments>
     </type>
-
-    <!-- Admin forms -->
-    <virtualType name="Polkurier\Shipping\Ui\Component\Form\Address\DataProviderVirtual"
-                 type="Polkurier\Shipping\Ui\Component\Form\DataProvider">
-        <arguments>
-            <argument name="collectionType" xsi:type="string">
-                Polkurier\Shipping\Model\ResourceModel\Address\Collection
-            </argument>
-            <argument name="dataPersistorKey" xsi:type="string">polkurier_address</argument>
-        </arguments>
-    </virtualType>
-    <virtualType name="Polkurier\Shipping\Ui\Component\Form\BankAccount\DataProviderVirtual"
-                 type="Polkurier\Shipping\Ui\Component\Form\DataProvider">
-        <arguments>
-            <argument name="collectionType" xsi:type="string">
-                Polkurier\Shipping\Model\ResourceModel\BankAccount\Collection
-            </argument>
-            <argument name="dataPersistorKey" xsi:type="string">polkurier_bank_account</argument>
-        </arguments>
-    </virtualType>
-    <virtualType name="Polkurier\Shipping\Ui\Component\Form\PackTemplate\DataProviderVirtual"
-                 type="Polkurier\Shipping\Ui\Component\Form\DataProvider">
-        <arguments>
-            <argument name="collectionType" xsi:type="string">
-                Polkurier\Shipping\Model\ResourceModel\PackTemplate\Collection
-            </argument>
-            <argument name="dataPersistorKey" xsi:type="string">polkurier_pack_template</argument>
-        </arguments>
-    </virtualType>
-
-    <!-- Business logic -->
-    <type name="Magento\Quote\Api\CartRepositoryInterface">
-        <plugin name="polkurier_quote_extension_attributes"
-                type="Polkurier\Shipping\Plugin\Api\QuoteRepositoryPlugin" />
-    </type>
-    <type name="Magento\Sales\Api\ShipmentRepositoryInterface">
-        <plugin name="polkurier_shipment_extension_attributes"
-                type="Polkurier\Shipping\Plugin\Api\ShipmentRepositoryPlugin" />
-    </type>
-    <type name="Polkurier\Shipping\Model\Shipment\PriceCalculatorPool">
-        <arguments>
-            <argument name="priceCalculators" xsi:type="array">
-                <item name="FIXED" xsi:type="object">Polkurier\Shipping\Model\Shipment\PriceCalculator\Fixed</item>
-            </argument>
-        </arguments>
-    </type>
-    <type name="Polkurier\Shipping\Model\PolkurierCarrier">
-        <arguments>
-            <argument name="priceCalculator"
-                      xsi:type="object">Polkurier\Shipping\Model\Shipment\PriceCalculatorPool</argument>
-        </arguments>
-    </type>
-    <type name="Magento\Payment\Model\Checks\SpecificationFactory">
-        <arguments>
-            <argument name="mapping" xsi:type="array">
-                <item name="polkurier_delivery" xsi:type="object">Polkurier\Shipping\Model\Payment\Checks\CanUseForDelivery</item>
-            </argument>
-        </arguments>
-    </type>
-    <type name="Polkurier\Shipping\Model\Payment\Checks\CanUseForDelivery">
-        <arguments>
-            <argument name="codPayments" xsi:type="array">
-                <item name="cashondelivery" xsi:type="string">cashondelivery</item>
-            </argument>
-        </arguments>
-    </type>
-    <!--/ MAGENTO MODULE -->
-
-    <!-- WEBSERVICE SDK -->
-    <!-- HTTP client -->
-    <virtualType name="Polkurier\Shipping\Model\SerializerConfigVirtual"
-                 type="Polkurier\Webservice\Model\SerializerConfig" />
-    <preference for="Polkurier\Webservice\Model\SerializerConfigInterface"
-                type="Polkurier\Shipping\Model\SerializerConfigVirtual" />
-
-    <virtualType name="Polkurier\Shipping\Model\Http\ClientFactoryVirtual"
-                 type="Polkurier\Webservice\Model\Http\ClientFactory" />
-    <preference for="Polkurier\Webservice\Model\Http\ClientFactoryInterface"
-                type="Polkurier\Shipping\Model\Http\ClientFactoryVirtual" />
-
-    <virtualType name="Polkurier\Shipping\Model\Http\Request\RequestFactoryVirtual"
-                 type="Polkurier\Webservice\Model\Http\Request\RequestFactory" />
-    <preference for="Polkurier\Webservice\Model\Http\Request\RequestFactoryInterface"
-                type="Polkurier\Shipping\Model\Http\Request\RequestFactoryVirtual" />
-
-    <virtualType name="Polkurier\Shipping\Model\Http\Response\ResponseFactoryVirtual"
-                 type="Polkurier\Webservice\Model\Http\Response\ResponseFactory" />
-    <preference for="Polkurier\Webservice\Model\Http\Response\ResponseFactoryInterface"
-                type="Polkurier\Shipping\Model\Http\Response\ResponseFactoryVirtual" />
-
-    <!-- SDK config -->
-    <preference for="Polkurier\Webservice\Api\ConfigProviderInterface"
-                type="Polkurier\Shipping\Model\Provider\ConfigProvider" />
-
-    <virtualType name="Polkurier\Shipping\Model\ConfigVirtual"
-                 type="Polkurier\Webservice\Model\Config" />
-    <preference for="Polkurier\Webservice\Api\Data\ConfigInterface"
-                type="Polkurier\Shipping\Model\ConfigVirtual" />
-
-    <!-- Web services -->
-    <virtualType name="Polkurier\Shipping\Model\Webservice\AddressesServiceVirtual"
-                 type="Polkurier\Webservice\Model\Webservice\AddressesService" />
-    <preference for="Polkurier\Webservice\Api\AddressesServiceInterface"
-                type="Polkurier\Shipping\Model\Webservice\AddressesServiceVirtual" />
-
-    <virtualType name="Polkurier\Shipping\Model\Webservice\BankAccountsServiceVirtual"
-                 type="Polkurier\Webservice\Model\Webservice\BankAccountsService" />
-    <preference for="Polkurier\Webservice\Api\BankAccountsServiceInterface"
-                type="Polkurier\Shipping\Model\Webservice\BankAccountsServiceVirtual" />
-
-    <virtualType name="Polkurier\Shipping\Model\Webservice\CourierServiceVirtual"
-                 type="Polkurier\Webservice\Model\Webservice\CourierService" />
-    <preference for="Polkurier\Webservice\Api\CourierServiceInterface"
-                type="Polkurier\Shipping\Model\Webservice\CourierServiceVirtual" />
-
-    <virtualType name="Polkurier\Shipping\Model\Webservice\GeoServiceVirtual"
-                 type="Polkurier\Webservice\Model\Webservice\GeoService" />
-    <preference for="Polkurier\Webservice\Api\GeoServiceInterface"
-                type="Polkurier\Shipping\Model\Webservice\GeoServiceVirtual" />
-
-<!--    <virtualType name="Polkurier\Shipping\Model\Webservice\OrdersServiceVirtual"-->
-<!--                 type="Polkurier\Webservice\Model\Webservice\OrdersService" />-->
-<!--    <preference for="Polkurier\Webservice\Api\OrdersServiceInterface"-->
-<!--                type="Polkurier\Shipping\Model\Webservice\OrdersServiceVirtual" />-->
-
-    <virtualType name="Polkurier\Shipping\Model\Webservice\PackTemplatesServiceVirtual"
-                 type="Polkurier\Webservice\Model\Webservice\PackTemplatesService" />
-    <preference for="Polkurier\Webservice\Api\PackTemplatesServiceInterface"
-                type="Polkurier\Shipping\Model\Webservice\PackTemplatesServiceVirtual" />
-
-    <virtualType name="Polkurier\Shipping\Model\Webservice\TwoFactorTokenServiceVirtual"
-                 type="Polkurier\Webservice\Model\Webservice\TwoFactorTokenService" />
-    <preference for="Polkurier\Webservice\Api\TwoFactorTokenServiceInterface"
-                type="Polkurier\Shipping\Model\Webservice\TwoFactorTokenServiceVirtual" />
-
-    <virtualType name="Polkurier\Shipping\Model\Webservice\UtilsServiceVirtual"
-                 type="Polkurier\Webservice\Model\Webservice\UtilsService" />
-    <preference for="Polkurier\Webservice\Api\UtilsServiceInterface"
-                type="Polkurier\Shipping\Model\Webservice\UtilsServiceVirtual" />
-
-    <!-- Entities -->
-    <virtualType name="Polkurier\Shipping\Model\Entity\CarrierVirtual"
-                 type="Polkurier\Webservice\Model\Entity\Carrier" />
-    <preference for="Polkurier\Webservice\Api\Data\Entity\CarrierInterface"
-                type="Polkurier\Shipping\Model\Entity\CarrierVirtual" />
-
-    <virtualType name="Polkurier\Shipping\Model\Entity\Carrier\AdditionalDataVirtual"
-                 type="Polkurier\Webservice\Model\Entity\Carrier\AdditionalData" />
-    <preference for="Polkurier\Webservice\Api\Data\Entity\Carrier\AdditionalDataInterface"
-                type="Polkurier\Shipping\Model\Entity\Carrier\AdditionalDataVirtual" />
-
-    <virtualType name="Polkurier\Shipping\Model\Entity\Carrier\AdditionalData\AdditionalFieldVirtual"
-                 type="Polkurier\Webservice\Model\Entity\Carrier\AdditionalData\AdditionalField" />
-    <preference for="Polkurier\Webservice\Api\Data\Entity\Carrier\AdditionalData\AdditionalFieldInterface"
-                type="Polkurier\Shipping\Model\Entity\Carrier\AdditionalData\AdditionalFieldVirtual" />
-
-    <virtualType name="Polkurier\Shipping\Model\Entity\Carrier\AdditionalData\CodVirtual"
-                 type="Polkurier\Webservice\Model\Entity\Carrier\AdditionalData\Cod" />
-    <preference for="Polkurier\Webservice\Api\Data\Entity\Carrier\AdditionalData\CodInterface"
-                type="Polkurier\Shipping\Model\Entity\Carrier\AdditionalData\CodVirtual" />
-
-    <virtualType name="Polkurier\Shipping\Model\Entity\Carrier\AdditionalData\CourierServiceVirtual"
-                 type="Polkurier\Webservice\Model\Entity\Carrier\AdditionalData\CourierService" />
-    <preference for="Polkurier\Webservice\Api\Data\Entity\Carrier\AdditionalData\CourierServiceInterface"
-                type="Polkurier\Shipping\Model\Entity\Carrier\AdditionalData\CourierServiceVirtual" />
-
-    <virtualType name="Polkurier\Shipping\Model\Entity\Carrier\AdditionalData\OptionVirtual"
-                 type="Polkurier\Webservice\Model\Entity\Carrier\AdditionalData\Option" />
-    <preference for="Polkurier\Webservice\Api\Data\Entity\Carrier\AdditionalData\OptionInterface"
-                type="Polkurier\Shipping\Model\Entity\Carrier\AdditionalData\OptionVirtual" />
-
-    <virtualType name="Polkurier\Shipping\Model\Entity\Carrier\AdditionalData\PickupVirtual"
-                 type="Polkurier\Webservice\Model\Entity\Carrier\AdditionalData\Pickup" />
-    <preference for="Polkurier\Webservice\Api\Data\Entity\Carrier\AdditionalData\PickupInterface"
-                type="Polkurier\Shipping\Model\Entity\Carrier\AdditionalData\PickupVirtual" />
-
-    <virtualType name="Polkurier\Shipping\Model\Entity\Carrier\AdditionalData\PointsMapVirtual"
-                 type="Polkurier\Webservice\Model\Entity\Carrier\AdditionalData\PointsMap" />
-    <preference for="Polkurier\Webservice\Api\Data\Entity\Carrier\AdditionalData\PointsMapInterface"
-                type="Polkurier\Shipping\Model\Entity\Carrier\AdditionalData\PointsMapVirtual" />
-
-    <virtualType name="Polkurier\Shipping\Model\Entity\Carrier\AdditionalData\PropertyVirtual"
-                 type="Polkurier\Webservice\Model\Entity\Carrier\AdditionalData\Property" />
-    <preference for="Polkurier\Webservice\Api\Data\Entity\Carrier\AdditionalData\PropertyInterface"
-                type="Polkurier\Shipping\Model\Entity\Carrier\AdditionalData\PropertyVirtual" />
-
-    <virtualType name="Polkurier\Shipping\Model\Entity\Carrier\AdditionalData\SelectFieldVirtual"
-                 type="Polkurier\Webservice\Model\Entity\Carrier\AdditionalData\SelectField" />
-    <preference for="Polkurier\Webservice\Api\Data\Entity\Carrier\AdditionalData\SelectFieldInterface"
-                type="Polkurier\Shipping\Model\Entity\Carrier\AdditionalData\SelectFieldVirtual" />
-
-    <virtualType name="Polkurier\Shipping\Model\Entity\Carrier\AdditionalData\ShipmentTypeVirtual"
-                 type="Polkurier\Webservice\Model\Entity\Carrier\AdditionalData\ShipmentType" />
-    <preference for="Polkurier\Webservice\Api\Data\Entity\Carrier\AdditionalData\ShipmentTypeInterface"
-                type="Polkurier\Shipping\Model\Entity\Carrier\AdditionalData\ShipmentTypeVirtual" />
-
-    <virtualType name="Polkurier\Shipping\Model\Entity\Carrier\AdditionalData\AdditionalField\OptionVirtual"
-                 type="Polkurier\Webservice\Model\Entity\Carrier\AdditionalData\AdditionalField\Option" />
-    <preference for="Polkurier\Webservice\Api\Data\Entity\Carrier\AdditionalData\AdditionalField\OptionInterface"
-                type="Polkurier\Shipping\Model\Entity\Carrier\AdditionalData\AdditionalField\OptionVirtual" />
-
-    <virtualType name="Polkurier\Shipping\Model\Entity\AddressVirtual"
-                 type="Polkurier\Webservice\Model\Entity\Address" />
-    <preference for="Polkurier\Webservice\Api\Data\Entity\AddressInterface"
-                type="Polkurier\Shipping\Model\Entity\AddressVirtual" />
-
-    <virtualType name="Polkurier\Shipping\Model\Entity\BankAccountVirtual"
-                 type="Polkurier\Webservice\Model\Entity\BankAccount" />
-    <preference for="Polkurier\Webservice\Api\Data\Entity\BankAccountInterface"
-                type="Polkurier\Shipping\Model\Entity\BankAccountVirtual" />
-
-    <virtualType name="Polkurier\Shipping\Model\Entity\OrderPackVirtual"
-                 type="Polkurier\Webservice\Model\Entity\OrderPack" />
-    <preference for="Polkurier\Webservice\Api\Data\Entity\OrderPackInterface"
-                type="Polkurier\Shipping\Model\Entity\OrderPackVirtual" />
-
-    <virtualType name="Polkurier\Shipping\Model\Entity\PackTemplateVirtual"
-                 type="Polkurier\Webservice\Model\Entity\PackTemplate" />
-    <preference for="Polkurier\Webservice\Api\Data\Entity\PackTemplateInterface"
-                type="Polkurier\Shipping\Model\Entity\PackTemplateVirtual" />
-
-    <virtualType name="Polkurier\Shipping\Model\Entity\TwoFactorTokenVirtual"
-                 type="Polkurier\Webservice\Model\Entity\TwoFactorToken" />
-    <preference for="Polkurier\Webservice\Api\Data\Entity\TwoFactorTokenInterface"
-                type="Polkurier\Shipping\Model\Entity\TwoFactorTokenVirtual" />
-
-    <!-- Request/response messages -->
-    <virtualType name="Polkurier\Shipping\Model\Http\Request\RequestMessageVirtual"
-                 type="Polkurier\Webservice\Model\Http\Request\RequestMessage" />
-    <preference for="Polkurier\Webservice\Api\Data\Http\Request\RequestMessageInterface"
-                type="Polkurier\Shipping\Model\Http\Request\RequestMessageVirtual" />
-
-    <virtualType name="Polkurier\Shipping\Model\Http\Request\AuthorizationMessageVirtual"
-                 type="Polkurier\Webservice\Model\Http\Request\AuthorizationMessage" />
-    <preference for="Polkurier\Webservice\Api\Data\Http\Request\AuthorizationMessageInterface"
-                type="Polkurier\Shipping\Model\Http\Request\AuthorizationMessageVirtual" />
-
-    <virtualType name="Polkurier\Shipping\Model\Http\Response\ResponseMessageVirtual"
-                 type="Polkurier\Webservice\Model\Http\Response\ResponseMessage" />
-    <preference for="Polkurier\Webservice\Api\Data\Http\Response\ResponseMessageInterface"
-                type="Polkurier\Shipping\Model\Http\Response\ResponseMessageVirtual" />
-
-    <virtualType name="Polkurier\Shipping\Model\Http\Response\ErrorMessageVirtual"
-                 type="Polkurier\Webservice\Model\Http\Response\ErrorMessage" />
-    <preference for="Polkurier\Webservice\Api\Data\Http\Response\ErrorMessageInterface"
-                type="Polkurier\Shipping\Model\Http\Response\ErrorMessageVirtual" />
-
-    <virtualType name="Polkurier\Shipping\Model\Http\Response\ResponseWrapperVirtual"
-                 type="Polkurier\Webservice\Model\Http\Response\ResponseWrapper" />
-    <preference for="Polkurier\Webservice\Api\Data\Http\Response\ResponseWrapperInterface"
-                type="Polkurier\Shipping\Model\Http\Response\ResponseWrapperVirtual" />
-
-    <virtualType name="Polkurier\Shipping\Model\Message\Address\DeleteMessageVirtual"
-                 type="Polkurier\Webservice\Model\Message\Address\DeleteMessage" />
-    <preference for="Polkurier\Webservice\Api\Data\Message\Address\DeleteMessageInterface"
-                type="Polkurier\Shipping\Model\Message\Address\DeleteMessageVirtual" />
-
-    <virtualType name="Polkurier\Shipping\Model\Message\Address\GetMessageVirtual"
-                 type="Polkurier\Webservice\Model\Message\Address\GetMessage" />
-    <preference for="Polkurier\Webservice\Api\Data\Message\Address\GetMessageInterface"
-                type="Polkurier\Shipping\Model\Message\Address\GetMessageVirtual" />
-
-    <virtualType name="Polkurier\Shipping\Model\Message\Common\DeleteMessageVirtual"
-                 type="Polkurier\Webservice\Model\Message\Common\DeleteMessage" />
-    <preference for="Polkurier\Webservice\Api\Data\Message\Common\DeleteMessageInterface"
-                type="Polkurier\Shipping\Model\Message\Common\DeleteMessageVirtual" />
-
-    <virtualType name="Polkurier\Shipping\Model\Message\Common\TokenMessageVirtual"
-                 type="Polkurier\Webservice\Model\Message\Common\TokenMessage" />
-    <preference for="Polkurier\Webservice\Api\Data\Message\Common\TokenMessageInterface"
-                type="Polkurier\Shipping\Model\Message\Common\TokenMessageVirtual" />
-
-    <virtualType name="Polkurier\Shipping\Model\Message\Courier\AvailableCarriersMessageVirtual"
-                 type="Polkurier\Webservice\Model\Message\Courier\AvailableCarriersMessage" />
-    <preference for="Polkurier\Webservice\Api\Data\Message\Courier\AvailableCarriersMessageInterface"
-                type="Polkurier\Shipping\Model\Message\Courier\AvailableCarriersMessageVirtual" />
-
-    <virtualType name="Polkurier\Shipping\Model\Message\Courier\GetCountriesMessageVirtual"
-                 type="Polkurier\Webservice\Model\Message\Courier\GetCountriesMessage" />
-    <preference for="Polkurier\Webservice\Api\Data\Message\Courier\GetCountriesMessageInterface"
-                type="Polkurier\Shipping\Model\Message\Courier\GetCountriesMessageVirtual" />
-
-    <virtualType name="Polkurier\Shipping\Model\Message\Courier\GetPickupTimeMessageVirtual"
-                 type="Polkurier\Webservice\Model\Message\Courier\GetPickupTimeMessage" />
-    <preference for="Polkurier\Webservice\Api\Data\Message\Courier\GetPickupTimeMessageInterface"
-                type="Polkurier\Shipping\Model\Message\Courier\GetPickupTimeMessageVirtual" />
-
-    <virtualType name="Polkurier\Shipping\Model\Message\Courier\GetPointMessageVirtual"
-                 type="Polkurier\Webservice\Model\Message\Courier\GetPointMessage" />
-    <preference for="Polkurier\Webservice\Api\Data\Message\Courier\GetPointMessageInterface"
-                type="Polkurier\Shipping\Model\Message\Courier\GetPointMessageVirtual" />
-
-    <virtualType name="Polkurier\Shipping\Model\Message\Courier\PickupMessageVirtual"
-                 type="Polkurier\Webservice\Model\Message\Courier\PickupMessage" />
-    <preference for="Polkurier\Webservice\Api\Data\Message\Courier\PickupMessageInterface"
-                type="Polkurier\Shipping\Model\Message\Courier\PickupMessageVirtual" />
-
-    <virtualType name="Polkurier\Shipping\Model\Message\Geo\CityMessageVirtual"
-                 type="Polkurier\Webservice\Model\Message\Geo\CityMessage" />
-    <preference for="Polkurier\Webservice\Api\Data\Message\Geo\CityMessageInterface"
-                type="Polkurier\Shipping\Model\Message\Geo\CityMessageVirtual" />
-
-    <virtualType name="Polkurier\Shipping\Model\Message\Geo\FindCityMessageVirtual"
-                 type="Polkurier\Webservice\Model\Message\Geo\FindCityMessage" />
-    <preference for="Polkurier\Webservice\Api\Data\Message\Geo\FindCityMessageInterface"
-                type="Polkurier\Shipping\Model\Message\Geo\FindCityMessageVirtual" />
-
-    <virtualType name="Polkurier\Shipping\Model\Message\Order\GetDocumentMessageVirtual"
-                 type="Polkurier\Webservice\Model\Message\Order\GetDocumentMessage" />
-    <preference for="Polkurier\Webservice\Api\Data\Message\Order\GetDocumentMessageInterface"
-                type="Polkurier\Shipping\Model\Message\Order\GetDocumentMessageVirtual" />
-
-    <virtualType name="Polkurier\Shipping\Model\Message\Order\OrderIdMessageVirtual"
-                 type="Polkurier\Webservice\Model\Message\Order\OrderIdMessage" />
-    <preference for="Polkurier\Webservice\Api\Data\Message\Order\OrderIdMessageInterface"
-                type="Polkurier\Shipping\Model\Message\Order\OrderIdMessageVirtual" />
-
-    <virtualType name="Polkurier\Shipping\Model\Message\TwoFactorToken\RegisterMessageVirtual"
-                 type="Polkurier\Webservice\Model\Message\TwoFactorToken\RegisterMessage" />
-    <preference for="Polkurier\Webservice\Api\Data\Message\TwoFactorToken\RegisterMessageInterface"
-                type="Polkurier\Shipping\Model\Message\TwoFactorToken\RegisterMessageVirtual" />
-
-    <virtualType name="Polkurier\Shipping\Model\Message\TwoFactorToken\ValidityMessageVirtual"
-                 type="Polkurier\Webservice\Model\Message\TwoFactorToken\ValidityMessage" />
-    <preference for="Polkurier\Webservice\Api\Data\Message\TwoFactorToken\ValidityMessageInterface"
-                type="Polkurier\Shipping\Model\Message\TwoFactorToken\ValidityMessageVirtual" />
-
-    <virtualType name="Polkurier\Shipping\Model\Message\TwoFactorToken\VerifyMessageVirtual"
-                 type="Polkurier\Webservice\Model\Message\TwoFactorToken\VerifyMessage" />
-    <preference for="Polkurier\Webservice\Api\Data\Message\TwoFactorToken\VerifyMessageInterface"
-                type="Polkurier\Shipping\Model\Message\TwoFactorToken\VerifyMessageVirtual" />
-
-    <virtualType name="Polkurier\Shipping\Model\Message\BankAccount\SaveMessageVirtual"
-                 type="Polkurier\Webservice\Model\Message\BankAccount\SaveMessage" />
-    <preference for="Polkurier\Webservice\Api\Data\Message\BankAccount\SaveMessageInterface"
-                type="Polkurier\Shipping\Model\Message\BankAccount\SaveMessageVirtual" />
-
-    <virtualType name="Polkurier\Shipping\Model\Message\Util\AuthConfirmationMessageVirtual"
-                 type="Polkurier\Webservice\Model\Message\Util\AuthConfirmationMessage" />
-    <preference for="Polkurier\Webservice\Api\Data\Message\Util\AuthConfirmationMessageInterface"
-                type="Polkurier\Shipping\Model\Message\Util\AuthConfirmationMessageVirtual" />
-
-    <virtualType name="Polkurier\Shipping\Model\Message\Util\HeartbeatMessageVirtual"
-                 type="Polkurier\Webservice\Model\Message\Util\HeartbeatMessage" />
-    <preference for="Polkurier\Webservice\Api\Data\Message\Util\HeartbeatMessageInterface"
-                type="Polkurier\Shipping\Model\Message\Util\HeartbeatMessageVirtual" />
-    <!--/ WEBSERVICE SDK -->
 </config>

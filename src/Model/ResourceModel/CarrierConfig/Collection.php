@@ -8,46 +8,45 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Model\ResourceModel\CarrierConfig;
 
 use Magento\Framework\Model\ResourceModel\Db\Collection\AbstractCollection;
-use Polkurier\Shipping\Model\CarrierConfig;
-use Polkurier\Shipping\Model\ResourceModel\CarrierConfig as CarrierConfigResource;
+use Polkurier\Shipping\Model\CarrierConfig as Model;
+use Polkurier\Shipping\Model\ResourceModel\CarrierConfig as ResourceModel;
+
 class Collection extends AbstractCollection
 {
     /**
-     * @return void
+     * @var string
      */
+    protected $_idFieldName = 'config_id';
+
     protected function _construct(): void
     {
-        $this->_init(CarrierConfig::class, CarrierConfigResource::class);
+        $this->_init(Model::class, ResourceModel::class);
     }
 
     /**
-     * @return $this
+     * Attaches the store view labels to every loaded carrier in one query.
      */
-    protected function _afterLoad(): self
+    protected function _afterLoad(): static
     {
-        /** @var CarrierConfig $item */
-        foreach ($this->getItems() as $item) {
-            $this->getResource()->unserializeFields($item);
+        parent::_afterLoad();
+        /** @var ResourceModel $resource */
+        $resource = $this->getResource();
+        $labels = $resource->loadStoreLabels(\array_map('intval', \array_keys($this->_items)));
+        foreach ($this->_items as $id => $item) {
+            $item->setData(Model::STORE_LABELS, $labels[(int)$id] ?? []);
         }
 
-        return parent::_afterLoad();
-    }
-
-    /**
-     * @return $this
-     */
-    public function addActiveFilter(): self
-    {
-        return $this->addFieldToFilter(CarrierConfig::FIELD_ACTIVE, ['eq' => '1']);
-    }
-
-    /**
-     * @return $this
-     */
-    public function sort(): self
-    {
-        $this->getSelect()->order(CarrierConfig::FIELD_SORT_ORDER . ' ' . self::SORT_ORDER_ASC);
-
         return $this;
+    }
+
+    /**
+     * @return Model[]
+     */
+    public function getItems(): array
+    {
+        /** @var Model[] $items */
+        $items = parent::getItems();
+
+        return $items;
     }
 }

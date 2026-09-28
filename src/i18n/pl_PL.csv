@@ -1,6 +1,512 @@
-"Enabled","Włączone"
-"Sandbox Mode","Tryb sandbox"
-"Contact api@polkurier.pl to receive access to sandbox instance of the service","W celu uzyskania dostępu do środowiska testowego prosimy o kontakt na e-mail: api@polkurier.pl"
-"Customer ID","ID klienta"
-"Api Token","Token Api"
-"Active Carriers","Aktywni przewoźnicy"
+Shipment cost,Koszt przesyłki
+Calculate,Oblicz
+Calculating…,Obliczanie…
+Show collection dates,Pokaż terminy odbioru
+Choose on map,Wybierz na mapie
+The chosen carrier sells no additional services.,Wybrany przewoźnik nie oferuje usług dodatkowych.
+Choose a pickup point,Wybierz punkt odbioru
+net,netto
+gross,brutto
+The cost could not be calculated.,Nie udało się obliczyć kosztu.
+Polkurier could not be asked.,Nie udało się połączyć z Polkurierem.
+No collection dates available.,Brak dostępnych terminów odbioru.
+The collection dates could not be read.,Nie udało się pobrać terminów odbioru.
+The pickup point map could not be loaded.,Nie udało się wczytać mapy punktów.
+Checking…,Sprawdzanie…
+The check could not be run.,Nie udało się przeprowadzić sprawdzenia.
+No pickup point chosen,Nie wybrano punktu odbioru
+The pickup point map could not be loaded. Try again later.,Nie udało się wczytać mapy punktów. Spróbuj ponownie później.
+Choose a pickup point for the selected delivery method.,Wybierz punkt odbioru dla wybranej metody dostawy.
+Polkurier,Polkurier
+Shipments,Przesyłki
+Create shipments,Nadawanie przesyłek
+Cancel shipments,Anulowanie przesyłek
+Cash on delivery,Pobranie
+Request payouts,Zlecanie wypłat
+Settings,Ustawienia
+Addresses,Adresy
+Bank accounts,Konta bankowe
+Pack templates,Szablony paczek
+Carriers,Przewoźnicy
+Sales,Sprzedaż
+Cash on delivery payouts,Wypłaty pobrań
+Configuration,Konfiguracja
+Enabled,Włączone
+Title,Tytuł
+Ship to Applicable Countries,Wysyłka do krajów
+Ship to Specific Countries,Wysyłka do wybranych krajów
+Show Method if Not Applicable,"Pokaż metodę, gdy niedostępna"
+Displayed Error Message,Wyświetlany komunikat błędu
+Sort Order,Kolejność
+Polkurier account,Konto Polkurier
+Customer ID,Numer klienta
+API token,Token API
+Sandbox,Sandbox
+Sends requests to the Polkurier sandbox. Contact api@polkurier.pl for sandbox access.,Wysyła zapytania do środowiska testowego Polkuriera. Dostęp do sandboxa: api@polkurier.pl.
+Test connection,Sprawdź połączenie
+Request timeout (seconds),Limit czasu zapytania (sekundy)
+Log errors,Zapisuj błędy w logu
+"To var/log/polkurier.log, with the API token masked.","Do var/log/polkurier.log, z zamaskowanym tokenem API."
+Log all traffic of,Zapisuj cały ruch metod
+Successful requests and answers of these API methods are logged too.,Zapisywane są też udane zapytania i odpowiedzi tych metod API.
+Default carrier,Domyślny przewoźnik
+Preselected for orders placed with another shipping method. The list comes from the Polkurier account.,Wybierany dla zamówień złożonych z inną metodą dostawy. Lista pochodzi z konta Polkurier.
+Default shipment type,Domyślny rodzaj przesyłki
+Fall back to the shipping origin,W razie braku użyj adresu wysyłki sklepu
+"When no default sender is set in Polkurier > Settings > Addresses, send from the address in Sales > Shipping Settings > Origin.","Gdy w Polkurier > Ustawienia > Adresy nie ma domyślnego nadawcy, nadawaj z adresu z Sprzedaż > Ustawienia wysyłki > Pochodzenie."
+Sender e-mail with the store's addresses,E-mail nadawcy przy adresach sklepu
+Additional services selected by default,Usługi dodatkowe zaznaczone domyślnie
+Only those the chosen carrier sells are preselected.,"Zaznaczane są tylko te, które oferuje wybrany przewoźnik."
+Insure for the order total by default,Domyślnie ubezpieczaj na wartość zamówienia
+Carriers that require insurance with cash on delivery are always insured then.,Przesyłki przewoźników wymagających ubezpieczenia przy pobraniu są wtedy zawsze ubezpieczane.
+Cash on delivery payment methods,Metody płatności za pobraniem
+Orders paid with these are shipped with cash on delivery for the order total; they are hidden in checkout when the carrier or the pickup point cannot collect.,"Zamówienia opłacone tymi metodami są wysyłane z pobraniem na wartość zamówienia; w koszyku są ukrywane, gdy przewoźnik lub punkt nie przyjmuje pobrań."
+Cash on delivery payout time,Termin wypłaty pobrania
+Cash on delivery paid out to,Pobranie wypłacane na
+Shipment description,Opis przesyłki
+%s is replaced with the order number. Polkurier keeps up to 30 characters.,%s zostaje zastąpione numerem zamówienia. Polkurier zachowuje do 30 znaków.
+Label format,Format etykiety
+Send the shipment e-mail to the customer,Wysyłaj klientowi e-mail o wysyłce
+Pickup point map,Mapa punktów odbioru
+Initial latitude,Początkowa szerokość geograficzna
+Initial longitude,Początkowa długość geograficzna
+Initial zoom,Początkowe przybliżenie
+Show the list of points,Pokaż listę punktów
+Show the search field,Pokaż pole wyszukiwania
+Show only points that,"Pokazuj tylko punkty, które"
+Synchronization,Synchronizacja
+"Synchronize addresses, bank accounts and pack templates hourly","Synchronizuj co godzinę adresy, konta bankowe i szablony paczek"
+Changes made in Magento are also sent as soon as they are saved.,Zmiany wprowadzone w Magento są też wysyłane od razu po zapisaniu.
+Update shipment statuses every 30 minutes,Aktualizuj statusy przesyłek co 30 minut
+Address,Adres
+Back,Wstecz
+Website,Strona
+The Polkurier account of this website keeps the entry.,Wpis jest przechowywany na koncie Polkurier tej strony.
+Label,Nazwa
+Name,Imię i nazwisko
+Company,Firma
+Street,Ulica
+House number,Numer domu
+Flat number,Numer lokalu
+Postcode,Kod pocztowy
+City,Miejscowość
+Country,Kraj
+Phone,Telefon
+E-mail,E-mail
+Sender pickup point,Punkt nadania
+For carriers that collect from a point.,Dla przewoźników odbierających z punktu.
+Default sender,Domyślny nadawca
+Can be a cover address,Może być adresem zwrotnym
+Returns can be sent here instead of to the sender.,Zwroty mogą trafiać tutaj zamiast do nadawcy.
+Synchronization with Polkurier,Synchronizacja z Polkurierem
+State,Stan
+Last error,Ostatni błąd
+Polkurier ID,ID w Polkurierze
+Last synchronized,Ostatnia synchronizacja
+Add address,Dodaj adres
+Synchronize with Polkurier,Synchronizuj z Polkurierem
+Delete,Usuń
+Delete addresses,Usuń adresy
+"The addresses are deleted here and, at the next synchronization, in Polkurier.","Adresy zostaną usunięte tutaj, a przy następnej synchronizacji także w Polkurierze."
+ID,ID
+No.,Nr
+Cover address,Adres zwrotny
+Sync error,Błąd synchronizacji
+Actions,Akcje
+Bank account,Konto bankowe
+Account number,Numer konta
+IBAN or Polish account number (26 digits).,IBAN lub polski numer konta (26 cyfr).
+Default,Domyślne
+Add bank account,Dodaj konto bankowe
+Delete bank accounts,Usuń konta bankowe
+Accounts from Polkurier come back at the next synchronization; delete them in the Polkurier panel.,Konta z Polkuriera wrócą przy następnej synchronizacji; usuń je w panelu Polkuriera.
+Checkout,Koszyk
+Carrier,Przewoźnik
+Label in checkout,Nazwa w koszyku
+Offered in checkout,Dostępny w koszyku
+Sort order,Kolejność
+Price,Cena
+Pricing,Wycena
+Price tiers,Progi cenowe
+Add a tier,Dodaj próg
+Subtotal from,Wartość koszyka od
+Weight from [kg],Waga od [kg]
+"The tier with the highest threshold the cart reaches applies: subtotal first, then weight. Thresholds the pricing does not use are ignored. A cart below every tier is not offered this carrier.","Obowiązuje próg o najwyższym osiągniętym przez koszyk progu: najpierw wartość, potem waga. Progi, których dany sposób wyceny nie używa, są pomijane. Koszyk poniżej wszystkich progów nie otrzyma tego przewoźnika."
+Refresh carriers from Polkurier,Odśwież przewoźników z Polkuriera
+Code,Kod
+Offered by the account,Dostępny na koncie
+Pickup point,Punkt odbioru
+Point,Punkt
+Accepts cash on delivery,Przyjmuje pobrania
+Print labels,Drukuj etykiety
+Print handover protocol,Drukuj protokół nadania
+Created,Utworzono
+Polkurier order,Zamówienie Polkurier
+Waybills,Listy przewozowe
+Delivery status,Status doręczenia
+Status date,Data statusu
+COD status,Status pobrania
+Cost (gross),Koszt (brutto)
+Pack template,Szablon paczki
+Description,Opis
+Shipment type,Rodzaj przesyłki
+Parcel type,Typ paczki
+Length [cm],Długość [cm]
+Width [cm],Szerokość [cm]
+Height [cm],Wysokość [cm]
+Weight [kg],Waga [kg]
+Insurance,Ubezpieczenie
+Carrier code,Kod przewoźnika
+Additional services,Usługi dodatkowe
+Default for new shipments,Domyślny dla nowych przesyłek
+Add pack template,Dodaj szablon paczki
+Delete pack templates,Usuń szablony paczek
+"The templates are deleted here and, at the next synchronization, in Polkurier.","Szablony zostaną usunięte tutaj, a przy następnej synchronizacji także w Polkurierze."
+Length,Długość
+Width,Szerokość
+Height,Wysokość
+Weight,Waga
+Payout,Wypłata
+Polkurier orders,Zamówienia Polkurier
+"One number per line: the cash of these orders is paid out. Empty: everything available. Prefilled with the shipments whose cash is in the money box, as of their last status update.","Jeden numer w wierszu: wypłacone zostaną pobrania tych zamówień. Puste: wszystko, co dostępne. Wstępnie wypełnione przesyłkami, których pobrania są w skarbonce według ostatniej aktualizacji statusu."
+Payout by,Forma wypłaty
+Fee paid,Opłata pobierana
+Bank account number,Numer konta bankowego
+For transfers; empty uses the money box setting.,Dla przelewów; puste oznacza ustawienie skarbonki.
+Show the fee,Pokaż opłatę
+Confirmation token,Token potwierdzenia
+Send me the confirmation code,Wyślij mi kod potwierdzenia
+Confirmation code,Kod potwierdzenia
+Security PIN,PIN bezpieczeństwa
+Only if the money box settings are locked with a PIN.,Tylko jeśli ustawienia skarbonki są zablokowane PIN-em.
+Request a payout,Zleć wypłatę
+Requested,Zlecono
+Amount,Kwota
+Fee,Opłata
+Paid out,Wypłacono
+Account,Konto
+Status,Status
+Polkurier shipment,Przesyłka Polkurier
+Shipment,Przesyłka
+Printed on the label; up to 30 characters.,Drukowany na etykiecie; do 30 znaków.
+Sender,Nadawca
+Recipient,Odbiorca
+"The point the customer chose in checkout, if any.","Punkt wybrany przez klienta w koszyku, jeśli wybrał."
+Parcels,Paczki
+Add a parcel,Dodaj paczkę
+Template,Szablon
+Type,Typ
+Quantity,Ilość
+Amount to collect,Kwota pobrania
+0 or empty: no cash on delivery.,0 lub puste: bez pobrania.
+Payout time,Termin wypłaty
+Paid out to,Wypłata na
+Declared value,Wartość deklarowana
+0 or empty: no insurance.,0 lub puste: bez ubezpieczenia.
+Returns go to this address instead of the sender's.,Zwroty trafiają na ten adres zamiast do nadawcy.
+Handover to the carrier,Przekazanie przewoźnikowi
+Handover,Przekazanie
+Collection date (YYYY-MM-DD),Data odbioru (RRRR-MM-DD)
+From (HH:MM),Od (GG:MM)
+To (HH:MM),Do (GG:MM)
+Carrier-specific fields,Pola przewoźnika
+Cost,Koszt
+Update statuses,Aktualizuj statusy
+Book a collective pickup,Zamów zbiorczy odbiór
+Order,Zamówienie
+Collective pickup,Odbiór zbiorczy
+Pickup booked,Odbiór zamówiony
+%1 deleted.,Usunięto: %1.
+%1 shipment(s) updated.,Zaktualizowano przesyłek: %1.
+%1: %2,%1: %2
+-- Choose a carrier --,-- Wybierz przewoźnika --
+-- Configure the Polkurier account first --,-- Najpierw skonfiguruj konto Polkurier --
+-- Custom --,-- Własne --
+-- None --,-- Brak --
+A Polkurier order for this order is being placed right now. Wait a moment and reload.,Zamówienie Polkurier dla tego zamówienia właśnie jest składane. Poczekaj chwilę i odśwież stronę.
+A courier collects them,Kurier odbiera od nadawcy
+Add at least one price tier.,Dodaj co najmniej jeden próg cenowy.
+An earlier Polkurier order for this order got no answer and may exist. Reconcile it in the Polkurier section of the order first.,Wcześniejsze zamówienie Polkurier dla tego zamówienia nie zostało potwierdzone i może istnieć. Najpierw je uzgodnij w sekcji Polkurier zamówienia.
+Awaiting collection,Czeka na pobranie
+Back to the order,Wróć do zamówienia
+Bank transfer,Przelew bankowy
+Bringing the parcel in,Wniesienie przesyłki
+By cart subtotal,Według wartości koszyka
+By cart subtotal and weight,Według wartości i wagi koszyka
+By cart weight,Według wagi koszyka
+Cancel,Anuluj
+Cancel Polkurier order %1?,Anulować zamówienie Polkurier %1?
+Cancel payout %1?,Anulować wypłatę %1?
+Cancelled,Anulowane
+Carrier settings,Ustawienia przewoźnika
+Check: %1,Sprawdź: %1
+Choose a carrier first.,Najpierw wybierz przewoźnika.
+Choose the bank account the cash on delivery is paid out to.,"Wybierz konto bankowe, na które ma być wypłacone pobranie."
+Code sent to %1; valid until %2.,Kod wysłano na %1; ważny do %2.
+Collect cash on delivery,Przyjmują pobrania
+"Collect later, together with other shipments","Odbiór później, razem z innymi przesyłkami"
+Collect parcels,Wydają paczki
+Collection booked for: %1.,Zamówiono odbiór dla: %1.
+Collective pickups are not available for this Polkurier account.,Odbiory zbiorcze nie są dostępne dla tego konta Polkurier.
+Compensation,Odszkodowanie
+Configure the Polkurier customer ID and API token first.,Najpierw skonfiguruj numer klienta i token API Polkuriera.
+Content check on delivery,Sprawdzenie zawartości przy odbiorze
+Could not delete the address: %1,Nie udało się usunąć adresu: %1
+Could not delete the bank account: %1,Nie udało się usunąć konta bankowego: %1
+Could not delete the carrier config: %1,Nie udało się usunąć ustawień przewoźnika: %1
+Could not delete the pack template: %1,Nie udało się usunąć szablonu paczki: %1
+Could not delete the shipment: %1,Nie udało się usunąć przesyłki: %1
+Could not save the address: %1,Nie udało się zapisać adresu: %1
+Could not save the bank account: %1,Nie udało się zapisać konta bankowego: %1
+Could not save the carrier config: %1,Nie udało się zapisać ustawień przewoźnika: %1
+Could not save the pack template: %1,Nie udało się zapisać szablonu paczki: %1
+Could not save the shipment: %1,Nie udało się zapisać przesyłki: %1
+Courier brings the label,Kurier przywozi etykietę
+Cover address as sender,Adres zwrotny jako nadawca
+Delete this entry?,Usunąć ten wpis?
+Deleted.,Usunięto.
+Delivery by a given hour,Doręczenie do godziny
+Delivery to own hands,Doręczenie do rąk własnych
+Edit,Edytuj
+Enter the customer ID and the API token.,Podaj numer klienta i token API.
+Enter the price.,Podaj cenę.
+Envelope,Koperta
+Error,Błąd
+Fee: %1 PLN gross (%2 PLN net). Free payouts left: %3 of %4.,Opłata: %1 zł brutto (%2 zł netto). Pozostało darmowych wypłat: %3 z %4.
+Fixed price,Stała cena
+Fragile,Ostrożnie
+Free,Bezpłatnie
+From the money box,Ze skarbonki
+From the prepaid balance,Z przedpłaty
+Give the collection date as YYYY-MM-DD and the window as HH:MM.,"Podaj datę odbioru jako RRRR-MM-DD, a godziny jako GG:MM."
+Half pallet,Półpaleta
+I drop them off at a point,Nadaję w punkcie
+In sync,Zsynchronizowane
+In the money box,W skarbonce
+Long,Dłużyca
+New,Nowy
+Next day,Następnego dnia
+No,Nie
+No label (shipment code),Bez etykiety (kod nadania)
+No payout to cancel.,Brak wypłaty do anulowania.
+"No sender address: add one to Polkurier > Settings > Addresses, or set the shipping origin in Stores > Configuration > Sales > Shipping Settings.",Brak adresu nadawcy: dodaj go w Polkurier > Ustawienia > Adresy albo ustaw adres wysyłki w Sklepy > Konfiguracja > Sprzedaż > Ustawienia wysyłki.
+Non-standard,Niestandardowa
+None,Brak
+None of the selected shipments awaits a collective pickup.,Żadna z wybranych przesyłek nie czeka na odbiór zbiorczy.
+None of the selected shipments is a placed Polkurier order.,Żadna z wybranych przesyłek nie jest złożonym zamówieniem Polkurier.
+Not found in Polkurier: the order was not placed. It is safe to send it again.,Nie znaleziono w Polkurierze: zamówienie nie zostało złożone. Można je bezpiecznie wysłać ponownie.
+Not placed,Niezłożone
+On its way to Polkurier,W drodze do Polkuriera
+On the invoice,Na fakturze
+Online payment,Płatność online
+Only a placed Polkurier order can be cancelled.,Anulować można tylko złożone zamówienie Polkurier.
+Only a shipment whose outcome is unknown can be linked by hand.,Ręcznie powiązać można tylko przesyłkę o nieznanym wyniku.
+Only a shipment whose outcome is unknown can be reconciled.,Uzgodnić można tylko przesyłkę o nieznanym wyniku.
+Outcome unknown,Wynik nieznany
+Pallet,Paleta
+Parcel,Paczka
+Payout %1 cancelled.,Anulowano wypłatę %1.
+Payout %1 requested: %2 PLN.,Zlecono wypłatę %1: %2 zł.
+Payout pending,Wypłata w toku
+Phone notification before collection,Telefon przed odbiorem
+Phone notification before delivery,Telefon przed doręczeniem
+Place the Polkurier order,Złóż zamówienie Polkurier
+Placed,Złożone
+Polkurier accepted the credentials.,Polkurier przyjął dane dostępowe.
+"Polkurier answered with something unexpected (HTTP %1). Try again later; if it persists, contact Polkurier.","Polkurier odpowiedział w nieoczekiwany sposób (HTTP %1). Spróbuj później; jeśli problem się powtarza, skontaktuj się z Polkurierem."
+"Polkurier could not be reached, or did not answer in time: %1",Nie udało się połączyć z Polkurierem lub nie odpowiedział na czas: %1
+Polkurier did not cancel order %1.,Polkurier nie anulował zamówienia %1.
+"Polkurier did not confirm the order, so it may or may not have been placed. It will not be sent again until it is reconciled: use ""Reconcile"" in the Polkurier section of the order. (%1)","Polkurier nie potwierdził zamówienia, więc mogło zostać złożone albo nie. Nie zostanie wysłane ponownie, dopóki nie zostanie uzgodnione: użyj „Uzgodnij” w sekcji Polkurier zamówienia. (%1)"
+Polkurier error: %1,Błąd Polkuriera: %1
+Polkurier has no order number %1 on this account.,Na tym koncie Polkurier nie ma zamówienia numer %1.
+Polkurier money box,Skarbonka Polkurier
+Polkurier order %1 cancelled.,Anulowano zamówienie Polkurier %1.
+Polkurier order %1 cancelled. The Magento shipment and its tracking numbers were kept; remove them by hand if needed.,Anulowano zamówienie Polkurier %1. Wysyłka Magento i jej numery śledzenia zostały zachowane; w razie potrzeby usuń je ręcznie.
+Polkurier order %1 found and linked after an unconfirmed request.,Znaleziono i powiązano zamówienie Polkurier %1 po niepotwierdzonym zapytaniu.
+Polkurier order %1 found and linked.,Znaleziono i powiązano zamówienie Polkurier %1.
+Polkurier order %1 linked by hand after an unconfirmed request.,Ręcznie powiązano zamówienie Polkurier %1 po niepotwierdzonym zapytaniu.
+Polkurier order %1 linked.,Powiązano zamówienie Polkurier %1.
+Polkurier order %1 placed with %2. Waybills: %3.,Złożono zamówienie Polkurier %1 u %2. Listy przewozowe: %3.
+Polkurier order %1 placed. Waybills: %2.,Złożono zamówienie Polkurier %1. Listy przewozowe: %2.
+Polkurier order %1: %2.,Zamówienie Polkurier %1: %2.
+"Polkurier order for %1: Polkurier did not confirm it, and it may or may not have been placed. Reconcile it before sending again.",Zamówienie Polkurier u %1: Polkurier go nie potwierdził i mogło zostać złożone albo nie. Uzgodnij je przed ponownym wysłaniem.
+Polkurier refused: %1,Polkurier odmówił: %1
+Polkurier shipments,Przesyłki Polkurier
+Polkurier would not accept this. Check: %1,Polkurier tego nie przyjmie. Sprawdź: %1
+Postal order,Przekaz pocztowy
+Reconcile,Uzgodnij
+Request the payout,Zleć wypłatę
+Return of documents (ROD),Zwrot dokumentów (ROD)
+SMS notification when dispatched,Powiadomienie SMS przy nadaniu
+"SMS notification when dispatched, with the sender name","Powiadomienie SMS przy nadaniu, z nazwą nadawcy"
+SMS notification when out for delivery,Powiadomienie SMS przy wydaniu do doręczenia
+"SMS notification when out for delivery, with the sender name","Powiadomienie SMS przy wydaniu do doręczenia, z nazwą nadawcy"
+Saturday delivery,Doręczenie w sobotę
+Save,Zapisz
+"Saved in Magento, but not in Polkurier: %1","Zapisano w Magento, ale nie w Polkurierze: %1"
+Saved.,Zapisano.
+Send parcels,Przyjmują paczki
+Send yourself the confirmation code and enter it first.,Najpierw wyślij sobie kod potwierdzenia i go wpisz.
+Sending,Wysyłanie
+Settled,Rozliczone
+Ship order #%1 with Polkurier,Wyślij zamówienie #%1 przez Polkurier
+Ship with Polkurier,Wyślij przez Polkurier
+The store's address,Adres sklepu
+Standard,Standardowa
+The Magento shipment could not be created: %1,Nie udało się utworzyć wysyłki Magento: %1
+"The address with id ""%1"" does not exist.",Adres o id „%1” nie istnieje.
+"The bank account with id ""%1"" does not exist.",Konto bankowe o id „%1” nie istnieje.
+"The carrier config with id ""%1"" does not exist.",Ustawienia przewoźnika o id „%1” nie istnieją.
+The carrier does not price this shipment.,Przewoźnik nie wycenia tej przesyłki.
+The carrier will not collect the parcel. This cannot be undone.,Przewoźnik nie odbierze przesyłki. Tego nie można cofnąć.
+The chosen address no longer exists.,Wybrany adres już nie istnieje.
+The chosen bank account no longer exists.,Wybrane konto bankowe już nie istnieje.
+The chosen pickup point is not available. Choose another one.,Wybrany punkt odbioru jest niedostępny. Wybierz inny.
+The money stays in the money box.,Pieniądze pozostaną w skarbonce.
+The order cannot be shipped with Polkurier.,Tego zamówienia nie można wysłać przez Polkurier.
+The order no longer exists.,Zamówienie już nie istnieje.
+"The pack template with id ""%1"" does not exist.",Szablon paczki o id „%1” nie istnieje.
+The request to Polkurier could not be built: %1,Nie udało się przygotować zapytania do Polkuriera: %1
+The request was interrupted before an answer arrived.,Zapytanie zostało przerwane przed nadejściem odpowiedzi.
+The selected shipments belong to different Polkurier accounts; print them separately.,Wybrane przesyłki należą do różnych kont Polkurier; wydrukuj je osobno.
+"The shipment with id ""%1"" does not exist.",Przesyłka o id „%1” nie istnieje.
+This shipment has no Polkurier order to read.,Ta przesyłka nie ma zamówienia Polkurier do odczytania.
+Tires,Opony
+Update status,Aktualizuj status
+View order,Pokaż zamówienie
+Waiting to be sent,Czeka na wysłanie
+Website %1: %2,Strona %1: %2
+Website %1: the account offers %2 carriers.,Strona %1: konto oferuje przewoźników: %2.
+Weekend collection,Odbiór w weekend
+Within 4 days,W ciągu 4 dni
+Yes,Tak
+not issued yet,jeszcze nie wystawione
+Polkurier did not accept the API credentials configured for this website. Check the customer ID and API token in Stores > Configuration > Sales > Delivery Methods > Polkurier. (%1),Polkurier nie przyjął danych dostępowych API skonfigurowanych dla tej strony. Sprawdź numer klienta i token API w Sklepy > Konfiguracja > Sprzedaż > Metody dostawy > Polkurier. (%1)
+"Admin only: customers see just each delivery method's label, never this title.","Tylko w panelu: klienci widzą jedynie nazwę metody dostawy, nigdy ten tytuł."
+Credentials are set per website; each website may use its own Polkurier account.,Dane dostępowe ustawia się dla strony (website); każda strona może mieć własne konto Polkurier.
+Protocol,Protokół
+Print label,Drukuj etykietę
+Print protocol,Drukuj protokół
+Account name,Nazwa konta
+Template name,Nazwa szablonu
+"Shown in every store view without a label of its own. Empty: the carrier's name.","Wyświetlana w każdym widoku sklepu bez własnej nazwy. Puste: nazwa przewoźnika."
+Label per store view,Nazwa w widoku sklepu
+Add a store view label,Dodaj nazwę dla widoku sklepu
+Store view,Widok sklepu
+Only a placed Polkurier order can be shipped in Magento.,Tylko złożone zamówienie Polkurier można wysłać w Magento.
+The Magento order is already shipped with this Polkurier order.,Zamówienie Magento jest już wysłane z tym zamówieniem Polkurier.
+The order is shipped with Polkurier order %1.,Zamówienie zostało wysłane z zamówieniem Polkurier %1.
+Create Magento shipment,Utwórz wysyłkę Magento
+Not found in Polkurier yet. It is checked again automatically.,Jeszcze nie ma go w Polkurierze. Zostanie sprawdzone ponownie automatycznie.
+"Polkurier also has %1 for this order, probably duplicates. Check them in the Polkurier panel and cancel the ones not needed.","Polkurier ma dla tego zamówienia również %1, prawdopodobnie duplikaty. Sprawdź je w panelu Polkuriera i anuluj niepotrzebne."
+Awaiting confirmation,Czeka na potwierdzenie
+"%1: %2 new from Polkurier, %3 updated from Polkurier, %4 sent to Polkurier, %5 removed, %6 unchanged, %7 awaiting confirmation, %8 failed.","%1: nowe z Polkuriera %2, zaktualizowane z Polkuriera %3, wysłane do Polkuriera %4, usunięte %5, bez zmian %6, czeka na potwierdzenie %7, błędy %8."
+Saved in Magento. It goes to Polkurier once you confirm it with the code or your security PIN.,Zapisano w Magento. Trafi do Polkuriera po potwierdzeniu kodem lub PIN-em bezpieczeństwa.
+"Polkurier did not delete bank account %1: %2 If your account locks bank accounts with a PIN, open it and delete it there with the PIN.","Polkurier nie usunął konta bankowego %1: %2 Jeśli Twoje konto chroni konta bankowe PIN-em, otwórz je i usuń tam, podając PIN."
+"Code sent. Enter it below, then save.","Kod wysłany. Wpisz go poniżej i zapisz."
+Confirmation with Polkurier,Potwierdzenie w Polkurierze
+"Polkurier accepts a new or changed bank account only with your confirmation. Without it, the account is saved in Magento and waits for it.","Polkurier przyjmuje nowe lub zmienione konto bankowe tylko z Twoim potwierdzeniem. Bez niego konto zostaje zapisane w Magento i czeka na potwierdzenie."
+Your account locks bank accounts with a PIN. It is needed to save or delete one.,Twoje konto chroni konta bankowe PIN-em. Jest potrzebny do zapisania lub usunięcia konta.
+Delete this bank account in Polkurier and in Magento?,Usunąć to konto bankowe w Polkurierze i w Magento?
+Kept in Magento only.,Przechowywane tylko w Magento.
+Delivery,Dostawa
+Apply,Zastosuj
+Change,Zmień
+Collection date,Data odbioru
+From,Od
+To,Do
+Insurance amount,Kwota ubezpieczenia
+Polkurier shipping label,Etykieta Polkurier
+"Tick ""Create Shipping Label"" below to place the Polkurier order with the shipment.","Zaznacz poniżej „Create Shipping Label”, aby złożyć zamówienie Polkurier razem z przesyłką."
+"Placed with the shipment, using the parcels you pack in the next step.","Składane razem z przesyłką, z paczkami, które spakujesz w następnym kroku."
+"from %1","od: %1"
+Not chosen,Nie wybrano
+"Required, not chosen","Wymagany, nie wybrano"
+Point code,Kod punktu
+"Leave empty for none. Order total: %1","Zostaw puste, jeśli bez pobrania. Wartość zamówienia: %1"
+Collection type,Rodzaj pobrania
+"Insured for %1","Ubezpieczenie na %1"
+Not insured,Bez ubezpieczenia
+Leave empty for none.,"Zostaw puste, jeśli bez ubezpieczenia."
+This carrier offers no additional services.,Ten przewoźnik nie oferuje usług dodatkowych.
+Shipping labels on Magento's shipment page,Etykiety na stronie przesyłki Magento
+"For orders placed with these shipping methods, ""Create Shipping Label"" on Magento's New Shipment page places the order and stores its label with the shipment.","Dla zamówień z tymi metodami dostawy „Create Shipping Label” na stronie nowej przesyłki Magento składa zamówienie i zapisuje jego etykietę przy przesyłce."
+Polkurier shipment screen,Ekran przesyłki Polkurier
+"Adds a ""Ship with Polkurier"" button to the order page, for any order.","Dodaje przycisk „Wyślij przez Polkurier” na stronie każdego zamówienia."
+The shipment to create a label for is missing.,Brak przesyłki do utworzenia etykiety.
+You are not allowed to place Polkurier orders.,Nie masz uprawnień do składania zamówień Polkurier.
+"Polkurier order %1 is placed, but its label is not ready yet. Print it later from the Polkurier shipments of the order.","Zamówienie Polkurier %1 zostało złożone, ale etykieta nie jest jeszcze gotowa. Wydrukuj ją później z przesyłek Polkurier zamówienia."
+"Polkurier did not confirm the order, and it may or may not have been placed. It is checked automatically; the Magento shipment is created once it is found.","Polkurier nie potwierdził zamówienia i nie wiadomo, czy zostało złożone. Jest sprawdzane automatycznie; przesyłka Magento zostanie utworzona, gdy zamówienie się odnajdzie."
+collection date required,wymagana data odbioru
+"%1 is %2 cheaper.","%1 jest tańszy o %2."
+Add a parcel.,Dodaj paczkę.
+Before you place it,Zanim złożysz zamówienie
+Cheapest,Najtańszy
+Choose a carrier.,Wybierz przewoźnika.
+Choose a point on the map,Wybierz punkt na mapie
+Choose the bank account to pay the cash on delivery out to.,"Wybierz rachunek, na który ma trafić pobranie."
+COD,Pobranie
+"Cover address: %1","Adres zastępczy: %1"
+"Description: %1","Opis: %1"
+Enter the size and weight of every parcel.,Podaj wymiary i wagę każdej paczki.
+Everything the carrier needs is there.,"Jest wszystko, czego potrzebuje przewoźnik."
+"Fill in ""%1"".","Uzupełnij „%1”."
+Fix,Popraw
+"From: %1","Nadawca: %1"
+No additional services,Bez usług dodatkowych
+no carrier yet,jeszcze bez przewoźnika
+No collection date chosen,Nie wybrano daty odbioru
+No price yet,Jeszcze bez ceny
+not available,niedostępny
+Only carriers that can take it,"Tylko przewoźnicy, którzy mogą ją przyjąć"
+"Pickup point: %1","Punkt odbioru: %1"
+Points,Punkty
+Points only,Tylko punkty
+"Polkurier's price to you, not what the customer paid.","Cena Polkurier dla Ciebie, nie to, co zapłacił klient."
+Prices could not be loaded.,Nie udało się pobrać cen.
+Pricing…,Wycena…
+Search carriers,Szukaj przewoźnika
+Shipping with,Wysyłka przez
+"Show %1 more","Pokaż jeszcze %1"
+Switch,Zmień
+The recipient needs a phone number.,Odbiorca musi mieć numer telefonu.
+the shipping origin,adres wysyłki sklepu
+This carrier delivers to pickup points only: choose one.,Ten przewoźnik doręcza tylko do punktów: wybierz punkt.
+This carrier does not collect cash on delivery.,Ten przewoźnik nie obsługuje pobrań.
+"This carrier does not price the shipment as it is, so Polkurier will probably refuse it.","Ten przewoźnik nie wycenia przesyłki w tej postaci, więc Polkurier prawdopodobnie ją odrzuci."
+This carrier does not take parcels dropped off at a point.,Ten przewoźnik nie przyjmuje paczek nadanych w punkcie.
+This carrier insures every shipment with cash on delivery: enter the declared value.,Ten przewoźnik ubezpiecza każdą przesyłkę za pobraniem: podaj wartość.
+This carrier needs a collection date.,Ten przewoźnik wymaga daty odbioru.
+This carrier needs a collection time window.,Ten przewoźnik wymaga przedziału godzin odbioru.
+To the door (no pickup point),Pod drzwi (bez punktu odbioru)
+Updating prices…,Aktualizowanie cen…
+Done,Gotowe
+Insurance and services,Ubezpieczenie i usługi
+Shipment and sender,Przesyłka i nadawca
+"Prices show once every parcel has its size and weight.","Ceny pojawią się, gdy każda paczka będzie miała wymiary i wagę."
+Logo in checkout,Logo w koszyku
+"Shown next to the method name. JPG, PNG, GIF or WebP, about 60 × 30 pixels.","Wyświetlane obok nazwy metody. JPG, PNG, GIF lub WebP, ok. 60 × 30 pikseli."
+Logo,Logo
+"The logo could not be uploaded: %1","Nie udało się przesłać logo: %1"
+The logo could not be uploaded.,Nie udało się przesłać logo.
+Available carriers,Dostępni przewoźnicy
+"The carriers you work with. Only these appear under Polkurier > Settings > Carriers, in checkout and when shipping; the others keep their settings but stay out of sight. Nothing selected: all of the account's carriers. The list comes from the Polkurier account.","Przewoźnicy, z którymi pracujesz. Tylko oni pojawiają się w Polkurier > Ustawienia > Przewoźnicy, w koszyku i przy wysyłce; pozostali zachowują swoje ustawienia, ale są ukryci. Nic nie zaznaczone: wszyscy przewoźnicy z konta. Lista pochodzi z konta Polkurier."
+Pack template…,Szablon paczki…
+Fall back to the store's address,Awaryjnie adres sklepu
+"When no default sender is set in Polkurier > Settings > Addresses, send from the address in General > Store Information. Comes before the shipping origin.","Gdy w Polkurier > Ustawienia > Adresy nie ma domyślnego nadawcy, nadawaj z adresu w Ogólne > Informacje o sklepie. Ma pierwszeństwo przed adresem wysyłki."
+"No sender address: choose one, add one to Polkurier > Settings > Addresses, or let the store's address or shipping origin be used in the Shipments settings.","Brak adresu nadawcy: wybierz go, dodaj w Polkurier > Ustawienia > Adresy albo pozwól użyć adresu sklepu lub adresu wysyłki w ustawieniach przesyłek."
+Province,Województwo
+Save and Continue Edit,Zapisz i kontynuuj edycję
+Save the pickup point,Zapisz punkt odbioru
+The pickup point could not be saved.,Nie udało się zapisać punktu odbioru.
+The pickup point is saved.,Punkt odbioru zapisany.
+"The point's code. It's checked with Polkurier for the order's carrier when you save it.","Kod punktu. Przy zapisie jest sprawdzany w Polkurier dla przewoźnika zamówienia."
+Only orders placed with a Polkurier method have a pickup point.,Punkt odbioru mają tylko zamówienia z metodą dostawy Polkurier.
+This carrier doesn't deliver to pickup points.,Ten przewoźnik nie doręcza do punktów odbioru.
+This carrier delivers to pickup points only: enter one.,Ten przewoźnik doręcza tylko do punktów: podaj punkt.
+"There is no pickup point %1 for this carrier.","Ten przewoźnik nie ma punktu odbioru %1."
+"Pickup point changed from %1 to %2.","Punkt odbioru zmieniony z %1 na %2."
+none,brak
+"%1 is priced in tiers: change its prices on the carrier's page.","%1 ma cenę progową: zmień ceny na stronie przewoźnika."
+Orders,Zamówienia
+Store shipments,Wysyłki sklepu

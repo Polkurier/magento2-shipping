@@ -1,0 +1,41 @@
+<?php
+/**
+ * Copyright (c) 2026 Polkurier.pl
+ * All Rights Reserved
+ */
+declare(strict_types=1);
+
+namespace Polkurier\Shipping\Observer;
+
+use Magento\Framework\Event\Observer;
+use Magento\Framework\Event\ObserverInterface;
+use Magento\Framework\Exception\LocalizedException;
+use Magento\Quote\Model\Quote;
+use Polkurier\Shipping\Model\Carrier\Polkurier;
+use Polkurier\Shipping\Model\Checkout\PointSelection;
+
+/**
+ * Refuses to place an order whose delivery method needs a pickup point when none was chosen for
+ * that method, whatever route the order came in by.
+ *
+ * Event: sales_model_service_quote_submit_before
+ */
+class ValidatePickupPoint implements ObserverInterface
+{
+    public function __construct(
+        private readonly PointSelection $pointSelection,
+    ) {}
+
+    /**
+     * @throws LocalizedException
+     */
+    public function execute(Observer $observer): void
+    {
+        /** @var Quote $quote */
+        $quote = $observer->getEvent()->getData('quote');
+        $methodCode = Polkurier::methodCodeOf((string)$quote->getShippingAddress()->getShippingMethod());
+        if ($methodCode !== null && !$quote->isVirtual()) {
+            $this->pointSelection->requirePoint($quote, $methodCode);
+        }
+    }
+}

@@ -8,16 +8,29 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Model\ResourceModel\BankAccount;
 
 use Magento\Framework\Model\ResourceModel\Db\Collection\AbstractCollection;
-use Polkurier\Shipping\Model\BankAccount;
-use Polkurier\Shipping\Model\ResourceModel\BankAccount as BankAccountResource;
+use Polkurier\Shipping\Model\BankAccount as Model;
+use Polkurier\Shipping\Model\ResourceModel\BankAccount as ResourceModel;
 
 class Collection extends AbstractCollection
 {
     /**
-     * @return void
+     * @var string
      */
+    protected $_idFieldName = 'account_id';
+
     protected function _construct(): void
     {
-        $this->_init(BankAccount::class, BankAccountResource::class);
+        $this->_init(Model::class, ResourceModel::class);
+    }
+
+    /**
+     * @return Model[]
+     */
+    public function getItems(): array
+    {
+        /** @var Model[] $items */
+        $items = parent::getItems();
+
+        return $items;
     }
 }

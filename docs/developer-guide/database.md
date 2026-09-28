@@ -1,0 +1,98 @@
+<!--
+ ~ Copyright (c) 2026 Polkurier.pl
+ ~ All Rights Reserved
+-->
+# Database
+
+[Developer guide](README.md) › Database
+
+All tables are declared in `etc/db_schema.xml`, with `db_schema_whitelist.json` next to it. Data
+patches live in `Setup/Patch/Data`.
+
+| Data patch | |
+|---|---|
+| `MarkFinishedShipments` | flags shipments that were already finished when the `is_final` column arrived |
+| `PlaceCarrierLogoColumn` | puts the Logo column after "Label in checkout" in carriers lists admins had already arranged |
+
+## Tables
+
+| Table | Holds |
+|---|---|
+| `polkurier_carrier_config` | one row per carrier and website: on/off, default label, sort order, pricing |
+| `polkurier_carrier_label` | carrier labels per store view |
+| `polkurier_address` | sender addresses, with their sync state |
+| `polkurier_bank_account` | bank accounts for cash on delivery, with their sync state |
+| `polkurier_pack_template` | pack templates, with their sync state |
+| `polkurier_quote_point` | the pickup point chosen for a quote address |
+| `polkurier_order_point` | the pickup point of an order |
+| `polkurier_shipment` | Polkurier shipments of Magento orders |
+
+Each table has its own model and resource model, except `polkurier_carrier_label`: the carrier
+config's resource model loads and saves those rows along with the carrier, and its collection
+attaches them after loading. The entities exposed as service contracts also have a repository (see
+[Service contracts and REST](rest-api.md)).
+
+## Carrier settings
+
+`polkurier_carrier_config` is unique on `(website_id, carrier_code)`.
+
+- `carrier_name` is the carrier's own name, refreshed from the account; `custom_label` is the
+  merchant's.
+- `logo` is the checkout logo, a path relative to the media directory
+  (`shipping/carrier_logos/…`, see `Model\Carrier\CarrierLogo`).
+- `available` says whether the account still offers the carrier. A carrier that disappears from
+  the account keeps its row, with `available = 0`, so its settings survive.
+- `pricing_model` is one of `Model\Pricing\PricingModelEnum`; `price_info` holds the model's
+  settings as JSON (a price, or a list of tiers).
+
+## Synced entities
+
+`polkurier_address`, `polkurier_bank_account` and `polkurier_pack_template` share a set of columns
+(`Api\Data\SyncableInterface`):
+
+| Column | |
+|---|---|
+| `website_id` | the account the entry belongs to |
+| `ext_id` | the entry's id on the account; null until it has been created there |
+| `sync_state` | in sync, waiting to be sent, error, or awaiting confirmation |
+| `sync_error` | why the last push failed |
+| `remote_hash` | a hash of the remote entry as of the last sync |
+| `remote_updated_at` | when the remote side was last seen changing |
+| `synced_at` | when the entry was last synced |
+| `deleted_at` | set when the entry is deleted locally and the delete hasn't reached the account yet |
+
+Rows with `deleted_at` set are hidden everywhere except in the sync. See
+[Synchronization](synchronization.md).
+
+## Pickup points
+
+`polkurier_quote_point` has one row per `(quote_id, quote_address_id)`, with `quote_address_id = 0`
+in the regular checkout, which has one shipping address. `polkurier_order_point` has one row per
+order. Both keep the carrier method code, the point id, a label for display and whether the point
+accepts cash on delivery.
+
+## Shipments
+
+`polkurier_shipment` has one row per attempt to place a Polkurier order for a Magento order,
+including failed ones.
+
+| Column | |
+|---|---|
+| `order_id`, `store_id` | the Magento order and its store |
+| `shipment_id` | the Magento shipment the Polkurier order is linked to; null until there is one |
+| `state` | `pending`, `created`, `unknown`, `failed` or `cancelled` (see [Shipments](shipments.md)) |
+| `polkurier_number` | the order number on the account |
+| `carrier_code`, `description`, `recipient_postcode`, `recipient_phone`, `pack_count` | what was sent, kept for matching during reconciliation |
+| `waybills` | JSON list of the carrier's tracking numbers |
+| `status_code`, `status_label`, `status_date`, `delivered_at`, `tracking_url` | the latest delivery status |
+| `price_net`, `price_gross` | what Polkurier charged |
+| `insurance_amount`, `cod_amount`, `cod_status` | insurance and cash on delivery |
+| `multi_pickup`, `pickup_booked` | placed for a collective pickup, and whether it's booked |
+| `is_final`, `status_checked_at` | whether the shipment is finished, and when its status was last checked |
+| `request` | the serialized request as sent, without credentials |
+| `last_error` | why the last action failed, or a warning such as probable duplicates |
+
+The stored request contains the recipient's personal data. If your data retention policy requires
+it, clear it for old shipments: it's kept for reference, and nothing in the module reads it back.
+
+Next: [Checkout](checkout.md)

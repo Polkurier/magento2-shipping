@@ -1,0 +1,40 @@
+{
+    "name": "polkurier/magento2-shipping",
+    "description": "Module for integrating Polkurier service with Magento 2 platform",
+    "type": "magento2-module",
+    "license": [
+        "proprietary"
+    ],
+    "config": {
+        "sort-packages": true
+    },
+    "version": "1.0.0",
+    "require": {
+        "php": "~8.4.0||~8.5.0",
+        "magento/framework": "*",
+        "magento/module-backend": "*",
+        "magento/module-checkout": "*",
+        "magento/module-config": "*",
+        "magento/module-cron": "*",
+        "magento/module-directory": "*",
+        "magento/module-media-storage": "*",
+        "magento/module-multishipping": "*",
+        "magento/module-offline-payments": "*",
+        "magento/module-payment": "*",
+        "magento/module-quote": "*",
+        "magento/module-sales": "*",
+        "magento/module-shipping": "*",
+        "magento/module-store": "*",
+        "magento/module-ui": "*",
+        "polkurier/polkurier-sdk": "2.0.0-dev",
+        "symfony/cache": "^6.4||^7.0"
+    },
+    "autoload": {
+        "files": [
+            "src/registration.php"
+        ],
+        "psr-4": {
+            "Polkurier\\Shipping\\": "src/"
+        }
+    }
+}

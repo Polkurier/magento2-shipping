@@ -1,0 +1,43 @@
+<?php
+/**
+ * Copyright (c) 2026 Polkurier.pl
+ * All Rights Reserved
+ */
+declare(strict_types=1);
+
+namespace Polkurier\Shipping\Controller\Adminhtml\Carrier;
+
+use Magento\Backend\App\Action;
+use Magento\Backend\App\Action\Context;
+use Magento\Framework\App\Action\HttpPostActionInterface;
+use Magento\Framework\Controller\Result\Json;
+use Magento\Framework\Controller\Result\JsonFactory;
+use Magento\Framework\Exception\LocalizedException;
+use Polkurier\Shipping\Model\Carrier\CarrierLogo;
+
+/**
+ * Receives a logo from the carrier form's image uploader. The carrier is only changed when the
+ * form is saved.
+ */
+class UploadLogo extends Action implements HttpPostActionInterface
+{
+    public const string ADMIN_RESOURCE = 'Polkurier_Shipping::carriers';
+
+    public function __construct(
+        Context $context,
+        private readonly JsonFactory $jsonFactory,
+        private readonly CarrierLogo $carrierLogo,
+    ) {
+        parent::__construct($context);
+    }
+
+    public function execute(): Json
+    {
+        $result = $this->jsonFactory->create();
+        try {
+            return $result->setData($this->carrierLogo->upload((string)$this->getRequest()->getParam('param_name', 'logo')));
+        } catch (LocalizedException $e) {
+            return $result->setData(['error' => $e->getMessage(), 'errorcode' => 1]);
+        }
+    }
+}

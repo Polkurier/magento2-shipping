@@ -2,35 +2,36 @@
  * Copyright (c) 2026 Polkurier.pl
  * All Rights Reserved
  */
+/**
+ * Stops at the shipping step when the selected method needs a pickup point and none is
+ * chosen for it. The server checks again when the order is placed.
+ */
 define([
     'Magento_Checkout/js/model/quote',
-    'mage/translate',
-    'Magento_Ui/js/model/messageList'
-], function (quote, $t, globalMessageList) {
+    'Magento_Ui/js/model/messageList',
+    'Polkurier_Shipping/js/model/pickup-point',
+    'mage/translate'
+], function (quote, messageList, pickupPoint, $t) {
     'use strict';
 
-    return function (target) {
-        return target.extend({
-            validateShippingInformation() {
-                const result = this._super();
-                if (!result
-                    || quote.shippingMethod().carrier_code !== 'polkurier'
-                    || !window.checkoutConfig.polkurier.map.allowedMethods.includes(quote.shippingMethod().method_code)
-                ) {
-                    return result;
-                }
+    return function (Shipping) {
+        return Shipping.extend({
+            /**
+             * @returns {Boolean}
+             */
+            validateShippingInformation: function () {
+                const method = quote.shippingMethod();
 
-                if (!quote.extensionAttributes
-                    || !quote.extensionAttributes.polkurier_point
+                if (pickupPoint.isOwnMethod(method)
+                    && pickupPoint.isRequired(method.method_code)
+                    && !pickupPoint.get(method.method_code)
                 ) {
-                    globalMessageList.addErrorMessage({
-                        message: $t('Please select a pickup point')
-                    });
+                    messageList.addErrorMessage({message: $t('Choose a pickup point for the selected delivery method.')});
 
                     return false;
                 }
 
-                return true;
+                return this._super();
             }
         });
     };

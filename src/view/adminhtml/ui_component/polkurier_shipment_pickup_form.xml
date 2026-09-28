@@ -1,0 +1,90 @@
+<?xml version="1.0"?>
+<!--
+ ~ Copyright (c) 2026 Polkurier.pl
+ ~ All Rights Reserved
+-->
+<form xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Ui:etc/ui_configuration.xsd">
+    <argument name="data" xsi:type="array">
+        <item name="js_config" xsi:type="array">
+            <item name="provider" xsi:type="string">polkurier_shipment_pickup_form.polkurier_shipment_pickup_form_data_source</item>
+        </item>
+        <item name="template" xsi:type="string">templates/form/collapsible</item>
+    </argument>
+    <settings>
+        <namespace>polkurier_shipment_pickup_form</namespace>
+        <dataScope>data</dataScope>
+        <deps>
+            <dep>polkurier_shipment_pickup_form.polkurier_shipment_pickup_form_data_source</dep>
+        </deps>
+        <buttons>
+            <button name="back">
+                <url path="*/*/index"/>
+                <class>back</class>
+                <label translate="true">Back</label>
+            </button>
+            <button name="save" class="Polkurier\Shipping\Ui\Component\Control\SaveButton"/>
+        </buttons>
+    </settings>
+    <dataSource name="polkurier_shipment_pickup_form_data_source">
+        <argument name="data" xsi:type="array">
+            <item name="js_config" xsi:type="array">
+                <item name="component" xsi:type="string">Magento_Ui/js/form/provider</item>
+            </item>
+        </argument>
+        <settings>
+            <submitUrl path="*/*/pickup"/>
+        </settings>
+        <dataProvider class="Polkurier\Shipping\Ui\Component\Form\Pickup\DataProvider" name="polkurier_shipment_pickup_form_data_source">
+            <settings>
+                <requestFieldName>ids</requestFieldName>
+                <primaryFieldName>ids</primaryFieldName>
+            </settings>
+        </dataProvider>
+    </dataSource>
+    <fieldset name="pickup">
+        <settings>
+            <label translate="true">Collective pickup</label>
+        </settings>
+        <field name="ids" formElement="input">
+            <settings>
+                <label translate="true">Shipments</label>
+                <dataType>text</dataType>
+                <dataScope>ids</dataScope>
+                <visible>false</visible>
+            </settings>
+        </field>
+        <field name="shipments" formElement="textarea">
+            <settings>
+                <label translate="true">Shipments</label>
+                <dataType>text</dataType>
+                <dataScope>shipments</dataScope>
+                <disabled>true</disabled>
+            </settings>
+        </field>
+        <field name="pickup_date" formElement="input">
+            <settings>
+                <label translate="true">Collection date (YYYY-MM-DD)</label>
+                <dataType>text</dataType>
+                <dataScope>pickup_date</dataScope>
+                <validation><rule name="required-entry" xsi:type="boolean">true</rule></validation>
+            </settings>
+        </field>
+        <field name="pickup_time_from" formElement="input">
+            <settings>
+                <label translate="true">From (HH:MM)</label>
+                <dataType>text</dataType>
+                <dataScope>pickup_time_from</dataScope>
+                <validation><rule name="required-entry" xsi:type="boolean">true</rule></validation>
+            </settings>
+        </field>
+        <field name="pickup_time_to" formElement="input">
+            <settings>
+                <label translate="true">To (HH:MM)</label>
+                <dataType>text</dataType>
+                <dataScope>pickup_time_to</dataScope>
+                <validation><rule name="required-entry" xsi:type="boolean">true</rule></validation>
+            </settings>
+        </field>
+    </fieldset>
+</form>

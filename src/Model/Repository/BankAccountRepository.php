@@ -7,119 +7,75 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Model\Repository;
 
-use Magento\Framework\Exception\AlreadyExistsException;
+use Magento\Framework\Api\SearchCriteria\CollectionProcessorInterface;
+use Magento\Framework\Api\SearchCriteriaInterface;
+use Magento\Framework\Exception\CouldNotDeleteException;
+use Magento\Framework\Exception\CouldNotSaveException;
+use Magento\Framework\Exception\NoSuchEntityException;
 use Polkurier\Shipping\Api\BankAccountRepositoryInterface;
 use Polkurier\Shipping\Api\Data\BankAccountInterface;
-use Polkurier\Shipping\Api\ExternalEntityRepositoryInterface;
+use Polkurier\Shipping\Api\Data\BankAccountSearchResultsInterface;
+use Polkurier\Shipping\Api\Data\BankAccountSearchResultsInterfaceFactory;
 use Polkurier\Shipping\Model\BankAccount;
 use Polkurier\Shipping\Model\BankAccountFactory;
-use Polkurier\Shipping\Model\ResourceModel\BankAccount as BankAccountResource;
+use Polkurier\Shipping\Model\ResourceModel\BankAccount as ResourceModel;
 use Polkurier\Shipping\Model\ResourceModel\BankAccount\CollectionFactory;
 
-readonly class BankAccountRepository implements BankAccountRepositoryInterface, ExternalEntityRepositoryInterface
+class BankAccountRepository implements BankAccountRepositoryInterface
 {
-    /**
-     * @param BankAccountFactory $entityFactory
-     * @param BankAccountResource $resource
-     * @param CollectionFactory $collectionFactory
-     */
     public function __construct(
-        /**
-         * @var BankAccountFactory
-         */
-        private BankAccountFactory $entityFactory,
-
-        /**
-         * @var BankAccountResource
-         */
-        private BankAccountResource $resource,
-
-        /**
-         * @var CollectionFactory
-         */
-        private CollectionFactory $collectionFactory,
+        private readonly BankAccountFactory $entityFactory,
+        private readonly ResourceModel $resource,
+        private readonly CollectionFactory $collectionFactory,
+        private readonly CollectionProcessorInterface $collectionProcessor,
+        private readonly BankAccountSearchResultsInterfaceFactory $searchResultsFactory,
     ) {}
 
-    /**
-     * @return iterable<BankAccountInterface>
-     */
-    public function findAll(): iterable
+    public function get(int $id): BankAccountInterface
     {
-        return $this->collectionFactory->create()->load();
-    }
-
-    /**
-     * @param int $id
-     *
-     * @return BankAccountInterface|null
-     */
-    public function findOneById(int $id): ?BankAccountInterface
-    {
-        $account = $this->entityFactory->create();
-        $this->resource->load($account, $id);
-
-        return $account->getId() ? $account : null;
-    }
-
-    /**
-     * @return BankAccountInterface|null
-     */
-    public function findOneDefault(): ?BankAccountInterface
-    {
-        $account = $this->entityFactory->create();
-        $this->resource->load($account, 1, BankAccount::FIELD_DEFAULT);
-
-        return $account->getId() ? $account : null;
-    }
-
-    /**
-     * @param BankAccountInterface $bankAccount
-     *
-     * @return BankAccountInterface
-     * @throws AlreadyExistsException
-     */
-    public function save(BankAccountInterface $bankAccount): BankAccountInterface
-    {
-        $this->resource->save($bankAccount);
-
-        return $bankAccount;
-    }
-
-    /**
-     * @param BankAccountInterface $bankAccount
-     *
-     * @return void
-     * @throws \Exception
-     */
-    public function delete(BankAccountInterface $bankAccount): void
-    {
-        $this->resource->delete($bankAccount);
-    }
-
-    /**
-     * @param int $id
-     *
-     * @return void
-     * @throws \Exception
-     */
-    public function deleteById(int $id): void
-    {
-        $bankAccount = $this->findOneById($id);
-        if ($bankAccount) {
-            $this->delete($bankAccount);
+        $entity = $this->entityFactory->create();
+        $this->resource->load($entity, $id);
+        if (!$entity->getId()) {
+            throw new NoSuchEntityException(\__('The bank account with id "%1" does not exist.', $id));
         }
+
+        return $entity;
     }
 
-    /**
-     * @param string $extId
-     *
-     * @return BankAccountInterface|null
-     */
-    public function findOneByExtId(string $extId): ?BankAccountInterface
+    public function getList(SearchCriteriaInterface $searchCriteria): BankAccountSearchResultsInterface
     {
-        $bankAccount = $this->entityFactory->create();
-        $this->resource->load($bankAccount, $extId, BankAccount::FIELD_EXT_ID);
+        $collection = $this->collectionFactory->create();
+        $this->collectionProcessor->process($searchCriteria, $collection);
 
-        return $bankAccount->getId() ? $bankAccount : null;
+        $searchResults = $this->searchResultsFactory->create();
+        $searchResults->setSearchCriteria($searchCriteria);
+        $searchResults->setItems($collection->getItems());
+        $searchResults->setTotalCount($collection->getSize());
+
+        return $searchResults;
+    }
+
+    public function save(BankAccountInterface $entity): BankAccountInterface
+    {
+        try {
+            /** @var BankAccount $entity */
+            $this->resource->save($entity);
+        } catch (\Exception $e) {
+            throw new CouldNotSaveException(\__('Could not save the bank account: %1', $e->getMessage()), $e);
+        }
+
+        return $entity;
+    }
+
+    public function delete(BankAccountInterface $entity): bool
+    {
+        try {
+            /** @var BankAccount $entity */
+            $this->resource->delete($entity);
+        } catch (\Exception $e) {
+            throw new CouldNotDeleteException(\__('Could not delete the bank account: %1', $e->getMessage()), $e);
+        }
+
+        return true;
     }
 }

@@ -8,26 +8,29 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Model\ResourceModel\Address;
 
 use Magento\Framework\Model\ResourceModel\Db\Collection\AbstractCollection;
-use Polkurier\Shipping\Model\Address;
-use Polkurier\Shipping\Model\ResourceModel\Address as AddressResource;
+use Polkurier\Shipping\Model\Address as Model;
+use Polkurier\Shipping\Model\ResourceModel\Address as ResourceModel;
 
 class Collection extends AbstractCollection
 {
     /**
-     * @return void
+     * @var string
      */
+    protected $_idFieldName = 'address_id';
+
     protected function _construct(): void
     {
-        $this->_init(Address::class, AddressResource::class);
+        $this->_init(Model::class, ResourceModel::class);
     }
 
     /**
-     * @return $this
+     * @return Model[]
      */
-    public function addCoverFilter(): self
+    public function getItems(): array
     {
-        $this->addFieldToFilter(Address::FIELD_COVER, ['eq' => '1']);
+        /** @var Model[] $items */
+        $items = parent::getItems();
 
-        return $this;
+        return $items;
     }
 }

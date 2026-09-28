@@ -3,11 +3,12 @@
  ~ Copyright (c) 2026 Polkurier.pl
  ~ All Rights Reserved
 -->
-<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" layout="admin-2columns-left"
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
       xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <update handle="styles"/>
     <body>
         <referenceContainer name="content">
-            <uiComponent name="polkurier_address_form" />
+            <uiComponent name="polkurier_address_form"/>
         </referenceContainer>
     </body>
 </page>

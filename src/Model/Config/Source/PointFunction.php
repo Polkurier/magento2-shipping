@@ -7,20 +7,19 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Model\Config\Source;
 
-use Magento\Framework\Data\OptionSourceInterface;
-use Polkurier\Webservice\Enum\PointFunctionEnum;
+use Polkurier\Webservice\Enum\Courier\PointFunctionEnum;
 
-readonly class PointFunction implements OptionSourceInterface
+/**
+ * What a pickup point must allow to be shown.
+ */
+class PointFunction extends AbstractOptions
 {
-    /**
-     * @return array[]
-     */
-    public function toOptionArray(): array
+    public function toArray(): array
     {
         return [
-            ['value' => PointFunctionEnum::COD->value, 'label' => __('Cash on delivery handling')],
-            ['value' => PointFunctionEnum::SEND->value, 'label' => __('Sending shipments')],
-            ['value' => PointFunctionEnum::COLLECT->value, 'label' => __('Collecting shipments')],
+            PointFunctionEnum::Collect->value => (string)\__('Collect parcels'),
+            PointFunctionEnum::Send->value => (string)\__('Send parcels'),
+            PointFunctionEnum::Cod->value => (string)\__('Collect cash on delivery'),
         ];
     }
 }

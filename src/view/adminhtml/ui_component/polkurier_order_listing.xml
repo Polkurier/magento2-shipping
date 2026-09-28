@@ -15,17 +15,26 @@
             <dep>polkurier_order_listing.polkurier_order_listing_data_source</dep>
         </deps>
     </settings>
-    <dataSource name="polkurier_order_listing_data_source" component="Magento_Ui/js/grid/provider">
-        <settings>
-            <updateUrl path="mui/index/render"/>
-        </settings>
-        <aclResource>Polkurier_Shipping::orders</aclResource>
-        <dataProvider class="Magento\Framework\View\Element\UiComponent\DataProvider\DataProvider" name="polkurier_order_listing_data_source">
-            <settings>
-                <requestFieldName>id</requestFieldName>
-                <primaryFieldName>main_table.entity_id</primaryFieldName>
-            </settings>
-        </dataProvider>
+    <dataSource name="polkurier_order_listing_data_source">
+        <!-- Argument style, because the settings style leaves no place for referer_url: Magento's mass
+             actions return to the list the action came from. -->
+        <argument name="dataProvider" xsi:type="configurableObject">
+            <argument name="class" xsi:type="string">Magento\Framework\View\Element\UiComponent\DataProvider\DataProvider</argument>
+            <argument name="name" xsi:type="string">polkurier_order_listing_data_source</argument>
+            <argument name="primaryFieldName" xsi:type="string">main_table.entity_id</argument>
+            <argument name="requestFieldName" xsi:type="string">id</argument>
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="component" xsi:type="string">Magento_Ui/js/grid/provider</item>
+                    <item name="update_url" xsi:type="url" path="mui/index/render"/>
+                    <item name="referer_url" xsi:type="string">polkurier/order/index</item>
+                    <item name="aclResource" xsi:type="string">Polkurier_Shipping::orders</item>
+                    <item name="storageConfig" xsi:type="array">
+                        <item name="indexField" xsi:type="string">entity_id</item>
+                    </item>
+                </item>
+            </argument>
+        </argument>
     </dataSource>
     <listingToolbar name="listing_top">
         <settings>

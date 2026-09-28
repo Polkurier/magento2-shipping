@@ -1,0 +1,100 @@
+<!--
+ ~ Copyright (c) 2026 Polkurier.pl
+ ~ All Rights Reserved
+-->
+# Addresses, bank accounts and pack templates
+
+[User guide](README.md) › Addresses, bank accounts and pack templates
+
+These three live under **Polkurier > Settings**. They exist both in Magento and in your Polkurier
+account, and the module keeps the two in step, so you can edit them in whichever place is handier.
+
+## Addresses
+
+Your sender addresses: where couriers collect parcels, and what's printed as the sender.
+
+- **Label**: your own name for the address, shown in lists.
+- **Name**, **Company**, **Street**, **House number**, **Flat number**, **Postcode**, **City**,
+  **Province**, **Country**, **Phone**, **E-mail**: the address itself.
+- **Sender pickup point**: the point you usually drop parcels off at, for carriers that let you
+  send from a point.
+- **Default sender**: preselected for new shipments. Mark just one per website; if several are
+  marked, the first one found is used.
+- **Can be a cover address**: allows the address to be printed on labels instead of the real
+  sender's, for example your brand's address when parcels leave a warehouse. You choose a cover
+  address per shipment, under additional services.
+
+If you haven't marked any address as the default, shipments can fall back to your store's address
+or its shipping origin; see **Fall back to the store's address** and **Fall back to the shipping
+origin** on the [configuration page](configuration.md#shipments).
+
+## Bank accounts
+
+Where Polkurier pays out the cash on delivery money you collect.
+
+- **Account name**: your own name for the account.
+- **Account number**: the account's number.
+- **Default**: preselected for shipments with cash on delivery.
+
+Polkurier wants your confirmation for every new or changed bank account, so the form has a
+**Confirmation with Polkurier** section:
+
+- If your account protects bank accounts with a security PIN, enter it under **Security PIN**.
+- Otherwise click **Send me the confirmation code**, enter the code Polkurier sends you under
+  **Confirmation code**, and save.
+
+Without a confirmation, or if Polkurier doesn't accept it, the account is still saved in Magento,
+but shown as **Awaiting confirmation** until you open it and confirm it. Changes made in the
+Polkurier panel still come back with the sync in the meantime.
+
+To delete a bank account protected by a PIN, open it, enter the PIN and use **Delete** on the
+form. Otherwise **Delete** in the list works as for the others.
+
+## Pack templates
+
+The parcels you ship most often, so you don't have to type sizes every time.
+
+- **Template name** and **Description**.
+- **Shipment type** (parcel, envelope, pallet) and **Parcel type** (standard, non-standard, long,
+  half pallet, pallet).
+- **Length**, **Width**, **Height** in centimetres and **Weight** in kilograms.
+- **Cash on delivery**, **Insurance**, **Carrier code** and **Additional services**: kept with the
+  template in your Polkurier account, for use in the Polkurier panel.
+- **Default for new shipments**: new shipments start with one parcel of this template.
+
+When you pick a template for a parcel, it fills in the parcel type, size and weight, which you can
+still change for that parcel. On Magento's shipment page, each package in the packaging window has
+a **Pack template…** list for this.
+
+## Editing in the lists
+
+You don't have to open an entry to change it: click a row in any of the three lists and edit its
+fields in place, then click **Save** under the row. Tick several rows to edit them together. Each
+change is sent to Polkurier as when you save the form, and if Polkurier refuses one, the row shows
+why.
+
+On the edit forms, **Save and Continue Edit** saves without taking you back to the list.
+
+## Keeping Magento and Polkurier in step
+
+- **Saving in Magento** sends the change to Polkurier straight away.
+- **Changes made in the Polkurier panel** come back with the hourly sync, or at once if you click
+  **Synchronize with Polkurier** on any of these three pages.
+- **If the same entry changed on both sides** since the last sync, the more recent change wins.
+- **Deleting in Magento**, with **Delete** in an entry's row or for several entries at once from
+  the **Actions** menu, deletes them in Polkurier too.
+- **Deleting in Polkurier** removes the entry from Magento, unless you edited it in Magento in the
+  meantime; then your edit is sent back to Polkurier.
+
+The lists show each entry's **Synchronization** state:
+
+| State | Meaning |
+|---|---|
+| In sync | Magento and Polkurier agree |
+| Waiting to be sent | changed in Magento, not sent yet (usually because Polkurier couldn't be reached); the next sync sends it |
+| Error | Polkurier refused the change; the reason is under **Sync error** |
+| Awaiting confirmation | a bank account change that still needs your PIN or confirmation code |
+
+The form of each entry also shows its **Polkurier ID** and when it was **Last synchronized**.
+
+Next: [Checkout](checkout.md)

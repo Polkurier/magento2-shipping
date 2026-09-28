@@ -7,20 +7,17 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Model;
 
-use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Model\AbstractModel;
 use Polkurier\Shipping\Api\Data\BankAccountInterface;
-use Polkurier\Shipping\Api\Data\ExternalEntityInterface;
-use Polkurier\Shipping\Model\ResourceModel\BankAccount as BankAccountResource;
 
-class BankAccount extends AbstractModel implements BankAccountInterface, ExternalEntityInterface
+/**
+ * A bank account kept in Magento and mirrored from Polkurier.
+ */
+class BankAccount extends AbstractModel implements BankAccountInterface
 {
-    use ExternalEntityTrait;
+    use SyncableTrait;
 
-    public const string FIELD_ACCOUNT_ID = 'account_id';
-    public const string FIELD_NAME = 'name';
-    public const string FIELD_NUMBER = 'number';
-    public const string FIELD_DEFAULT = 'default';
+    public const string ID_FIELD = 'account_id';
 
     /**
      * @var string
@@ -30,86 +27,46 @@ class BankAccount extends AbstractModel implements BankAccountInterface, Externa
     /**
      * @var string
      */
-    protected $_eventObject = 'polkurier_bank_account';
+    protected $_eventObject = 'bankAccount';
 
-    /**
-     * @return void
-     * @throws LocalizedException
-     */
     protected function _construct(): void
     {
-        $this->_init(BankAccountResource::class);
+        $this->_init(ResourceModel\BankAccount::class);
     }
 
-    /**
-     * @return int|null
-     */
-    public function getAccountId(): ?int
-    {
-        return (int)$this->getData(static::FIELD_ACCOUNT_ID) ?: null;
-    }
-
-    /**
-     * @param int|null $accountId
-     *
-     * @return void
-     */
-    public function setAccountId(?int $accountId): void
-    {
-        $this->setData(static::FIELD_ACCOUNT_ID, $accountId);
-    }
-
-    /**
-     * @return string
-     */
     public function getName(): string
     {
-        return (string)$this->getData(static::FIELD_NAME);
+        $value = $this->getData(self::NAME);
+
+        return (string)$value;
     }
 
-    /**
-     * @param string $name
-     *
-     * @return void
-     */
-    public function setName(string $name): void
+    public function setName(string $name): static
     {
-        $this->setData(static::FIELD_NAME, $name);
+        return $this->setData(self::NAME, $name);
     }
 
-    /**
-     * @return string
-     */
     public function getNumber(): string
     {
-        return (string)$this->getData(static::FIELD_NUMBER);
+        $value = $this->getData(self::NUMBER);
+
+        return (string)$value;
     }
 
-    /**
-     * @param string $number
-     *
-     * @return void
-     */
-    public function setNumber(string $number): void
+    public function setNumber(string $number): static
     {
-        $this->setData(static::FIELD_NUMBER, $number);
+        return $this->setData(self::NUMBER, $number);
     }
 
-    /**
-     * @return bool
-     */
     public function isDefault(): bool
     {
-        return (bool)$this->getData(static::FIELD_DEFAULT);
+        $value = $this->getData(self::IS_DEFAULT);
+
+        return (bool)$value;
     }
 
-    /**
-     * @param bool $default
-     *
-     * @return void
-     */
-    public function setDefault(bool $default): void
+    public function setDefault(bool $default): static
     {
-        $this->setData(static::FIELD_DEFAULT, $default);
+        return $this->setData(self::IS_DEFAULT, (int)$default);
     }
 }

@@ -1,0 +1,13 @@
+<!--
+ ~ Copyright (c) 2026 Polkurier.pl
+ ~ All Rights Reserved
+-->
+<!-- ko foreach: inputs -->
+<div class="admin__field" css="_required: required">
+    <label class="admin__field-label"><span text="label"></span></label>
+    <div class="admin__field-control">
+        <input class="admin__control-text" type="text" data-bind="value: value"/>
+        <div class="admin__field-note" if="description"><span text="description"></span></div>
+    </div>
+</div>
+<!-- /ko -->

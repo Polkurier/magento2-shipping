@@ -7,21 +7,19 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Model\Config\Source;
 
-use Magento\Framework\Data\OptionSourceInterface;
-use Polkurier\Webservice\Enum\CodTypeEnum;
+use Polkurier\Webservice\Enum\Order\CodTypeEnum;
 
-readonly class CodType implements OptionSourceInterface
+/**
+ * Cash on delivery payout times. 16 days is left out: it can't be ordered through the module.
+ */
+class CodType extends AbstractOptions
 {
-    /**
-     * @return array[]
-     */
-    public function toOptionArray(): array
+    public function toArray(): array
     {
         return [
-            ['value' => CodTypeEnum::STANDARD->value, 'label' => \__('STANDARD - Refund within 5-7 business days depending on carrier')],
-            ['value' => CodTypeEnum::ONE_DAY->value, 'label' => \__('Refund within 1 business day of delivery')],
-            ['value' => CodTypeEnum::FOUR_DAYS->value, 'label' => \__('Refund within 4 business days of delivery')],
-            ['value' => CodTypeEnum::SIXTEEN_DAYS->value, 'label' => \__('Refund within 16 business days of delivery')],
+            CodTypeEnum::Standard->value => (string)\__('Standard'),
+            CodTypeEnum::OneDay->value => (string)\__('Next day'),
+            CodTypeEnum::FourDays->value => (string)\__('Within 4 days'),
         ];
     }
 }

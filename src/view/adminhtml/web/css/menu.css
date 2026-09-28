@@ -1,0 +1,12 @@
+/**
+ * Copyright (c) 2026 Polkurier.pl
+ * All Rights Reserved
+ */
+/* The Polkurier mark in place of the admin menu's generic module glyph. It is drawn as a mask
+   filled with the text colour, so it follows the menu's own grey, hover and active states. */
+.admin__menu #menu-polkurier-shipping-root > a:before {
+    content: '';
+    background-color: currentColor;
+    -webkit-mask: url('../images/menu-icon.svg') center / auto 100% no-repeat;
+    mask: url('../images/menu-icon.svg') center / auto 100% no-repeat;
+}

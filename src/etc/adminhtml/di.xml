@@ -5,12 +5,79 @@
 -->
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
-    <!-- Order address form -->
-    <type name="Magento\Sales\Block\Adminhtml\Order\Address\Form">
-        <plugin name="polkurier_order_address_form"
-                type="Polkurier\Shipping\Plugin\Block\Adminhtml\Order\Address\FormPlugin" />
-    </type>
+    <!-- Order view: the Ship button opens the Polkurier shipment form for Polkurier orders -->
     <type name="Magento\Sales\Block\Adminhtml\Order\View">
-        <plugin name="polkurier_swap_ship_button" type="Polkurier\Shipping\Plugin\Block\Adminhtml\Order\ViewPlugin" />
+        <plugin name="polkurier_order_view_buttons" type="Polkurier\Shipping\Plugin\Adminhtml\OrderViewPlugin" />
     </type>
+
+    <!-- Address, bank account and pack template forms -->
+    <virtualType name="Polkurier\Shipping\Ui\Component\Form\MasterData\AddressDataProvider"
+                 type="Polkurier\Shipping\Ui\Component\Form\MasterData\DataProvider">
+        <arguments>
+            <argument name="collection" xsi:type="object">Polkurier\Shipping\Model\ResourceModel\Address\Collection</argument>
+            <argument name="persistorKey" xsi:type="string">polkurier_address</argument>
+        </arguments>
+    </virtualType>
+    <type name="Polkurier\Shipping\Ui\Component\Form\BankAccount\DataProvider">
+        <arguments>
+            <argument name="collection" xsi:type="object">Polkurier\Shipping\Model\ResourceModel\BankAccount\Collection</argument>
+        </arguments>
+    </type>
+    <virtualType name="Polkurier\Shipping\Ui\Component\Form\MasterData\PackTemplateDataProvider"
+                 type="Polkurier\Shipping\Ui\Component\Form\MasterData\DataProvider">
+        <arguments>
+            <argument name="collection" xsi:type="object">Polkurier\Shipping\Model\ResourceModel\PackTemplate\Collection</argument>
+            <argument name="persistorKey" xsi:type="string">polkurier_pack_template</argument>
+        </arguments>
+    </virtualType>
+    <!-- Toolbar buttons of actions that change data: sent by POST -->
+    <virtualType name="Polkurier\Shipping\Ui\Component\Control\SyncAddressesButton" type="Polkurier\Shipping\Ui\Component\Control\PostButton">
+        <arguments>
+            <argument name="label" xsi:type="string">Synchronize with Polkurier</argument>
+            <argument name="path" xsi:type="string">polkurier/address/sync</argument>
+            <argument name="class" xsi:type="string">secondary</argument>
+        </arguments>
+    </virtualType>
+    <virtualType name="Polkurier\Shipping\Ui\Component\Control\SyncBankAccountsButton" type="Polkurier\Shipping\Ui\Component\Control\PostButton">
+        <arguments>
+            <argument name="label" xsi:type="string">Synchronize with Polkurier</argument>
+            <argument name="path" xsi:type="string">polkurier/bankaccount/sync</argument>
+            <argument name="class" xsi:type="string">secondary</argument>
+        </arguments>
+    </virtualType>
+    <virtualType name="Polkurier\Shipping\Ui\Component\Control\SyncPackTemplatesButton" type="Polkurier\Shipping\Ui\Component\Control\PostButton">
+        <arguments>
+            <argument name="label" xsi:type="string">Synchronize with Polkurier</argument>
+            <argument name="path" xsi:type="string">polkurier/packtemplate/sync</argument>
+            <argument name="class" xsi:type="string">secondary</argument>
+        </arguments>
+    </virtualType>
+    <virtualType name="Polkurier\Shipping\Ui\Component\Control\RefreshCarriersButton" type="Polkurier\Shipping\Ui\Component\Control\PostButton">
+        <arguments>
+            <argument name="label" xsi:type="string">Refresh carriers from Polkurier</argument>
+            <argument name="path" xsi:type="string">polkurier/carrier/refresh</argument>
+            <argument name="class" xsi:type="string">primary</argument>
+        </arguments>
+    </virtualType>
+    <!-- "Save and Continue Edit" on each settings form -->
+    <virtualType name="Polkurier\Shipping\Ui\Component\Control\SaveAndContinueAddress" type="Polkurier\Shipping\Ui\Component\Control\SaveAndContinueButton">
+        <arguments>
+            <argument name="formName" xsi:type="string">polkurier_address_form</argument>
+        </arguments>
+    </virtualType>
+    <virtualType name="Polkurier\Shipping\Ui\Component\Control\SaveAndContinueBankAccount" type="Polkurier\Shipping\Ui\Component\Control\SaveAndContinueButton">
+        <arguments>
+            <argument name="formName" xsi:type="string">polkurier_bank_account_form</argument>
+        </arguments>
+    </virtualType>
+    <virtualType name="Polkurier\Shipping\Ui\Component\Control\SaveAndContinuePackTemplate" type="Polkurier\Shipping\Ui\Component\Control\SaveAndContinueButton">
+        <arguments>
+            <argument name="formName" xsi:type="string">polkurier_pack_template_form</argument>
+        </arguments>
+    </virtualType>
+    <virtualType name="Polkurier\Shipping\Ui\Component\Control\SaveAndContinueCarrier" type="Polkurier\Shipping\Ui\Component\Control\SaveAndContinueButton">
+        <arguments>
+            <argument name="formName" xsi:type="string">polkurier_carrier_form</argument>
+        </arguments>
+    </virtualType>
 </config>

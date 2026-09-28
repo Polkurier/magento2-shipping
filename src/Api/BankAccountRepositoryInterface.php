@@ -7,45 +7,42 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Api;
 
+use Magento\Framework\Api\SearchCriteriaInterface;
+use Magento\Framework\Exception\CouldNotDeleteException;
+use Magento\Framework\Exception\CouldNotSaveException;
+use Magento\Framework\Exception\NoSuchEntityException;
 use Polkurier\Shipping\Api\Data\BankAccountInterface;
+use Polkurier\Shipping\Api\Data\BankAccountSearchResultsInterface;
 
+/**
+ * Stores the bank account records kept in Magento.
+ */
 interface BankAccountRepositoryInterface
 {
     /**
-     * @return iterable<BankAccountInterface>
-     */
-    public function findAll(): iterable;
-
-    /**
      * @param int $id
-     *
-     * @return BankAccountInterface|null
+     * @return \Polkurier\Shipping\Api\Data\BankAccountInterface
+     * @throws NoSuchEntityException
      */
-    public function findOneById(int $id): ?BankAccountInterface;
+    public function get(int $id): BankAccountInterface;
 
     /**
-     * @return BankAccountInterface|null
+     * @param \Magento\Framework\Api\SearchCriteriaInterface $searchCriteria
+     * @return \Polkurier\Shipping\Api\Data\BankAccountSearchResultsInterface
      */
-    public function findOneDefault(): ?BankAccountInterface;
+    public function getList(SearchCriteriaInterface $searchCriteria): BankAccountSearchResultsInterface;
 
     /**
-     * @param BankAccountInterface $bankAccount
-     *
-     * @return BankAccountInterface
+     * @param \Polkurier\Shipping\Api\Data\BankAccountInterface $entity
+     * @return \Polkurier\Shipping\Api\Data\BankAccountInterface
+     * @throws CouldNotSaveException
      */
-    public function save(BankAccountInterface $bankAccount): BankAccountInterface;
+    public function save(BankAccountInterface $entity): BankAccountInterface;
 
     /**
-     * @param BankAccountInterface $bankAccount
-     *
-     * @return void
+     * @param \Polkurier\Shipping\Api\Data\BankAccountInterface $entity
+     * @return bool
+     * @throws CouldNotDeleteException
      */
-    public function delete(BankAccountInterface $bankAccount): void;
-
-    /**
-     * @param int $id
-     *
-     * @return void
-     */
-    public function deleteById(int $id): void;
+    public function delete(BankAccountInterface $entity): bool;
 }

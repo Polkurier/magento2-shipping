@@ -7,52 +7,42 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Api;
 
+use Magento\Framework\Api\SearchCriteriaInterface;
+use Magento\Framework\Exception\CouldNotDeleteException;
+use Magento\Framework\Exception\CouldNotSaveException;
+use Magento\Framework\Exception\NoSuchEntityException;
 use Polkurier\Shipping\Api\Data\CarrierConfigInterface;
+use Polkurier\Shipping\Api\Data\CarrierConfigSearchResultsInterface;
 
+/**
+ * Stores the carrier configuration records kept in Magento.
+ */
 interface CarrierConfigRepositoryInterface
 {
     /**
-     * @return iterable<CarrierConfigInterface>
-     */
-    public function findAll(): iterable;
-
-    /**
-     * @return iterable<CarrierConfigInterface>
-     */
-    public function findActive(): iterable;
-
-    /**
      * @param int $id
-     *
-     * @return CarrierConfigInterface|null
+     * @return \Polkurier\Shipping\Api\Data\CarrierConfigInterface
+     * @throws NoSuchEntityException
      */
-    public function findOneById(int $id): ?CarrierConfigInterface;
+    public function get(int $id): CarrierConfigInterface;
 
     /**
-     * @param string $code
-     *
-     * @return CarrierConfigInterface|null
+     * @param \Magento\Framework\Api\SearchCriteriaInterface $searchCriteria
+     * @return \Polkurier\Shipping\Api\Data\CarrierConfigSearchResultsInterface
      */
-    public function findOneByCode(string $code): ?CarrierConfigInterface;
+    public function getList(SearchCriteriaInterface $searchCriteria): CarrierConfigSearchResultsInterface;
 
     /**
-     * @param CarrierConfigInterface $carrierConfig
-     *
-     * @return CarrierConfigInterface
+     * @param \Polkurier\Shipping\Api\Data\CarrierConfigInterface $entity
+     * @return \Polkurier\Shipping\Api\Data\CarrierConfigInterface
+     * @throws CouldNotSaveException
      */
-    public function save(CarrierConfigInterface $carrierConfig): CarrierConfigInterface;
+    public function save(CarrierConfigInterface $entity): CarrierConfigInterface;
 
     /**
-     * @param CarrierConfigInterface $carrierConfig
-     *
-     * @return void
+     * @param \Polkurier\Shipping\Api\Data\CarrierConfigInterface $entity
+     * @return bool
+     * @throws CouldNotDeleteException
      */
-    public function delete(CarrierConfigInterface $carrierConfig): void;
-
-    /**
-     * @param string $code
-     *
-     * @return void
-     */
-    public function deleteByCode(string $code): void;
+    public function delete(CarrierConfigInterface $entity): bool;
 }

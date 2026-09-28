@@ -1,0 +1,43 @@
+<!--
+ ~ Copyright (c) 2026 Polkurier.pl
+ ~ All Rights Reserved
+-->
+# Tests
+
+[Developer guide](README.md) › Tests
+
+Unit tests are in `src/Test/Unit`, mirroring the source tree. Run them with Magento's unit test
+configuration from the Magento root:
+
+```bash
+vendor/bin/phpunit -c dev/tests/unit/phpunit.xml.dist vendor/polkurier/magento2-shipping/src/Test/Unit
+```
+
+A warning about Magento's Allure reporting extension missing its config file comes from Magento's
+test configuration and doesn't affect the results.
+
+## How they're written
+
+- **No request leaves the machine.** Tests that go through the SDK use its `RecordingClient`
+  (`Polkurier\Webservice\Testing\RecordingClient`), which answers with prepared responses and
+  records what would have been sent. They check both what comes back and the request payload.
+  `Test/Unit/Support/SdkTestCase` sets up an SDK client around it.
+- **Recorded answers** live in `Test/Unit/_files`.
+- **Events** are checked with `Test/Unit/Support/RecordingEventManager`, which records dispatched
+  events and can be made to fail, to prove a failing observer doesn't undo a change.
+- **Magento models** are built with stubbed resources rather than the object manager helper, so the
+  tests stay fast and don't need a database.
+
+## What's covered
+
+The parts where a mistake costs money or data have the most tests: placing, reconciliation and
+duplicates (`ShipmentManagementTest`, `AutoReconcilerTest`), when a shipment counts as finished
+(`OrderSnapshotTest`), the status refresh (`StatusRefresherTest`), Magento's label flow
+(`NativeLabelTest`, `PrepareLabelledShipmentTest`), the sync engine and bank account confirmation
+(`SyncEngineTest`, `PublisherTest`), payload mapping (`CreateOrderMessageMapperTest`,
+`AddressBookMapperTest`, `StreetParserTest`), pricing (`TiersTest`, `PolkurierTest`), the
+multi-address checkout (`CheckoutPluginTest`, `CopyPickupPointsToOrdersTest`) and secret masking
+(`TokenRedactingProcessorTest`).
+
+When you extend the module, the same helpers work for your own tests: build the module's services
+with a `RecordingClient`-backed `ClientPool` and assert on the payload.

@@ -7,28 +7,31 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Controller\Adminhtml\Order;
 
-use Polkurier\Shipping\Controller\Adminhtml\Index as BaseAction;
+use Magento\Backend\App\Action;
+use Magento\Backend\App\Action\Context;
+use Magento\Framework\App\Action\HttpGetActionInterface;
+use Magento\Framework\View\Result\PageFactory;
 
-class Index extends BaseAction
+class Index extends Action implements HttpGetActionInterface
 {
     public const string ADMIN_RESOURCE = 'Polkurier_Shipping::orders';
 
-    public function execute()
+    public function __construct(
+        Context $context,
+        private readonly PageFactory $pageFactory,
+    ) {
+        parent::__construct($context);
+    }
+
+    public function execute(): \Magento\Backend\Model\View\Result\Page
     {
-        if ($this->getRequest()->getQuery('ajax')) {
-            $resultForward = $this->resultForwardFactory->create();
-            $resultForward->forward('grid');
-
-            return $resultForward;
+        $page = $this->pageFactory->create();
+        if (!$page instanceof \Magento\Backend\Model\View\Result\Page) {
+            throw new \LogicException('The admin area renders backend pages.');
         }
+        $page->setActiveMenu('Polkurier_Shipping::orders');
+        $page->getConfig()->getTitle()->prepend((string)\__('Orders'));
 
-        $resultPage = $this->resultPageFactory->create();
-        $resultPage->setActiveMenu('Polkurier_Shipping::orders');
-        $resultPage->getConfig()->getTitle()->prepend(\__('Orders'));
-        $resultPage->addBreadcrumb('Polkurier', 'Polkurier');
-        $resultPage->addBreadcrumb(\__('Sales'), \__('Sales'));
-        $resultPage->addBreadcrumb(\__('Orders'), \__('Orders'));
-
-        return $resultPage;
+        return $page;
     }
 }

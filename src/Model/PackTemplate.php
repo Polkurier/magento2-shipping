@@ -7,26 +7,17 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Model;
 
-use Magento\Framework\Exception\LocalizedException;
+use Magento\Framework\Model\AbstractModel;
 use Polkurier\Shipping\Api\Data\PackTemplateInterface;
-use Polkurier\Shipping\Api\Data\ExternalEntityInterface;
-use Polkurier\Shipping\Model\ResourceModel\PackTemplate as PackTemplateResource;
-use Polkurier\Webservice\Enum\AdditionalServiceEnum;
-use Polkurier\Webservice\Enum\ShipmentTypeEnum;
 
-class PackTemplate extends AbstractPack implements PackTemplateInterface, ExternalEntityInterface
+/**
+ * A pack template kept in Magento and mirrored with Polkurier.
+ */
+class PackTemplate extends AbstractModel implements PackTemplateInterface
 {
-    use ExternalEntityTrait;
+    use SyncableTrait;
 
-    public const string FIELD_TEMPLATE_ID = 'template_id';
-    public const string FIELD_NAME = 'name';
-    public const string FIELD_DESCRIPTION = 'description';
-    public const string FIELD_SHIPMENT_TYPE = 'shipment_type';
-    public const string FIELD_COD = 'cod';
-    public const string FIELD_INSURANCE = 'insurance';
-    public const string FIELD_CARRIER_CODE = 'carrier_code';
-    public const string FIELD_SERVICES = 'services';
-    public const string FIELD_DEFAULT = 'default';
+    public const string ID_FIELD = 'template_id';
 
     /**
      * @var string
@@ -36,182 +27,182 @@ class PackTemplate extends AbstractPack implements PackTemplateInterface, Extern
     /**
      * @var string
      */
-    protected $_eventObject = 'polkurier_pack_template';
+    protected $_eventObject = 'packTemplate';
 
-    /**
-     * @return void
-     * @throws LocalizedException
-     */
     protected function _construct(): void
     {
-        $this->_init(PackTemplateResource::class);
+        $this->_init(ResourceModel\PackTemplate::class);
     }
 
     /**
-     * @return int|null
+     * Services arrive from forms as a list; the column holds them comma-separated.
      */
-    public function getTemplateId(): ?int
+    public function beforeSave(): static
     {
-        return (int)$this->getData(static::FIELD_TEMPLATE_ID) ?: null;
+        $services = $this->getData(self::SERVICES);
+        if (\is_array($services)) {
+            $this->setData(self::SERVICES, \implode(',', \array_filter(\array_map('strval', $services))));
+        }
+
+        return parent::beforeSave();
     }
 
-    /**
-     * @param int|null $templateId
-     *
-     * @return void
-     */
-    public function setTemplateId(?int $templateId): void
-    {
-        $this->setData(static::FIELD_TEMPLATE_ID, $templateId);
-    }
-
-    /**
-     * @return string
-     */
     public function getName(): string
     {
-        return $this->getData(static::FIELD_NAME);
+        $value = $this->getData(self::NAME);
+
+        return (string)$value;
     }
 
-    /**
-     * @param string $name
-     *
-     * @return void
-     */
-    public function setName(string $name): void
+    public function setName(string $name): static
     {
-        $this->setData(static::FIELD_NAME, $name);
+        return $this->setData(self::NAME, $name);
     }
 
-    /**
-     * @return ShipmentTypeEnum
-     */
-    public function getShipmentType(): ShipmentTypeEnum
+    public function getDescription(): ?string
     {
-        return ShipmentTypeEnum::from($this->getData(static::FIELD_SHIPMENT_TYPE));
+        $value = $this->getData(self::DESCRIPTION);
+
+        return $value === null || $value === '' ? null : (string)$value;
     }
 
-    /**
-     * @param ShipmentTypeEnum $shipmentType
-     *
-     * @return void
-     */
-    public function setShipmentType(ShipmentTypeEnum $shipmentType): void
+    public function setDescription(?string $description): static
     {
-        $this->setData(static::FIELD_SHIPMENT_TYPE, $shipmentType->value);
+        return $this->setData(self::DESCRIPTION, $description);
     }
 
-    /**
-     * @return float
-     */
-    public function getCod(): float
+    public function getShipmentType(): string
     {
-        return $this->getData(static::FIELD_COD);
+        $value = $this->getData(self::SHIPMENT_TYPE);
+
+        return (string)$value;
     }
 
-    /**
-     * @param float $cod
-     *
-     * @return void
-     */
-    public function setCod(float $cod): void
+    public function setShipmentType(string $shipmentType): static
     {
-        $this->setData(static::FIELD_COD, $cod);
+        return $this->setData(self::SHIPMENT_TYPE, $shipmentType);
     }
 
-    /**
-     * @return float
-     */
-    public function getInsurance(): float
+    public function getPackType(): string
     {
-        return $this->getData(static::FIELD_INSURANCE);
+        $value = $this->getData(self::PACK_TYPE);
+
+        return (string)$value;
     }
 
-    /**
-     * @param float $insurance
-     *
-     * @return void
-     */
-    public function setInsurance(float $insurance): void
+    public function setPackType(string $packType): static
     {
-        $this->setData(static::FIELD_INSURANCE, $insurance);
+        return $this->setData(self::PACK_TYPE, $packType);
     }
 
-    /**
-     * @return string
-     */
-    public function getDescription(): string
+    public function getLength(): int
     {
-        return $this->getData(static::FIELD_DESCRIPTION);
+        $value = $this->getData(self::LENGTH);
+
+        return (int)$value;
     }
 
-    /**
-     * @param string $description
-     *
-     * @return void
-     */
-    public function setDescription(string $description): void
+    public function setLength(int $length): static
     {
-        $this->setData(static::FIELD_DESCRIPTION, $description);
+        return $this->setData(self::LENGTH, $length);
     }
 
-    /**
-     * @return string|null
-     */
-    public function getCourier(): ?string
+    public function getWidth(): int
     {
-        return $this->getData(static::FIELD_CARRIER_CODE);
+        $value = $this->getData(self::WIDTH);
+
+        return (int)$value;
     }
 
-    /**
-     * @param string|null $courier
-     *
-     * @return void
-     */
-    public function setCourier(?string $courier): void
+    public function setWidth(int $width): static
     {
-        $this->setData(static::FIELD_CARRIER_CODE, $courier);
+        return $this->setData(self::WIDTH, $width);
     }
 
-    /**
-     * @return AdditionalServiceEnum[]
-     */
+    public function getHeight(): int
+    {
+        $value = $this->getData(self::HEIGHT);
+
+        return (int)$value;
+    }
+
+    public function setHeight(int $height): static
+    {
+        return $this->setData(self::HEIGHT, $height);
+    }
+
+    public function getWeight(): float
+    {
+        $value = $this->getData(self::WEIGHT);
+
+        return (float)$value;
+    }
+
+    public function setWeight(float $weight): static
+    {
+        return $this->setData(self::WEIGHT, $weight);
+    }
+
+    public function getCodAmount(): float
+    {
+        $value = $this->getData(self::COD_AMOUNT);
+
+        return (float)$value;
+    }
+
+    public function setCodAmount(float $codAmount): static
+    {
+        return $this->setData(self::COD_AMOUNT, $codAmount);
+    }
+
+    public function getInsuranceAmount(): float
+    {
+        $value = $this->getData(self::INSURANCE_AMOUNT);
+
+        return (float)$value;
+    }
+
+    public function setInsuranceAmount(float $insuranceAmount): static
+    {
+        return $this->setData(self::INSURANCE_AMOUNT, $insuranceAmount);
+    }
+
+    public function getCarrierCode(): ?string
+    {
+        $value = $this->getData(self::CARRIER_CODE);
+
+        return $value === null || $value === '' ? null : (string)$value;
+    }
+
+    public function setCarrierCode(?string $carrierCode): static
+    {
+        return $this->setData(self::CARRIER_CODE, $carrierCode);
+    }
+
     public function getServices(): array
     {
-        return \array_map(
-            fn (string $service) => AdditionalServiceEnum::from($service),
-            \explode(',', (string)$this->getData(static::FIELD_SERVICES))
-        );
+        $value = $this->getData(self::SERVICES);
+        if (\is_array($value)) {
+            return \array_values(\array_map('strval', $value));
+        }
+
+        return \array_values(\array_filter(\explode(',', (string)$value), static fn(string $item): bool => $item !== ''));
     }
 
-    /**
-     * @param AdditionalServiceEnum[] $services
-     *
-     * @return void
-     */
-    public function setServices(array $services): void
+    public function setServices(array $services): static
     {
-        $this->setData(
-            static::FIELD_SERVICES,
-            \implode(',', \array_map(fn (AdditionalServiceEnum $service) => $service->value, $services))
-        );
+        return $this->setData(self::SERVICES, \implode(',', $services));
     }
 
-    /**
-     * @return bool
-     */
     public function isDefault(): bool
     {
-        return (bool)$this->getData(static::FIELD_DEFAULT);
+        $value = $this->getData(self::IS_DEFAULT);
+
+        return (bool)$value;
     }
 
-    /**
-     * @param bool $default
-     *
-     * @return void
-     */
-    public function setDefault(bool $default): void
+    public function setDefault(bool $default): static
     {
-        $this->setData(static::FIELD_DEFAULT, $default);
+        return $this->setData(self::IS_DEFAULT, (int)$default);
     }
 }

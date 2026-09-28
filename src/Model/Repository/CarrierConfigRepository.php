@@ -7,118 +7,75 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Model\Repository;
 
-use Magento\Framework\Exception\AlreadyExistsException;
-use Magento\Framework\Exception\LocalizedException;
+use Magento\Framework\Api\SearchCriteria\CollectionProcessorInterface;
+use Magento\Framework\Api\SearchCriteriaInterface;
+use Magento\Framework\Exception\CouldNotDeleteException;
+use Magento\Framework\Exception\CouldNotSaveException;
+use Magento\Framework\Exception\NoSuchEntityException;
 use Polkurier\Shipping\Api\CarrierConfigRepositoryInterface;
 use Polkurier\Shipping\Api\Data\CarrierConfigInterface;
+use Polkurier\Shipping\Api\Data\CarrierConfigSearchResultsInterface;
+use Polkurier\Shipping\Api\Data\CarrierConfigSearchResultsInterfaceFactory;
 use Polkurier\Shipping\Model\CarrierConfig;
 use Polkurier\Shipping\Model\CarrierConfigFactory;
-use Polkurier\Shipping\Model\ResourceModel\CarrierConfig as CarrierConfigResource;
+use Polkurier\Shipping\Model\ResourceModel\CarrierConfig as ResourceModel;
 use Polkurier\Shipping\Model\ResourceModel\CarrierConfig\CollectionFactory;
 
-readonly class CarrierConfigRepository implements CarrierConfigRepositoryInterface
+class CarrierConfigRepository implements CarrierConfigRepositoryInterface
 {
-    /**
-     * @param CarrierConfigFactory $entityFactory
-     * @param CarrierConfigResource $resource
-     * @param CollectionFactory $collectionFactory
-     */
     public function __construct(
-        /**
-         * @var CarrierConfigFactory
-         */
-        private CarrierConfigFactory $entityFactory,
-
-        /**
-         * @var CarrierConfigResource
-         */
-        private CarrierConfigResource $resource,
-
-        /**
-         * @var CollectionFactory
-         */
-        private CollectionFactory $collectionFactory,
+        private readonly CarrierConfigFactory $entityFactory,
+        private readonly ResourceModel $resource,
+        private readonly CollectionFactory $collectionFactory,
+        private readonly CollectionProcessorInterface $collectionProcessor,
+        private readonly CarrierConfigSearchResultsInterfaceFactory $searchResultsFactory,
     ) {}
 
-    /**
-     * @return iterable<CarrierConfigInterface>
-     */
-    public function findAll(): iterable
+    public function get(int $id): CarrierConfigInterface
     {
-        return $this->collectionFactory->create()->sort()->load();
-    }
-
-    /**
-     * @return iterable<CarrierConfigInterface>
-     */
-    public function findActive(): iterable
-    {
-        return $this->collectionFactory->create()->addActiveFilter()->sort()->load();
-    }
-
-    /**
-     * @param int $id
-     *
-     * @return CarrierConfigInterface|null
-     */
-    public function findOneById(int $id): ?CarrierConfigInterface
-    {
-        $carrierConfig = $this->entityFactory->create();
-        $this->resource->load($carrierConfig, $id);
-
-        return $carrierConfig->getId() ? $carrierConfig : null;
-    }
-
-    /**
-     * @param string $code
-     *
-     * @return CarrierConfigInterface|null
-     * @throws LocalizedException
-     */
-    public function findOneByCode(string $code): ?CarrierConfigInterface
-    {
-        $carrierConfig = $this->entityFactory->create();
-        $this->resource->load($carrierConfig, $code, CarrierConfig::FIELD_CARRIER_CODE);
-
-        return $carrierConfig->getId() ? $carrierConfig : null;
-    }
-
-    /**
-     * @param CarrierConfigInterface $carrierConfig
-     *
-     * @return CarrierConfigInterface
-     * @throws AlreadyExistsException
-     */
-    public function save(CarrierConfigInterface $carrierConfig): CarrierConfigInterface
-    {
-        $this->resource->save($carrierConfig);
-
-        return $carrierConfig;
-    }
-
-    /**
-     * @param CarrierConfigInterface $carrierConfig
-     *
-     * @return void
-     * @throws \Exception
-     */
-    public function delete(CarrierConfigInterface $carrierConfig): void
-    {
-        $this->resource->delete($carrierConfig);
-    }
-
-    /**
-     * @param string $code
-     *
-     * @return void
-     * @throws LocalizedException
-     * @throws \Exception
-     */
-    public function deleteByCode(string $code): void
-    {
-        $carrierConfig = $this->findOneByCode($code);
-        if ($carrierConfig) {
-            $this->delete($carrierConfig);
+        $entity = $this->entityFactory->create();
+        $this->resource->load($entity, $id);
+        if (!$entity->getId()) {
+            throw new NoSuchEntityException(\__('The carrier config with id "%1" does not exist.', $id));
         }
+
+        return $entity;
+    }
+
+    public function getList(SearchCriteriaInterface $searchCriteria): CarrierConfigSearchResultsInterface
+    {
+        $collection = $this->collectionFactory->create();
+        $this->collectionProcessor->process($searchCriteria, $collection);
+
+        $searchResults = $this->searchResultsFactory->create();
+        $searchResults->setSearchCriteria($searchCriteria);
+        $searchResults->setItems($collection->getItems());
+        $searchResults->setTotalCount($collection->getSize());
+
+        return $searchResults;
+    }
+
+    public function save(CarrierConfigInterface $entity): CarrierConfigInterface
+    {
+        try {
+            /** @var CarrierConfig $entity */
+            $this->resource->save($entity);
+        } catch (\Exception $e) {
+            throw new CouldNotSaveException(\__('Could not save the carrier config: %1', $e->getMessage()), $e);
+        }
+
+        return $entity;
+    }
+
+    public function delete(CarrierConfigInterface $entity): bool
+    {
+        try {
+            /** @var CarrierConfig $entity */
+            $this->resource->delete($entity);
+        } catch (\Exception $e) {
+            throw new CouldNotDeleteException(\__('Could not delete the carrier config: %1', $e->getMessage()), $e);
+        }
+
+        return true;
     }
 }

@@ -3,12 +3,14 @@
  * All Rights Reserved
  */
 /**
- * The side panel of the shipment screen: the price with the chosen carrier, what still needs
- * attention, and the button that places the shipment.
+ * The foot of the side column: the price with the chosen carrier, a cheaper carrier if there is
+ * one. The shipment is placed with the page's button; placing it with something missing marks
+ * what, in the sections, instead of sending an order Polkurier would refuse.
  *
  * Whenever something that affects the price changes, it asks Polkurier again, once things settle,
- * and publishes every carrier's price as the provider's "quotes" for the carrier list. When the
- * form turns out invalid, it opens the modal holding the first invalid field.
+ * and publishes every carrier's price as the provider's "quotes", for the carrier list and the
+ * shipment section. When the form turns out invalid, it opens the modal holding the first invalid
+ * field, or brings the first section with something missing into view.
  */
 define([
     'uiComponent',
@@ -17,8 +19,9 @@ define([
     'ko',
     'underscore',
     'mage/translate',
-    './rules'
-], function (Component, registry, $, ko, _, $t, rules) {
+    './rules',
+    'Polkurier_Shipping/js/request'
+], function (Component, registry, $, ko, _, $t, rules, request) {
     'use strict';
 
     const DRAFT_FIELDS = [
@@ -30,21 +33,14 @@ define([
         'pickup_mode', 'pickup_date', 'pickup_time_from', 'pickup_time_to', 'additional_fields'
     ];
 
-    const MODALS = {
-        recipient: 'recipient_modal',
-        shipment: 'shipment_modal',
-        handover: 'handover_modal',
-        cod: 'cod_modal',
-        extras: 'extras_modal',
-        fields: 'fields_modal'
-    };
-
     return Component.extend({
         defaults: {
             template: 'Polkurier_Shipping/shipment/workspace/summary',
             provider: '${ $.ns }.${ $.ns }_data_source',
             formName: '${ $.ns }.${ $.ns }',
             quoteDelay: 600,
+            // The form's modals, from its XML: an invalid field in one of them opens it.
+            modals: [],
             invalid: false,
             imports: {
                 invalid: '${ $.provider }:params.invalid'
@@ -59,16 +55,27 @@ define([
             this.price = ko.observable(null);
             this.message = ko.observable('');
             this.quoting = ko.observable(false);
-            this.issues = ko.observableArray([]);
+            this.blocked = ko.observable(false);
             this.carrierName = ko.observable('');
             this.cheaper = ko.observable(null);
             this.lastPayload = null;
-            this.requestNumber = 0;
+            // Only the answer to the latest price request counts.
+            this.prices = request();
             this.scheduleQuote = _.debounce(this.quote.bind(this), this.quoteDelay);
-            this.source.on('data', _.debounce(this.onChange.bind(this), 30));
+            this.source.on('data', _.debounce(this.onChange.bind(this), 30), this.name);
+            this.source.on('quotes', _.debounce(this.refresh.bind(this), 30), this.name);
             this.onChange();
+            this.source.on('data.validate', this.onValidate.bind(this), this.name);
 
             return this;
+        },
+
+        /**
+         * Takes the summary's listeners off the form's data as it goes.
+         */
+        destroy: function () {
+            this.source.off(this.name);
+            this._super();
         },
 
         onChange: function () {
@@ -85,10 +92,10 @@ define([
             let best = null;
 
             this.carrierName(data.carrier_code ? (carriers[data.carrier_code] || {}).name || data.carrier_code : '');
-            this.issues(rules.issues(data, quotes));
+            this.publishIssues();
             this.price(chosen ? {
-                gross: chosen.gross.toFixed(2) + ' ' + currency,
-                net: chosen.net.toFixed(2) + ' ' + currency
+                gross: rules.money(chosen.gross, currency),
+                net: rules.money(chosen.net, currency)
             } : null);
             _.each(quotes || {}, function (quote, code) {
                 if (code !== data.carrier_code && (!best || quote.gross < best.gross)) {
@@ -99,7 +106,7 @@ define([
                 code: best.code,
                 text: $t('%1 is %2 cheaper.')
                     .replace('%1', (carriers[best.code] || {}).name || best.code)
-                    .replace('%2', (chosen.gross - best.gross).toFixed(2) + ' ' + currency)
+                    .replace('%2', rules.money(chosen.gross - best.gross, currency))
             } : null);
         },
 
@@ -124,18 +131,19 @@ define([
 
         quote: function () {
             const payload = this.payload(),
-                serialized = JSON.stringify(payload),
-                number = ++this.requestNumber;
+                serialized = JSON.stringify(payload);
 
+            // A change outside the priced fields must not cancel the request already on its way.
             if (serialized === this.lastPayload) {
                 return;
             }
             this.lastPayload = serialized;
+
             if (!this.canQuote(payload)) {
                 // Polkurier can't price an incomplete draft; keep every carrier on offer meanwhile.
-                ++this.requestNumber;
+                this.prices.cancel();
                 this.source.set('quotes', null);
-                this.message($t('Prices show once every parcel has its size and weight.'));
+                this.setMessage($t('Prices show once every parcel has its size and weight.'));
                 this.quoting(false);
                 this.source.set('quoting', false);
                 this.refresh();
@@ -144,32 +152,32 @@ define([
             }
             this.quoting(true);
             this.source.set('quoting', true);
-            $.ajax({
-                url: this.source.get('data.urls.calculate'),
-                type: 'POST',
-                dataType: 'json',
-                data: {form_key: window.FORM_KEY, isAjax: true, data: payload}
-            }).done(function (response) {
-                if (number !== this.requestNumber) {
-                    return;
-                }
-                const quotes = response.quotes && !_.isArray(response.quotes) ? response.quotes : {};
+            this.prices.post(this.source.get('data.urls.calculate'), {data: payload}, {
+                done: function (response) {
+                    const quotes = response.quotes && !_.isArray(response.quotes) ? response.quotes : {};
 
-                // No quote at all means the draft couldn't be priced, not that no carrier takes it.
-                this.source.set('quotes', _.isEmpty(quotes) ? null : quotes);
-                this.message(response.error ? response.message : '');
-            }.bind(this)).fail(function () {
-                if (number === this.requestNumber) {
-                    this.message($t('Prices could not be loaded.'));
+                    // No quote at all means the draft couldn't be priced, not that no carrier takes it.
+                    this.source.set('quotes', _.isEmpty(quotes) ? null : quotes);
+                    this.setMessage(response.error ? response.message : '');
+                }.bind(this),
+                fail: function () {
+                    this.setMessage($t('Prices could not be loaded.'));
                     this.lastPayload = null;
-                }
-            }.bind(this)).always(function () {
-                if (number === this.requestNumber) {
+                }.bind(this),
+                always: function () {
                     this.quoting(false);
                     this.source.set('quoting', false);
                     this.refresh();
-                }
-            }.bind(this));
+                }.bind(this)
+            });
+        },
+
+        /**
+         * @param {String} message why there's no price, shown in the shipment section too
+         */
+        setMessage: function (message) {
+            this.message(message);
+            this.source.set('quoteMessage', message);
         },
 
         /**
@@ -188,20 +196,20 @@ define([
         },
 
         /**
-         * @param {Object} issue
+         * Works out what needs attention, once for the whole screen, and publishes it as the
+         * provider's "issues" for the sections.
+         *
+         * @returns {Array<{card: String, text: String, blocking: Boolean}>}
          */
-        fix: function (issue) {
-            if (MODALS[issue.card]) {
-                registry.get(this.formName + '.' + MODALS[issue.card], function (modal) {
-                    modal.openModal();
-                });
-            } else {
-                const target = $(issue.card === 'parcels' ? '.polkurier-workspace__parcels' : '.polkurier-workspace__carriers');
+        publishIssues: function () {
+            const issues = rules.issues(this.source.get('data') || {}, this.source.get('quotes') || null);
 
-                if (target.length) {
-                    target[0].scrollIntoView({behavior: 'smooth', block: 'center'});
-                }
-            }
+            this.blocked(issues.some(function (issue) {
+                return issue.blocking;
+            }));
+            this.source.set('issues', issues);
+
+            return issues;
         },
 
         useCheaper: function () {
@@ -212,10 +220,18 @@ define([
             }
         },
 
-        place: function () {
-            registry.get(this.formName, function (form) {
-                form.save();
-            });
+        /**
+         * Placing with something missing marks it in its section and brings the first one into
+         * view, instead of sending an order Polkurier would refuse: the form validates before it
+         * saves, and a missing piece makes it invalid as an invalid field does.
+         */
+        onValidate: function () {
+            this.source.set('validated', true);
+            if (this.publishIssues().some(function (issue) {
+                return issue.blocking;
+            })) {
+                this.source.set('params.invalid', true);
+            }
         },
 
         /**
@@ -228,7 +244,7 @@ define([
                 return;
             }
             _.defer(function () {
-                const modal = _.find(_.values(MODALS), function (name) {
+                const modal = _.find(this.modals, function (name) {
                     const component = registry.get(this.formName + '.' + name);
 
                     return component && this.hasError(component);
@@ -239,10 +255,13 @@ define([
 
                     return;
                 }
-                const error = $('.polkurier-workspace .admin__field-error:visible').first();
+                const error = $('.polkurier-workspace .admin__field-error:visible').first(),
+                    section = $('.polkurier-section._invalid').first();
 
                 if (error.length) {
                     error[0].scrollIntoView({behavior: 'smooth', block: 'center'});
+                } else if (section.length) {
+                    section[0].scrollIntoView({behavior: 'smooth', block: 'start'});
                 }
             }.bind(this));
         },

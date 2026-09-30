@@ -8,6 +8,7 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Ui\Component\Control;
 
 use Magento\Framework\App\RequestInterface;
+use Magento\Framework\Serialize\Serializer\Json;
 use Magento\Framework\UrlInterface;
 use Magento\Framework\View\Element\UiComponent\Control\ButtonProviderInterface;
 
@@ -20,6 +21,7 @@ class DeleteBankAccountButton implements ButtonProviderInterface
     public function __construct(
         private readonly RequestInterface $request,
         private readonly UrlInterface $url,
+        private readonly Json $json,
     ) {}
 
     /**
@@ -31,8 +33,8 @@ class DeleteBankAccountButton implements ButtonProviderInterface
         if ($id === 0) {
             return [];
         }
-        $message = (string)\json_encode((string)\__('Delete this bank account in Polkurier and in Magento?'));
-        $url = (string)\json_encode($this->url->getUrl('polkurier/bankaccount/save'), \JSON_UNESCAPED_SLASHES);
+        $message = $this->json->serialize((string)\__('Delete this bank account in Polkurier and in Magento?'));
+        $url = $this->json->serialize($this->url->getUrl('polkurier/bankaccount/save'));
 
         return [
             'label' => \__('Delete'),

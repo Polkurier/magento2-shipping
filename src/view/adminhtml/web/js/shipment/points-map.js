@@ -11,7 +11,7 @@
  * iframe is only shown while the map dialog is open. The widget's script and styles are loaded
  * into it once, from the map host, the first time the map is needed.
  */
-define(['mage/translate'], function ($t) {
+define(['mage/translate', 'Magento_Ui/js/modal/alert'], function ($t, alert) {
     'use strict';
 
     let frame = null,
@@ -81,10 +81,24 @@ define(['mage/translate'], function ($t) {
 
     return {
         /**
+         * The point's address in one line, for showing next to its code.
+         *
+         * @param {Object} point as the map returns it
+         * @returns {String}
+         */
+        describe: function (point) {
+            if (!point) {
+                return '';
+            }
+
+            return point.address || [point.street, [point.zip, point.city].filter(Boolean).join(' ')].filter(Boolean).join(', ');
+        },
+
+        /**
          * @param {{token: String, baseUrl: String}} map
          * @param {String[]} providers the carrier's point providers
          * @param {String} searchQuery where the map should start, e.g. "00-001 Warszawa"
-         * @param {Function} onChoose called with the point's id
+         * @param {Function} onChoose called with the point's id and the point
          */
         open: function (map, providers, searchQuery, onChoose) {
             loadWidget(map.baseUrl).then(function (target) {
@@ -100,14 +114,14 @@ define(['mage/translate'], function ($t) {
                     showFrame(false);
                 });
                 instance.onConfirm(function (point) {
-                    onChoose(String(point.id));
+                    onChoose(String(point.id), point);
                     instance.closeMapDialog();
                 });
                 showFrame(true);
                 instance.showMapDialog();
             }, function () {
                 showFrame(false);
-                window.alert($t('The pickup point map could not be loaded.'));
+                alert({title: $t('Pickup point map'), content: $t('The pickup point map could not be loaded.')});
             });
         }
     };

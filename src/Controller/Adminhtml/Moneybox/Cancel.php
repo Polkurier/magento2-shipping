@@ -12,7 +12,6 @@ use Magento\Backend\App\Action\Context;
 use Magento\Framework\App\Action\HttpPostActionInterface;
 use Magento\Framework\Controller\Result\Redirect;
 use Magento\Framework\Exception\LocalizedException;
-use Polkurier\Shipping\Model\MoneyBox\AccountScope;
 use Polkurier\Shipping\Model\MoneyBox\Payouts;
 
 /**
@@ -25,25 +24,23 @@ class Cancel extends Action implements HttpPostActionInterface
     public function __construct(
         Context $context,
         private readonly Payouts $payouts,
-        private readonly AccountScope $accountScope,
     ) {
         parent::__construct($context);
     }
 
     public function execute(): Redirect
     {
-        $storeId = $this->accountScope->getStoreId();
         $number = (string)$this->getRequest()->getParam('number');
         try {
-            if ($storeId === null || $number === '') {
+            if ($number === '') {
                 throw new LocalizedException(\__('No payout to cancel.'));
             }
-            $this->payouts->cancelPayout($storeId, $number);
+            $this->payouts->cancelPayout($number);
             $this->messageManager->addSuccessMessage(\__('Payout %1 cancelled.', $number));
         } catch (LocalizedException $e) {
             $this->messageManager->addErrorMessage($e->getMessage());
         }
 
-        return $this->resultRedirectFactory->create()->setPath('*/*/index', ['website' => $this->getRequest()->getParam('website')]);
+        return $this->resultRedirectFactory->create()->setPath('*/*/index');
     }
 }

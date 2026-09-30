@@ -27,6 +27,12 @@ class SyncEngine
 {
     public const string DATE_FORMAT = 'Y-m-d H:i:s';
 
+    private const array LOCAL_CHANGE_STATES = [
+        SyncableInterface::STATE_PENDING,
+        SyncableInterface::STATE_ERROR,
+        SyncableInterface::STATE_UNCONFIRMED,
+    ];
+
     public function __construct(
         private readonly RemoteClockInterface $clock,
         private readonly ErrorMessages $errorMessages,
@@ -35,25 +41,45 @@ class SyncEngine
     ) {}
 
     /**
+     * Synchronizes every entry of the kind, both ways, or only the one given: then only that entry
+     * is sent, pulled or deleted, as the full run would, and nothing else changes on either side.
+     *
+     * @param SyncableInterface|null $only one local entry, e.g. just saved in the admin
      * @throws PolkurierException when the remote list cannot be read; nothing is changed then
      */
-    public function run(AdapterInterface $adapter, int $websiteId, int $storeId): SyncResult
+    public function run(AdapterInterface $adapter, ?SyncableInterface $only = null): SyncResult
     {
         $result = new SyncResult($adapter->getEntityType());
         $now = new \DateTimeImmutable('@' . $this->dateTime->gmtTimestamp());
-        $remote = $adapter->fetchRemote($storeId);
+        $remote = $adapter->fetchRemote();
+        $locals = $adapter->fetchLocal();
+        $unclaimed = $this->unclaimedByKey($adapter, $remote, $locals);
+        if ($only !== null) {
+            $locals = [$only];
+        }
 
-        foreach ($adapter->fetchLocal($websiteId) as $local) {
+        foreach ($locals as $local) {
             $extId = $local->getExtId();
             try {
-                if ($extId === null) {
-                    $this->handleUnlinked($adapter, $local, $storeId, $now, $result);
-                } elseif (!isset($remote[$extId])) {
-                    $this->handleRemoteDeleted($adapter, $local, $storeId, $now, $result);
-                } else {
-                    $this->handlePair($adapter, $local, $remote[$extId], $storeId, $now, $result);
+                if ($extId === null && $local->getDeletedAt() === null) {
+                    // Sent before, but its link wasn't saved: linked now rather than sent again.
+                    $key = $adapter->getNaturalKey($local);
+                    $ids = $key !== null ? ($unclaimed[$key] ?? []) : [];
+                    if (\count($ids) === 1) {
+                        $extId = (string)$ids[0];
+                        unset($unclaimed[$key]);
+                        $local->setExtId($extId);
+                    }
                 }
-            } catch (PolkurierException $e) {
+                if ($extId === null) {
+                    $this->handleUnlinked($adapter, $local, $now, $result);
+                } elseif (!isset($remote[$extId])) {
+                    $this->handleRemoteDeleted($adapter, $local, $now, $result);
+                } else {
+                    $this->handlePair($adapter, $local, $remote[$extId], $now, $result);
+                }
+            } catch (\Throwable $e) {
+                // One entry that fails, for whatever reason, doesn't stop the others.
                 $this->markError($adapter, $local, $e, $result);
             }
             if ($extId !== null) {
@@ -61,13 +87,53 @@ class SyncEngine
             }
         }
 
-        foreach ($remote as $entry) {
-            $local = $adapter->createLocal($websiteId);
-            $this->pulled($adapter, $local, $entry, $this->clock->getModifiedAt($entry, $this->hash($entry), $local, $now), $now);
-            $result->created++;
+        if ($only !== null) {
+            return $result;
+        }
+        foreach ($remote as $extId => $entry) {
+            try {
+                $local = $adapter->createLocal();
+                $this->pulled($adapter, $local, $entry, $this->clock->getModifiedAt($entry, $this->hash($entry), $local, $now), $now);
+                $result->created++;
+            } catch (\Throwable $e) {
+                $message = $this->errorMessages->describe($e);
+                $this->logger->warning('Polkurier synchronization failed', [
+                    'entity' => $adapter->getEntityType()->value,
+                    'remote' => (string)$extId,
+                    'error' => $message,
+                ]);
+                $result->failed++;
+                $result->errors[] = $message;
+            }
         }
 
         return $result;
+    }
+
+    /**
+     * Remote entries no local entry is linked to, by natural key.
+     *
+     * @param array<string, array<string, mixed>> $remote
+     * @param SyncableInterface[] $locals
+     * @return array<string, array<int, string|int>> remote ids by key
+     */
+    private function unclaimedByKey(AdapterInterface $adapter, array $remote, array $locals): array
+    {
+        $linked = [];
+        foreach ($locals as $local) {
+            if ($local->getExtId() !== null) {
+                $linked[$local->getExtId()] = true;
+            }
+        }
+        $byKey = [];
+        foreach ($remote as $id => $entry) {
+            $key = isset($linked[(string)$id]) ? null : $adapter->getNaturalKey($entry);
+            if ($key !== null) {
+                $byKey[$key][] = $id;
+            }
+        }
+
+        return $byKey;
     }
 
     /**
@@ -80,7 +146,7 @@ class SyncEngine
         return \sha1((string)\json_encode($remote, \JSON_UNESCAPED_UNICODE | \JSON_PRESERVE_ZERO_FRACTION));
     }
 
-    private function handleUnlinked(AdapterInterface $adapter, SyncableInterface $local, int $storeId, \DateTimeImmutable $now, SyncResult $result): void
+    private function handleUnlinked(AdapterInterface $adapter, SyncableInterface $local, \DateTimeImmutable $now, SyncResult $result): void
     {
         if ($local->getDeletedAt() !== null) {
             $adapter->delete($local);
@@ -88,21 +154,21 @@ class SyncEngine
 
             return;
         }
-        if (!$adapter->canPush()) {
+        if (!$adapter instanceof PushableAdapterInterface) {
             $this->awaitConfirmation($adapter, $local, $result);
 
             return;
         }
-        $this->pushed($adapter, $local, $adapter->push($local, $storeId), $now);
+        $this->pushed($adapter, $local, $adapter->push($local), $now);
         $result->pushed++;
     }
 
-    private function handleRemoteDeleted(AdapterInterface $adapter, SyncableInterface $local, int $storeId, \DateTimeImmutable $now, SyncResult $result): void
+    private function handleRemoteDeleted(AdapterInterface $adapter, SyncableInterface $local, \DateTimeImmutable $now, SyncResult $result): void
     {
         if ($local->getDeletedAt() === null && $this->isLocallyChanged($local)) {
             $local->setExtId(null);
-            if ($adapter->canPush()) {
-                $this->pushed($adapter, $local, $adapter->push($local, $storeId), $now);
+            if ($adapter instanceof PushableAdapterInterface) {
+                $this->pushed($adapter, $local, $adapter->push($local), $now);
                 $result->pushed++;
             } else {
                 $this->awaitConfirmation($adapter, $local, $result);
@@ -117,7 +183,7 @@ class SyncEngine
     /**
      * @param array<string, mixed> $remote
      */
-    private function handlePair(AdapterInterface $adapter, SyncableInterface $local, array $remote, int $storeId, \DateTimeImmutable $now, SyncResult $result): void
+    private function handlePair(AdapterInterface $adapter, SyncableInterface $local, array $remote, \DateTimeImmutable $now, SyncResult $result): void
     {
         $hash = $this->hash($remote);
         $remoteChanged = $hash !== $local->getRemoteHash();
@@ -129,8 +195,8 @@ class SyncEngine
                 $local->setDeletedAt(null);
                 $this->pulled($adapter, $local, $remote, $remoteAt, $now);
                 $result->pulled++;
-            } elseif ($adapter->canPush()) {
-                $adapter->deleteRemote($local, $storeId);
+            } elseif ($adapter instanceof PushableAdapterInterface) {
+                $adapter->deleteRemote($local);
                 $adapter->delete($local);
                 $result->deleted++;
             } else {
@@ -149,8 +215,8 @@ class SyncEngine
         if ($pull) {
             $this->pulled($adapter, $local, $remote, $remoteAt, $now);
             $result->pulled++;
-        } elseif ($localChanged && $adapter->canPush()) {
-            $this->pushed($adapter, $local, $adapter->push($local, $storeId), $now);
+        } elseif ($localChanged && $adapter instanceof PushableAdapterInterface) {
+            $this->pushed($adapter, $local, $adapter->push($local), $now);
             $result->pushed++;
         } elseif ($localChanged) {
             $this->awaitConfirmation($adapter, $local, $result);
@@ -192,9 +258,6 @@ class SyncEngine
     }
 
     /**
-     * @param array<string, mixed> $stored what Polkurier answered with
-     */
-    /**
      * Records an entry as sent: also for pushes the adapter cannot make by itself, such as a bank
      * account saved with the merchant's confirmation.
      *
@@ -210,10 +273,21 @@ class SyncEngine
             ->setUpdatedAt($stamp)
             ->setSyncState(SyncableInterface::STATE_SYNCED)
             ->setSyncError(null);
-        $adapter->save($local);
+        try {
+            $adapter->save($local);
+        } catch (\Throwable $e) {
+            // Polkurier has it now: the next run links it by its natural key, and the log says which it is.
+            $this->logger->error('Polkurier entry sent but its link not saved', [
+                'entity' => $adapter->getEntityType()->value,
+                'id' => $local->getId(),
+                'remote' => $local->getExtId(),
+            ]);
+
+            throw $e;
+        }
     }
 
-    private function markError(AdapterInterface $adapter, SyncableInterface $local, PolkurierException $e, SyncResult $result): void
+    private function markError(AdapterInterface $adapter, SyncableInterface $local, \Throwable $e, SyncResult $result): void
     {
         $message = $this->errorMessages->describe($e);
         $this->logger->warning('Polkurier synchronization failed', [
@@ -227,9 +301,15 @@ class SyncEngine
         $result->errors[] = $message;
     }
 
+    /**
+     * Saving in Magento marks an entry pending, and a change that didn't get through stays in
+     * error or waits for confirmation: those are changed whatever the times say. The times have
+     * a resolution of a second, the same second as the last synchronization for an entry edited
+     * right after it.
+     */
     private function isLocallyChanged(SyncableInterface $local): bool
     {
-        if ($local->getSyncedAt() === null) {
+        if ($local->getSyncedAt() === null || \in_array($local->getSyncState(), self::LOCAL_CHANGE_STATES, true)) {
             return true;
         }
 

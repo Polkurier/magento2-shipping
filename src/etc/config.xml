@@ -24,21 +24,33 @@
                          lets the SDK choose between production and sandbox. -->
                     <api_url>http://api.polkurier.local</api_url>
                 </general>
-                <shipments>
+                <shipment_defaults>
                     <default_shipment_type>box</default_shipment_type>
+                    <insure_by_default>0</insure_by_default>
+                    <description_format>%s</description_format>
+                </shipment_defaults>
+                <sender>
                     <use_store_information_address>0</use_store_information_address>
                     <use_store_origin_address>1</use_store_origin_address>
                     <default_sender_email>general</default_sender_email>
-                    <insure_by_default>0</insure_by_default>
+                </sender>
+                <packing>
+                    <pack_new_shipments>1</pack_new_shipments>
+                    <packing_margin>0</packing_margin>
+                    <weight_limit>warn</weight_limit>
+                    <parcel_weight>products</parcel_weight>
+                </packing>
+                <cod>
+                    <cod_payment_methods>cashondelivery</cod_payment_methods>
                     <default_cod_type>S</default_cod_type>
                     <default_cod_refund_type>BA</default_cod_refund_type>
-                    <cod_payment_methods>cashondelivery</cod_payment_methods>
-                    <description_format>%s</description_format>
+                </cod>
+                <labels>
                     <label_format />
-                    <notify_customer>1</notify_customer>
                     <native_labels>1</native_labels>
+                    <notify_customer>1</notify_customer>
                     <shipment_screen>1</shipment_screen>
-                </shipments>
+                </labels>
                 <map>
                     <default_latitude>52.2297</default_latitude>
                     <default_longitude>21.0122</default_longitude>

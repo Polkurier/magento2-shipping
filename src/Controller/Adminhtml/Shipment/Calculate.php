@@ -13,9 +13,9 @@ use Magento\Framework\App\Action\HttpPostActionInterface;
 use Magento\Framework\Controller\Result\Json;
 use Magento\Framework\Controller\Result\JsonFactory;
 use Magento\Framework\Exception\LocalizedException;
-use Magento\Sales\Api\OrderRepositoryInterface;
 use Polkurier\Shipping\Model\Shipment\CostEstimator;
 use Polkurier\Shipping\Model\Shipment\DraftHydrator;
+use Polkurier\Shipping\Model\Shipment\OwnOrders;
 
 /**
  * What Polkurier would charge for the shipment as currently filled in: with the chosen carrier, and
@@ -30,7 +30,7 @@ class Calculate extends Action implements HttpPostActionInterface
         private readonly JsonFactory $jsonFactory,
         private readonly CostEstimator $costEstimator,
         private readonly DraftHydrator $hydrator,
-        private readonly OrderRepositoryInterface $orderRepository,
+        private readonly OwnOrders $ownOrders,
     ) {
         parent::__construct($context);
     }
@@ -40,7 +40,7 @@ class Calculate extends Action implements HttpPostActionInterface
         $result = $this->jsonFactory->create();
         $data = (array)$this->getRequest()->getParam('data', []);
         try {
-            $order = $this->orderRepository->get((int)($data['order_id'] ?? 0));
+            $order = $this->ownOrders->get((int)($data['order_id'] ?? 0));
             $draft = $this->hydrator->fromArray($data);
             $quotes = $this->costEstimator->quoteAll($draft, (int)$order->getStoreId());
         } catch (LocalizedException $e) {

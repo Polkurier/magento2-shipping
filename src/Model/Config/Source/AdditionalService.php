@@ -32,7 +32,7 @@ class AdditionalService extends AbstractOptions
             AdditionalServiceEnum::PhoneNotificationRecipient->value => (string)\__('Phone notification before delivery'),
             AdditionalServiceEnum::PhoneNotificationCollection->value => (string)\__('Phone notification before collection'),
             AdditionalServiceEnum::CheckContent->value => (string)\__('Content check on delivery'),
-            AdditionalServiceEnum::RefundDocs->value => (string)\__('Return of documents (ROD)'),
+            AdditionalServiceEnum::ReturnOfDocuments->value => (string)\__('Return of documents (ROD)'),
             AdditionalServiceEnum::CourierWithLabel->value => (string)\__('Courier brings the label'),
             AdditionalServiceEnum::Labelless->value => (string)\__('No label (shipment code)'),
             AdditionalServiceEnum::WeekCollection->value => (string)\__('Weekend collection'),

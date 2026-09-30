@@ -53,6 +53,16 @@ class SenderMapper
     }
 
     /**
+     * The sender when none is chosen from the address book: the store's address, then its shipping
+     * origin, each only when the Shipments settings allow it. Null when neither applies.
+     */
+    public function fromStore(int $storeId): ?OrderAddressMessage
+    {
+        return ($this->config->isUseStoreInformationAddress($storeId) ? $this->fromStoreInformation($storeId) : null)
+            ?? ($this->config->isUseStoreOriginAddress($storeId) ? $this->fromStoreOrigin($storeId) : null);
+    }
+
+    /**
      * The store's address (General > Store Information), with the store's name, phone and the
      * configured store e-mail, or null when it isn't filled in.
      */

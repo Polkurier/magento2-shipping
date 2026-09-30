@@ -17,7 +17,7 @@ the classes behind them.
 | `ShipmentRepositoryInterface` | read and save shipments, search by criteria |
 | `CarrierConfigRepositoryInterface` | carrier settings, including store view labels |
 | `AddressRepositoryInterface`, `BankAccountRepositoryInterface`, `PackTemplateRepositoryInterface` | the synced settings; saving through a repository doesn't push to Polkurier |
-| `SynchronizationInterface` | run the sync for a website, for the kinds of `SyncEntityEnum` |
+| `SynchronizationInterface` | run the sync, for all or some kinds of `SyncEntityEnum`, or push one entry |
 | `ApiEventEnum` | the module's events, with their names as values (see [Events](events.md)) |
 
 Data interfaces are in `Api/Data`: `ShipmentInterface`, `ShipmentDraftInterface` with
@@ -63,6 +63,9 @@ curl -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/jso
      -d "{\"draft\": $(cat draft.json)}" \
      https://shop.example/rest/V1/polkurier/orders/42/shipments
 ```
+
+The draft's `items` list the order items and quantities to ship, starting with everything that's
+left. Change them to ship part of the order, or send an empty list for everything left.
 
 The answer is the shipment. Check its `state`:
 

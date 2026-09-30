@@ -7,8 +7,10 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Model\Shipment;
 
+use Polkurier\Shipping\Api\Data\ShipmentDraft\ItemInterface;
 use Polkurier\Shipping\Api\Data\ShipmentDraft\PackInterface;
 use Polkurier\Shipping\Api\Data\ShipmentDraftInterface;
+use Polkurier\Shipping\Model\Shipment\Draft\ItemFactory;
 use Polkurier\Shipping\Model\Shipment\Draft\PackFactory;
 
 /**
@@ -19,6 +21,7 @@ class DraftHydrator
     public function __construct(
         private readonly DraftFactory $draftFactory,
         private readonly PackFactory $packFactory,
+        private readonly ItemFactory $itemFactory,
     ) {}
 
     /**
@@ -64,15 +67,19 @@ class DraftHydrator
                 continue;
             }
             $packs[] = $this->packFactory->create()
+                ->setItems($this->items((array)($row[PackInterface::ITEMS] ?? [])))
                 ->setTemplateId(self::nullableInt($row, PackInterface::TEMPLATE_ID))
                 ->setPackType(self::string($row, PackInterface::PACK_TYPE))
                 ->setLength((int)($row[PackInterface::LENGTH] ?? 0))
                 ->setWidth((int)($row[PackInterface::WIDTH] ?? 0))
                 ->setHeight((int)($row[PackInterface::HEIGHT] ?? 0))
                 ->setWeight((float)\str_replace(',', '.', (string)($row[PackInterface::WEIGHT] ?? 0)))
-                ->setAmount(\max(1, (int)($row[PackInterface::AMOUNT] ?? 1)));
+                // Each parcel is one: identical ones are listed one by one.
+                ->setAmount(1);
         }
         $draft->setPacks($packs);
+
+        $draft->setItems($this->items((array)($data[ShipmentDraftInterface::ITEMS] ?? [])));
 
         return $draft;
     }
@@ -93,11 +100,48 @@ class DraftHydrator
                 PackInterface::HEIGHT => $pack->getHeight() ?: '',
                 PackInterface::WEIGHT => $pack->getWeight(),
                 PackInterface::AMOUNT => $pack->getAmount(),
+                PackInterface::ITEMS => self::itemRows($pack->getItems()),
             ],
             $draft->getPacks(),
         );
+        $data[ShipmentDraftInterface::ITEMS] = self::itemRows($draft->getItems());
+        $data[ShipmentDraftInterface::PACKS_ESTIMATED] = $draft->isPacksEstimated();
 
         return $data;
+    }
+
+    /**
+     * @param array<int|string, mixed> $rows of order_item_id and qty
+     * @return ItemInterface[]
+     */
+    private function items(array $rows): array
+    {
+        $items = [];
+        foreach ($rows as $row) {
+            if (!\is_array($row) || !(int)($row[ItemInterface::ORDER_ITEM_ID] ?? 0)) {
+                continue;
+            }
+            $items[] = $this->itemFactory->create()
+                ->setOrderItemId((int)$row[ItemInterface::ORDER_ITEM_ID])
+                ->setQty((float)\str_replace(',', '.', (string)($row[ItemInterface::QTY] ?? 0)));
+        }
+
+        return $items;
+    }
+
+    /**
+     * @param ItemInterface[] $items
+     * @return array<int, array<string, int|float>>
+     */
+    private static function itemRows(array $items): array
+    {
+        return \array_map(
+            static fn(ItemInterface $item): array => [
+                ItemInterface::ORDER_ITEM_ID => $item->getOrderItemId(),
+                ItemInterface::QTY => $item->getQty(),
+            ],
+            $items,
+        );
     }
 
     /**

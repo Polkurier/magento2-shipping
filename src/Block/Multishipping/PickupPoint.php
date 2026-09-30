@@ -55,22 +55,17 @@ class PickupPoint extends Template
         if ($this->address === null) {
             return null;
         }
-        $config = $this->mapConfigProvider->getConfig()['pickupPoints'];
+        $addressId = (int)$this->address->getId();
+        $config = $this->mapConfigProvider->getMapConfig(
+            $this->pointStore->getForQuote((int)$this->address->getQuoteId(), $addressId),
+        );
         if ((array)$config['methods'] === []) {
             return null;
         }
-        unset($config['selected']);
-        $addressId = (int)$this->address->getId();
-        $point = $this->pointStore->getForQuote((int)$this->address->getQuoteId(), $addressId);
 
         return $config + [
             'addressId' => $addressId,
             'searchQuery' => \trim($this->address->getPostcode() . ' ' . $this->address->getCity()),
-            'selected' => $point === null ? null : [
-                'methodCode' => $point->getMethodCode(),
-                'id' => $point->getPointId(),
-                'label' => (string)($point->getPointLabel() ?: $point->getPointId()),
-            ],
         ];
     }
 }

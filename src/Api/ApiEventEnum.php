@@ -12,7 +12,8 @@ namespace Polkurier\Shipping\Api;
  * event name to observe in events.xml.
  *
  * Each is dispatched once the change is confirmed by Polkurier and recorded in Magento. Every event
- * carries "store_id", the store whose Polkurier account was changed, plus the keys listed below.
+ * carries "store_id", the order's store for an event about an order and null for one about the
+ * account, plus the keys listed below.
  * "request" and "response" are the SDK messages that were sent and received.
  *
  * The change has already happened when a listener runs, so an exception thrown by a listener is

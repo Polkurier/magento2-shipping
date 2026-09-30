@@ -7,16 +7,27 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Controller\Adminhtml\Shipment;
 
+use Magento\Backend\App\Action\Context;
 use Magento\Framework\App\Action\HttpPostActionInterface;
 use Magento\Framework\Controller\Result\Redirect;
 use Magento\Framework\Exception\LocalizedException;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
+use Polkurier\Shipping\Api\ShipmentManagementInterface;
+use Polkurier\Shipping\Model\Shipment\RequestedShipments;
 
 /**
  * Reads the current state of the selected placed Polkurier orders.
  */
 class MassRefresh extends AbstractShipmentAction implements HttpPostActionInterface
 {
+    public function __construct(
+        Context $context,
+        RequestedShipments $requestedShipments,
+        private readonly ShipmentManagementInterface $management,
+    ) {
+        parent::__construct($context, $requestedShipments);
+    }
+
     public function execute(): Redirect
     {
         $refreshed = 0;

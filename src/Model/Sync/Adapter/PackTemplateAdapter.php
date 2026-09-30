@@ -17,9 +17,9 @@ use Polkurier\Shipping\Model\Mapper\PackTemplateMapper;
 use Polkurier\Shipping\Model\PackTemplateFactory;
 use Polkurier\Shipping\Model\ResourceModel\PackTemplate\CollectionFactory;
 use Polkurier\Shipping\Model\Sdk\ClientPool;
-use Polkurier\Shipping\Model\Sync\AdapterInterface;
+use Polkurier\Shipping\Model\Sync\PushableAdapterInterface;
 
-class PackTemplateAdapter implements AdapterInterface
+class PackTemplateAdapter implements PushableAdapterInterface
 {
     public function __construct(
         private readonly ClientPool $clientPool,
@@ -35,10 +35,10 @@ class PackTemplateAdapter implements AdapterInterface
         return SyncEntityEnum::PackTemplate;
     }
 
-    public function fetchRemote(int $storeId): array
+    public function fetchRemote(): array
     {
         $remote = [];
-        foreach ($this->clientPool->packTemplates($storeId)->getPackTemplates() as $template) {
+        foreach ($this->clientPool->packTemplates()->getPackTemplates() as $template) {
             if ($template->getId() !== null) {
                 $remote[$template->getId()] = $this->mapper->normalize($template);
             }
@@ -47,16 +47,15 @@ class PackTemplateAdapter implements AdapterInterface
         return $remote;
     }
 
-    public function fetchLocal(int $websiteId): array
+    public function fetchLocal(): array
     {
         return \array_values($this->collectionFactory->create()
-            ->addFieldToFilter(SyncableInterface::WEBSITE_ID, ['eq' => $websiteId])
             ->getItems());
     }
 
-    public function createLocal(int $websiteId): SyncableInterface
+    public function createLocal(): SyncableInterface
     {
-        return $this->packTemplateFactory->create()->setWebsiteId($websiteId);
+        return $this->packTemplateFactory->create();
     }
 
     public function applyRemote(SyncableInterface $local, array $remote): void
@@ -65,18 +64,23 @@ class PackTemplateAdapter implements AdapterInterface
         $this->mapper->apply($remote, $local);
     }
 
-    public function canPush(): bool
+    public function getNaturalKey(SyncableInterface|array $entry): ?string
     {
-        return true;
+        /** @var PackTemplateInterface|array<string, mixed> $entry */
+        $value = \is_array($entry) ? (string)($entry['name'] ?? '') : $entry->getName();
+        $key = (string)\mb_strtolower(\trim($value));
+
+        return $key !== '' ? $key : null;
     }
 
-    public function push(SyncableInterface $local, int $storeId): array
+
+    public function push(SyncableInterface $local): array
     {
         /** @var PackTemplateInterface $local */
         $request = $this->mapper->toSaveMessage($local);
         $isNew = $local->getExtId() === null;
-        $response = $this->clientPool->packTemplates($storeId)->savePackTemplates($request);
-        $this->events->dispatch(ApiEventEnum::PackTemplateSaveAfter, $storeId, [
+        $response = $this->clientPool->packTemplates()->savePackTemplates($request);
+        $this->events->dispatch(ApiEventEnum::PackTemplateSaveAfter, null, [
             'pack_template' => $local,
             'is_new' => $isNew,
             'request' => $request,
@@ -86,12 +90,12 @@ class PackTemplateAdapter implements AdapterInterface
         return $this->mapper->normalize($response);
     }
 
-    public function deleteRemote(SyncableInterface $local, int $storeId): void
+    public function deleteRemote(SyncableInterface $local): void
     {
         /** @var PackTemplateInterface $local */
         $request = $this->mapper->toDeleteMessage($local);
-        if ($this->clientPool->packTemplates($storeId)->deletePackTemplates($request)) {
-            $this->events->dispatch(ApiEventEnum::PackTemplateDeleteAfter, $storeId, ['pack_template' => $local, 'request' => $request]);
+        if ($this->clientPool->packTemplates()->deletePackTemplates($request)) {
+            $this->events->dispatch(ApiEventEnum::PackTemplateDeleteAfter, null, ['pack_template' => $local, 'request' => $request]);
         }
     }
 

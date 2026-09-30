@@ -8,7 +8,9 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Model;
 
 use Polkurier\Shipping\Api\Data\OrderPointInterface;
+use Polkurier\Shipping\Api\Data\QuotePointInterface;
 use Polkurier\Shipping\Model\ResourceModel\OrderPoint as OrderPointResource;
+use Polkurier\Shipping\Model\ResourceModel\OrderPoint\CollectionFactory as OrderPointCollectionFactory;
 use Polkurier\Shipping\Model\ResourceModel\QuotePoint as QuotePointResource;
 
 /**
@@ -19,6 +21,7 @@ class OrderPointStore
     public function __construct(
         private readonly OrderPointFactory $orderPointFactory,
         private readonly OrderPointResource $orderPointResource,
+        private readonly OrderPointCollectionFactory $orderPointCollectionFactory,
         private readonly QuotePointFactory $quotePointFactory,
         private readonly QuotePointResource $quotePointResource,
     ) {}
@@ -29,6 +32,29 @@ class OrderPointStore
         $this->orderPointResource->load($point, $orderId);
 
         return $point->getPointId() !== '' ? $point : null;
+    }
+
+    /**
+     * The points of several orders, in one query.
+     *
+     * @param int[] $orderIds
+     * @return array<int, OrderPointInterface> by order id, for the orders that have one
+     */
+    public function getForOrders(array $orderIds): array
+    {
+        if ($orderIds === []) {
+            return [];
+        }
+        $points = [];
+        $collection = $this->orderPointCollectionFactory->create()
+            ->addFieldToFilter(OrderPointInterface::ORDER_ID, ['in' => \array_values(\array_unique($orderIds))]);
+        foreach ($collection->getItems() as $point) {
+            if ($point->getPointId() !== '') {
+                $points[$point->getOrderId()] = $point;
+            }
+        }
+
+        return $points;
     }
 
     public function saveForOrder(OrderPointInterface $point): void
@@ -60,7 +86,7 @@ class OrderPointStore
     /**
      * @param int $quoteAddressId the shipping address in multi-address checkout, else 0
      */
-    public function getForQuote(int $quoteId, int $quoteAddressId = 0): ?QuotePoint
+    public function getForQuote(int $quoteId, int $quoteAddressId = 0): ?QuotePointInterface
     {
         $point = $this->quotePointFactory->create();
         $this->quotePointResource->loadForQuote($point, $quoteId, $quoteAddressId);
@@ -68,15 +94,17 @@ class OrderPointStore
         return $point->getPointId() !== '' ? $point : null;
     }
 
-    public function saveForQuote(QuotePoint $point): void
+    public function saveForQuote(QuotePointInterface $point): void
     {
-        $this->quotePointResource->save($point);
+        if ($point instanceof QuotePoint) {
+            $this->quotePointResource->save($point);
+        }
     }
 
     public function deleteForQuote(int $quoteId, int $quoteAddressId = 0): void
     {
         $point = $this->getForQuote($quoteId, $quoteAddressId);
-        if ($point !== null) {
+        if ($point instanceof QuotePoint) {
             $this->quotePointResource->delete($point);
         }
     }
@@ -84,7 +112,7 @@ class OrderPointStore
     /**
      * Copies the quote's point onto the order.
      */
-    public function copyToOrder(QuotePoint $quotePoint, int $orderId): OrderPointInterface
+    public function copyToOrder(QuotePointInterface $quotePoint, int $orderId): OrderPointInterface
     {
         $point = $this->orderPointFactory->create()
             ->setOrderId($orderId)

@@ -9,24 +9,19 @@ namespace Polkurier\Shipping\Controller\Adminhtml\MasterData;
 
 use Magento\Backend\App\Action;
 use Magento\Backend\App\Action\Context;
-use Polkurier\Shipping\Model\Admin\SyncableEntityHandler;
+use Polkurier\Shipping\Model\Admin\EntityHandlerInterface;
 
 /**
  * Base of the admin actions on addresses, bank accounts and pack templates. Each entity's
- * controllers pass their handler, which also names the ACL resource.
+ * controllers pass their handler and declare their ACL resource.
  */
 abstract class AbstractAction extends Action
 {
     public function __construct(
         Context $context,
-        protected readonly SyncableEntityHandler $handler,
+        protected readonly EntityHandlerInterface $handler,
     ) {
         parent::__construct($context);
-    }
-
-    protected function _isAllowed(): bool
-    {
-        return $this->_authorization->isAllowed($this->handler->getAclResource());
     }
 
     /**

@@ -14,7 +14,6 @@ use Magento\Framework\Controller\Result\Json;
 use Magento\Framework\Controller\Result\JsonFactory;
 use Magento\Framework\Exception\LocalizedException;
 use Polkurier\Shipping\Model\BankAccount\Publisher;
-use Polkurier\Shipping\Model\WebsiteScope;
 
 /**
  * Has Polkurier send the two-factor code that confirms saving a bank account.
@@ -27,16 +26,14 @@ class SendCode extends Action implements HttpPostActionInterface
         Context $context,
         private readonly JsonFactory $jsonFactory,
         private readonly Publisher $publisher,
-        private readonly WebsiteScope $websiteScope,
     ) {
         parent::__construct($context);
     }
 
     public function execute(): Json
     {
-        $data = (array)$this->getRequest()->getParam('data', []);
         try {
-            $token = $this->publisher->requestCode($this->websiteScope->getStoreId((int)($data['website_id'] ?? 0)));
+            $token = $this->publisher->requestCode();
         } catch (LocalizedException $e) {
             return $this->jsonFactory->create()->setData(['error' => true, 'message' => $e->getMessage()]);
         }

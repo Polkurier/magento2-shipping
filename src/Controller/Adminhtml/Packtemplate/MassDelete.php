@@ -16,6 +16,8 @@ use Polkurier\Shipping\Model\ResourceModel\PackTemplate\CollectionFactory;
 
 class MassDelete extends AbstractMassDelete
 {
+    public const string ADMIN_RESOURCE = 'Polkurier_Shipping::pack_templates';
+
     public function __construct(
         Context $context,
         PackTemplateHandler $handler,

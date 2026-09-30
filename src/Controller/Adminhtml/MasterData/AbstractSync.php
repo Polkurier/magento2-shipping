@@ -11,19 +11,17 @@ use Magento\Backend\App\Action\Context;
 use Magento\Framework\App\Action\HttpPostActionInterface;
 use Magento\Framework\Controller\Result\Redirect;
 use Magento\Framework\Exception\LocalizedException;
-use Polkurier\Shipping\Model\Admin\SyncableEntityHandler;
+use Polkurier\Shipping\Model\Admin\EntityHandlerInterface;
 use Polkurier\Shipping\Model\Config;
-use Polkurier\Shipping\Model\WebsiteScope;
 
 /**
- * Synchronizes the entity with Polkurier on every website that has credentials.
+ * Synchronizes the entity with Polkurier, once the credentials are set.
  */
 abstract class AbstractSync extends AbstractAction implements HttpPostActionInterface
 {
     public function __construct(
         Context $context,
-        SyncableEntityHandler $handler,
-        private readonly WebsiteScope $websiteScope,
+        EntityHandlerInterface $handler,
         private readonly Config $config,
     ) {
         parent::__construct($context, $handler);
@@ -31,15 +29,15 @@ abstract class AbstractSync extends AbstractAction implements HttpPostActionInte
 
     public function execute(): Redirect
     {
-        foreach ($this->websiteScope->getWebsiteIds() as $websiteId) {
-            if (!$this->config->hasCredentials($this->websiteScope->getStoreId($websiteId))) {
-                continue;
-            }
-            try {
-                $this->reportSync($this->handler->synchronize($websiteId));
-            } catch (LocalizedException $e) {
-                $this->messageManager->addErrorMessage($e->getMessage());
-            }
+        if (!$this->config->hasCredentials()) {
+            $this->messageManager->addErrorMessage(\__('Configure the Polkurier customer ID and API token first.'));
+
+            return $this->resultRedirectFactory->create()->setPath('*/*/index');
+        }
+        try {
+            $this->reportSync($this->handler->synchronize());
+        } catch (LocalizedException $e) {
+            $this->messageManager->addErrorMessage($e->getMessage());
         }
 
         return $this->resultRedirectFactory->create()->setPath('*/*/index');

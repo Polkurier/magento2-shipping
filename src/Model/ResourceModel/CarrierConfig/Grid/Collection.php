@@ -10,16 +10,19 @@ namespace Polkurier\Shipping\Model\ResourceModel\CarrierConfig\Grid;
 use Magento\Framework\Data\Collection\Db\FetchStrategyInterface as FetchStrategy;
 use Magento\Framework\Data\Collection\EntityFactoryInterface as EntityFactory;
 use Magento\Framework\Event\ManagerInterface as EventManager;
+use Magento\Framework\Serialize\Serializer\Json;
 use Magento\Framework\View\Element\UiComponent\DataProvider\SearchResult;
-use Polkurier\Shipping\Model\Config;
+use Polkurier\Shipping\Model\Carrier\AvailableCarriers;
 use Polkurier\Shipping\Model\Pricing\Fixed;
 use Polkurier\Shipping\Model\Pricing\PricingModelEnum;
-use Polkurier\Shipping\Model\WebsiteScope;
 use Psr\Log\LoggerInterface as Logger;
 
 /**
- * The carriers list in the admin: each website's carriers, narrowed to its available carriers.
- * Carriers left out keep their settings; they're only hidden.
+ * The carriers list in the admin: the account's carriers, narrowed to the available carriers, and
+ * always with the enabled carriers first, each part in the order checkout offers them, which the
+ * merchant sets by dragging the rows.
+ * Carriers left out, including those the account no longer offers, keep their settings; they're
+ * only hidden.
  */
 class Collection extends SearchResult
 {
@@ -28,8 +31,8 @@ class Collection extends SearchResult
         Logger $logger,
         FetchStrategy $fetchStrategy,
         EventManager $eventManager,
-        private readonly Config $config,
-        private readonly WebsiteScope $websiteScope,
+        private readonly AvailableCarriers $availableCarriers,
+        private readonly Json $json,
         $mainTable = 'polkurier_carrier_config',
         $resourceModel = \Polkurier\Shipping\Model\ResourceModel\CarrierConfig::class,
         $identifierName = null,
@@ -44,17 +47,26 @@ class Collection extends SearchResult
     protected function _initSelect()
     {
         parent::_initSelect();
-        $connection = $this->getConnection();
-        foreach ($this->websiteScope->getWebsiteIds() as $websiteId) {
-            $available = $this->config->getAvailableCarriers($this->websiteScope->getStoreId($websiteId));
-            if ($available !== []) {
-                $this->getSelect()->where(
-                    $connection->quoteInto('main_table.website_id <> ?', $websiteId)
-                    . ' OR ' . $connection->quoteInto('main_table.carrier_code IN (?)', $available),
-                );
-            }
+        $this->getSelect()->where('main_table.available = ?', 1);
+        $available = $this->availableCarriers->getCodes();
+        if ($available !== null) {
+            $this->getSelect()->where('main_table.carrier_code IN (?)', $available);
         }
+        $this->getSelect()->order(['main_table.active DESC', 'main_table.sort_order ASC', 'main_table.carrier_name ASC']);
 
+        return $this;
+    }
+
+    /**
+     * No other order: a view saved sorted by a column still gets the enabled carriers first, in
+     * checkout order.
+     *
+     * @param mixed $field
+     * @param mixed $direction
+     * @return $this
+     */
+    public function setOrder($field, $direction = self::SORT_ORDER_DESC)
+    {
         return $this;
     }
 
@@ -67,7 +79,12 @@ class Collection extends SearchResult
     {
         parent::_afterLoad();
         foreach ($this->getItems() as $item) {
-            $info = \json_decode((string)$item->getData('price_info'), true);
+            try {
+                $info = $this->json->unserialize((string)$item->getData('price_info'));
+            } catch (\InvalidArgumentException) {
+                // Prices the carrier's page can't read either: the grid shows none rather than fail.
+                $info = null;
+            }
             $item->setData('price', $item->getData('pricing_model') === PricingModelEnum::Fixed->value && \is_array($info)
                 ? ($info[Fixed::PRICE] ?? null)
                 : null);

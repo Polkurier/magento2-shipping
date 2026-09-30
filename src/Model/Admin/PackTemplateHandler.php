@@ -8,6 +8,7 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Model\Admin;
 
 use Magento\Framework\Stdlib\DateTime\DateTime;
+use Polkurier\Shipping\Model\Sync\SyncLock;
 use Polkurier\Shipping\Api\PackTemplateRepositoryInterface;
 use Polkurier\Shipping\Api\Data\PackTemplateInterface;
 use Polkurier\Shipping\Api\Data\SyncableInterface;
@@ -22,8 +23,9 @@ class PackTemplateHandler extends SyncableEntityHandler
         private readonly PackTemplateFactory $factory,
         SynchronizationInterface $synchronization,
         DateTime $dateTime,
+        SyncLock $syncLock,
     ) {
-        parent::__construct($synchronization, $dateTime);
+        parent::__construct($synchronization, $dateTime, $syncLock);
     }
 
     public function get(int $id): SyncableInterface
@@ -53,7 +55,7 @@ class PackTemplateHandler extends SyncableEntityHandler
         return SyncEntityEnum::PackTemplate;
     }
 
-    public function getAclResource(): string
+    public function getMenuId(): string
     {
         return 'Polkurier_Shipping::pack_templates';
     }

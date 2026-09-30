@@ -16,6 +16,11 @@ use Polkurier\Webservice\Exception\Exception as PolkurierException;
  *
  * Remote entries are handled as the SDK returns them; each adapter normalizes one into a plain
  * array of the fields both sides share, which is what is compared, fingerprinted and copied.
+ *
+ * An adapter whose local changes the synchronization may send by itself also implements
+ * PushableAdapterInterface. The others (Polkurier wants the merchant's confirmation for each
+ * change) only read: their local changes wait as "awaiting confirmation" and are sent from the
+ * admin instead.
  */
 interface AdapterInterface
 {
@@ -25,16 +30,16 @@ interface AdapterInterface
      * @return array<string, array<string, mixed>> normalized remote entries, keyed by remote id
      * @throws PolkurierException
      */
-    public function fetchRemote(int $storeId): array;
+    public function fetchRemote(): array;
 
     /**
-     * Local entries of a website, including those deleted locally but not yet remotely.
+     * Local entries, including those deleted locally but not yet remotely.
      *
      * @return SyncableInterface[]
      */
-    public function fetchLocal(int $websiteId): array;
+    public function fetchLocal(): array;
 
-    public function createLocal(int $websiteId): SyncableInterface;
+    public function createLocal(): SyncableInterface;
 
     /**
      * @param array<string, mixed> $remote
@@ -42,24 +47,13 @@ interface AdapterInterface
     public function applyRemote(SyncableInterface $local, array $remote): void;
 
     /**
-     * Whether the synchronization may send local changes by itself. When not (Polkurier wants the
-     * merchant's confirmation for each), local changes wait as "awaiting confirmation" and are
-     * sent from the admin instead.
-     */
-    public function canPush(): bool;
-
-    /**
-     * Creates or updates the entry in Polkurier.
+     * What identifies an entry besides its remote id, such as its name: an entry sent to Polkurier
+     * whose link failed to be saved in Magento is recognised by it, instead of being sent again.
      *
-     * @return array<string, mixed> the entry as Polkurier stored it, normalized, with its id
-     * @throws PolkurierException
+     * @param SyncableInterface|array<string, mixed> $entry a local entry, or a normalized remote one
+     * @return string|null null when nothing but the id tells entries apart
      */
-    public function push(SyncableInterface $local, int $storeId): array;
-
-    /**
-     * @throws PolkurierException
-     */
-    public function deleteRemote(SyncableInterface $local, int $storeId): void;
+    public function getNaturalKey(SyncableInterface|array $entry): ?string;
 
     public function save(SyncableInterface $local): void;
 

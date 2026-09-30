@@ -11,6 +11,7 @@ use Magento\Sales\Api\Data\OrderExtensionFactory;
 use Magento\Sales\Api\Data\OrderInterface;
 use Magento\Sales\Api\Data\OrderSearchResultInterface;
 use Magento\Sales\Api\OrderRepositoryInterface;
+use Polkurier\Shipping\Api\Data\OrderPointInterface;
 use Polkurier\Shipping\Model\OrderPointStore;
 
 /**
@@ -32,8 +33,18 @@ class OrderRepositoryPlugin
 
     public function afterGetList(OrderRepositoryInterface $subject, OrderSearchResultInterface $result): OrderSearchResultInterface
     {
+        $orderIds = [];
         foreach ($result->getItems() as $order) {
-            $this->attach($order);
+            if ($order->getEntityId() && $order->getExtensionAttributes()?->getPolkurierPoint() === null) {
+                $orderIds[] = (int)$order->getEntityId();
+            }
+        }
+        $points = $this->pointStore->getForOrders($orderIds);
+        foreach ($result->getItems() as $order) {
+            $point = $points[(int)$order->getEntityId()] ?? null;
+            if ($point !== null) {
+                $this->setPoint($order, $point);
+            }
         }
 
         return $result;
@@ -41,14 +52,19 @@ class OrderRepositoryPlugin
 
     private function attach(OrderInterface $order): void
     {
-        $extension = $order->getExtensionAttributes() ?? $this->extensionFactory->create();
-        if ($extension->getPolkurierPoint() !== null || !$order->getEntityId()) {
+        if (!$order->getEntityId() || $order->getExtensionAttributes()?->getPolkurierPoint() !== null) {
             return;
         }
         $point = $this->pointStore->getForOrder((int)$order->getEntityId());
         if ($point !== null) {
-            $extension->setPolkurierPoint($point);
-            $order->setExtensionAttributes($extension);
+            $this->setPoint($order, $point);
         }
+    }
+
+    private function setPoint(OrderInterface $order, OrderPointInterface $point): void
+    {
+        $extension = $order->getExtensionAttributes() ?? $this->extensionFactory->create();
+        $extension->setPolkurierPoint($point);
+        $order->setExtensionAttributes($extension);
     }
 }

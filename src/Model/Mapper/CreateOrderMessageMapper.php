@@ -159,10 +159,7 @@ class CreateOrderMessageMapper
         if ($draft->getSenderAddressId()) {
             return $this->senderMapper->fromAddress($this->address($draft->getSenderAddressId()));
         }
-        // Without a sender from the address book: the store's address, then its shipping origin,
-        // each only when switched on.
-        $sender = ($this->config->isUseStoreInformationAddress($storeId) ? $this->senderMapper->fromStoreInformation($storeId) : null)
-            ?? ($this->config->isUseStoreOriginAddress($storeId) ? $this->senderMapper->fromStoreOrigin($storeId) : null);
+        $sender = $this->senderMapper->fromStore($storeId);
         if ($sender === null) {
             throw new LocalizedException(\__(
                 'No sender address: choose one, add one to Polkurier > Settings > Addresses, or let the store\'s address or shipping origin be used in the Shipments settings.',

@@ -10,8 +10,9 @@
 define([
     'jquery',
     'Polkurier_Shipping/js/model/points-map',
-    'mage/translate'
-], function ($, pointsMap, $t) {
+    'mage/translate',
+    'Magento_Ui/js/modal/alert'
+], function ($, pointsMap, $t, alert) {
     'use strict';
 
     return function (config, element) {
@@ -35,7 +36,7 @@ define([
 
         function render() {
             const code = selectedPointMethod(),
-                point = chosen && code && chosen.methodCode === code ? chosen : null;
+                point = chosen && code && chosen.method === code ? chosen : null;
 
             root.prop('hidden', code === null || !config.token);
             input.val(point ? point.id : '');
@@ -48,7 +49,7 @@ define([
 
             if (code !== null) {
                 pointsMap.open(config, config.methods[code].providers, config.searchQuery, function (point) {
-                    chosen = {methodCode: code, id: point.id, label: point.label};
+                    chosen = {method: code, id: point.id, label: point.label};
                     render();
                 });
             }
@@ -58,7 +59,7 @@ define([
 
             if (code !== null && config.methods[code].required && !input.val()) {
                 event.preventDefault();
-                window.alert($t('Choose a pickup point for the selected delivery method.'));
+                alert({content: $t('Choose a pickup point for the selected delivery method.')});
             }
         });
         render();

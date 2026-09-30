@@ -47,15 +47,12 @@ point. Carrier logos are shown there as well.
 
 ## After the order is placed
 
-The chosen point is saved with the order. In the admin you'll find it on the order page, in the
-**Polkurier** box on the Information tab, with whether it accepts cash on delivery. It's filled in
-automatically when you ship the order, whichever way you do it.
+The chosen point is saved with the order. In the admin, the order page shows it under the shipping
+method in **Shipping & Handling Information**, for methods that deliver to pickup points only. It's
+filled in automatically when you ship the order, whichever way you do it.
 
-If the customer asks for another point, type its code into **Pickup point** in that box and click
-**Save pickup point**, or click **Choose on map** and pick the point there; a point chosen on the
-map is saved straight away. The code is checked with Polkurier for the order's carrier, and the point's
-address and cash on delivery flag are updated. For carriers that don't need a point, clearing the
-field removes it. Each change is noted in the order's comments. Shipments already placed keep the
-point they were placed with. Changing the point needs the **Create shipments** permission.
+If the customer asks for another point, choose it when you ship the order: the point can be changed
+for each shipment, on the shipment screen or in the shipping label options. The order page only
+shows the point the customer chose.
 
 Next: [Shipping an order](shipping-an-order.md)

@@ -7,16 +7,23 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Model\Shipment;
 
+use Magento\Framework\Stdlib\DateTime\DateTime;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Webservice\Enum\Order\CodStatusEnum;
 use Polkurier\Webservice\Enum\Order\OrderStatusCodeEnum;
 use Polkurier\Webservice\Response\Order;
 
 /**
- * Copies what Polkurier reports about an order onto the local shipment record.
+ * Copies what Polkurier reports about an order onto the local shipment record, with a full copy
+ * of the order's details for the shipment details page.
  */
 class OrderSnapshot
 {
+    public function __construct(
+        private readonly OrderDetails $details,
+        private readonly DateTime $dateTime,
+    ) {}
+
     /**
      * Cash-on-delivery states after which nothing more happens; null is a shipment without COD.
      */
@@ -46,7 +53,9 @@ class OrderSnapshot
             ->setPriceNet($order->getPriceNet())
             ->setPriceGross($order->getPriceGross())
             ->setCodAmount($order->getCod()?->getAmount() ?: null)
-            ->setCodStatus($order->getCod()?->getStatus()->value);
+            ->setCodStatus($order->getCod()?->getStatus()->value)
+            ->setDetails($this->details->fromOrder($order))
+            ->setDetailsSyncedAt((string)$this->dateTime->gmtDate());
 
         if ($order->getStatusCode() === OrderStatusCodeEnum::Canceled->value) {
             $shipment->setState(ShipmentInterface::STATE_CANCELLED);
@@ -72,7 +81,7 @@ class OrderSnapshot
             OrderStatusCodeEnum::Return->value => $this->isOlderThan(
                 $shipment->getStatusDate(),
                 self::RETURN_SETTLED_AFTER_DAYS,
-                $now ?? new \DateTimeImmutable(),
+                $now ?? new \DateTimeImmutable('@' . $this->dateTime->gmtTimestamp()),
             ),
             default => false,
         };
@@ -85,7 +94,7 @@ class OrderSnapshot
         }
         try {
             return new \DateTimeImmutable($date) < $now->modify('-' . $days . ' days');
-        } catch (\Exception) {
+        } catch (\DateMalformedStringException) {
             return false;
         }
     }

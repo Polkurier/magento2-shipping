@@ -19,6 +19,7 @@ interface PackInterface
     public const string HEIGHT = 'height';
     public const string WEIGHT = 'weight';
     public const string AMOUNT = 'amount';
+    public const string ITEMS = 'items';
 
     /**
      * @return int|null
@@ -96,4 +97,17 @@ interface PackInterface
      * @return $this
      */
     public function setAmount(int $amount): static;
+
+    /**
+     * The order's items in one parcel of these; empty when not said.
+     *
+     * @return \Polkurier\Shipping\Api\Data\ShipmentDraft\ItemInterface[]
+     */
+    public function getItems(): array;
+
+    /**
+     * @param \Polkurier\Shipping\Api\Data\ShipmentDraft\ItemInterface[] $items
+     * @return $this
+     */
+    public function setItems(array $items): static;
 }

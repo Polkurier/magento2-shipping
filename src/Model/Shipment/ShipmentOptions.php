@@ -10,10 +10,12 @@ namespace Polkurier\Shipping\Model\Shipment;
 use Polkurier\Shipping\Api\Data\AddressInterface;
 use Polkurier\Shipping\Model\Carrier\CarrierCatalog;
 use Polkurier\Shipping\Model\Carrier\CarrierFeatures;
+use Polkurier\Shipping\Model\ErrorMessages;
 use Polkurier\Shipping\Model\MasterData;
 use Polkurier\Webservice\Enum\Courier\PointRequirementEnum;
 use Polkurier\Webservice\Exception\Exception as PolkurierException;
 use Polkurier\Webservice\Response\Carrier;
+use Psr\Log\LoggerInterface;
 
 /**
  * The choices a shipment is put together from, for the admin pages that edit shipment options:
@@ -25,27 +27,50 @@ class ShipmentOptions
         private readonly CarrierCatalog $catalog,
         private readonly CarrierFeatures $features,
         private readonly MasterData $masterData,
+        private readonly ErrorMessages $errorMessages,
+        private readonly LoggerInterface $logger,
     ) {}
 
     /**
-     * @return array<string, Carrier> empty when the list is unavailable
+     * Why the carrier list couldn't be read, once it was tried.
      */
-    public function getCarriers(int $storeId): array
+    private ?string $failure = null;
+
+    /**
+     * @return array<string, Carrier> empty when the list is unavailable; getCarriersError() says why
+     */
+    public function getCarriers(): array
     {
         try {
-            return $this->catalog->getCarriers($storeId);
-        } catch (PolkurierException) {
+            return $this->catalog->getCarriers();
+        } catch (PolkurierException $e) {
+            // The page still opens, so the merchant can see the rest; the reason goes with it.
+            if ($this->failure === null) {
+                $this->failure = $this->errorMessages->describe($e);
+                $this->logger->warning('Polkurier: the carrier list could not be read for a shipment page', ['exception' => $e]);
+            }
+
             return [];
         }
     }
 
     /**
+     * Why getCarriers() came back empty, or null when the list was read.
+     */
+    public function getCarriersError(): ?string
+    {
+        $this->getCarriers();
+
+        return $this->failure;
+    }
+
+    /**
      * @return array<string, array<string, mixed>> keyed by carrier code
      */
-    public function getCarrierFeatures(int $storeId): array
+    public function getCarrierFeatures(): array
     {
         $features = [];
-        foreach ($this->getCarriers($storeId) as $code => $carrier) {
+        foreach ($this->getCarriers() as $code => $carrier) {
             $features[$code] = [
                 'name' => $carrier->getName(),
                 'services' => \array_map(static fn($service): string => $service->value, $this->features->getServices($carrier)),
@@ -74,10 +99,10 @@ class ShipmentOptions
     /**
      * @return array<int, array{value: string, label: string}>
      */
-    public function getCarrierOptions(int $storeId): array
+    public function getCarrierOptions(): array
     {
         $options = [];
-        foreach ($this->getCarriers($storeId) as $code => $carrier) {
+        foreach ($this->getCarriers() as $code => $carrier) {
             $options[] = ['value' => (string)$code, 'label' => \sprintf('%s (%s)', $carrier->getName(), $code)];
         }
 
@@ -87,10 +112,10 @@ class ShipmentOptions
     /**
      * @return array<int, array{value: string, label: string}>
      */
-    public function getSenderOptions(int $websiteId, bool $coverOnly = false): array
+    public function getSenderOptions(bool $coverOnly = false): array
     {
         $options = [];
-        foreach ($this->masterData->getSenderAddresses($websiteId, $coverOnly) as $address) {
+        foreach ($this->masterData->getSenderAddresses($coverOnly) as $address) {
             $options[] = ['value' => (string)$address->getId(), 'label' => $this->addressLabel($address)];
         }
 
@@ -100,10 +125,10 @@ class ShipmentOptions
     /**
      * @return array<int, array{value: string, label: string}>
      */
-    public function getBankAccountOptions(int $websiteId): array
+    public function getBankAccountOptions(): array
     {
         $options = [];
-        foreach ($this->masterData->getBankAccounts($websiteId) as $account) {
+        foreach ($this->masterData->getBankAccounts() as $account) {
             $options[] = ['value' => (string)$account->getId(), 'label' => $account->getName() . ' — ' . $account->getNumber()];
         }
 

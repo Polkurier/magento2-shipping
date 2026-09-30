@@ -51,7 +51,7 @@ class PublisherTest extends SdkTestCase
         $http = new RecordingClient(self::success(['id' => 'b1', 'name' => 'Main', 'number' => self::IBAN, 'default' => true]));
         $account = $this->account();
 
-        $this->publisher($http)->save($account, 1, new Confirmation(twoFactorToken: 'tok', twoFactorCode: '123456'));
+        $this->publisher($http)->save($account, new Confirmation(twoFactorToken: 'tok', twoFactorCode: '123456'));
 
         $payload = $http->lastPayload();
         self::assertSame('save_bank_account', $payload['apimethod']);
@@ -71,7 +71,7 @@ class PublisherTest extends SdkTestCase
     {
         $http = new RecordingClient(self::success(['id' => 'b1', 'name' => 'Main', 'number' => self::IBAN, 'default' => true]));
 
-        $this->publisher($http)->save($this->account(), 1, new Confirmation(pin: '9999', twoFactorToken: 'tok', twoFactorCode: '1'));
+        $this->publisher($http)->save($this->account(), new Confirmation(pin: '9999', twoFactorToken: 'tok', twoFactorCode: '1'));
 
         $data = $http->lastPayload()['data'];
         self::assertSame('9999', $data['access_pin']);
@@ -83,7 +83,7 @@ class PublisherTest extends SdkTestCase
         $http = new RecordingClient((string)\json_encode(['status' => 'error', 'response' => 'Nieprawidłowy kod', 'error_code' => 'TWO_FACTOR_INVALID_CODE']));
 
         try {
-            $this->publisher($http)->save($this->account(), 1, new Confirmation(twoFactorToken: 'tok', twoFactorCode: '000000'));
+            $this->publisher($http)->save($this->account(), new Confirmation(twoFactorToken: 'tok', twoFactorCode: '000000'));
             self::fail('Expected the refusal to be reported.');
         } catch (LocalizedException $e) {
             self::assertStringContainsString('Nieprawidłowy kod', $e->getMessage());
@@ -97,7 +97,7 @@ class PublisherTest extends SdkTestCase
         $http = new RecordingClient(self::success(true));
         $account = $this->account()->setExtId('b1');
 
-        $this->publisher($http)->delete($account, 1, '9999');
+        $this->publisher($http)->delete($account, '9999');
 
         self::assertSame('delete_bank_account', $http->lastPayload()['apimethod']);
         self::assertSame('9999', $http->lastPayload()['data']['access_pin']);

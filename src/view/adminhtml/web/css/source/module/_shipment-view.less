@@ -1,0 +1,32 @@
+// /**
+//  * Copyright (c) 2026 Polkurier.pl
+//  * All Rights Reserved
+//  */
+/* The Polkurier shipment details page: the admin's page sections, with their items side by side. */
+
+.polkurier-view__items {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(32rem, 1fr));
+    gap: 2rem 3rem;
+}
+
+/* The admin's clearfix would take grid cells. */
+.polkurier-view__items::before,
+.polkurier-view__items::after {
+    display: none;
+}
+
+.polkurier-view__items .admin__page-section-item {
+    float: none;
+    width: auto;
+    margin: 0;
+}
+
+.polkurier-view .admin__table-secondary th {
+    width: 40%;
+}
+
+.polkurier-view__note {
+    margin-top: 1rem;
+    color: @color-gray43;
+}

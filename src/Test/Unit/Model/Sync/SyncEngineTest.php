@@ -19,6 +19,8 @@ use Polkurier\Shipping\Model\PackTemplate;
 use Polkurier\Shipping\Model\Sync\AdapterInterface;
 use Polkurier\Shipping\Model\Sync\DetectedChangeClock;
 use Polkurier\Shipping\Model\Sync\SyncEngine;
+use Polkurier\Shipping\Test\Unit\Support\FakePushableSyncAdapter;
+use Polkurier\Shipping\Test\Unit\Support\FakeSyncAdapter;
 use Psr\Log\NullLogger;
 
 #[CoversClass(SyncEngine::class)]
@@ -44,6 +46,7 @@ class SyncEngineTest extends TestCase
      */
     private array $log = [];
     private bool $canPush = true;
+    private ?string $failingPush = null;
 
     public function testNewRemoteEntriesArePulled(): void
     {
@@ -82,6 +85,82 @@ class SyncEngineTest extends TestCase
         self::assertSame(1, $result->pulled);
         self::assertSame(['push:Box S edited'], $this->log);
         self::assertSame('Box L renamed', $this->local[2]->getName());
+    }
+
+    public function testAnEditInTheSameSecondAsTheLastSynchronizationIsPushed(): void
+    {
+        $this->remote['r1'] = $this->remoteEntry('r1', 'Box S');
+        $this->addLocal('r1', 'Box S edited', hashOf: $this->remoteEntry('r1', 'Box S'), state: SyncableInterface::STATE_PENDING);
+
+        $result = $this->synchronize();
+
+        self::assertSame(1, $result->pushed);
+        self::assertSame(['push:Box S edited'], $this->log);
+        self::assertSame(SyncableInterface::STATE_SYNCED, $this->local[1]->getSyncState());
+    }
+
+    public function testAChangeThatFailedToGoThroughIsSentAgain(): void
+    {
+        $this->remote['r1'] = $this->remoteEntry('r1', 'Box S');
+        $this->addLocal('r1', 'Box S edited', hashOf: $this->remoteEntry('r1', 'Box S'), state: SyncableInterface::STATE_ERROR);
+
+        $this->synchronize();
+
+        self::assertSame(['push:Box S edited'], $this->log);
+    }
+
+    public function testAnEntryFailingForAnyReasonDoesNotStopTheOthers(): void
+    {
+        $this->failingPush = 'push:Box M';
+        $this->addLocal(null, 'Box M', updatedAt: self::NOW, syncedAt: null);
+        $this->addLocal(null, 'Box L', updatedAt: self::NOW, syncedAt: null);
+
+        $result = $this->synchronize();
+
+        self::assertSame(1, $result->failed);
+        self::assertSame(1, $result->pushed);
+        self::assertSame(['push:Box L'], $this->log);
+        self::assertSame(SyncableInterface::STATE_ERROR, $this->local[1]->getSyncState());
+    }
+
+    public function testAnEntrySentWhoseLinkWasNotSavedIsLinkedNotSentAgain(): void
+    {
+        $this->remote['r7'] = $this->remoteEntry('r7', 'Box M');
+        $this->addLocal(null, 'Box M', updatedAt: self::NOW, syncedAt: null);
+
+        $result = $this->synchronize();
+
+        self::assertSame('r7', $this->local[1]->getExtId(), 'Sent as the entry Polkurier has, not as a new one.');
+        self::assertSame(0, $result->created, 'Nor pulled as a new entry.');
+        self::assertCount(1, $this->local);
+    }
+
+    public function testTwoRemoteEntriesOfTheSameNameAreNotGuessedBetween(): void
+    {
+        $this->remote['r7'] = $this->remoteEntry('r7', 'Box M');
+        $this->remote['r8'] = $this->remoteEntry('r8', 'Box M');
+        $this->addLocal(null, 'Box M', updatedAt: self::NOW, syncedAt: null);
+
+        $this->synchronize();
+
+        self::assertSame(['push:Box M'], $this->log);
+    }
+
+    public function testOneEntrySavedInTheAdminIsSentAlone(): void
+    {
+        $this->remote['r1'] = $this->remoteEntry('r1', 'Box S');
+        $this->remote['r2'] = $this->remoteEntry('r2', 'Box L renamed');
+        $this->remote['r3'] = $this->remoteEntry('r3', 'Box XL');
+        $saved = $this->addLocal('r1', 'Box S edited', hashOf: $this->remoteEntry('r1', 'Box S'), state: SyncableInterface::STATE_PENDING);
+        $this->addLocal('r2', 'Box L', hashOf: $this->remoteEntry('r2', 'Box L'));
+        $this->addLocal(null, 'Box M', updatedAt: self::NOW, syncedAt: null);
+
+        $result = $this->synchronize($saved);
+
+        self::assertSame(['push:Box S edited'], $this->log, 'The unsent Box M waits for the next full run.');
+        self::assertSame('Box L', $this->local[2]->getName(), 'The remote change is left for it too.');
+        self::assertCount(3, $this->local, 'And the new remote entry.');
+        self::assertSame(1, $result->pushed);
     }
 
     public function testWhenBothChangedTheLaterChangeWins(): void
@@ -182,24 +261,30 @@ class SyncEngineTest extends TestCase
         self::assertSame([], $this->log);
     }
 
-    private function synchronize(): \Polkurier\Shipping\Model\Sync\SyncResult
+    private function synchronize(?SyncableInterface $only = null): \Polkurier\Shipping\Model\Sync\SyncResult
     {
         $dateTime = $this->createStub(DateTime::class);
         $dateTime->method('gmtTimestamp')->willReturn((int)\strtotime(self::NOW . ' UTC'));
         $engine = new SyncEngine(new DetectedChangeClock(), new ErrorMessages(), $dateTime, new NullLogger());
 
-        return $engine->run($this->adapter(), 1, 1);
+        return $engine->run($this->adapter(), $only);
     }
 
     /**
      * @param array<string, mixed>|null $hashOf the remote entry as the last synchronization saw it
      */
-    private function addLocal(?string $extId, string $name, ?string $updatedAt = self::LAST_SYNC, ?string $syncedAt = self::LAST_SYNC, ?array $hashOf = null): PackTemplate
-    {
+    private function addLocal(
+        ?string $extId,
+        string $name,
+        ?string $updatedAt = self::LAST_SYNC,
+        ?string $syncedAt = self::LAST_SYNC,
+        ?array $hashOf = null,
+        string $state = SyncableInterface::STATE_SYNCED,
+    ): PackTemplate {
         $entity = (new ObjectManager($this))->getObject(PackTemplate::class);
         $entity->setId(\count($this->local) + 1);
         $entity->setWebsiteId(1)->setExtId($extId)->setName($name)
-            ->setUpdatedAt($updatedAt)->setSyncedAt($syncedAt)
+            ->setUpdatedAt($updatedAt)->setSyncedAt($syncedAt)->setSyncState($state)
             ->setRemoteHash($hashOf !== null ? $this->hash($hashOf) : null)
             ->setRemoteUpdatedAt($syncedAt);
         $this->local[(int)$entity->getId()] = $entity;
@@ -227,67 +312,9 @@ class SyncEngineTest extends TestCase
 
     private function adapter(): AdapterInterface
     {
-        $test = $this;
+        $state = \Closure::fromCallable([$this, 'state']);
 
-        return new class ($test) implements AdapterInterface {
-            public function __construct(private readonly SyncEngineTest $test)
-            {
-            }
-
-            public function getEntityType(): SyncEntityEnum
-            {
-                return SyncEntityEnum::PackTemplate;
-            }
-
-            public function fetchRemote(int $storeId): array
-            {
-                return $this->test->state('remote');
-            }
-
-            public function fetchLocal(int $websiteId): array
-            {
-                return \array_values($this->test->state('local'));
-            }
-
-            public function createLocal(int $websiteId): SyncableInterface
-            {
-                return $this->test->state('create');
-            }
-
-            public function applyRemote(SyncableInterface $local, array $remote): void
-            {
-                /** @var PackTemplate $local */
-                $local->setExtId((string)$remote['id'])->setName((string)$remote['name']);
-            }
-
-            public function canPush(): bool
-            {
-                return $this->test->state('canPush');
-            }
-
-            public function push(SyncableInterface $local, int $storeId): array
-            {
-                /** @var PackTemplate $local */
-                $this->test->state('log', 'push:' . $local->getName());
-
-                return ['id' => $local->getExtId() ?? 'new-' . $local->getId(), 'name' => $local->getName()];
-            }
-
-            public function deleteRemote(SyncableInterface $local, int $storeId): void
-            {
-                $this->test->state('log', 'delete:' . $local->getExtId());
-            }
-
-            public function save(SyncableInterface $local): void
-            {
-                $this->test->state('save', $local);
-            }
-
-            public function delete(SyncableInterface $local): void
-            {
-                $this->test->state('delete', $local);
-            }
-        };
+        return $this->canPush ? new FakePushableSyncAdapter($state) : new FakeSyncAdapter($state);
     }
 
     /**
@@ -300,9 +327,10 @@ class SyncEngineTest extends TestCase
                 return $this->remote;
             case 'local':
                 return $this->local;
-            case 'canPush':
-                return $this->canPush;
             case 'log':
+                if ((string)$value === $this->failingPush) {
+                    throw new \RuntimeException('Disk full.');
+                }
                 $this->log[] = (string)$value;
 
                 return null;

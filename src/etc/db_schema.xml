@@ -8,7 +8,6 @@
     <!-- The merchant's settings per Polkurier carrier: visibility, label and price in checkout -->
     <table name="polkurier_carrier_config" resource="default" engine="innodb" comment="Polkurier carrier settings">
         <column xsi:type="int" name="config_id" identity="true" nullable="false" unsigned="true" />
-        <column xsi:type="smallint" name="website_id" nullable="false" unsigned="true" />
         <column xsi:type="varchar" name="carrier_code" nullable="false" length="64" />
         <column xsi:type="varchar" name="carrier_name" nullable="false" length="255" comment="Name reported by the API" />
         <column xsi:type="varchar" name="custom_label" nullable="true" length="255" />
@@ -25,13 +24,9 @@
         <constraint xsi:type="primary" referenceId="PRIMARY">
             <column name="config_id" />
         </constraint>
-        <constraint xsi:type="unique" referenceId="POLKURIER_CARRIER_CONFIG_WEBSITE_ID_CARRIER_CODE">
-            <column name="website_id" />
+        <constraint xsi:type="unique" referenceId="POLKURIER_CARRIER_CONFIG_CARRIER_CODE">
             <column name="carrier_code" />
         </constraint>
-        <constraint xsi:type="foreign" referenceId="POLKURIER_CARRIER_CONFIG_WEBSITE_ID_STORE_WEBSITE_WEBSITE_ID"
-                    table="polkurier_carrier_config" column="website_id" referenceTable="store_website"
-                    referenceColumn="website_id" onDelete="CASCADE" />
     </table>
     <table name="polkurier_carrier_label" resource="default" engine="innodb"
            comment="Polkurier carrier labels per store view">
@@ -53,7 +48,6 @@
     <!-- Address book, mirrored with the Polkurier account's -->
     <table name="polkurier_address" resource="default" engine="innodb" comment="Polkurier address book">
         <column xsi:type="int" name="address_id" identity="true" nullable="false" unsigned="true" />
-        <column xsi:type="smallint" name="website_id" nullable="false" unsigned="true" />
         <column xsi:type="varchar" name="ext_id" nullable="true" length="64" comment="Id in Polkurier" />
         <column xsi:type="varchar" name="name" nullable="false" length="255" />
         <column xsi:type="varchar" name="type" nullable="false" length="16" default="SENDER" />
@@ -84,19 +78,14 @@
         <constraint xsi:type="primary" referenceId="PRIMARY">
             <column name="address_id" />
         </constraint>
-        <constraint xsi:type="unique" referenceId="POLKURIER_ADDRESS_WEBSITE_ID_EXT_ID">
-            <column name="website_id" />
+        <constraint xsi:type="unique" referenceId="POLKURIER_ADDRESS_EXT_ID">
             <column name="ext_id" />
         </constraint>
-        <constraint xsi:type="foreign" referenceId="POLKURIER_ADDRESS_WEBSITE_ID_STORE_WEBSITE_WEBSITE_ID"
-                    table="polkurier_address" column="website_id" referenceTable="store_website"
-                    referenceColumn="website_id" onDelete="CASCADE" />
     </table>
 
     <!-- Bank accounts cash on delivery is paid out to, mirrored from the Polkurier account -->
     <table name="polkurier_bank_account" resource="default" engine="innodb" comment="Polkurier bank accounts">
         <column xsi:type="int" name="account_id" identity="true" nullable="false" unsigned="true" />
-        <column xsi:type="smallint" name="website_id" nullable="false" unsigned="true" />
         <column xsi:type="varchar" name="ext_id" nullable="true" length="64" comment="Id in Polkurier" />
         <column xsi:type="varchar" name="name" nullable="false" length="255" />
         <column xsi:type="varchar" name="number" nullable="false" length="64" />
@@ -112,19 +101,14 @@
         <constraint xsi:type="primary" referenceId="PRIMARY">
             <column name="account_id" />
         </constraint>
-        <constraint xsi:type="unique" referenceId="POLKURIER_BANK_ACCOUNT_WEBSITE_ID_EXT_ID">
-            <column name="website_id" />
+        <constraint xsi:type="unique" referenceId="POLKURIER_BANK_ACCOUNT_EXT_ID">
             <column name="ext_id" />
         </constraint>
-        <constraint xsi:type="foreign" referenceId="POLKURIER_BANK_ACCOUNT_WEBSITE_ID_STORE_WEBSITE_WEBSITE_ID"
-                    table="polkurier_bank_account" column="website_id" referenceTable="store_website"
-                    referenceColumn="website_id" onDelete="CASCADE" />
     </table>
 
     <!-- Parcel templates, mirrored with the Polkurier account's -->
     <table name="polkurier_pack_template" resource="default" engine="innodb" comment="Polkurier pack templates">
         <column xsi:type="int" name="template_id" identity="true" nullable="false" unsigned="true" />
-        <column xsi:type="smallint" name="website_id" nullable="false" unsigned="true" />
         <column xsi:type="varchar" name="ext_id" nullable="true" length="64" comment="Id in Polkurier" />
         <column xsi:type="varchar" name="name" nullable="false" length="255" />
         <column xsi:type="text" name="description" nullable="true" />
@@ -150,13 +134,9 @@
         <constraint xsi:type="primary" referenceId="PRIMARY">
             <column name="template_id" />
         </constraint>
-        <constraint xsi:type="unique" referenceId="POLKURIER_PACK_TEMPLATE_WEBSITE_ID_EXT_ID">
-            <column name="website_id" />
+        <constraint xsi:type="unique" referenceId="POLKURIER_PACK_TEMPLATE_EXT_ID">
             <column name="ext_id" />
         </constraint>
-        <constraint xsi:type="foreign" referenceId="POLKURIER_PACK_TEMPLATE_WEBSITE_ID_STORE_WEBSITE_WEBSITE_ID"
-                    table="polkurier_pack_template" column="website_id" referenceTable="store_website"
-                    referenceColumn="website_id" onDelete="CASCADE" />
     </table>
 
     <!-- The pickup point chosen in checkout -->
@@ -231,6 +211,16 @@
         <column xsi:type="datetime" name="status_checked_at" nullable="true"
                 comment="Last time the statuses were read, whether or not they changed" />
         <column xsi:type="mediumtext" name="request" nullable="true" comment="The create_order payload sent, as JSON" />
+        <column xsi:type="text" name="ship_items" nullable="true"
+                comment="Quantities to ship in Magento by order item id, as JSON; empty for everything left" />
+        <column xsi:type="text" name="ship_packages" nullable="true"
+                comment="Packages of the Magento shipment, as Magento keeps them, as JSON" />
+        <column xsi:type="int" name="target_shipment_id" nullable="true" unsigned="true"
+                comment="Existing Magento shipment to go on once placed, instead of shipping items" />
+        <column xsi:type="mediumtext" name="details" nullable="true" comment="Local copy of the order as Polkurier reports it, as JSON" />
+        <column xsi:type="datetime" name="details_synced_at" nullable="true" />
+        <column xsi:type="mediumtext" name="tracking" nullable="true" comment="Local copy of the carrier's scan history, as JSON" />
+        <column xsi:type="datetime" name="tracking_synced_at" nullable="true" />
         <column xsi:type="text" name="last_error" nullable="true" />
         <column xsi:type="timestamp" name="created_at" nullable="false" default="CURRENT_TIMESTAMP" on_update="false" />
         <column xsi:type="timestamp" name="updated_at" nullable="false" default="CURRENT_TIMESTAMP" on_update="true" />
@@ -239,6 +229,10 @@
         </constraint>
         <constraint xsi:type="unique" referenceId="POLKURIER_SHIPMENT_POLKURIER_NUMBER">
             <column name="polkurier_number" />
+        </constraint>
+        <!-- One Polkurier order per Magento shipment -->
+        <constraint xsi:type="unique" referenceId="POLKURIER_SHIPMENT_SHIPMENT_ID">
+            <column name="shipment_id" />
         </constraint>
         <index referenceId="POLKURIER_SHIPMENT_ORDER_ID" indexType="btree">
             <column name="order_id" />
@@ -260,5 +254,11 @@
         <constraint xsi:type="foreign" referenceId="POLKURIER_SHIPMENT_STORE_ID_STORE_STORE_ID"
                     table="polkurier_shipment" column="store_id" referenceTable="store"
                     referenceColumn="store_id" onDelete="SET NULL" />
+    </table>
+    <!-- The Polkurier orders lists find their orders by a shipping method starting with "polkurier_" -->
+    <table name="sales_order" resource="sales">
+        <index referenceId="SALES_ORDER_SHIPPING_METHOD" indexType="btree">
+            <column name="shipping_method" />
+        </index>
     </table>
 </schema>

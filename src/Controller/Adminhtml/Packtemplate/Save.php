@@ -14,6 +14,8 @@ use Polkurier\Shipping\Model\Admin\PackTemplateHandler;
 
 class Save extends AbstractSave
 {
+    public const string ADMIN_RESOURCE = 'Polkurier_Shipping::pack_templates';
+
     public function __construct(Context $context, PackTemplateHandler $handler, DataPersistorInterface $dataPersistor)
     {
         parent::__construct($context, $handler, $dataPersistor);

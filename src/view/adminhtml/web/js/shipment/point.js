@@ -50,7 +50,11 @@ define([
                 this.source.get('data.map'),
                 features.providers,
                 [this.source.get('data.recipient_postcode'), this.source.get('data.recipient_city')].filter(Boolean).join(' '),
-                this.value.bind(this)
+                function (pointId, point) {
+                    this.value(pointId);
+                    this.source.set('data.recipient_point_label', pointsMap.describe(point));
+                    this.source.set('data.recipient_point_label_id', pointId);
+                }.bind(this)
             );
         }
     });

@@ -14,13 +14,13 @@ use Magento\Framework\Data\Collection\AbstractDb;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Ui\Component\MassAction\Filter;
 use Polkurier\Shipping\Api\Data\SyncableInterface;
-use Polkurier\Shipping\Model\Admin\SyncableEntityHandler;
+use Polkurier\Shipping\Model\Admin\EntityHandlerInterface;
 
 abstract class AbstractMassDelete extends AbstractAction implements HttpPostActionInterface
 {
     public function __construct(
         Context $context,
-        SyncableEntityHandler $handler,
+        EntityHandlerInterface $handler,
         private readonly Filter $filter,
     ) {
         parent::__construct($context, $handler);
@@ -28,18 +28,31 @@ abstract class AbstractMassDelete extends AbstractAction implements HttpPostActi
 
     abstract protected function createCollection(): AbstractDb;
 
+    /**
+     * Each entry on its own: one that Polkurier refuses to delete doesn't keep the others.
+     */
     public function execute(): Redirect
     {
+        $deleted = 0;
+        $failed = 0;
         try {
-            $deleted = 0;
             /** @var SyncableInterface $entity */
             foreach ($this->filter->getCollection($this->createCollection()) as $entity) {
-                $this->handler->delete($entity);
-                $deleted++;
+                try {
+                    $this->handler->delete($entity);
+                    $deleted++;
+                } catch (LocalizedException $e) {
+                    $failed++;
+                    $this->messageManager->addErrorMessage($e->getMessage());
+                }
             }
-            $this->messageManager->addSuccessMessage(\__('%1 deleted.', $deleted));
         } catch (LocalizedException $e) {
             $this->messageManager->addErrorMessage($e->getMessage());
+        }
+        if ($failed === 0) {
+            $this->messageManager->addSuccessMessage(\__('%1 deleted.', $deleted));
+        } elseif ($deleted > 0) {
+            $this->messageManager->addWarningMessage(\__('%1 deleted, %2 not deleted.', $deleted, $failed));
         }
 
         return $this->resultRedirectFactory->create()->setPath('*/*/index');

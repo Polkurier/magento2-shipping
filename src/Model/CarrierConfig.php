@@ -12,7 +12,7 @@ use Polkurier\Shipping\Api\Data\CarrierConfigInterface;
 use Polkurier\Shipping\Api\Data\CarrierLabelInterface;
 
 /**
- * The merchant's settings for one carrier on one website.
+ * The merchant's settings for one carrier.
  */
 class CarrierConfig extends AbstractModel implements CarrierConfigInterface
 {
@@ -31,18 +31,6 @@ class CarrierConfig extends AbstractModel implements CarrierConfigInterface
     protected function _construct(): void
     {
         $this->_init(ResourceModel\CarrierConfig::class);
-    }
-
-    public function getWebsiteId(): int
-    {
-        $value = $this->getData(self::WEBSITE_ID);
-
-        return (int)$value;
-    }
-
-    public function setWebsiteId(int $websiteId): static
-    {
-        return $this->setData(self::WEBSITE_ID, $websiteId);
     }
 
     public function getCarrierCode(): string

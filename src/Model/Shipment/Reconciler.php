@@ -8,10 +8,10 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Model\Shipment;
 
 use Magento\Framework\Exception\LocalizedException;
+use Magento\Framework\Stdlib\DateTime\DateTime;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Model\ResourceModel\Shipment\CollectionFactory;
-use Polkurier\Shipping\Model\Sdk\ClientPool;
-use Polkurier\Webservice\Exception\Exception as PolkurierException;
+use Polkurier\Shipping\Model\Sdk\ShipmentGatewayInterface;
 use Polkurier\Webservice\Request\Order\GetOrdersMessage;
 use Polkurier\Webservice\Response\Order;
 
@@ -19,45 +19,50 @@ use Polkurier\Webservice\Response\Order;
  * Looks for a Polkurier order whose creation went unanswered.
  *
  * A shipment can't carry the integration's own order identifiers that would make this lookup
- * exact, so the match is strict and heuristic: the same
- * carrier, placed from shortly before the attempt, with the same description (it carries the
- * Magento increment id), recipient postcode and phone, and the same number of parcels, and not
- * already adopted by another shipment. Anything but exactly one match is left to the merchant.
+ * exact, so the match is strict and heuristic: the same carrier, placed from the day before the
+ * attempt to the day after (Polkurier filters by date only), with the same description (by
+ * default it carries the Magento increment id), recipient postcode and phone, and the same number
+ * of parcels, and not adopted by another shipment. An order Polkurier lists without its parcels
+ * can't be told apart that well: it's only a possible match, never adopted automatically.
  */
 class Reconciler
 {
-    public const int WINDOW_BEFORE_MINUTES = 10;
-    public const int WINDOW_AFTER_HOURS = 24;
+    public const int WINDOW_DAYS = 1;
     public const int MAX_PAGES = 5;
 
+    private const string SURE = 'sure';
+    private const string POSSIBLE = 'possible';
+    private const string NO_MATCH = '';
+
     public function __construct(
-        private readonly ClientPool $clientPool,
+        private readonly ShipmentGatewayInterface $gateway,
         private readonly CollectionFactory $collectionFactory,
+        private readonly DateTime $dateTime,
     ) {}
 
     /**
-     * @return Order[] the candidates found, best first; empty when none
-     * @throws PolkurierException
+     * @return array{sure: Order[], possible: Order[]} orders that match in every respect, and
+     *         orders that match but come without their parcels
+     * @throws LocalizedException
      */
     public function findCandidates(ShipmentInterface $shipment): array
     {
-        $createdAt = new \DateTimeImmutable((string)($shipment->getCreatedAt() ?: 'now'));
-        $orders = $this->clientPool->orders($shipment->getStoreId());
-        $taken = $this->getAdoptedNumbers((int)$shipment->getId());
-        $candidates = [];
+        $createdAt = new \DateTimeImmutable((string)($shipment->getCreatedAt() ?: '@' . $this->dateTime->gmtTimestamp()));
+        $found = ['sure' => [], 'possible' => []];
 
         for ($page = 1; $page <= self::MAX_PAGES; $page++) {
-            $list = $orders->getOrders(new GetOrdersMessage(
+            $list = $this->gateway->findOrders(new GetOrdersMessage(
                 courier: $shipment->getCarrierCode(),
-                dateFrom: $createdAt->modify('-' . self::WINDOW_BEFORE_MINUTES . ' minutes'),
-                dateTo: $createdAt->modify('+' . self::WINDOW_AFTER_HOURS . ' hours'),
+                dateFrom: $createdAt->modify('-' . self::WINDOW_DAYS . ' day'),
+                dateTo: $createdAt->modify('+' . self::WINDOW_DAYS . ' day'),
                 pageSize: GetOrdersMessage::MAX_PAGE_SIZE,
                 page: $page,
                 packs: true,
             ));
             foreach ($list->getResult() as $order) {
-                if ($order->getNumber() !== null && !isset($taken[$order->getNumber()]) && $this->matches($shipment, $order)) {
-                    $candidates[] = $order;
+                $match = $order->getNumber() !== null ? $this->match($shipment, $order) : self::NO_MATCH;
+                if ($match !== self::NO_MATCH) {
+                    $found[$match][] = $order;
                 }
             }
             if ($page >= $list->getTotalPages()) {
@@ -65,22 +70,27 @@ class Reconciler
             }
         }
 
-        return $candidates;
+        $taken = $this->getAdoptedNumbers((int)$shipment->getId(), \array_merge($found['sure'], $found['possible']));
+        foreach ($found as $kind => $orders) {
+            $found[$kind] = \array_values(\array_filter($orders, static fn(Order $order): bool => !isset($taken[(string)$order->getNumber()])));
+        }
+
+        return $found;
     }
 
     /**
      * Reads one order by its Polkurier number, e.g. to adopt it by hand.
      *
-     * @throws LocalizedException when there is no such order
-     * @throws PolkurierException
+     * @throws LocalizedException when there is no such order, or Polkurier can't be asked
      */
     public function findByNumber(ShipmentInterface $shipment, string $number): Order
     {
         // Searched by phrase, which matches order numbers too; the exact number is picked below.
-        $list = $this->clientPool->orders($shipment->getStoreId())->getOrders(new GetOrdersMessage(
+        $list = $this->gateway->findOrders(new GetOrdersMessage(
             searchPhrase: $number,
             pageSize: 20,
             packs: true,
+            items: true,
         ));
         foreach ($list->getResult() as $order) {
             if ($order->getNumber() === $number) {
@@ -93,19 +103,31 @@ class Reconciler
 
     public function matches(ShipmentInterface $shipment, Order $order): bool
     {
+        return $this->match($shipment, $order) === self::SURE;
+    }
+
+    /**
+     * @return string self::SURE, self::POSSIBLE or self::NO_MATCH
+     */
+    private function match(ShipmentInterface $shipment, Order $order): string
+    {
         if ($order->getCourier() !== $shipment->getCarrierCode()
             || \trim((string)$order->getDescription()) !== \trim($shipment->getDescription())
             || self::postcode($order->getRecipient()->getPostcode()) !== self::postcode((string)$shipment->getRecipientPostcode())
             || self::phone($order->getRecipient()->getPhone()) !== self::phone((string)$shipment->getRecipientPhone())
         ) {
-            return false;
+            return self::NO_MATCH;
         }
         $packs = 0;
         foreach ($order->getPacks() as $pack) {
             $packs += $pack->getAmount();
         }
 
-        return $packs === 0 || $packs === $shipment->getPackCount();
+        return match (true) {
+            $packs === $shipment->getPackCount() => self::SURE,
+            $packs === 0 => self::POSSIBLE,
+            default => self::NO_MATCH,
+        };
     }
 
     private static function postcode(string $postcode): string
@@ -122,14 +144,19 @@ class Reconciler
     }
 
     /**
+     * Which of the orders found another shipment already holds, whenever it was placed.
+     *
+     * @param Order[] $orders
      * @return array<string, true>
      */
-    private function getAdoptedNumbers(int $exceptId): array
+    private function getAdoptedNumbers(int $exceptId, array $orders): array
     {
+        if ($orders === []) {
+            return [];
+        }
         $collection = $this->collectionFactory->create()
-            ->addFieldToFilter(ShipmentInterface::POLKURIER_NUMBER, ['notnull' => true])
-            ->addFieldToFilter(ShipmentInterface::ENTITY_ID, ['neq' => $exceptId])
-            ->addFieldToFilter(ShipmentInterface::CREATED_AT, ['gt' => (new \DateTimeImmutable('-3 days'))->format('Y-m-d H:i:s')]);
+            ->addFieldToFilter(ShipmentInterface::POLKURIER_NUMBER, ['in' => \array_map(static fn(Order $order): string => (string)$order->getNumber(), $orders)])
+            ->addFieldToFilter(ShipmentInterface::ENTITY_ID, ['neq' => $exceptId]);
         $numbers = [];
         foreach ($collection->getItems() as $item) {
             $numbers[(string)$item->getPolkurierNumber()] = true;

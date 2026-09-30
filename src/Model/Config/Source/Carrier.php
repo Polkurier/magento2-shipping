@@ -7,31 +7,23 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Model\Config\Source;
 
-use Magento\Framework\App\RequestInterface;
 use Polkurier\Shipping\Model\Carrier\CarrierCatalog;
-use Polkurier\Shipping\Model\WebsiteScope;
 use Polkurier\Webservice\Exception\Exception as PolkurierException;
 
 /**
- * The carriers of the Polkurier account configured for the scope being edited.
+ * The carriers the merchant works with, from the Polkurier account.
  * Empty until the account is configured and reachable.
  */
 class Carrier extends AbstractOptions
 {
     public function __construct(
         protected readonly CarrierCatalog $catalog,
-        private readonly WebsiteScope $websiteScope,
-        private readonly RequestInterface $request,
     ) {}
 
     public function toArray(): array
     {
-        $website = (int)$this->request->getParam('website');
-        $store = $this->request->getParam('store');
-        $storeId = $store !== null ? (int)$store : ($website ? $this->websiteScope->getStoreId($website) : 0);
-
         try {
-            $carriers = $this->loadCarriers($storeId);
+            $carriers = $this->loadCarriers();
         } catch (PolkurierException) {
             return ['' => (string)\__('-- Configure the Polkurier account first --')];
         }
@@ -47,8 +39,8 @@ class Carrier extends AbstractOptions
      * @return array<string, \Polkurier\Webservice\Response\Carrier>
      * @throws PolkurierException
      */
-    protected function loadCarriers(int $storeId): array
+    protected function loadCarriers(): array
     {
-        return $this->catalog->getCarriers($storeId);
+        return $this->catalog->getCarriers();
     }
 }

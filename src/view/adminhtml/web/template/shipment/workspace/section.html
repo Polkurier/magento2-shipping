@@ -1,0 +1,32 @@
+<!--
+ ~ Copyright (c) 2026 Polkurier.pl
+ ~ All Rights Reserved
+-->
+<section data-bind="attr: {class: 'admin__page-section ' + additionalClasses}, css: {'_invalid': errors().length}">
+    <div class="admin__page-section-title polkurier-section__title">
+        <span class="title" text="label"></span>
+        <div class="actions" if="action">
+            <button type="button" class="polkurier-link" click="runAction">
+                <span text="actionLabel"></span>
+            </button>
+        </div>
+    </div>
+    <ul class="polkurier-section__issues" if="errors().length || warnings().length">
+        <!-- ko foreach: errors -->
+        <li class="polkurier-section__error">
+            <span text="text"></span>
+            <button type="button" class="polkurier-link" if="$parent.canFix($data)" data-bind="click: $parent.fix.bind($parent)">
+                <span translate="'Fix'"></span>
+            </button>
+        </li>
+        <!-- /ko -->
+        <!-- ko foreach: warnings -->
+        <li class="polkurier-section__warning" text="text"></li>
+        <!-- /ko -->
+    </ul>
+    <div class="admin__page-section-content polkurier-section__content">
+        <each args="data: elems, as: 'element'">
+            <render if="hasTemplate()"></render>
+        </each>
+    </div>
+</section>

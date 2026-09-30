@@ -12,7 +12,7 @@ use Magento\Framework\UrlInterface;
 use Magento\Framework\Api\Filter;
 use Magento\Ui\DataProvider\AbstractDataProvider;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
-use Polkurier\Shipping\Model\MoneyBox\AccountScope;
+use Polkurier\Shipping\Model\Config;
 use Polkurier\Shipping\Model\MoneyBox\Payouts;
 use Polkurier\Shipping\Model\ResourceModel\Shipment\CollectionFactory;
 use Polkurier\Webservice\Enum\Order\CodStatusEnum;
@@ -33,7 +33,7 @@ class DataProvider extends AbstractDataProvider
         string $requestFieldName,
         CollectionFactory $collectionFactory,
         private readonly Payouts $payouts,
-        private readonly AccountScope $accountScope,
+        private readonly Config $config,
         private readonly UrlInterface $url,
         array $meta = [],
         array $data = [],
@@ -54,18 +54,15 @@ class DataProvider extends AbstractDataProvider
      */
     public function getData(): array
     {
-        $websiteId = $this->accountScope->getWebsiteId();
-        $storeId = $this->accountScope->getStoreId();
         $data = [
-            'website_id' => $websiteId,
             'urls' => [
                 'quote' => $this->url->getUrl('polkurier/moneybox/quote'),
                 'send_code' => $this->url->getUrl('polkurier/moneybox/sendCode'),
             ],
         ];
-        if ($storeId !== null) {
+        if ($this->config->hasCredentials()) {
             try {
-                $config = $this->payouts->getConfig($storeId);
+                $config = $this->payouts->getConfig();
                 $data['payout_type'] = $config->getPayoutType()->value;
                 $data['fee_payment_type'] = $config->getFeePayment()->value;
                 $data['bank_account_number'] = $config->getIban();
@@ -75,14 +72,13 @@ class DataProvider extends AbstractDataProvider
             $numbers = [];
             foreach ($this->collection
                 ->addFieldToFilter(ShipmentInterface::COD_STATUS, CodStatusEnum::MoneyBox->value)
-                ->addFieldToFilter(ShipmentInterface::STORE_ID, ['eq' => $storeId])
                 ->getItems() as $shipment) {
                 $numbers[] = (string)$shipment->getPolkurierNumber();
             }
             $data['orders'] = \implode("\n", \array_filter($numbers));
         }
 
-        // The form looks the data up by the website parameter, which may be absent.
-        return ['' => $data, (string)($websiteId ?? '') => $data];
+        // The form has no entity: it looks its data up by an absent parameter.
+        return ['' => $data];
     }
 }

@@ -55,22 +55,6 @@
                 <dataScope>id</dataScope>
             </settings>
         </field>
-        <field name="website_id" formElement="select">
-            <settings>
-                <label translate="true">Website</label>
-                <dataType>text</dataType>
-                <dataScope>website_id</dataScope>
-                <validation><rule name="required-entry" xsi:type="boolean">true</rule></validation>
-                <notice translate="true">The Polkurier account of this website keeps the entry.</notice>
-            </settings>
-            <formElements>
-                <select>
-                    <settings>
-                        <options class="Magento\Config\Model\Config\Source\Website"/>
-                    </settings>
-                </select>
-            </formElements>
-        </field>
         <field name="name" formElement="input">
             <settings>
                 <label translate="true">Label</label>
@@ -215,51 +199,6 @@
                     </settings>
                 </checkbox>
             </formElements>
-        </field>
-    </fieldset>
-    <fieldset name="synchronization">
-        <settings>
-            <label translate="true">Synchronization with Polkurier</label>
-            <collapsible>true</collapsible>
-        </settings>
-        <field name="sync_state" formElement="select">
-            <settings>
-                <label translate="true">State</label>
-                <dataType>text</dataType>
-                <dataScope>sync_state</dataScope>
-                <disabled>true</disabled>
-            </settings>
-            <formElements>
-                <select>
-                    <settings>
-                        <options class="Polkurier\Shipping\Model\Config\Source\SyncState"/>
-                    </settings>
-                </select>
-            </formElements>
-        </field>
-        <field name="sync_error" formElement="textarea">
-            <settings>
-                <label translate="true">Last error</label>
-                <dataType>text</dataType>
-                <dataScope>sync_error</dataScope>
-                <disabled>true</disabled>
-            </settings>
-        </field>
-        <field name="ext_id" formElement="input">
-            <settings>
-                <label translate="true">Polkurier ID</label>
-                <dataType>text</dataType>
-                <dataScope>ext_id</dataScope>
-                <disabled>true</disabled>
-            </settings>
-        </field>
-        <field name="synced_at" formElement="input">
-            <settings>
-                <label translate="true">Last synchronized</label>
-                <dataType>text</dataType>
-                <dataScope>synced_at</dataScope>
-                <disabled>true</disabled>
-            </settings>
         </field>
     </fieldset>
 </form>

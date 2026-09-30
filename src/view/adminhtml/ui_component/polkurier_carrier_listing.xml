@@ -38,7 +38,21 @@
         <bookmark name="bookmarks"/>
         <columnsControls name="columns_controls"/>
         <filters name="listing_filters"/>
-        <paging name="listing_paging"/>
+        <massaction name="listing_massaction">
+            <action name="toggle">
+                <settings>
+                    <url path="polkurier/carrier/massToggle"/>
+                    <type>toggle</type>
+                    <label translate="true">Enable / disable</label>
+                </settings>
+            </action>
+        </massaction>
+        <!-- Every carrier on one page, so that any row can be dragged anywhere -->
+        <paging name="listing_paging">
+            <settings>
+                <pageSize>200</pageSize>
+            </settings>
+        </paging>
     </listingToolbar>
     <columns name="polkurier_carrier_listing_columns">
         <settings>
@@ -52,6 +66,8 @@
                 <param name="selectProvider" xsi:type="string">polkurier_carrier_listing.polkurier_carrier_listing.polkurier_carrier_listing_columns.ids</param>
             </editorConfig>
             <childDefaults>
+                <!-- The list is always in checkout order, which dragging the rows sets -->
+                <param name="sortable" xsi:type="boolean">false</param>
                 <param name="fieldAction" xsi:type="array">
                     <item name="provider" xsi:type="string">polkurier_carrier_listing.polkurier_carrier_listing.polkurier_carrier_listing_columns_editor</item>
                     <item name="target" xsi:type="string">startEdit</item>
@@ -67,19 +83,21 @@
                 <indexField>config_id</indexField>
             </settings>
         </selectionsColumn>
+        <!-- The handle carriers are dragged by, to put them in the order checkout offers them -->
+        <column name="position" component="Polkurier_Shipping/js/grid/columns/drag-handle" sortOrder="0">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="sortUrl" xsi:type="url" path="polkurier/carrier/arrange"/>
+                    <!-- Enabled carriers come first, and a row stays among those enabled or not like it -->
+                    <item name="groupBy" xsi:type="string">active</item>
+                </item>
+            </argument>
+        </column>
         <column name="config_id">
             <settings>
                 <label translate="true">ID</label>
                 <filter>textRange</filter>
                 <visible>false</visible>
-            </settings>
-        </column>
-        <column name="website_id" component="Magento_Ui/js/grid/columns/select">
-            <settings>
-                <label translate="true">Website</label>
-                <options class="Magento\Config\Model\Config\Source\Website"/>
-                <filter>select</filter>
-                <dataType>select</dataType>
             </settings>
         </column>
         <column name="carrier_code">
@@ -112,21 +130,12 @@
         </column>
         <column name="active" component="Magento_Ui/js/grid/columns/select">
             <settings>
-                <label translate="true">Offered in checkout</label>
+                <label translate="true">Enabled</label>
                 <options class="Magento\Config\Model\Config\Source\Yesno"/>
                 <filter>select</filter>
                 <dataType>select</dataType>
                 <editor>
                     <editorType>select</editorType>
-                </editor>
-            </settings>
-        </column>
-        <column name="sort_order">
-            <settings>
-                <label translate="true">Sort order</label>
-                <filter>textRange</filter>
-                <editor>
-                    <editorType>text</editorType>
                 </editor>
             </settings>
         </column>
@@ -147,15 +156,12 @@
                 </editor>
             </settings>
         </column>
-        <column name="available" component="Magento_Ui/js/grid/columns/select">
-            <settings>
-                <label translate="true">Offered by the account</label>
-                <options class="Magento\Config\Model\Config\Source\Yesno"/>
-                <filter>select</filter>
-                <dataType>select</dataType>
-            </settings>
-        </column>
         <actionsColumn name="actions" class="Polkurier\Shipping\Ui\Component\Listing\Column\EditActions">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="editUrlPath" xsi:type="string">polkurier/carrier/edit</item>
+                </item>
+            </argument>
             <settings>
                 <indexField>config_id</indexField>
                 <label translate="true">Actions</label>

@@ -9,17 +9,10 @@ namespace Polkurier\Shipping\Controller\Adminhtml\Shipment;
 
 use Magento\Backend\App\Action;
 use Magento\Backend\App\Action\Context;
-use Magento\Framework\App\Response\Http\FileFactory;
-use Magento\Framework\App\ResponseInterface;
 use Magento\Framework\Controller\Result\Redirect;
 use Magento\Framework\Exception\NoSuchEntityException;
-use Magento\Ui\Component\MassAction\Filter;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
-use Polkurier\Shipping\Api\ShipmentManagementInterface;
-use Polkurier\Shipping\Api\ShipmentRepositoryInterface;
-use Polkurier\Shipping\Model\ResourceModel\Shipment\CollectionFactory;
-use Polkurier\Shipping\Model\Shipment\Documents;
-use Polkurier\Shipping\Model\Shipment\Pickups;
+use Polkurier\Shipping\Model\Shipment\RequestedShipments;
 
 /**
  * Shared plumbing of the actions on existing Polkurier shipments: reaching the shipments a request
@@ -31,13 +24,7 @@ abstract class AbstractShipmentAction extends Action
 
     public function __construct(
         Context $context,
-        protected readonly ShipmentManagementInterface $management,
-        protected readonly ShipmentRepositoryInterface $shipmentRepository,
-        protected readonly CollectionFactory $collectionFactory,
-        protected readonly Filter $filter,
-        protected readonly Documents $documents,
-        protected readonly Pickups $pickups,
-        protected readonly FileFactory $fileFactory,
+        private readonly RequestedShipments $requestedShipments,
     ) {
         parent::__construct($context);
     }
@@ -45,7 +32,7 @@ abstract class AbstractShipmentAction extends Action
     protected function getShipment(): ?ShipmentInterface
     {
         try {
-            return $this->shipmentRepository->get((int)$this->getRequest()->getParam('id'));
+            return $this->requestedShipments->getOne($this->getRequest());
         } catch (NoSuchEntityException $e) {
             $this->messageManager->addErrorMessage($e->getMessage());
 
@@ -61,36 +48,7 @@ abstract class AbstractShipmentAction extends Action
      */
     protected function getSelectedShipments(): array
     {
-        $ids = \array_filter(\array_map('intval', \explode(',', (string)$this->getRequest()->getParam('ids'))));
-        if ($ids !== []) {
-            return \array_values($this->collectionFactory->create()
-                ->addFieldToFilter(ShipmentInterface::ENTITY_ID, ['in' => $ids])
-                ->getItems());
-        }
-        if ($this->getRequest()->getParam('id')) {
-            $shipment = $this->getShipment();
-
-            return $shipment !== null ? [$shipment] : [];
-        }
-
-        $collection = $this->collectionFactory->create();
-        $this->filter->getCollection($collection);
-
-        return \array_values($collection->getItems());
-    }
-
-    /**
-     * @param array{file_name: string, content: string, content_type: string} $document
-     * @throws \Exception
-     */
-    protected function download(array $document): ResponseInterface
-    {
-        return $this->fileFactory->create(
-            $document['file_name'],
-            ['type' => 'string', 'value' => $document['content'], 'rm' => false],
-            \Magento\Framework\App\Filesystem\DirectoryList::VAR_DIR,
-            $document['content_type'],
-        );
+        return $this->requestedShipments->getSelected($this->getRequest());
     }
 
     protected function back(): Redirect

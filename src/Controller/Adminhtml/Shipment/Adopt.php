@@ -7,9 +7,12 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Controller\Adminhtml\Shipment;
 
+use Magento\Backend\App\Action\Context;
 use Magento\Framework\App\Action\HttpPostActionInterface;
 use Magento\Framework\Controller\Result\Redirect;
 use Magento\Framework\Exception\LocalizedException;
+use Polkurier\Shipping\Api\ShipmentManagementInterface;
+use Polkurier\Shipping\Model\Shipment\RequestedShipments;
 
 /**
  * Links a shipment whose outcome is unknown to the Polkurier order the merchant names.
@@ -17,6 +20,14 @@ use Magento\Framework\Exception\LocalizedException;
 class Adopt extends AbstractShipmentAction implements HttpPostActionInterface
 {
     public const string ADMIN_RESOURCE = 'Polkurier_Shipping::shipment_create';
+
+    public function __construct(
+        Context $context,
+        RequestedShipments $requestedShipments,
+        private readonly ShipmentManagementInterface $management,
+    ) {
+        parent::__construct($context, $requestedShipments);
+    }
 
     public function execute(): Redirect
     {

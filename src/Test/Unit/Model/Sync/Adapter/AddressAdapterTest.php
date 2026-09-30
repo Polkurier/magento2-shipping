@@ -48,13 +48,13 @@ class AddressAdapterTest extends SdkTestCase
         ]));
         $address = $this->address();
 
-        $remote = $this->adapter($http)->push($address, 1);
+        $remote = $this->adapter($http)->push($address);
 
         self::assertSame('aZ3k', $remote['id']);
         self::assertSame('save_address', $http->lastPayload()['apimethod']);
         $events = $this->events->of(ApiEventEnum::AddressSaveAfter);
         self::assertCount(1, $events);
-        self::assertSame(1, $events[0]['store_id']);
+        self::assertNull($events[0]['store_id'], 'The account\'s, not a store\'s.');
         self::assertSame($address, $events[0]['address']);
         self::assertTrue($events[0]['is_new']);
         self::assertInstanceOf(SaveMessage::class, $events[0]['request']);
@@ -66,7 +66,7 @@ class AddressAdapterTest extends SdkTestCase
         $http = new RecordingClient(self::success(true));
         $address = $this->address()->setExtId('aZ3k');
 
-        $this->adapter($http)->deleteRemote($address, 1);
+        $this->adapter($http)->deleteRemote($address);
 
         self::assertSame('delete_address', $http->lastPayload()['apimethod']);
         $events = $this->events->of(ApiEventEnum::AddressDeleteAfter);

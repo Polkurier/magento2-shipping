@@ -47,6 +47,10 @@ class ShipmentActions extends Column
             $id = (int)$item['entity_id'];
             $params = ['id' => $id, 'order_id' => (int)$item['order_id']];
             $actions = [
+                'view' => [
+                    'href' => $this->url->getUrl('polkurier/shipment/view', ['id' => $id]),
+                    'label' => \__('Details'),
+                ],
                 'order' => [
                     'href' => $this->url->getUrl('sales/order/view', ['order_id' => (int)$item['order_id']]),
                     'label' => \__('View order'),
@@ -75,7 +79,7 @@ class ShipmentActions extends Column
                             'post' => true,
                             'confirm' => [
                                 'title' => \__('Cancel Polkurier order %1?', (string)$item['polkurier_number']),
-                                'message' => \__('The carrier will not collect the parcel. This cannot be undone.'),
+                                'message' => \__('The carrier will not collect the parcel, and its Magento shipment is removed so the items can be shipped again. This cannot be undone.'),
                             ],
                         ];
                     }

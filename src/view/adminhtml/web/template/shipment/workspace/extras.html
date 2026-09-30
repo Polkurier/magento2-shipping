@@ -1,0 +1,38 @@
+<!--
+ ~ Copyright (c) 2026 Polkurier.pl
+ ~ All Rights Reserved
+-->
+<div class="polkurier-section__part polkurier-section__wide">
+    <ul class="polkurier-switches">
+        <!-- ko foreach: switches -->
+        <li class="polkurier-switches__item">
+            <div class="admin__actions-switch" data-role="switcher">
+                <input type="checkbox" class="admin__actions-switch-checkbox"
+                       data-bind="attr: {id: id}, checked: checked, event: {change: function (item, event) { return $parent.onSwitch(item, event); }}"/>
+                <label class="admin__actions-switch-label" data-bind="attr: {for: id, 'aria-label': label}">
+                    <span class="admin__actions-switch-text" data-text-on="" data-text-off=""></span>
+                </label>
+            </div>
+            <div class="polkurier-switches__body">
+                <label class="polkurier-switches__label" data-bind="attr: {for: id}, text: label"></label>
+                <!-- ko if: $data.amount -->
+                <strong text="amount"></strong>
+                <!-- /ko -->
+                <!-- ko if: $data.edit && checked -->
+                <button type="button" class="polkurier-link" data-bind="click: edit">
+                    <span translate="'Change'"></span>
+                </button>
+                <!-- /ko -->
+                <div class="polkurier-switches__note polkurier-muted" if="$data.details" text="details"></div>
+                <div class="polkurier-switches__note polkurier-text-error" if="$data.problem" text="problem"></div>
+                <div class="polkurier-switches__note polkurier-text-error" if="$data.unavailable && checked" text="unavailable"></div>
+                <!-- ko if: $data.cover && checked -->
+                <div class="polkurier-switches__note">
+                    <select class="admin__control-select" data-bind="options: $parent.coverOptions, optionsText: 'label', optionsValue: 'value', value: $parent.coverAddressId"></select>
+                </div>
+                <!-- /ko -->
+            </div>
+        </li>
+        <!-- /ko -->
+    </ul>
+</div>

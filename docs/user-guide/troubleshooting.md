@@ -17,8 +17,8 @@ token, PINs and confirmation codes are masked.
 
 **"Test connection" fails.** Check the customer ID and token for typos and spaces, and that
 **Sandbox** matches the kind of account the credentials belong to. Sandbox and production accounts
-don't accept each other's credentials. Make sure you're in the right scope: credentials set for a
-website override the default ones.
+don't accept each other's credentials. The credentials are set at the default scope only, for the
+whole installation.
 
 **Everything worked, then it stopped.** The API token may have been regenerated in the Polkurier
 panel. Enter the new one.
@@ -28,14 +28,18 @@ panel. Enter the new one.
 **No Polkurier methods at checkout.** Check, for the website in question:
 
 - **Enabled** is Yes on the configuration page;
-- at least one carrier has **Offered in checkout** on and **Offered by the account** Yes;
+- at least one carrier in the carriers list is **Enabled** (the list shows only the carriers your
+  account offers);
 - the cart reaches one of the carrier's price tiers;
 - **Ship to Applicable Countries** doesn't exclude the customer's country, and the carrier
   delivers there (carriers for Poland only aren't offered abroad).
 
 **A carrier is missing.** It may not be on your account any more (**Offered by the account** is
 No), or the cart doesn't reach any of its price tiers. Click **Refresh carriers from Polkurier**
-if Polkurier added it recently.
+if Polkurier added it recently. A carrier that delivers only to lockers or pickup points is also
+left out while the pickup point map can't be used, since customers would have no way to choose a
+point; it comes back by itself within a couple of minutes of the map working again. The module's
+log says when this happens.
 
 **The map doesn't open.** If your server sends its own Content Security Policy headers (outside
 Magento), allow Polkurier's map domain; Magento's own policy already allows it. Also check the
@@ -50,9 +54,8 @@ intended; the customer can pick another carrier or point.
 ## Shipping
 
 **No "Create Shipping Label" checkbox on the New Shipment page.** Magento only shows it for
-carriers that create labels. Check that the order was placed with a Polkurier method (for other
-orders, use **Ship with Polkurier**), and that **Shipping labels on Magento's shipment page** is
-on for the order's website.
+carriers that create labels. Check that the order was placed with a Polkurier method, and that
+**Shipping labels on Magento's shipment page** is on for the order's website.
 
 **"Shipping labels can't be created. Verify that the store information and settings are
 complete".** This comes from Magento, not Polkurier. Fill in the store name and phone number, the

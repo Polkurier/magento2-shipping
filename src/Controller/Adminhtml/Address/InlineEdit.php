@@ -14,6 +14,8 @@ use Polkurier\Shipping\Model\Admin\AddressHandler;
 
 class InlineEdit extends AbstractInlineEdit
 {
+    public const string ADMIN_RESOURCE = 'Polkurier_Shipping::addresses';
+
     public function __construct(Context $context, AddressHandler $handler, JsonFactory $jsonFactory)
     {
         parent::__construct($context, $handler, $jsonFactory);

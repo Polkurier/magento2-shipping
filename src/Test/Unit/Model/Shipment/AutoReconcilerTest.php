@@ -14,11 +14,12 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Api\ShipmentManagementInterface;
-use Polkurier\Shipping\Api\ShipmentRepositoryInterface;
+use Polkurier\Shipping\Model\ResourceModel\Shipment as ShipmentResource;
 use Polkurier\Shipping\Model\ResourceModel\Shipment\Collection;
 use Polkurier\Shipping\Model\ResourceModel\Shipment\CollectionFactory;
 use Polkurier\Shipping\Model\Shipment;
 use Polkurier\Shipping\Model\Shipment\AutoReconciler;
+use Polkurier\Shipping\Test\Unit\Support\FixedDateTime;
 use Psr\Log\NullLogger;
 
 #[CoversClass(AutoReconciler::class)]
@@ -29,6 +30,7 @@ class AutoReconcilerTest extends TestCase
      * @var array<string, mixed>
      */
     private array $filters = [];
+    private ?\Throwable $failure = null;
 
     public function testTakesUnconfirmedAndInterruptedShipmentsAndCountsTheSettledOnes(): void
     {
@@ -43,15 +45,31 @@ class AutoReconcilerTest extends TestCase
             ['in' => [ShipmentInterface::STATE_UNKNOWN, ShipmentInterface::STATE_PENDING]],
             $this->filters[ShipmentInterface::STATE],
         );
-        self::assertArrayHasKey('lt', $this->filters[ShipmentInterface::CREATED_AT], 'A fresh pending one may still get its answer.');
+        self::assertSame(['lt' => '2026-09-30 09:55:00'], $this->filters[ShipmentInterface::CREATED_AT], 'A fresh pending one may still get its answer.');
+        self::assertSame(
+            [['null' => true], ['lt' => '2026-09-30 09:55:00']],
+            $this->filters[ShipmentInterface::STATUS_CHECKED_AT],
+            'One checked in the last five minutes waits its turn.',
+        );
         self::assertSame(1, $settled, 'Adopted counts; still not listed does not.');
         self::assertSame([3], $saved, 'The one that failed is marked as checked, so it does not stay first in line.');
+    }
+
+    public function testAnErrorOfAnyKindDoesNotStopTheBatch(): void
+    {
+        $this->failure = new \LogicException('Unexpected.');
+        $saved = [];
+
+        $settled = $this->reconciler([$this->shipment(1), $this->shipment(2)], [2 => ShipmentInterface::STATE_CREATED], $saved)->run();
+
+        self::assertSame(1, $settled);
+        self::assertSame([1], $saved);
     }
 
     /**
      * @param Shipment[] $shipments
      * @param array<int, string> $outcomes state after reconciling, by id; missing ones fail
-     * @param int[] $saved
+     * @param int[] $saved ids of the shipments marked as checked
      */
     private function reconciler(array $shipments, array $outcomes, array &$saved): AutoReconciler
     {
@@ -70,19 +88,17 @@ class AutoReconcilerTest extends TestCase
         $management = $this->createStub(ShipmentManagementInterface::class);
         $management->method('reconcile')->willReturnCallback(function (int $id) use ($outcomes): ShipmentInterface {
             if (!isset($outcomes[$id])) {
-                throw new LocalizedException(\__('Polkurier is not answering.'));
+                throw $this->failure ?? new LocalizedException(\__('Polkurier is not answering.'));
             }
 
             return $this->shipment($id)->setState($outcomes[$id]);
         });
-        $repository = $this->createStub(ShipmentRepositoryInterface::class);
-        $repository->method('save')->willReturnCallback(function (ShipmentInterface $shipment) use (&$saved): ShipmentInterface {
-            $saved[] = (int)$shipment->getId();
-
-            return $shipment;
+        $resource = $this->createStub(ShipmentResource::class);
+        $resource->method('markChecked')->willReturnCallback(function (int $id) use (&$saved): void {
+            $saved[] = $id;
         });
 
-        return new AutoReconciler($factory, $management, $repository, new NullLogger());
+        return new AutoReconciler($factory, $management, $resource, new NullLogger(), new FixedDateTime((int)\strtotime('2026-09-30 10:00:00 UTC')));
     }
 
     private function shipment(int $id): Shipment

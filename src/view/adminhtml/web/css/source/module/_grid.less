@@ -1,0 +1,65 @@
+// /**
+//  * Copyright (c) 2026 Polkurier.pl
+//  * All Rights Reserved
+//  */
+/* Rows put in order by dragging (js/grid/columns/drag-handle), styled as Magento's dynamic rows:
+   the theme's gripper, the lifted row outlined, and a bar in the gap where it will land. */
+.data-grid {
+    .data-grid-draggable-row-cell {
+        text-align: center;
+        width: 1px;
+    }
+
+    .draggable-handle {
+        &:extend(.abs-draggable-handle all);
+        padding: 0;
+    }
+
+    // Where the lifted row came from.
+    tr._dragged td {
+        background: @control-table-row__dragging__background-color;
+        opacity: .35;
+    }
+
+    &.polkurier-dragged-row {
+        background: @color-white;
+        opacity: .95;
+        outline: 1px solid @control-table__dragging__outline-color;
+        pointer-events: none;
+        position: absolute;
+        z-index: 999;
+    }
+}
+
+// The gap the lifted row will land in: a bar across the table, with a dot at each end.
+.polkurier-drop-line {
+    background: @control-table-horizontal-dragover-mark__color;
+    border-radius: 2px;
+    box-shadow: 0 0 0 1px @color-white, 0 1px 4px rgba(0, 0, 0, .3);
+    height: 4px;
+    margin-top: -2px;
+    pointer-events: none;
+    position: absolute;
+    z-index: 1000;
+
+    &:before,
+    &:after {
+        background: @control-table-horizontal-dragover-mark__color;
+        border: 2px solid @color-white;
+        border-radius: 50%;
+        content: '';
+        height: 12px;
+        margin-top: -6px;
+        position: absolute;
+        top: 50%;
+        width: 12px;
+    }
+
+    &:before {
+        left: -6px;
+    }
+
+    &:after {
+        right: -6px;
+    }
+}

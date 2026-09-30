@@ -15,11 +15,10 @@ use Magento\Framework\Exception\LocalizedException;
 use Polkurier\Shipping\Model\Carrier\CarrierConfigSynchronizer;
 use Polkurier\Shipping\Model\Config;
 use Polkurier\Shipping\Model\ErrorMessages;
-use Polkurier\Shipping\Model\WebsiteScope;
 use Polkurier\Webservice\Exception\Exception as PolkurierException;
 
 /**
- * Reads the carriers each website's Polkurier account offers.
+ * Reads the carriers the Polkurier account offers.
  */
 class Refresh extends Action implements HttpPostActionInterface
 {
@@ -28,7 +27,6 @@ class Refresh extends Action implements HttpPostActionInterface
     public function __construct(
         Context $context,
         private readonly CarrierConfigSynchronizer $synchronizer,
-        private readonly WebsiteScope $websiteScope,
         private readonly Config $config,
         private readonly ErrorMessages $errorMessages,
     ) {
@@ -37,23 +35,18 @@ class Refresh extends Action implements HttpPostActionInterface
 
     public function execute(): Redirect
     {
-        $any = false;
-        foreach ($this->websiteScope->getWebsiteIds() as $websiteId) {
-            if (!$this->config->hasCredentials($this->websiteScope->getStoreId($websiteId))) {
-                continue;
-            }
-            $any = true;
-            try {
-                $count = $this->synchronizer->synchronize($websiteId);
-                $this->messageManager->addSuccessMessage(\__('Website %1: the account offers %2 carriers.', $websiteId, $count));
-            } catch (PolkurierException $e) {
-                $this->messageManager->addErrorMessage(\__('Website %1: %2', $websiteId, $this->errorMessages->describe($e)));
-            } catch (LocalizedException $e) {
-                $this->messageManager->addErrorMessage($e->getMessage());
-            }
-        }
-        if (!$any) {
+        if (!$this->config->hasCredentials()) {
             $this->messageManager->addErrorMessage(\__('Configure the Polkurier customer ID and API token first.'));
+
+            return $this->resultRedirectFactory->create()->setPath('*/*/index');
+        }
+        try {
+            $count = $this->synchronizer->synchronize();
+            $this->messageManager->addSuccessMessage(\__('The account offers %1 carriers.', $count));
+        } catch (PolkurierException $e) {
+            $this->messageManager->addErrorMessage($this->errorMessages->describe($e));
+        } catch (LocalizedException $e) {
+            $this->messageManager->addErrorMessage($e->getMessage());
         }
 
         return $this->resultRedirectFactory->create()->setPath('*/*/index');

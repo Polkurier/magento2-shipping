@@ -14,6 +14,8 @@ use Polkurier\Shipping\Model\Admin\AddressHandler;
 
 class Delete extends AbstractDelete
 {
+    public const string ADMIN_RESOURCE = 'Polkurier_Shipping::addresses';
+
     public function __construct(Context $context, AddressHandler $handler)
     {
         parent::__construct($context, $handler);

@@ -49,6 +49,13 @@ interface ShipmentInterface
     public const string IS_FINAL = 'is_final';
     public const string STATUS_CHECKED_AT = 'status_checked_at';
     public const string REQUEST = 'request';
+    public const string DETAILS = 'details';
+    public const string DETAILS_SYNCED_AT = 'details_synced_at';
+    public const string TRACKING = 'tracking';
+    public const string TRACKING_SYNCED_AT = 'tracking_synced_at';
+    public const string SHIP_ITEMS = 'ship_items';
+    public const string TARGET_SHIPMENT_ID = 'target_shipment_id';
+    public const string SHIP_PACKAGES = 'ship_packages';
     public const string LAST_ERROR = 'last_error';
     public const string CREATED_AT = 'created_at';
     public const string UPDATED_AT = 'updated_at';
@@ -347,6 +354,98 @@ interface ShipmentInterface
      * @return $this
      */
     public function setRequest(?string $request): static;
+
+    /**
+     * The local copy of the order as Polkurier last reported it, or an empty array before it has
+     * been read. See {@see \Polkurier\Shipping\Model\Shipment\OrderDetails} for its shape.
+     *
+     * @return array<string, mixed>
+     */
+    public function getDetails(): array;
+
+    /**
+     * @param array<string, mixed>|null $details
+     * @return $this
+     */
+    public function setDetails(?array $details): static;
+
+    /**
+     * @return string|null
+     */
+    public function getDetailsSyncedAt(): ?string;
+
+    /**
+     * @param string|null $syncedAt
+     * @return $this
+     */
+    public function setDetailsSyncedAt(?string $syncedAt): static;
+
+    /**
+     * The local copy of the carrier's scan history, newest first, or an empty array before it
+     * has been read.
+     *
+     * @return array<int, array<string, string>>
+     */
+    public function getTracking(): array;
+
+    /**
+     * @param array<int, array<string, string>>|null $tracking
+     * @return $this
+     */
+    public function setTracking(?array $tracking): static;
+
+    /**
+     * @return string|null
+     */
+    public function getTrackingSyncedAt(): ?string;
+
+    /**
+     * @param string|null $syncedAt
+     * @return $this
+     */
+    public function setTrackingSyncedAt(?string $syncedAt): static;
+
+    /**
+     * The quantities the Magento shipment is to carry, by order item id; empty for everything the
+     * order has left to ship.
+     *
+     * @return float[]
+     */
+    public function getShipItems(): array;
+
+    /**
+     * @param float[]|null $qtys by order item id
+     * @return $this
+     */
+    public function setShipItems(?array $qtys): static;
+
+    /**
+     * The existing Magento shipment the Polkurier order is to go on once placed, if it doesn't
+     * ship items of its own.
+     *
+     * @return int|null
+     */
+    public function getTargetShipmentId(): ?int;
+
+    /**
+     * @param int|null $shipmentId
+     * @return $this
+     */
+    public function setTargetShipmentId(?int $shipmentId): static;
+
+    /**
+     * The packages of the Magento shipment: the parcels and what each holds, in the form
+     * Magento keeps them.
+     *
+     * @return mixed[]
+     */
+    public function getShipPackages(): array;
+
+    /**
+     * @param mixed[]|null $packages
+     * @return $this
+     */
+    public function setShipPackages(?array $packages): static;
 
     /**
      * @return string|null

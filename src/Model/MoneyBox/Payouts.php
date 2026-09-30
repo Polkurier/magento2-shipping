@@ -44,17 +44,17 @@ class Payouts
     /**
      * @throws LocalizedException
      */
-    public function getConfig(int $storeId): MoneyBoxConfigMessage
+    public function getConfig(): MoneyBoxConfigMessage
     {
-        return $this->call(fn() => $this->clientPool->moneyBox($storeId)->getConfig());
+        return $this->call(fn() => $this->clientPool->moneyBox()->getConfig());
     }
 
     /**
      * @throws LocalizedException
      */
-    public function getPayouts(int $storeId, int $page = 1, int $pageSize = 20): MoneyBoxPayoutListMessage
+    public function getPayouts(int $page = 1, int $pageSize = 20): MoneyBoxPayoutListMessage
     {
-        return $this->call(fn() => $this->clientPool->moneyBox($storeId)->getPayouts(
+        return $this->call(fn() => $this->clientPool->moneyBox()->getPayouts(
             new GetMoneyBoxPayoutsMessage(pageSize: $pageSize, page: $page),
         ));
     }
@@ -65,9 +65,9 @@ class Payouts
      * @param string[] $orderNumbers
      * @throws LocalizedException
      */
-    public function quote(int $storeId, array $orderNumbers, ?MoneyBoxPayoutTypeEnum $payoutType = null): MoneyBoxFeeMessage
+    public function quote(array $orderNumbers, ?MoneyBoxPayoutTypeEnum $payoutType = null): MoneyBoxFeeMessage
     {
-        return $this->call(fn() => $this->clientPool->moneyBox($storeId)->calculatePayoutFee(
+        return $this->call(fn() => $this->clientPool->moneyBox()->calculatePayoutFee(
             new CalculateMoneyBoxPayoutFeeMessage(orders: \array_values($orderNumbers), payoutType: $payoutType),
         ));
     }
@@ -77,12 +77,12 @@ class Payouts
      *
      * @throws LocalizedException
      */
-    public function requestCode(int $storeId): TwoFactorToken
+    public function requestCode(): TwoFactorToken
     {
-        $token = $this->call(fn() => $this->clientPool->twoFactorToken($storeId)->twoFactorTokenRegister(
+        $token = $this->call(fn() => $this->clientPool->twoFactorToken()->twoFactorTokenRegister(
             new RegisterMessage(TwoFactorNamespaceEnum::MoneyBoxPayout),
         ));
-        $this->events->dispatch(ApiEventEnum::TwoFactorCodeRequestAfter, $storeId, [
+        $this->events->dispatch(ApiEventEnum::TwoFactorCodeRequestAfter, null, [
             'namespace' => TwoFactorNamespaceEnum::MoneyBoxPayout,
         ]);
 
@@ -96,7 +96,6 @@ class Payouts
      * @throws LocalizedException
      */
     public function createPayout(
-        int $storeId,
         array $orderNumbers,
         MoneyBoxPayoutTypeEnum $payoutType,
         MoneyBoxFeePaymentTypeEnum $feePaymentType,
@@ -105,7 +104,7 @@ class Payouts
         ?string $securityPin = null,
         ?string $bankAccountNumber = null,
     ): MoneyBoxPayoutMessage {
-        $payout = $this->call(fn() => $this->clientPool->moneyBox($storeId)->createPayout(new CreateMoneyBoxPayoutMessage(
+        $payout = $this->call(fn() => $this->clientPool->moneyBox()->createPayout(new CreateMoneyBoxPayoutMessage(
             orders: \array_values($orderNumbers),
             payoutType: $payoutType,
             feePaymentType: $feePaymentType,
@@ -114,7 +113,7 @@ class Payouts
             twoFactorToken: $twoFactorToken,
             twoFactorCode: $twoFactorCode,
         )));
-        $this->events->dispatch(ApiEventEnum::PayoutCreateAfter, $storeId, [
+        $this->events->dispatch(ApiEventEnum::PayoutCreateAfter, null, [
             'order_numbers' => \array_values($orderNumbers),
             'payout_type' => $payoutType,
             'fee_payment_type' => $feePaymentType,
@@ -127,11 +126,11 @@ class Payouts
     /**
      * @throws LocalizedException
      */
-    public function cancelPayout(int $storeId, string $payoutNumber): MoneyBoxPayoutMessage
+    public function cancelPayout(string $payoutNumber): MoneyBoxPayoutMessage
     {
         $request = new CancelMoneyBoxPayoutMessage($payoutNumber);
-        $payout = $this->call(fn() => $this->clientPool->moneyBox($storeId)->cancelPayout($request));
-        $this->events->dispatch(ApiEventEnum::PayoutCancelAfter, $storeId, [
+        $payout = $this->call(fn() => $this->clientPool->moneyBox()->cancelPayout($request));
+        $this->events->dispatch(ApiEventEnum::PayoutCancelAfter, null, [
             'request' => $request,
             'response' => $payout,
         ]);
@@ -150,7 +149,7 @@ class Payouts
         try {
             return $call();
         } catch (PolkurierException $e) {
-            throw new LocalizedException(\__('%1', $this->errorMessages->describe($e)), $e);
+            throw $this->errorMessages->exception($e);
         }
     }
 }

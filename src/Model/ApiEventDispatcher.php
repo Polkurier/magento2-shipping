@@ -25,9 +25,11 @@ class ApiEventDispatcher
     ) {}
 
     /**
+     * @param int|null $storeId the order's store; null for the account's entries, and for a shipment
+     *     whose store view was deleted since
      * @param array<string, mixed> $data
      */
-    public function dispatch(ApiEventEnum $event, int $storeId, array $data): void
+    public function dispatch(ApiEventEnum $event, ?int $storeId, array $data): void
     {
         try {
             $this->eventManager->dispatch($event->value, ['store_id' => $storeId] + $data);

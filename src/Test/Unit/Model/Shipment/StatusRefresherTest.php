@@ -9,19 +9,18 @@ namespace Polkurier\Shipping\Test\Unit\Model\Shipment;
 
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\TestFramework\Unit\Helper\ObjectManager;
-use Magento\Store\Api\Data\StoreInterface;
-use Magento\Store\Model\StoreManagerInterface;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Api\ShipmentManagementInterface;
-use Polkurier\Shipping\Api\ShipmentRepositoryInterface;
 use Polkurier\Shipping\Model\Config;
+use Polkurier\Shipping\Model\ResourceModel\Shipment as ShipmentResource;
 use Polkurier\Shipping\Model\ResourceModel\Shipment\Collection;
 use Polkurier\Shipping\Model\ResourceModel\Shipment\CollectionFactory;
 use Polkurier\Shipping\Model\Shipment;
 use Polkurier\Shipping\Model\Shipment\StatusRefresher;
+use Polkurier\Shipping\Test\Unit\Support\FixedDateTime;
 use Psr\Log\NullLogger;
 
 #[CoversClass(StatusRefresher::class)]
@@ -34,42 +33,67 @@ class StatusRefresherTest extends TestCase
     private array $filters = [];
     private ?string $order = null;
 
-    public function testOnlyUnfinishedShipmentsOfStoresWithStatusUpdatesAreTakenLeastRecentlyCheckedFirst(): void
+    /**
+     * @var array<int, array<string, ?string>> rows as the database has them, by id
+     */
+    private array $stored = [];
+    private ?\Throwable $failure = null;
+
+    public function testOnlyUnfinishedShipmentsAreTakenLeastRecentlyCheckedFirst(): void
     {
-        $this->refresher([], [1 => true, 2 => false])->refreshPending();
+        $this->refresher([])->refreshPending();
 
         self::assertSame(ShipmentInterface::STATE_CREATED, $this->filters[ShipmentInterface::STATE]);
         self::assertSame(['eq' => 0], $this->filters[ShipmentInterface::IS_FINAL], 'Finished shipments are excluded by the query.');
-        self::assertSame(['in' => [1]], $this->filters[ShipmentInterface::STORE_ID]);
-        self::assertSame(['null' => true], $this->filters[ShipmentInterface::STATUS_CHECKED_AT][0]);
+        self::assertArrayNotHasKey(ShipmentInterface::STORE_ID, $this->filters, 'One account: every store\'s shipments.');
+        self::assertSame([['null' => true], ['lt' => '2026-09-30 09:30:00']], $this->filters[ShipmentInterface::STATUS_CHECKED_AT], 'Each is read at most every half hour.');
         self::assertSame(ShipmentInterface::STATUS_CHECKED_AT, $this->order);
     }
 
-    public function testNothingIsReadWhenNoStoreUpdatesStatuses(): void
+    public function testNothingIsReadWithStatusUpdatesOff(): void
     {
-        self::assertSame(0, $this->refresher([], [1 => false])->refreshPending());
+        self::assertSame(0, $this->refresher([], false)->refreshPending());
         self::assertSame([], $this->filters);
     }
 
     public function testAShipmentWhoseRefreshFailsIsStillMarkedAsChecked(): void
     {
-        $failing = $this->shipment(7);
-        $working = $this->shipment(8);
-        $saved = [];
+        $checked = [];
 
-        $refreshed = $this->refresher([$failing, $working], [1 => true], $saved)->refreshPending();
+        $refreshed = $this->refresher([$this->shipment(7), $this->shipment(8)], true, $checked)->refreshPending();
 
         self::assertSame(1, $refreshed);
-        self::assertNotNull($failing->getStatusCheckedAt(), 'It must not stay first in line.');
-        self::assertSame([7], $saved);
+        self::assertSame([7 => '2026-09-30 10:00:00'], $checked, 'It must not stay first in line.');
+    }
+
+    public function testWhatAFailingRefreshSavedIsKept(): void
+    {
+        // The refresh saves the new status, then fails on the Magento side.
+        $this->stored = [7 => ['status_code' => 'D', 'status_checked_at' => '2026-09-29 10:00:00']];
+        $checked = [];
+
+        $this->refresher([$this->shipment(7)->setStatusCode('P')], true, $checked)->refreshPending();
+
+        self::assertSame('D', $this->stored[7]['status_code'], 'The stale row loaded for the batch is not written back.');
+        self::assertNotSame('2026-09-29 10:00:00', $this->stored[7]['status_checked_at']);
+    }
+
+    public function testAnErrorOfAnyKindDoesNotStopTheBatch(): void
+    {
+        $this->failure = new \LogicException('Unexpected.');
+        $checked = [];
+
+        $refreshed = $this->refresher([$this->shipment(7), $this->shipment(8)], true, $checked)->refreshPending();
+
+        self::assertSame(1, $refreshed);
+        self::assertSame([7], \array_keys($checked));
     }
 
     /**
      * @param Shipment[] $shipments
-     * @param array<int, bool> $statusSyncByStore
-     * @param int[] $saved ids of shipments saved by the refresher itself
+     * @param array<int, string> $checked check times the refresher recorded, by shipment id
      */
-    private function refresher(array $shipments, array $statusSyncByStore, array &$saved = []): StatusRefresher
+    private function refresher(array $shipments, bool $statusSync = true, array &$checked = []): StatusRefresher
     {
         $collection = $this->createStub(Collection::class);
         $collection->method('addFieldToFilter')->willReturnCallback(function (string $field, mixed $condition) use ($collection): Collection {
@@ -90,32 +114,26 @@ class StatusRefresherTest extends TestCase
         $management = $this->createStub(ShipmentManagementInterface::class);
         $management->method('refreshStatus')->willReturnCallback(function (int $id): ShipmentInterface {
             if ($id === 7) {
-                throw new LocalizedException(\__('Polkurier is not answering.'));
+                if (isset($this->stored[7])) {
+                    $this->stored[7]['status_checked_at'] = '2026-09-29 12:00:00';
+                }
+                throw $this->failure ?? new LocalizedException(\__('Polkurier is not answering.'));
             }
 
             return $this->shipment($id);
         });
-        $repository = $this->createStub(ShipmentRepositoryInterface::class);
-        $repository->method('save')->willReturnCallback(function (ShipmentInterface $shipment) use (&$saved): ShipmentInterface {
-            $saved[] = (int)$shipment->getId();
-
-            return $shipment;
+        $resource = $this->createStub(ShipmentResource::class);
+        $resource->method('markChecked')->willReturnCallback(function (int $id, string $at) use (&$checked): void {
+            $checked[$id] = $at;
+            if (isset($this->stored[$id])) {
+                $this->stored[$id]['status_checked_at'] = $at;
+            }
         });
 
-        $stores = [];
-        foreach (\array_keys($statusSyncByStore) as $storeId) {
-            $store = $this->createStub(StoreInterface::class);
-            $store->method('getId')->willReturn($storeId);
-            $stores[] = $store;
-        }
-        $storeManager = $this->createStub(StoreManagerInterface::class);
-        $storeManager->method('getStores')->willReturn($stores);
         $config = $this->createStub(Config::class);
-        $config->method('isStatusSyncEnabled')->willReturnCallback(
-            static fn(?int $storeId): bool => $statusSyncByStore[$storeId] ?? false,
-        );
+        $config->method('isStatusSyncEnabled')->willReturn($statusSync);
 
-        return new StatusRefresher($factory, $management, $repository, $storeManager, $config, new NullLogger());
+        return new StatusRefresher($factory, $management, $resource, $config, new NullLogger(), new FixedDateTime((int)\strtotime('2026-09-30 10:00:00 UTC')));
     }
 
     private function shipment(int $id): Shipment

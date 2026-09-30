@@ -22,11 +22,18 @@ test configuration and doesn't affect the results.
   (`Polkurier\Webservice\Testing\RecordingClient`), which answers with prepared responses and
   records what would have been sent. They check both what comes back and the request payload.
   `Test/Unit/Support/SdkTestCase` sets up an SDK client around it.
-- **Recorded answers** live in `Test/Unit/_files`.
+- **Recorded answers** live in `Test/Unit/_files` (`get_orders.json` is one order as Polkurier lists
+  it, read by the snapshot and details tests).
 - **Events** are checked with `Test/Unit/Support/RecordingEventManager`, which records dispatched
   events and can be made to fail, to prove a failing observer doesn't undo a change.
+- **Time** comes from Magento's `Stdlib\DateTime\DateTime` wherever the module reads it, so tests
+  pass `Test/Unit/Support/FixedDateTime`, stopped at a given moment (or running, when given none).
 - **Magento models** are built with stubbed resources rather than the object manager helper, so the
   tests stay fast and don't need a database.
+- **Admin actions** extend `Test/Unit/Support/AdminActionTestCase`, which builds the backend
+  context with a request answering from `$params` and `$post`, and keeps the messages the action
+  adds, the redirect and the JSON it answers with.
+- **Synchronization** is driven through `Support/FakeSyncAdapter` and `FakePushableSyncAdapter`.
 
 ## What's covered
 
@@ -34,7 +41,9 @@ The parts where a mistake costs money or data have the most tests: placing, reco
 duplicates (`ShipmentManagementTest`, `AutoReconcilerTest`), when a shipment counts as finished
 (`OrderSnapshotTest`), the status refresh (`StatusRefresherTest`), Magento's label flow
 (`NativeLabelTest`, `PrepareLabelledShipmentTest`), the sync engine and bank account confirmation
-(`SyncEngineTest`, `PublisherTest`), payload mapping (`CreateOrderMessageMapperTest`,
+(`SyncEngineTest`, `PublisherTest`, `BankAccountHandlerTest`), labels, protocols and collective
+pickups (`DocumentsTest`, `PickupsTest`), the admin actions that place, pack and save
+(`ShipmentActionsTest`, `MasterDataActionsTest`, `RedirectingActionsTest`), payload mapping (`CreateOrderMessageMapperTest`,
 `AddressBookMapperTest`, `StreetParserTest`), pricing (`TiersTest`, `PolkurierTest`), the
 multi-address checkout (`CheckoutPluginTest`, `CopyPickupPointsToOrdersTest`) and secret masking
 (`TokenRedactingProcessorTest`).

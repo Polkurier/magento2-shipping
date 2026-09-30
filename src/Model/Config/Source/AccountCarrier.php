@@ -8,8 +8,7 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Model\Config\Source;
 
 /**
- * Every carrier of the Polkurier account configured for the scope being edited, for choosing the
- * available carriers.
+ * Every carrier of the Polkurier account, for choosing the available carriers.
  */
 class AccountCarrier extends Carrier
 {
@@ -21,8 +20,8 @@ class AccountCarrier extends Carrier
         return $options;
     }
 
-    protected function loadCarriers(int $storeId): array
+    protected function loadCarriers(): array
     {
-        return $this->catalog->getAccountCarriers($storeId);
+        return $this->catalog->getAccountCarriers();
     }
 }

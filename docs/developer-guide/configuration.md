@@ -6,10 +6,14 @@
 
 [Developer guide](README.md) › Configuration
 
-`Model\Config` is the only class that reads the module's system configuration. Every getter takes
-an optional store id and reads at store scope, which also resolves website and default values. A
-null store id means the current store, which in the admin is the default scope. For website-level
-settings, pass a store of that website (`Model\WebsiteScope::getStoreId()`).
+`Model\Config` is the only class that reads the module's system configuration. The module works
+with one Polkurier account for the whole installation, so the account's settings (credentials,
+sandbox, timeout, logging, available carriers, synchronization) are global: their getters take no
+store and read the default scope only. The admin shows them at the default scope only, and the
+data patch `Setup\Patch\Data\RemoveAccountScopeOverrides` deletes any values of them saved for a
+website or store view. Every other getter takes an optional store id and reads at store scope,
+which also resolves website and default values. A null store id means the current store, which in
+the admin is the default scope.
 
 The settings live under the carrier's section, `carriers/polkurier/`, so Magento treats the module
 as a regular delivery method.
@@ -18,29 +22,32 @@ as a regular delivery method.
 |---|---|---|
 | `active` | `isActive()` | website |
 | `title` | `getTitle()` | store view |
-| `general/customer_id`, `general/api_token` | `getLogin()`, `getToken()`, `hasCredentials()` | website, encrypted |
-| `general/sandbox_mode` | `isSandbox()` | website |
-| `general/api_url` | `getApiUrl()` | not shown in the admin |
-| `general/timeout` | `getTimeout()` | default |
-| `general/logging`, `general/log_methods` | `isLoggingEnabled()`, `getMethodsToLog()` | website |
-| `shipments/available_carriers` | `getAvailableCarriers()` | website |
-| `shipments/default_carrier` | `getDefaultCarrier()` | website |
-| `shipments/default_shipment_type` | `getDefaultShipmentType()` | website |
-| `shipments/use_store_information_address`, `shipments/use_store_origin_address`, `shipments/default_sender_email` | `isUseStoreInformationAddress()`, `isUseStoreOriginAddress()`, `getSenderEmailIdentity()` | website |
-| `shipments/default_additional_services` | `getDefaultServices()` | website |
-| `shipments/insure_by_default` | `isInsureByDefault()` | website |
-| `shipments/cod_payment_methods` | `getCodPaymentMethods()` | website |
-| `shipments/default_cod_type`, `shipments/default_cod_refund_type` | `getDefaultCodType()`, `getDefaultCodReturnType()` | website |
-| `shipments/description_format` | `getDescriptionFormat()` | store view |
-| `shipments/label_format` | `getLabelFormat()` | website |
-| `shipments/notify_customer` | `isNotifyCustomer()` | website |
-| `shipments/native_labels` | `isNativeLabelsEnabled()` | website |
-| `shipments/shipment_screen` | `isShipmentScreenEnabled()` | website |
+| `general/customer_id`, `general/api_token` | `getLogin()`, `getToken()`, `hasCredentials()` | global, encrypted |
+| `general/sandbox_mode` | `isSandbox()` | global |
+| `general/api_url` | `getApiUrl()` | global, not shown in the admin |
+| `general/timeout` | `getTimeout()` | global |
+| `general/logging`, `general/log_methods` | `isLoggingEnabled()`, `getMethodsToLog()` | global |
+| `shipment_defaults/available_carriers` | `getAvailableCarriers()` | global |
+| `shipment_defaults/default_shipment_type` | `getDefaultShipmentType()` | website |
+| `sender/use_store_information_address`, `sender/use_store_origin_address`, `sender/default_sender_email` | `isUseStoreInformationAddress()`, `isUseStoreOriginAddress()`, `getSenderEmailIdentity()` | website |
+| `shipment_defaults/default_additional_services` | `getDefaultServices()` | website |
+| `shipment_defaults/insure_by_default` | `isInsureByDefault()` | website |
+| `packing/parcel_weight` | `getParcelWeight()`: `ParcelWeightEnum`, whose `weigh()` is the rule; `rules.parcelWeight()` is its copy for the screens | website |
+| `packing/pack_new_shipments` | `isPackingNewShipments()` | website |
+| `packing/packing_margin` | `getPackingMargin()` | website |
+| `packing/weight_limit` | `getWeightLimit()` | website |
+| `cod/cod_payment_methods` | `getCodPaymentMethods()` | website |
+| `cod/default_cod_type`, `cod/default_cod_refund_type` | `getDefaultCodType()`, `getDefaultCodReturnType()` | website |
+| `shipment_defaults/description_format` | `getDescriptionFormat()` | store view |
+| `labels/label_format` | `getLabelFormat()` | website |
+| `labels/notify_customer` | `isNotifyCustomer()` | website |
+| `labels/native_labels` | `isNativeLabelsEnabled()` | website |
+| `labels/shipment_screen` | `isShipmentScreenEnabled()` | website |
 | `map/default_latitude`, `map/default_longitude`, `map/default_zoom` | `getMapLatitude()` … | store view |
 | `map/show_list`, `map/show_search_input` | `isMapShowList()`, `isMapShowSearch()` | store view |
 | `map/required_point_functions` | `getMapPointFunctions()` | website |
-| `map/url` | `getMapUrl()` | not shown in the admin |
-| `sync/enabled`, `sync/status_enabled` | `isSyncEnabled()`, `isStatusSyncEnabled()` | default |
+| `map/url` | `getMapUrl()` | global, not shown in the admin |
+| `sync/enabled`, `sync/status_enabled` | `isSyncEnabled()`, `isStatusSyncEnabled()` | global |
 
 Magento's standard carrier settings (`sallowspecific`, `specificcountry`, `showmethod`,
 `specificerrmsg`, `sort_order`) are read by Magento itself.
@@ -57,7 +64,7 @@ and `getToken()` decrypt them. Nothing else should read those paths.
 You can set them from the command line or in `env.php` like any sensitive setting:
 
 ```bash
-bin/magento config:set --scope=websites --scope-code=base --lock-env carriers/polkurier/general/customer_id 12345
+bin/magento config:set --lock-env carriers/polkurier/general/customer_id 12345
 ```
 
 ## API and map hosts
@@ -70,7 +77,7 @@ The map host is whitelisted for scripts, styles, frames and connections in `etc/
 
 ## Where each part of the configuration is used
 
-- Account settings: `Model\Sdk\StoreConfigProvider`, for every SDK client.
+- Account settings: `Model\Sdk\AccountConfigProvider`, for the SDK client.
 - Shipment defaults: `Model\Shipment\DefaultDraftBuilder`.
 - `native_labels`: the carrier's `isShippingLabelsAvailable()`, the New Shipment page block and
   the order page buttons. `shipment_screen`: the order page buttons.

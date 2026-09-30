@@ -17,14 +17,14 @@ use Polkurier\Shipping\Model\AddressFactory;
 use Polkurier\Shipping\Model\Mapper\AddressBookMapper;
 use Polkurier\Shipping\Model\ResourceModel\Address\CollectionFactory;
 use Polkurier\Shipping\Model\Sdk\ClientPool;
-use Polkurier\Shipping\Model\Sync\AdapterInterface;
+use Polkurier\Shipping\Model\Sync\PushableAdapterInterface;
 use Polkurier\Webservice\Enum\Address\AddressTypeEnum;
 use Polkurier\Webservice\Request\Address\GetMessage;
 
 /**
  * Sender addresses of the address book. Recipient entries are left to the Polkurier panel.
  */
-class AddressAdapter implements AdapterInterface
+class AddressAdapter implements PushableAdapterInterface
 {
     public function __construct(
         private readonly ClientPool $clientPool,
@@ -40,10 +40,10 @@ class AddressAdapter implements AdapterInterface
         return SyncEntityEnum::Address;
     }
 
-    public function fetchRemote(int $storeId): array
+    public function fetchRemote(): array
     {
         $remote = [];
-        foreach ($this->clientPool->addresses($storeId)->getAddresses(new GetMessage(AddressTypeEnum::Sender)) as $address) {
+        foreach ($this->clientPool->addresses()->getAddresses(new GetMessage(AddressTypeEnum::Sender)) as $address) {
             if ($address->getId() !== null) {
                 $remote[$address->getId()] = $this->mapper->normalize($address);
             }
@@ -52,17 +52,16 @@ class AddressAdapter implements AdapterInterface
         return $remote;
     }
 
-    public function fetchLocal(int $websiteId): array
+    public function fetchLocal(): array
     {
         return \array_values($this->collectionFactory->create()
-            ->addFieldToFilter(SyncableInterface::WEBSITE_ID, ['eq' => $websiteId])
             ->addFieldToFilter(AddressInterface::TYPE, AddressInterface::TYPE_SENDER)
             ->getItems());
     }
 
-    public function createLocal(int $websiteId): SyncableInterface
+    public function createLocal(): SyncableInterface
     {
-        return $this->addressFactory->create()->setWebsiteId($websiteId);
+        return $this->addressFactory->create();
     }
 
     public function applyRemote(SyncableInterface $local, array $remote): void
@@ -71,18 +70,23 @@ class AddressAdapter implements AdapterInterface
         $this->mapper->apply($remote, $local);
     }
 
-    public function canPush(): bool
+    public function getNaturalKey(SyncableInterface|array $entry): ?string
     {
-        return true;
+        /** @var AddressInterface|array<string, mixed> $entry */
+        $value = \is_array($entry) ? (string)($entry['name'] ?? '') : $entry->getName();
+        $key = (string)\mb_strtolower(\trim($value));
+
+        return $key !== '' ? $key : null;
     }
 
-    public function push(SyncableInterface $local, int $storeId): array
+
+    public function push(SyncableInterface $local): array
     {
         /** @var AddressInterface $local */
         $request = $this->mapper->toSaveMessage($local);
         $isNew = $local->getExtId() === null;
-        $response = $this->clientPool->addresses($storeId)->saveAddress($request);
-        $this->events->dispatch(ApiEventEnum::AddressSaveAfter, $storeId, [
+        $response = $this->clientPool->addresses()->saveAddress($request);
+        $this->events->dispatch(ApiEventEnum::AddressSaveAfter, null, [
             'address' => $local,
             'is_new' => $isNew,
             'request' => $request,
@@ -92,12 +96,12 @@ class AddressAdapter implements AdapterInterface
         return $this->mapper->normalize($response);
     }
 
-    public function deleteRemote(SyncableInterface $local, int $storeId): void
+    public function deleteRemote(SyncableInterface $local): void
     {
         /** @var AddressInterface $local */
         $request = $this->mapper->toDeleteMessage($local);
-        if ($this->clientPool->addresses($storeId)->deleteAddress($request)) {
-            $this->events->dispatch(ApiEventEnum::AddressDeleteAfter, $storeId, ['address' => $local, 'request' => $request]);
+        if ($this->clientPool->addresses()->deleteAddress($request)) {
+            $this->events->dispatch(ApiEventEnum::AddressDeleteAfter, null, ['address' => $local, 'request' => $request]);
         }
     }
 

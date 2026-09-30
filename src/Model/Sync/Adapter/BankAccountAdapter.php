@@ -37,10 +37,10 @@ class BankAccountAdapter implements AdapterInterface
         return SyncEntityEnum::BankAccount;
     }
 
-    public function fetchRemote(int $storeId): array
+    public function fetchRemote(): array
     {
         $remote = [];
-        foreach ($this->clientPool->bankAccounts($storeId)->getBankAccounts() as $account) {
+        foreach ($this->clientPool->bankAccounts()->getBankAccounts() as $account) {
             if ($account->getId() !== null) {
                 $remote[$account->getId()] = $this->mapper->normalize($account);
             }
@@ -49,16 +49,15 @@ class BankAccountAdapter implements AdapterInterface
         return $remote;
     }
 
-    public function fetchLocal(int $websiteId): array
+    public function fetchLocal(): array
     {
         return \array_values($this->collectionFactory->create()
-            ->addFieldToFilter(SyncableInterface::WEBSITE_ID, ['eq' => $websiteId])
             ->getItems());
     }
 
-    public function createLocal(int $websiteId): SyncableInterface
+    public function createLocal(): SyncableInterface
     {
-        return $this->bankAccountFactory->create()->setWebsiteId($websiteId);
+        return $this->bankAccountFactory->create();
     }
 
     public function applyRemote(SyncableInterface $local, array $remote): void
@@ -67,19 +66,13 @@ class BankAccountAdapter implements AdapterInterface
         $this->mapper->apply($remote, $local);
     }
 
-    public function canPush(): bool
+    public function getNaturalKey(SyncableInterface|array $entry): ?string
     {
-        return false;
-    }
+        /** @var BankAccountInterface|array<string, mixed> $entry */
+        $value = \is_array($entry) ? (string)($entry['number'] ?? '') : $entry->getNumber();
+        $key = \strtoupper((string)\preg_replace('/\s+/', '', $value));
 
-    public function push(SyncableInterface $local, int $storeId): array
-    {
-        throw new \LogicException('Bank accounts are not sent to Polkurier.');
-    }
-
-    public function deleteRemote(SyncableInterface $local, int $storeId): void
-    {
-        throw new \LogicException('Bank accounts are not deleted in Polkurier.');
+        return $key !== '' ? $key : null;
     }
 
     public function save(SyncableInterface $local): void

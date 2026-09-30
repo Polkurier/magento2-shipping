@@ -16,9 +16,8 @@ use Polkurier\Shipping\Model\Config;
 use Polkurier\Shipping\Model\MasterData;
 use Polkurier\Shipping\Model\Mapper\StreetParser;
 use Polkurier\Shipping\Model\OrderPointStore;
+use Polkurier\Shipping\Model\Shipment\Draft\ItemFactory;
 use Polkurier\Shipping\Model\Shipment\Draft\PackFactory;
-use Polkurier\Shipping\Model\WebsiteScope;
-use Polkurier\Webservice\Enum\Order\PackTypeEnum;
 use Polkurier\Webservice\Exception\Exception as PolkurierException;
 use Polkurier\Webservice\Response\Carrier;
 use Psr\Log\LoggerInterface;
@@ -38,40 +37,57 @@ class DefaultDraftBuilder
         private readonly StreetParser $streetParser,
         private readonly CarrierCatalog $catalog,
         private readonly CarrierFeatures $features,
-        private readonly WebsiteScope $websiteScope,
+        private readonly OrderAmounts $amounts,
+        private readonly ItemFactory $itemFactory,
+        private readonly AutoPacker $autoPacker,
         private readonly LoggerInterface $logger,
     ) {}
 
-    public function createFromOrder(Order $order): ShipmentDraftInterface
+    /**
+     * @param array<int, float>|null $qtys quantities shipped by order item id, or null for
+     *     everything the order still has to ship
+     */
+    public function createFromOrder(Order $order, ?array $qtys = null): ShipmentDraftInterface
     {
         $storeId = (int)$order->getStoreId();
-        $websiteId = $this->websiteScope->getWebsiteId($storeId);
-        $carrierCode = $this->getCarrierCode($order, $storeId);
-        $carrier = $carrierCode !== null ? $this->getCarrier($carrierCode, $storeId) : null;
+        $carrierCode = $this->getCarrierCode($order);
+        $carrier = $carrierCode !== null ? $this->getCarrier($carrierCode) : null;
 
         $draft = $this->draftFactory->create();
         $draft->setCarrierCode((string)$carrierCode);
         $draft->setShipmentType($this->getShipmentType($carrier, $storeId));
         $draft->setDescription(\sprintf($this->config->getDescriptionFormat($storeId), $order->getIncrementId()));
-        $senderId = $this->masterData->getDefaultSenderAddress($websiteId)?->getId();
+        $senderId = $this->masterData->getDefaultSenderAddress()?->getId();
         $draft->setSenderAddressId($senderId !== null ? (int)$senderId : null);
         $this->setRecipient($draft, $order);
-        $draft->setPacks([$this->createPack($order, $websiteId)]);
+        $draft->setItems($this->createItems($order, $qtys));
+        [$packs, $estimated] = $this->createPacks($order, $draft->getItems(), $draft->getShipmentType());
+        $draft->setPacks($packs);
+        // Packed automatically: the screen says the parcels are an estimate.
+        $draft->setPacksEstimated($estimated);
         $draft->setServices([]);
         $draft->setAdditionalFields([]);
 
-        $grandTotal = \round((float)$order->getGrandTotal(), 2);
-        $cod = \in_array((string)$order->getPayment()?->getMethod(), $this->config->getCodPaymentMethods($storeId), true);
+        // When the order ships in parts, each shipment collects what is left and is insured for
+        // what it carries.
+        $codAmount = \in_array((string)$order->getPayment()?->getMethod(), $this->config->getCodPaymentMethods($storeId), true)
+            ? $this->amounts->getCodRemaining($order)
+            : 0.0;
+        $cod = $codAmount > 0;
         if ($cod) {
-            $draft->setCodAmount($grandTotal);
+            $draft->setCodAmount($codAmount);
             $draft->setCodType($this->config->getDefaultCodType($storeId)->value);
             $draft->setCodReturnType($this->config->getDefaultCodReturnType($storeId)->value);
-            $bankAccountId = $this->masterData->getDefaultBankAccount($websiteId)?->getId();
+            $bankAccountId = $this->masterData->getPreferredBankAccount()?->getId();
             $draft->setCodBankAccountId($bankAccountId !== null ? (int)$bankAccountId : null);
         }
         $insuranceRequired = $cod && $carrier !== null && $this->features->isInsuranceRequiredWithCod($carrier);
         if ($this->config->isInsureByDefault($storeId) || $insuranceRequired) {
-            $draft->setInsuranceAmount($grandTotal);
+            // 0 when the order's currency can't be given in złoty: left for the merchant to enter.
+            $value = \max($this->amounts->getShipmentValue($order, $qtys), $insuranceRequired ? $codAmount : 0.0);
+            if ($value > 0) {
+                $draft->setInsuranceAmount($value);
+            }
         }
 
         $offered = $carrier !== null ? $this->features->getServices($carrier) : [];
@@ -93,24 +109,40 @@ class DefaultDraftBuilder
     }
 
     /**
+     * The items shipped: the quantities given, or everything the order still has to ship.
+     *
+     * @param array<int, float>|null $qtys
+     * @return Draft\Item[]
+     */
+    private function createItems(Order $order, ?array $qtys): array
+    {
+        $items = [];
+        foreach ($this->amounts->getItems($order) as $id => $item) {
+            $qty = $qtys === null ? $item['qty_to_ship'] : (float)($qtys[$id] ?? 0);
+            if ($qty > 0) {
+                $items[] = $this->itemFactory->create()->setOrderItemId($id)->setQty($qty);
+            }
+        }
+
+        return $items;
+    }
+
+    /**
      * The method the customer chose, or the configured default when the order was placed with
      * another shipping method.
      */
-    private function getCarrierCode(Order $order, int $storeId): ?string
+    /**
+     * The carrier of the order's Polkurier method; only such orders are shipped.
+     */
+    private function getCarrierCode(Order $order): ?string
     {
-        $method = (string)$order->getShippingMethod();
-        $prefix = Polkurier::CODE . '_';
-        if (\str_starts_with($method, $prefix)) {
-            return \substr($method, \strlen($prefix));
-        }
-
-        return $this->config->getDefaultCarrier($storeId);
+        return Polkurier::methodCodeOf((string)$order->getShippingMethod());
     }
 
-    private function getCarrier(string $code, int $storeId): ?Carrier
+    private function getCarrier(string $code): ?Carrier
     {
         try {
-            return $this->catalog->getCarrier($code, $storeId);
+            return $this->catalog->getCarrier($code);
         } catch (PolkurierException $e) {
             $this->logger->warning('Polkurier carrier list unavailable for the shipment draft', ['exception' => $e]);
 
@@ -149,26 +181,47 @@ class DefaultDraftBuilder
         $draft->setRecipientPointId($this->orderPointStore->getForOrder((int)$order->getEntityId())?->getPointId());
     }
 
-    private function createPack(Order $order, int $websiteId): Draft\Pack
+    /**
+     * The items packed into parcels of the pack templates, when every product has its shipping
+     * dimensions; otherwise one parcel of the default pack template, or none without one:
+     * a parcel nobody sized would only stand in the way.
+     *
+     * @param \Polkurier\Shipping\Api\Data\ShipmentDraft\ItemInterface[] $items
+     * @return array{0: Draft\Pack[], 1: bool} the parcels, and whether they were packed automatically
+     */
+    private function createPacks(Order $order, array $items, string $shipmentType): array
     {
-        $pack = $this->packFactory->create();
-        $template = $this->masterData->getDefaultPackTemplate($websiteId);
-        if ($template !== null) {
-            return $pack->setTemplateId((int)$template->getId())
-                ->setPackType($template->getPackType())
-                ->setLength($template->getLength())
-                ->setWidth($template->getWidth())
-                ->setHeight($template->getHeight())
-                ->setWeight($template->getWeight())
-                ->setAmount(1);
+        if ($this->config->isPackingNewShipments((int)$order->getStoreId())) {
+            $qtys = [];
+            foreach ($items as $item) {
+                $qtys[$item->getOrderItemId()] = $item->getQty();
+            }
+            $packed = $this->autoPacker->pack($order, $qtys, $shipmentType)['packs'];
+            if ($packed !== []) {
+                return [$packed, true];
+            }
+        }
+        $template = $this->masterData->getDefaultPackTemplate();
+        if ($template === null) {
+            return [[], false];
+        }
+        // The one parcel carries everything shipped.
+        $products = $this->amounts->getItems($order);
+        $weight = 0.0;
+        $weighed = $items !== [];
+        foreach ($items as $item) {
+            $unitWeight = (float)($products[$item->getOrderItemId()]['weight'] ?? 0.0);
+            $weight += $unitWeight * $item->getQty();
+            $weighed = $weighed && $unitWeight > 0;
         }
 
-        return $pack->setTemplateId(null)
-            ->setPackType(PackTypeEnum::Standard->value)
-            ->setLength(0)
-            ->setWidth(0)
-            ->setHeight(0)
-            ->setWeight(\max(0.1, \round((float)$order->getWeight(), 3)))
-            ->setAmount(1);
+        return [[$this->packFactory->create()
+            ->setTemplateId((int)$template->getId())
+            ->setPackType($template->getPackType())
+            ->setLength($template->getLength())
+            ->setWidth($template->getWidth())
+            ->setHeight($template->getHeight())
+            ->setWeight($this->config->getParcelWeight((int)$order->getStoreId())->weigh($template->getWeight(), $weight, $weighed))
+            ->setAmount(1)], false];
     }
 }

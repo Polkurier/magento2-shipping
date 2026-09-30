@@ -17,7 +17,7 @@ For installation and everyday use, see the [user guide](../user-guide/README.md)
 ## Chapters
 
 1. [Package layout](package-layout.md): where things are
-2. [Talking to Polkurier](talking-to-polkurier.md): the SDK, one client per store, errors
+2. [Talking to Polkurier](talking-to-polkurier.md): the SDK, one client for the account, errors
 3. [Configuration](configuration.md): reading settings, scopes, secrets
 4. [Database](database.md): tables and what they hold
 5. [Checkout](checkout.md): the carrier, pricing and pickup points

@@ -11,19 +11,24 @@ use Magento\Framework\AuthorizationInterface;
 use Magento\Sales\Block\Adminhtml\Order\View;
 use Polkurier\Shipping\Model\Carrier\Polkurier;
 use Polkurier\Shipping\Model\Config;
+use Polkurier\Shipping\Model\Shipment\MagentoShipment;
 
 /**
- * Opens the Polkurier shipment screen from the order page, with a "Ship with Polkurier" button.
+ * Opens the Polkurier shipment screen from the page of an order placed with a Polkurier method,
+ * with a "Ship with Polkurier" button. Orders of other carriers get nothing.
  *
  * Magento's Ship button keeps leading to Magento's shipment page, where labels are created, unless
- * labels there are turned off: then, for orders placed with a Polkurier method, Ship opens the
- * shipment screen instead of a second button.
+ * labels there are turned off: then Ship opens the shipment screen instead of a second button.
+ *
+ * The button stays while the order has items left to ship, or a Magento shipment without a
+ * Polkurier order to send one for.
  */
 class OrderViewPlugin
 {
     public function __construct(
         private readonly AuthorizationInterface $authorization,
         private readonly Config $config,
+        private readonly MagentoShipment $magentoShipment,
     ) {}
 
     /**
@@ -33,7 +38,15 @@ class OrderViewPlugin
     public function beforeSetLayout(View $subject, $layout): array
     {
         $order = $subject->getOrder();
-        if ($order === null || !$order->canShip() || !$this->authorization->isAllowed('Polkurier_Shipping::shipment_create')) {
+        // Orders of other carriers are left to their own integrations.
+        if ($order === null
+            || !Polkurier::isOrderOf($order)
+            || !$this->authorization->isAllowed('Polkurier_Shipping::shipment_create')
+        ) {
+            return [$layout];
+        }
+        $canShip = $order->canShip();
+        if (!$canShip && $this->magentoShipment->getFreeShipments($order) === []) {
             return [$layout];
         }
         $storeId = (int)$order->getStoreId();
@@ -42,9 +55,7 @@ class OrderViewPlugin
         }
         $url = $subject->getUrl('polkurier/shipment/create', ['order_id' => $order->getId()]);
 
-        if (Polkurier::methodCodeOf((string)$order->getShippingMethod()) !== null
-            && !$this->config->isNativeLabelsEnabled($storeId)
-        ) {
+        if ($canShip && !$this->config->isNativeLabelsEnabled($storeId)) {
             $subject->updateButton('order_ship', 'onclick', \sprintf("setLocation('%s')", $url));
         } else {
             $subject->addButton('polkurier_ship', [

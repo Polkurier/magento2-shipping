@@ -7,6 +7,9 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Model;
 
+use Magento\Framework\Exception\LocalizedException;
+use Magento\Framework\Phrase;
+use Polkurier\Shipping\Model\Sdk\RecentFailureException;
 use Polkurier\Webservice\Exception\AuthorizationException;
 use Polkurier\Webservice\Exception\ConnectionException;
 use Polkurier\Webservice\Exception\Exception as PolkurierException;
@@ -22,6 +25,15 @@ use Polkurier\Webservice\Exception\WebserviceException;
  */
 class ErrorMessages
 {
+    /**
+     * The failure as an exception to show the merchant, with the message described. The message
+     * is translated already, so it goes into the phrase as it is rather than through a "%1".
+     */
+    public function exception(\Throwable $e): LocalizedException
+    {
+        return new LocalizedException(new Phrase($this->describe($e)), $e instanceof \Exception ? $e : null);
+    }
+
     public function describe(\Throwable $e): string
     {
         return match (true) {
@@ -32,7 +44,7 @@ class ErrorMessages
             $e instanceof InvalidArgumentException => (string)\__('The request to Polkurier could not be built: %1', $e->getMessage()),
             $e instanceof AuthorizationException => (string)\__(
                 // One literal, so that i18n:collect-phrases finds it.
-                'Polkurier did not accept the API credentials configured for this website. Check the customer ID and API token in Stores > Configuration > Sales > Delivery Methods > Polkurier. (%1)',
+                'Polkurier did not accept the API credentials. Check the customer ID and API token in Stores > Configuration > Sales > Delivery Methods > Polkurier. (%1)',
                 $e->getErrorMessage()->getResponse(),
             ),
             $e instanceof WebserviceException => $this->webservice($e),
@@ -44,6 +56,7 @@ class ErrorMessages
                 'Polkurier answered with something unexpected (HTTP %1). Try again later; if it persists, contact Polkurier.',
                 $e->getResponse()->getStatusCode(),
             ),
+            $e instanceof RecentFailureException => $e->getMessage(),
             $e instanceof PolkurierException => (string)\__('Polkurier error: %1', $e->getMessage()),
             default => $e->getMessage(),
         };

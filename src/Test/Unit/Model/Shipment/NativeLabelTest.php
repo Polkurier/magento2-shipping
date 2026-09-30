@@ -31,13 +31,14 @@ use Polkurier\Shipping\Model\ResourceModel\Shipment\CollectionFactory;
 use Polkurier\Shipping\Model\Shipment\DefaultDraftBuilder;
 use Polkurier\Shipping\Model\Shipment\Documents;
 use Polkurier\Shipping\Model\Shipment\Draft;
+use Polkurier\Shipping\Model\Shipment\Draft\ItemFactory;
 use Polkurier\Shipping\Model\Shipment\Draft\Pack;
 use Polkurier\Shipping\Model\Shipment\Draft\PackFactory;
 use Polkurier\Shipping\Model\Shipment\DraftFactory;
 use Polkurier\Shipping\Model\Shipment\DraftHydrator;
 use Polkurier\Shipping\Model\Shipment\MagentoShipment;
 use Polkurier\Shipping\Model\Shipment\NativeLabel;
-use Polkurier\Shipping\Model\Shipment\ShipmentManagement;
+use Polkurier\Shipping\Model\Shipment\Placing;
 use Psr\Log\NullLogger;
 
 #[CoversClass(NativeLabel::class)]
@@ -46,7 +47,7 @@ class NativeLabelTest extends TestCase
 {
     private const string PDF = "%PDF-1.4\n%label";
 
-    private ShipmentManagement&MockObject $management;
+    private Placing&MockObject $management;
     private Documents&MockObject $documents;
     private Collection&MockObject $linked;
     private ?ShipmentDraftInterface $placed = null;
@@ -54,11 +55,15 @@ class NativeLabelTest extends TestCase
      * @var array<string, mixed>|null
      */
     private ?array $options = null;
+    /**
+     * @var array<int, float>|null
+     */
+    private ?array $qtys = null;
 
     protected function setUp(): void
     {
-        $this->management = $this->createMock(ShipmentManagement::class);
-        $this->management->method('placeForMagentoShipment')->willReturnCallback(
+        $this->management = $this->createMock(Placing::class);
+        $this->management->method('forMagentoShipment')->willReturnCallback(
             function (int $orderId, ShipmentDraftInterface $draft): ShipmentInterface {
                 $this->placed = $draft;
 
@@ -91,6 +96,7 @@ class NativeLabelTest extends TestCase
         self::assertSame('ST', $packs[0]->getPackType());
         self::assertSame('NST', $packs[1]->getPackType());
         self::assertSame(3.0, $packs[1]->getWeight());
+        self::assertSame([5 => 2.0], $this->qtys, 'The defaults are worked out for the items in the shipment.');
         self::assertSame(
             [['tracking_number' => ['WB-1', 'WB-2'], 'label_content' => self::PDF]],
             $answer->getData('info'),
@@ -122,7 +128,7 @@ class NativeLabelTest extends TestCase
         $this->linked->method('setOrder')->willReturnSelf();
         $this->linked->method('setPageSize')->willReturnSelf();
         $this->linked->method('getFirstItem')->willReturn($this->polkurierShipment(['WB-9']));
-        $this->management->expects(self::never())->method('placeForMagentoShipment');
+        $this->management->expects(self::never())->method('forMagentoShipment');
 
         $answer = $this->label()->request($this->labelRequest($this->magentoShipment(31), []));
 
@@ -151,7 +157,7 @@ class NativeLabelTest extends TestCase
 
     public function testOnlyMerchantsAllowedToShipCanPlaceOrders(): void
     {
-        $this->management->expects(self::never())->method('placeForMagentoShipment');
+        $this->management->expects(self::never())->method('forMagentoShipment');
 
         $this->expectException(LocalizedException::class);
         $this->label(allowed: false)->request($this->labelRequest($this->magentoShipment(null), []));
@@ -181,6 +187,10 @@ class NativeLabelTest extends TestCase
         $shipment->method('getId')->willReturn($id);
         $shipment->method('getOrder')->willReturn($order);
         $shipment->method('getTracks')->willReturn([]);
+        $item = $this->createStub(MagentoShipmentModel\Item::class);
+        $item->method('getOrderItemId')->willReturn(5);
+        $item->method('getQty')->willReturn(2.0);
+        $shipment->method('getAllItems')->willReturn([$item]);
 
         return $shipment;
     }
@@ -220,7 +230,11 @@ class NativeLabelTest extends TestCase
             ->setServices([])
             ->setPacks([(new Pack())->setPackType('ST')->setWeight(1.0)->setAmount(1)]);
         $builder = $this->createStub(DefaultDraftBuilder::class);
-        $builder->method('createFromOrder')->willReturn($default);
+        $builder->method('createFromOrder')->willReturnCallback(function (Order $order, ?array $qtys) use ($default): Draft {
+            $this->qtys = $qtys;
+
+            return $default;
+        });
 
         $collections = $this->createStub(CollectionFactory::class);
         $collections->method('create')->willReturnCallback(fn(): Collection => $this->linked);
@@ -235,7 +249,7 @@ class NativeLabelTest extends TestCase
             $this->createStub(MagentoShipmentRepository::class),
             $this->management,
             $builder,
-            new DraftHydrator($draftFactory, $packFactory),
+            new DraftHydrator($draftFactory, $packFactory, $this->createStub(ItemFactory::class)),
             $packFactory,
             new PackType(),
             $collections,

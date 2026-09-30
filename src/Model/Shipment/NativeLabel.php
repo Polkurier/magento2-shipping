@@ -11,6 +11,7 @@ use Magento\Framework\App\RequestInterface;
 use Magento\Framework\AuthorizationInterface;
 use Magento\Framework\DataObject;
 use Magento\Framework\Exception\LocalizedException;
+use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Framework\Measure\Length;
 use Magento\Framework\Measure\Weight;
 use Magento\Framework\Message\ManagerInterface;
@@ -88,7 +89,7 @@ class NativeLabel
         private readonly RequestInterface $request,
         private readonly OrderRepositoryInterface $orderRepository,
         private readonly MagentoShipmentRepository $magentoShipmentRepository,
-        private readonly ShipmentManagement $shipmentManagement,
+        private readonly Placing $placing,
         private readonly DefaultDraftBuilder $draftBuilder,
         private readonly DraftHydrator $hydrator,
         private readonly PackFactory $packFactory,
@@ -145,8 +146,8 @@ class NativeLabel
 
         $shipment = $magentoShipment->getId() ? $this->findLinked((int)$magentoShipment->getId()) : null;
         if ($shipment === null) {
-            $draft = $this->buildDraft($order, (array)$request->getData('packages'));
-            $shipment = $this->shipmentManagement->placeForMagentoShipment((int)$order->getEntityId(), $draft);
+            $draft = $this->buildDraft($magentoShipment, $order, (array)$request->getData('packages'));
+            $shipment = $this->placing->forMagentoShipment((int)$order->getEntityId(), $draft);
             $magentoShipment->setData(self::LINK, (int)$shipment->getId());
         }
 
@@ -156,9 +157,13 @@ class NativeLabel
     /**
      * @param array<int|string, mixed> $packages
      */
-    private function buildDraft(Order $order, array $packages): ShipmentDraftInterface
+    private function buildDraft(MagentoShipmentModel $magentoShipment, Order $order, array $packages): ShipmentDraftInterface
     {
-        $data = $this->hydrator->toArray($this->draftBuilder->createFromOrder($order));
+        $qtys = [];
+        foreach ($magentoShipment->getAllItems() as $item) {
+            $qtys[(int)$item->getOrderItemId()] = (float)$item->getQty();
+        }
+        $data = $this->hydrator->toArray($this->draftBuilder->createFromOrder($order, $qtys));
         $options = $this->request->getParam(self::OPTIONS_PARAM);
         if (\is_array($options)) {
             $data = \array_replace($data, \array_intersect_key($options, \array_flip(self::OPTION_FIELDS)));
@@ -281,7 +286,7 @@ class NativeLabel
             if ($shipmentId) {
                 return (int)$this->magentoShipmentRepository->get($shipmentId)->getStoreId();
             }
-        } catch (\Exception) {
+        } catch (NoSuchEntityException) {
             return null;
         }
 

@@ -13,7 +13,7 @@ use Magento\Framework\Controller\Result\Json;
 use Magento\Framework\Controller\Result\JsonFactory;
 use Magento\Framework\Exception\LocalizedException;
 use Polkurier\Shipping\Api\Data\SyncableInterface;
-use Polkurier\Shipping\Model\Admin\SyncableEntityHandler;
+use Polkurier\Shipping\Model\Admin\EntityHandlerInterface;
 
 /**
  * Saves the rows edited in a list, each as its form would: sent to Polkurier straight away, and
@@ -23,7 +23,7 @@ abstract class AbstractInlineEdit extends AbstractAction implements HttpPostActi
 {
     public function __construct(
         Context $context,
-        SyncableEntityHandler $handler,
+        EntityHandlerInterface $handler,
         private readonly JsonFactory $jsonFactory,
     ) {
         parent::__construct($context, $handler);
@@ -46,10 +46,16 @@ abstract class AbstractInlineEdit extends AbstractAction implements HttpPostActi
             try {
                 $entity = $this->handler->get((int)$id);
                 $this->handler->save($entity, \array_intersect_key($row, \array_flip($this->getEditableFields())));
-                // Saved here either way; Polkurier's refusal is what the merchant needs to see.
+                // Saved here either way; Polkurier's refusal, or that it's still waiting for a
+                // confirmation, is what the merchant needs to see.
                 $saved = $this->handler->get((int)$id);
                 if ($saved->getSyncState() === SyncableInterface::STATE_ERROR) {
                     $messages[] = (string)\__('#%1: %2', $id, (string)$saved->getSyncError());
+                } elseif ($saved->getSyncState() === SyncableInterface::STATE_UNCONFIRMED) {
+                    $messages[] = (string)\__(
+                        '#%1: Saved in Magento. It goes to Polkurier once you confirm it: open it and save it with the code or your security PIN.',
+                        $id,
+                    );
                 }
             } catch (LocalizedException $e) {
                 $messages[] = $e->getMessage();

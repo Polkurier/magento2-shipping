@@ -11,7 +11,7 @@ use Magento\Framework\Api\Filter;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Message\ManagerInterface;
 use Magento\Ui\DataProvider\AbstractDataProvider;
-use Polkurier\Shipping\Model\MoneyBox\AccountScope;
+use Polkurier\Shipping\Model\Config;
 use Polkurier\Shipping\Model\MoneyBox\Payouts;
 use Polkurier\Shipping\Model\ResourceModel\Shipment\CollectionFactory;
 
@@ -33,7 +33,7 @@ class DataProvider extends AbstractDataProvider
         string $requestFieldName,
         CollectionFactory $collectionFactory,
         private readonly Payouts $payouts,
-        private readonly AccountScope $accountScope,
+        private readonly Config $config,
         private readonly ManagerInterface $messageManager,
         array $meta = [],
         array $data = [],
@@ -61,12 +61,11 @@ class DataProvider extends AbstractDataProvider
      */
     public function getData(): array
     {
-        $storeId = $this->accountScope->getStoreId();
-        if ($storeId === null) {
+        if (!$this->config->hasCredentials()) {
             return ['items' => [], 'totalRecords' => 0];
         }
         try {
-            $list = $this->payouts->getPayouts($storeId, $this->page, $this->pageSize);
+            $list = $this->payouts->getPayouts($this->page, $this->pageSize);
         } catch (LocalizedException $e) {
             $this->messageManager->addErrorMessage($e->getMessage());
 

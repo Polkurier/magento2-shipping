@@ -1,0 +1,136 @@
+<!--
+ ~ Copyright (c) 2026 Polkurier.pl
+ ~ All Rights Reserved
+-->
+<div class="polkurier-section__part polkurier-parcels">
+    <!-- ko if: rows().length -->
+    <div class="polkurier-parcels__head">
+        <span class="polkurier-parcels__title" translate="'Parcels'"></span>
+        <span class="polkurier-parcels__links">
+            <button type="button" class="polkurier-link" if="canPack" data-bind="click: packAutomatically, disable: packing">
+                <span translate="'Pack automatically'"></span>
+            </button>
+            <button type="button" class="polkurier-link" click="add">
+                <span translate="'Add a parcel'"></span>
+            </button>
+        </span>
+    </div>
+    <ul class="polkurier-parcels__list">
+        <!-- ko foreach: rows -->
+        <li class="polkurier-parcels__item" data-bind="css: {'_incomplete': incomplete}">
+            <div class="polkurier-parcels__text">
+                <strong text="name"></strong>
+                <span class="polkurier-muted" text="size"></span>
+                <div class="polkurier-muted polkurier-parcels__contents" if="contents" text="contents"></div>
+            </div>
+            <div class="polkurier-parcels__actions">
+                <button type="button" class="polkurier-link" data-bind="click: $parent.edit.bind($parent)">
+                    <span translate="'Edit'"></span>
+                </button>
+                <button type="button" class="polkurier-link" data-bind="click: $parent.remove.bind($parent)">
+                    <span translate="'Remove'"></span>
+                </button>
+            </div>
+        </li>
+        <!-- /ko -->
+    </ul>
+    <p class="polkurier-muted polkurier-parcels__unpacked" if="unpacked" text="unpacked"></p>
+    <div class="message message-notice polkurier-parcels__estimate" if="estimated">
+        <!-- Bound through $t: a colon in a translate attribute is read as binding syntax. -->
+        <span data-bind="text: $t('The parcels are an estimate: every product counts as a box of its shipping dimensions, whatever its real shape. Check them before placing the order.')"></span>
+    </div>
+    <!-- /ko -->
+    <!-- ko ifnot: rows().length -->
+    <div class="polkurier-parcels__empty">
+        <button type="button" class="action-secondary" click="add">
+            <span translate="'Add a parcel'"></span>
+        </button>
+        <button type="button" class="action-secondary" if="canPack" data-bind="click: packAutomatically, disable: packing">
+            <span translate="'Pack automatically'"></span>
+        </button>
+        <p class="polkurier-muted" if="templates().length" translate="'or choose a pack template on the right'"></p>
+    </div>
+    <!-- /ko -->
+
+    <div class="polkurier-hidden">
+        <div data-bind="afterRender: initEditor">
+            <div class="admin__fieldset polkurier-parcel-editor">
+                <div class="admin__field">
+                    <label class="admin__field-label" for="polkurier-parcel-type"><span translate="'Type'"></span></label>
+                    <div class="admin__field-control">
+                        <select id="polkurier-parcel-type" class="admin__control-select"
+                                data-bind="options: packTypes, optionsText: 'label', optionsValue: 'value', value: editor.packType"></select>
+                    </div>
+                </div>
+                <div class="admin__field _required">
+                    <label class="admin__field-label" for="polkurier-parcel-length"><span translate="'Length [cm]'"></span></label>
+                    <div class="admin__field-control">
+                        <input id="polkurier-parcel-length" class="admin__control-text" type="number" min="1" step="1" data-bind="value: editor.length"/>
+                    </div>
+                </div>
+                <div class="admin__field _required">
+                    <label class="admin__field-label" for="polkurier-parcel-width"><span translate="'Width [cm]'"></span></label>
+                    <div class="admin__field-control">
+                        <input id="polkurier-parcel-width" class="admin__control-text" type="number" min="1" step="1" data-bind="value: editor.width"/>
+                    </div>
+                </div>
+                <div class="admin__field _required">
+                    <label class="admin__field-label" for="polkurier-parcel-height"><span translate="'Height [cm]'"></span></label>
+                    <div class="admin__field-control">
+                        <input id="polkurier-parcel-height" class="admin__control-text" type="number" min="1" step="1" data-bind="value: editor.height"/>
+                    </div>
+                </div>
+                <div class="admin__field _required">
+                    <label class="admin__field-label" for="polkurier-parcel-weight"><span translate="'Weight [kg]'"></span></label>
+                    <div class="admin__field-control">
+                        <input id="polkurier-parcel-weight" class="admin__control-text" type="number" min="0.01" step="0.01" data-bind="value: editor.weight"/>
+                        <div class="admin__field-note" if="editor.contentsWeight() > 0">
+                            <span data-bind="text: $t('What it holds weighs %1 kg.').replace('%1', editor.contentsWeight())"></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="polkurier-parcel-editor__contents" if="editor.items().length">
+                    <div class="polkurier-parcel-editor__title" translate="'What it holds'"></div>
+                    <table class="data-table admin__table-primary">
+                        <thead>
+                        <tr>
+                            <th translate="'Product'"></th>
+                            <th class="polkurier-items__qty" translate="'In this parcel'"></th>
+                        </tr>
+                        </thead>
+                        <tbody data-bind="foreach: editor.items">
+                        <tr>
+                            <td text="name"></td>
+                            <td class="polkurier-items__qty">
+                                <input type="number" class="admin__control-text" min="0" step="any"
+                                       data-bind="value: qty, valueUpdate: 'input', attr: {max: left, 'aria-label': name}"/>
+                                <span class="polkurier-muted" text="leftText"></span>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="message message-error" if="editor.error">
+                    <span text="editor.error"></span>
+                </div>
+            </div>
+        </div>
+        <div data-bind="afterRender: initChooser">
+            <ul class="polkurier-templates__list">
+                <li class="polkurier-templates__item" tabindex="0" role="button"
+                    data-bind="click: addCustom, event: {keydown: function (d, e) { return onChooserKey(null, e); }}">
+                    <strong translate="'A parcel without a template'"></strong>
+                    <span class="polkurier-muted" translate="'Enter its size and weight yourself.'"></span>
+                </li>
+                <!-- ko foreach: templates -->
+                <li class="polkurier-templates__item" tabindex="0" role="button"
+                    data-bind="click: function () { $parent.applyTemplate($data, true); },
+                               event: {keydown: function (d, e) { return $parent.onChooserKey(d, e); }}">
+                    <strong text="name"></strong>
+                    <span class="polkurier-muted" data-bind="text: pack_type_label + ' (' + length + ' × ' + width + ' × ' + height + ' cm, ' + weight + ' kg)'"></span>
+                </li>
+                <!-- /ko -->
+            </ul>
+        </div>
+    </div>
+</div>

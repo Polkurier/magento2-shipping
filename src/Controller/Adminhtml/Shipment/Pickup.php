@@ -7,9 +7,12 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Controller\Adminhtml\Shipment;
 
+use Magento\Backend\App\Action\Context;
 use Magento\Framework\App\Action\HttpPostActionInterface;
 use Magento\Framework\Controller\Result\Redirect;
 use Magento\Framework\Exception\LocalizedException;
+use Polkurier\Shipping\Model\Shipment\Pickups;
+use Polkurier\Shipping\Model\Shipment\RequestedShipments;
 
 /**
  * Books one courier collection for the selected shipments that await a collective pickup.
@@ -18,6 +21,14 @@ use Magento\Framework\Exception\LocalizedException;
 class Pickup extends AbstractShipmentAction implements HttpPostActionInterface
 {
     public const string ADMIN_RESOURCE = 'Polkurier_Shipping::shipment_create';
+
+    public function __construct(
+        Context $context,
+        RequestedShipments $requestedShipments,
+        private readonly Pickups $pickups,
+    ) {
+        parent::__construct($context, $requestedShipments);
+    }
 
     public function execute(): Redirect
     {

@@ -11,14 +11,19 @@ use Magento\Framework\TestFramework\Unit\Helper\ObjectManager;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
-use PHPUnit\Framework\TestCase;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Model\Shipment;
+use Polkurier\Shipping\Model\Shipment\OrderDetails;
 use Polkurier\Shipping\Model\Shipment\OrderSnapshot;
+use Polkurier\Shipping\Test\Unit\Support\FixedDateTime;
+use Polkurier\Shipping\Test\Unit\Support\SdkTestCase;
+use Polkurier\Webservice\Request\Order\GetOrdersMessage;
+use Polkurier\Webservice\Response\Order;
+use Polkurier\Webservice\Testing\RecordingClient;
 
 #[CoversClass(OrderSnapshot::class)]
 #[AllowMockObjectsWithoutExpectations]
-class OrderSnapshotTest extends TestCase
+class OrderSnapshotTest extends SdkTestCase
 {
     private const string NOW = '2026-09-25 12:00:00';
 
@@ -46,14 +51,44 @@ class OrderSnapshotTest extends TestCase
     {
         $shipment = $this->shipment()->setStatusCode($status)->setCodStatus($cod)->setStatusDate($statusDate);
 
-        self::assertSame($final, (new OrderSnapshot())->isFinal($shipment, new \DateTimeImmutable(self::NOW)));
+        self::assertSame($final, (new OrderSnapshot(new OrderDetails(), new FixedDateTime()))->isFinal($shipment, new \DateTimeImmutable(self::NOW)));
+    }
+
+    public function testAppliesThePolkurierOrderToTheShipment(): void
+    {
+        $shipment = $this->shipment()->setState(ShipmentInterface::STATE_UNKNOWN)->setTrackingUrl('https://kept.example');
+
+        (new OrderSnapshot(new OrderDetails(), new FixedDateTime((int)\strtotime(self::NOW . ' UTC'))))->apply($this->order(), $shipment);
+
+        self::assertSame(ShipmentInterface::STATE_CREATED, $shipment->getState(), 'Found, so placed after all.');
+        self::assertSame('12345-678', $shipment->getPolkurierNumber());
+        self::assertSame(['6211000015757'], $shipment->getWaybills());
+        self::assertSame(['D', 'Dostarczone'], [$shipment->getStatusCode(), $shipment->getStatusLabel()]);
+        self::assertSame('2026-06-25 17:20:00', $shipment->getStatusDate());
+        self::assertSame(self::NOW, $shipment->getDetailsSyncedAt());
+        self::assertSame('12345-678', $shipment->getDetails()['number'] ?? null, 'The copy the details page shows.');
+        self::assertNotNull($shipment->getTrackingUrl());
+    }
+
+    public function testACancelledPolkurierOrderCancelsTheShipment(): void
+    {
+        $json = (string)\json_encode(\array_replace_recursive(
+            \json_decode(self::fixture('get_orders.json'), true),
+            ['response' => ['result' => [['status_code' => 'A', 'status' => 'Anulowane', 'COD' => null]]]],
+        ));
+        $shipment = $this->shipment()->setState(ShipmentInterface::STATE_CREATED);
+
+        (new OrderSnapshot(new OrderDetails(), new FixedDateTime()))->apply($this->order($json), $shipment);
+
+        self::assertSame(ShipmentInterface::STATE_CANCELLED, $shipment->getState());
+        self::assertTrue($shipment->isFinal());
     }
 
     public function testACancelledShipmentIsFinished(): void
     {
         $shipment = $this->shipment()->setState(ShipmentInterface::STATE_CANCELLED)->setStatusCode('OC');
 
-        self::assertTrue((new OrderSnapshot())->isFinal($shipment));
+        self::assertTrue((new OrderSnapshot(new OrderDetails(), new FixedDateTime()))->isFinal($shipment));
     }
 
     private function shipment(): Shipment
@@ -62,5 +97,12 @@ class OrderSnapshotTest extends TestCase
         $shipment = (new ObjectManager($this))->getObject(Shipment::class);
 
         return $shipment->setState(ShipmentInterface::STATE_CREATED);
+    }
+
+    private function order(?string $answer = null): Order
+    {
+        $http = new RecordingClient($answer ?? self::fixture('get_orders.json'));
+
+        return $this->clientPool($http)->orders()->getOrders(new GetOrdersMessage(searchPhrase: '12345-678'))->getResult()[0];
     }
 }

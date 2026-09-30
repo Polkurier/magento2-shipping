@@ -14,6 +14,8 @@ use Polkurier\Shipping\Model\Admin\PackTemplateHandler;
 
 class Edit extends AbstractEdit
 {
+    public const string ADMIN_RESOURCE = 'Polkurier_Shipping::pack_templates';
+
     public function __construct(Context $context, PackTemplateHandler $handler)
     {
         parent::__construct($context, $handler);

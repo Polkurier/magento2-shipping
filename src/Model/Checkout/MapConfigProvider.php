@@ -10,6 +10,7 @@ namespace Polkurier\Shipping\Model\Checkout;
 use Magento\Checkout\Model\ConfigProviderInterface;
 use Magento\Checkout\Model\Session;
 use Magento\Store\Model\StoreManagerInterface;
+use Polkurier\Shipping\Api\Data\QuotePointInterface;
 use Polkurier\Shipping\Model\Carrier\CarrierCatalog;
 use Polkurier\Shipping\Model\Carrier\CarrierConfigs;
 use Polkurier\Shipping\Model\Carrier\CarrierFeatures;
@@ -45,6 +46,20 @@ class MapConfigProvider implements ConfigProviderInterface
      */
     public function getConfig(): array
     {
+        $quoteId = (int)$this->checkoutSession->getQuoteId();
+
+        return ['pickupPoints' => $this->getMapConfig($quoteId ? $this->pointStore->getForQuote($quoteId) : null)];
+    }
+
+    /**
+     * What the storefront's point picker needs, for the regular checkout and each address of the
+     * multi-address one alike.
+     *
+     * @param QuotePointInterface|null $point the point already chosen, if any
+     * @return array<string, mixed>
+     */
+    public function getMapConfig(?QuotePointInterface $point): array
+    {
         $store = $this->storeManager->getStore();
         $storeId = (int)$store->getId();
         $methods = [];
@@ -52,8 +67,8 @@ class MapConfigProvider implements ConfigProviderInterface
 
         if ($this->config->isActive($storeId)) {
             try {
-                foreach ($this->carrierConfigs->getActive((int)$store->getWebsiteId()) as $code => $carrierConfig) {
-                    $carrier = $this->catalog->getCarrier($code, $storeId);
+                foreach ($this->carrierConfigs->getActive() as $code => $carrierConfig) {
+                    $carrier = $this->catalog->getCarrier($code);
                     if ($carrier !== null && $this->features->isRecipientPointAllowed($carrier)) {
                         $methods[$code] = [
                             'providers' => $this->features->getPointProviders($carrier),
@@ -62,7 +77,12 @@ class MapConfigProvider implements ConfigProviderInterface
                     }
                 }
                 if ($methods !== []) {
-                    $token = $this->tokenProvider->getToken($storeId);
+                    $token = $this->tokenProvider->getToken();
+                }
+                if ($token === '' && $methods !== []) {
+                    // Without a token there is no map to choose from, so no method may ask for a point.
+                    $this->logger->error('Pickup point map unavailable in checkout: no map token');
+                    $methods = [];
                 }
             } catch (PolkurierException $e) {
                 $this->logger->error('Pickup point map unavailable in checkout', ['exception' => $e]);
@@ -71,10 +91,10 @@ class MapConfigProvider implements ConfigProviderInterface
         }
 
         // Neutral names only: nothing sent to the storefront may name Polkurier.
-        return ['pickupPoints' => [
+        return [
             'methods' => (object)$methods,
             'token' => $token,
-            'baseUrl' => $this->config->getMapUrl($storeId) . '/',
+            'baseUrl' => $this->config->getMapUrl() . '/',
             'latitude' => $this->config->getMapLatitude($storeId),
             'longitude' => $this->config->getMapLongitude($storeId),
             'zoom' => $this->config->getMapZoom($storeId),
@@ -84,23 +104,12 @@ class MapConfigProvider implements ConfigProviderInterface
                 static fn(PointFunctionEnum $function): string => $function->value,
                 $this->config->getMapPointFunctions($storeId),
             ),
-            'selected' => $this->getSelectedPoint(),
+            'selected' => $point === null ? null : [
+                'method' => $point->getMethodCode(),
+                'id' => $point->getPointId(),
+                'label' => (string)$point->getPointLabel(),
+            ],
             'carrierCode' => Polkurier::CODE,
-        ]];
-    }
-
-    /**
-     * @return array{method: string, id: string, label: string}|null
-     */
-    private function getSelectedPoint(): ?array
-    {
-        $quoteId = (int)$this->checkoutSession->getQuoteId();
-        $point = $quoteId ? $this->pointStore->getForQuote($quoteId) : null;
-
-        return $point === null ? null : [
-            'method' => $point->getMethodCode(),
-            'id' => $point->getPointId(),
-            'label' => (string)$point->getPointLabel(),
         ];
     }
 }

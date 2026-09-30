@@ -7,20 +7,21 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Plugin\Multishipping;
 
-use Magento\Framework\App\RequestInterface;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Multishipping\Model\Checkout\Type\Multishipping;
 use Polkurier\Shipping\Model\Carrier\Polkurier;
+use Polkurier\Shipping\Model\Checkout\MultishippingPoints;
 use Polkurier\Shipping\Model\Checkout\PointSelection;
 
 /**
  * Pickup points in the multi-address checkout: stored per address with the shipping methods,
- * and required again before the orders are placed.
+ * and required again before the orders are placed. The points come from the shipping step's post,
+ * through {@see MultishippingPoints}.
  */
 class CheckoutPlugin
 {
     public function __construct(
-        private readonly RequestInterface $request,
+        private readonly MultishippingPoints $points,
         private readonly PointSelection $pointSelection,
     ) {}
 
@@ -31,7 +32,6 @@ class CheckoutPlugin
      */
     public function beforeSetShippingMethods(Multishipping $subject, $methods)
     {
-        $points = (array)$this->request->getParam('pickup_point', []);
         $quote = $subject->getQuote();
         foreach ($quote->getAllShippingAddresses() as $address) {
             $addressId = (int)$address->getId();
@@ -41,7 +41,7 @@ class CheckoutPlugin
                 $quote,
                 $code !== null ? Polkurier::CODE : $method,
                 (string)$code,
-                isset($points[$addressId]) ? (string)$points[$addressId] : null,
+                $this->points->get($addressId),
                 $addressId,
             );
         }

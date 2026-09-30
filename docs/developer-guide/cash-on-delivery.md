@@ -17,9 +17,9 @@
 | `createPayout()` | requests a payout, with the code and, if the account locks payouts, the PIN |
 | `cancelPayout()` | cancels a payout that hasn't been processed |
 
-`Model\MoneyBox\AccountScope` resolves which website's account a payout screen works with, from
-the websites that have credentials. `Model\MoneyBox\OrderNumbers` parses the Polkurier order
-numbers typed into the payout form, one per line or separated by commas or spaces.
+The payout screens work with the installation's one Polkurier account and take no website.
+`Model\MoneyBox\OrderNumbers` parses the Polkurier order numbers typed into the payout form, one
+per line or separated by commas or spaces.
 
 The payout listing (`polkurier_payout_listing`) reads the account directly through its data
 provider; payouts aren't stored locally.

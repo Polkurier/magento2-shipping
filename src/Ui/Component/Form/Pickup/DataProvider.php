@@ -7,8 +7,9 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Ui\Component\Form\Pickup;
 
-use Magento\Framework\App\RequestInterface;
 use Magento\Framework\Api\Filter;
+use Magento\Framework\App\RequestInterface;
+use Magento\Framework\Stdlib\DateTime\TimezoneInterface;
 use Magento\Ui\DataProvider\AbstractDataProvider;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Model\ResourceModel\Shipment\CollectionFactory;
@@ -28,6 +29,7 @@ class DataProvider extends AbstractDataProvider
         string $requestFieldName,
         CollectionFactory $collectionFactory,
         private readonly RequestInterface $request,
+        private readonly TimezoneInterface $timezone,
         array $meta = [],
         array $data = [],
     ) {
@@ -56,7 +58,8 @@ class DataProvider extends AbstractDataProvider
         return [(string)$this->request->getParam('ids') => [
             'ids' => \implode(',', $ids),
             'shipments' => \implode(', ', $numbers),
-            'pickup_date' => (new \DateTimeImmutable('+1 weekday'))->format('Y-m-d'),
+            // The next working day where the store is, not where the server's clock is.
+            'pickup_date' => \DateTimeImmutable::createFromMutable($this->timezone->date())->modify('+1 weekday')->format('Y-m-d'),
             'pickup_time_from' => '10:00',
             'pickup_time_to' => '16:00',
         ]];

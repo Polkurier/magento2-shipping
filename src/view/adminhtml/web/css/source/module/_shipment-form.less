@@ -1,0 +1,588 @@
+// /**
+//  * Copyright (c) 2026 Polkurier.pl
+//  * All Rights Reserved
+//  */
+/* The Polkurier shipment screen: Magento's page sections in two columns, the form on the left and
+   the pack templates and placing on the right. Only layout and a few list styles are added; the
+   rest is the admin's own. */
+
+.polkurier-workspace {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(24rem, 1fr);
+    gap: 0 3rem;
+    align-items: start;
+}
+
+.polkurier-workspace__side {
+    position: sticky;
+    top: 8rem;
+}
+
+/* Sections */
+.polkurier-section .admin__page-section-title {
+    display: flex;
+    align-items: baseline;
+    gap: 1rem;
+}
+
+.polkurier-section .admin__page-section-title .actions {
+    position: static;
+    margin: 0;
+}
+
+.polkurier-section__content {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.5rem 3rem;
+}
+
+.polkurier-section__content > * {
+    min-width: 0;
+}
+
+/* The admin's clearfix would take grid cells. */
+.polkurier-section__content::before,
+.polkurier-section__content::after {
+    display: none;
+}
+
+.polkurier-section__wide,
+.polkurier-section--extras .polkurier-section__content > *,
+.polkurier-section__content > .admin__fieldset {
+    grid-column: ~'1 / -1';
+}
+
+.polkurier-muted {
+    color: @color-gray43;
+}
+
+.polkurier-text-error {
+    color: @color-tomato-brick;
+}
+
+.polkurier-link {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: @color-blue-pure;
+    font-weight: normal;
+    cursor: pointer;
+}
+
+.polkurier-link:hover,
+.polkurier-link:focus {
+    background: none;
+    color: @color-blue-pure;
+    text-decoration: underline;
+    box-shadow: none;
+}
+
+.polkurier-hidden {
+    display: none;
+}
+
+/* Shipment details */
+.polkurier-facts {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: .6rem 1.5rem;
+    margin: 0;
+}
+
+.polkurier-facts dt {
+    color: @color-gray43;
+    font-weight: normal;
+    margin: 0;
+}
+
+.polkurier-facts dd {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 .8rem;
+    align-items: baseline;
+    margin: 0;
+}
+
+.polkurier-facts dd._loading {
+    opacity: .5;
+}
+
+/* Parcels */
+.polkurier-parcels__head {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: .6rem;
+}
+
+.polkurier-parcels__title {
+    color: @color-gray43;
+}
+
+.polkurier-parcels__list,
+.polkurier-templates__list,
+.polkurier-switches {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.polkurier-parcels__item {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    margin: 0;
+    padding: .8rem 1rem;
+    border: 1px solid @color-gray89;
+    border-bottom-width: 0;
+}
+
+.polkurier-parcels__item:last-child {
+    border-bottom-width: 1px;
+}
+
+.polkurier-parcels__item._incomplete {
+    border-left: 3px solid @color-tomato-brick;
+}
+
+.polkurier-parcels__text {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 .6rem;
+}
+
+.polkurier-parcels__actions {
+    display: flex;
+    gap: 1rem;
+    white-space: nowrap;
+}
+
+.polkurier-parcels__empty {
+    padding: 1.5rem;
+    border: 1px dashed @color-gray68;
+    text-align: center;
+}
+
+.polkurier-parcels__empty p {
+    margin: .8rem 0 0;
+}
+
+/* Additional services */
+.polkurier-switches {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(26rem, 1fr));
+    gap: 1rem 2rem;
+}
+
+.polkurier-switches__item {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: .8rem;
+    align-items: start;
+    margin: 0;
+}
+
+.polkurier-switches .admin__actions-switch {
+    margin: 0;
+}
+
+.polkurier-switches .admin__actions-switch-label {
+    margin: 0;
+}
+
+.polkurier-switches__body {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: .2rem .8rem;
+    padding-top: .3rem;
+}
+
+.polkurier-switches__label {
+    cursor: pointer;
+}
+
+.polkurier-switches__note {
+    flex-basis: 100%;
+}
+
+/* Addresses, point and handover */
+.polkurier-address {
+    display: flex;
+    flex-direction: column;
+    font-style: normal;
+    line-height: 1.6;
+}
+
+.polkurier-address__strong {
+    font-weight: 600;
+}
+
+.polkurier-address__caption {
+    margin-bottom: .4rem;
+}
+
+.polkurier-point-box,
+.polkurier-handover {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: .6rem;
+}
+
+.polkurier-code {
+    padding: .1rem .6rem;
+    border: 1px solid @color-gray68;
+    font-family: monospace;
+    font-size: 1.4rem;
+}
+
+.polkurier-handover__option {
+    width: 100%;
+}
+
+.polkurier-handover__dates {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .6rem;
+    margin: .6rem 0 0 2.4rem;
+}
+
+.polkurier-handover__dates .admin__control-select {
+    width: auto;
+    min-width: 12rem;
+}
+
+/* Notices */
+/* What needs attention in a section: marked once placing was tried */
+.polkurier-section._invalid .polkurier-section__title {
+    border-bottom-color: @color-tomato-brick;
+}
+
+.polkurier-section._invalid .polkurier-section__title .title {
+    color: @color-tomato-brick;
+}
+
+.polkurier-section__issues {
+    margin: 0 0 1.5rem;
+    padding: 0;
+    list-style: none;
+}
+
+.polkurier-section__issues li {
+    margin-bottom: .4rem;
+}
+
+.polkurier-section__error {
+    color: @color-tomato-brick;
+}
+
+.polkurier-section__warning {
+    color: @color-gray43;
+}
+
+.polkurier-section__warning::before {
+    content: '!';
+    display: inline-block;
+    width: 1.6rem;
+    height: 1.6rem;
+    margin-right: .6rem;
+    border-radius: 50%;
+    background: @color-phoenix;
+    color: @color-white;
+    font-size: 1.1rem;
+    font-weight: 700;
+    line-height: 1.6rem;
+    text-align: center;
+}
+
+.polkurier-section__issues .polkurier-link,
+.polkurier-summary__cheaper .polkurier-link {
+    margin-left: .8rem;
+}
+
+/* Templates and senders: selectable lists */
+.polkurier-templates__item {
+    display: flex;
+    flex-direction: column;
+    gap: .2rem;
+    margin: 0;
+    padding: 1rem 1.2rem;
+    border: 1px solid @color-gray89;
+    border-bottom-width: 0;
+    cursor: pointer;
+}
+
+.polkurier-templates__item:last-child {
+    border-bottom-width: 1px;
+}
+
+.polkurier-templates__item:hover,
+.polkurier-templates__item:focus {
+    background: @color-white-smoke;
+}
+
+.polkurier-templates__item:focus:not(:focus-visible) {
+    outline: none;
+}
+
+.polkurier-templates__item._active {
+    border-left: 3px solid @color-phoenix;
+    background: @polkurier__selected-background;
+}
+
+.polkurier-templates .message {
+    margin-top: 1.5rem;
+}
+
+/* Summary */
+.polkurier-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.polkurier-summary__price {
+    display: flex;
+    flex-direction: column;
+}
+
+.polkurier-summary__price._loading {
+    opacity: .5;
+}
+
+.polkurier-summary__gross {
+    font-size: 2.4rem;
+}
+
+.polkurier-summary__note {
+    margin: 0;
+}
+
+/* Carrier list in its modal */
+.polkurier-carriers__search {
+    margin-bottom: 1rem;
+}
+
+.polkurier-carriers__status {
+    margin-bottom: 1rem;
+    color: @color-gray43;
+}
+
+.polkurier-carriers__list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(22rem, 1fr));
+    gap: 1rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.polkurier-carriers__item {
+    display: flex;
+    flex-direction: column;
+    gap: .3rem;
+    margin: 0;
+    padding: 1rem 1.2rem;
+    border: 1px solid @color-gray89;
+    cursor: pointer;
+}
+
+.polkurier-carriers__item:hover,
+.polkurier-carriers__item:focus {
+    background: @color-white-smoke;
+    outline: none;
+}
+
+.polkurier-carriers__item._selected {
+    border-color: @color-phoenix;
+    background: @polkurier__selected-background;
+}
+
+.polkurier-carriers__item._unpriced {
+    color: @color-gray60;
+}
+
+.polkurier-carriers__name {
+    font-weight: 600;
+}
+
+.polkurier-carriers__price {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 .6rem;
+}
+
+.polkurier-carriers__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .4rem;
+    align-items: center;
+    font-size: 1.1rem;
+}
+
+.polkurier-carriers__code {
+    color: @color-gray43;
+    margin-right: .4rem;
+}
+
+.polkurier-badge {
+    padding: 0 .5rem;
+    border: 1px solid @color-gray68;
+    color: @color-brown-darker;
+    line-height: 1.7rem;
+}
+
+.polkurier-badge._cheapest {
+    border-color: @color-green-apple;
+    color: @polkurier__cheapest-text;
+}
+
+.polkurier-carriers__more {
+    margin-top: 1rem;
+}
+
+.polkurier-workspace-modal .polkurier-carriers,
+.polkurier-workspace-modal .polkurier-senders {
+    width: 100%;
+}
+
+.polkurier-workspace-modal .admin__fieldset > .admin__field:has(.polkurier-carriers, .polkurier-senders) > .admin__field-label {
+    display: none;
+}
+
+.polkurier-workspace-modal .admin__fieldset > .admin__field:has(.polkurier-carriers, .polkurier-senders) > .admin__field-control {
+    float: none;
+    width: 100%;
+    margin-left: 0;
+}
+
+.polkurier-workspace-modal .admin__fieldset > .admin__field:has(.polkurier-carriers, .polkurier-senders) {
+    margin-left: 0;
+}
+
+/* Modals */
+.polkurier-workspace-modal .modal-inner-wrap {
+    max-width: 90rem;
+}
+
+.polkurier-parcel-modal .modal-inner-wrap {
+    max-width: 60rem;
+}
+
+/* A modal with a single group already carries its title. */
+.polkurier-workspace-modal .modal-content > div > .fieldset-wrapper:only-child > .fieldset-wrapper-title {
+    display: none;
+}
+
+.polkurier-point {
+    display: flex;
+    gap: 1rem;
+}
+
+.polkurier-point .admin__control-text {
+    max-width: 20rem;
+}
+
+@media (max-width: 1200px) {
+    .polkurier-workspace {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .polkurier-workspace__side {
+        position: static;
+    }
+}
+
+@media (max-width: 768px) {
+    .polkurier-section__content {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+/* Items to ship */
+.polkurier-items__table {
+    margin-bottom: 1rem;
+}
+
+.polkurier-items__table .polkurier-items__number {
+    width: 8rem;
+    text-align: right;
+}
+
+.polkurier-items__table .polkurier-items__qty {
+    width: 16rem;
+    white-space: nowrap;
+}
+
+.polkurier-items__qty .admin__control-text {
+    width: 7rem;
+    margin-right: .6rem;
+}
+
+.polkurier-items__foot {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .4rem 1.5rem;
+    align-items: baseline;
+}
+
+/* What each parcel holds */
+.polkurier-parcels__contents {
+    margin-top: .3rem;
+}
+
+.polkurier-parcels__unpacked {
+    margin: .8rem 0 0;
+}
+
+.polkurier-parcel-editor__contents {
+    margin: 2rem 0 1rem;
+}
+
+.polkurier-parcel-editor__title {
+    margin-bottom: .8rem;
+    font-weight: 600;
+}
+
+.polkurier-parcel-editor__contents .admin__control-text {
+    width: 7rem;
+    margin-right: .6rem;
+}
+
+.polkurier-parcels__links .polkurier-link + .polkurier-link {
+    margin-left: 1.5rem;
+}
+
+.polkurier-parcels__empty .action-secondary + .action-secondary {
+    margin-left: 1rem;
+}
+
+.polkurier-parcels__estimate {
+    margin: 1rem 0 0;
+}
+
+/* Polkurier's messages about the carrier */
+.polkurier-details__notices {
+    margin: .8rem 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.polkurier-details__notices li {
+    display: flex;
+    align-items: baseline;
+}
+
+.polkurier-details__notices li::before {
+    flex: none;
+}
+
+.polkurier-details__notices li + li {
+    margin-top: .6rem;
+}
+
+.polkurier-handover__dates .admin__control-select._error,
+.polkurier-items__table .admin__control-text._error {
+    border-color: @color-tomato-brick;
+}

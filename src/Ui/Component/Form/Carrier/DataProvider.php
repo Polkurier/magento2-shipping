@@ -91,22 +91,16 @@ class DataProvider extends AbstractDataProvider
     }
 
     /**
-     * Offers only the store views of the carrier's website for store view labels.
+     * Offers every store view for store view labels.
      *
      * @return array<string, mixed>
      */
     public function getMeta(): array
     {
         $meta = parent::getMeta();
-        $websiteId = null;
-        foreach ($this->getEditedConfig() as $config) {
-            $websiteId = $config->getWebsiteId();
-        }
         $options = [];
         foreach ($this->storeManager->getStores() as $store) {
-            if ($websiteId === null || (int)$store->getWebsiteId() === $websiteId) {
-                $options[] = ['value' => (string)$store->getId(), 'label' => (string)$store->getName()];
-            }
+            $options[] = ['value' => (string)$store->getId(), 'label' => (string)$store->getName()];
         }
         $meta['general']['children'][CarrierConfigInterface::STORE_LABELS]['children']['record']['children']
             [CarrierLabelInterface::STORE_ID]['arguments']['data']['config']['options'] = $options;

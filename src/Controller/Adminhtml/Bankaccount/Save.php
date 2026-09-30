@@ -19,6 +19,8 @@ use Polkurier\Shipping\Model\Admin\BankAccountHandler;
  */
 class Save extends AbstractSave
 {
+    public const string ADMIN_RESOURCE = 'Polkurier_Shipping::bank_accounts';
+
     public function __construct(
         Context $context,
         private readonly BankAccountHandler $bankAccountHandler,
@@ -35,8 +37,9 @@ class Save extends AbstractSave
         $id = (int)$this->getRequest()->getParam('id');
         $redirect = $this->resultRedirectFactory->create();
         try {
-            $pin = \trim((string)$this->getRequest()->getParam('confirmation_pin')) ?: null;
-            $this->bankAccountHandler->delete($this->bankAccountHandler->get($id), $pin);
+            $this->bankAccountHandler->delete($this->bankAccountHandler->get($id), [
+                BankAccountHandler::CONFIRMATION_PIN => (string)$this->getRequest()->getParam(BankAccountHandler::CONFIRMATION_PIN),
+            ]);
             $this->messageManager->addSuccessMessage(\__('Deleted.'));
         } catch (LocalizedException $e) {
             $this->messageManager->addErrorMessage($e->getMessage());

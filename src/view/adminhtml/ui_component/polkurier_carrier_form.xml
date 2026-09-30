@@ -132,7 +132,7 @@
         </field>
         <field name="active" formElement="checkbox" sortOrder="30">
             <settings>
-                <label translate="true">Offered in checkout</label>
+                <label translate="true">Enabled</label>
                 <dataType>boolean</dataType>
                 <dataScope>active</dataScope>
             </settings>
@@ -147,14 +147,6 @@
                     </settings>
                 </checkbox>
             </formElements>
-        </field>
-        <field name="sort_order" formElement="input" sortOrder="40">
-            <settings>
-                <label translate="true">Sort order</label>
-                <dataType>number</dataType>
-                <validation><rule name="validate-number" xsi:type="boolean">true</rule></validation>
-                <dataScope>sort_order</dataScope>
-            </settings>
         </field>
     </fieldset>
     <fieldset name="pricing">

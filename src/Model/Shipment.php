@@ -345,6 +345,105 @@ class Shipment extends AbstractModel implements ShipmentInterface
         return $this->setData(self::REQUEST, $request);
     }
 
+    public function getDetails(): array
+    {
+        return self::decode($this->getData(self::DETAILS));
+    }
+
+    public function setDetails(?array $details): static
+    {
+        return $this->setData(self::DETAILS, $details === null ? null : (string)\json_encode($details, \JSON_UNESCAPED_UNICODE));
+    }
+
+    public function getDetailsSyncedAt(): ?string
+    {
+        $value = $this->getData(self::DETAILS_SYNCED_AT);
+
+        return $value === null || $value === '' ? null : (string)$value;
+    }
+
+    public function setDetailsSyncedAt(?string $syncedAt): static
+    {
+        return $this->setData(self::DETAILS_SYNCED_AT, $syncedAt);
+    }
+
+    public function getTracking(): array
+    {
+        return \array_values(self::decode($this->getData(self::TRACKING)));
+    }
+
+    public function setTracking(?array $tracking): static
+    {
+        return $this->setData(self::TRACKING, $tracking === null ? null : (string)\json_encode(\array_values($tracking), \JSON_UNESCAPED_UNICODE));
+    }
+
+    public function getTrackingSyncedAt(): ?string
+    {
+        $value = $this->getData(self::TRACKING_SYNCED_AT);
+
+        return $value === null || $value === '' ? null : (string)$value;
+    }
+
+    public function setTrackingSyncedAt(?string $syncedAt): static
+    {
+        return $this->setData(self::TRACKING_SYNCED_AT, $syncedAt);
+    }
+
+    public function getShipItems(): array
+    {
+        $qtys = [];
+        foreach (self::decode($this->getData(self::SHIP_ITEMS)) as $id => $qty) {
+            $qtys[(int)$id] = (float)$qty;
+        }
+
+        return $qtys;
+    }
+
+    public function setShipItems(?array $qtys): static
+    {
+        return $this->setData(self::SHIP_ITEMS, $qtys ? (string)\json_encode((object)$qtys) : null);
+    }
+
+    public function getTargetShipmentId(): ?int
+    {
+        $value = $this->getData(self::TARGET_SHIPMENT_ID);
+
+        return $value === null || $value === '' ? null : (int)$value;
+    }
+
+    public function setTargetShipmentId(?int $shipmentId): static
+    {
+        return $this->setData(self::TARGET_SHIPMENT_ID, $shipmentId);
+    }
+
+    public function getShipPackages(): array
+    {
+        $packages = [];
+        foreach (self::decode($this->getData(self::SHIP_PACKAGES)) as $number => $package) {
+            $packages[(int)$number] = $package;
+        }
+
+        return $packages;
+    }
+
+    public function setShipPackages(?array $packages): static
+    {
+        return $this->setData(self::SHIP_PACKAGES, $packages ? (string)\json_encode((object)$packages, \JSON_UNESCAPED_UNICODE) : null);
+    }
+
+    /**
+     * @return array<mixed>
+     */
+    private static function decode(mixed $value): array
+    {
+        if (\is_array($value)) {
+            return $value;
+        }
+        $decoded = \is_string($value) && $value !== '' ? \json_decode($value, true) : null;
+
+        return \is_array($decoded) ? $decoded : [];
+    }
+
     public function getLastError(): ?string
     {
         $value = $this->getData(self::LAST_ERROR);

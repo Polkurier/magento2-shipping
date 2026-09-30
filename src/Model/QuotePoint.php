@@ -8,19 +8,13 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Model;
 
 use Magento\Framework\Model\AbstractModel;
+use Polkurier\Shipping\Api\Data\QuotePointInterface;
 
 /**
  * The pickup point chosen in checkout, held on the quote until the order is placed.
  */
-class QuotePoint extends AbstractModel
+class QuotePoint extends AbstractModel implements QuotePointInterface
 {
-    public const string QUOTE_ID = 'quote_id';
-    public const string QUOTE_ADDRESS_ID = 'quote_address_id';
-    public const string METHOD_CODE = 'method_code';
-    public const string POINT_ID = 'point_id';
-    public const string POINT_LABEL = 'point_label';
-    public const string POINT_COD = 'point_cod';
-
     protected function _construct(): void
     {
         $this->_init(ResourceModel\QuotePoint::class);

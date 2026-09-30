@@ -48,12 +48,12 @@ class Publisher
      *
      * @throws LocalizedException
      */
-    public function isPinLocked(int $storeId): bool
+    public function isPinLocked(): bool
     {
         try {
-            return (bool)$this->clientPool->account($storeId)->getAccountInfo()->getPinLocks()?->isBankAccountsEdit();
+            return (bool)$this->clientPool->account()->getAccountInfo()->getPinLocks()?->isBankAccountsEdit();
         } catch (PolkurierException $e) {
-            throw new LocalizedException(\__('%1', $this->errorMessages->describe($e)), $e);
+            throw $this->errorMessages->exception($e);
         }
     }
 
@@ -63,17 +63,17 @@ class Publisher
      * @return string the two-factor token the save must carry together with the code
      * @throws LocalizedException
      */
-    public function requestCode(int $storeId): string
+    public function requestCode(): string
     {
         try {
-            $token = $this->clientPool->twoFactorToken($storeId)->twoFactorTokenRegister(
-                new RegisterMessage(TwoFactorNamespaceEnum::ChangeIban),
+            $token = $this->clientPool->twoFactorToken()->twoFactorTokenRegister(
+                new RegisterMessage(TwoFactorNamespaceEnum::ChangeBankAccountNumber),
             );
         } catch (PolkurierException $e) {
-            throw new LocalizedException(\__('%1', $this->errorMessages->describe($e)), $e);
+            throw $this->errorMessages->exception($e);
         }
-        $this->events->dispatch(ApiEventEnum::TwoFactorCodeRequestAfter, $storeId, [
-            'namespace' => TwoFactorNamespaceEnum::ChangeIban,
+        $this->events->dispatch(ApiEventEnum::TwoFactorCodeRequestAfter, null, [
+            'namespace' => TwoFactorNamespaceEnum::ChangeBankAccountNumber,
         ]);
 
         return $token->getId();
@@ -84,21 +84,21 @@ class Publisher
      *
      * @throws LocalizedException when Polkurier refuses, e.g. a wrong code; the local entry is kept
      */
-    public function save(BankAccountInterface $account, int $storeId, Confirmation $confirmation): void
+    public function save(BankAccountInterface $account, Confirmation $confirmation): void
     {
         $isNew = $account->getExtId() === null;
         try {
-            $stored = $this->clientPool->bankAccounts($storeId)->saveBankAccount($this->mapper->toSaveMessage(
+            $stored = $this->clientPool->bankAccounts()->saveBankAccount($this->mapper->toSaveMessage(
                 $account,
                 $confirmation->twoFactorToken,
                 $confirmation->twoFactorCode,
                 $confirmation->pin,
             ));
         } catch (PolkurierException $e) {
-            throw new LocalizedException(\__('%1', $this->errorMessages->describe($e)), $e);
+            throw $this->errorMessages->exception($e);
         }
         $this->syncEngine->pushed($this->adapter, $account, $this->mapper->normalize($stored), $this->now());
-        $this->events->dispatch(ApiEventEnum::BankAccountSaveAfter, $storeId, [
+        $this->events->dispatch(ApiEventEnum::BankAccountSaveAfter, null, [
             'bank_account' => $account,
             'is_new' => $isNew,
             'response' => $stored,
@@ -110,15 +110,15 @@ class Publisher
      *
      * @throws LocalizedException when Polkurier refuses; the local entry is kept, marked as deleted
      */
-    public function delete(BankAccountInterface $account, int $storeId, ?string $pin = null): void
+    public function delete(BankAccountInterface $account, ?string $pin = null): void
     {
         if ($account->getExtId() !== null) {
             try {
-                $this->clientPool->bankAccounts($storeId)->deleteBankAccount($this->mapper->toDeleteMessage($account, $pin));
+                $this->clientPool->bankAccounts()->deleteBankAccount($this->mapper->toDeleteMessage($account, $pin));
             } catch (PolkurierException $e) {
-                throw new LocalizedException(\__('%1', $this->errorMessages->describe($e)), $e);
+                throw $this->errorMessages->exception($e);
             }
-            $this->events->dispatch(ApiEventEnum::BankAccountDeleteAfter, $storeId, ['bank_account' => $account]);
+            $this->events->dispatch(ApiEventEnum::BankAccountDeleteAfter, null, ['bank_account' => $account]);
         }
         $this->repository->delete($account);
     }

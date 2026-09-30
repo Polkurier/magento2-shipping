@@ -17,8 +17,11 @@ Both Magento's regular checkout and the multi-address checkout are supported.
 
 - through **Magento's own shipment page**, where you pack the parcels in Magento's packaging window
   and the Polkurier label is stored with the shipment, like any other carrier's label;
-- on the module's **shipment screen**, which puts every option of the shipment on one page and
-  works for any order, whatever shipping method the customer chose.
+- on the module's **shipment screen**, which puts every option of the shipment on one page.
+
+Only orders placed with a Polkurier delivery method are shipped this way. Orders placed with
+another carrier's method are left alone: no Polkurier buttons or sections appear on them, so they
+stay with that carrier's own integration.
 
 Either way, the shipment starts from what the customer ordered and your defaults, and once
 Polkurier accepts it, the Magento order is shipped with the waybill numbers as tracking numbers.
@@ -48,8 +51,10 @@ admin.
 
 ## Several websites
 
-Each Magento website can use its own Polkurier account. Credentials, carriers, prices, addresses,
-bank accounts and pack templates all belong to a website. Store views of a website share its
-account, but can have their own carrier labels and a few texts of their own.
+The module works with one Polkurier account for the whole Magento installation. Separate accounts
+for different websites aren't supported. Credentials, carriers, prices, addresses, bank accounts
+and pack templates are shared by all websites. Most other settings, such as the shipment defaults,
+can differ between websites, and each store view can have its own carrier labels and a few texts
+of its own.
 
 Next: [Installation](installation.md)

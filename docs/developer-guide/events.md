@@ -19,7 +19,9 @@ all.
 
 ## Reference
 
-Every event carries `store_id`, the store whose account was changed. The other keys:
+Every event carries `store_id`. For the order and cancellation events it's the order's store (null
+for a shipment whose store view has been deleted since). The other events are about the account,
+which is one for the whole installation, so their `store_id` is null. The other keys:
 
 | Event | When | Data |
 |---|---|---|

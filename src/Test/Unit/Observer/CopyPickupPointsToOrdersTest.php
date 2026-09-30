@@ -20,6 +20,8 @@ use Polkurier\Shipping\Model\OrderPointStore;
 use Polkurier\Shipping\Model\QuotePoint;
 use Polkurier\Shipping\Observer\CopyPickupPointsToOrders;
 use Polkurier\Shipping\Observer\TagMultishippingOrder;
+use Psr\Log\AbstractLogger;
+use Psr\Log\NullLogger;
 
 #[CoversClass(CopyPickupPointsToOrders::class)]
 #[CoversClass(TagMultishippingOrder::class)]
@@ -49,9 +51,43 @@ class CopyPickupPointsToOrdersTest extends TestCase
         $quote = $this->createStub(Quote::class);
         $quote->method('getId')->willReturn(5);
 
-        (new CopyPickupPointsToOrders($store))->execute(new Observer(['event' => new Event(['orders' => $orders, 'quote' => $quote])]));
+        (new CopyPickupPointsToOrders($store, new NullLogger()))->execute(new Observer(['event' => new Event(['orders' => $orders, 'quote' => $quote])]));
 
         self::assertSame([101 => 'WAW195M'], $copied, 'Only where the order still uses the method the point was chosen for.');
+    }
+
+    public function testAFailingCopyIsLoggedAndTheOtherOrdersStillGetTheirPoints(): void
+    {
+        $copied = [];
+        $store = $this->createStub(OrderPointStore::class);
+        $store->method('getForQuote')->willReturnCallback(fn(int $quoteId, int $addressId): QuotePoint => $this->point('INPOST_PACZKOMAT', 'P' . $addressId));
+        $store->method('copyToOrder')->willReturnCallback(function (QuotePoint $point, int $orderId) use (&$copied): OrderPointInterface {
+            if ($orderId === 101) {
+                throw new \RuntimeException('Deadlock found when trying to get lock');
+            }
+            $copied[$orderId] = $point->getPointId();
+
+            return $this->createStub(OrderPointInterface::class);
+        });
+        $logger = new class extends AbstractLogger {
+            /**
+             * @var array<int, string>
+             */
+            public array $records = [];
+
+            public function log($level, \Stringable|string $message, array $context = []): void
+            {
+                $this->records[] = $level . ': ' . $message;
+            }
+        };
+        $quote = $this->createStub(Quote::class);
+        $quote->method('getId')->willReturn(5);
+        $orders = [$this->order(101, 11, 'polkurier_INPOST_PACZKOMAT'), $this->order(102, 12, 'polkurier_INPOST_PACZKOMAT')];
+
+        (new CopyPickupPointsToOrders($store, $logger))->execute(new Observer(['event' => new Event(['orders' => $orders, 'quote' => $quote])]));
+
+        self::assertSame([102 => 'P12'], $copied);
+        self::assertSame(['error: Pickup point not copied to the order'], $logger->records);
     }
 
     private function order(int $id, int $addressId, string $method): Order

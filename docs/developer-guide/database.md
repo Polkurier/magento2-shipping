@@ -13,12 +13,13 @@ patches live in `Setup/Patch/Data`.
 |---|---|
 | `MarkFinishedShipments` | flags shipments that were already finished when the `is_final` column arrived |
 | `PlaceCarrierLogoColumn` | puts the Logo column after "Label in checkout" in carriers lists admins had already arranged |
+| `RemoveAccountScopeOverrides` | deletes values of the account settings saved for a website or store view, since they're read from the default scope only |
 
 ## Tables
 
 | Table | Holds |
 |---|---|
-| `polkurier_carrier_config` | one row per carrier and website: on/off, default label, sort order, pricing |
+| `polkurier_carrier_config` | one row per carrier: on/off, default label, sort order, pricing |
 | `polkurier_carrier_label` | carrier labels per store view |
 | `polkurier_address` | sender addresses, with their sync state |
 | `polkurier_bank_account` | bank accounts for cash on delivery, with their sync state |
@@ -34,14 +35,15 @@ attaches them after loading. The entities exposed as service contracts also have
 
 ## Carrier settings
 
-`polkurier_carrier_config` is unique on `(website_id, carrier_code)`.
+`polkurier_carrier_config` is unique on `carrier_code`.
 
 - `carrier_name` is the carrier's own name, refreshed from the account; `custom_label` is the
   merchant's.
 - `logo` is the checkout logo, a path relative to the media directory
   (`shipping/carrier_logos/…`, see `Model\Carrier\CarrierLogo`).
 - `available` says whether the account still offers the carrier. A carrier that disappears from
-  the account keeps its row, with `available = 0`, so its settings survive.
+  the account keeps its row, with `available = 0`, so its settings survive; the carriers grid
+  and checkout leave it out.
 - `pricing_model` is one of `Model\Pricing\PricingModelEnum`; `price_info` holds the model's
   settings as JSON (a price, or a list of tiers).
 
@@ -52,8 +54,7 @@ attaches them after loading. The entities exposed as service contracts also have
 
 | Column | |
 |---|---|
-| `website_id` | the account the entry belongs to |
-| `ext_id` | the entry's id on the account; null until it has been created there |
+| `ext_id` | the entry's id on the account, unique; null until it has been created there |
 | `sync_state` | in sync, waiting to be sent, error, or awaiting confirmation |
 | `sync_error` | why the last push failed |
 | `remote_hash` | a hash of the remote entry as of the last sync |
@@ -79,7 +80,7 @@ including failed ones.
 | Column | |
 |---|---|
 | `order_id`, `store_id` | the Magento order and its store |
-| `shipment_id` | the Magento shipment the Polkurier order is linked to; null until there is one |
+| `shipment_id` | the Magento shipment the Polkurier order is linked to, unique: one Polkurier order per Magento shipment; null until there is one, and again for a cancelled order another one replaced |
 | `state` | `pending`, `created`, `unknown`, `failed` or `cancelled` (see [Shipments](shipments.md)) |
 | `polkurier_number` | the order number on the account |
 | `carrier_code`, `description`, `recipient_postcode`, `recipient_phone`, `pack_count` | what was sent, kept for matching during reconciliation |
@@ -90,9 +91,15 @@ including failed ones.
 | `multi_pickup`, `pickup_booked` | placed for a collective pickup, and whether it's booked |
 | `is_final`, `status_checked_at` | whether the shipment is finished, and when its status was last checked |
 | `request` | the serialized request as sent, without credentials |
+| `details`, `details_synced_at` | the local copy of the order as Polkurier reports it (JSON, see `Model\Shipment\OrderDetails`), and when it was read |
+| `ship_items` | the quantities the Magento shipment carries, by order item id (JSON); empty for everything left |
+| `ship_packages` | the packages of the Magento shipment, as Magento keeps them (JSON): each parcel and what it holds |
+| `target_shipment_id` | the existing Magento shipment the order goes on once placed, when the order has nothing left to ship |
+| `tracking`, `tracking_synced_at` | the local copy of the carrier's scans, newest first (JSON), and when they were read |
 | `last_error` | why the last action failed, or a warning such as probable duplicates |
 
-The stored request contains the recipient's personal data. If your data retention policy requires
-it, clear it for old shipments: it's kept for reference, and nothing in the module reads it back.
+The stored request, the order copy and the scans contain the recipient's personal data. If your
+data retention policy requires it, clear them for old shipments. The details page shows the stored
+request until Polkurier has been read, and reads the order again when its copy is missing.
 
 Next: [Checkout](checkout.md)

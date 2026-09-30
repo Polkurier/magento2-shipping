@@ -39,6 +39,11 @@ interface ShipmentDraftInterface
     public const string RECIPIENT_EMAIL = 'recipient_email';
     public const string RECIPIENT_POINT_ID = 'recipient_point_id';
     public const string PACKS = 'packs';
+    public const string ITEMS = 'items';
+    /**
+     * Set on a draft whose parcels were packed automatically: an estimate to check.
+     */
+    public const string PACKS_ESTIMATED = 'packs_estimated';
     public const string COD_AMOUNT = 'cod_amount';
     public const string COD_TYPE = 'cod_type';
     public const string COD_RETURN_TYPE = 'cod_return_type';
@@ -227,6 +232,33 @@ interface ShipmentDraftInterface
      * @return $this
      */
     public function setPacks(array $packs): static;
+
+    /**
+     * The order's items the shipment carries in Magento. Empty for everything the order still
+     * has to ship.
+     *
+     * @return \Polkurier\Shipping\Api\Data\ShipmentDraft\ItemInterface[]
+     */
+    public function getItems(): array;
+
+    /**
+     * @param \Polkurier\Shipping\Api\Data\ShipmentDraft\ItemInterface[] $items
+     * @return $this
+     */
+    public function setItems(array $items): static;
+
+    /**
+     * Whether the parcels were packed automatically: an estimate to check.
+     *
+     * @return bool
+     */
+    public function isPacksEstimated(): bool;
+
+    /**
+     * @param bool $estimated
+     * @return $this
+     */
+    public function setPacksEstimated(bool $estimated): static;
 
     /**
      * @return float|null

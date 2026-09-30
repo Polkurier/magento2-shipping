@@ -1,0 +1,21 @@
+<!--
+ ~ Copyright (c) 2026 Polkurier.pl
+ ~ All Rights Reserved
+-->
+<ul class="polkurier-templates__list polkurier-senders" role="listbox" data-bind="attr: {'aria-label': label}">
+    <!-- ko foreach: tiles -->
+    <li class="polkurier-templates__item" role="option" tabindex="0"
+        data-bind="css: {'_active': selected},
+                   attr: {'aria-selected': selected ? 'true' : 'false'},
+                   click: $parent.choose.bind($parent),
+                   event: {keydown: $parent.onKey.bind($parent)}">
+        <strong>
+            <span text="title"></span>
+            <span class="polkurier-muted" if="isDefault" translate="'(default)'"></span>
+        </strong>
+        <!-- ko foreach: lines -->
+        <span class="polkurier-muted" text="$data"></span>
+        <!-- /ko -->
+    </li>
+    <!-- /ko -->
+</ul>

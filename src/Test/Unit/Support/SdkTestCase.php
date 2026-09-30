@@ -7,12 +7,10 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Test\Unit\Support;
 
-use Magento\Store\Api\Data\StoreInterface;
-use Magento\Store\Model\StoreManagerInterface;
 use PHPUnit\Framework\TestCase;
 use Polkurier\Shipping\Model\Sdk\ClientPool;
-use Polkurier\Shipping\Model\Sdk\StoreConfigProvider;
-use Polkurier\Shipping\Model\Sdk\StoreConfigProviderFactory;
+use Polkurier\Shipping\Model\Sdk\AccountConfigProvider;
+use Polkurier\Shipping\Model\Sdk\AccountConfigProviderFactory;
 use Polkurier\Webservice\Config;
 use Polkurier\Webservice\Http\Request\AuthorizationMessage;
 use Polkurier\Webservice\PolkurierWebservice;
@@ -38,20 +36,15 @@ abstract class SdkTestCase extends TestCase
             static fn(array $arguments): PolkurierWebservice => new PolkurierWebservice(...$arguments),
         );
 
-        $configProvider = $this->createStub(StoreConfigProvider::class);
+        $configProvider = $this->createStub(AccountConfigProvider::class);
         $configProvider->method('getConfig')->willReturn(new Config(
             authorization: new AuthorizationMessage(token: self::TOKEN, login: self::LOGIN),
             platform: 'magento2',
             platformVersion: '1.0.0',
             apiUrl: 'http://api.test',
         ));
-        $configProviderFactory = $this->createStub(StoreConfigProviderFactory::class);
+        $configProviderFactory = $this->createStub(AccountConfigProviderFactory::class);
         $configProviderFactory->method('create')->willReturn($configProvider);
-
-        $store = $this->createStub(StoreInterface::class);
-        $store->method('getId')->willReturn(1);
-        $storeManager = $this->createStub(StoreManagerInterface::class);
-        $storeManager->method('getStore')->willReturn($store);
 
         return new ClientPool(
             $webserviceFactory,
@@ -59,7 +52,6 @@ abstract class SdkTestCase extends TestCase
             new SerializerProvider(),
             DefaultValidatorRegistryFactory::create(),
             new NullLogger(),
-            $storeManager,
             $http,
         );
     }

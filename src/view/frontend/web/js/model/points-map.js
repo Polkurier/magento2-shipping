@@ -5,7 +5,7 @@
 /**
  * Opens the pickup point map in a dialog; shared by the regular and the multi-address checkout.
  */
-define(['mage/translate'], function ($t) {
+define(['mage/translate', 'Magento_Ui/js/modal/alert'], function ($t, alert) {
     'use strict';
 
     let widget = null;
@@ -70,7 +70,7 @@ define(['mage/translate'], function ($t) {
                 });
                 map.showMapDialog();
             }, function () {
-                window.alert($t('The pickup point map could not be loaded. Try again later.'));
+                alert({content: $t('The pickup point map could not be loaded. Try again later.')});
             });
         }
     };

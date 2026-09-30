@@ -7,10 +7,10 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Model\Shipment;
 
-use Magento\Framework\Exception\LocalizedException;
+use Magento\Framework\Stdlib\DateTime\DateTime;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Api\ShipmentManagementInterface;
-use Polkurier\Shipping\Api\ShipmentRepositoryInterface;
+use Polkurier\Shipping\Model\ResourceModel\Shipment as ShipmentResource;
 use Polkurier\Shipping\Model\ResourceModel\Shipment\CollectionFactory;
 use Psr\Log\LoggerInterface;
 
@@ -31,8 +31,9 @@ class AutoReconciler
     public function __construct(
         private readonly CollectionFactory $collectionFactory,
         private readonly ShipmentManagementInterface $management,
-        private readonly ShipmentRepositoryInterface $shipmentRepository,
+        private readonly ShipmentResource $shipmentResource,
         private readonly LoggerInterface $logger,
+        private readonly DateTime $dateTime,
     ) {}
 
     /**
@@ -40,7 +41,7 @@ class AutoReconciler
      */
     public function run(): int
     {
-        $now = \time();
+        $now = $this->dateTime->gmtTimestamp();
         $collection = $this->collectionFactory->create()
             ->addFieldToFilter(ShipmentInterface::STATE, ['in' => [ShipmentInterface::STATE_UNKNOWN, ShipmentInterface::STATE_PENDING]])
             ->addFieldToFilter(ShipmentInterface::CREATED_AT, ['lt' => \gmdate('Y-m-d H:i:s', $now - self::PENDING_AFTER_MINUTES * 60)])
@@ -58,12 +59,13 @@ class AutoReconciler
                 if ($result->getState() !== ShipmentInterface::STATE_UNKNOWN) {
                     $settled++;
                 }
-            } catch (LocalizedException $e) {
+            } catch (\Throwable $e) {
                 $this->logger->warning('Polkurier reconciliation failed', [
                     'shipment' => $shipment->getId(),
                     'error' => $e->getMessage(),
                 ]);
-                $this->shipmentRepository->save($shipment->setStatusCheckedAt(\gmdate('Y-m-d H:i:s')));
+                // Only the check time: the row loaded here is older than what the check may have saved.
+                $this->shipmentResource->markChecked((int)$shipment->getId(), (string)$this->dateTime->gmtDate());
             }
         }
 

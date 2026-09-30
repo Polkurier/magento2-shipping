@@ -8,6 +8,8 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Test\Unit\Plugin\Multishipping;
 
 use Magento\Framework\App\RequestInterface;
+use Magento\Framework\Event;
+use Magento\Framework\Event\Observer;
 use Magento\Framework\Exception\InputException;
 use Magento\Multishipping\Model\Checkout\Type\Multishipping;
 use Magento\Quote\Model\Quote;
@@ -16,9 +18,13 @@ use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Polkurier\Shipping\Model\Checkout\PointSelection;
+use Polkurier\Shipping\Model\Checkout\MultishippingPoints;
+use Polkurier\Shipping\Observer\CaptureMultishippingPoints;
 use Polkurier\Shipping\Plugin\Multishipping\CheckoutPlugin;
 
 #[CoversClass(CheckoutPlugin::class)]
+#[CoversClass(CaptureMultishippingPoints::class)]
+#[CoversClass(MultishippingPoints::class)]
 #[AllowMockObjectsWithoutExpectations]
 class CheckoutPluginTest extends TestCase
 {
@@ -51,11 +57,8 @@ class CheckoutPluginTest extends TestCase
     {
         $selection = $this->createStub(PointSelection::class);
         $selection->method('select')->willThrowException(new InputException(\__('Choose a pickup point for the selected delivery method.')));
-        $request = $this->createStub(RequestInterface::class);
-        $request->method('getParam')->willReturn([]);
-
         $this->expectException(InputException::class);
-        (new CheckoutPlugin($request, $selection))->beforeSetShippingMethods($this->checkout(), ['11' => 'polkurier_INPOST_PACZKOMAT']);
+        (new CheckoutPlugin(new MultishippingPoints(), $selection))->beforeSetShippingMethods($this->checkout(), ['11' => 'polkurier_INPOST_PACZKOMAT']);
     }
 
     /**
@@ -63,8 +66,8 @@ class CheckoutPluginTest extends TestCase
      */
     private function plugin(array $points): CheckoutPlugin
     {
-        $request = $this->createStub(RequestInterface::class);
-        $request->method('getParam')->willReturnMap([['pickup_point', [], $points]]);
+        $posted = new MultishippingPoints();
+        (new CaptureMultishippingPoints($posted))->execute(new Observer(['event' => new Event(['request' => $this->request($points)])]));
         $selection = $this->createStub(PointSelection::class);
         $selection->method('select')->willReturnCallback(function ($quote, string $carrier, string $method, ?string $point, int $addressId): void {
             $this->selected[] = [$carrier, $method, $point, $addressId];
@@ -73,7 +76,18 @@ class CheckoutPluginTest extends TestCase
             $this->required[] = [$method, $addressId];
         });
 
-        return new CheckoutPlugin($request, $selection);
+        return new CheckoutPlugin($posted, $selection);
+    }
+
+    /**
+     * @param array<int|string, string> $points
+     */
+    private function request(array $points): RequestInterface
+    {
+        $request = $this->createStub(RequestInterface::class);
+        $request->method('getParam')->willReturnMap([['pickup_point', [], $points]]);
+
+        return $request;
     }
 
     private function checkout(): Multishipping

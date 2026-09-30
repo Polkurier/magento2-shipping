@@ -7,15 +7,13 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Model\Shipment;
 
-use Polkurier\Shipping\Api\ApiEventEnum;
-use Polkurier\Shipping\Model\ApiEventDispatcher;
 use Magento\Framework\Exception\LocalizedException;
+use Polkurier\Shipping\Api\ApiEventEnum;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Api\ShipmentRepositoryInterface;
-use Polkurier\Shipping\Model\ErrorMessages;
-use Polkurier\Shipping\Model\Sdk\ClientPool;
+use Polkurier\Shipping\Model\ApiEventDispatcher;
+use Polkurier\Shipping\Model\Sdk\ShipmentGatewayInterface;
 use Polkurier\Webservice\Enum\Order\ShipmentTypeEnum;
-use Polkurier\Webservice\Exception\Exception as PolkurierException;
 use Polkurier\Webservice\Request\Courier\GetPickupTimeMessage;
 use Polkurier\Webservice\Request\Order\MultiPickupRequestMessage;
 
@@ -25,9 +23,8 @@ use Polkurier\Webservice\Request\Order\MultiPickupRequestMessage;
 class Pickups
 {
     public function __construct(
-        private readonly ClientPool $clientPool,
+        private readonly ShipmentGatewayInterface $gateway,
         private readonly ShipmentRepositoryInterface $shipmentRepository,
-        private readonly ErrorMessages $errorMessages,
         private readonly ApiEventDispatcher $events,
     ) {}
 
@@ -37,18 +34,14 @@ class Pickups
      * @return array<int, array{date: string, windows: array<int, array{from: string, to: string}>}>
      * @throws LocalizedException
      */
-    public function getPickupTimes(int $storeId, string $carrierCode, string $senderPostcode, ?string $recipientPostcode, string $shipmentType): array
+    public function getPickupTimes(string $carrierCode, string $senderPostcode, ?string $recipientPostcode, string $shipmentType): array
     {
-        try {
-            $days = $this->clientPool->courier($storeId)->getCourierPickupTime(new GetPickupTimeMessage(
-                courier: $carrierCode,
-                shipFrom: $senderPostcode,
-                shipTo: $recipientPostcode ?: null,
-                parcel: ShipmentTypeEnum::tryFrom($shipmentType),
-            ));
-        } catch (PolkurierException $e) {
-            throw new LocalizedException(\__('%1', $this->errorMessages->describe($e)), $e);
-        }
+        $days = $this->gateway->getPickupTimes(new GetPickupTimeMessage(
+            courier: $carrierCode,
+            shipFrom: $senderPostcode,
+            shipTo: $recipientPostcode ?: null,
+            parcel: ShipmentTypeEnum::tryFrom($shipmentType),
+        ));
 
         $result = [];
         foreach ($days as $day) {
@@ -72,34 +65,26 @@ class Pickups
     public function bookCollective(array $shipments, string $date, string $from, string $to): array
     {
         $numbers = [];
-        $storeId = null;
         foreach ($shipments as $shipment) {
             if ($shipment->getState() === ShipmentInterface::STATE_CREATED && $shipment->isMultiPickup()
                 && !$shipment->isPickupBooked() && $shipment->getPolkurierNumber() !== null
             ) {
                 $numbers[$shipment->getPolkurierNumber()] = $shipment;
-                $storeId ??= $shipment->getStoreId();
             }
         }
         if ($numbers === []) {
             throw new LocalizedException(\__('None of the selected shipments awaits a collective pickup.'));
         }
-
-        try {
-            $orders = $this->clientPool->orders($storeId);
-            if (!$orders->isMultiPickupAvailable()->isAvailable()) {
-                throw new LocalizedException(\__('Collective pickups are not available for this Polkurier account.'));
-            }
-            $request = new MultiPickupRequestMessage(
-                pickupDate: new \DateTimeImmutable($date),
-                pickupTimeFrom: new \DateTimeImmutable($date . ' ' . $from),
-                pickupTimeTo: new \DateTimeImmutable($date . ' ' . $to),
-                orders: \array_map('strval', \array_keys($numbers)),
-            );
-            $result = $orders->createMultiOrderPickup($request);
-        } catch (PolkurierException $e) {
-            throw new LocalizedException(\__('%1', $this->errorMessages->describe($e)), $e);
+        if (!$this->gateway->isMultiPickupAvailable()) {
+            throw new LocalizedException(\__('Collective pickups are not available for this Polkurier account.'));
         }
+        $request = new MultiPickupRequestMessage(
+            pickupDate: new \DateTimeImmutable($date),
+            pickupTimeFrom: new \DateTimeImmutable($date . ' ' . $from),
+            pickupTimeTo: new \DateTimeImmutable($date . ' ' . $to),
+            orders: \array_map('strval', \array_keys($numbers)),
+        );
+        $result = $this->gateway->bookMultiPickup($request);
 
         $booked = \array_map('strval', $result->getSuccess());
         $bookedShipments = [];
@@ -111,7 +96,7 @@ class Pickups
         }
         $failed = \array_map('strval', $result->getFailed());
         if ($bookedShipments !== []) {
-            $this->events->dispatch(ApiEventEnum::PickupCreateAfter, (int)$storeId, [
+            $this->events->dispatch(ApiEventEnum::PickupCreateAfter, null, [
                 'shipments' => $bookedShipments,
                 'failed' => $failed,
                 'request' => $request,

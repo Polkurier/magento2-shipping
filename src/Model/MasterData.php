@@ -16,7 +16,7 @@ use Polkurier\Shipping\Model\ResourceModel\BankAccount\CollectionFactory as Bank
 use Polkurier\Shipping\Model\ResourceModel\PackTemplate\CollectionFactory as PackTemplateCollectionFactory;
 
 /**
- * The address book, bank accounts and pack templates of a website, as the shipment form uses them.
+ * The address book, bank accounts and pack templates, as the shipment form uses them.
  * Entries deleted in Magento but not yet in Polkurier are left out.
  */
 class MasterData
@@ -30,10 +30,9 @@ class MasterData
     /**
      * @return AddressInterface[]
      */
-    public function getSenderAddresses(int $websiteId, bool $coverOnly = false): array
+    public function getSenderAddresses(bool $coverOnly = false): array
     {
         $collection = $this->addressCollectionFactory->create()
-            ->addFieldToFilter(SyncableInterface::WEBSITE_ID, ['eq' => $websiteId])
             ->addFieldToFilter(SyncableInterface::DELETED_AT, ['null' => true])
             ->addFieldToFilter(AddressInterface::TYPE, AddressInterface::TYPE_SENDER)
             ->setOrder(AddressInterface::IS_DEFAULT, 'DESC')
@@ -45,9 +44,9 @@ class MasterData
         return \array_values($collection->getItems());
     }
 
-    public function getDefaultSenderAddress(int $websiteId): ?AddressInterface
+    public function getDefaultSenderAddress(): ?AddressInterface
     {
-        foreach ($this->getSenderAddresses($websiteId) as $address) {
+        foreach ($this->getSenderAddresses() as $address) {
             if ($address->isDefault()) {
                 return $address;
             }
@@ -59,37 +58,40 @@ class MasterData
     /**
      * @return BankAccountInterface[]
      */
-    public function getBankAccounts(int $websiteId): array
+    public function getBankAccounts(): array
     {
         return \array_values($this->bankAccountCollectionFactory->create()
-            ->addFieldToFilter(SyncableInterface::WEBSITE_ID, ['eq' => $websiteId])
             ->addFieldToFilter(SyncableInterface::DELETED_AT, ['null' => true])
             ->setOrder(BankAccountInterface::IS_DEFAULT, 'DESC')
             ->setOrder(BankAccountInterface::NAME, 'ASC')
             ->getItems());
     }
 
-    public function getDefaultBankAccount(int $websiteId): ?BankAccountInterface
+    /**
+     * The account cash on delivery is paid out to unless the merchant picks another: the default
+     * one, or else the first by name, since a shipment with cash on delivery needs an account.
+     * Unlike the other defaults, it's null only when there is no account at all.
+     */
+    public function getPreferredBankAccount(): ?BankAccountInterface
     {
-        return $this->getBankAccounts($websiteId)[0] ?? null;
+        return $this->getBankAccounts()[0] ?? null;
     }
 
     /**
      * @return PackTemplateInterface[]
      */
-    public function getPackTemplates(int $websiteId): array
+    public function getPackTemplates(): array
     {
         return \array_values($this->packTemplateCollectionFactory->create()
-            ->addFieldToFilter(SyncableInterface::WEBSITE_ID, ['eq' => $websiteId])
             ->addFieldToFilter(SyncableInterface::DELETED_AT, ['null' => true])
             ->setOrder(PackTemplateInterface::IS_DEFAULT, 'DESC')
             ->setOrder(PackTemplateInterface::NAME, 'ASC')
             ->getItems());
     }
 
-    public function getDefaultPackTemplate(int $websiteId): ?PackTemplateInterface
+    public function getDefaultPackTemplate(): ?PackTemplateInterface
     {
-        foreach ($this->getPackTemplates($websiteId) as $template) {
+        foreach ($this->getPackTemplates() as $template) {
             if ($template->isDefault()) {
                 return $template;
             }

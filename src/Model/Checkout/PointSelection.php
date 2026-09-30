@@ -12,16 +12,20 @@ use Magento\Quote\Api\Data\CartInterface;
 use Polkurier\Shipping\Model\Carrier\CarrierCatalog;
 use Polkurier\Shipping\Model\Carrier\CarrierFeatures;
 use Polkurier\Shipping\Model\Carrier\Polkurier;
+use Polkurier\Shipping\Model\Config;
 use Polkurier\Shipping\Model\OrderPointStore;
 use Polkurier\Shipping\Model\QuotePointFactory;
 use Polkurier\Webservice\Exception\Exception as PolkurierException;
+use Polkurier\Webservice\Enum\Courier\PointFunctionEnum;
+use Polkurier\Webservice\Response\CourierPoint;
 use Psr\Log\LoggerInterface;
 
 /**
  * Records the pickup point a customer chose, after checking it with Polkurier.
  *
- * What the browser says about the point is not trusted: the point is looked up by its id, and its
- * label and whether it accepts cash on delivery come from that lookup. If Polkurier cannot be
+ * What the browser says about the point is not trusted: the point is looked up by its id, has to
+ * be open and do what the map shows points for, and its label and whether it accepts cash on
+ * delivery come from that lookup. If Polkurier cannot be
  * asked, the id is kept, labelled with itself, and treated as not accepting cash on delivery.
  */
 class PointSelection
@@ -31,6 +35,7 @@ class PointSelection
         private readonly QuotePointFactory $quotePointFactory,
         private readonly CarrierCatalog $catalog,
         private readonly CarrierFeatures $features,
+        private readonly Config $config,
         private readonly LoggerInterface $logger,
     ) {}
 
@@ -50,7 +55,7 @@ class PointSelection
         }
 
         try {
-            $carrier = $this->catalog->getCarrier($methodCode, $storeId);
+            $carrier = $this->catalog->getCarrier($methodCode);
         } catch (PolkurierException $e) {
             $this->logger->warning('Polkurier carrier list unavailable while saving the pickup point', ['exception' => $e]);
             $carrier = null;
@@ -72,8 +77,8 @@ class PointSelection
         $providers = $carrier !== null ? $this->features->getPointProviders($carrier) : [];
         if ($providers !== []) {
             try {
-                $point = $this->catalog->findPoint($pointId, $providers, $storeId);
-                if ($point === null) {
+                $point = $this->catalog->findPoint($pointId, $providers);
+                if ($point === null || !$this->isUsable($point, $storeId)) {
                     throw new InputException(\__('The chosen pickup point is not available. Choose another one.'));
                 }
                 // The same as the map shows after choosing: the address, the point's id beside it.
@@ -97,6 +102,24 @@ class PointSelection
     }
 
     /**
+     * Open, and doing everything the map is set to show points for, such as handing out parcels.
+     */
+    private function isUsable(CourierPoint $point, int $storeId): bool
+    {
+        if (!$point->isAvailable()) {
+            return false;
+        }
+        $functions = \array_map(static fn(PointFunctionEnum $function): string => $function->value, $point->getFunctions());
+        foreach ($this->config->getMapPointFunctions($storeId) as $required) {
+            if (!\in_array($required->value, $functions, true)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
      * Refuses to go on when the chosen method needs a pickup point and none is stored for it.
      * When the carrier list cannot be read, the order is let through rather than lost.
      *
@@ -110,7 +133,7 @@ class PointSelection
             return;
         }
         try {
-            $carrier = $this->catalog->getCarrier($methodCode, (int)$quote->getStoreId());
+            $carrier = $this->catalog->getCarrier($methodCode);
         } catch (PolkurierException) {
             return;
         }

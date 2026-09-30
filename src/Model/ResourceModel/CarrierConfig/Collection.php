@@ -33,7 +33,9 @@ class Collection extends AbstractCollection
         $resource = $this->getResource();
         $labels = $resource->loadStoreLabels(\array_map('intval', \array_keys($this->_items)));
         foreach ($this->_items as $id => $item) {
-            $item->setData(Model::STORE_LABELS, $labels[(int)$id] ?? []);
+            if ($item instanceof Model) {
+                $resource->attachStoreLabels($item, $labels[(int)$id] ?? []);
+            }
         }
 
         return $this;

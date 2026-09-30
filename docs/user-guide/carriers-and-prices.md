@@ -18,17 +18,14 @@ carrier or your contract changes.
 Only the carriers selected under **Available carriers** in the
 [configuration](configuration.md#shipments) are listed; with none selected, all of them are.
 
-A carrier your account no longer offers stays in the list with **Offered by the account** set to
-No, so its settings aren't lost. It isn't shown at checkout while that's the case.
-
-If you run several websites, each has its own list, since each can use a different account.
-Filter by **Website** to see one.
+A carrier your account no longer offers disappears from the list and from checkout. Its settings
+are kept, so if the account offers it again, it comes back as it was.
 
 ## Setting up a carrier
 
 Open a carrier from the list:
 
-- **Offered in checkout** switches it on for customers.
+- **Enabled** switches it on for customers.
 - **Label in checkout** is the name customers see, for example "Kurier DPD" or "Paczkomat
   InPost". It's also what they see in e-mails and on their order page, and it becomes the title of
   the tracking numbers. Leave it empty to use the carrier's own name.
@@ -39,23 +36,31 @@ Open a carrier from the list:
   choose a JPG, PNG, GIF or WebP file; something around 60 × 30 pixels looks best, as the logo is
   shown at most 60 pixels wide and 24 high. Click the bin icon on the preview to remove it. The
   list of carriers shows each logo as a thumbnail.
-- **Sort order** sets where the carrier appears among the other Polkurier methods. Lower numbers
-  come first.
 
-The label, **Offered in checkout** and the sort order can also be changed straight in the list:
-click a carrier's row, edit, and click **Save** under it. The same goes for the price of carriers
+The list shows the enabled carriers first, then the others, each in the order checkout offers
+them, so it can't be sorted by its columns. To change the order, drag a carrier by the handle at
+the start of its row to where it should go, among the carriers enabled or not like it; a bar across the list shows where it will land, and the new order is saved as soon as
+you let go. Carriers the list doesn't show keep their places.
+A carrier new to your account comes last.
+
+The label and **Enabled** can also be changed straight in the list: click a carrier's
+row, edit, and click **Save** under it. The same goes for the price of carriers
 with a fixed price, in the **Fixed price** column; tiered prices are edited on the carrier's page.
+To switch several carriers at once, tick them and choose **Enable / disable** from **Actions**:
+each ticked carrier that was enabled is switched off, and each one that wasn't is switched on.
 **Save and Continue Edit** on the carrier's page saves without taking you back to the list.
 
 ## Pricing
 
-**Pricing** decides what the customer pays for shipping with the carrier. The price you set is
-what the customer pays; what Polkurier charges you is a separate matter between you and
+**Pricing** decides what the customer pays for shipping with the carrier. Prices and subtotals are
+in your store's base currency, as Magento's own shipping prices are. The price you set is what the
+customer pays; what Polkurier charges you is a separate matter between you and
 Polkurier.
 
 - **Fixed price**: the same price for every cart.
 - **By cart subtotal**: price tiers by the value of the cart.
-- **By cart weight**: price tiers by the total weight of the products, in kilograms.
+- **By cart weight**: price tiers by the total weight of the products, in kilograms (a store that
+  weighs in pounds is converted).
 - **By cart subtotal and weight**: each tier has both a minimum value and a minimum weight, and a
   cart has to reach both.
 
@@ -87,7 +92,8 @@ Carts over 25 kg pay 35 zł. If the carrier can't take parcels that heavy, don't
 them, and the carrier won't be offered for such carts.
 
 Magento's cart price rules with free shipping still work: when a rule grants free shipping, every
-Polkurier method is free.
+method offered for the cart is free. A method your prices don't cover for the cart, such as one
+priced only from a certain subtotal, stays hidden.
 
 ## Pickup points
 

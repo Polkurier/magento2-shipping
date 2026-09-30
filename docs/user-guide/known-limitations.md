@@ -14,6 +14,8 @@
   setting.
 - **Magento's shipment page ships the address as it is.** To correct the recipient before placing
   a shipment, use the Polkurier shipment screen.
+- **One Polkurier account per installation.** All websites share it; separate accounts per
+  website aren't supported.
 - **Only sender addresses are synced.** Recipient address book entries stay in the Polkurier panel.
 - **Cash on delivery with a 16-day payout time** isn't available.
 - **Carrier-specific fields** are plain text fields, even where the carrier expects one of a fixed

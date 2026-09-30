@@ -1,0 +1,13 @@
+<!--
+ ~ Copyright (c) 2026 Polkurier.pl
+ ~ All Rights Reserved
+-->
+<div class="polkurier-section__part">
+    <div class="polkurier-muted polkurier-address__caption" if="caption" text="caption"></div>
+    <address class="polkurier-address">
+        <!-- ko foreach: lines -->
+        <span data-bind="text: text, css: {'polkurier-address__strong': $data.strong, 'polkurier-muted': $data.muted}"></span>
+        <!-- /ko -->
+    </address>
+    <div class="polkurier-text-error" if="missing" text="missing"></div>
+</div>

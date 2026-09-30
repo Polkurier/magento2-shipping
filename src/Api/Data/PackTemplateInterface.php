@@ -104,6 +104,8 @@ interface PackTemplateInterface extends SyncableInterface
     public function setHeight(int $height): static;
 
     /**
+     * The most a parcel of this template may weigh, in kilograms.
+     *
      * @return float
      */
     public function getWeight(): float;

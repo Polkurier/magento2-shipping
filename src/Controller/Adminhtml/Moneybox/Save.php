@@ -14,7 +14,6 @@ use Magento\Framework\Controller\Result\Redirect;
 use Magento\Framework\Exception\LocalizedException;
 use Polkurier\Shipping\Model\MoneyBox\OrderNumbers;
 use Polkurier\Shipping\Model\MoneyBox\Payouts;
-use Polkurier\Shipping\Model\WebsiteScope;
 use Polkurier\Webservice\Enum\MoneyBox\MoneyBoxFeePaymentTypeEnum;
 use Polkurier\Webservice\Enum\MoneyBox\MoneyBoxPayoutTypeEnum;
 
@@ -28,7 +27,6 @@ class Save extends Action implements HttpPostActionInterface
     public function __construct(
         Context $context,
         private readonly Payouts $payouts,
-        private readonly WebsiteScope $websiteScope,
     ) {
         parent::__construct($context);
     }
@@ -36,13 +34,11 @@ class Save extends Action implements HttpPostActionInterface
     public function execute(): Redirect
     {
         $data = $this->getPostData();
-        $websiteId = (int)($data['website_id'] ?? 0);
         try {
             if (empty($data['two_factor_token']) || empty($data['two_factor_code'])) {
                 throw new LocalizedException(\__('Send yourself the confirmation code and enter it first.'));
             }
             $payout = $this->payouts->createPayout(
-                $this->websiteScope->getStoreId($websiteId),
                 OrderNumbers::parse((string)($data['orders'] ?? '')),
                 MoneyBoxPayoutTypeEnum::tryFrom((string)($data['payout_type'] ?? '')) ?? MoneyBoxPayoutTypeEnum::Account,
                 MoneyBoxFeePaymentTypeEnum::tryFrom((string)($data['fee_payment_type'] ?? '')) ?? MoneyBoxFeePaymentTypeEnum::MoneyBox,
@@ -59,10 +55,10 @@ class Save extends Action implements HttpPostActionInterface
         } catch (LocalizedException $e) {
             $this->messageManager->addErrorMessage($e->getMessage());
 
-            return $this->resultRedirectFactory->create()->setPath('*/*/payout', ['website' => $websiteId]);
+            return $this->resultRedirectFactory->create()->setPath('*/*/payout');
         }
 
-        return $this->resultRedirectFactory->create()->setPath('*/*/index', ['website' => $websiteId]);
+        return $this->resultRedirectFactory->create()->setPath('*/*/index');
     }
 
     /**

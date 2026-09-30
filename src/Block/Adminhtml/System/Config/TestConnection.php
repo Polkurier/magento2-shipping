@@ -38,13 +38,27 @@ class TestConnection extends Field
 
     public function getTestUrl(): string
     {
-        return $this->getUrl('polkurier/config/testConnection', [
-            'website' => $this->getRequest()->getParam('website'),
-        ]);
+        return $this->getUrl('polkurier/config/testConnection');
+    }
+
+    /**
+     * The ids of the customer ID and API token fields, which sit next to this button's field.
+     *
+     * @return array{customer: string, token: string}
+     */
+    public function getFieldIds(): array
+    {
+        $prefix = (string)$this->getData('field_prefix');
+
+        return ['customer' => $prefix . 'customer_id', 'token' => $prefix . 'api_token'];
     }
 
     protected function _getElementHtml(AbstractElement $element): string
     {
+        // The button's own id ends in its field name; the others share the rest.
+        $id = (string)$element->getHtmlId();
+        $this->setData('field_prefix', \str_ends_with($id, 'test_connection') ? \substr($id, 0, -\strlen('test_connection')) : '');
+
         return $this->_toHtml();
     }
 }

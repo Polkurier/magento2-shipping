@@ -16,6 +16,8 @@ use Polkurier\Shipping\Model\ResourceModel\BankAccount\CollectionFactory;
 
 class MassDelete extends AbstractMassDelete
 {
+    public const string ADMIN_RESOURCE = 'Polkurier_Shipping::bank_accounts';
+
     public function __construct(
         Context $context,
         BankAccountHandler $handler,

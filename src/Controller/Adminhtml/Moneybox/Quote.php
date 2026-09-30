@@ -15,7 +15,6 @@ use Magento\Framework\Controller\Result\JsonFactory;
 use Magento\Framework\Exception\LocalizedException;
 use Polkurier\Shipping\Model\MoneyBox\OrderNumbers;
 use Polkurier\Shipping\Model\MoneyBox\Payouts;
-use Polkurier\Shipping\Model\WebsiteScope;
 use Polkurier\Webservice\Enum\MoneyBox\MoneyBoxPayoutTypeEnum;
 
 /**
@@ -29,7 +28,6 @@ class Quote extends Action implements HttpPostActionInterface
         Context $context,
         private readonly JsonFactory $jsonFactory,
         private readonly Payouts $payouts,
-        private readonly WebsiteScope $websiteScope,
     ) {
         parent::__construct($context);
     }
@@ -39,7 +37,6 @@ class Quote extends Action implements HttpPostActionInterface
         $data = (array)$this->getRequest()->getParam('data', []);
         try {
             $fee = $this->payouts->quote(
-                $this->websiteScope->getStoreId((int)($data['website_id'] ?? 0)),
                 OrderNumbers::parse((string)($data['orders'] ?? '')),
                 MoneyBoxPayoutTypeEnum::tryFrom((string)($data['payout_type'] ?? '')),
             );

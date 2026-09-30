@@ -11,9 +11,9 @@ use Magento\Backend\App\Action;
 use Magento\Backend\App\Action\Context;
 use Magento\Framework\App\Action\HttpGetActionInterface;
 use Magento\Framework\Controller\ResultInterface;
-use Magento\Framework\Exception\NoSuchEntityException;
+use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\View\Result\PageFactory;
-use Magento\Sales\Api\OrderRepositoryInterface;
+use Polkurier\Shipping\Model\Shipment\OwnOrders;
 
 /**
  * The Polkurier shipment form for one order.
@@ -25,19 +25,20 @@ class Create extends Action implements HttpGetActionInterface
     public function __construct(
         Context $context,
         private readonly PageFactory $pageFactory,
-        private readonly OrderRepositoryInterface $orderRepository,
+        private readonly OwnOrders $ownOrders,
     ) {
         parent::__construct($context);
     }
 
     public function execute(): ResultInterface
     {
+        $orderId = (int)$this->getRequest()->getParam('order_id');
         try {
-            $order = $this->orderRepository->get((int)$this->getRequest()->getParam('order_id'));
-        } catch (NoSuchEntityException) {
-            $this->messageManager->addErrorMessage(\__('The order no longer exists.'));
+            $order = $this->ownOrders->get($orderId);
+        } catch (LocalizedException $e) {
+            $this->messageManager->addErrorMessage($e->getMessage());
 
-            return $this->resultRedirectFactory->create()->setPath('sales/order/index');
+            return $this->resultRedirectFactory->create()->setPath('sales/order/view', ['order_id' => $orderId]);
         }
 
         $page = $this->pageFactory->create();

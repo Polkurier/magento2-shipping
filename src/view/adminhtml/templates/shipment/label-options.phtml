@@ -5,8 +5,13 @@
  */
 declare(strict_types=1);
 
-/** @var \Polkurier\Shipping\Block\Adminhtml\Shipment\LabelOptions $block */
+/** @var \Magento\Backend\Block\Template $block */
 /** @var \Magento\Framework\Escaper $escaper */
+/** @var \Polkurier\Shipping\ViewModel\Adminhtml\LabelOptions $viewModel */
+$viewModel = $block->getData('view_model');
+if (!$viewModel->isAvailable()) {
+    return;
+}
 ?>
 <section class="admin__page-section polkurier-label-options" data-role="polkurier-label-options">
     <div class="admin__page-section-title">
@@ -14,7 +19,7 @@ declare(strict_types=1);
     </div>
     <div class="admin__page-section-content">
         <p class="polkurier-label-options__note" data-role="off">
-            <?= $escaper->escapeHtml(__('Tick "Create Shipping Label" below to place the Polkurier order with the shipment.')) ?>
+            <?= $escaper->escapeHtml(__('Without "Create Shipping Label" below, the shipment is created without a Polkurier order.')) ?>
         </p>
         <div data-role="on">
             <p class="polkurier-label-options__note">
@@ -28,7 +33,7 @@ declare(strict_types=1);
 <script type="text/x-magento-init">
     {
         "[data-role=polkurier-label-options]": {
-            "Polkurier_Shipping/js/shipment/label-options": <?= /* @noEscape */ $block->getJsConfig() ?>
+            "Polkurier_Shipping/js/shipment/label-options": <?= /* @noEscape */ $viewModel->getJsConfig() ?>
         }
     }
 </script>

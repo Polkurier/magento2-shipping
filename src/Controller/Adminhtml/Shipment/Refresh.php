@@ -7,16 +7,30 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Controller\Adminhtml\Shipment;
 
+use Magento\Backend\App\Action\Context;
 use Magento\Framework\App\Action\HttpPostActionInterface;
 use Magento\Framework\Controller\Result\Redirect;
 use Magento\Framework\Exception\LocalizedException;
+use Polkurier\Shipping\Api\ShipmentManagementInterface;
+use Polkurier\Shipping\Model\Shipment\DetailsLoader;
+use Polkurier\Shipping\Model\Shipment\RequestedShipments;
 
 /**
- * Reads the current state of one Polkurier order.
+ * Reads the current state of one Polkurier order, with the carrier's scans, and keeps the local
+ * copy of both.
  */
 class Refresh extends AbstractShipmentAction implements HttpPostActionInterface
 {
     public const string ADMIN_RESOURCE = 'Polkurier_Shipping::shipments';
+
+    public function __construct(
+        Context $context,
+        RequestedShipments $requestedShipments,
+        private readonly ShipmentManagementInterface $management,
+        private readonly DetailsLoader $detailsLoader,
+    ) {
+        parent::__construct($context, $requestedShipments);
+    }
 
     public function execute(): Redirect
     {
@@ -27,6 +41,13 @@ class Refresh extends AbstractShipmentAction implements HttpPostActionInterface
                 $this->messageManager->addSuccessMessage(\__('Polkurier order %1: %2.', $shipment->getPolkurierNumber(), (string)$shipment->getStatusLabel()));
             } catch (LocalizedException $e) {
                 $this->messageManager->addErrorMessage($e->getMessage());
+
+                return $this->back();
+            }
+            try {
+                $this->detailsLoader->refreshTracking($shipment);
+            } catch (LocalizedException $e) {
+                $this->messageManager->addWarningMessage($e->getMessage());
             }
         }
 

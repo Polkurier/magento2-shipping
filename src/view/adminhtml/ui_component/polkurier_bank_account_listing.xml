@@ -92,14 +92,6 @@
                 <visible>false</visible>
             </settings>
         </column>
-        <column name="website_id" component="Magento_Ui/js/grid/columns/select">
-            <settings>
-                <label translate="true">Website</label>
-                <options class="Magento\Config\Model\Config\Source\Website"/>
-                <filter>select</filter>
-                <dataType>select</dataType>
-            </settings>
-        </column>
         <column name="name">
             <settings>
                 <label translate="true">Account name</label>
@@ -159,6 +151,12 @@
             </settings>
         </column>
         <actionsColumn name="actions" class="Polkurier\Shipping\Ui\Component\Listing\Column\EditActions">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="editUrlPath" xsi:type="string">polkurier/bankaccount/edit</item>
+                    <item name="deleteUrlPath" xsi:type="string">polkurier/bankaccount/delete</item>
+                </item>
+            </argument>
             <settings>
                 <indexField>account_id</indexField>
                 <label translate="true">Actions</label>

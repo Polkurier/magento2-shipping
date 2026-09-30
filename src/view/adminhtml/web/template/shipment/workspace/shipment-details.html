@@ -1,0 +1,46 @@
+<!--
+ ~ Copyright (c) 2026 Polkurier.pl
+ ~ All Rights Reserved
+-->
+<div class="polkurier-section__part polkurier-details">
+    <dl class="polkurier-facts">
+        <dt translate="'Carrier'"></dt>
+        <dd>
+            <!-- ko if: carrierName -->
+            <strong text="carrierName"></strong>
+            <!-- /ko -->
+            <!-- ko ifnot: carrierName -->
+            <span class="polkurier-text-error" translate="'No carrier chosen'"></span>
+            <!-- /ko -->
+            <button type="button" class="polkurier-link" click="changeCarrier">
+                <span translate="'Change'"></span>
+            </button>
+            <ul class="polkurier-details__notices" if="carrierNotices().length" data-bind="attr: {'aria-label': $t('Messages from Polkurier about this carrier')}">
+                <!-- ko foreach: carrierNotices -->
+                <li class="polkurier-section__warning" data-bind="html: html"></li>
+                <!-- /ko -->
+            </ul>
+        </dd>
+        <dt translate="'Contents'"></dt>
+        <dd>
+            <strong data-bind="text: contents() || '—'"></strong>
+            <span class="polkurier-muted" if="shipmentType" data-bind="text: '(' + shipmentType() + ')'"></span>
+            <button type="button" class="polkurier-link" click="changeContents">
+                <span translate="'Change'"></span>
+            </button>
+        </dd>
+        <dt translate="'Price'"></dt>
+        <dd data-bind="css: {'_loading': quoting}">
+            <!-- ko if: price -->
+            <strong data-bind="text: price().net + ' ' + $t('net')"></strong>
+            <span class="polkurier-muted" data-bind="text: '(' + price().gross + ' ' + $t('gross') + ')'"></span>
+            <!-- /ko -->
+            <!-- ko ifnot: price -->
+            <span class="polkurier-muted" text="noPrice()"></span>
+            <!-- /ko -->
+        </dd>
+    </dl>
+    <div class="polkurier-text-error" if="unpriced">
+        <span translate="'This carrier cannot take the shipment as it is.'"></span>
+    </div>
+</div>

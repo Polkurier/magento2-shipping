@@ -98,4 +98,16 @@ class Pack extends DataObject implements PackInterface
     {
         return $this->setData(self::AMOUNT, $amount);
     }
+
+    public function getItems(): array
+    {
+        $value = $this->getData(self::ITEMS);
+
+        return \is_array($value) ? $value : [];
+    }
+
+    public function setItems(array $items): static
+    {
+        return $this->setData(self::ITEMS, $items);
+    }
 }

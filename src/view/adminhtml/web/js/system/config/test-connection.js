@@ -4,30 +4,40 @@
  */
 /**
  * Sends the customer id and token as typed (a masked token means "the saved one") and shows
- * whether Polkurier accepts them.
+ * whether Polkurier accepts them. The fields' ids come from the button's block.
  */
-define(['jquery', 'mage/translate'], function ($, $t) {
+define(['jquery', 'mage/translate', 'Polkurier_Shipping/js/request'], function ($, $t, request) {
     'use strict';
 
     return function (config, element) {
         const $element = $(element),
-            $result = $element.find('.polkurier-test-connection__result');
+            $result = $element.find('.polkurier-test-connection__result'),
+            // A second click answers for what's typed now, not for the first.
+            checks = request();
+
+        /**
+         * @param {String} text
+         * @param {Boolean|null} success null while the check runs
+         */
+        function show(text, success) {
+            $result.text(text).removeClass('message message-success message-error');
+            if (success !== null) {
+                $result.addClass('message ' + (success ? 'message-success' : 'message-error'));
+            }
+        }
 
         $element.find('.polkurier-test-connection').on('click', function () {
-            $result.text($t('Checking…')).css('color', '');
-            $.ajax({
-                url: config.url,
-                type: 'POST',
-                dataType: 'json',
-                data: {
-                    form_key: window.FORM_KEY,
-                    customer_id: $('#carriers_polkurier_general_customer_id').val(),
-                    api_token: $('#carriers_polkurier_general_api_token').val()
+            show($t('Checking…'), null);
+            checks.post(config.url, {
+                customer_id: $('#' + config.fields.customer).val(),
+                api_token: $('#' + config.fields.token).val()
+            }, {
+                done: function (response) {
+                    show(response.message, Boolean(response.success));
+                },
+                fail: function () {
+                    show($t('The check could not be run.'), false);
                 }
-            }).done(function (response) {
-                $result.text(response.message).css('color', response.success ? '#006400' : '#e22626');
-            }).fail(function () {
-                $result.text($t('The check could not be run.')).css('color', '#e22626');
             });
         });
     };

@@ -12,7 +12,6 @@ namespace Polkurier\Shipping\Api\Data;
  */
 interface SyncableInterface
 {
-    public const string WEBSITE_ID = 'website_id';
     public const string EXT_ID = 'ext_id';
     public const string SYNC_STATE = 'sync_state';
     public const string SYNC_ERROR = 'sync_error';
@@ -39,17 +38,6 @@ interface SyncableInterface
      * @return int|null
      */
     public function getId();
-
-    /**
-     * @return int
-     */
-    public function getWebsiteId(): int;
-
-    /**
-     * @param int $websiteId
-     * @return $this
-     */
-    public function setWebsiteId(int $websiteId): static;
 
     /**
      * Id of the entry in the Polkurier account; null until it has been sent there.

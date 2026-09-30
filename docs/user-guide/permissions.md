@@ -13,7 +13,7 @@ to place or cancel shipments, or keep payouts to a few people.
 | Permission | Allows |
 |---|---|
 | **Polkurier** | the Polkurier menu (needed for everything below) |
-| **Orders**, **Store shipments** | the lists of Magento's orders and shipments shipped with Polkurier; their actions also need Magento's own permissions |
+| **Orders** | the list of Magento's orders shipped with Polkurier; its actions also need Magento's own permissions |
 | **Shipments** | see shipments, print labels and protocols, update statuses |
 | &nbsp;&nbsp;**Create shipments** | place shipments (on either page), reconcile unclear ones, create missing Magento shipments, book collective pickups |
 | &nbsp;&nbsp;**Cancel shipments** | cancel shipments in Polkurier |
@@ -22,7 +22,9 @@ to place or cancel shipments, or keep payouts to a few people.
 | **Settings** | the Settings menu |
 | &nbsp;&nbsp;**Addresses**, **Bank accounts**, **Pack templates**, **Carriers** | manage each of them |
 
-The configuration page is controlled by **Stores > Settings > Configuration > Polkurier**.
+The configuration page, its **Test connection** button and the **Configuration** menu item are
+controlled by Magento's own **Stores > Settings > Configuration > Delivery Methods Section**,
+because the settings sit among Magento's delivery methods.
 
 Shipping on Magento's own shipment page needs Magento's usual permission to create shipments
 (**Sales > Operations > Orders > Actions > Ship**) as well as **Create shipments** above. Without

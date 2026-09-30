@@ -14,6 +14,8 @@ use Polkurier\Shipping\Model\Admin\PackTemplateHandler;
 
 class InlineEdit extends AbstractInlineEdit
 {
+    public const string ADMIN_RESOURCE = 'Polkurier_Shipping::pack_templates';
+
     public function __construct(Context $context, PackTemplateHandler $handler, JsonFactory $jsonFactory)
     {
         parent::__construct($context, $handler, $jsonFactory);

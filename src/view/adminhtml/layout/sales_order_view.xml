@@ -6,10 +6,14 @@
 <page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
       xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
     <body>
-        <!-- The order's pickup point and its Polkurier shipments, on the Information tab -->
-        <referenceContainer name="order_additional_info">
-            <uiComponent name="polkurier_order_point_form" aclResource="Polkurier_Shipping::shipments"/>
-            <uiComponent name="polkurier_order_shipment_listing" aclResource="Polkurier_Shipping::shipments"/>
-        </referenceContainer>
+        <!-- The customer's pickup point, in the Shipping & Handling Information; placed there by
+             Plugin\Adminhtml\ShippingInfoPlugin, since Magento's template renders no children. -->
+        <referenceBlock name="order_shipping_view">
+            <block class="Magento\Backend\Block\Template" name="polkurier_order_point" template="Polkurier_Shipping::order/pickup-point.phtml">
+                <arguments>
+                    <argument name="view_model" xsi:type="object">Polkurier\Shipping\ViewModel\Adminhtml\OrderPickupPoint</argument>
+                </arguments>
+            </block>
+        </referenceBlock>
     </body>
 </page>

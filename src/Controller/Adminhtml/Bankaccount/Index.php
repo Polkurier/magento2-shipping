@@ -14,6 +14,8 @@ use Polkurier\Shipping\Model\Admin\BankAccountHandler;
 
 class Index extends AbstractIndex
 {
+    public const string ADMIN_RESOURCE = 'Polkurier_Shipping::bank_accounts';
+
     public function __construct(Context $context, BankAccountHandler $handler)
     {
         parent::__construct($context, $handler);

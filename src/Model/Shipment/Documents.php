@@ -8,11 +8,10 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Model\Shipment;
 
 use Magento\Framework\Exception\LocalizedException;
+use Magento\Framework\Stdlib\DateTime\DateTime;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Model\Config;
-use Polkurier\Shipping\Model\ErrorMessages;
-use Polkurier\Shipping\Model\Sdk\ClientPool;
-use Polkurier\Webservice\Exception\Exception as PolkurierException;
+use Polkurier\Shipping\Model\Sdk\ShipmentGatewayInterface;
 use Polkurier\Webservice\Request\Order\GetDocumentMessage;
 
 /**
@@ -22,9 +21,9 @@ use Polkurier\Webservice\Request\Order\GetDocumentMessage;
 class Documents
 {
     public function __construct(
-        private readonly ClientPool $clientPool,
+        private readonly ShipmentGatewayInterface $gateway,
         private readonly Config $config,
-        private readonly ErrorMessages $errorMessages,
+        private readonly DateTime $dateTime,
     ) {}
 
     /**
@@ -38,11 +37,7 @@ class Documents
         [$storeId, $numbers] = $this->numbers($shipments);
         $format = $pdf ? null : $this->config->getLabelFormat($storeId);
 
-        try {
-            $document = $this->clientPool->orders($storeId)->getLabel(new GetDocumentMessage($numbers, $format));
-        } catch (PolkurierException $e) {
-            throw new LocalizedException(\__('%1', $this->errorMessages->describe($e)), $e);
-        }
+        $document = $this->gateway->getLabel(new GetDocumentMessage($numbers, $format));
 
         return $format === null
             ? ['file_name' => $this->fileName('labels', $numbers, 'pdf'), 'content' => $document->getDecodedFile(), 'content_type' => 'application/pdf']
@@ -56,44 +51,33 @@ class Documents
      */
     public function getProtocol(array $shipments): array
     {
-        [$storeId, $numbers] = $this->numbers($shipments);
-        try {
-            $document = $this->clientPool->orders($storeId)->getProtocol(new GetDocumentMessage($numbers));
-        } catch (PolkurierException $e) {
-            throw new LocalizedException(\__('%1', $this->errorMessages->describe($e)), $e);
-        }
+        [, $numbers] = $this->numbers($shipments);
+        $document = $this->gateway->getProtocol(new GetDocumentMessage($numbers));
 
         return ['file_name' => $this->fileName('protocol', $numbers, 'pdf'), 'content' => $document->getDecodedFile(), 'content_type' => 'application/pdf'];
     }
 
     /**
      * @param ShipmentInterface[] $shipments
-     * @return array{0: int|null, 1: string[]}
+     * @return array{0: int|null, 1: string[]} the store of the first shipment, whose label format
+     *     applies, and the order numbers
      * @throws LocalizedException
      */
     private function numbers(array $shipments): array
     {
         $numbers = [];
-        $stores = [];
+        $storeId = null;
         foreach ($shipments as $shipment) {
             if ($shipment->getState() === ShipmentInterface::STATE_CREATED && $shipment->getPolkurierNumber() !== null) {
                 $numbers[] = $shipment->getPolkurierNumber();
-                $stores[$this->accountKey($shipment->getStoreId())] = $shipment->getStoreId();
+                $storeId ??= $shipment->getStoreId();
             }
         }
         if ($numbers === []) {
             throw new LocalizedException(\__('None of the selected shipments is a placed Polkurier order.'));
         }
-        if (\count($stores) > 1) {
-            throw new LocalizedException(\__('The selected shipments belong to different Polkurier accounts; print them separately.'));
-        }
 
-        return [\reset($stores), \array_values(\array_unique($numbers))];
-    }
-
-    private function accountKey(?int $storeId): string
-    {
-        return $this->config->getLogin($storeId) . '|' . (int)$this->config->isSandbox($storeId);
+        return [$storeId, \array_values(\array_unique($numbers))];
     }
 
     /**
@@ -101,6 +85,6 @@ class Documents
      */
     private function fileName(string $kind, array $numbers, string $extension): string
     {
-        return \sprintf('polkurier-%s-%s.%s', $kind, \count($numbers) === 1 ? \preg_replace('/[^\w-]/', '_', $numbers[0]) : \date('Ymd-His'), $extension);
+        return \sprintf('polkurier-%s-%s.%s', $kind, \count($numbers) === 1 ? \preg_replace('/[^\w-]/', '_', $numbers[0]) : (string)$this->dateTime->date('Ymd-His'), $extension);
     }
 }

@@ -12,7 +12,7 @@ use Magento\Framework\App\Action\HttpPostActionInterface;
 use Magento\Framework\App\Request\DataPersistorInterface;
 use Magento\Framework\Controller\Result\Redirect;
 use Magento\Framework\Exception\LocalizedException;
-use Polkurier\Shipping\Model\Admin\SyncableEntityHandler;
+use Polkurier\Shipping\Model\Admin\EntityHandlerInterface;
 
 /**
  * Saves the entry and sends it to Polkurier. A refusal from Polkurier keeps the entry, marked with
@@ -22,7 +22,7 @@ abstract class AbstractSave extends AbstractAction implements HttpPostActionInte
 {
     public function __construct(
         Context $context,
-        SyncableEntityHandler $handler,
+        EntityHandlerInterface $handler,
         private readonly DataPersistorInterface $dataPersistor,
     ) {
         parent::__construct($context, $handler);

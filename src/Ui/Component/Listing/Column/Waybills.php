@@ -7,6 +7,9 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Ui\Component\Listing\Column;
 
+use Magento\Framework\Escaper;
+use Magento\Framework\View\Element\UiComponent\ContextInterface;
+use Magento\Framework\View\Element\UiComponentFactory;
 use Magento\Ui\Component\Listing\Columns\Column;
 
 /**
@@ -14,6 +17,20 @@ use Magento\Ui\Component\Listing\Columns\Column;
  */
 class Waybills extends Column
 {
+    /**
+     * @param array<string, mixed> $components
+     * @param array<string, mixed> $data
+     */
+    public function __construct(
+        ContextInterface $context,
+        UiComponentFactory $uiComponentFactory,
+        private readonly Escaper $escaper,
+        array $components = [],
+        array $data = [],
+    ) {
+        parent::__construct($context, $uiComponentFactory, $components, $data);
+    }
+
     /**
      * @param array<string, mixed> $dataSource
      * @return array<string, mixed>
@@ -28,9 +45,9 @@ class Waybills extends Column
             $numbers = \array_filter(\explode(',', (string)($item[$name] ?? '')));
             $url = (string)($item['tracking_url'] ?? '');
             $item[$name] = \implode(', ', \array_map(
-                static fn(string $number): string => $url !== ''
-                    ? \sprintf('<a href="%s" target="_blank" rel="noopener">%s</a>', \htmlspecialchars($url), \htmlspecialchars($number))
-                    : \htmlspecialchars($number),
+                fn(string $number): string => $url !== ''
+                    ? \sprintf('<a href="%s" target="_blank" rel="noopener">%s</a>', $this->escaper->escapeUrl($url), $this->escaper->escapeHtml($number))
+                    : $this->escaper->escapeHtml($number),
                 $numbers,
             ));
         }

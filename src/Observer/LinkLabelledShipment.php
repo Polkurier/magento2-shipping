@@ -11,16 +11,19 @@ use Magento\Framework\Event\Observer;
 use Magento\Framework\Event\ObserverInterface;
 use Magento\Sales\Model\Order\Shipment;
 use Polkurier\Shipping\Api\ShipmentRepositoryInterface;
+use Polkurier\Shipping\Model\Shipment\MagentoShipment;
 use Polkurier\Shipping\Model\Shipment\NativeLabel;
 
 /**
  * Links the Polkurier order placed for a shipping label to the Magento shipment it was placed for,
- * once Magento has saved that shipment. The link is saved in the same transaction.
+ * once Magento has saved that shipment. The link is saved in the same transaction. A cancelled
+ * Polkurier order the shipment had is replaced: it is unlinked and its waybills removed.
  */
 class LinkLabelledShipment implements ObserverInterface
 {
     public function __construct(
         private readonly ShipmentRepositoryInterface $shipmentRepository,
+        private readonly MagentoShipment $magentoShipment,
     ) {}
 
     public function execute(Observer $observer): void
@@ -31,6 +34,7 @@ class LinkLabelledShipment implements ObserverInterface
         }
         $shipment = $this->shipmentRepository->get((int)$magentoShipment->getData(NativeLabel::LINK));
         $magentoShipment->unsetData(NativeLabel::LINK);
+        $this->magentoShipment->release((int)$magentoShipment->getId());
         $this->shipmentRepository->save($shipment->setShipmentId((int)$magentoShipment->getId()));
     }
 }

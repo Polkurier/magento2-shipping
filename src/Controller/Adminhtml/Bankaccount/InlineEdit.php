@@ -14,6 +14,8 @@ use Polkurier\Shipping\Model\Admin\BankAccountHandler;
 
 class InlineEdit extends AbstractInlineEdit
 {
+    public const string ADMIN_RESOURCE = 'Polkurier_Shipping::bank_accounts';
+
     public function __construct(Context $context, BankAccountHandler $handler, JsonFactory $jsonFactory)
     {
         parent::__construct($context, $handler, $jsonFactory);

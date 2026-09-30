@@ -1,0 +1,7 @@
+<!--
+ ~ Copyright (c) 2026 Polkurier.pl
+ ~ All Rights Reserved
+-->
+<div class="draggable-handle"
+     data-bind="attr: {'data-id': $col.getId($row()), title: $t('Drag to change the order')},
+                afterRender: $col.initHandle.bind($col)"></div>

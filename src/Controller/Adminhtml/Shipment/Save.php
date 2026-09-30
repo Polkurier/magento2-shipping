@@ -10,13 +10,12 @@ namespace Polkurier\Shipping\Controller\Adminhtml\Shipment;
 use Magento\Backend\App\Action;
 use Magento\Backend\App\Action\Context;
 use Magento\Framework\App\Action\HttpPostActionInterface;
-use Magento\Framework\App\Request\DataPersistorInterface;
 use Magento\Framework\Controller\Result\Redirect;
 use Magento\Framework\Exception\LocalizedException;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Api\ShipmentManagementInterface;
 use Polkurier\Shipping\Model\Shipment\DraftHydrator;
-use Polkurier\Shipping\Ui\Component\Form\Shipment\DataProvider;
+use Polkurier\Shipping\Model\Shipment\RejectedDraft;
 
 /**
  * Places the Polkurier order from the shipment form.
@@ -29,7 +28,7 @@ class Save extends Action implements HttpPostActionInterface
         Context $context,
         private readonly ShipmentManagementInterface $management,
         private readonly DraftHydrator $hydrator,
-        private readonly DataPersistorInterface $dataPersistor,
+        private readonly RejectedDraft $rejectedDraft,
     ) {
         parent::__construct($context);
     }
@@ -44,7 +43,7 @@ class Save extends Action implements HttpPostActionInterface
             $shipment = $this->management->create($orderId, $this->hydrator->fromArray($data));
         } catch (LocalizedException $e) {
             $this->messageManager->addErrorMessage($e->getMessage());
-            $this->dataPersistor->set(DataProvider::PERSISTOR_KEY, $data);
+            $this->rejectedDraft->keep($data);
 
             return $redirect->setPath('*/*/create', ['order_id' => $orderId]);
         }

@@ -49,8 +49,6 @@ Log errors,Zapisuj błędy w logu
 "To var/log/polkurier.log, with the API token masked.","Do var/log/polkurier.log, z zamaskowanym tokenem API."
 Log all traffic of,Zapisuj cały ruch metod
 Successful requests and answers of these API methods are logged too.,Zapisywane są też udane zapytania i odpowiedzi tych metod API.
-Default carrier,Domyślny przewoźnik
-Preselected for orders placed with another shipping method. The list comes from the Polkurier account.,Wybierany dla zamówień złożonych z inną metodą dostawy. Lista pochodzi z konta Polkurier.
 Default shipment type,Domyślny rodzaj przesyłki
 Fall back to the shipping origin,W razie braku użyj adresu wysyłki sklepu
 "When no default sender is set in Polkurier > Settings > Addresses, send from the address in Sales > Shipping Settings > Origin.","Gdy w Polkurier > Ustawienia > Adresy nie ma domyślnego nadawcy, nadawaj z adresu z Sprzedaż > Ustawienia wysyłki > Pochodzenie."
@@ -80,8 +78,6 @@ Changes made in Magento are also sent as soon as they are saved.,Zmiany wprowadz
 Update shipment statuses every 30 minutes,Aktualizuj statusy przesyłek co 30 minut
 Address,Adres
 Back,Wstecz
-Website,Strona
-The Polkurier account of this website keeps the entry.,Wpis jest przechowywany na koncie Polkurier tej strony.
 Label,Nazwa
 Name,Imię i nazwisko
 Company,Firma
@@ -98,7 +94,6 @@ For carriers that collect from a point.,Dla przewoźników odbierających z punk
 Default sender,Domyślny nadawca
 Can be a cover address,Może być adresem zwrotnym
 Returns can be sent here instead of to the sender.,Zwroty mogą trafiać tutaj zamiast do nadawcy.
-Synchronization with Polkurier,Synchronizacja z Polkurierem
 State,Stan
 Last error,Ostatni błąd
 Polkurier ID,ID w Polkurierze
@@ -123,8 +118,6 @@ Accounts from Polkurier come back at the next synchronization; delete them in th
 Checkout,Koszyk
 Carrier,Przewoźnik
 Label in checkout,Nazwa w koszyku
-Offered in checkout,Dostępny w koszyku
-Sort order,Kolejność
 Price,Cena
 Pricing,Wycena
 Price tiers,Progi cenowe
@@ -134,10 +127,8 @@ Weight from [kg],Waga od [kg]
 "The tier with the highest threshold the cart reaches applies: subtotal first, then weight. Thresholds the pricing does not use are ignored. A cart below every tier is not offered this carrier.","Obowiązuje próg o najwyższym osiągniętym przez koszyk progu: najpierw wartość, potem waga. Progi, których dany sposób wyceny nie używa, są pomijane. Koszyk poniżej wszystkich progów nie otrzyma tego przewoźnika."
 Refresh carriers from Polkurier,Odśwież przewoźników z Polkuriera
 Code,Kod
-Offered by the account,Dostępny na koncie
 Pickup point,Punkt odbioru
 Point,Punkt
-Accepts cash on delivery,Przyjmuje pobrania
 Print labels,Drukuj etykiety
 Print handover protocol,Drukuj protokół nadania
 Created,Utworzono
@@ -321,7 +312,6 @@ Polkurier error: %1,Błąd Polkuriera: %1
 Polkurier has no order number %1 on this account.,Na tym koncie Polkurier nie ma zamówienia numer %1.
 Polkurier money box,Skarbonka Polkurier
 Polkurier order %1 cancelled.,Anulowano zamówienie Polkurier %1.
-Polkurier order %1 cancelled. The Magento shipment and its tracking numbers were kept; remove them by hand if needed.,Anulowano zamówienie Polkurier %1. Wysyłka Magento i jej numery śledzenia zostały zachowane; w razie potrzeby usuń je ręcznie.
 Polkurier order %1 found and linked after an unconfirmed request.,Znaleziono i powiązano zamówienie Polkurier %1 po niepotwierdzonym zapytaniu.
 Polkurier order %1 found and linked.,Znaleziono i powiązano zamówienie Polkurier %1.
 Polkurier order %1 linked by hand after an unconfirmed request.,Ręcznie powiązano zamówienie Polkurier %1 po niepotwierdzonym zapytaniu.
@@ -358,7 +348,7 @@ The Magento shipment could not be created: %1,Nie udało się utworzyć wysyłki
 "The bank account with id ""%1"" does not exist.",Konto bankowe o id „%1” nie istnieje.
 "The carrier config with id ""%1"" does not exist.",Ustawienia przewoźnika o id „%1” nie istnieją.
 The carrier does not price this shipment.,Przewoźnik nie wycenia tej przesyłki.
-The carrier will not collect the parcel. This cannot be undone.,Przewoźnik nie odbierze przesyłki. Tego nie można cofnąć.
+"The carrier will not collect the parcel, and its Magento shipment is removed so the items can be shipped again. This cannot be undone.","Przewoźnik nie odbierze przesyłki, a jej wysyłka Magento zostanie usunięta, by produkty można było wysłać ponownie. Tego nie można cofnąć."
 The chosen address no longer exists.,Wybrany adres już nie istnieje.
 The chosen bank account no longer exists.,Wybrane konto bankowe już nie istnieje.
 The chosen pickup point is not available. Choose another one.,Wybrany punkt odbioru jest niedostępny. Wybierz inny.
@@ -368,22 +358,20 @@ The order no longer exists.,Zamówienie już nie istnieje.
 "The pack template with id ""%1"" does not exist.",Szablon paczki o id „%1” nie istnieje.
 The request to Polkurier could not be built: %1,Nie udało się przygotować zapytania do Polkuriera: %1
 The request was interrupted before an answer arrived.,Zapytanie zostało przerwane przed nadejściem odpowiedzi.
-The selected shipments belong to different Polkurier accounts; print them separately.,Wybrane przesyłki należą do różnych kont Polkurier; wydrukuj je osobno.
 "The shipment with id ""%1"" does not exist.",Przesyłka o id „%1” nie istnieje.
 This shipment has no Polkurier order to read.,Ta przesyłka nie ma zamówienia Polkurier do odczytania.
 Tires,Opony
 Update status,Aktualizuj status
 View order,Pokaż zamówienie
 Waiting to be sent,Czeka na wysłanie
-Website %1: %2,Strona %1: %2
-Website %1: the account offers %2 carriers.,Strona %1: konto oferuje przewoźników: %2.
+The account offers %1 carriers.,Konto oferuje przewoźników: %1.
 Weekend collection,Odbiór w weekend
 Within 4 days,W ciągu 4 dni
 Yes,Tak
 not issued yet,jeszcze nie wystawione
-Polkurier did not accept the API credentials configured for this website. Check the customer ID and API token in Stores > Configuration > Sales > Delivery Methods > Polkurier. (%1),Polkurier nie przyjął danych dostępowych API skonfigurowanych dla tej strony. Sprawdź numer klienta i token API w Sklepy > Konfiguracja > Sprzedaż > Metody dostawy > Polkurier. (%1)
+Polkurier did not accept the API credentials. Check the customer ID and API token in Stores > Configuration > Sales > Delivery Methods > Polkurier. (%1),Polkurier nie przyjął danych dostępowych API. Sprawdź numer klienta i token API w Sklepy > Konfiguracja > Sprzedaż > Metody dostawy > Polkurier. (%1)
 "Admin only: customers see just each delivery method's label, never this title.","Tylko w panelu: klienci widzą jedynie nazwę metody dostawy, nigdy ten tytuł."
-Credentials are set per website; each website may use its own Polkurier account.,Dane dostępowe ustawia się dla strony (website); każda strona może mieć własne konto Polkurier.
+One Polkurier account serves every website and store view.,Jedno konto Polkurier obsługuje wszystkie strony i widoki sklepu.
 Protocol,Protokół
 Print label,Drukuj etykietę
 Print protocol,Drukuj protokół
@@ -417,7 +405,7 @@ From,Od
 To,Do
 Insurance amount,Kwota ubezpieczenia
 Polkurier shipping label,Etykieta Polkurier
-"Tick ""Create Shipping Label"" below to place the Polkurier order with the shipment.","Zaznacz poniżej „Create Shipping Label”, aby złożyć zamówienie Polkurier razem z przesyłką."
+"Without ""Create Shipping Label"" below, the shipment is created without a Polkurier order.","Bez zaznaczenia poniżej „Create Shipping Label” wysyłka powstanie bez zamówienia Polkurier."
 "Placed with the shipment, using the parcels you pack in the next step.","Składane razem z przesyłką, z paczkami, które spakujesz w następnym kroku."
 "from %1","od: %1"
 Not chosen,Nie wybrano
@@ -498,15 +486,161 @@ Fall back to the store's address,Awaryjnie adres sklepu
 Province,Województwo
 Save and Continue Edit,Zapisz i kontynuuj edycję
 Save the pickup point,Zapisz punkt odbioru
-The pickup point could not be saved.,Nie udało się zapisać punktu odbioru.
-The pickup point is saved.,Punkt odbioru zapisany.
-"The point's code. It's checked with Polkurier for the order's carrier when you save it.","Kod punktu. Przy zapisie jest sprawdzany w Polkurier dla przewoźnika zamówienia."
-Only orders placed with a Polkurier method have a pickup point.,Punkt odbioru mają tylko zamówienia z metodą dostawy Polkurier.
 This carrier doesn't deliver to pickup points.,Ten przewoźnik nie doręcza do punktów odbioru.
-This carrier delivers to pickup points only: enter one.,Ten przewoźnik doręcza tylko do punktów: podaj punkt.
-"There is no pickup point %1 for this carrier.","Ten przewoźnik nie ma punktu odbioru %1."
-"Pickup point changed from %1 to %2.","Punkt odbioru zmieniony z %1 na %2."
 none,brak
 "%1 is priced in tiers: change its prices on the carrier's page.","%1 ma cenę progową: zmień ceny na stronie przewoźnika."
 Orders,Zamówienia
-Store shipments,Wysyłki sklepu
+"%1 × %2 × %3 cm, %4 kg","%1 × %2 × %3 cm, %4 kg"
+Add one,Dodaj
+Another sender on the label,Inny adres nadawcy na etykiecie
+A parcel without a template,Paczka bez szablonu
+Change the shipment type?,Zmienić typ przesyłki?
+Choose a carrier,Wybierz przewoźnika
+Choose a carrier to see its collection dates.,"Wybierz przewoźnika, aby zobaczyć terminy odbioru."
+Choose one,Wybierz
+Collection time,Godziny odbioru
+Confirm,Zatwierdź
+Contents,Zawartość
+(default),(domyślny)
+Enter its size and weight yourself.,Wpisz wymiary i wagę samodzielnie.
+Enter the point code,Wpisz kod punktu
+"Enter the size and weight, each greater than zero.","Podaj wymiary i wagę, każde większe od zera."
+No bank account to pay it out to.,Brak konta bankowego do wypłaty.
+No carrier chosen,Nie wybrano przewoźnika
+"No sender address: choose one, or add one under Polkurier > Settings > Addresses.","Brak adresu nadawcy: wybierz go albo dodaj w Polkurier > Ustawienia > Adresy."
+No template is marked as the default for new shipments.,Żaden szablon nie jest oznaczony jako domyślny dla nowych przesyłek.
+or choose a pack template on the right,albo wybierz szablon paczki po prawej
+Reading the collection dates…,Wczytywanie terminów odbioru…
+Remove,Usuń
+Remove the parcel?,Usunąć paczkę?
+Sender address,Adres nadawcy
+This carrier cannot take the shipment as it is.,Ten przewoźnik nie przyjmie przesyłki w tej postaci.
+This template is for another shipment type than the parcels you have. Changing the type removes them.,"Ten szablon jest dla innego typu przesyłki niż dodane paczki. Zmiana typu je usunie."
+You have no pack templates yet.,Nie masz jeszcze szablonów paczek.
+Choose the sender address first.,Najpierw wybierz adres nadawcy.
+"Collected later, together with other shipments","Odbiór później, razem z innymi przesyłkami"
+Collective pickup booked,Odbiór zbiorczy zamówiony
+Date,Data
+Delivered,Doręczono
+Details,Szczegóły
+Dropped off at a point,Nadanie w punkcie
+Gross,Brutto
+Invoiced,Zafakturowano
+Item,Pozycja
+Last error: %1,Ostatni błąd: %1
+Location,Miejsce
+Magento order,Zamówienie Magento
+Net,Netto
+none yet,jeszcze brak
+No parcels.,Brak paczek.
+Number,Numer
+Paid,Opłacono
+Pickup number,Numer odbioru
+Polkurier has not been read for this order yet: shown as it was sent.,"Tego zamówienia jeszcze nie odczytano z Polkuriera: pokazano je tak, jak zostało wysłane."
+Price (gross),Cena (brutto)
+Read from Polkurier %1.,Odczytano z Polkuriera %1.
+Rebate: %1,Rabat: %1
+Sender on the label,Nadawca na etykiecie
+Services,Usługi
+Services and handover,Usługi i przekazanie
+Shipment details %1,Szczegóły przesyłki %1
+Size,Wymiary
+Status history,Historia statusów
+The carrier has not reported any scans yet.,Przewoźnik nie zgłosił jeszcze żadnych skanów.
+The carrier's scans could not be read: %1,Nie udało się odczytać skanów przewoźnika: %1
+There is no Polkurier order to follow.,Brak zamówienia Polkurier do śledzenia.
+This Polkurier shipment no longer exists.,Ta przesyłka Polkurier już nie istnieje.
+Total,Razem
+Unpaid: %1,Do zapłaty: %1
+Waybill,List przewozowy
+more than the %1 left to collect,więcej niż pozostałe do pobrania %1
+"Leave empty for none. Order total: %1, of which the order's other Polkurier orders collect %2.","Zostaw puste, jeśli bez pobrania. Wartość zamówienia: %1, z czego %2 pobierają inne zamówienia Polkurier tego zamówienia."
+"0 or empty: no cash on delivery. Order total: %1, of which the order's other Polkurier orders collect %2.","0 lub puste: bez pobrania. Wartość zamówienia: %1, z czego %2 pobierają inne zamówienia Polkurier tego zamówienia."
+"The order's other Polkurier orders already collect %1: this one collects more than the %2 left.","Inne zamówienia Polkurier tego zamówienia pobierają już %1: to pobiera więcej niż pozostałe %2."
+Cash on delivery is more than the order total.,Pobranie jest wyższe niż wartość zamówienia.
+Leave empty for none. This shipment is worth %1.,"Zostaw puste, jeśli bez ubezpieczenia. Ta przesyłka jest warta %1."
+Items to ship,Produkty do wysłania
+Ordered,Zamówiono
+Shipped,Wysłano
+To ship,Do wysłania
+of %1 left,"z %1 pozostałych"
+Quantity of %1 to ship,Ilość %1 do wysłania
+This shipment is worth %1.,Ta przesyłka jest warta %1.
+Ship everything left,Wyślij wszystko pozostałe
+"You can ship at most %1 of ""%2"".","Możesz wysłać najwyżej %1 szt. „%2”."
+The order has no item %1 to ship.,Zamówienie nie ma pozycji %1 do wysłania.
+Choose at least one item to ship.,Wybierz przynajmniej jeden produkt do wysłania.
+Product,Produkt
+"Everything on the order is shipped, and each of its Magento shipments has its Polkurier order. To send a replacement, cancel the Polkurier order it replaces first.","Całe zamówienie jest wysłane, a każda jego wysyłka Magento ma swoje zamówienie Polkurier. Aby wysłać zamówienie zastępcze, najpierw anuluj to, które zastępuje."
+"Everything on the order is shipped, and each of its Magento shipments has its Polkurier order.","Całe zamówienie jest wysłane, a każda jego wysyłka Magento ma swoje zamówienie Polkurier."
+"Everything on the order is shipped. This Polkurier order replaces cancelled order %2 on Magento shipment #%1, and its waybills replace the tracking numbers there.","Całe zamówienie jest wysłane. To zamówienie Polkurier zastąpi anulowane zamówienie %2 w wysyłce Magento #%1, a jego listy przewozowe zastąpią tam numery śledzenia."
+"Everything on the order is shipped. This Polkurier order goes on Magento shipment #%1, which has none, and its waybills become its tracking numbers.","Całe zamówienie jest wysłane. To zamówienie Polkurier trafi do wysyłki Magento #%1, która go nie ma, a jego listy przewozowe staną się jej numerami śledzenia."
+Magento shipment,Wysyłka Magento
+%1 kg,%1 kg
+Not in any parcel yet: %1,Jeszcze w żadnej paczce: %1
+What it holds,Zawartość
+In this parcel,W tej paczce
+What it holds weighs %1 kg.,Zawartość waży %1 kg.
+"The parcels would hold more of ""%1"" than the shipment carries.","Paczki zawierałyby więcej „%1”, niż obejmuje wysyłka."
+"The parcels hold more of ""%1"" than the shipment carries.","Paczki zawierają więcej „%1”, niż obejmuje wysyłka."
+Parcel %1 weighs less than what it holds (%2 kg).,Paczka %1 waży mniej niż jej zawartość (%2 kg).
+A parcel can't hold less than none of an item.,Paczka nie może zawierać ujemnej ilości produktu.
+A parcel holds an item the shipment doesn't carry.,"Paczka zawiera produkt, którego nie obejmuje wysyłka."
+Shipping dimensions,Wymiary do wysyłki
+Length (cm),Długość (cm)
+Width (cm),Szerokość (cm)
+Height (cm),Wysokość (cm)
+"Of one unit as it is shipped, packaging included. Used to pack orders into parcels.","Jednej sztuki gotowej do wysyłki, z opakowaniem. Służą do rozmieszczania zamówień w paczkach."
+Pack automatically,Rozmieść automatycznie
+Pack automatically?,Rozmieścić automatycznie?
+"The parcels there are give way to parcels of your pack templates, with the items spread over them by their size.","Obecne paczki zostaną zastąpione paczkami z Twoich szablonów, a produkty rozmieszczone w nich według wymiarów."
+The items could not be packed.,Nie udało się rozmieścić produktów.
+Add shipping dimensions to these products to pack them automatically: %1.,"Aby rozmieścić produkty automatycznie, podaj wymiary do wysyłki tych produktów: %1."
+Add a pack template with its size to pack the items automatically.,"Aby rozmieścić produkty automatycznie, dodaj szablon paczki z wymiarami."
+Packing margin (cm),Zapas przy pakowaniu (cm)
+"Added to every dimension of every product when items are packed into parcels automatically, in case products turn out a little bigger than their shipping dimensions say.","Dodawany do każdego wymiaru każdego produktu przy automatycznym rozmieszczaniu w paczkach, na wypadek gdyby produkty były nieco większe, niż mówią ich wymiary do wysyłki."
+"The parcels are an estimate: every product counts as a box of its shipping dimensions, whatever its real shape. Check them before placing the order.","Rozmieszczenie jest szacunkowe: każdy produkt liczony jest jak prostopadłościan o podanych wymiarach, bez uwzględnienia rzeczywistego kształtu. Sprawdź paczki przed złożeniem zamówienia."
+"It's an estimate: every product counts as a box of its dimensions, whatever its real shape.","To szacunek: każdy produkt liczony jest jak prostopadłościan o swoich wymiarach, bez względu na rzeczywisty kształt."
+Messages from Polkurier about this carrier,Komunikaty Polkurier o tym przewoźniku
+Shipping method in checkout,Metoda dostawy w koszyku
+A synchronization with Polkurier is already running. Try again in a moment.,Synchronizacja z Polkurierem już trwa. Spróbuj ponownie za chwilę.
+"#%1: Saved in Magento. It goes to Polkurier once you confirm it: open it and save it with the code or your security PIN.","#%1: Zapisano w Magento. Trafi do Polkuriera po potwierdzeniu: otwórz je i zapisz z kodem lub PIN-em bezpieczeństwa."
+"%1 deleted, %2 not deleted.","Usunięto: %1, nie usunięto: %2."
+Try again,Spróbuj ponownie
+The Polkurier order could not be read.,Nie udało się odczytać zamówienia Polkurier.
+The carrier's scans could not be read.,Nie udało się odczytać skanów przewoźnika.
+"Polkurier has %1, which may be this order but is listed without its parcels. If it is, link it by hand.","Polkurier ma %1, które może być tym zamówieniem, ale jest na liście bez paczek. Jeśli to ono, połącz je ręcznie."
+Link to a Polkurier order,Połącz z zamówieniem Polkurier
+"The number of the Polkurier order that is this shipment, as the Polkurier panel shows it.","Numer zamówienia Polkurier, które jest tą przesyłką, tak jak pokazuje go panel Polkurier."
+"The order is in %1, which can't be converted to złoty here: enter the amount in złoty yourself.","Zamówienie jest w walucie %1, której nie da się tu przeliczyć na złote: wpisz kwotę w złotych samodzielnie."
+Maximum weight [kg],Maksymalna waga [kg]
+"These products have no weight, so their parcels take the pack template's weight: %1.","Te produkty nie mają wagi, więc ich paczki mają wagę z szablonu paczki: %1."
+"Parcel %1 weighs %2 kg, more than %3 may weigh (%4 kg).","Paczka %1 waży %2 kg, więcej niż dopuszcza szablon %3 (%4 kg)."
+"The most a parcel of this template may weigh with what's in it.","Najwięcej, ile paczka tego szablonu może ważyć razem z zawartością."
+Pack template weight limits,Limity wagi szablonów paczek
+Only warn about heavier parcels,Tylko ostrzegaj o cięższych paczkach
+"Keep parcels under them where possible","Utrzymuj paczki poniżej nich, gdy to możliwe"
+"What packing automatically does with the pack templates' Maximum weight. Keeping parcels under it may take more parcels; an item too heavy for every template is still packed, and the parcel pointed out.","Co automatyczne pakowanie robi z maksymalną wagą szablonów paczek. Utrzymywanie paczek poniżej niej może wymagać więcej paczek; przedmiot za ciężki dla każdego szablonu i tak jest pakowany, a paczka wskazywana."
+New shipments,Nowe przesyłki
+Packing automatically,Automatyczne pakowanie
+Labels and Magento shipments,Etykiety i przesyłki Magento
+Everything in this order is shipped already.,Wszystko z tego zamówienia jest już wysłane.
+Pack new shipments automatically,Automatycznie pakuj nowe przesyłki
+"Whether a new shipment starts with its items packed into your pack templates. With No, it starts with one parcel of your default pack template, and Pack automatically in the parcels still packs the items when asked.","Czy nowa przesyłka zaczyna się od produktów spakowanych w Twoje szablony paczek. Przy „Nie” zaczyna się od jednej paczki domyślnego szablonu, a „Rozmieść automatycznie” w paczkach nadal rozmieszcza produkty na żądanie."
+"Order #%1 wasn't placed with a Polkurier delivery method, so it isn't shipped with Polkurier.","Zamówienie #%1 nie zostało złożone z metodą dostawy Polkurier, więc nie jest wysyłane przez Polkurier."
+"The carrier list could not be read, so what the carrier supports isn't checked here: %1","Nie udało się odczytać listy przewoźników, więc to, co obsługuje przewoźnik, nie jest tu sprawdzane: %1"
+carrier list unavailable: %1,lista przewoźników niedostępna: %1
+%1 × %2 × %3 cm,%1 × %2 × %3 cm
+Parcel weight,Waga paczki
+What the products in it weigh,Waga produktów w paczce
+"The pack template's weight","Waga z szablonu paczki"
+"The weight a parcel of a pack template is priced and sent with. A parcel with a product that has no weight takes the template's weight either way, and a parcel without a template weighs what's in it. You can still change the weight of any parcel.","Waga, z jaką paczka z szablonu jest wyceniana i nadawana. Paczka z produktem bez wagi zawsze ma wagę z szablonu, a paczka bez szablonu waży tyle, co jej zawartość. Wagę każdej paczki nadal możesz zmienić."
+"Polkurier order %1 cancelled, and with it Magento shipment #%2, so its items can be shipped again.","Zamówienie Polkurier %1 anulowane, a z nim wysyłka Magento #%2, więc jej produkty można wysłać ponownie."
+"Polkurier order %1 was cancelled in Polkurier, and with it Magento shipment #%2, so its items can be shipped again.","Zamówienie Polkurier %1 zostało anulowane w Polkurierze, a z nim wysyłka Magento #%2, więc jej produkty można wysłać ponownie."
+"Polkurier order %1 was cancelled in Polkurier.","Zamówienie Polkurier %1 zostało anulowane w Polkurierze."
+Drag to change the order,Przeciągnij, aby zmienić kolejność
+The new order could not be saved.,Nie udało się zapisać nowej kolejności.
+Order of the carriers,Kolejność przewoźników
+None of these carriers exists any more. Reload the list.,Żaden z tych przewoźników już nie istnieje. Odśwież listę.
+"Enable / disable","Włącz / wyłącz"
+"%1 enabled, %2 disabled.","Włączono: %1, wyłączono: %2."

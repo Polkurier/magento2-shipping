@@ -37,8 +37,8 @@
         </settings>
         <dataProvider class="Polkurier\Shipping\Ui\Component\Form\Payout\DataProvider" name="polkurier_payout_form_data_source">
             <settings>
-                <requestFieldName>website</requestFieldName>
-                <primaryFieldName>website</primaryFieldName>
+                <requestFieldName>id</requestFieldName>
+                <primaryFieldName>id</primaryFieldName>
             </settings>
         </dataProvider>
     </dataSource>
@@ -46,21 +46,6 @@
         <settings>
             <label translate="true">Payout</label>
         </settings>
-        <field name="website_id" formElement="select">
-            <settings>
-                <label translate="true">Website</label>
-                <dataType>text</dataType>
-                <dataScope>website_id</dataScope>
-                <validation><rule name="required-entry" xsi:type="boolean">true</rule></validation>
-            </settings>
-            <formElements>
-                <select>
-                    <settings>
-                        <options class="Magento\Config\Model\Config\Source\Website"/>
-                    </settings>
-                </select>
-            </formElements>
-        </field>
         <field name="orders" formElement="textarea">
             <settings>
                 <label translate="true">Polkurier orders</label>
@@ -112,6 +97,10 @@
                 <item name="config" xsi:type="array">
                     <item name="action" xsi:type="string">quote</item>
                     <item name="buttonLabel" xsi:type="string" translate="true">Show the fee</item>
+                    <item name="fields" xsi:type="array">
+                        <item name="orders" xsi:type="string">orders</item>
+                        <item name="payout_type" xsi:type="string">payout_type</item>
+                    </item>
                     <item name="template" xsi:type="string">Polkurier_Shipping/moneybox/action</item>
                 </item>
             </argument>

@@ -207,6 +207,28 @@ class Draft extends DataObject implements ShipmentDraftInterface
         return $this->setData(self::PACKS, $packs);
     }
 
+    public function getItems(): array
+    {
+        $value = $this->getData(self::ITEMS);
+
+        return \is_array($value) ? $value : [];
+    }
+
+    public function setItems(array $items): static
+    {
+        return $this->setData(self::ITEMS, $items);
+    }
+
+    public function isPacksEstimated(): bool
+    {
+        return (bool)$this->getData(self::PACKS_ESTIMATED);
+    }
+
+    public function setPacksEstimated(bool $estimated): static
+    {
+        return $this->setData(self::PACKS_ESTIMATED, $estimated);
+    }
+
     public function getCodAmount(): ?float
     {
         $value = $this->getData(self::COD_AMOUNT);

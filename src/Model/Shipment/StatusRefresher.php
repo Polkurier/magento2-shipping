@@ -7,12 +7,11 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Model\Shipment;
 
-use Magento\Framework\Exception\LocalizedException;
-use Magento\Store\Model\StoreManagerInterface;
+use Magento\Framework\Stdlib\DateTime\DateTime;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Api\ShipmentManagementInterface;
-use Polkurier\Shipping\Api\ShipmentRepositoryInterface;
 use Polkurier\Shipping\Model\Config;
+use Polkurier\Shipping\Model\ResourceModel\Shipment as ShipmentResource;
 use Polkurier\Shipping\Model\ResourceModel\Shipment\CollectionFactory;
 use Psr\Log\LoggerInterface;
 
@@ -31,10 +30,10 @@ class StatusRefresher
     public function __construct(
         private readonly CollectionFactory $collectionFactory,
         private readonly ShipmentManagementInterface $management,
-        private readonly ShipmentRepositoryInterface $shipmentRepository,
-        private readonly StoreManagerInterface $storeManager,
+        private readonly ShipmentResource $shipmentResource,
         private readonly Config $config,
         private readonly LoggerInterface $logger,
+        private readonly DateTime $dateTime,
     ) {}
 
     /**
@@ -42,15 +41,13 @@ class StatusRefresher
      */
     public function refreshPending(): int
     {
-        $storeIds = $this->getStoresWithStatusSync();
-        if ($storeIds === []) {
+        if (!$this->config->isStatusSyncEnabled()) {
             return 0;
         }
-        $checkedBefore = \gmdate('Y-m-d H:i:s', \time() - self::MIN_AGE_MINUTES * 60);
+        $checkedBefore = \gmdate('Y-m-d H:i:s', $this->dateTime->gmtTimestamp() - self::MIN_AGE_MINUTES * 60);
         $collection = $this->collectionFactory->create()
             ->addFieldToFilter(ShipmentInterface::STATE, ShipmentInterface::STATE_CREATED)
             ->addFieldToFilter(ShipmentInterface::IS_FINAL, ['eq' => 0])
-            ->addFieldToFilter(ShipmentInterface::STORE_ID, ['in' => $storeIds])
             ->addFieldToFilter(ShipmentInterface::STATUS_CHECKED_AT, [
                 ['null' => true],
                 ['lt' => $checkedBefore],
@@ -63,30 +60,17 @@ class StatusRefresher
             try {
                 $this->management->refreshStatus((int)$shipment->getId());
                 $refreshed++;
-            } catch (LocalizedException $e) {
+            } catch (\Throwable $e) {
                 $this->logger->warning('Polkurier status refresh failed', [
                     'shipment' => $shipment->getId(),
                     'error' => $e->getMessage(),
                 ]);
-                $this->shipmentRepository->save($shipment->setStatusCheckedAt(\gmdate('Y-m-d H:i:s')));
+                // Only the check time: the row loaded here is older than what the check may have saved.
+                $this->shipmentResource->markChecked((int)$shipment->getId(), (string)$this->dateTime->gmtDate());
             }
         }
 
         return $refreshed;
     }
 
-    /**
-     * @return int[]
-     */
-    private function getStoresWithStatusSync(): array
-    {
-        $storeIds = [];
-        foreach ($this->storeManager->getStores() as $store) {
-            if ($this->config->isStatusSyncEnabled((int)$store->getId())) {
-                $storeIds[] = (int)$store->getId();
-            }
-        }
-
-        return $storeIds;
-    }
 }

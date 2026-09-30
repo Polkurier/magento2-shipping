@@ -42,7 +42,7 @@ class ShippingMethodLogoPlugin
             return $result;
         }
         $store = $rateModel->getAddress()?->getQuote()?->getStore() ?? $this->storeManager->getStore();
-        $config = $this->carrierConfigs->get((int)$store->getWebsiteId(), (string)$result->getMethodCode());
+        $config = $this->carrierConfigs->get((string)$result->getMethodCode());
         $logo = $config !== null ? $this->carrierLogo->getUrlFor($config, (int)$store->getId()) : null;
         if ($logo === null) {
             return $result;

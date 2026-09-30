@@ -14,7 +14,6 @@ use Magento\Framework\Controller\Result\Json;
 use Magento\Framework\Controller\Result\JsonFactory;
 use Magento\Framework\Exception\LocalizedException;
 use Polkurier\Shipping\Model\MoneyBox\Payouts;
-use Polkurier\Shipping\Model\WebsiteScope;
 
 /**
  * Has Polkurier send the account holder the confirmation code a payout needs.
@@ -27,16 +26,14 @@ class SendCode extends Action implements HttpPostActionInterface
         Context $context,
         private readonly JsonFactory $jsonFactory,
         private readonly Payouts $payouts,
-        private readonly WebsiteScope $websiteScope,
     ) {
         parent::__construct($context);
     }
 
     public function execute(): Json
     {
-        $data = (array)$this->getRequest()->getParam('data', []);
         try {
-            $token = $this->payouts->requestCode($this->websiteScope->getStoreId((int)($data['website_id'] ?? 0)));
+            $token = $this->payouts->requestCode();
         } catch (LocalizedException $e) {
             return $this->jsonFactory->create()->setData(['error' => true, 'message' => $e->getMessage()]);
         }

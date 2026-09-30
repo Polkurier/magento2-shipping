@@ -29,9 +29,6 @@
                 <param name="indexField" xsi:type="string">number</param>
             </storageConfig>
             <updateUrl path="mui/index/render"/>
-            <filterUrlParams>
-                <param name="website">*</param>
-            </filterUrlParams>
         </settings>
         <aclResource>Polkurier_Shipping::money_box</aclResource>
         <dataProvider class="Polkurier\Shipping\Ui\Component\Listing\Payout\DataProvider" name="polkurier_payout_listing_data_source">

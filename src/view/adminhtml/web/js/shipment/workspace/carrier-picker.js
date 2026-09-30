@@ -3,18 +3,23 @@
  * All Rights Reserved
  */
 /**
- * The carrier, chosen from a list that shows what each carrier would charge for the shipment as it
- * stands, cheapest first. Carriers that can't take it are tucked away until asked for.
+ * The carrier, chosen in its modal from a list that shows what each carrier would charge for the
+ * shipment as it stands, cheapest first. Carriers that can't take it are tucked away until asked
+ * for. Choosing one closes the modal.
  */
 define([
     'Polkurier_Shipping/js/shipment/carrier',
+    'uiRegistry',
     'ko',
-    'mage/translate'
-], function (Carrier, ko, $t) {
+    'mage/translate',
+    './rules'
+], function (Carrier, registry, ko, $t, rules) {
     'use strict';
 
     return Carrier.extend({
         defaults: {
+            // The modal it sits in, from the form's XML.
+            modal: '',
             quotes: null,
             quoting: false,
             imports: {
@@ -64,8 +69,9 @@ define([
                     priced: !!quote,
                     gross: quote ? quote.gross : null,
                     priceText: quote
-                        ? quote.gross.toFixed(2) + ' ' + currency
+                        ? rules.money(quote.net, currency) + ' ' + $t('net')
                         : (quotes ? $t('not available') : '—'),
+                    grossText: quote ? rules.money(quote.gross, currency) + ' ' + $t('gross') : '',
                     point: carrier.point && carrier.point !== 'NONE',
                     pointOnly: carrier.point === 'REQUIRED',
                     cod: !!carrier.cod
@@ -108,6 +114,9 @@ define([
          */
         choose: function (tile) {
             this.value(tile.value);
+            registry.get(this.modal, function (modal) {
+                modal.closeModal();
+            });
         },
 
         /**

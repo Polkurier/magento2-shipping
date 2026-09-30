@@ -2,46 +2,21 @@
  ~ Copyright (c) 2026 Polkurier.pl
  ~ All Rights Reserved
 -->
-<aside class="polkurier-summary">
-    <div class="polkurier-summary__carrier">
-        <span class="polkurier-summary__label" translate="'Shipping with'"></span>
-        <strong data-bind="text: carrierName() || $t('no carrier yet')"></strong>
-    </div>
+<div class="polkurier-summary">
     <div class="polkurier-summary__price" data-bind="css: {'_loading': quoting}">
+        <span class="polkurier-muted" data-bind="text: carrierName() || $t('No carrier chosen')"></span>
         <!-- ko if: price -->
         <strong class="polkurier-summary__gross" text="price().gross"></strong>
-        <span class="polkurier-summary__net" data-bind="text: price().net + ' ' + $t('net')"></span>
+        <span class="polkurier-muted" data-bind="text: price().net + ' ' + $t('net')"></span>
         <!-- /ko -->
         <!-- ko ifnot: price -->
-        <span class="polkurier-summary__noprice" data-bind="text: quoting() ? $t('Pricing…') : (message() || $t('No price yet'))"></span>
+        <span class="polkurier-muted" data-bind="text: quoting() ? $t('Pricing…') : (message() || $t('No price yet'))"></span>
         <!-- /ko -->
     </div>
-    <p class="polkurier-summary__note" translate="'Polkurier\'s price to you, not what the customer paid.'"></p>
-    <button type="button" class="action-primary polkurier-summary__place" click="place">
-        <span translate="'Place the Polkurier order'"></span>
-    </button>
-    <div class="polkurier-summary__cheaper" if="cheaper">
+    <div class="message message-notice polkurier-summary__cheaper" if="cheaper">
         <span text="cheaper().text"></span>
-        <button type="button" class="action-tertiary" click="useCheaper">
+        <button type="button" class="polkurier-link" click="useCheaper">
             <span translate="'Switch'"></span>
         </button>
     </div>
-    <div class="polkurier-summary__checks">
-        <!-- ko if: issues().length -->
-        <h4 class="polkurier-summary__heading" translate="'Before you place it'"></h4>
-        <ul class="polkurier-summary__issues">
-            <!-- ko foreach: issues -->
-            <li data-bind="css: {'_blocking': blocking}">
-                <span text="text"></span>
-                <button type="button" class="action-tertiary" data-bind="click: function () { $parent.fix($data); }">
-                    <span translate="'Fix'"></span>
-                </button>
-            </li>
-            <!-- /ko -->
-        </ul>
-        <!-- /ko -->
-        <!-- ko ifnot: issues().length -->
-        <p class="polkurier-summary__ready" translate="'Everything the carrier needs is there.'"></p>
-        <!-- /ko -->
-    </div>
-</aside>
+</div>

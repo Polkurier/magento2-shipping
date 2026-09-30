@@ -30,10 +30,11 @@ The request logging is the SDK's own; the module switches it on and points it at
 
 ## Secrets
 
-`Logger\TokenRedactingProcessor` masks the API token, security PINs and confirmation codes wherever
-they appear as JSON fields: in the message, in string values of the context, and in the body of a
-PSR-7 request passed in the context, which is how the SDK logs its requests. Arrays and objects
-in the context aren't inspected, so don't put secrets there. Keep in mind that records reach any
+`Logger\TokenRedactingProcessor` masks the API token, two-factor and access tokens, security PINs,
+passwords and confirmation codes wherever they appear as JSON fields: in the message, in string
+values of the context, and in the body of a PSR-7 request passed in the context, which is how the
+SDK logs its requests. Arrays in the context are walked, and a value under a key with one of those
+names is masked too. Other objects in the context aren't inspected, so don't put secrets in them. Keep in mind that records reach any
 handler you add to this logger already masked, and don't log such values through another logger.
 
 Next: [Service contracts and REST](rest-api.md)

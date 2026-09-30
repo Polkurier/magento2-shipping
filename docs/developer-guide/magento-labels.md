@@ -23,7 +23,7 @@ doesn't configure.
 ## The flow
 
 1. **Is it available?** Magento asks the order's carrier `isShippingLabelsAvailable()` before
-   showing the checkbox. The carrier answers from `shipments/native_labels`, via
+   showing the checkbox. The carrier answers from `labels/native_labels`, via
    `Model\Shipment\NativeLabel::isAvailable()`. Only orders placed with a Polkurier method get this
    far, because Magento always asks the order's own carrier.
 2. **Packaging popup.** Magento asks the carrier for container types.
@@ -38,7 +38,7 @@ doesn't configure.
      Shipment page (the `polkurier[...]` fields, limited to `NativeLabel::OPTION_FIELDS`; the
      recipient always comes from the order);
    - it turns the packages into parcels, one per package, converting pounds and inches;
-   - it calls `ShipmentManagement::placeForMagentoShipment()`, which places the order without
+   - it calls `Model\Shipment\Placing::forMagentoShipment()`, which places the order without
      shipping the Magento order, and throws when the outcome is unclear, so Magento doesn't save a
      shipment without tracking. Reconciliation ships the order later;
    - it marks the Magento shipment with the Polkurier shipment's id (`NativeLabel::LINK`).
@@ -55,7 +55,9 @@ doesn't configure.
      not see) to the shipping method's name, skips waybills the shipment already tracks, and leaves
      out the label when the shipment is flagged, so no empty document is stored;
    - `Observer\LinkLabelledShipment` (`sales_order_shipment_save_after`) sets `shipment_id` on the
-     Polkurier shipment, in the same transaction.
+     Polkurier shipment, in the same transaction. A cancelled Polkurier order the shipment had is
+     released first (see [Shipments](shipments.md#the-magento-shipment)), since each Magento
+     shipment has one Polkurier order.
 
 A Magento shipment that already has a Polkurier order (one created on the shipment screen, or a
 label request whose label wasn't ready) gets that order's label on **Create Shipping Label**, and no
@@ -70,19 +72,32 @@ its shipment, so `shipment_id` isn't set yet at that point.
 
 ## The options on the New Shipment page
 
-`Block\Adminhtml\Shipment\LabelOptions` (template `shipment/label-options.phtml`) is added to the
-`extra_shipment_info` container by `view/adminhtml/layout/adminhtml_order_shipment_new.xml`. That
-container is inside Magento's shipment form, so the block's hidden fields are sent with the label
-request: the packaging popup serializes the whole form when it opens. The block only renders for
+The template `shipment/label-options.phtml`, with the view model `ViewModel\Adminhtml\LabelOptions`,
+is added to the `extra_shipment_info` container by
+`view/adminhtml/layout/adminhtml_order_shipment_new.xml`. That container is inside Magento's
+shipment form, so its hidden fields are sent with the label
+request: the packaging popup serializes the whole form when it opens. It only renders for
 orders placed with a Polkurier method, with native labels on, for admins allowed to place
 shipments.
 
-`view/adminhtml/web/js/shipment/label-options.js` shows one summary line per group of options, each
-edited in its own modal, and keeps the values in the hidden fields. It gets the default draft, the
+`view/adminhtml/web/js/shipment/label-options.js` ticks Magento's **Create Shipping Label** box
+when the page opens (by clicking it, so Magento's own handler runs), so a shipment of a Polkurier
+order is created with its Polkurier order unless the admin unticks it. It shows one summary line
+per group of options, each edited in its own modal, and keeps the values in the hidden fields. Its
+parts are in `label-options/`: `state.js` (the values and the rules they follow), `sections.js`
+(each group's summary, warning and fields), `modal.js` (one modal per group, built once and
+refilled) and `packaging.js` (kilograms and centimetres, and pack templates, in Magento's
+packaging popup). It gets the default draft, the
 carriers with what each supports, and the choices for every select, from the block's JSON config.
 Changing the carrier drops what the new one doesn't support. Lines turn red for a missing required
-point or collection date; nothing else is checked on the page, and Polkurier's refusal shows in the
-popup like any other label error.
+point or collection date, and for cash on delivery above what's left to collect; nothing else is
+checked on the page, and Polkurier's refusal shows in the popup like any other label error.
+
+The block also passes `codCollected` and `codRemaining` (see `Model\Shipment\OrderAmounts`) and
+`items`: the unit value and quantity of each item that ships. The script watches the page's
+`shipment[items][…]` fields and keeps the insurance at the value of the quantities entered. It uses
+the same rule as the server: the grand total for the whole order. It stops once the insurance is
+changed in its modal, and never turns insurance on by itself.
 
 The pickup point modal opens the same map as the shipment screen, through
 `view/adminhtml/web/js/shipment/points-map.js`, which loads the map widget once, in an iframe away
@@ -91,9 +106,13 @@ back the chosen point. The block passes the map token and the order's postcode a
 
 The script also sets the popup's package template to kilograms and centimetres, since Magento
 hardcodes pounds and inches there, and adds a **Pack template…** list to it, so every package the
-popup clones from it has one. Choosing a template (the block passes the website's templates as
-`templates`) sets the package type, size and weight and triggers `change` on each field, as if
-they were typed; nothing is locked, and the request only carries what the fields hold.
+popup clones from it has one. Choosing a template (the block passes the pack templates as
+`templates`) sets the package type and size and triggers `change` on each field, as if they were
+typed; nothing is locked, and the request only carries what the fields hold. A package's weight
+follows `parcelWeight` (`rules.parcelWeight()`): the script wraps the popup's
+`_recalcContainerWeightAndCustomsValue`, which sets the weight to the sum of the items whenever
+they change, and weighs a package with a template again right after. Without a template, the sum
+stays, except that a product without a weight leaves the field empty instead of `NaN`.
 
 `Model\Shipment\ShipmentOptions` supplies the choices (carriers and their features, sender
 addresses, bank accounts). The shipment screen's data provider uses it too.
@@ -101,7 +120,8 @@ addresses, bank accounts). The shipment screen's data provider uses it too.
 ## The order page
 
 `Plugin\Adminhtml\OrderViewPlugin` (`beforeSetLayout` on the order view) adds **Ship with
-Polkurier** when `shipments/shipment_screen` is on and the order can be shipped. Magento's **Ship**
+Polkurier** when `labels/shipment_screen` is on and the order, placed with a Polkurier method, can
+be shipped. Magento's **Ship**
 keeps pointing to Magento's page, unless native labels are off, in which case it opens the shipment
 screen for orders placed with a Polkurier method.
 

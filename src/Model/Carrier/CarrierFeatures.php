@@ -61,17 +61,17 @@ class CarrierFeatures
 
     public function isCodAvailable(Carrier $carrier): bool
     {
-        return (bool)$carrier->getAdditionalData()?->getCOD()->isAvailable();
+        return (bool)$carrier->getAdditionalData()?->getCod()?->isAvailable();
     }
 
     public function isInsuranceRequiredWithCod(Carrier $carrier): bool
     {
-        return (bool)$carrier->getAdditionalData()?->getCOD()->isRequireInsurance();
+        return (bool)$carrier->getAdditionalData()?->getCod()?->isRequireInsurance();
     }
 
     public function isInsuranceAvailable(Carrier $carrier): bool
     {
-        return (bool)$carrier->getAdditionalData()?->getInsurance()->isAvailable();
+        return (bool)$carrier->getAdditionalData()?->getInsurance()?->isAvailable();
     }
 
     /**
@@ -93,20 +93,19 @@ class CarrierFeatures
 
     public function isPickupDateRequired(Carrier $carrier): bool
     {
-        return (bool)$carrier->getAdditionalData()?->getPickup()->getPickupDate()->isRequired();
+        return (bool)$carrier->getAdditionalData()?->getPickup()?->getPickupDate()?->isRequired();
     }
 
     public function isPickupTimeRequired(Carrier $carrier): bool
     {
         $pickup = $carrier->getAdditionalData()?->getPickup();
 
-        return $pickup !== null
-            && ($pickup->getPickupTimeFrom()->isRequired() || $pickup->getPickupTimeTo()->isRequired());
+        return $pickup?->getPickupTimeFrom()?->isRequired() || $pickup?->getPickupTimeTo()?->isRequired();
     }
 
     public function isPickupDateSupported(Carrier $carrier): bool
     {
-        return (bool)$carrier->getAdditionalData()?->getPickup()->getPickupDate()->isStatus();
+        return (bool)$carrier->getAdditionalData()?->getPickup()?->getPickupDate()?->isStatus();
     }
 
     /**
@@ -114,12 +113,12 @@ class CarrierFeatures
      */
     public function isDropOffAvailable(Carrier $carrier): bool
     {
-        return (bool)$carrier->getAdditionalData()?->getPickup()->getNoCourierOrder()->isAvailable();
+        return (bool)$carrier->getAdditionalData()?->getPickup()?->getNoCourierOrder()?->isAvailable();
     }
 
     public function isDropOffDefault(Carrier $carrier): bool
     {
-        return (bool)$carrier->getAdditionalData()?->getPickup()->getNoCourierOrder()->isDefault();
+        return (bool)$carrier->getAdditionalData()?->getPickup()?->getNoCourierOrder()?->isDefault();
     }
 
     /**
@@ -136,7 +135,7 @@ class CarrierFeatures
         }
 
         $map = [
-            [$offered->getROD(), AdditionalServiceEnum::RefundDocs],
+            [$offered->getRod(), AdditionalServiceEnum::ReturnOfDocuments],
             [$offered->getCoverAddressSender(), AdditionalServiceEnum::CoverAddressSender],
             [$offered->getBringingDeliveredParcel(), AdditionalServiceEnum::BringingDeliveredParcel],
             [$offered->getCourierWithLabel(), AdditionalServiceEnum::CourierWithLabel],

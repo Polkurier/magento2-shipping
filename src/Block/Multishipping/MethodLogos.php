@@ -43,7 +43,7 @@ class MethodLogos extends Template
     {
         $store = $this->_storeManager->getStore();
         $logos = [];
-        foreach ($this->carrierConfigs->getActive((int)$store->getWebsiteId()) as $code => $config) {
+        foreach ($this->carrierConfigs->getActive() as $code => $config) {
             $url = $this->carrierLogo->getUrlFor($config, (int)$store->getId());
             if ($url !== null) {
                 $logos[Polkurier::CODE . '_' . $code] = $url;

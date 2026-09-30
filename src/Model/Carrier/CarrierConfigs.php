@@ -8,24 +8,21 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Model\Carrier;
 
 use Polkurier\Shipping\Api\Data\CarrierConfigInterface;
-use Polkurier\Shipping\Model\Config;
 use Polkurier\Shipping\Model\ResourceModel\CarrierConfig\CollectionFactory;
-use Polkurier\Shipping\Model\WebsiteScope;
 
 /**
- * The merchant's carrier settings of a website, loaded once per request.
+ * The merchant's carrier settings, loaded once per request.
  */
 class CarrierConfigs
 {
     /**
-     * @var array<int, array<string, CarrierConfigInterface>>
+     * @var array<string, CarrierConfigInterface>|null keyed by carrier code
      */
-    private array $byWebsite = [];
+    private ?array $loaded = null;
 
     public function __construct(
         private readonly CollectionFactory $collectionFactory,
-        private readonly Config $config,
-        private readonly WebsiteScope $websiteScope,
+        private readonly AvailableCarriers $availableCarriers,
     ) {}
 
     /**
@@ -34,43 +31,39 @@ class CarrierConfigs
      *
      * @return array<string, CarrierConfigInterface> keyed by carrier code
      */
-    public function getActive(int $websiteId): array
+    public function getActive(): array
     {
-        $available = $this->config->getAvailableCarriers($this->websiteScope->getStoreId($websiteId));
-
-        return \array_filter(
-            $this->getAll($websiteId),
-            static fn(CarrierConfigInterface $config): bool => $config->isActive() && $config->isAvailable()
-                && ($available === [] || \in_array($config->getCarrierCode(), $available, true)),
-        );
+        return $this->availableCarriers->filter(\array_filter(
+            $this->getAll(),
+            static fn(CarrierConfigInterface $config): bool => $config->isActive() && $config->isAvailable(),
+        ));
     }
 
     /**
      * @return array<string, CarrierConfigInterface> keyed by carrier code
      */
-    public function getAll(int $websiteId): array
+    public function getAll(): array
     {
-        if (!isset($this->byWebsite[$websiteId])) {
+        if ($this->loaded === null) {
             $collection = $this->collectionFactory->create()
-                ->addFieldToFilter(CarrierConfigInterface::WEBSITE_ID, ['eq' => $websiteId])
                 ->setOrder(CarrierConfigInterface::SORT_ORDER, 'ASC')
                 ->setOrder(CarrierConfigInterface::CARRIER_NAME, 'ASC');
-            $this->byWebsite[$websiteId] = [];
+            $this->loaded = [];
             foreach ($collection->getItems() as $config) {
-                $this->byWebsite[$websiteId][$config->getCarrierCode()] = $config;
+                $this->loaded[$config->getCarrierCode()] = $config;
             }
         }
 
-        return $this->byWebsite[$websiteId];
+        return $this->loaded;
     }
 
-    public function get(int $websiteId, string $carrierCode): ?CarrierConfigInterface
+    public function get(string $carrierCode): ?CarrierConfigInterface
     {
-        return $this->getAll($websiteId)[$carrierCode] ?? null;
+        return $this->getAll()[$carrierCode] ?? null;
     }
 
     public function reset(): void
     {
-        $this->byWebsite = [];
+        $this->loaded = null;
     }
 }

@@ -16,7 +16,8 @@ use Polkurier\Shipping\Api\Data\SyncableInterface;
 
 /**
  * Data of the address, bank account and pack template forms. The entry's key is exposed as "id",
- * whatever its column is called; the synchronization state is shown read-only.
+ * whatever its column is called; the synchronization state is shown read-only. Fields stored as
+ * comma-separated lists (listFields, given per form in di.xml) reach the form as lists.
  */
 class DataProvider extends AbstractDataProvider
 {
@@ -28,6 +29,7 @@ class DataProvider extends AbstractDataProvider
     /**
      * @param array<string, mixed> $meta
      * @param array<string, mixed> $data
+     * @param string[] $listFields
      */
     public function __construct(
         string $name,
@@ -39,6 +41,7 @@ class DataProvider extends AbstractDataProvider
         private readonly string $persistorKey,
         array $meta = [],
         array $data = [],
+        private readonly array $listFields = [],
     ) {
         parent::__construct($name, $primaryFieldName, $requestFieldName, $meta, $data);
         $this->collection = $collection;
@@ -66,8 +69,10 @@ class DataProvider extends AbstractDataProvider
             foreach ($this->collection->getItems() as $item) {
                 /** @var SyncableInterface&\Magento\Framework\Model\AbstractModel $item */
                 $data = $item->getData();
-                if (isset($data['services']) && \is_string($data['services'])) {
-                    $data['services'] = \array_values(\array_filter(\explode(',', $data['services'])));
+                foreach ($this->listFields as $field) {
+                    if (isset($data[$field]) && \is_string($data[$field])) {
+                        $data[$field] = \array_values(\array_filter(\explode(',', $data[$field])));
+                    }
                 }
                 $this->loadedData[$id] = \array_merge($data, ['id' => $id]);
             }

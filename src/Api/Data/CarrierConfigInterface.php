@@ -8,12 +8,11 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Api\Data;
 
 /**
- * The merchant's settings for one Polkurier carrier on one website.
+ * The merchant's settings for one Polkurier carrier.
  */
 interface CarrierConfigInterface
 {
     public const string CONFIG_ID = 'config_id';
-    public const string WEBSITE_ID = 'website_id';
     public const string CARRIER_CODE = 'carrier_code';
     public const string CARRIER_NAME = 'carrier_name';
     public const string CUSTOM_LABEL = 'custom_label';
@@ -26,15 +25,9 @@ interface CarrierConfigInterface
     public const string STORE_LABELS = 'store_labels';
 
     /**
-     * @return int
+     * @return int|null
      */
-    public function getWebsiteId(): int;
-
-    /**
-     * @param int $websiteId
-     * @return $this
-     */
-    public function setWebsiteId(int $websiteId): static;
+    public function getId();
 
     /**
      * @return string

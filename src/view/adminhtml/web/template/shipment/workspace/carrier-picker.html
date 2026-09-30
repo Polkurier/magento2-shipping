@@ -16,7 +16,10 @@
                        click: $parent.choose.bind($parent),
                        event: {keydown: $parent.onKey.bind($parent)}">
             <span class="polkurier-carriers__name" text="name"></span>
-            <span class="polkurier-carriers__price" text="priceText"></span>
+            <span class="polkurier-carriers__price">
+                <strong text="priceText"></strong>
+                <span class="polkurier-muted" if="grossText" text="grossText"></span>
+            </span>
             <span class="polkurier-carriers__meta">
                 <span class="polkurier-carriers__code" text="code"></span>
                 <!-- ko if: pointOnly --><span class="polkurier-badge" translate="'Points only'"></span><!-- /ko -->

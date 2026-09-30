@@ -87,7 +87,7 @@ class RestrictCashOnDelivery implements ObserverInterface
     private function canCollect(\Magento\Quote\Model\Quote $quote, string $carrierCode, int $quoteAddressId, int $storeId): bool
     {
         try {
-            $carrier = $this->catalog->getCarrier($carrierCode, $storeId);
+            $carrier = $this->catalog->getCarrier($carrierCode);
         } catch (PolkurierException) {
             return true;
         }

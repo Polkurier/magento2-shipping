@@ -19,7 +19,7 @@ abstract class AbstractIndex extends AbstractAction implements HttpGetActionInte
         if (!$page instanceof Page) {
             throw new \LogicException('The admin area renders backend pages.');
         }
-        $page->setActiveMenu($this->handler->getAclResource());
+        $page->setActiveMenu($this->handler->getMenuId());
         $page->getConfig()->getTitle()->prepend($this->handler->getLabel());
 
         return $page;

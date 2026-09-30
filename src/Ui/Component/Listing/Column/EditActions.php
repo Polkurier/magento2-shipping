@@ -13,8 +13,8 @@ use Magento\Framework\View\Element\UiComponentFactory;
 use Magento\Ui\Component\Listing\Columns\Column;
 
 /**
- * Edit and delete links of the settings grids. The controller path follows from the listing:
- * polkurier_pack_template_listing edits through polkurier/packtemplate/edit.
+ * Edit and delete links of the settings grids, to the paths the listing gives in its config:
+ * editUrlPath, and deleteUrlPath where entries can be deleted.
  */
 class EditActions extends Column
 {
@@ -38,10 +38,9 @@ class EditActions extends Column
      */
     public function prepareDataSource(array $dataSource): array
     {
-        $namespace = (string)$this->getContext()->getNamespace();
-        $controller = \str_replace('_', '', \preg_replace('/^polkurier_(.*)_listing$/', '$1', $namespace) ?? '');
         $index = (string)$this->getData('config/indexField');
-        $deletable = $controller !== 'carrier';
+        $editPath = (string)$this->getData('config/editUrlPath');
+        $deletePath = (string)$this->getData('config/deleteUrlPath');
 
         if (!isset($dataSource['data']['items'])) {
             return $dataSource;
@@ -49,12 +48,12 @@ class EditActions extends Column
         foreach ($dataSource['data']['items'] as &$item) {
             $id = (int)$item[$index];
             $item[$this->getData('name')] = ['edit' => [
-                'href' => $this->url->getUrl("polkurier/{$controller}/edit", ['id' => $id]),
+                'href' => $this->url->getUrl($editPath, ['id' => $id]),
                 'label' => \__('Edit'),
             ]];
-            if ($deletable) {
+            if ($deletePath !== '') {
                 $item[$this->getData('name')]['delete'] = [
-                    'href' => $this->url->getUrl("polkurier/{$controller}/delete", ['id' => $id]),
+                    'href' => $this->url->getUrl($deletePath, ['id' => $id]),
                     'label' => \__('Delete'),
                     'post' => true,
                     'confirm' => ['title' => \__('Delete'), 'message' => \__('Delete this entry?')],

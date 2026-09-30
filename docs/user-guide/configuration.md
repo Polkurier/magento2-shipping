@@ -9,9 +9,10 @@
 All settings are in **Stores > Configuration > Sales > Delivery Methods > Polkurier**. The
 **Polkurier > Settings > Configuration** menu item takes you to the same page.
 
-Most settings belong to a website, because each website can have its own Polkurier account. Use
-the scope switcher at the top of the page to set them for a particular website. A few texts can
-also be set per store view; they're marked below.
+The module works with one Polkurier account for the whole Magento installation, so the account
+settings (**Polkurier account**, **Available carriers**, **Synchronization**) are set at the
+default scope only. Most other settings can be set for a particular website with the scope
+switcher at the top of the page, and a few texts also per store view; they're marked below.
 
 ## Connecting your account
 
@@ -25,7 +26,7 @@ Under **Polkurier account**:
 - **Test connection** checks the customer ID and token you've typed, before you save them, and
   tells you whether Polkurier accepted them.
 - **Request timeout (seconds)**: how long to wait for Polkurier before giving up. The default of
-  30 seconds is fine for almost everyone. Default scope only.
+  30 seconds is fine for almost everyone.
 - **Log errors**: writes failed requests to `var/log/polkurier.log`.
 - **Log all traffic of**: also logs successful requests of the kinds you select, which helps if
   Polkurier support asks for details. Only shown when **Log errors** is on.
@@ -52,23 +53,35 @@ The top of the section holds Magento's usual settings for a shipping method:
 - **Show Method if Not Applicable** and **Displayed Error Message**: whether customers see a
   message instead of the methods when they can't be used.
 - **Sort Order**: the position of the Polkurier methods among other shipping methods. Each
-  carrier also has its own sort order among the Polkurier methods.
+  carrier also has its place among the Polkurier methods, set by dragging it in the carriers list
+  (see [Carriers and prices](carriers-and-prices.md)).
 
 ## Shipments
 
 These are the defaults every new shipment starts from, on the shipment screen and on Magento's
-shipment page alike. You can change all of them for each shipment.
+shipment page alike. You can change all of them for each shipment. They come in five groups.
+
+### New shipments
 
 - **Available carriers**: the carriers you actually work with. Only these appear under
-  **Polkurier > Settings > Carriers**, at checkout, in the carrier lists when shipping and in the
-  **Default carrier** list below, so the ones you don't use don't clutter anything. Carriers you
+  **Polkurier > Settings > Carriers**, at checkout and in the carrier lists when shipping, so the
+  ones you don't use don't clutter anything. Carriers you
   leave out keep their settings and come back as they were if you select them again. With
   nothing selected, all of the account's carriers are available.
-- **Default carrier**: the carrier preselected for orders placed with a shipping method that
-  isn't a Polkurier one. For orders placed with a Polkurier method, the customer's choice is used.
-  The list comes from your Polkurier account.
 - **Default shipment type**: parcel, envelope or pallet. If the carrier doesn't take that type,
   the first type it does take is used.
+- **Additional services selected by default**, such as SMS notifications. Only services the chosen
+  carrier offers get ticked.
+- **Insure for the order total by default**. A shipment of part of the order is insured for what
+  its items are worth. Some carriers insist on insurance with cash on delivery; for those,
+  shipments with cash on delivery are always insured.
+- **Shipment description**: what goes into the shipment's description field. `%s` is replaced by
+  the order number, and Polkurier keeps up to 30 characters. The default is the order number
+  alone, which also makes the shipment easy to find in the Polkurier panel. Can be set per store
+  view.
+
+### Sender
+
 - **Fall back to the store's address**: when you haven't marked a default sender address under
   **Polkurier > Settings > Addresses**, ship from the address in **General > Store Information**
   instead.
@@ -77,31 +90,52 @@ shipment page alike. You can change all of them for each shipment.
   origin is used when the store's address is incomplete.
 - **Sender e-mail with the store's addresses**: which of the store's e-mail addresses goes with
   either of those.
-- **Additional services selected by default**, such as SMS notifications. Only services the chosen
-  carrier offers get ticked.
-- **Insure for the order total by default**. Some carriers insist on insurance with cash on
-  delivery; for those, orders with cash on delivery are always insured for the order total.
+
+### Parcels
+
+- **Parcel weight**: the weight a parcel of a pack template is priced and sent with.
+  - **What the products in it weigh** (the default): the sum of the products' weights.
+  - **The pack template's weight**: the template's **Maximum weight**, whatever is in the parcel.
+    Choose this when your products' weights aren't filled in, or aren't reliable.
+
+  Either way, a parcel holding a product without a weight takes its template's weight, since it
+  can't be weighed, and a parcel without a template weighs what's in it. You can still change the
+  weight of any parcel before placing the order.
+- **Pack new shipments automatically**: whether a new shipment starts with its items packed into
+  your pack templates. Yes by default. With No, it starts with one parcel of your default pack
+  template, or none, and **Pack automatically** in the parcels still packs the items when you
+  want it to.
+- **Packing margin (cm)**: added to every dimension of every product when items are packed into
+  parcels automatically, for products a little bigger than their shipping dimensions say. 0 by
+  default.
+- **Pack template weight limits**: what packing automatically does with the pack templates'
+  **Maximum weight**. **Only warn about heavier parcels** packs by size and points out a
+  parcel over its template's limit; **Keep parcels under them where possible** splits parcels or
+  takes a bigger template to stay under it, which may take more parcels.
+
+### Cash on delivery
+
 - **Cash on delivery payment methods**: the payment methods that mean the customer pays the
-  courier. Orders paid with one of them get cash on delivery for the order total. At checkout these
+  courier. Orders paid with one of them get cash on delivery for the order total, or for what's
+  left of it when the order ships in parts. At checkout these
   payment methods are hidden when the chosen carrier or pickup point can't collect cash.
 - **Cash on delivery payout time**: how quickly Polkurier pays out the money after delivery:
   standard, next day, or within 4 days. Faster payouts may cost more; check your Polkurier
   contract.
 - **Cash on delivery paid out to**: your bank account, your Polkurier money box, or a postal order.
-- **Shipment description**: what goes into the shipment's description field. `%s` is replaced by
-  the order number, and Polkurier keeps up to 30 characters. The default is the order number
-  alone, which also makes the shipment easy to find in the Polkurier panel. Can be set per store
-  view.
+
+### Labels and Magento shipments
+
 - **Label format**: PDF, or a printer language for thermal label printers (ZPL at 203 or 300 dpi,
   EPL, Datamax). Applies to labels you print from the Polkurier shipment lists. Labels stored with
   Magento shipments are always PDF.
+- **Shipping labels on Magento's shipment page**: lets **Create Shipping Label** on Magento's New
+  Shipment page place the Polkurier order, for orders placed with a Polkurier method.
 - **Send the shipment e-mail to the customer**: whether Magento's usual "your order has shipped"
   e-mail goes out when the module ships an order. On Magento's shipment page, the page's own
   "Email Copy of Shipment" checkbox decides instead.
-- **Shipping labels on Magento's shipment page**: lets **Create Shipping Label** on Magento's New
-  Shipment page place the Polkurier order, for orders placed with a Polkurier method.
-- **Polkurier shipment screen**: adds a **Ship with Polkurier** button to the order page, for any
-  order.
+- **Polkurier shipment screen**: adds a **Ship with Polkurier** button to the page of an order
+  placed with a Polkurier method.
 
 Both ways of shipping are on by default and can be used side by side. See
 [Shipping an order](shipping-an-order.md) for how they differ.

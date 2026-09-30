@@ -16,16 +16,6 @@ use Polkurier\Shipping\Api\Data\SyncableInterface;
  */
 trait SyncableTrait
 {
-    public function getWebsiteId(): int
-    {
-        return (int)$this->getData(SyncableInterface::WEBSITE_ID);
-    }
-
-    public function setWebsiteId(int $websiteId): static
-    {
-        return $this->setData(SyncableInterface::WEBSITE_ID, $websiteId);
-    }
-
     public function getExtId(): ?string
     {
         $value = $this->getData(SyncableInterface::EXT_ID);

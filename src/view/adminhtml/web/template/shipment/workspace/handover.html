@@ -1,0 +1,29 @@
+<!--
+ ~ Copyright (c) 2026 Polkurier.pl
+ ~ All Rights Reserved
+-->
+<div class="polkurier-section__part polkurier-handover">
+    <div class="polkurier-muted" translate="'Handover to the carrier'"></div>
+    <!-- ko foreach: modes -->
+    <div class="admin__field-option polkurier-handover__option">
+        <input type="radio" class="admin__control-radio" name="polkurier-handover"
+               data-bind="attr: {id: id, value: value}, checked: $parent.mode"/>
+        <label class="admin__field-label" data-bind="attr: {for: id}, text: label"></label>
+        <!-- ko if: value === 'courier' && $parent.showDates() -->
+        <div class="polkurier-handover__dates">
+            <select class="admin__control-select" data-bind="options: $parent.days, optionsText: 'label', optionsValue: 'value', value: $parent.date, disable: $parent.loading, css: {'_error': $parent.dateMissing}, attr: {'aria-label': $t('Collection date'), 'aria-invalid': $parent.dateMissing() ? 'true' : 'false'}"></select>
+            <select class="admin__control-select" data-bind="options: $parent.windows, optionsText: 'label', optionsValue: 'value', value: $parent.window, disable: $parent.loading, css: {'_error': $parent.windowMissing}, attr: {'aria-label': $t('Collection time'), 'aria-invalid': $parent.windowMissing() ? 'true' : 'false'}"></select>
+            <div class="polkurier-muted" if="$parent.loading" translate="'Reading the collection dates…'"></div>
+            <div class="polkurier-text-error" if="$parent.message">
+                <span text="$parent.message"></span>
+                <!-- ko if: $parent.canRetry -->
+                <button type="button" class="polkurier-link" data-bind="click: $parent.retry.bind($parent)">
+                    <span translate="'Try again'"></span>
+                </button>
+                <!-- /ko -->
+            </div>
+        </div>
+        <!-- /ko -->
+    </div>
+    <!-- /ko -->
+</div>

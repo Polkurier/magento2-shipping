@@ -5,6 +5,10 @@
 -->
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:noNamespaceSchemaLocation="urn:magento:framework:Event/etc/events.xsd">
+    <!-- Multi-address checkout: the points posted with the shipping methods -->
+    <event name="checkout_controller_multishipping_shipping_post">
+        <observer name="polkurier_capture_pickup_points" instance="Polkurier\Shipping\Observer\CaptureMultishippingPoints" />
+    </event>
     <!-- Multi-address checkout: copy each address's pickup point onto its order -->
     <event name="checkout_type_multishipping_create_orders_single">
         <observer name="polkurier_tag_multishipping_order" instance="Polkurier\Shipping\Observer\TagMultishippingOrder" />

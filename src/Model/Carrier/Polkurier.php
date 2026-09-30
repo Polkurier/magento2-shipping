@@ -9,40 +9,35 @@ namespace Polkurier\Shipping\Model\Carrier;
 
 use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Quote\Model\Quote\Address\RateRequest;
+use Magento\Sales\Model\Order;
 use Magento\Quote\Model\Quote\Address\RateResult\ErrorFactory;
-use Magento\Quote\Model\Quote\Address\RateResult\MethodFactory;
 use Magento\Shipping\Model\Carrier\AbstractCarrier;
 use Magento\Shipping\Model\Carrier\CarrierInterface;
 use Magento\Shipping\Model\Rate\Result;
-use Magento\Shipping\Model\Rate\ResultFactory;
 use Magento\Shipping\Model\Tracking\Result\Status;
 use Magento\Shipping\Model\Tracking\Result\StatusFactory;
 use Magento\Store\Model\StoreManagerInterface;
-use Polkurier\Shipping\Api\Data\CarrierConfigInterface;
-use Polkurier\Shipping\Api\Data\ShipmentInterface;
-use Polkurier\Shipping\Model\Pricing\PriceCalculatorInterface;
-use Polkurier\Shipping\Model\Pricing\RateContext;
 use Polkurier\Shipping\Model\Shipment\NativeLabel;
 use Polkurier\Shipping\Model\Shipment\TrackingLookup;
-use Polkurier\Webservice\Exception\Exception as PolkurierException;
-use Polkurier\Webservice\Response\Carrier;
 use Psr\Log\LoggerInterface;
 
 /**
- * Offers the merchant's Polkurier carriers in checkout, priced by the merchant's own rules.
+ * Magento's carrier for the merchant's Polkurier carriers: an adapter over the module's services.
+ * RateCollector prices the checkout rates, TrackingLookup answers tracking, and in the admin
+ * NativeLabel creates shipping labels through Magento's packaging popup.
  *
  * The name "Polkurier" never reaches the storefront: rates carry no carrier title, so Magento's
  * shipping description is the method label alone, and tracking is titled by that label too.
- *
- * Rates never wait on the API beyond the cached carrier list, and never break checkout: a
- * failure hides the methods and is logged.
- *
- * In the admin it also creates shipping labels through Magento's packaging popup; NativeLabel does
- * the work.
  */
 class Polkurier extends AbstractCarrier implements CarrierInterface
 {
     public const string CODE = 'polkurier';
+
+    /**
+     * Where Polkurier ships from. Its carriers say whether they take "foreign shipments", which
+     * means shipments to anywhere but Poland, whatever the store's own country.
+     */
+    public const string HOME_COUNTRY = 'PL';
 
     /**
      * The Polkurier carrier code in a Magento shipping method such as "polkurier_DPD", or null for
@@ -56,7 +51,15 @@ class Polkurier extends AbstractCarrier implements CarrierInterface
             ? \substr($shippingMethod, \strlen($prefix))
             : null;
     }
-    public const string HOME_COUNTRY = 'PL';
+
+    /**
+     * Whether the order was placed with one of this carrier's methods. The module ships only
+     * those; orders of other carriers are left to their own integrations.
+     */
+    public static function isOrderOf(Order $order): bool
+    {
+        return self::methodCodeOf((string)$order->getShippingMethod()) !== null;
+    }
 
     /**
      * @var string
@@ -75,13 +78,8 @@ class Polkurier extends AbstractCarrier implements CarrierInterface
         ScopeConfigInterface $scopeConfig,
         ErrorFactory $rateErrorFactory,
         LoggerInterface $logger,
-        private readonly ResultFactory $rateResultFactory,
-        private readonly MethodFactory $rateMethodFactory,
+        private readonly RateCollector $rateCollector,
         private readonly StatusFactory $trackStatusFactory,
-        private readonly CarrierConfigs $carrierConfigs,
-        private readonly CarrierCatalog $catalog,
-        private readonly CarrierFeatures $features,
-        private readonly PriceCalculatorInterface $priceCalculator,
         private readonly TrackingLookup $trackingLookup,
         private readonly StoreManagerInterface $storeManager,
         private readonly NativeLabel $nativeLabel,
@@ -100,37 +98,7 @@ class Polkurier extends AbstractCarrier implements CarrierInterface
             return false;
         }
 
-        $storeId = (int)$request->getStoreId();
-        $websiteId = (int)($request->getWebsiteId() ?: $this->storeManager->getStore($storeId)->getWebsiteId());
-        $configs = $this->carrierConfigs->getActive($websiteId);
-        if ($configs === []) {
-            return false;
-        }
-
-        $carriers = $this->getCatalog($storeId);
-        $foreign = $request->getDestCountryId() && $request->getDestCountryId() !== self::HOME_COUNTRY;
-        $context = new RateContext(
-            subtotal: (float)$request->getPackageValueWithDiscount(),
-            weight: (float)$request->getPackageWeight(),
-        );
-
-        $result = $this->rateResultFactory->create();
-        foreach ($configs as $code => $config) {
-            $carrier = $carriers === null ? null : ($carriers[$code] ?? null);
-            if ($carriers !== null && $carrier === null) {
-                continue;
-            }
-            if ($foreign && ($carrier === null || !$this->features->isForeign($carrier))) {
-                continue;
-            }
-            $price = $request->getFreeShipping() ? 0.0 : $this->priceCalculator->calculate($config, $context);
-            if ($price === null) {
-                continue;
-            }
-            $result->append($this->createMethod($config, $price, $storeId));
-        }
-
-        return $result;
+        return $this->rateCollector->collect($request);
     }
 
     /**
@@ -138,13 +106,9 @@ class Polkurier extends AbstractCarrier implements CarrierInterface
      */
     public function getAllowedMethods(): array
     {
-        $methods = [];
         $store = $this->storeManager->getStore($this->getStore());
-        foreach ($this->carrierConfigs->getActive((int)$store->getWebsiteId()) as $code => $config) {
-            $methods[$code] = $config->getLabelForStore((int)$store->getId());
-        }
 
-        return $methods;
+        return $this->rateCollector->getAllowedMethods((int)$store->getId());
     }
 
     public function isTrackingAvailable(): bool
@@ -208,47 +172,11 @@ class Polkurier extends AbstractCarrier implements CarrierInterface
         $status = $this->trackStatusFactory->create();
         $status->setCarrier(self::CODE);
         $shipment = $this->trackingLookup->findByWaybill((string)$tracking);
-        $status->setCarrierTitle($shipment !== null ? $this->getMethodLabel($shipment) : '');
+        $status->setCarrierTitle($shipment !== null ? $this->trackingLookup->getMethodLabel($shipment) : '');
         $status->setTracking($tracking);
         $status->setPopup(1);
         $status->setUrl((string)$shipment?->getTrackingUrl());
 
         return $status;
-    }
-
-    private function getMethodLabel(ShipmentInterface $shipment): string
-    {
-        $websiteId = (int)$this->storeManager->getStore((int)$shipment->getStoreId())->getWebsiteId();
-        $config = $this->carrierConfigs->get($websiteId, $shipment->getCarrierCode());
-
-        return $config !== null ? $config->getLabelForStore((int)$shipment->getStoreId()) : $shipment->getCarrierCode();
-    }
-
-    /**
-     * @return array<string, Carrier>|null null when the list is unavailable; domestic carriers
-     *                                    are then still offered
-     */
-    private function getCatalog(int $storeId): ?array
-    {
-        try {
-            return $this->catalog->getCarriers($storeId);
-        } catch (PolkurierException $e) {
-            $this->_logger->error('Polkurier carrier list unavailable for rates', ['exception' => $e]);
-
-            return null;
-        }
-    }
-
-    private function createMethod(CarrierConfigInterface $config, float $price, int $storeId): \Magento\Quote\Model\Quote\Address\RateResult\Method
-    {
-        $method = $this->rateMethodFactory->create();
-        $method->setCarrier(self::CODE);
-        $method->setCarrierTitle('');
-        $method->setMethod($config->getCarrierCode());
-        $method->setMethodTitle($config->getLabelForStore($storeId));
-        $method->setPrice($price);
-        $method->setCost($price);
-
-        return $method;
     }
 }

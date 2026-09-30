@@ -9,14 +9,15 @@ namespace Polkurier\Shipping\Controller\Adminhtml\Address;
 
 use Magento\Backend\App\Action\Context;
 use Polkurier\Shipping\Model\Config;
-use Polkurier\Shipping\Model\WebsiteScope;
 use Polkurier\Shipping\Controller\Adminhtml\MasterData\AbstractSync;
 use Polkurier\Shipping\Model\Admin\AddressHandler;
 
 class Sync extends AbstractSync
 {
-    public function __construct(Context $context, AddressHandler $handler, WebsiteScope $websiteScope, Config $config)
+    public const string ADMIN_RESOURCE = 'Polkurier_Shipping::addresses';
+
+    public function __construct(Context $context, AddressHandler $handler, Config $config)
     {
-        parent::__construct($context, $handler, $websiteScope, $config);
+        parent::__construct($context, $handler, $config);
     }
 }

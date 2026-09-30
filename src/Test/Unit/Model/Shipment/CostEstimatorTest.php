@@ -14,13 +14,17 @@ use PHPUnit\Framework\TestCase;
 use Polkurier\Shipping\Model\ErrorMessages;
 use Polkurier\Shipping\Model\Mapper\CreateOrderMessageMapper;
 use Polkurier\Shipping\Model\Sdk\ClientPool;
+use Polkurier\Shipping\Model\Sdk\ShipmentGateway;
 use Polkurier\Shipping\Model\Shipment\CostEstimator;
 use Polkurier\Shipping\Model\Shipment\Draft;
+use Polkurier\Shipping\Model\Shipment\ValuationQuotes;
 use Polkurier\Webservice\Api\Service\OrdersServiceInterface;
 use Polkurier\Webservice\Exception\ConnectionException;
 use Polkurier\Webservice\Request\Order\CreateOrderMessage;
+use Psr\Log\NullLogger;
 
 #[CoversClass(CostEstimator::class)]
+#[CoversClass(ValuationQuotes::class)]
 #[AllowMockObjectsWithoutExpectations]
 class CostEstimatorTest extends TestCase
 {
@@ -50,6 +54,29 @@ class CostEstimatorTest extends TestCase
         self::assertSame(['DPD' => ['net' => 9.0, 'gross' => 11.07]], $estimator->quoteAll((new Draft())->setCarrierCode('DPD'), 1));
     }
 
+    public function testPolkuriersOwnAnswerIsRead(): void
+    {
+        $quotes = $this->estimator(self::recorded('order_valuation_v2.json'))->quoteAll((new Draft())->setCarrierCode('DPD'), 1);
+
+        self::assertSame(['net' => 48.84, 'gross' => 60.07], $quotes['DPD']);
+        self::assertSame(['AMBRO', 'INPOST', 'UPS', 'DPD', 'DHL', 'FEDEX'], \array_keys($quotes));
+    }
+
+    public function testTheShapeTheSdkDocumentsIsReadToo(): void
+    {
+        $quotes = $this->estimator(self::recorded('order_valuation_v2_documented.json'))->quoteAll((new Draft())->setCarrierCode('DPD'), 1);
+
+        self::assertSame(['UPS' => ['net' => 19.5, 'gross' => 23.99]], $quotes);
+    }
+
+    public function testAnAnswerThatCantBeReadPricesNothingAndIsLogged(): void
+    {
+        $result = ValuationQuotes::fromResponse(['price' => 'soon', 'UPS' => 'n/a'], 'DPD');
+
+        self::assertSame([], $result['quotes']);
+        self::assertSame(2, $result['unrecognised']);
+    }
+
     public function testAFailureIsReportedForTheMerchant(): void
     {
         $orders = $this->createStub(OrdersServiceInterface::class);
@@ -57,6 +84,14 @@ class CostEstimatorTest extends TestCase
 
         $this->expectException(LocalizedException::class);
         $this->estimator([], $orders)->quoteAll((new Draft())->setCarrierCode('DPD'), 1);
+    }
+
+    /**
+     * @return array<array-key, mixed>
+     */
+    private static function recorded(string $name): array
+    {
+        return (array)\json_decode((string)\file_get_contents(__DIR__ . '/../../_files/' . $name), true);
     }
 
     /**
@@ -75,6 +110,6 @@ class CostEstimatorTest extends TestCase
         $pool = $this->createStub(ClientPool::class);
         $pool->method('orders')->willReturn($orders);
 
-        return new CostEstimator($mapper, $pool, new ErrorMessages());
+        return new CostEstimator($mapper, new ShipmentGateway($pool, new ErrorMessages()), new NullLogger());
     }
 }

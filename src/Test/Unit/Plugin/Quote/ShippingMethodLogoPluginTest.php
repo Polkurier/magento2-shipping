@@ -110,7 +110,6 @@ class ShippingMethodLogoPluginTest extends TestCase
     {
         $store = $this->createStub(Store::class);
         $store->method('getBaseUrl')->willReturn('https://shop.example/media/');
-        $store->method('getWebsiteId')->willReturn(1);
         $store->method('getId')->willReturn(1);
         $manager = $this->createStub(StoreManagerInterface::class);
         $manager->method('getStore')->willReturn($store);

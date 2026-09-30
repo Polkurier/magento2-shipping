@@ -61,25 +61,36 @@ class CarrierConfig extends AbstractDb
         return $labels;
     }
 
+    /**
+     * Sets loaded labels as both the current and the original data, so a save can tell whether
+     * anything changed them.
+     *
+     * @param CarrierLabelInterface[] $labels
+     */
+    public function attachStoreLabels(AbstractModel $object, array $labels): void
+    {
+        $object->setData(CarrierConfigInterface::STORE_LABELS, $labels);
+        $object->setOrigData(CarrierConfigInterface::STORE_LABELS, $labels);
+    }
+
     protected function _afterLoad(AbstractModel $object): static
     {
         if ($object->getId()) {
-            $object->setData(
-                CarrierConfigInterface::STORE_LABELS,
-                $this->loadStoreLabels([(int)$object->getId()])[(int)$object->getId()] ?? [],
-            );
+            $this->attachStoreLabels($object, $this->loadStoreLabels([(int)$object->getId()])[(int)$object->getId()] ?? []);
         }
 
         return parent::_afterLoad($object);
     }
 
     /**
-     * Replaces the store view labels, but only when they were set on the model: a save that never
-     * loaded them (e.g. the carrier list refresh) leaves them alone.
+     * Replaces the store view labels, but only when they differ from what was loaded: the carrier
+     * list refresh saves every carrier and must not write back labels read before an admin edit.
      */
     protected function _afterSave(AbstractModel $object): static
     {
-        if ($object->hasData(CarrierConfigInterface::STORE_LABELS)) {
+        if ($object->hasData(CarrierConfigInterface::STORE_LABELS)
+            && $object->dataHasChangedFor(CarrierConfigInterface::STORE_LABELS)
+        ) {
             $connection = $this->getConnection();
             $table = $this->getTable(self::LABEL_TABLE_NAME);
             $configId = (int)$object->getId();
@@ -97,6 +108,7 @@ class CarrierConfig extends AbstractDb
             if ($rows !== []) {
                 $connection->insertMultiple($table, \array_values($rows));
             }
+            $object->setOrigData(CarrierConfigInterface::STORE_LABELS, $object->getData(CarrierConfigInterface::STORE_LABELS));
         }
 
         return parent::_afterSave($object);

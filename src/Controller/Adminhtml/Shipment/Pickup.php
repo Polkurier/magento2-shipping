@@ -8,9 +8,11 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Controller\Adminhtml\Shipment;
 
 use Magento\Backend\App\Action\Context;
+use Magento\Framework\App\ActionInterface;
 use Magento\Framework\App\Action\HttpPostActionInterface;
 use Magento\Framework\Controller\Result\Redirect;
 use Magento\Framework\Exception\LocalizedException;
+use Polkurier\Shipping\Model\Admin\Flash;
 use Polkurier\Shipping\Model\Shipment\Pickups;
 use Polkurier\Shipping\Model\Shipment\RequestedShipments;
 
@@ -35,21 +37,36 @@ class Pickup extends AbstractShipmentAction implements HttpPostActionInterface
         $date = (string)$this->getRequest()->getParam('pickup_date');
         $from = (string)$this->getRequest()->getParam('pickup_time_from');
         $to = (string)$this->getRequest()->getParam('pickup_time_to');
+        if (!\preg_match('/^\d{4}-\d{2}-\d{2}$/', $date) || !\preg_match('/^\d{2}:\d{2}$/', $from) || !\preg_match('/^\d{2}:\d{2}$/', $to)) {
+            $this->messageManager->addErrorMessage(\__('Give the collection date as YYYY-MM-DD and the window as HH:MM.'));
+
+            // Back to the form, with the shipments chosen.
+            return $this->resultRedirectFactory->create()->setPath('*/*/pickupForm', \array_filter([
+                'ids' => (string)$this->getRequest()->getParam('ids'),
+                'order_id' => (int)$this->getRequest()->getParam('order_id') ?: null,
+                ActionInterface::PARAM_NAME_URL_ENCODED => (string)$this->getRequest()->getParam(ActionInterface::PARAM_NAME_URL_ENCODED) ?: null,
+            ]));
+        }
+        $flash = new Flash();
         try {
-            if (!\preg_match('/^\d{4}-\d{2}-\d{2}$/', $date) || !\preg_match('/^\d{2}:\d{2}$/', $from) || !\preg_match('/^\d{2}:\d{2}$/', $to)) {
-                throw new LocalizedException(\__('Give the collection date as YYYY-MM-DD and the window as HH:MM.'));
-            }
             $result = $this->pickups->bookCollective($this->getSelectedShipments(), $date, $from, $to);
             if ($result['booked'] !== []) {
-                $this->messageManager->addSuccessMessage(\__('Collection booked for: %1.', \implode(', ', $result['booked'])));
+                $flash->success(\__('Collective pickup booked for: %1.', \implode(', ', $result['booked'])));
             }
-            foreach ($result['failed'] as $number => $reason) {
-                $this->messageManager->addErrorMessage(\__('%1: %2', $number, $reason));
+            if ($result['failed'] !== []) {
+                $reasons = [];
+                foreach ($result['failed'] as $number => $reason) {
+                    $reasons[] = (string)\__('%1: %2', $number, $reason);
+                }
+                $notBooked = \__('Not booked for %1', \implode('; ', $reasons));
+                $result['booked'] !== [] ? $flash->warning($notBooked) : $flash->error($notBooked);
             }
         } catch (LocalizedException $e) {
-            $this->messageManager->addErrorMessage($e->getMessage());
+            $flash->error($e->getMessage());
         }
+        $flash->send($this->messageManager);
 
-        return $this->resultRedirectFactory->create()->setPath('*/*/index');
+        // Where the booking was started from, as the form took it along.
+        return $this->back();
     }
 }

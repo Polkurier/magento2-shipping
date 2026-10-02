@@ -14,6 +14,7 @@ use Polkurier\Shipping\Api\BankAccountRepositoryInterface;
 use Polkurier\Shipping\Api\Data\ShipmentDraft\PackInterface;
 use Polkurier\Shipping\Api\Data\ShipmentDraftInterface;
 use Polkurier\Shipping\Model\Config;
+use Polkurier\Shipping\Model\Shipment\PackKinds;
 use Polkurier\Webservice\Builder\Order\CodMessageBuilder;
 use Polkurier\Webservice\Builder\Order\CreateOrderMessageBuilder;
 use Polkurier\Webservice\Builder\Order\OrderAddressMessageBuilder;
@@ -22,7 +23,6 @@ use Polkurier\Webservice\Builder\Order\PickupMessageBuilder;
 use Polkurier\Webservice\Enum\Order\AdditionalServiceEnum;
 use Polkurier\Webservice\Enum\Order\CodReturnTypeEnum;
 use Polkurier\Webservice\Enum\Order\CodTypeEnum;
-use Polkurier\Webservice\Enum\Order\PackTypeEnum;
 use Polkurier\Webservice\Enum\Order\ShipmentTypeEnum;
 use Polkurier\Webservice\Request\Order\CodMessage;
 use Polkurier\Webservice\Request\Order\CreateOrderMessage;
@@ -45,13 +45,21 @@ class CreateOrderMessageMapper
     ) {}
 
     /**
-     * @throws LocalizedException when the draft refers to something that does not exist
+     * @throws LocalizedException when the draft refers to something that does not exist, or its
+     *     parcels are of more than one kind
      */
     public function map(ShipmentDraftInterface $draft, int $storeId): CreateOrderMessage
     {
+        $types = PackKinds::shipmentTypesOf(\array_map(
+            static fn(PackInterface $pack): string => $pack->getPackType(),
+            $draft->getPacks(),
+        ));
+        if (\count($types) > 1) {
+            throw new LocalizedException(\__('Parcels, envelopes and pallets can\'t go in one shipment: keep to one of them.'));
+        }
         $builder = CreateOrderMessageBuilder::create()
             ->courier($draft->getCarrierCode())
-            ->shipmentType(ShipmentTypeEnum::tryFrom($draft->getShipmentType()) ?? ShipmentTypeEnum::Box)
+            ->shipmentType($types[0] ?? ShipmentTypeEnum::tryFrom($draft->getShipmentType()) ?? ShipmentTypeEnum::Box)
             ->packs(\array_map($this->mapPack(...), $draft->getPacks()))
             ->sender($this->mapSender($draft, $storeId))
             ->recipient($this->mapRecipient($draft))
@@ -71,6 +79,9 @@ class CreateOrderMessageMapper
         if ($pickup !== null) {
             $builder->pickup($pickup);
         }
+        if (!$draft->getCoverAddressId() && \in_array(AdditionalServiceEnum::CoverSenderAddress->value, $draft->getServices(), true)) {
+            throw new LocalizedException(\__('Choose the address to print on the label as the sender.'));
+        }
         $services = $this->mapServices($draft->getServices());
         if ($services !== []) {
             $builder->courierService($services);
@@ -88,7 +99,8 @@ class CreateOrderMessageMapper
 
     /**
      * Each named SMS notification replaces its plain variant rather than adding to it, so only the
-     * named one is sent when both were chosen.
+     * named one is sent when both were chosen. The cover sender address isn't sent: the cover
+     * address switches it on, and Polkurier refuses it without one.
      *
      * @param string[] $codes
      * @return AdditionalServiceEnum[]
@@ -98,10 +110,10 @@ class CreateOrderMessageMapper
         $services = \array_values(\array_unique(\array_filter(\array_map(
             static fn(string $service): ?AdditionalServiceEnum => AdditionalServiceEnum::tryFrom($service),
             $codes,
-        )), \SORT_REGULAR));
+        ), static fn(?AdditionalServiceEnum $service): bool => $service !== null && $service !== AdditionalServiceEnum::CoverSenderAddress), \SORT_REGULAR));
         $replaced = [
-            AdditionalServiceEnum::SmsNotificationRecipientWithName->value => AdditionalServiceEnum::SmsNotificationRecipient,
-            AdditionalServiceEnum::SmsNotificationRecipientOutForDeliveryWithName->value => AdditionalServiceEnum::SmsNotificationRecipientOutForDelivery,
+            AdditionalServiceEnum::SmsOnDispatchWithSenderName->value => AdditionalServiceEnum::SmsOnDispatch,
+            AdditionalServiceEnum::SmsOutForDeliveryWithSenderName->value => AdditionalServiceEnum::SmsOutForDelivery,
         ];
         foreach ($services as $service) {
             if (isset($replaced[$service->value])) {
@@ -120,7 +132,7 @@ class CreateOrderMessageMapper
             ->width($pack->getWidth())
             ->height($pack->getHeight())
             ->weight(\round($pack->getWeight(), 3))
-            ->type(PackTypeEnum::tryFrom($pack->getPackType()) ?? PackTypeEnum::Standard)
+            ->type(PackKinds::polkurierTypeOf($pack->getPackType()))
             ->amount(\max(1, $pack->getAmount()))
             ->build();
     }

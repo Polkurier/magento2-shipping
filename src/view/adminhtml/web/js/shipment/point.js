@@ -40,7 +40,7 @@ define([
          * @returns {Boolean}
          */
         canChoose: function () {
-            return !!this.source.get('data.map.token');
+            return pointsMap.canOpen(this.source.get('data.map'));
         },
 
         chooseOnMap: function () {
@@ -49,7 +49,8 @@ define([
             pointsMap.open(
                 this.source.get('data.map'),
                 features.providers,
-                [this.source.get('data.recipient_postcode'), this.source.get('data.recipient_city')].filter(Boolean).join(' '),
+                // The postcode alone: a city changed afterwards can't contradict it.
+                String(this.source.get('data.recipient_postcode') || '').trim(),
                 function (pointId, point) {
                     this.value(pointId);
                     this.source.set('data.recipient_point_label', pointsMap.describe(point));

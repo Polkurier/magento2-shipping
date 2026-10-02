@@ -23,7 +23,8 @@ alongside the module:
 - **Always**: failures the merchant can't see, such as a Polkurier order placed while the Magento
   shipment failed, an observer of the module's events that threw, or a cron run that couldn't
   refresh a shipment. Checkout problems are logged too, since the customer is never shown them.
-- **With *Log errors***: requests to Polkurier that failed, with the request and the answer.
+- **With *Log failed requests***: requests to Polkurier that failed, with the request and the
+  answer.
 - **With *Log all traffic of***: successful requests of the selected kinds, too.
 
 The request logging is the SDK's own; the module switches it on and points it at this logger.

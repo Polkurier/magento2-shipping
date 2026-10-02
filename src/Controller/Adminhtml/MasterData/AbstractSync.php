@@ -32,7 +32,7 @@ abstract class AbstractSync extends AbstractAction implements HttpPostActionInte
         if (!$this->config->hasCredentials()) {
             $this->messageManager->addErrorMessage(\__('Configure the Polkurier customer ID and API token first.'));
 
-            return $this->resultRedirectFactory->create()->setPath('*/*/index');
+            return $this->returnBack('*/*/index');
         }
         try {
             $this->reportSync($this->handler->synchronize());
@@ -40,6 +40,6 @@ abstract class AbstractSync extends AbstractAction implements HttpPostActionInte
             $this->messageManager->addErrorMessage($e->getMessage());
         }
 
-        return $this->resultRedirectFactory->create()->setPath('*/*/index');
+        return $this->returnBack('*/*/index');
     }
 }

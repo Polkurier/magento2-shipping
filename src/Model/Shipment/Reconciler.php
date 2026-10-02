@@ -83,7 +83,7 @@ class Reconciler
      *
      * @throws LocalizedException when there is no such order, or Polkurier can't be asked
      */
-    public function findByNumber(ShipmentInterface $shipment, string $number): Order
+    public function findByNumber(string $number): Order
     {
         // Searched by phrase, which matches order numbers too; the exact number is picked below.
         $list = $this->gateway->findOrders(new GetOrdersMessage(

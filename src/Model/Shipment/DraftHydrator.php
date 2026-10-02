@@ -50,6 +50,7 @@ class DraftHydrator
         $draft->setCodReturnType(self::nullableString($data, ShipmentDraftInterface::COD_RETURN_TYPE));
         $draft->setCodBankAccountId(self::nullableInt($data, ShipmentDraftInterface::COD_BANK_ACCOUNT_ID));
         $draft->setInsuranceAmount(self::nullableFloat($data, ShipmentDraftInterface::INSURANCE_AMOUNT));
+        $draft->setShippingIncluded(\filter_var($data[ShipmentDraftInterface::SHIPPING_INCLUDED] ?? false, \FILTER_VALIDATE_BOOLEAN));
         $draft->setCoverAddressId(self::nullableInt($data, ShipmentDraftInterface::COVER_ADDRESS_ID));
         $draft->setServices(\array_values(\array_filter(\array_map('strval', (array)($data[ShipmentDraftInterface::SERVICES] ?? [])))));
         $draft->setPickupMode(self::string($data, ShipmentDraftInterface::PICKUP_MODE) ?: ShipmentDraftInterface::PICKUP_COURIER);
@@ -60,6 +61,7 @@ class DraftHydrator
             (array)($data[ShipmentDraftInterface::ADDITIONAL_FIELDS] ?? []),
             static fn($value): bool => \is_scalar($value),
         )));
+        $draft->setTargetShipmentId(self::nullableInt($data, ShipmentDraftInterface::TARGET_SHIPMENT_ID));
 
         $packs = [];
         foreach ((array)($data[ShipmentDraftInterface::PACKS] ?? []) as $row) {
@@ -106,6 +108,7 @@ class DraftHydrator
         );
         $data[ShipmentDraftInterface::ITEMS] = self::itemRows($draft->getItems());
         $data[ShipmentDraftInterface::PACKS_ESTIMATED] = $draft->isPacksEstimated();
+        $data[ShipmentDraftInterface::SHIPPING_INCLUDED] = $draft->isShippingIncluded();
 
         return $data;
     }

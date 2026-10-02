@@ -33,7 +33,10 @@ define([
             this.window = ko.observable('');
             this.loading = ko.observable(false);
             this.message = ko.observable('');
-            this.canRetry = ko.observable(false);
+            // A failure, in red; otherwise a muted note.
+            this.failed = ko.observable(false);
+            // With "Try again" when asking again may help: not after a refusal, which would repeat.
+            this.retryable = ko.observable(false);
             this.dateMissing = ko.observable(false);
             this.windowMissing = ko.observable(false);
             this.datesKey = null;
@@ -93,10 +96,12 @@ define([
         },
 
         load: function () {
-            this.canRetry(false);
+            this.failed(false);
+            this.retryable(false);
             if (!rules.filled(this.get('carrier_code'))) {
                 this.dates.cancel();
                 this.days([]);
+                this.forgetDate();
                 this.loading(false);
                 this.message($t('Choose a carrier to see its collection dates.'));
 
@@ -112,12 +117,15 @@ define([
                         return {value: day.date, label: day.date, windows: day.windows || []};
                     }));
                     this.message(response.error ? response.message : (this.days().length ? '' : $t('No collection dates available.')));
+                    this.failed(Boolean(response.error));
+                    this.retryable(Boolean(response.error && response.retry));
                     this.chooseDate();
                 }.bind(this),
                 fail: function () {
                     // Not read again by itself with every change, only when asked to.
                     this.message($t('The collection dates could not be read.'));
-                    this.canRetry(true);
+                    this.failed(true);
+                    this.retryable(true);
                 }.bind(this),
                 always: function () {
                     this.loading(false);
@@ -134,6 +142,8 @@ define([
                 day = _.findWhere(days, {value: current}) || days[0];
 
             if (!day) {
+                this.forgetDate();
+
                 return;
             }
             if (day.value !== current) {
@@ -141,6 +151,20 @@ define([
             }
             this.date(day.value);
             this.chooseWindow();
+        },
+
+        /**
+         * Without dates to choose from, none stays chosen: an earlier one would go unseen.
+         */
+        forgetDate: function () {
+            this.windows([]);
+            this.date('');
+            this.window('');
+            ['pickup_date', 'pickup_time_from', 'pickup_time_to'].forEach(function (field) {
+                if (rules.filled(this.get(field))) {
+                    this.set(field, '');
+                }
+            }, this);
         },
 
         /**
@@ -163,6 +187,14 @@ define([
                     this.set('pickup_time_to', parts[1]);
                 }
                 this.window(chosen.value);
+            } else {
+                // A day without windows: the carrier comes when it comes, and none stays chosen.
+                this.window('');
+                ['pickup_time_from', 'pickup_time_to'].forEach(function (field) {
+                    if (rules.filled(this.get(field))) {
+                        this.set(field, '');
+                    }
+                }, this);
             }
         }
     });

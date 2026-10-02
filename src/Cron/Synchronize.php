@@ -30,13 +30,17 @@ class Synchronize
         if (!$this->config->isSyncEnabled() || !$this->config->hasCredentials()) {
             return;
         }
+        // Each on its own, and logged rather than thrown: the next run tries again.
         try {
             $this->carrierConfigSynchronizer->synchronize();
+        } catch (\Throwable $e) {
+            $this->logger->warning('Polkurier carrier list refresh failed', ['error' => $e->getMessage()]);
+        }
+        try {
             foreach ($this->synchronization->synchronize() as $line) {
                 $this->logger->info('Polkurier synchronization: ' . $line);
             }
         } catch (\Throwable $e) {
-            // Logged rather than thrown: the next run tries again.
             $this->logger->warning('Polkurier synchronization failed', ['error' => $e->getMessage()]);
         }
     }

@@ -11,7 +11,6 @@ use Magento\Framework\App\RequestInterface;
 use Magento\Framework\AuthorizationInterface;
 use Magento\Framework\DataObject;
 use Magento\Framework\Exception\LocalizedException;
-use Magento\Framework\Message\ManagerInterface;
 use Magento\Sales\Api\OrderRepositoryInterface;
 use Magento\Sales\Api\ShipmentRepositoryInterface as MagentoShipmentRepository;
 use Magento\Sales\Model\Order;
@@ -31,6 +30,7 @@ use Polkurier\Shipping\Model\ResourceModel\Shipment\CollectionFactory;
 use Polkurier\Shipping\Model\Shipment\DefaultDraftBuilder;
 use Polkurier\Shipping\Model\Shipment\Documents;
 use Polkurier\Shipping\Model\Shipment\Draft;
+use Polkurier\Shipping\Model\Shipment\Draft\Item;
 use Polkurier\Shipping\Model\Shipment\Draft\ItemFactory;
 use Polkurier\Shipping\Model\Shipment\Draft\Pack;
 use Polkurier\Shipping\Model\Shipment\Draft\PackFactory;
@@ -79,16 +79,40 @@ class NativeLabelTest extends TestCase
         $this->linked->method('getFirstItem')->willReturn(new DataObject());
     }
 
+    public function testPackagesCannotShipAnItemTwice(): void
+    {
+        $shipment = $this->magentoShipment(null);
+        $this->management->expects(self::never())->method('forMagentoShipment');
+        $item = ['params' => ['container' => 'ST', 'weight' => '1'], 'items' => [11 => ['qty' => '2', 'order_item_id' => '5']]];
+
+        try {
+            $this->label()->request($this->labelRequest($shipment, [1 => $item, 2 => $item]));
+            self::fail('Two mugs in each package, of the two the shipment carries.');
+        } catch (LocalizedException $e) {
+            self::assertStringContainsString('more of an item than the shipment carries', $e->getMessage());
+        }
+    }
+
     public function testPackagesBecomeParcelsInKilogramsAndCentimetres(): void
     {
         $shipment = $this->magentoShipment(null);
-        $shipment->expects(self::once())->method('setData')->with(NativeLabel::LINK, 7);
+        $set = [];
+        $shipment->method('setData')->willReturnCallback(function (string $key, mixed $value) use (&$set, $shipment) {
+            $set[$key] = $value;
+
+            return $shipment;
+        });
 
         $answer = $this->label()->request($this->labelRequest($shipment, [
             1 => ['params' => ['container' => 'ST', 'weight' => '2.2', 'weight_units' => 'POUND', 'length' => '10', 'width' => '5', 'height' => '4', 'dimension_units' => 'INCH']],
             2 => ['params' => ['container' => 'NST', 'weight' => '3', 'weight_units' => 'KILOGRAM', 'length' => '30', 'width' => '20', 'height' => '10', 'dimension_units' => 'CENTIMETER']],
         ]));
 
+        self::assertSame(
+            [NativeLabel::LINK => 7, NativeLabel::CARRIER => 'DPD'],
+            $set,
+            'Linked once saved; its tracks are titled by the carrier it went with.',
+        );
         $packs = $this->placed()->getPacks();
         self::assertCount(2, $packs, 'One Polkurier order, a parcel per package.');
         self::assertSame(0.998, $packs[0]->getWeight());
@@ -148,10 +172,13 @@ class NativeLabelTest extends TestCase
             return $shipment;
         });
 
-        $answer = $this->label()->request($this->labelRequest($shipment, [1 => ['params' => ['container' => 'ST', 'weight' => '1']]]));
+        $label = $this->label();
+        $answer = $label->request($this->labelRequest($shipment, [1 => ['params' => ['container' => 'ST', 'weight' => '1']]]));
 
         self::assertSame([], $answer->getData('info'));
         self::assertTrue($flags[NativeLabel::NO_LABEL] ?? false, 'No empty label is stored.');
+        self::assertNotNull($label->takeUnreadyLabel(), 'For Magento\'s message about the shipment to say so.');
+        self::assertNull($label->takeUnreadyLabel(), 'Said once.');
         self::assertSame(7, $flags[NativeLabel::LINK] ?? null, 'The order is linked all the same.');
     }
 
@@ -256,8 +283,16 @@ class NativeLabelTest extends TestCase
             $this->documents,
             $this->createStub(MagentoShipment::class),
             $tracks,
-            $this->createStub(ManagerInterface::class),
             new NullLogger(),
+            $this->itemFactory(),
         );
+    }
+
+    private function itemFactory(): ItemFactory
+    {
+        $factory = $this->createStub(ItemFactory::class);
+        $factory->method('create')->willReturnCallback(static fn(): Item => new Item());
+
+        return $factory;
     }
 }

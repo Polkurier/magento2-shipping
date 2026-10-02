@@ -7,35 +7,91 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Plugin\Adminhtml;
 
+use Magento\Framework\View\Element\AbstractBlock;
 use Magento\Sales\Block\Adminhtml\Order\AbstractOrder;
+use Magento\Shipping\Block\Adminhtml\View\Form as ShipmentForm;
 
 /**
- * Adds the customer's pickup point to the order page's Shipping & Handling Information, under the
- * shipping method. Magento's template renders no children, so the point (the polkurier_order_point
- * child in sales_order_view.xml) goes in before the closing tag of the section's content.
+ * Adds Polkurier's part to the shipping information under the order's shipping method, which
+ * stays as the customer's choice. Magento's templates render no children, so the children
+ * declared in the layout are put in by hand:
+ *  - the order page's Shipping & Handling Information gets the customer's pickup point
+ *    (polkurier_order_point) and the carriers the parcels went with (polkurier_shipped_with),
+ *    before the closing tag of the section's content;
+ *  - the shipment page's Shipping and Tracking Information gets the carrier that shipment went
+ *    with (polkurier_shipped_with), right under the shipping method; and above Payment & Shipping
+ *    Method go the Polkurier label options (polkurier_label_options) and the shipment's Polkurier
+ *    orders (polkurier_shipment_orders).
  */
 class ShippingInfoPlugin
 {
-    private const string BLOCK = 'order_shipping_view';
+    private const string ORDER_BLOCK = 'order_shipping_view';
+    private const string SHIPMENT_BLOCK = 'form';
     private const string POINT = 'polkurier_order_point';
+    private const string SHIPPED_WITH = 'polkurier_shipped_with';
+    private const string SHIPMENT_METHOD = '<div class="shipping-description-title">';
+    private const string LABEL_OPTIONS = 'polkurier_label_options';
+    private const string SHIPMENT_ORDERS = 'polkurier_shipment_orders';
+    private const string PAYMENT_AND_SHIPPING = '<section class="admin__page-section order-shipment-billing-shipping">';
 
     public function afterToHtml(AbstractOrder $subject, string $html): string
     {
-        if ($html === '' || $subject->getNameInLayout() !== self::BLOCK) {
+        if ($html === '') {
             return $html;
         }
-        $point = $subject->getChildBlock(self::POINT);
-        if (!$point instanceof \Magento\Framework\View\Element\AbstractBlock) {
-            return $html;
+        if ($subject->getNameInLayout() === self::ORDER_BLOCK) {
+            return $this->intoOrderInfo($subject, $html);
         }
-        $pointHtml = $point->setData('order', $subject->getOrder())->toHtml();
-        if (\trim($pointHtml) === '') {
+        if ($subject instanceof ShipmentForm && $subject->getNameInLayout() === self::SHIPMENT_BLOCK) {
+            return $this->intoShipmentInfo($subject, $html);
+        }
+
+        return $html;
+    }
+
+    private function intoOrderInfo(AbstractOrder $subject, string $html): string
+    {
+        $added = $this->child($subject, self::POINT) . $this->child($subject, self::SHIPPED_WITH);
+        if (\trim($added) === '') {
             return $html;
         }
         // The last </div> closes the section, the one before it the section's content.
         $section = \strrpos($html, '</div>');
         $content = $section === false ? false : \strrpos(\substr($html, 0, $section), '</div>');
 
-        return $content === false ? $html . $pointHtml : \substr_replace($html, $pointHtml, $content, 0);
+        return $content === false ? $html . $added : \substr_replace($html, $added, $content, 0);
+    }
+
+    private function intoShipmentInfo(ShipmentForm $subject, string $html): string
+    {
+        $shipmentId = (int)$subject->getShipment()?->getId();
+        $added = $shipmentId ? $this->child($subject, self::SHIPPED_WITH, ['shipment_id' => $shipmentId]) : '';
+        $method = \strpos($html, self::SHIPMENT_METHOD);
+        $end = $method === false ? false : \strpos($html, '</div>', $method);
+        if (\trim($added) !== '' && $end !== false) {
+            $html = \substr_replace($html, $added, $end + \strlen('</div>'), 0);
+        }
+        // The label options and the shipment's Polkurier orders, above Payment & Shipping Method,
+        // or at the end when Magento's template has no such section.
+        $sections = $this->child($subject, self::LABEL_OPTIONS) . $this->child($subject, self::SHIPMENT_ORDERS);
+        if (\trim($sections) === '') {
+            return $html;
+        }
+        $payment = \strpos($html, self::PAYMENT_AND_SHIPPING);
+
+        return $payment === false ? $html . $sections : \substr_replace($html, $sections, $payment, 0);
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     */
+    private function child(AbstractOrder $subject, string $name, array $data = []): string
+    {
+        $child = $subject->getChildBlock($name);
+        if (!$child instanceof AbstractBlock) {
+            return '';
+        }
+
+        return $child->addData(['order' => $subject->getOrder()] + $data)->toHtml();
     }
 }

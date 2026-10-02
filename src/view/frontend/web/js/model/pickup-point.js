@@ -71,6 +71,15 @@ define(['ko'], function (ko) {
             if (selected[methodCode]) {
                 selected[methodCode](point);
             }
+        },
+
+        /**
+         * @param {Function} callback called whenever a point is chosen for any method
+         */
+        onChange: function (callback) {
+            Object.keys(selected).forEach(function (code) {
+                selected[code].subscribe(callback);
+            });
         }
     };
 });

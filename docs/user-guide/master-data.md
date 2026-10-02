@@ -16,17 +16,19 @@ Your sender addresses: where couriers collect parcels, and what's printed as the
 - **Label**: your own name for the address, shown in lists.
 - **Name**, **Company**, **Street**, **House number**, **Flat number**, **Postcode**, **City**,
   **Province**, **Country**, **Phone**, **E-mail**: the address itself.
-- **Sender pickup point**: the point you usually drop parcels off at, for carriers that let you
+- **Sender drop-off point**: the point you usually drop parcels off at, for carriers that let you
   send from a point.
 - **Default sender**: preselected for new shipments. Mark just one; if several are marked, the
   first one found is used.
 - **Can be a cover address**: allows the address to be printed on labels instead of the real
   sender's, for example your brand's address when parcels leave a warehouse. You choose a cover
-  address per shipment, under additional services.
+  address per shipment, as **Another sender on the label** under additional services, for carriers
+  that offer it, or set one for every shipment in
+  [Configuration](configuration.md).
 
 If you haven't marked any address as the default, shipments can fall back to your store's address
 or its shipping origin; see **Fall back to the store's address** and **Fall back to the shipping
-origin** on the [configuration page](configuration.md#shipments).
+origin** on the [configuration page](configuration.md#sender).
 
 ## Bank accounts
 
@@ -56,11 +58,14 @@ the ones Polkurier refuses stay, with the reason shown, and the others are delet
 The parcels you ship most often, so you don't have to type sizes every time.
 
 - **Template name** and **Description**.
-- **Shipment type** (parcel, envelope, pallet) and **Parcel type** (standard, non-standard, long,
-  half pallet, pallet).
+- **Parcel type**: a standard, non-standard or long parcel, an envelope, a half pallet or a pallet.
+  The parcels make the shipment's type: envelopes go as an envelope shipment, pallets as a pallet
+  shipment, anything else as parcels.
 - **Length**, **Width** and **Height** in centimetres.
 - **Maximum weight** in kilograms: the most a parcel of the template may weigh with what's in it.
-- **Cash on delivery**, **Insurance**, **Carrier code** and **Additional services**: kept with the
+  With **Parcel weight** set to the pack template's weight, it's also the weight a parcel of the
+  template is sent with.
+- **Cash on delivery**, **Insurance**, **Carrier** and **Additional services**: kept with the
   template in your Polkurier account, for use in the Polkurier panel.
 - **Default for new shipments**: new shipments start with one parcel of this template, unless
   they're packed automatically (see [Packing automatically](shipping-an-order.md#packing-automatically)).
@@ -72,7 +77,8 @@ automatically also keeps parcels under it is set by **Pack template weight limit
 
 When you pick a template for a new parcel, the parcel's window opens with its type, size and
 weight filled in, which you can still change for that parcel. On Magento's shipment page, each
-package in the packaging window has a **Pack template…** list for this.
+package in the packaging window has a **Pack template** column before **Type** for this; a new
+package starts with your default template, or **No template** when none is the default.
 
 ## Editing in the lists
 
@@ -83,6 +89,11 @@ why. A bank account changed in the list can't be confirmed there: it's saved in 
 message reminds you to open it and confirm it.
 
 On the edit forms, **Save and Continue Edit** saves without taking you back to the list.
+
+Search by keyword above each list finds addresses by their label, name, company, street,
+postcode, town, phone or e-mail; bank accounts by their name or number; pack templates by their
+name. Labels and names are unique within each list: saving one another entry already has, in
+any letters' case, is refused.
 
 ## Keeping Magento and Polkurier in step
 

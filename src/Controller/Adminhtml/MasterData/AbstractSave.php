@@ -13,6 +13,7 @@ use Magento\Framework\App\Request\DataPersistorInterface;
 use Magento\Framework\Controller\Result\Redirect;
 use Magento\Framework\Exception\LocalizedException;
 use Polkurier\Shipping\Model\Admin\EntityHandlerInterface;
+use Polkurier\Shipping\Model\Admin\Flash;
 
 /**
  * Saves the entry and sends it to Polkurier. A refusal from Polkurier keeps the entry, marked with
@@ -37,13 +38,17 @@ abstract class AbstractSave extends AbstractAction implements HttpPostActionInte
 
         try {
             $entity = $id ? $this->handler->get($id) : $this->handler->create();
-            $this->reportSync($this->handler->save($entity, $data));
+            $result = $this->handler->save($entity, $data);
             $entity = $this->handler->get((int)$entity->getId());
-            if ($entity->getSyncError()) {
-                $this->messageManager->addWarningMessage(\__('Saved in Magento, but not in Polkurier: %1', $entity->getSyncError()));
+            $flash = new Flash();
+            if ($result->failed > 0 || $entity->getSyncError()) {
+                $flash->warning(\__('Saved in Magento, but not in Polkurier: %1', $entity->getSyncError() ?: $this->reasons($result)));
+            } elseif ($result->unconfirmed > 0) {
+                $flash->notice(\__('Saved in Magento. It goes to Polkurier once you confirm it with the code or your security PIN.'));
             } else {
-                $this->messageManager->addSuccessMessage(\__('Saved.'));
+                $flash->success(\__('Saved.'));
             }
+            $flash->send($this->messageManager);
             $this->dataPersistor->clear($this->handler->getPersistorKey());
         } catch (LocalizedException $e) {
             $this->messageManager->addErrorMessage($e->getMessage());

@@ -19,7 +19,8 @@ use Polkurier\Shipping\Model\Shipment\NativeLabel;
  * Tidies a Magento shipment before it is saved with a label from Magento's packaging popup.
  *
  * Magento titles the tracks it adds for a label with the carrier's configured title, which is not
- * meant for customers; they get the shipping method's name instead, as for every other track. A
+ * meant for customers; they get the name of the carrier the parcels went with instead, as every
+ * other track does, which isn't the order's shipping method when the carrier was changed. A
  * waybill the shipment already tracks is not tracked twice, and a label that was not available is
  * not stored as an empty document.
  */
@@ -42,12 +43,18 @@ class PrepareLabelledShipment implements ObserverInterface
             $shipment->unsetData(NativeLabel::NO_LABEL);
         }
 
+        $carrierCode = (string)$shipment->getData(NativeLabel::CARRIER);
+        $shipment->unsetData(NativeLabel::CARRIER);
+
         $tracks = $shipment->getTracks();
         if (!\is_array($tracks) || $tracks === []) {
             return;
         }
         $magentoTitle = $this->config->getTitle((int)$shipment->getStoreId());
         $order = $shipment->getOrder();
+        if ($carrierCode === '') {
+            $carrierCode = (string)Polkurier::methodCodeOf((string)$order->getShippingMethod());
+        }
         $seen = [];
         $kept = [];
         foreach ($tracks as $track) {
@@ -61,10 +68,7 @@ class PrepareLabelledShipment implements ObserverInterface
             }
             $seen[$number] = true;
             if (!$track->getEntityId() && (string)$track->getTitle() === $magentoTitle) {
-                $track->setTitle($this->magentoShipment->getTrackTitle(
-                    $order,
-                    (string)Polkurier::methodCodeOf((string)$order->getShippingMethod()),
-                ));
+                $track->setTitle($this->magentoShipment->getTrackTitle($order, $carrierCode));
             }
             $kept[] = $track;
         }

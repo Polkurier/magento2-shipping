@@ -49,6 +49,81 @@ class OrderAmountsTest extends TestCase
         self::assertSame(515.0, $amounts->getShipmentValue($order), 'Nothing shipped yet: everything left is the whole order.');
     }
 
+    public function testCashOnDeliveryCollectsWhatThePartIsWorthAndTheRestWithTheLastPart(): void
+    {
+        $order = $this->order(515.0, [
+            $this->item(1, qtyOrdered: 2, rowTotal: 300.0, discount: 20.0, qtyToShip: 2),
+            $this->item(2, qtyOrdered: 1, rowTotal: 200.0, qtyToShip: 1),
+        ]);
+
+        self::assertSame(140.0, $this->amounts([])->getCodFor($order, [1 => 1.0]));
+        self::assertSame(515.0, $this->amounts([])->getCodFor($order, [1 => 2.0, 2 => 1.0]), 'Everything left: the shipping too.');
+        self::assertSame(515.0, $this->amounts([])->getCodFor($order));
+        // Another Polkurier order collects 400 already: no part collects more than the 115 left.
+        self::assertSame(115.0, $this->amounts([400.0])->getCodFor($order, [1 => 1.0]));
+    }
+
+    public function testTheValueComesWithWhatItIsMadeOf(): void
+    {
+        $order = $this->order(515.0, [
+            $this->item(1, qtyOrdered: 2, rowTotal: 300.0, discount: 20.0, qtyToShip: 2),
+            $this->item(2, qtyOrdered: 1, rowTotal: 200.0, qtyToShip: 1),
+        ]);
+        $amounts = $this->amounts([]);
+
+        self::assertSame(
+            ['products' => 140.0, 'shipping' => 0.0, 'order_total' => 515.0, 'whole' => false, 'rest' => false, 'shipping_covered' => false, 'with_shipping' => false, 'value' => 140.0],
+            $amounts->getShipmentWorth($order, [1 => 1.0]),
+        );
+        self::assertSame(
+            ['products' => 480.0, 'shipping' => 0.0, 'order_total' => 515.0, 'whole' => true, 'rest' => true, 'shipping_covered' => false, 'with_shipping' => true, 'value' => 515.0],
+            $amounts->getShipmentWorth($order),
+            'The whole order: its products, and the total that counts, shipping included.',
+        );
+    }
+
+    public function testThePartTheShippingIsIncludedWithIsWorthItToo(): void
+    {
+        $order = $this->order(515.0, [
+            $this->item(1, qtyOrdered: 2, rowTotal: 300.0, discount: 20.0, qtyToShip: 2),
+            $this->item(2, qtyOrdered: 1, rowTotal: 200.0, qtyToShip: 1),
+        ], shipping: 35.0);
+        $amounts = $this->amounts([]);
+
+        self::assertSame(175.0, $amounts->getShipmentValue($order, [1 => 1.0], true));
+        self::assertSame(515.0, $amounts->getShipmentValue($order, null, false), 'The whole order is insured for its total, shipping or not.');
+        self::assertSame(175.0, $amounts->getCodFor($order, [1 => 1.0], true));
+        self::assertSame(140.0, $amounts->getCodFor($order, [1 => 1.0], false));
+    }
+
+    public function testTheOrderIsAlwaysCollectedInFull(): void
+    {
+        $order = $this->order(515.0, [
+            $this->item(1, qtyOrdered: 2, rowTotal: 300.0, discount: 20.0, qtyToShip: 2),
+            $this->item(2, qtyOrdered: 1, rowTotal: 200.0, qtyToShip: 1),
+        ], shipping: 35.0);
+
+        self::assertSame(515.0, $this->amounts([])->getCodFor($order, [1 => 2.0, 2 => 1.0], false), 'The whole order collects its total, shipping or not.');
+        // One book went first, collecting 140: the part carrying the rest collects the 375 left.
+        $rest = $this->order(515.0, [
+            $this->item(1, qtyOrdered: 2, rowTotal: 300.0, discount: 20.0, qtyToShip: 1),
+            $this->item(2, qtyOrdered: 1, rowTotal: 200.0, qtyToShip: 1),
+        ], shipping: 35.0);
+        self::assertSame(375.0, $this->amounts([140.0])->getCodFor($rest, [1 => 1.0, 2 => 1.0], false));
+        self::assertSame(375.0, $this->amounts([140.0])->getShipmentValue($rest, [1 => 1.0, 2 => 1.0]), 'Insured for the products and the shipping it collects.');
+        // The first part included the shipping: the rest goes without it, insured for its products.
+        self::assertSame(340.0, $this->amounts([175.0], 'kgs', true)->getShipmentValue($rest, [1 => 1.0, 2 => 1.0]));
+        self::assertSame(140.0, $this->amounts([175.0], 'kgs', true)->getShipmentValue($rest, [1 => 1.0], true), 'Not included twice.');
+    }
+
+    public function testShippingIsWhatTheCustomerWasChargedForIt(): void
+    {
+        self::assertSame(14.99, $this->amounts([])->getShippingCharged($this->order(100.0, [], shipping: 14.99)));
+        self::assertSame(4.99, $this->amounts([])->getShippingCharged($this->order(100.0, [], shipping: 14.99, shippingDiscount: 10.0)), 'Less the discount on shipping.');
+        // 1 zł = 0.25 €: 5 € of shipping are 20 zł.
+        self::assertSame(20.0, $this->amounts([])->getShippingCharged($this->order(100.0, [], 'EUR', 'PLN', 0.25, shipping: 5.0)));
+    }
+
     public function testWhatIsLeftAfterAPartialShipment(): void
     {
         $order = $this->order(515.0, [
@@ -122,11 +197,12 @@ class OrderAmountsTest extends TestCase
     /**
      * @param float[] $codAmounts of the order's Polkurier orders that collect
      */
-    private function amounts(array $codAmounts, string $weightUnit = 'kgs'): OrderAmounts
+    private function amounts(array $codAmounts, string $weightUnit = 'kgs', bool $shippingIncluded = false): OrderAmounts
     {
-        $shipments = \array_map(function (float $amount): ShipmentInterface {
+        $shipments = \array_map(function (float $amount) use ($shippingIncluded): ShipmentInterface {
             $shipment = $this->createStub(ShipmentInterface::class);
             $shipment->method('getCodAmount')->willReturn($amount);
+            $shipment->method('getDraft')->willReturn(['shipping_included' => $shippingIncluded]);
 
             return $shipment;
         }, $codAmounts);
@@ -145,9 +221,18 @@ class OrderAmountsTest extends TestCase
     /**
      * @param Item[] $items
      */
-    private function order(float $grandTotal, array $items, string $currency = 'PLN', string $baseCurrency = 'PLN', float $rate = 1.0): Order
-    {
+    private function order(
+        float $grandTotal,
+        array $items,
+        string $currency = 'PLN',
+        string $baseCurrency = 'PLN',
+        float $rate = 1.0,
+        float $shipping = 0.0,
+        float $shippingDiscount = 0.0,
+    ): Order {
         $order = $this->createStub(Order::class);
+        $order->method('getShippingInclTax')->willReturn($shipping);
+        $order->method('getShippingDiscountAmount')->willReturn($shippingDiscount);
         $order->method('getOrderCurrencyCode')->willReturn($currency);
         $order->method('getBaseCurrencyCode')->willReturn($baseCurrency);
         $order->method('getBaseToOrderRate')->willReturn($rate);

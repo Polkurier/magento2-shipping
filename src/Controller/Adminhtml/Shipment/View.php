@@ -22,6 +22,14 @@ class View extends Action implements HttpGetActionInterface
 {
     public const string ADMIN_RESOURCE = 'Polkurier_Shipping::shipments';
 
+    /**
+     * Opened from the admin's notifications too, whose links are made outside the session: no URL
+     * key. The page only shows; the ACL still applies.
+     *
+     * @var string[]
+     */
+    protected $_publicActions = ['view'];
+
     public function __construct(
         Context $context,
         private readonly PageFactory $pageFactory,

@@ -42,6 +42,25 @@ class TokenRedactingProcessorTest extends TestCase
         self::assertSame('kept', $redacted->context['payload']);
     }
 
+    public function testMonolog2RecordsOfMagento247AreMaskedAsWell(): void
+    {
+        $body = '{"authorization":{"login":"12345","token":"s3cr3t"}}';
+        $record = [
+            'message' => 'payload: ' . $body,
+            'context' => ['request' => new Request('POST', '/', [], $body), 'pin' => '2342'],
+            'level' => 400,
+            'channel' => 'polkurier',
+            'extra' => [],
+        ];
+
+        $redacted = (new TokenRedactingProcessor())($record);
+
+        self::assertIsArray($redacted, 'The record comes back as it came: an array.');
+        self::assertSame('payload: {"authorization":{"login":"12345","token":"***"}}', $redacted['message']);
+        self::assertSame(['request' => '{"authorization":{"login":"12345","token":"***"}}', 'pin' => '***'], $redacted['context']);
+        self::assertSame(400, $redacted['level']);
+    }
+
     public function testMasksPinsAndCodes(): void
     {
         self::assertSame(

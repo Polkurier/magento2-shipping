@@ -62,6 +62,14 @@ define([
         },
 
         /**
+         * Opens what fixes a problem the part's section reports on it.
+         *
+         * @param {Object} issue
+         */
+        fix: function (issue) {
+        },
+
+        /**
          * @param {String} [path] below "data"
          * @returns {*}
          */

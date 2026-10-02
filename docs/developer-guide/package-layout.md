@@ -30,7 +30,7 @@ src/
         Shipment/          drafts, placing, reconciling, labels and following shipments
         Sync/              two-way sync of addresses, bank accounts and pack templates
     Observer/              checkout, order and shipment observers
-    Plugin/                plugins on checkout, multi-address checkout, orders and the admin
+    Plugin/                plugins on checkout, orders and the admin
     Setup/Patch/Data/      data patches
     Test/Unit/             unit tests
     Ui/                    data providers, columns and buttons for the UI components
@@ -48,12 +48,28 @@ Paths in the rest of this guide are relative to `src/`.
 | Package | Why |
 |---|---|
 | `polkurier/polkurier-sdk` | every call to Polkurier |
-| `magento/module-shipping`, `-sales`, `-quote`, `-checkout`, `-payment` | carrier, shipments, checkout integration |
-| `magento/module-multishipping` | pickup points in the multi-address checkout |
-| `magento/module-offline-payments` | Magento's cash on delivery method, the default for cash on delivery orders |
-| `magento/module-backend`, `-config`, `-ui`, `-cron` | admin screens and scheduled jobs |
+| `magento/module-shipping`, `-sales`, `-quote`, `-checkout`, `-payment` | carrier, shipments, checkout integration, cash on delivery |
+| `magento/module-catalog`, `-eav` | the product dimensions automatic packing uses |
+| `magento/module-backend`, `-config`, `-ui`, `-store`, `-directory`, `-customer`, `-media-storage` | admin screens, settings, grids, carrier logos |
+| `monolog/monolog`, `psr/log` | the module's log, `var/log/polkurier.log`; Monolog 2 (Magento 2.4.7) and 3 alike |
+| `symfony/serializer`, `symfony/cache`, `psr/http-message` | the SDK's serializer and its cache, and the requests it logs |
+| `composer-runtime-api` | the SDK's version, which keys the cached carrier list |
+
+Suggested, not required:
+
+| Package | Without it |
+|---|---|
+| `magento/module-cron` | nothing runs on schedule, the look for unclear shipments included (see the user guide's Installation, Cron); synchronize and update shipments from the admin by hand |
+| `magento/module-webapi` | no REST API |
+| `magento/module-csp` | nothing to whitelist the pickup point map for |
+| `polkurier/magento2-multishipping` | no pickup points in the multi-address checkout |
 
 The module's `etc/module.xml` declares the Magento modules it must load after.
+
+The multi-address checkout (`Magento_Multishipping`) is often disabled or removed, so it's left to
+a bridge module, `polkurier/magento2-multishipping` (`Polkurier_Multishipping`), which requires
+both. This module only suggests it, and nothing here refers to `Magento\Multishipping`; see
+[Checkout](checkout.md#multi-address-checkout).
 
 ## Conventions
 

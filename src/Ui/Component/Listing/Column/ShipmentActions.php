@@ -13,6 +13,7 @@ use Magento\Framework\View\Element\UiComponent\ContextInterface;
 use Magento\Framework\View\Element\UiComponentFactory;
 use Magento\Ui\Component\Listing\Columns\Column;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
+use Polkurier\Shipping\Model\Shipment\SendAgain;
 
 /**
  * What can be done with a Polkurier shipment, depending on its state.
@@ -28,6 +29,7 @@ class ShipmentActions extends Column
         UiComponentFactory $uiComponentFactory,
         private readonly UrlInterface $url,
         private readonly AuthorizationInterface $authorization,
+        private readonly SendAgain $sendAgain,
         array $components = [],
         array $data = [],
     ) {
@@ -51,15 +53,18 @@ class ShipmentActions extends Column
                     'href' => $this->url->getUrl('polkurier/shipment/view', ['id' => $id]),
                     'label' => \__('Details'),
                 ],
-                'order' => [
+            ];
+            // Not on the order's own page.
+            if (!$this->getData('config/onOrderPage')) {
+                $actions['order'] = [
                     'href' => $this->url->getUrl('sales/order/view', ['order_id' => (int)$item['order_id']]),
                     'label' => \__('View order'),
-                ],
-            ];
+                ];
+            }
             switch ($item['state']) {
                 case ShipmentInterface::STATE_CREATED:
                     $actions['label'] = ['href' => $this->url->getUrl('polkurier/shipment/label', $params), 'label' => \__('Print label')];
-                    $actions['protocol'] = ['href' => $this->url->getUrl('polkurier/shipment/protocol', $params), 'label' => \__('Print protocol')];
+                    $actions['protocol'] = ['href' => $this->url->getUrl('polkurier/shipment/protocol', $params), 'label' => \__('Print handover protocol')];
                     $actions['refresh'] = [
                         'href' => $this->url->getUrl('polkurier/shipment/refresh', $params),
                         'label' => \__('Update status'),
@@ -79,18 +84,41 @@ class ShipmentActions extends Column
                             'post' => true,
                             'confirm' => [
                                 'title' => \__('Cancel Polkurier order %1?', (string)$item['polkurier_number']),
-                                'message' => \__('The carrier will not collect the parcel, and its Magento shipment is removed so the items can be shipped again. This cannot be undone.'),
+                                'message' => \__('The carrier will not collect the parcel. Its Magento shipment stays, without the label and tracking numbers, for another Polkurier order. This cannot be undone.'),
+                            ],
+                        ];
+                    }
+                    break;
+                case ShipmentInterface::STATE_FAILED:
+                    if ($this->authorization->isAllowed('Polkurier_Shipping::shipment_create')
+                        && $this->sendAgain->isPossibleFor($id, (int)$item['order_id'], ShipmentInterface::STATE_FAILED)
+                    ) {
+                        $actions['retry'] = [
+                            'href' => $this->sendAgain->getUrl($id, (int)$item['order_id']),
+                            'label' => \__('Send again'),
+                        ];
+                    }
+                    if ($this->authorization->isAllowed('Polkurier_Shipping::shipment_create')) {
+                        $actions['discard'] = [
+                            'href' => $this->url->getUrl('polkurier/shipment/discard', $params),
+                            'label' => \__('Discard'),
+                            'post' => true,
+                            'confirm' => [
+                                'title' => \__('Discard this shipment?'),
+                                'message' => \__('It wasn\'t placed, so nothing is cancelled in Polkurier. What was filled in for it is lost.'),
                             ],
                         ];
                     }
                     break;
                 case ShipmentInterface::STATE_UNKNOWN:
                 case ShipmentInterface::STATE_PENDING:
-                    $actions['reconcile'] = [
-                        'href' => $this->url->getUrl('polkurier/shipment/reconcile', $params),
-                        'label' => \__('Reconcile'),
-                        'post' => true,
-                    ];
+                    if ($this->authorization->isAllowed('Polkurier_Shipping::shipment_create')) {
+                        $actions['reconcile'] = [
+                            'href' => $this->url->getUrl('polkurier/shipment/reconcile', $params),
+                            'label' => \__('Reconcile'),
+                            'post' => true,
+                        ];
+                    }
                     break;
             }
             $item[$this->getData('name')] = $actions;

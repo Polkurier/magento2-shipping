@@ -44,9 +44,9 @@ duplicates (`ShipmentManagementTest`, `AutoReconcilerTest`), when a shipment cou
 (`SyncEngineTest`, `PublisherTest`, `BankAccountHandlerTest`), labels, protocols and collective
 pickups (`DocumentsTest`, `PickupsTest`), the admin actions that place, pack and save
 (`ShipmentActionsTest`, `MasterDataActionsTest`, `RedirectingActionsTest`), payload mapping (`CreateOrderMessageMapperTest`,
-`AddressBookMapperTest`, `StreetParserTest`), pricing (`TiersTest`, `PolkurierTest`), the
-multi-address checkout (`CheckoutPluginTest`, `CopyPickupPointsToOrdersTest`) and secret masking
-(`TokenRedactingProcessorTest`).
+`AddressBookMapperTest`, `StreetParserTest`), pricing (`TiersTest`, `PolkurierTest`) and secret
+masking (`TokenRedactingProcessorTest`). The multi-address checkout's tests are in the bridge
+module, `polkurier/magento2-multishipping`.
 
 When you extend the module, the same helpers work for your own tests: build the module's services
 with a `RecordingClient`-backed `ClientPool` and assert on the payload.

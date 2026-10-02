@@ -4,14 +4,17 @@
  */
 /**
  * Magento's packaging popup, made fit for Polkurier: packages in kilograms and centimetres, pack
- * templates to fill one in, and package weights by the parcel weight setting.
+ * templates to fill one in, package weights by the parcel weight setting, and the items packed
+ * into the pack templates automatically, as the Polkurier shipment screen packs them.
  */
 define([
     'jquery',
     'mage/translate',
+    'Magento_Ui/js/modal/confirm',
+    'Polkurier_Shipping/js/request',
     'Polkurier_Shipping/js/shipment/workspace/rules',
     'Magento_Shipping/order/packaging'
-], function ($, $t, rules) {
+], function ($, $t, confirm, request, rules) {
     'use strict';
 
     /**
@@ -30,25 +33,91 @@ define([
 
     /**
      * Pack templates fill in a package: its parcel type, size and weight, which stay editable.
-     * They're offered next to the package type, never as one. Every package is copied from
-     * Magento's package template, so the choice is added there once.
+     * They're offered in a column of their own before the package type, never as one, with the
+     * default template chosen. Every package is copied from Magento's package template, so the
+     * column is added there once.
      *
      * @param {Array<Object>} templates
      */
     function addTemplateChoice(templates) {
-        const title = $('#package_template .admin__page-section-title .title');
+        const table = $('#package_template table').first(),
+            type = table.find('th.col-type, td.col-type');
 
-        if (!templates.length || !title.length || $('#package_template .polkurier-pack-template').length) {
+        if (!templates.length || type.length !== 2 || table.find('.col-polkurier-template').length) {
             return;
         }
         const select = $('<select class="admin__control-select polkurier-pack-template"/>')
             .attr('aria-label', $t('Pack template'))
-            .append($('<option value=""/>').text($t('Pack template…')));
+            .append($('<option value=""/>').text($t('No template')));
 
         templates.forEach(function (template) {
-            select.append($('<option/>').val(template.id).text(template.name));
+            const option = $('<option/>').val(template.id).text(template.name);
+
+            // The attribute, not the property: a copied select keeps what its markup says.
+            if (template.is_default) {
+                option.attr('selected', 'selected');
+            }
+            select.append(option);
         });
-        title.after(select);
+        type.first().before($('<th class="col-polkurier-template"/>').text($t('Pack template')));
+        type.last().before($('<td class="col-polkurier-template"/>').append(select));
+    }
+
+    /**
+     * Packages the window made before this ran, on a page still loading: they get the template
+     * choice, the default template and the units, as a new package does.
+     *
+     * @param {Array<Object>} templates
+     * @param {String} mode
+     */
+    function catchUp(templates, mode) {
+        const column = $('#package_template table').first().find('.col-polkurier-template');
+
+        if (column.length !== 2) {
+            return;
+        }
+        $('#packages_content [id^=package_block]').each(function () {
+            const pack = $(this),
+                type = pack.find('table').first().find('th.col-type, td.col-type');
+
+            if (pack.find('.col-polkurier-template').length || type.length !== 2) {
+                return;
+            }
+            type.first().before(column.first().clone());
+            type.last().before(column.last().clone());
+            pack.find('select[name=container_weight_units]').val('KILOGRAM');
+            pack.find('select[name=container_dimension_units]').val('CENTIMETER');
+            const select = pack.find('select.polkurier-pack-template')[0];
+
+            if (select && select.value) {
+                applyTemplate(select, templates, mode);
+            }
+        });
+    }
+
+    /**
+     * A new package takes its chosen template, the default one, straight away.
+     *
+     * @param {Array<Object>} templates
+     * @param {String} mode
+     */
+    function applyOnNewPackage(templates, mode) {
+        const prototype = window.Packaging && window.Packaging.prototype,
+            original = prototype && prototype.newPackage;
+
+        if (typeof original !== 'function' || original.polkurier) {
+            return;
+        }
+        prototype.newPackage = function () {
+            original.apply(this, arguments);
+            // Magento puts the new package on top.
+            const select = $('#packages_content [id^=package_block]').first().find('select.polkurier-pack-template')[0];
+
+            if (select && select.value) {
+                applyTemplate(select, templates, mode);
+            }
+        };
+        prototype.newPackage.polkurier = true;
     }
 
     /**
@@ -128,18 +197,262 @@ define([
         weighPackage(pack, templates, mode);
     }
 
+    /**
+     * What the window says about packing automatically, above the packages.
+     *
+     * @param {Array<String>} lines none to say nothing
+     * @param {Boolean} [error]
+     */
+    function note(lines, error) {
+        let box = $('#packaging_window .polkurier-packaging-note');
+
+        if (!box.length) {
+            box = $('<div class="message polkurier-packaging-note"/>').insertBefore('#packages_content');
+        }
+        box.toggleClass('message-notice notice', !error).toggleClass('message-error error', Boolean(error))
+            .empty().toggle(lines.length > 0);
+        lines.forEach(function (line) {
+            box.append($('<div/>').text(line));
+        });
+    }
+
+    /**
+     * The items the window packs, as Magento offers them to a package: by order item id, what's
+     * shipped of each. Asked for once per packing.
+     *
+     * @param {Object} popup the packaging window's Packaging
+     * @param {Function} done called with the grid's markup and the quantities
+     * @param {Function} fail
+     */
+    function shippedItems(popup, done, fail) {
+        new Ajax.Request(popup.itemsGridUrl, {
+            parameters: {'shipment_id': popup.shipmentId},
+            onSuccess: function (transport) {
+                const html = transport.responseText || '',
+                    holder = new Element('div'),
+                    packed = popup.packages,
+                    qtys = {};
+
+                holder.update(html);
+                // As offered to a popup without packages: everything shipped.
+                popup.packages = [];
+                popup.processPackagePrepare(holder);
+                popup.packages = packed;
+                holder.select('.grid tbody tr').each(function (row) {
+                    const qty = parseFloat(row.select('[name="qty"]')[0].value);
+
+                    if (qty > 0) {
+                        qtys[row.select('[type="checkbox"]')[0].value] = qty;
+                    }
+                });
+                done(html, qtys);
+            },
+            onFailure: fail
+        });
+    }
+
+    /**
+     * Makes one package of a parcel packed automatically: its template, type, size and weight,
+     * and its items, packed the way Magento packs the ones chosen in a package.
+     *
+     * @param {Object} popup the packaging popup's Packaging
+     * @param {Object} pack template_id, pack_type, length, width, height, weight, items
+     * @param {String} html the items' grid
+     * @param {Number} number the package's, which keeps its grid's ids its own
+     * @param {Array<Object>} templates
+     * @param {String} mode
+     */
+    function fillPackage(popup, pack, html, number, templates, mode) {
+        popup.newPackage();
+        // Magento puts the new package on top.
+        const block = $('#packages_content [id^=package_block]').first(),
+            element = block[0],
+            select = block.find('select.polkurier-pack-template')[0],
+            template = templates.find(function (item) {
+                return item.id === String(pack.template_id || '');
+            }),
+            set = function (name, value) {
+                block.find('[name=' + name + ']').val(value).trigger('change');
+            },
+            contents = {},
+            grid = element.select('[data-role=package-items] .grid_prepare')[0],
+            // Magento asks for the grid for each package, each with ids of its own.
+            gridId = (html.match(/packaging-data-grid-(\d+)/) || [])[1];
+
+        if (select) {
+            select.value = template ? template.id : '';
+        }
+        if (template) {
+            applyTemplate(select, templates, mode);
+        } else {
+            block.find('select[name=container_weight_units]').val('KILOGRAM');
+            block.find('select[name=container_dimension_units]').val('CENTIMETER');
+        }
+        // A parcel of its own size, or a template's: as packed.
+        set('package_container', pack.pack_type);
+        set('container_length', pack.length);
+        set('container_width', pack.width);
+        set('container_height', pack.height);
+        (pack.items || []).forEach(function (row) {
+            contents[String(row.order_item_id)] = rules.amount(row.qty);
+        });
+        grid.update(gridId
+            ? html.replace(new RegExp('(packaging-data-grid-|select-items?-)' + gridId + '\\b', 'g'), '$1' + gridId + '_' + number)
+            : html);
+        popup.processPackagePrepare(grid);
+        grid.select('.grid tbody tr').each(function (row) {
+            const checkbox = row.select('[type="checkbox"]')[0],
+                qty = contents[checkbox.value] || 0;
+
+            checkbox.checked = qty > 0;
+            if (qty > 0) {
+                row.select('[name="qty"]')[0].value = qty;
+            }
+            popup._observeQty.call(checkbox);
+        });
+        popup.packItems(element.select('[data-action=package-save-items]')[0]);
+        if (rules.amount(pack.weight) > 0) {
+            block.find('[name=container_weight]').val(pack.weight);
+        }
+    }
+
+    /**
+     * Puts the items shipped into packages of the pack templates, by their shipping dimensions, in
+     * place of the packages there are. Packages with items keep the shipment to their kind; without
+     * any, the items decide what they go as (AutoPacker::packByItems).
+     *
+     * @param {Object} popup the packaging popup's Packaging
+     * @param {Object} config url, orderId, shipmentId
+     * @param {Array<Object>} templates
+     * @param {String} mode
+     */
+    function packAutomatically(popup, config, templates, mode) {
+        const kinds = $('#packages_content [id^=package_block]').filter(function () {
+                return $(this).find('.package_items .grid tbody tr').length > 0;
+            }).map(function () {
+                return {pack_type: $(this).find('select[name=package_container]').val()};
+            }).get(),
+            stop = function () {
+                $('body').trigger('processStop');
+            },
+            failed = function () {
+                stop();
+                note([$t('The items could not be packed.')], true);
+            };
+
+        $('body').trigger('processStart');
+        shippedItems(popup, function (html, qtys) {
+            request().post(config.url, {
+                data: {
+                    order_id: config.orderId,
+                    target_shipment_id: config.shipmentId || '',
+                    items: Object.keys(qtys).map(function (id) {
+                        return {order_item_id: id, qty: qtys[id]};
+                    }),
+                    packs: kinds
+                }
+            }, {
+                done: function (response) {
+                    stop();
+                    if (!response || response.error) {
+                        note([response && response.message ? response.message : $t('The items could not be packed.')], true);
+
+                        return;
+                    }
+                    popup.cleanPackages();
+                    response.packs.forEach(function (pack, index) {
+                        fillPackage(popup, pack, html, index + 1, templates, mode);
+                    });
+                    note([$t('Packed automatically. Check the actual parcels\' and items\' sizes and weights before placing the order.')]
+                        .concat(response.message ? [response.message] : []));
+                },
+                fail: failed
+            });
+        }, failed);
+    }
+
+    /**
+     * The window gets a Pack automatically button by Add Package, and, where new shipments start
+     * packed, packs the items when it opens without packages. Packages emptied (Cancel) take the
+     * note away.
+     *
+     * @param {Object} config url, orderId, shipmentId, onOpen
+     * @param {Array<Object>} templates
+     * @param {String} mode
+     */
+    function offerAutoPack(config, templates, mode) {
+        const prototype = window.Packaging && window.Packaging.prototype,
+            show = prototype && prototype.showWindow,
+            clean = prototype && prototype.cleanPackages;
+
+        if (typeof show !== 'function' || show.polkurier) {
+            return;
+        }
+        prototype.showWindow = function () {
+            const empty = !this.packagesContent.childElements().length,
+                packaging = this;
+
+            show.apply(this, arguments);
+            const add = $('#packaging_window').closest('.modal-inner-wrap').find('[data-action=add-packages]');
+
+            if (add.length && !add.siblings('[data-action=polkurier-pack]').length) {
+                $('<button type="button" class="action-secondary" data-action="polkurier-pack"/>')
+                    .append($('<span/>').text($t('Pack automatically')))
+                    .insertAfter(add)
+                    .on('click', function () {
+                        const packed = $('#packages_content .package_items .grid tbody tr').length > 0;
+
+                        confirm({
+                            title: $t('Pack automatically?'),
+                            content: packed
+                                ? $t('The current parcels are replaced with parcels of your pack templates, with the items spread over them by their size.')
+                                : $t('The items are spread over parcels of your pack templates by their size.'),
+                            actions: {
+                                confirm: function () {
+                                    packAutomatically(window.packaging || packaging, config, templates, mode);
+                                }
+                            }
+                        });
+                    });
+            }
+            // Only once it's open: the label options keep it shut while they're wrong.
+            if (empty && config.onOpen && $('#packaging_window').closest('.modal-slide').hasClass('_show')) {
+                packAutomatically(this, config, templates, mode);
+            }
+        };
+        prototype.showWindow.polkurier = true;
+        prototype.cleanPackages = function () {
+            clean.apply(this, arguments);
+            note([]);
+        };
+    }
+
+    let started = false;
+
     return {
         /**
+         * Once per page: the label options and the page itself may both ask.
+         *
          * @param {Array<Object>} templates the pack templates with a size
          * @param {String} mode the parcel weight setting: 'products' or 'template'
+         * @param {Object|null} autoPack where the items are packed automatically, null where not
          */
-        init: function (templates, mode) {
+        init: function (templates, mode, autoPack) {
+            if (started) {
+                return;
+            }
+            started = true;
             $(document).on('change', '#packages_content select.polkurier-pack-template', function () {
                 applyTemplate(this, templates, mode);
             });
             followParcelWeight(templates, mode);
+            applyOnNewPackage(templates, mode);
+            if (autoPack) {
+                offerAutoPack(autoPack, templates, mode);
+            }
             metricPackages();
             addTemplateChoice(templates);
+            catchUp(templates, mode);
         }
     };
 });

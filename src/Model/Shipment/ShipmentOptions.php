@@ -103,7 +103,7 @@ class ShipmentOptions
     {
         $options = [];
         foreach ($this->getCarriers() as $code => $carrier) {
-            $options[] = ['value' => (string)$code, 'label' => \sprintf('%s (%s)', $carrier->getName(), $code)];
+            $options[] = ['value' => (string)$code, 'label' => $carrier->getName() !== '' ? $carrier->getName() : (string)$code];
         }
 
         return $options;

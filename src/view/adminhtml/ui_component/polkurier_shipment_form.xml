@@ -26,7 +26,7 @@
     <dataSource name="polkurier_shipment_form_data_source">
         <argument name="data" xsi:type="array">
             <item name="js_config" xsi:type="array">
-                <item name="component" xsi:type="string">Magento_Ui/js/form/provider</item>
+                <item name="component" xsi:type="string">Polkurier_Shipping/js/shipment/workspace/provider</item>
             </item>
         </argument>
         <settings>
@@ -62,15 +62,11 @@
                         <!-- What in the section the checks in rules.js report on -->
                         <item name="cards" xsi:type="array">
                             <item name="0" xsi:type="string">carrier</item>
-                            <item name="1" xsi:type="string">parcels</item>
-                            <item name="2" xsi:type="string">fields</item>
+                            <item name="1" xsi:type="string">fields</item>
                         </item>
                         <!-- Where the checks' problems are fixed -->
                         <item name="fixModals" xsi:type="array">
                             <item name="carrier" xsi:type="string">carrier_modal</item>
-                        </item>
-                        <item name="fixParts" xsi:type="array">
-                            <item name="parcels" xsi:type="string">parcels</item>
                         </item>
                     </item>
                 </argument>
@@ -82,7 +78,6 @@
                         </item>
                     </argument>
                 </container>
-                <container name="parcels" component="Polkurier_Shipping/js/shipment/workspace/parcels" sortOrder="20"></container>
                 <container name="additional_fields" component="Polkurier_Shipping/js/shipment/additional-fields" sortOrder="30">
                     <argument name="data" xsi:type="array">
                         <item name="config" xsi:type="array">
@@ -193,12 +188,22 @@
                     <item name="additionalClasses" xsi:type="string">polkurier-workspace__side</item>
                 </item>
             </argument>
-            <container name="templates" component="Polkurier_Shipping/js/shipment/workspace/templates" sortOrder="10">
+            <container name="parcels_section" component="Polkurier_Shipping/js/shipment/workspace/section" sortOrder="10">
                 <argument name="data" xsi:type="array">
                     <item name="config" xsi:type="array">
-                        <item name="parcels" xsi:type="string">${ $.ns }.${ $.ns }.workspace.main.shipment_section.parcels</item>
+                        <item name="label" xsi:type="string" translate="true">Parcels</item>
+                        <item name="additionalClasses" xsi:type="string">polkurier-section polkurier-section--parcels</item>
+                        <!-- What in the section the checks in rules.js report on -->
+                        <item name="cards" xsi:type="array">
+                            <item name="0" xsi:type="string">parcels</item>
+                        </item>
+                        <!-- Where the checks' problems are fixed -->
+                        <item name="fixParts" xsi:type="array">
+                            <item name="parcels" xsi:type="string">parcels</item>
+                        </item>
                     </item>
                 </argument>
+                <container name="parcels" component="Polkurier_Shipping/js/shipment/workspace/parcels" sortOrder="10"></container>
             </container>
             <container name="summary" component="Polkurier_Shipping/js/shipment/workspace/summary" sortOrder="20">
                 <argument name="data" xsi:type="array">
@@ -263,7 +268,7 @@
     <modal name="shipment_modal">
         <settings>
             <options>
-                <option name="title" xsi:type="string" translate="true">Contents</option>
+                <option name="title" xsi:type="string" translate="true">Shipment description</option>
                 <option name="type" xsi:type="string">popup</option>
                 <option name="modalClass" xsi:type="string">polkurier-workspace-modal</option>
                 <option name="buttons" xsi:type="array">
@@ -286,30 +291,15 @@
         </settings>
         <fieldset name="shipment" sortOrder="10">
             <settings>
-                <label translate="true">Contents</label>
+                <label translate="true">Shipment description</label>
             </settings>
-            <field name="shipment_type" formElement="select" sortOrder="10">
-                <settings>
-                    <label translate="true">Shipment type</label>
-                    <dataType>text</dataType>
-                    <dataScope>shipment_type</dataScope>
-                    <validation><rule name="required-entry" xsi:type="boolean">true</rule></validation>
-                </settings>
-                <formElements>
-                    <select>
-                        <settings>
-                            <options class="Polkurier\Shipping\Model\Config\Source\ShipmentType"/>
-                        </settings>
-                    </select>
-                </formElements>
-            </field>
             <field name="description" formElement="input" sortOrder="20">
                 <settings>
                     <label translate="true">Description</label>
                     <dataType>text</dataType>
                     <dataScope>description</dataScope>
                     <validation><rule name="required-entry" xsi:type="boolean">true</rule></validation>
-                    <notice translate="true">Printed on the label; up to 30 characters.</notice>
+                    <notice translate="true">Printed on the label; up to 30 characters. It starts as the order number, as the shipment description format in the configuration says.</notice>
                 </settings>
             </field>
         </fieldset>

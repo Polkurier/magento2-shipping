@@ -16,6 +16,7 @@ use Polkurier\Webservice\Exception\Exception as PolkurierException;
 use Polkurier\Webservice\Exception\InvalidArgumentException;
 use Polkurier\Webservice\Exception\MalformedResponseException;
 use Polkurier\Webservice\Exception\ValidationException;
+use Polkurier\Webservice\Enum\Http\ApiErrorCodeEnum;
 use Polkurier\Webservice\Exception\WebserviceException;
 
 /**
@@ -25,6 +26,23 @@ use Polkurier\Webservice\Exception\WebserviceException;
  */
 class ErrorMessages
 {
+    /**
+     * Error codes for a Polkurier that is down or busy, rather than refusing the request itself.
+     */
+    private const array TRANSIENT_CODES = [
+        ApiErrorCodeEnum::UnknownError,
+        ApiErrorCodeEnum::MaintenanceMode,
+        ApiErrorCodeEnum::TooManyRequests,
+        ApiErrorCodeEnum::InternalServerError,
+    ];
+
+    /**
+     * How Polkurier and the carriers word a passing failure in an uncoded refusal: "try again",
+     * "temporarily", "in a moment", "later", "overload". Every other uncoded refusal (a service the
+     * carrier doesn't offer, a missing configuration, funds, sizes) stays the same however often asked.
+     */
+    private const string TRANSIENT_HINT = '/spr[oó]b(uj|ować)\s+ponownie|chwilow|za\s+chwil|później|przeciąż/iu';
+
     /**
      * The failure as an exception to show the merchant, with the message described. The message
      * is translated already, so it goes into the phrase as it is rather than through a "%1".
@@ -60,6 +78,34 @@ class ErrorMessages
             $e instanceof PolkurierException => (string)\__('Polkurier error: %1', $e->getMessage()),
             default => $e->getMessage(),
         };
+    }
+
+    /**
+     * Whether asking again, unchanged, may get another answer: Polkurier unreachable, down or busy,
+     * or saying so itself. A refusal of the request as it is gets the same answer every time, so
+     * there is no point offering to try again; only a change to the request can help.
+     */
+    public function isTransient(\Throwable $e): bool
+    {
+        // Through the merchant-facing exceptions to the SDK failure behind them.
+        while ($e instanceof LocalizedException && $e->getPrevious() !== null) {
+            $e = $e->getPrevious();
+        }
+        if ($e instanceof ConnectionException || $e instanceof MalformedResponseException) {
+            return true;
+        }
+        if (!$e instanceof WebserviceException) {
+            return false;
+        }
+        $error = $e->getErrorMessage();
+        $code = ApiErrorCodeEnum::tryFrom((string)$error->getErrorCode())
+            ?? ($error->getStatusCode() ? ApiErrorCodeEnum::fromStatusCode($error->getStatusCode()) : null);
+        if ($code !== null) {
+            return \in_array($code, self::TRANSIENT_CODES, true);
+        }
+        $reason = \trim(\is_string($error->getResponse()) ? $error->getResponse() : '');
+
+        return $reason === '' || \preg_match(self::TRANSIENT_HINT, $reason) === 1;
     }
 
     /**

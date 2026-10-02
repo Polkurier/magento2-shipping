@@ -8,7 +8,6 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Logger;
 
 use Monolog\LogRecord;
-use Monolog\Processor\ProcessorInterface;
 use Psr\Http\Message\RequestInterface;
 
 /**
@@ -18,8 +17,12 @@ use Psr\Http\Message\RequestInterface;
  * verbatim — both inside the message and as the PSR-7 request in the context. Confirmations add
  * PINs, codes and two-factor tokens. This replaces their values in the message and anywhere in
  * the context, and swaps request objects for a redacted copy of their body.
+ *
+ * A plain callable rather than Monolog's ProcessorInterface, whose signature differs between
+ * Monolog 2 (array records, Magento 2.4.7) and Monolog 3 (LogRecord, Magento 2.4.8 and later):
+ * Monolog takes any callable as a processor, and this one handles both kinds of record.
  */
-class TokenRedactingProcessor implements ProcessorInterface
+class TokenRedactingProcessor
 {
     public const string MASK = '***';
 
@@ -40,8 +43,19 @@ class TokenRedactingProcessor implements ProcessorInterface
         'previous_password',
     ];
 
-    public function __invoke(LogRecord $record): LogRecord
+    /**
+     * @param LogRecord|array<string, mixed> $record
+     * @return LogRecord|array<string, mixed> the same kind of record
+     */
+    public function __invoke(LogRecord|array $record): LogRecord|array
     {
+        if (\is_array($record)) {
+            $record['message'] = self::redact((string)($record['message'] ?? ''));
+            $record['context'] = self::redactArray((array)($record['context'] ?? []));
+
+            return $record;
+        }
+
         return $record->with(message: self::redact($record->message), context: self::redactArray($record->context));
     }
 

@@ -25,11 +25,24 @@ class CarrierFeatures
      * Services offered with every carrier, whatever the carrier list says.
      */
     private const array ALWAYS_OFFERED = [
-        AdditionalServiceEnum::SmsNotificationRecipient,
-        AdditionalServiceEnum::SmsNotificationRecipientWithName,
-        AdditionalServiceEnum::SmsNotificationRecipientOutForDelivery,
-        AdditionalServiceEnum::SmsNotificationRecipientOutForDeliveryWithName,
+        AdditionalServiceEnum::SmsOnDispatch,
+        AdditionalServiceEnum::SmsOnDispatchWithSenderName,
+        AdditionalServiceEnum::SmsOutForDelivery,
+        AdditionalServiceEnum::SmsOutForDeliveryWithSenderName,
         AdditionalServiceEnum::CheckContent,
+    ];
+
+    /**
+     * Services for pallets, which the carrier list doesn't report: offered with every carrier that
+     * takes pallets, for pallet shipments, and Polkurier's pricing says which carriers take them.
+     */
+    public const array PALLET_SERVICES = [
+        AdditionalServiceEnum::DangerousGoods,
+        AdditionalServiceEnum::DoNotStack,
+        AdditionalServiceEnum::TailLiftAtPickup,
+        AdditionalServiceEnum::TailLiftAtDelivery,
+        AdditionalServiceEnum::SideLoadAtPickup,
+        AdditionalServiceEnum::SideUnloadAtDelivery,
     ];
 
     public function isForeign(Carrier $carrier): bool
@@ -129,25 +142,28 @@ class CarrierFeatures
     public function getServices(Carrier $carrier): array
     {
         $services = self::ALWAYS_OFFERED;
+        if (\in_array(ShipmentTypeEnum::Palette, $this->getShipmentTypes($carrier), true)) {
+            $services = [...$services, ...self::PALLET_SERVICES];
+        }
         $offered = $carrier->getAdditionalData()?->getCourierService();
         if ($offered === null) {
             return $services;
         }
 
         $map = [
-            [$offered->getRod(), AdditionalServiceEnum::ReturnOfDocuments],
-            [$offered->getCoverAddressSender(), AdditionalServiceEnum::CoverAddressSender],
-            [$offered->getBringingDeliveredParcel(), AdditionalServiceEnum::BringingDeliveredParcel],
-            [$offered->getCourierWithLabel(), AdditionalServiceEnum::CourierWithLabel],
+            [$offered->getReturnOfDocuments(), AdditionalServiceEnum::ReturnOfDocuments],
+            [$offered->getCoverSenderAddress(), AdditionalServiceEnum::CoverSenderAddress],
+            [$offered->getCarryIn(), AdditionalServiceEnum::CarryIn],
+            [$offered->getCourierBringsLabel(), AdditionalServiceEnum::CourierBringsLabel],
             [$offered->getSaturdayDelivery(), AdditionalServiceEnum::SaturdayDelivery],
-            [$offered->getPhoneNotificationRecipient(), AdditionalServiceEnum::PhoneNotificationRecipient],
-            [$offered->getPhoneNotificationRecipient(), AdditionalServiceEnum::PhoneNotificationCollection],
+            [$offered->getPhoneCallBeforeDelivery(), AdditionalServiceEnum::PhoneCallBeforeDelivery],
+            [$offered->getPhoneCallBeforeDelivery(), AdditionalServiceEnum::PhoneCallBeforePickup],
             [$offered->getTires(), AdditionalServiceEnum::Tires],
             [$offered->getHandDelivery(), AdditionalServiceEnum::HandDelivery],
-            [$offered->getEndOfWeekCollection(), AdditionalServiceEnum::WeekCollection],
+            [$offered->getWeekendDelivery(), AdditionalServiceEnum::WeekendDelivery],
             [$offered->getLabelless(), AdditionalServiceEnum::Labelless],
             [$offered->getHandleWithCare(), AdditionalServiceEnum::HandleWithCare],
-            [$offered->getDeliveryToTime(), AdditionalServiceEnum::DeliveryToTime],
+            [$offered->getDeliveryByTime(), AdditionalServiceEnum::DeliveryByTime],
         ];
         foreach ($map as [$property, $service]) {
             if ($property instanceof Property && $property->isAvailable()) {

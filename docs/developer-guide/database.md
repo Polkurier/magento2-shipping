@@ -11,9 +11,10 @@ patches live in `Setup/Patch/Data`.
 
 | Data patch | |
 |---|---|
-| `MarkFinishedShipments` | flags shipments that were already finished when the `is_final` column arrived |
-| `PlaceCarrierLogoColumn` | puts the Logo column after "Label in checkout" in carriers lists admins had already arranged |
-| `RemoveAccountScopeOverrides` | deletes values of the account settings saved for a website or store view, since they're read from the default scope only |
+| `AddProductDimensions` | adds the product attributes for one unit's shipping size, used to pack orders into parcels |
+
+The module hasn't been released, so there are no patches that move data from an earlier version:
+every installation starts clean. Add one only for a change after the first release.
 
 ## Tables
 

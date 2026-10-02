@@ -23,6 +23,6 @@ class InlineEdit extends AbstractInlineEdit
 
     protected function getEditableFields(): array
     {
-        return ['name', 'shipment_type', 'pack_type', 'length', 'width', 'height', 'weight', 'is_default'];
+        return ['name', 'pack_type', 'length', 'width', 'height', 'weight', 'is_default'];
     }
 }

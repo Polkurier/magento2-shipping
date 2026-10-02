@@ -173,9 +173,14 @@
         </field>
         <field name="price" formElement="input" sortOrder="20">
             <settings>
-                <label translate="true">Price</label>
+                <label translate="true">Fixed price</label>
                 <dataType>number</dataType>
-                <validation><rule name="validate-number" xsi:type="boolean">true</rule><rule name="validate-zero-or-greater" xsi:type="boolean">true</rule></validation>
+                <!-- Checked only while shown, with fixed pricing -->
+                <validation>
+                    <rule name="required-entry" xsi:type="boolean">true</rule>
+                    <rule name="validate-number" xsi:type="boolean">true</rule>
+                    <rule name="validate-zero-or-greater" xsi:type="boolean">true</rule>
+                </validation>
                 <dataScope>price</dataScope>
             </settings>
         </field>
@@ -209,7 +214,7 @@
                 </field>
                 <field name="weight_from" formElement="input" sortOrder="20">
                     <settings>
-                        <label translate="true">Weight from [kg]</label>
+                        <label translate="true">Weight from (kg)</label>
                         <dataType>number</dataType>
                         <dataScope>weight_from</dataScope>
                         <validation><rule name="validate-number" xsi:type="boolean">true</rule><rule name="validate-zero-or-greater" xsi:type="boolean">true</rule></validation>

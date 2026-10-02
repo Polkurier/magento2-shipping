@@ -11,22 +11,18 @@
             <values>
                 <value id="polkurier_maps" type="host">maps.polkurier.pl</value>
                 <value id="polkurier_maps_sandbox" type="host">maps-sandbox.polkurier.pl</value>
-                <!-- TODO: remove before publishing: local development instance -->
-                <value id="polkurier_maps_local" type="host">maps.polkurier.local</value>
             </values>
         </policy>
         <policy id="style-src">
             <values>
                 <value id="polkurier_maps" type="host">maps.polkurier.pl</value>
                 <value id="polkurier_maps_sandbox" type="host">maps-sandbox.polkurier.pl</value>
-                <value id="polkurier_maps_local" type="host">maps.polkurier.local</value>
             </values>
         </policy>
         <policy id="connect-src">
             <values>
                 <value id="polkurier_maps" type="host">maps.polkurier.pl</value>
                 <value id="polkurier_maps_sandbox" type="host">maps-sandbox.polkurier.pl</value>
-                <value id="polkurier_maps_local" type="host">maps.polkurier.local</value>
             </values>
         </policy>
         <policy id="img-src">
@@ -34,7 +30,6 @@
                 <value id="polkurier_www" type="host">www.polkurier.pl</value>
                 <value id="polkurier_maps" type="host">maps.polkurier.pl</value>
                 <value id="polkurier_maps_sandbox" type="host">maps-sandbox.polkurier.pl</value>
-                <value id="polkurier_maps_local" type="host">maps.polkurier.local</value>
                 <value id="openstreetmap_tiles" type="host">*.tile.openstreetmap.org</value>
                 <value id="openstreetmap_tile" type="host">tile.openstreetmap.org</value>
             </values>

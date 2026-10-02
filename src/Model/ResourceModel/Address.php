@@ -11,6 +11,8 @@ use Magento\Framework\Model\ResourceModel\Db\AbstractDb;
 
 class Address extends AbstractDb
 {
+    use NamedEntries;
+
     public const string TABLE_NAME = 'polkurier_address';
 
     protected function _construct(): void

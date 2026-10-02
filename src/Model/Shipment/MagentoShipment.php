@@ -21,7 +21,7 @@ use Polkurier\Shipping\Api\Data\ShipmentDraft\ItemInterface;
 use Polkurier\Shipping\Api\Data\ShipmentDraft\PackInterface;
 use Polkurier\Shipping\Api\Data\ShipmentDraftInterface;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
-use Polkurier\Shipping\Api\ShipmentRepositoryInterface as PolkurierShipmentRepository;
+use Polkurier\Shipping\Model\Carrier\CarrierConfigs;
 use Polkurier\Shipping\Model\Carrier\Polkurier;
 use Polkurier\Shipping\Model\Config;
 use Polkurier\Shipping\Model\ResourceModel\Shipment\CollectionFactory;
@@ -32,8 +32,8 @@ use Polkurier\Shipping\Model\ResourceModel\Shipment\CollectionFactory;
  *
  * Each Magento shipment goes with one Polkurier order. A Polkurier order either ships items the
  * order has left, in a new Magento shipment, or goes on a Magento shipment that has none, such as
- * one made without a label. A cancelled Polkurier order takes its Magento shipment with it
- * (MagentoShipmentRemoval), so its items are left to ship again.
+ * one made without a label, or one whose Polkurier order was cancelled (LabelRemoval clears it of
+ * that order's label, packages and waybills).
  */
 class MagentoShipment
 {
@@ -55,8 +55,8 @@ class MagentoShipment
         private readonly ShipmentTrackRepositoryInterface $trackRepository,
         private readonly ShipmentRepositoryInterface $shipmentRepository,
         private readonly CollectionFactory $shipmentCollectionFactory,
-        private readonly PolkurierShipmentRepository $polkurierShipmentRepository,
         private readonly Config $config,
+        private readonly CarrierConfigs $carrierConfigs,
     ) {}
 
     /**
@@ -71,6 +71,19 @@ class MagentoShipment
      */
     public function getTarget(Order $order, ShipmentDraftInterface $draft): array
     {
+        $targetId = $draft->getTargetShipmentId();
+        if ($targetId !== null) {
+            // A Magento shipment of a cancelled Polkurier order, chosen on its page: its items, as
+            // they are, in the parcels drafted.
+            $this->assertFree($order, $targetId);
+            $qtys = $this->getShipmentQuantities($order, $targetId);
+
+            return [
+                'qtys' => [],
+                'shipment_id' => $targetId,
+                'packages' => $this->getPackages($order, $draft->getPacks(), $qtys),
+            ];
+        }
         if ($order->canShip()) {
             $qtys = $this->getQuantities($order, $draft->getItems());
 
@@ -115,7 +128,7 @@ class MagentoShipment
             foreach ($pack->getItems() as $item) {
                 $id = $item->getOrderItemId();
                 if ($item->getQty() < 0) {
-                    throw new LocalizedException(\__('A parcel can\'t hold less than none of an item.'));
+                    throw new LocalizedException(\__('A parcel cannot hold a negative quantity of an item.'));
                 }
                 if ($item->getQty() > 0 && !isset($qtys[$id], $shippable[$id])) {
                     throw new LocalizedException(\__('A parcel holds an item the shipment doesn\'t carry.'));
@@ -191,8 +204,10 @@ class MagentoShipment
         if ($shipments === []) {
             return [];
         }
+        // Oldest first: what a new Polkurier order replaces is the latest cancelled one.
         $linked = $this->shipmentCollectionFactory->create()
-            ->addFieldToFilter(ShipmentInterface::SHIPMENT_ID, ['in' => \array_keys($shipments)]);
+            ->addFieldToFilter(ShipmentInterface::SHIPMENT_ID, ['in' => \array_keys($shipments)])
+            ->setOrder(ShipmentInterface::ENTITY_ID, 'ASC');
         foreach ($linked->getItems() as $polkurier) {
             $id = (int)$polkurier->getShipmentId();
             if (\in_array($polkurier->getState(), self::HOLDING_STATES, true)) {
@@ -204,6 +219,42 @@ class MagentoShipment
         \ksort($shipments);
 
         return $shipments;
+    }
+
+    /**
+     * Checks that a Magento shipment of the order can take a new Polkurier order: it has none, or
+     * only cancelled ones.
+     *
+     * @throws LocalizedException
+     */
+    public function assertFree(Order $order, int $magentoShipmentId): void
+    {
+        if (!isset($this->getFreeShipments($order)[$magentoShipmentId])) {
+            throw new LocalizedException(\__(
+                'This Magento shipment already has a Polkurier order. To send another, cancel that one first.',
+            ));
+        }
+    }
+
+    /**
+     * What a Magento shipment of the order carries.
+     *
+     * @return array<int, float> by order item id
+     */
+    public function getShipmentQuantities(Order $order, int $magentoShipmentId): array
+    {
+        $qtys = [];
+        foreach ($order->getShipmentsCollection() as $magentoShipment) {
+            if ((int)$magentoShipment->getId() === $magentoShipmentId) {
+                foreach ($magentoShipment->getAllItems() as $item) {
+                    if ((float)$item->getQty() > 0) {
+                        $qtys[(int)$item->getOrderItemId()] = (float)$item->getQty();
+                    }
+                }
+            }
+        }
+
+        return $qtys;
     }
 
     /**
@@ -314,13 +365,19 @@ class MagentoShipment
         }
         $this->release($targetId);
         $this->addTracks($order, $targetId, $shipment, $shipment->getWaybills());
+        $magentoShipment = $packages !== [] ? $this->shipmentRepository->get($targetId) : null;
+        if ($magentoShipment instanceof MagentoShipmentModel) {
+            // The new parcels, in place of what the cancelled order's label had.
+            $this->shipmentRepository->save($magentoShipment->setData(MagentoShipmentInterface::PACKAGES, $packages));
+        }
 
         return $targetId;
     }
 
     /**
-     * Lets go of a Magento shipment for the Polkurier order that replaces a cancelled one: the
-     * cancelled order is unlinked and its waybills are removed from the shipment's tracking.
+     * Readies a Magento shipment for the Polkurier order that replaces a cancelled one: the
+     * cancelled order's waybills, if still there, are removed from the shipment's tracking. It
+     * stays linked: a Magento shipment keeps every Polkurier order it has had.
      */
     public function release(int $magentoShipmentId): void
     {
@@ -330,7 +387,6 @@ class MagentoShipment
         $waybills = [];
         foreach ($linked->getItems() as $replaced) {
             $waybills = \array_merge($waybills, $replaced->getWaybills());
-            $this->polkurierShipmentRepository->save($replaced->setShipmentId(null));
         }
         if ($waybills === []) {
             return;
@@ -366,12 +422,20 @@ class MagentoShipment
     }
 
     /**
-     * The title customers see for a track: the shipping method they chose.
+     * The title customers see for a track: the label, in the order's store, of the carrier the
+     * parcels go with, as the tracking popup has it. Without the carrier's settings, the shipping
+     * method the order was placed with, or the carrier's code.
      */
     public function getTrackTitle(Order $order, string $carrierCode): string
     {
+        $config = $carrierCode !== '' ? $this->carrierConfigs->get($carrierCode) : null;
+        if ($config !== null) {
+            return $config->getLabelForStore((int)$order->getStoreId());
+        }
         $description = (string)$order->getShippingDescription();
 
-        return $description !== '' ? $description : $carrierCode;
+        return $carrierCode === '' || $carrierCode === Polkurier::methodCodeOf((string)$order->getShippingMethod())
+            ? ($description !== '' ? $description : $carrierCode)
+            : $carrierCode;
     }
 }

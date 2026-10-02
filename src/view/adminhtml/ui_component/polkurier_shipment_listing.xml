@@ -11,6 +11,9 @@
         </item>
     </argument>
     <settings>
+        <buttons>
+            <button name="refresh_statuses" class="Polkurier\Shipping\Ui\Component\Control\RefreshStatusesButton"/>
+        </buttons>
         <spinner>polkurier_shipment_listing_columns</spinner>
         <deps>
             <dep>polkurier_shipment_listing.polkurier_shipment_listing_data_source</dep>
@@ -24,7 +27,7 @@
             <updateUrl path="mui/index/render"/>
         </settings>
         <aclResource>Polkurier_Shipping::shipments</aclResource>
-        <dataProvider class="Magento\Framework\View\Element\UiComponent\DataProvider\DataProvider" name="polkurier_shipment_listing_data_source">
+        <dataProvider class="Polkurier\Shipping\Ui\Component\DataProvider\GridDataProvider" name="polkurier_shipment_listing_data_source">
             <settings>
                 <requestFieldName>id</requestFieldName>
                 <primaryFieldName>entity_id</primaryFieldName>
@@ -34,6 +37,8 @@
     <listingToolbar name="listing_top">
         <bookmark name="bookmarks"/>
         <columnsControls name="columns_controls"/>
+        <exportButton name="export_button"/>
+        <filterSearch name="fulltext"/>
         <filters name="listing_filters"/>
         <massaction name="listing_massaction">
             <action name="label">
@@ -57,7 +62,8 @@
                     <label translate="true">Update statuses</label>
                 </settings>
             </action>
-            <action name="pickup">
+            <action name="pickup" class="Polkurier\Shipping\Ui\Component\MassAction\AllowedAction">
+                <argument name="aclResource" xsi:type="string">Polkurier_Shipping::shipment_create</argument>
                 <settings>
                     <url path="polkurier/shipment/massPickup"/>
                     <type>pickup</type>
@@ -91,12 +97,15 @@
                 <label translate="true">Created</label>
                 <filter>dateRange</filter>
                 <dataType>date</dataType>
+                <sorting>desc</sorting>
             </settings>
         </column>
-        <column name="carrier_code">
+        <column name="carrier_code" component="Magento_Ui/js/grid/columns/select">
             <settings>
                 <label translate="true">Carrier</label>
-                <filter>text</filter>
+                <options class="Polkurier\Shipping\Model\Config\Source\CarrierName"/>
+                <filter>select</filter>
+                <dataType>select</dataType>
             </settings>
         </column>
         <column name="state" component="Magento_Ui/js/grid/columns/select">

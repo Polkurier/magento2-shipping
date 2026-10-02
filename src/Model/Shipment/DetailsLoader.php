@@ -50,7 +50,7 @@ class DetailsLoader
         }
         if ($shipment->getDetails() === []) {
             try {
-                $remote = $this->reconciler->findByNumber($shipment, (string)$shipment->getPolkurierNumber());
+                $remote = $this->reconciler->findByNumber((string)$shipment->getPolkurierNumber());
                 $shipment = clone $shipment;
                 $this->snapshot->apply($remote, $shipment);
             } catch (LocalizedException $e) {

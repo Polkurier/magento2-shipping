@@ -22,14 +22,16 @@ Under **Polkurier account**:
   encrypted and are never shown again once saved.
 - **Sandbox**: sends everything to Polkurier's test environment instead of the real one. Shipments
   placed there aren't real, so it's a safe way to try the whole process before you go live. A
-  sandbox account has its own customer ID and token; ask api@polkurier.pl for one.
+  sandbox account has its own customer ID and token; ask api@polkurier.pl for one. It's on by
+  default: switch it off when you enter your production credentials.
 - **Test connection** checks the customer ID and token you've typed, before you save them, and
   tells you whether Polkurier accepted them.
 - **Request timeout (seconds)**: how long to wait for Polkurier before giving up. The default of
   30 seconds is fine for almost everyone.
-- **Log errors**: writes failed requests to `var/log/polkurier.log`.
+- **Log failed requests**: writes failed requests to `var/log/polkurier.log`. The module's own
+  warnings go there either way.
 - **Log all traffic of**: also logs successful requests of the kinds you select, which helps if
-  Polkurier support asks for details. Only shown when **Log errors** is on.
+  Polkurier support asks for details. Only shown when **Log failed requests** is on.
 
 Your API token, security PINs and confirmation codes are masked before anything is written to the
 log, so the log file is safe to send to support.
@@ -39,7 +41,8 @@ the carrier list.
 
 ## The delivery method
 
-The top of the section holds Magento's usual settings for a shipping method:
+The **Shipping method in checkout** group at the top holds Magento's usual settings for a shipping
+method:
 
 - **Enabled**: switches the Polkurier methods on at checkout for the website. You can still ship
   orders with Polkurier from the admin while this is off, which is useful if you only want to use
@@ -68,10 +71,11 @@ shipment page alike. You can change all of them for each shipment. They come in 
   ones you don't use don't clutter anything. Carriers you
   leave out keep their settings and come back as they were if you select them again. With
   nothing selected, all of the account's carriers are available.
-- **Default shipment type**: parcel, envelope or pallet. If the carrier doesn't take that type,
-  the first type it does take is used.
 - **Additional services selected by default**, such as SMS notifications. Only services the chosen
   carrier offers get ticked.
+- **Another sender on the label by default**: one of your addresses marked **Can be a cover
+  address**, printed on the label as the sender instead of the real one, or none. Only carriers
+  that offer it get it.
 - **Insure for the order total by default**. A shipment of part of the order is insured for what
   its items are worth. Some carriers insist on insurance with cash on delivery; for those,
   shipments with cash on delivery are always insured.
@@ -102,9 +106,9 @@ shipment page alike. You can change all of them for each shipment. They come in 
   can't be weighed, and a parcel without a template weighs what's in it. You can still change the
   weight of any parcel before placing the order.
 - **Pack new shipments automatically**: whether a new shipment starts with its items packed into
-  your pack templates. Yes by default. With No, it starts with one parcel of your default pack
-  template, or none, and **Pack automatically** in the parcels still packs the items when you
-  want it to.
+  your pack templates, on the Polkurier shipment screen and in Magento's packaging window. Yes by
+  default. With No, it starts with one parcel of your default pack template, or none, and
+  **Pack automatically** still packs the items when you want it to.
 - **Packing margin (cm)**: added to every dimension of every product when items are packed into
   parcels automatically, for products a little bigger than their shipping dimensions say. 0 by
   default.
@@ -127,8 +131,8 @@ shipment page alike. You can change all of them for each shipment. They come in 
 ### Labels and Magento shipments
 
 - **Label format**: PDF, or a printer language for thermal label printers (ZPL at 203 or 300 dpi,
-  EPL, Datamax). Applies to labels you print from the Polkurier shipment lists. Labels stored with
-  Magento shipments are always PDF.
+  EPL, Datamax). Applies to labels you print from **Polkurier > Sales > Shipments** and the
+  shipment details page. Labels stored with Magento shipments are always PDF.
 - **Shipping labels on Magento's shipment page**: lets **Create Shipping Label** on Magento's New
   Shipment page place the Polkurier order, for orders placed with a Polkurier method.
 - **Send the shipment e-mail to the customer**: whether Magento's usual "your order has shipped"
@@ -156,11 +160,14 @@ The first five can be set per store view.
 
 ## Synchronization
 
-- **Synchronize addresses, bank accounts and pack templates hourly**: keeps the data under
-  **Polkurier > Settings** in line with your Polkurier account. Changes you make in Magento are
-  sent straight away regardless; the hourly run picks up changes made in the Polkurier panel.
-- **Update shipment statuses every 30 minutes**: follows each shipment until it's delivered,
+- **Synchronize carriers, addresses, bank accounts and pack templates hourly**: keeps the data
+  under **Polkurier > Settings** in line with your Polkurier account, including which carriers it
+  offers. Changes you make in Magento are sent straight away regardless; the hourly run picks up
+  changes made in the Polkurier panel.
+- **Update shipment statuses on schedule**: follows each shipment until it's delivered,
   returned or cancelled.
+- **Update shipment statuses**: how often: every 10, 15 or 30 minutes (the default), or every
+  hour. More often keeps the statuses fresher, at the cost of more requests to Polkurier.
 
 Both need Magento's cron, and both are set for the whole installation (default scope).
 

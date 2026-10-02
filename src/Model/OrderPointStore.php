@@ -64,15 +64,17 @@ class OrderPointStore
     }
 
     /**
-     * A new point for an order, not saved yet.
+     * Sets the order's point, replacing the one it has.
      */
-    public function createForOrder(int $orderId): OrderPointInterface
+    public function replaceForOrder(int $orderId, string $methodCode, string $pointId, ?string $pointLabel, bool $pointCod): void
     {
-        $point = $this->orderPointFactory->create();
-        $point->setOrderId($orderId);
-        $point->isObjectNew(true);
-
-        return $point;
+        $point = $this->getForOrder($orderId);
+        if ($point === null) {
+            $point = $this->orderPointFactory->create()->setOrderId($orderId);
+            $point->isObjectNew(true);
+        }
+        $point->setMethodCode($methodCode)->setPointId($pointId)->setPointLabel($pointLabel)->setPointCod($pointCod);
+        $this->saveForOrder($point);
     }
 
     public function deleteForOrder(int $orderId): void

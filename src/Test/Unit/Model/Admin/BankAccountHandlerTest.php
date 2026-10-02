@@ -41,12 +41,12 @@ class BankAccountHandlerTest extends TestCase
         $publisher->expects(self::never())->method('save');
         $account = $this->account();
 
-        $messages = $this->handler($publisher)->save($account, ['name' => 'Firmowe', 'account_number' => '78150016471216400597700000']);
+        $result = $this->handler($publisher)->save($account, ['name' => 'Firmowe', 'account_number' => '78150016471216400597700000']);
 
         self::assertSame('Firmowe', $account->getName());
         self::assertSame(SyncableInterface::STATE_UNCONFIRMED, $account->getSyncState());
         self::assertCount(1, $this->saves);
-        self::assertStringContainsString('once you confirm it', $messages[0]);
+        self::assertSame(1, $result->unconfirmed, 'Waiting for the confirmation, as the save tells.');
     }
 
     public function testAConfirmedAccountIsSentWithTheConfirmationButNeverKeepsIt(): void
@@ -58,9 +58,9 @@ class BankAccountHandlerTest extends TestCase
         );
         $account = $this->account();
 
-        $messages = $this->handler($publisher)->save($account, ['name' => 'Firmowe', BankAccountHandler::CONFIRMATION_PIN => '2342']);
+        $result = $this->handler($publisher)->save($account, ['name' => 'Firmowe', BankAccountHandler::CONFIRMATION_PIN => '2342']);
 
-        self::assertSame([], $messages);
+        self::assertSame(1, $result->pushed);
         foreach (BankAccountHandler::CONFIRMATION_FIELDS as $field) {
             self::assertNull($account->getData($field), $field . ' is used once, never stored.');
             self::assertArrayNotHasKey($field, $this->saves[0]);
@@ -127,6 +127,7 @@ class BankAccountHandlerTest extends TestCase
             $this->createStub(SynchronizationInterface::class),
             new FixedDateTime(),
             new SyncLock($locks),
+            $this->createStub(\Polkurier\Shipping\Model\ResourceModel\BankAccount::class),
         );
     }
 
@@ -135,6 +136,6 @@ class BankAccountHandlerTest extends TestCase
         /** @var BankAccount $account */
         $account = (new ObjectManager($this))->getObject(BankAccount::class);
 
-        return $account->setWebsiteId(1)->setName('Main');
+        return $account->setName('Main');
     }
 }

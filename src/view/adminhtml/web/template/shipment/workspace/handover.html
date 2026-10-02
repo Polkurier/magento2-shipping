@@ -11,12 +11,17 @@
         <label class="admin__field-label" data-bind="attr: {for: id}, text: label"></label>
         <!-- ko if: value === 'courier' && $parent.showDates() -->
         <div class="polkurier-handover__dates">
+            <!-- ko if: $parent.days().length -->
             <select class="admin__control-select" data-bind="options: $parent.days, optionsText: 'label', optionsValue: 'value', value: $parent.date, disable: $parent.loading, css: {'_error': $parent.dateMissing}, attr: {'aria-label': $t('Collection date'), 'aria-invalid': $parent.dateMissing() ? 'true' : 'false'}"></select>
+            <!-- ko if: $parent.windows().length -->
             <select class="admin__control-select" data-bind="options: $parent.windows, optionsText: 'label', optionsValue: 'value', value: $parent.window, disable: $parent.loading, css: {'_error': $parent.windowMissing}, attr: {'aria-label': $t('Collection time'), 'aria-invalid': $parent.windowMissing() ? 'true' : 'false'}"></select>
+            <!-- /ko -->
+            <span class="polkurier-muted polkurier-handover__any-time" ifnot="$parent.windows().length" translate="'Any time that day'"></span>
+            <!-- /ko -->
             <div class="polkurier-muted" if="$parent.loading" translate="'Reading the collection dates…'"></div>
-            <div class="polkurier-text-error" if="$parent.message">
+            <div data-bind="css: {'polkurier-text-error': $parent.failed, 'polkurier-muted': !$parent.failed()}" if="$parent.message">
                 <span text="$parent.message"></span>
-                <!-- ko if: $parent.canRetry -->
+                <!-- ko if: $parent.retryable -->
                 <button type="button" class="polkurier-link" data-bind="click: $parent.retry.bind($parent)">
                     <span translate="'Try again'"></span>
                 </button>

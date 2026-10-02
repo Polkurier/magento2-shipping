@@ -5,7 +5,8 @@
 /**
  * What the shipment carries in Magento: items the order has left, with the quantity of each, so an
  * order can go out in parts. With nothing left, it replaces a cancelled Polkurier order on that
- * order's Magento shipment. The insurance follows what the shipment is worth, until it's set by hand.
+ * order's Magento shipment. The cash on delivery follows what the shipment collects and the insurance
+ * what it's worth, until either is set by hand.
  */
 define([
     'ko',
@@ -32,9 +33,15 @@ define([
             this.rows = ko.observableArray([]);
             this.canShip = ko.observable(true);
             this.replacingText = ko.observable('');
-            this.valueText = ko.observable('');
-            // The insurance this part last set, or started with: anything else was set by hand.
+            // The insurance and the cash on delivery this part last set, or started with: anything
+            // else was set by hand.
             this.followed = null;
+            this.followedCod = null;
+            // Whether the shipment was the whole order, and included the shipping, when last seen.
+            this.wasWhole = null;
+            this.wasIncluded = null;
+            // The cash on delivery when last seen: changed elsewhere, the insurance follows it.
+            this.seenCod = null;
         },
 
         refresh: function () {
@@ -55,10 +62,18 @@ define([
                     row.syncing = false;
                 }
             }, this);
-            this.valueText($t('This shipment is worth %1.').replace('%1', this.money(data.shipment_value)));
-            if (this.followed === null) {
+            if (this.followed === null && items.length) {
                 this.followed = rules.amount(data.insurance_amount);
+                this.followedCod = rules.amount(data.cod_amount);
+                this.wasWhole = rules.shipmentWorth(data).whole;
             }
+            // Including the shipping and handling, or not, is asking for both amounts again.
+            if (this.wasIncluded !== null && Boolean(data.shipping_included) !== this.wasIncluded) {
+                this.wasIncluded = Boolean(data.shipping_included);
+            this.followCod(data);
+                this.follow(true);
+            }
+            this.wasIncluded = Boolean(data.shipping_included);
         },
 
         /**
@@ -110,59 +125,74 @@ define([
             return row;
         },
 
-        shipAll: function () {
-            this.rows().forEach(function (row) {
-                row.qty(quantity(row.left));
-            });
-        },
-
         /**
-         * What the chosen quantities are worth, by the server's rule: the order total for the whole
-         * order, or when nothing matches.
+         * The cash on delivery changed by hand or switched on: the insurance, unless set by hand
+         * or off, goes with it.
          *
          * @param {Object} data
-         * @returns {Number}
          */
-        value: function (data) {
-            let value = 0,
-                whole = true;
+        followCod: function (data) {
+            const cod = rules.amount(data.cod_amount),
+                insurance = rules.amount(data.insurance_amount),
+                before = this.seenCod;
 
-            if (data.replacing) {
-                return rules.amount(data.replacing.shipment_value);
+            this.seenCod = cod;
+            if (before === null || Math.abs(cod - before) < 0.005 || insurance <= 0) {
+                return;
             }
-            (data.items || []).forEach(function (item) {
-                const qty = rules.amount(item.qty);
-
-                value += rules.amount(item.unit) * qty;
-                whole = whole && qty >= rules.amount(item.qty_ordered);
-            });
-
-            return whole || value <= 0 ? rules.amount(data.grand_total) : Math.round(value * 100) / 100;
+            // Set by hand: neither what it last followed, nor the old cash on delivery, nor the value.
+            if (![this.followed, before, rules.amount(data.shipment_value)].some(function (amount) {
+                return amount !== null && Math.abs(insurance - amount) < 0.005;
+            })) {
+                return;
+            }
+            this.followed = rules.insuranceFor(cod, rules.amount(data.shipment_value));
+            this.set('insurance_amount', this.followed.toFixed(2));
         },
 
         /**
-         * Keeps the insurance at what the shipment is worth, unless it's off or was set by hand.
+         * Keeps the cash on delivery at what the shipment collects (rules.codFor) and the insurance
+         * at what it's worth, unless either is off or, unless forced, was set by hand.
+         *
+         * @param {Boolean} [force] set them whatever they are, as including the shipping asks
          */
-        follow: function () {
-            const data = this.get(),
-                value = this.value(data),
+        follow: function (force) {
+            let data = this.get(),
+                worth = rules.shipmentWorth(data);
+
+            // Going from the whole order to part of it starts without the shipping and handling.
+            if (this.wasWhole && !worth.whole && data.shipping_included) {
+                this.wasWhole = false;
+                this.wasIncluded = false;
+                this.set('shipping_included', false);
+                data = this.get();
+                worth = rules.shipmentWorth(data);
+            }
+            this.wasWhole = worth.whole;
+            const value = worth.value,
                 before = rules.amount(data.shipment_value),
                 insurance = rules.amount(data.insurance_amount),
-                cod = rules.amount(data.cod_amount),
+                codBefore = rules.amount(data.cod_amount),
                 // What this part set, or what the insurance switch fills in: not set by hand.
-                automatic = [this.followed, before, Math.max(before, cod)];
-            let next = value;
+                automatic = [this.followed, before, codBefore, Math.max(before, codBefore)];
+            let cod = codBefore,
+                next = value;
 
             this.set('shipment_value', value);
-            if (insurance <= 0 || !automatic.some(function (amount) {
+            if (codBefore > 0 && !data.replacing && (force || this.followedCod !== null && Math.abs(codBefore - this.followedCod) < 0.005)) {
+                cod = Math.round(rules.codFor(rules.amount(data.cod_remaining), worth) * 100) / 100;
+                this.followedCod = cod;
+                this.set('cod_amount', cod.toFixed(2));
+            }
+            if (insurance <= 0 || !force && !automatic.some(function (amount) {
                 return Math.abs(insurance - amount) < 0.005;
             })) {
                 return;
             }
-            if (this.features().insurance_with_cod && cod > 0) {
-                next = Math.max(value, cod);
-            }
+            // What it collects, or else what it's worth: the parts add up to the order total.
+            next = rules.insuranceFor(cod, value);
             this.followed = next;
+            this.seenCod = cod;
             this.set('insurance_amount', next.toFixed(2));
         }
     });

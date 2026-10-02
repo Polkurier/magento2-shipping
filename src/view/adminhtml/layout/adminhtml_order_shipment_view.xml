@@ -1,0 +1,36 @@
+<?xml version="1.0"?>
+<!--
+ ~ Copyright (c) 2026 Polkurier.pl
+ ~ All Rights Reserved
+-->
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <body>
+        <!-- Placed in the shipment form by Plugin\Adminhtml\ShippingInfoPlugin, since Magento's
+             template renders no children -->
+        <referenceBlock name="form">
+            <!-- Above Payment & Shipping Method: the Polkurier options of a label created on this
+                 page, for a shipment whose Polkurier order was cancelled or that never had one,
+                 with the packaging window's pack templates -->
+            <block class="Magento\Backend\Block\Template" name="polkurier_label_options" template="Polkurier_Shipping::shipment/label-options.phtml">
+                <arguments>
+                    <argument name="view_model" xsi:type="object">Polkurier\Shipping\ViewModel\Adminhtml\LabelOptions</argument>
+                </arguments>
+            </block>
+            <!-- Under them: every Polkurier order the shipment has had -->
+            <block class="Magento\Backend\Block\Template" name="polkurier_shipment_orders" template="Polkurier_Shipping::shipment/polkurier-orders.phtml">
+                <arguments>
+                    <argument name="view_model" xsi:type="object">Polkurier\Shipping\ViewModel\Adminhtml\LabelOptions</argument>
+                </arguments>
+                <uiComponent name="polkurier_magento_shipment_listing"/>
+            </block>
+            <!-- In the Shipping and Tracking Information, under the order's shipping method: the
+                 carrier and point this shipment's parcels went with -->
+            <block class="Magento\Backend\Block\Template" name="polkurier_shipped_with" template="Polkurier_Shipping::order/shipped-with.phtml">
+                <arguments>
+                    <argument name="view_model" xsi:type="object">Polkurier\Shipping\ViewModel\Adminhtml\ShippedWith</argument>
+                </arguments>
+            </block>
+        </referenceBlock>
+    </body>
+</page>

@@ -18,12 +18,8 @@
             <dep>polkurier_shipment_pickup_form.polkurier_shipment_pickup_form_data_source</dep>
         </deps>
         <buttons>
-            <button name="back">
-                <url path="*/*/index"/>
-                <class>back</class>
-                <label translate="true">Back</label>
-            </button>
-            <button name="save" class="Polkurier\Shipping\Ui\Component\Control\SaveButton"/>
+            <button name="back" class="Polkurier\Shipping\Ui\Component\Control\PickupBackButton"/>
+            <button name="save" class="Polkurier\Shipping\Ui\Component\Control\BookPickupButton"/>
         </buttons>
     </settings>
     <dataSource name="polkurier_shipment_pickup_form_data_source">
@@ -46,6 +42,20 @@
         <settings>
             <label translate="true">Collective pickup</label>
         </settings>
+        <field name="uenc" formElement="input">
+            <settings>
+                <dataType>text</dataType>
+                <dataScope>uenc</dataScope>
+                <visible>false</visible>
+            </settings>
+        </field>
+        <field name="order_id" formElement="input">
+            <settings>
+                <dataType>text</dataType>
+                <dataScope>order_id</dataScope>
+                <visible>false</visible>
+            </settings>
+        </field>
         <field name="ids" formElement="input">
             <settings>
                 <label translate="true">Shipments</label>
@@ -67,7 +77,11 @@
                 <label translate="true">Collection date (YYYY-MM-DD)</label>
                 <dataType>text</dataType>
                 <dataScope>pickup_date</dataScope>
-                <validation><rule name="required-entry" xsi:type="boolean">true</rule></validation>
+                <!-- Checked here as the server checks it, before anything goes to Polkurier -->
+                <validation>
+                    <rule name="required-entry" xsi:type="boolean">true</rule>
+                    <rule name="pattern" xsi:type="string">^\d{4}-\d{2}-\d{2}$</rule>
+                </validation>
             </settings>
         </field>
         <field name="pickup_time_from" formElement="input">
@@ -75,7 +89,10 @@
                 <label translate="true">From (HH:MM)</label>
                 <dataType>text</dataType>
                 <dataScope>pickup_time_from</dataScope>
-                <validation><rule name="required-entry" xsi:type="boolean">true</rule></validation>
+                <validation>
+                    <rule name="required-entry" xsi:type="boolean">true</rule>
+                    <rule name="pattern" xsi:type="string">^\d{2}:\d{2}$</rule>
+                </validation>
             </settings>
         </field>
         <field name="pickup_time_to" formElement="input">
@@ -83,7 +100,10 @@
                 <label translate="true">To (HH:MM)</label>
                 <dataType>text</dataType>
                 <dataScope>pickup_time_to</dataScope>
-                <validation><rule name="required-entry" xsi:type="boolean">true</rule></validation>
+                <validation>
+                    <rule name="required-entry" xsi:type="boolean">true</rule>
+                    <rule name="pattern" xsi:type="string">^\d{2}:\d{2}$</rule>
+                </validation>
             </settings>
         </field>
     </fieldset>

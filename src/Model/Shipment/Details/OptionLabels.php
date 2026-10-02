@@ -65,7 +65,7 @@ class OptionLabels
 
     public function service(string $service): string
     {
-        return $this->label($this->services->toArray(), $service);
+        return $this->label($this->services::labels(), $service);
     }
 
     /**

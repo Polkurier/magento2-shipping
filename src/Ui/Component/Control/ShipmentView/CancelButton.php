@@ -23,7 +23,7 @@ class CancelButton extends AbstractButton
             'cancel',
             30,
             (string)\__('Cancel Polkurier order %1?', (string)$this->shipment()?->getPolkurierNumber()),
-            (string)\__('The carrier will not collect the parcel, and its Magento shipment is removed so the items can be shipped again. This cannot be undone.'),
+            (string)\__('The carrier will not collect the parcel. Its Magento shipment stays, without the label and tracking numbers, for another Polkurier order. This cannot be undone.'),
         );
     }
 }

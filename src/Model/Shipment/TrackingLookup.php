@@ -22,8 +22,7 @@ class TrackingLookup
     ) {}
 
     /**
-     * What the customer knows the shipment by: the label of the method it was ordered with, in
-     * the store it was ordered in.
+     * The label of the carrier the shipment went with, in the store it was ordered in.
      */
     public function getMethodLabel(ShipmentInterface $shipment): string
     {

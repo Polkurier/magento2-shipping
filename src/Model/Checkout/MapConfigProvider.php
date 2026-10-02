@@ -9,8 +9,10 @@ namespace Polkurier\Shipping\Model\Checkout;
 
 use Magento\Checkout\Model\ConfigProviderInterface;
 use Magento\Checkout\Model\Session;
+use Magento\Framework\UrlInterface;
 use Magento\Store\Model\StoreManagerInterface;
 use Polkurier\Shipping\Api\Data\QuotePointInterface;
+use Polkurier\Shipping\Controller\Map\Token;
 use Polkurier\Shipping\Model\Carrier\CarrierCatalog;
 use Polkurier\Shipping\Model\Carrier\CarrierConfigs;
 use Polkurier\Shipping\Model\Carrier\CarrierFeatures;
@@ -24,8 +26,10 @@ use Psr\Log\LoggerInterface;
 /**
  * Tells the checkout which Polkurier methods deliver to a pickup point, and how to open the map.
  *
- * Never breaks checkout: if Polkurier cannot be asked, no method offers the map, and the server
- * refuses an order that needed a point without one.
+ * The map's token comes with it when there is one, with when it stops working; the page asks
+ * tokenUrl for a fresh one when it has none or it's about to run out. Never breaks checkout: if
+ * Polkurier cannot be asked, no method offers the map, and the server refuses an order that needed
+ * a point without one.
  */
 class MapConfigProvider implements ConfigProviderInterface
 {
@@ -38,6 +42,7 @@ class MapConfigProvider implements ConfigProviderInterface
         private readonly OrderPointStore $pointStore,
         private readonly Session $checkoutSession,
         private readonly StoreManagerInterface $storeManager,
+        private readonly UrlInterface $url,
         private readonly LoggerInterface $logger,
     ) {}
 
@@ -64,6 +69,7 @@ class MapConfigProvider implements ConfigProviderInterface
         $storeId = (int)$store->getId();
         $methods = [];
         $token = '';
+        $expires = 0;
 
         if ($this->config->isActive($storeId)) {
             try {
@@ -76,17 +82,18 @@ class MapConfigProvider implements ConfigProviderInterface
                         ];
                     }
                 }
-                if ($methods !== []) {
-                    $token = $this->tokenProvider->getToken();
-                }
-                if ($token === '' && $methods !== []) {
-                    // Without a token there is no map to choose from, so no method may ask for a point.
-                    $this->logger->error('Pickup point map unavailable in checkout: no map token');
-                    $methods = [];
-                }
             } catch (PolkurierException $e) {
                 $this->logger->error('Pickup point map unavailable in checkout', ['exception' => $e]);
                 $methods = [];
+            }
+            if ($methods !== []) {
+                // Without a token now, the page asks for one when the map is opened; methods that
+                // need a point are only offered while there's a map (RateCollector).
+                try {
+                    $token = $this->tokenProvider->getToken();
+                    $expires = $this->tokenProvider->getExpiry();
+                } catch (PolkurierException) {
+                }
             }
         }
 
@@ -94,6 +101,8 @@ class MapConfigProvider implements ConfigProviderInterface
         return [
             'methods' => (object)$methods,
             'token' => $token,
+            'tokenExpires' => $expires,
+            'tokenUrl' => $this->url->getUrl(Token::ROUTE),
             'baseUrl' => $this->config->getMapUrl() . '/',
             'latitude' => $this->config->getMapLatitude($storeId),
             'longitude' => $this->config->getMapLongitude($storeId),

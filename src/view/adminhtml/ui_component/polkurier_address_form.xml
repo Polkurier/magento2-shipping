@@ -24,6 +24,7 @@
                 <class>back</class>
                 <label translate="true">Back</label>
             </button>
+            <button name="delete" class="Polkurier\Shipping\Ui\Component\Control\DeleteAddressButton"/>
             <button name="save_and_continue" class="Polkurier\Shipping\Ui\Component\Control\SaveAndContinueAddress"/>
             <button name="save" class="Polkurier\Shipping\Ui\Component\Control\SaveButton"/>
         </buttons>
@@ -157,10 +158,10 @@
         </field>
         <field name="point_id" formElement="input">
             <settings>
-                <label translate="true">Sender pickup point</label>
+                <label translate="true">Sender drop-off point</label>
                 <dataType>text</dataType>
                 <dataScope>point_id</dataScope>
-                <notice translate="true">For carriers that collect from a point.</notice>
+                <notice translate="true">For carriers that take parcels dropped off at a point.</notice>
             </settings>
         </field>
         <field name="is_default" formElement="checkbox">

@@ -7,6 +7,7 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Model\Admin;
 
+use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Stdlib\DateTime\DateTime;
 use Polkurier\Shipping\Model\Sync\SyncLock;
 use Polkurier\Shipping\Api\PackTemplateRepositoryInterface;
@@ -15,6 +16,7 @@ use Polkurier\Shipping\Api\Data\SyncableInterface;
 use Polkurier\Shipping\Api\SyncEntityEnum;
 use Polkurier\Shipping\Api\SynchronizationInterface;
 use Polkurier\Shipping\Model\PackTemplateFactory;
+use Polkurier\Shipping\Model\ResourceModel\PackTemplate as PackTemplateResource;
 
 class PackTemplateHandler extends SyncableEntityHandler
 {
@@ -24,6 +26,7 @@ class PackTemplateHandler extends SyncableEntityHandler
         SynchronizationInterface $synchronization,
         DateTime $dateTime,
         SyncLock $syncLock,
+        private readonly PackTemplateResource $resource,
     ) {
         parent::__construct($synchronization, $dateTime, $syncLock);
     }
@@ -53,6 +56,15 @@ class PackTemplateHandler extends SyncableEntityHandler
     protected function getEntityType(): SyncEntityEnum
     {
         return SyncEntityEnum::PackTemplate;
+    }
+
+    protected function assertUniqueName(SyncableInterface $entity): void
+    {
+        /** @var PackTemplateInterface $entity */
+        $id = $entity->getId() ? (int)$entity->getId() : null;
+        if ($this->resource->isNameTaken($entity->getName(), $id)) {
+            throw new LocalizedException(\__('A pack template named "%1" already exists. Choose another name.', $entity->getName()));
+        }
     }
 
     public function getMenuId(): string

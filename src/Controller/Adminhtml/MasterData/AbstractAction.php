@@ -9,7 +9,10 @@ namespace Polkurier\Shipping\Controller\Adminhtml\MasterData;
 
 use Magento\Backend\App\Action;
 use Magento\Backend\App\Action\Context;
+use Polkurier\Shipping\Controller\Adminhtml\ReturnsBack;
 use Polkurier\Shipping\Model\Admin\EntityHandlerInterface;
+use Polkurier\Shipping\Model\Admin\Flash;
+use Polkurier\Shipping\Model\Sync\SyncResult;
 
 /**
  * Base of the admin actions on addresses, bank accounts and pack templates. Each entity's
@@ -17,6 +20,8 @@ use Polkurier\Shipping\Model\Admin\EntityHandlerInterface;
  */
 abstract class AbstractAction extends Action
 {
+    use ReturnsBack;
+
     public function __construct(
         Context $context,
         protected readonly EntityHandlerInterface $handler,
@@ -25,12 +30,24 @@ abstract class AbstractAction extends Action
     }
 
     /**
+     * A full synchronization's lines, one per kind, as the action's one message.
+     *
      * @param string[] $lines
      */
     protected function reportSync(array $lines): void
     {
+        $flash = new Flash();
         foreach ($lines as $line) {
-            $this->messageManager->addNoticeMessage($line);
+            $flash->notice($line);
         }
+        $flash->send($this->messageManager);
+    }
+
+    /**
+     * Polkurier's reasons, once each.
+     */
+    protected function reasons(SyncResult $result): string
+    {
+        return \implode(' ', \array_unique($result->errors));
     }
 }

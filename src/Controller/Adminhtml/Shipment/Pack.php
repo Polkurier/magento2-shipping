@@ -20,8 +20,8 @@ use Polkurier\Shipping\Model\Shipment\MagentoShipment;
 use Polkurier\Shipping\Model\Shipment\OwnOrders;
 
 /**
- * Packs the items the shipment screen ships into parcels of the pack templates, for the screen to
- * put in place of its parcels.
+ * Packs the items shipped into parcels of the pack templates, for the shipment screen to put in
+ * place of its parcels, or Magento's packaging window in place of its packages.
  */
 class Pack extends Action implements HttpPostActionInterface
 {
@@ -45,12 +45,21 @@ class Pack extends Action implements HttpPostActionInterface
         try {
             $order = $this->ownOrders->get((int)($data['order_id'] ?? 0));
             $draft = $this->hydrator->fromArray($data);
-            $qtys = $this->magentoShipment->getQuantities($order, $draft->getItems())
-                ?: $this->magentoShipment->getQuantitiesLeft($order);
+            $targetId = $draft->getTargetShipmentId();
+            // A Magento shipment there is carries what it does, which the order counts as shipped.
+            $qtys = $targetId !== null
+                ? $this->magentoShipment->getShipmentQuantities($order, $targetId)
+                : ($this->magentoShipment->getQuantities($order, $draft->getItems()) ?: $this->magentoShipment->getQuantitiesLeft($order));
+            if ($qtys === [] && $targetId !== null) {
+                throw new LocalizedException(\__('The shipment to create a label for is missing.'));
+            }
             if ($qtys === []) {
                 throw new LocalizedException(\__('Everything in this order is shipped already.'));
             }
-            $packed = $this->autoPacker->pack($order, $qtys, $draft->getShipmentType());
+            // Repacking the parcels there are keeps to their kind; without any, the items decide.
+            $packed = $draft->getShipmentType() !== ''
+                ? $this->autoPacker->pack($order, $qtys, $draft->getShipmentType())
+                : $this->autoPacker->packByItems($order, $qtys);
         } catch (LocalizedException $e) {
             return $result->setData(['error' => true, 'message' => $e->getMessage()]);
         }

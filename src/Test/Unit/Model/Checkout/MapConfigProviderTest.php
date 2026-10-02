@@ -8,6 +8,7 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Test\Unit\Model\Checkout;
 
 use Magento\Checkout\Model\Session;
+use Magento\Framework\UrlInterface;
 use Magento\Store\Api\Data\StoreInterface;
 use Magento\Store\Model\StoreManagerInterface;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
@@ -40,12 +41,17 @@ class MapConfigProviderTest extends TestCase
         self::assertTrue(((array)$config['methods'])['INPOST_PACZKOMAT']['required']);
     }
 
-    public function testNoMethodAsksForAPointWithoutAToken(): void
+    public function testWithoutATokenThePageAsksForOneWhenTheMapOpens(): void
     {
         $config = $this->provider('')->getConfig()['pickupPoints'];
 
-        self::assertSame('', $config['token']);
-        self::assertSame([], (array)$config['methods'], 'No map to choose from, so no point to require.');
+        self::assertSame(['', 0, 'https://shop.test/pickup-points/map/token/'], [$config['token'], $config['tokenExpires'], $config['tokenUrl']]);
+        self::assertTrue(((array)$config['methods'])['INPOST_PACZKOMAT']['required'], 'Still asked for: the methods are offered only with a map.');
+    }
+
+    public function testTheTokenComesWithWhenItRunsOut(): void
+    {
+        self::assertSame(1790014400, $this->provider('map-token')->getConfig()['pickupPoints']['tokenExpires']);
     }
 
     public function testTheChosenPointHasOneShapeForEveryCheckout(): void
@@ -75,6 +81,9 @@ class MapConfigProviderTest extends TestCase
         )));
         $tokens = $this->createStub(MapTokenProvider::class);
         $tokens->method('getToken')->willReturn($token);
+        $tokens->method('getExpiry')->willReturn($token !== '' ? 1790014400 : 0);
+        $url = $this->createStub(UrlInterface::class);
+        $url->method('getUrl')->willReturn('https://shop.test/pickup-points/map/token/');
         $store = $this->createStub(StoreInterface::class);
         $store->method('getId')->willReturn(1);
         $storeManager = $this->createStub(StoreManagerInterface::class);
@@ -89,6 +98,7 @@ class MapConfigProviderTest extends TestCase
             $this->createStub(OrderPointStore::class),
             $this->createStub(Session::class),
             $storeManager,
+            $url,
             new NullLogger(),
         );
     }

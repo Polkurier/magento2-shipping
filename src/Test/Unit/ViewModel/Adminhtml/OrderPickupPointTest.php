@@ -14,6 +14,7 @@ use PHPUnit\Framework\TestCase;
 use Polkurier\Shipping\Api\Data\OrderPointInterface;
 use Polkurier\Shipping\Model\Carrier\CarrierCatalog;
 use Polkurier\Shipping\Model\Carrier\CarrierFeatures;
+use Polkurier\Shipping\Model\Checkout\PointDescription;
 use Polkurier\Shipping\Model\OrderPointStore;
 use Polkurier\Shipping\ViewModel\Adminhtml\OrderPickupPoint;
 use Polkurier\Webservice\Exception\ConnectionException;
@@ -30,6 +31,12 @@ class OrderPickupPointTest extends TestCase
         self::assertSame($point, $this->viewModel($point, required: true)->getPoint($this->order('polkurier_INPOST_PACZKOMAT')));
     }
 
+    public function testAPointTheShippingDescriptionNamesIsNotShownTwice(): void
+    {
+        self::assertNull($this->viewModel($this->point(), required: true)
+            ->getPoint($this->order('polkurier_INPOST_PACZKOMAT', 'Paczkomat InPost, pickup point WAW195M (02-134 Warszawa)')));
+    }
+
     public function testAMethodWherePointsAreOptionalShowsNone(): void
     {
         self::assertNull($this->viewModel($this->point(), required: false)->getPoint($this->order('polkurier_DPD')));
@@ -40,7 +47,7 @@ class OrderPickupPointTest extends TestCase
         $store = $this->createMock(OrderPointStore::class);
         $store->expects(self::never())->method('getForOrder');
 
-        self::assertNull((new OrderPickupPoint($store, $this->createStub(CarrierCatalog::class), $this->createStub(CarrierFeatures::class)))
+        self::assertNull((new OrderPickupPoint($store, $this->createStub(CarrierCatalog::class), $this->createStub(CarrierFeatures::class), new PointDescription()))
             ->getPoint($this->order('flatrate_flatrate')));
     }
 
@@ -52,7 +59,7 @@ class OrderPickupPointTest extends TestCase
         $catalog = $this->createStub(CarrierCatalog::class);
         $catalog->method('getCarrier')->willThrowException(new ConnectionException('Timed out.'));
 
-        self::assertSame($point, (new OrderPickupPoint($store, $catalog, $this->createStub(CarrierFeatures::class)))
+        self::assertSame($point, (new OrderPickupPoint($store, $catalog, $this->createStub(CarrierFeatures::class), new PointDescription()))
             ->getPoint($this->order('polkurier_INPOST_PACZKOMAT')));
     }
 
@@ -65,7 +72,7 @@ class OrderPickupPointTest extends TestCase
         $features = $this->createStub(CarrierFeatures::class);
         $features->method('isRecipientPointRequired')->willReturn($required);
 
-        return new OrderPickupPoint($store, $catalog, $features);
+        return new OrderPickupPoint($store, $catalog, $features, new PointDescription());
     }
 
     private function point(): OrderPointInterface
@@ -76,10 +83,11 @@ class OrderPickupPointTest extends TestCase
         return $point;
     }
 
-    private function order(string $shippingMethod): Order
+    private function order(string $shippingMethod, string $description = 'Paczkomat InPost'): Order
     {
         $order = $this->createStub(Order::class);
         $order->method('getShippingMethod')->willReturn($shippingMethod);
+        $order->method('getShippingDescription')->willReturn($description);
         $order->method('getEntityId')->willReturn(25);
         $order->method('getStoreId')->willReturn(1);
 

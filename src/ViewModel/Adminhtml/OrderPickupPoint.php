@@ -13,13 +13,15 @@ use Polkurier\Shipping\Api\Data\OrderPointInterface;
 use Polkurier\Shipping\Model\Carrier\CarrierCatalog;
 use Polkurier\Shipping\Model\Carrier\CarrierFeatures;
 use Polkurier\Shipping\Model\Carrier\Polkurier;
+use Polkurier\Shipping\Model\Checkout\PointDescription;
 use Polkurier\Shipping\Model\OrderPointStore;
 use Polkurier\Webservice\Exception\Exception as PolkurierException;
 
 /**
  * The pickup point the customer chose, for the order page's shipping information. Only for an
- * order whose method delivers to pickup points alone; the point is changed for a shipment on the
- * shipment screen, not here.
+ * order whose method delivers to pickup points alone, and whose shipping description doesn't name
+ * it already (see PointDescription); the point is changed for a shipment on the shipment screen,
+ * not here.
  */
 class OrderPickupPoint implements ArgumentInterface
 {
@@ -27,13 +29,16 @@ class OrderPickupPoint implements ArgumentInterface
         private readonly OrderPointStore $pointStore,
         private readonly CarrierCatalog $catalog,
         private readonly CarrierFeatures $features,
+        private readonly PointDescription $pointDescription,
     ) {}
 
     public function getPoint(Order $order): ?OrderPointInterface
     {
         $methodCode = Polkurier::methodCodeOf((string)$order->getShippingMethod());
         $point = $methodCode === null ? null : $this->pointStore->getForOrder((int)$order->getEntityId());
-        if ($methodCode === null || $point === null || $point->getPointId() === '') {
+        if ($methodCode === null || $point === null || $point->getPointId() === ''
+            || $this->pointDescription->names((string)$order->getShippingDescription(), $point->getPointId())
+        ) {
             return null;
         }
         try {

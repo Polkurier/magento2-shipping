@@ -14,6 +14,7 @@ use Polkurier\Shipping\Model\MasterData;
 use Polkurier\Shipping\Model\Shipment\Draft\ItemFactory;
 use Polkurier\Shipping\Model\Shipment\Draft\PackFactory;
 use Polkurier\Webservice\Enum\Order\PackTypeEnum;
+use Polkurier\Webservice\Enum\Order\ShipmentTypeEnum;
 
 /**
  * Packs the items of a shipment into as few parcels as it can, of the pack templates for
@@ -31,11 +32,12 @@ use Polkurier\Webservice\Enum\Order\PackTypeEnum;
  * unit never counts as room. Cutting the space this way can miss arrangements a person would find,
  * so now and then a parcel is bigger, or there is one more, than needed; none holds more than fits.
  *
- * The packing margin set for the website is added to every side of every unit first, for products
+ * The packing margin set for the store is added to every side of every unit first, for products
  * a little bigger than their dimensions say. A product without a weight weighs nothing while
  * packing, and is reported; its parcel takes its template's weight. Otherwise a parcel weighs what
- * the parcel weight setting says: what's in it, or its template's weight. A template's weight is the most its parcel may weigh. Going over it is only
- * pointed out on the shipment screen, or, when the website is set to keep parcels under it,
+ * the parcel weight setting says: what's in it, or its template's weight. A template's weight is
+ * the most its parcel may weigh. Going over it is only pointed out on the shipment screen, or, when
+ * the store is set to keep parcels under it,
  * avoided wherever another parcel or a bigger template can take the rest; an item too heavy for
  * every template is still packed by size.
  */
@@ -49,6 +51,44 @@ class AutoPacker
         private readonly ItemFactory $itemFactory,
         private readonly Config $config,
     ) {}
+
+    /**
+     * With no parcels to go by, the items decide what they go as: of envelopes, parcels and
+     * pallets, the smallest kind whose pack templates take every item. When none takes them all,
+     * the kind leaving out the fewest items goes, parcels on a tie, then the fewer parcels.
+     *
+     * @param array<int, float> $qtys shipped by order item id
+     * @return array{packs: Draft\Pack[], unmeasured: string[], unweighed: string[], templates: bool}
+     *     as pack() gives it
+     */
+    public function packByItems(Order $order, array $qtys): array
+    {
+        $best = null;
+        $bestScore = null;
+        foreach ([ShipmentTypeEnum::Envelope, ShipmentTypeEnum::Box, ShipmentTypeEnum::Palette] as $kind) {
+            $result = $this->pack($order, $qtys, $kind->value);
+            if ($result['packs'] === []) {
+                // Items without dimensions can't be packed as anything.
+                if ($result['unmeasured'] !== []) {
+                    return $result;
+                }
+                continue;
+            }
+            // Parcels of an item's own size: what the kind's templates don't take.
+            $left = \count(\array_filter($result['packs'], static fn(Draft\Pack $pack): bool => $pack->getTemplateId() === null));
+            if ($left === 0) {
+                return $result;
+            }
+            $score = [$left, $kind === ShipmentTypeEnum::Box ? 0 : 1, \count($result['packs'])];
+            if ($bestScore === null || $score < $bestScore) {
+                $best = $result;
+                $bestScore = $score;
+            }
+        }
+
+        // No template with a size at all: pack() says so.
+        return $best ?? $this->pack($order, $qtys);
+    }
 
     /**
      * @param array<int, float> $qtys shipped by order item id
@@ -99,7 +139,12 @@ class AutoPacker
             if ($parcel['template'] !== null) {
                 $parcel['template'] = $this->smallest($templates, $parcel['units']) ?? $parcel['template'];
             }
-            $packs[] = $this->toPack($parcel, $parcelWeight);
+            $pack = $this->toPack($parcel, $parcelWeight);
+            // One of its own size is of the kind packed, so the shipment stays of one kind.
+            if ($pack->getTemplateId() === null && $shipmentType === ShipmentTypeEnum::Palette->value) {
+                $pack->setPackType(PackTypeEnum::Palette->value);
+            }
+            $packs[] = $pack;
         }
 
         return ['packs' => $packs, 'unmeasured' => [], 'unweighed' => $unweighed, 'templates' => true];

@@ -5,6 +5,9 @@
 /**
  * The carrier select. Publishes what the chosen carrier supports as data.features, which the rest
  * of the form imports to show, hide and narrow its fields.
+ *
+ * A pickup point belongs to the carrier it was chosen for: changing the carrier puts it aside, and
+ * going back to that carrier brings it back.
  */
 define(['Magento_Ui/js/form/element/select'], function (Select) {
     'use strict';
@@ -24,9 +27,37 @@ define(['Magento_Ui/js/form/element/select'], function (Select) {
         },
 
         /**
+         * @param {String} previous
+         * @param {String} code
+         */
+        swapPoint: function (previous, code) {
+            const point = this.pointsByCarrier[code] || {id: '', label: ''};
+
+            if (previous) {
+                this.pointsByCarrier[previous] = {
+                    id: this.source.get('data.recipient_point_id') || '',
+                    label: this.source.get('data.recipient_point_label_id') === this.source.get('data.recipient_point_id')
+                        ? this.source.get('data.recipient_point_label') || ''
+                        : ''
+                };
+            }
+            this.source.set('data.recipient_point_id', point.id);
+            this.source.set('data.recipient_point_label', point.label);
+            this.source.set('data.recipient_point_label_id', point.id);
+        },
+
+        /**
          * @param {String} code
          */
         publishFeatures: function (code) {
+            // Also called while the field is set up, with the carrier the form starts with.
+            if (this.pointsByCarrier === undefined) {
+                this.pointsByCarrier = {};
+                this.carrier = code;
+            } else if (code !== this.carrier) {
+                this.swapPoint(this.carrier, code);
+                this.carrier = code;
+            }
             const carriers = this.source.get('data.carriers') || {},
                 carrier = carriers[code] || null,
                 fields = carrier ? carrier.fields || [] : [];
@@ -44,6 +75,8 @@ define(['Magento_Ui/js/form/element/select'], function (Select) {
                 pickup_date: carrier ? carrier.pickup_date : true,
                 pickup_date_required: carrier ? carrier.pickup_date_required : false,
                 pickup_time_required: carrier ? carrier.pickup_time_required : false,
+                // Empty when not known: any.
+                shipment_types: carrier ? carrier.shipment_types : [],
                 fields: fields,
                 has_fields: fields.length > 0
             });

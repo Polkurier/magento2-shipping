@@ -3,8 +3,9 @@
  * All Rights Reserved
  */
 /**
- * Cash on delivery, insurance and the carrier's additional services, each switched on and off in
- * place. Cash on delivery and insurance open their modals for the details.
+ * Cash on delivery, insurance and the additional services there are for the shipment's type, each
+ * switched on and off in place, so they can be chosen before the carrier that offers them. Cash on delivery and insurance switched on take the amount they're known to need, or
+ * open their modals to have it entered; "Change" opens them for the details.
  */
 define([
     'ko',
@@ -14,6 +15,9 @@ define([
     './rules'
 ], function (ko, _, $t, Part, rules) {
     'use strict';
+
+    // The cover sender address: what printing the cover address on the label is, as a service.
+    const COVER = 'COVER_ADDRESS_SENDER';
 
     return Part.extend({
         defaults: {
@@ -32,28 +36,35 @@ define([
                     this.set('cover_address_id', value || '');
                 }
             }, this);
-            this.lastServices = null;
         },
 
         refresh: function () {
             const data = this.get() || {},
                 features = this.features(),
-                allowed = features.services === undefined ? null : features.services,
+                // What there is for the shipment's type, whichever carrier offers it.
+                allowed = rules.servicesFor(data),
+                offered = features.services || null,
+                coverOffered = allowed === null || allowed.indexOf(COVER) !== -1,
                 labels = (data.choices || {}).services || {},
                 services = (data.services || []).slice(),
                 switches = [];
 
-            // A carrier change drops the services the new carrier doesn't sell.
-            if (allowed !== null) {
-                const kept = services.filter(function (service) {
-                    return allowed.indexOf(service) !== -1;
-                });
+            // Services there are none of for the shipment's type go. The chosen carrier not
+            // offering one is a problem with the carrier (rules.js). The cover sender address is
+            // never one: the cover address chosen below switches it on.
+            const kept = services.filter(function (service) {
+                return service !== COVER && (allowed === null || allowed.indexOf(service) !== -1);
+            });
 
-                if (kept.length !== services.length) {
-                    this.set('services', kept);
+            if (kept.length !== services.length) {
+                this.set('services', kept);
 
-                    return;
-                }
+                return;
+            }
+            if (!coverOffered && rules.filled(data.cover_address_id)) {
+                this.set('cover_address_id', '');
+
+                return;
             }
 
             if (features.cod !== false || rules.amount(data.cod_amount) > 0) {
@@ -68,15 +79,17 @@ define([
                         id: 'polkurier-service-' + service,
                         label: label,
                         checked: services.indexOf(service) !== -1,
+                        unavailable: offered && offered.indexOf(service) === -1 ? $t('This carrier does not offer it.') : '',
                         toggle: this.toggleService.bind(this, service)
                     });
                 }
             }, this);
-            if ((data.cover_addresses || []).length) {
+            if (coverOffered && (data.cover_addresses || []).length) {
                 switches.push({
                     id: 'polkurier-service-cover',
                     label: $t('Another sender on the label'),
                     checked: rules.filled(data.cover_address_id),
+                    unavailable: offered && offered.indexOf(COVER) === -1 ? $t('This carrier does not offer it.') : '',
                     toggle: this.toggleCover.bind(this),
                     cover: true
                 });
@@ -91,7 +104,8 @@ define([
          * @returns {Object}
          */
         codSwitch: function (data) {
-            const on = rules.amount(data.cod_amount) > 0;
+            const on = rules.amount(data.cod_amount) > 0,
+                unavailable = this.features().cod === false;
 
             return {
                 id: 'polkurier-service-cod',
@@ -103,8 +117,8 @@ define([
                 problem: on && data.cod_return_type === 'BA' && !rules.filled(data.cod_bank_account_id)
                     ? $t('No bank account to pay it out to.')
                     : '',
-                unavailable: this.features().cod === false ? $t('This carrier does not collect cash on delivery.') : '',
-                edit: this.openModal.bind(this, this.codModal),
+                unavailable: unavailable ? $t('This carrier does not collect cash on delivery.') : '',
+                edit: unavailable ? null : this.openModal.bind(this, this.codModal),
                 toggle: this.toggleCod.bind(this)
             };
         },
@@ -114,14 +128,16 @@ define([
          * @returns {Object}
          */
         insuranceSwitch: function (data) {
-            const on = rules.amount(data.insurance_amount) > 0;
+            const on = rules.amount(data.insurance_amount) > 0,
+                unavailable = this.features().insurance === false;
 
             return {
                 id: 'polkurier-service-insurance',
                 label: $t('Insurance'),
                 checked: on,
                 amount: on ? this.money(data.insurance_amount) : '',
-                edit: this.openModal.bind(this, this.insuranceModal),
+                unavailable: unavailable ? $t('This carrier does not insure shipments.') : '',
+                edit: unavailable ? null : this.openModal.bind(this, this.insuranceModal),
                 toggle: this.toggleInsurance.bind(this)
             };
         },
@@ -136,10 +152,13 @@ define([
                 return;
             }
             // What the order's other Polkurier orders don't collect yet.
-            if (rules.amount(this.get('cod_amount')) <= 0 && rules.amount(this.get('cod_remaining')) > 0) {
-                this.set('cod_amount', rules.amount(this.get('cod_remaining')).toFixed(2));
+            const value = rules.amount(this.get('cod_remaining'));
+
+            if (value > 0) {
+                this.set('cod_amount', value.toFixed(2));
+            } else {
+                this.openModal(this.codModal);
             }
-            this.openModal(this.codModal);
         },
 
         /**
@@ -151,7 +170,8 @@ define([
 
                 return;
             }
-            const value = Math.max(rules.amount(this.get('shipment_value')), rules.amount(this.get('cod_amount')));
+            // What it collects, or else what it's worth (rules.insuranceFor).
+            const value = rules.insuranceFor(rules.amount(this.get('cod_amount')), rules.amount(this.get('shipment_value')));
 
             if (value > 0) {
                 this.set('insurance_amount', value.toFixed(2));

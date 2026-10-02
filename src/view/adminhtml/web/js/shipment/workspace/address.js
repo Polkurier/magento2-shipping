@@ -23,12 +23,14 @@ define([
             this.lines = ko.observableArray([]);
             this.caption = ko.observable('');
             this.missing = ko.observable('');
+            this.addressesUrl = ko.observable('');
         },
 
         refresh: function () {
             const address = this.kind === 'sender' ? this.sender() : this.recipient();
 
-            this.missing(address ? '' : $t('No sender address: choose one, or add one under Polkurier > Settings > Addresses.'));
+            this.missing(address ? '' : $t('No sender address.'));
+            this.addressesUrl(this.get('urls.addresses') || '');
             this.caption(address && address.caption ? address.caption : '');
             this.lines(address ? [
                 {text: address.company, strong: true},

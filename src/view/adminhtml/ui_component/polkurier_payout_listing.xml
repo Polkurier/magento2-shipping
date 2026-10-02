@@ -12,11 +12,7 @@
     </argument>
     <settings>
         <buttons>
-            <button name="payout">
-                <url path="polkurier/moneybox/payout"/>
-                <class>primary</class>
-                <label translate="true">Request a payout</label>
-            </button>
+            <button name="payout" class="Polkurier\Shipping\Ui\Component\Control\RequestPayoutLink"/>
         </buttons>
         <spinner>polkurier_payout_listing_columns</spinner>
         <deps>

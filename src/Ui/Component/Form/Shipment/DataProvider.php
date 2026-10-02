@@ -12,7 +12,6 @@ use Magento\Framework\App\RequestInterface;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Pricing\PriceCurrencyInterface;
 use Magento\Framework\UrlInterface;
-use Magento\Sales\Api\OrderRepositoryInterface;
 use Magento\Sales\Model\Order;
 use Magento\Ui\DataProvider\AbstractDataProvider;
 use Polkurier\Shipping\Api\Data\AddressInterface;
@@ -23,17 +22,22 @@ use Polkurier\Shipping\Model\Config\Source\CodReturnType;
 use Polkurier\Shipping\Model\Config\Source\CodType;
 use Polkurier\Shipping\Model\Config\Source\PackType;
 use Polkurier\Shipping\Model\Config\Source\PickupMode;
+use Polkurier\Shipping\Model\Carrier\CarrierFeatures;
 use Polkurier\Shipping\Model\Config\Source\ShipmentType;
 use Polkurier\Shipping\Model\Mapper\SenderMapper;
 use Polkurier\Shipping\Model\MasterData;
 use Polkurier\Shipping\Model\OrderPointStore;
 use Polkurier\Shipping\Model\ResourceModel\Shipment\CollectionFactory;
+use Polkurier\Shipping\Model\Shipment\DefaultDraftBuilder;
 use Polkurier\Shipping\Model\Shipment\DraftHydrator;
 use Polkurier\Shipping\Model\Shipment\MagentoShipment;
 use Polkurier\Shipping\Model\Shipment\OrderAmounts;
 use Polkurier\Shipping\Model\Shipment\PlnAmounts;
+use Polkurier\Shipping\Model\Shipment\OwnOrders;
 use Polkurier\Shipping\Model\Shipment\RejectedDraft;
+use Polkurier\Shipping\Model\Shipment\SendAgain;
 use Polkurier\Shipping\Model\Shipment\ScreenContext;
+use Polkurier\Shipping\Model\Shipment\PackKinds;
 use Polkurier\Shipping\Model\Shipment\ShipmentOptions;
 use Polkurier\Webservice\Request\Order\OrderAddressMessage;
 
@@ -58,7 +62,7 @@ class DataProvider extends AbstractDataProvider
         string $requestFieldName,
         CollectionFactory $collectionFactory,
         private readonly RequestInterface $request,
-        private readonly OrderRepositoryInterface $orderRepository,
+        private readonly OwnOrders $ownOrders,
         private readonly ShipmentManagementInterface $management,
         private readonly DraftHydrator $hydrator,
         private readonly RejectedDraft $rejectedDraft,
@@ -78,6 +82,8 @@ class DataProvider extends AbstractDataProvider
         private readonly MagentoShipment $magentoShipment,
         private readonly ScreenContext $context,
         private readonly PackType $packTypes,
+        private readonly SendAgain $sendAgain,
+        private readonly DefaultDraftBuilder $draftBuilder,
         array $meta = [],
         array $data = [],
     ) {
@@ -107,40 +113,81 @@ class DataProvider extends AbstractDataProvider
 
         $order = $this->getOrder($orderId);
         $storeId = (int)$order->getStoreId();
+        // Opened from a Magento shipment whose Polkurier order was cancelled: another goes on it,
+        // with its items.
+        $targetId = (int)$this->request->getParam('shipment_id') ?: null;
+        if ($targetId !== null && !isset($this->magentoShipment->getFreeShipments($order)[$targetId])) {
+            $targetId = null;
+        }
         try {
-            $data = $this->hydrator->toArray($this->management->getDefaultDraft($orderId));
+            $data = $this->hydrator->toArray($targetId !== null
+                ? $this->draftBuilder->createFromOrder($order, $this->magentoShipment->getShipmentQuantities($order, $targetId))
+                : $this->management->getDefaultDraft($orderId));
         } catch (LocalizedException) {
             $data = [];
         }
-        $data = \array_merge($data, $this->rejectedDraft->take($orderId) ?? []);
+        // Sending again a shipment that wasn't placed: from what was sent then. What was just
+        // refused on this screen comes back over it.
+        $data = \array_merge(
+            $data,
+            $this->sendAgain->find($order, $this->request->getParam(SendAgain::PARAM))?->getDraft() ?? [],
+            $this->rejectedDraft->take($orderId) ?? [],
+        );
 
         $data['order_id'] = $orderId;
         $data['order_increment_id'] = $order->getIncrementId();
         $data['store_id'] = $storeId;
         // Polkurier's amounts, prices, cash on delivery and insurance alike, are in złoty.
         $data['currency'] = PlnAmounts::CURRENCY;
-        $data['grand_total'] = $this->context->getAmounts($order)['grand_total'];
+        $amounts = $this->context->getAmounts($order);
+        $data['grand_total'] = $amounts['grand_total'];
+        $data['shipping_charged'] = $amounts['shipping_charged'];
         // What the products weigh, to start a parcel entered by hand from.
         $data['order_weight'] = \round((float)$order->getWeight(), 3);
-        $data['can_ship'] = $order->canShip();
-        $data['items'] = $this->getItems($order, (array)($data['items'] ?? []));
-        // Nothing left to ship: the Polkurier order goes on the shipment of the one it replaces.
-        $data['replacing'] = $data['can_ship'] ? null : $this->getReplaced($order);
+        $targetId ??= isset($data['target_shipment_id']) ? (int)$data['target_shipment_id'] : null;
+        $data['target_shipment_id'] = $targetId;
+        // Items to choose only for a new Magento shipment of what's left.
+        $data['can_ship'] = $targetId === null && $order->canShip();
+        // A chosen Magento shipment, or with nothing left to ship, the latest without a Polkurier
+        // order: the Polkurier order goes on it, in place of the one it replaces, with its items.
+        $data['replacing'] = $data['can_ship'] ? null : $this->getReplaced($order, $targetId);
+        $data['items'] = $this->getItems(
+            $order,
+            (array)($data['items'] ?? []),
+            $data['replacing'] !== null ? $data['replacing']['qtys'] : null,
+        );
         $data['shipment_value'] = $data['replacing'] !== null
             ? $data['replacing']['shipment_value']
-            : $this->amounts->getShipmentValue($order, \array_column($data['items'], 'qty', 'order_item_id'));
-        $amounts = $this->context->getAmounts($order);
+            : $this->amounts->getShipmentValue($order, \array_column($data['items'], 'qty', 'order_item_id'), (bool)($data['shipping_included'] ?? false));
         $data['cod_collected'] = $amounts['cod_collected'];
         $data['cod_remaining'] = $amounts['cod_remaining'];
+        // Another part includes the shipping and handling already.
+        $data['shipping_covered'] = $amounts['shipping_covered'];
+        // The items listed leave out those shipped in full: the screen can't tell from them alone.
+        $data['partly_shipped'] = \array_sum(\array_map(
+            static fn(array $item): float => $item['qty_shipped'],
+            $this->amounts->getItems($order),
+        )) > 0;
         $data['carriers'] = $this->options->getCarrierFeatures();
+        // Offered for pallet shipments only.
+        $data['pallet_services'] = \array_map(static fn($service): string => $service->value, CarrierFeatures::PALLET_SERVICES);
         $data['carriers_error'] = $this->options->getCarriersError();
         $data['map'] = $this->context->getMap();
-        $data['recipient_point_label'] = $this->getPointLabel($orderId, (string)($data['recipient_point_id'] ?? ''));
-        $data['recipient_point_label_id'] = (string)($data['recipient_point_id'] ?? '');
+        // The point as Polkurier has it now: its address today, or, when it's gone or closed since
+        // the order was placed, a problem to fix before placing.
+        $pointId = (string)($data['recipient_point_id'] ?? '');
+        $point = $this->context->findRecipientPoint((string)($data['carrier_code'] ?? ''), $pointId);
+        $data['recipient_point_label'] = $point ? $point->getAddress() : $this->getPointLabel($orderId, $pointId);
+        $data['recipient_point_label_id'] = $pointId;
+        $data['recipient_point_closed'] = $point === false ? $pointId : '';
         $data['senders'] = (object)$this->getSenders();
         $data['store_sender'] = $this->describeStoreSender($storeId);
-        $data['cover_addresses'] = $this->options->getSenderOptions();
+        // Only those that can be printed as the sender.
+        $data['cover_addresses'] = $this->options->getSenderOptions(true);
         $data['templates'] = $this->context->getTemplates();
+        // What a shipment is until it has parcels: the default pack template's kind, as a new one
+        // starts (DefaultDraftBuilder), for automatic packing.
+        $data['default_shipment_type'] = PackKinds::shipmentTypeOf($this->masterData->getDefaultPackTemplate()?->getPackType())->value;
         $data['parcel_weight'] = $this->context->getParcelWeight($storeId);
         $data['carrier_notices'] = $this->carrierNotices->getNotices();
         $data['choices'] = $this->getChoices();
@@ -193,13 +240,22 @@ class DataProvider extends AbstractDataProvider
 
     /**
      * Every item the order has left to ship, with the quantity the draft ships (0 when it leaves
-     * the item out, everything left without a draft), for the item list.
+     * the item out, everything left without a draft), for the item list. Or, for a Polkurier order
+     * going on a Magento shipment there is, that shipment's items, as it carries them.
      *
      * @param array<int, mixed> $draftItems rows of order_item_id and qty
+     * @param array<int, float>|null $carried what the Magento shipment carries, by order item id
      * @return array<int, array<string, mixed>>
      */
-    private function getItems(Order $order, array $draftItems): array
+    private function getItems(Order $order, array $draftItems, ?array $carried = null): array
     {
+        if ($carried !== null) {
+            $draftItems = \array_map(
+                static fn(int $id, float $qty): array => ['order_item_id' => $id, 'qty' => $qty],
+                \array_keys($carried),
+                $carried,
+            );
+        }
         $chosen = [];
         foreach ($draftItems as $row) {
             if (\is_array($row) && isset($row['order_item_id'])) {
@@ -208,7 +264,7 @@ class DataProvider extends AbstractDataProvider
         }
         $items = [];
         foreach ($this->amounts->getItems($order) as $id => $item) {
-            if ($item['qty_to_ship'] <= 0) {
+            if ($carried !== null ? !isset($carried[$id]) : $item['qty_to_ship'] <= 0) {
                 continue;
             }
             $items[] = [
@@ -228,39 +284,32 @@ class DataProvider extends AbstractDataProvider
     }
 
     /**
-     * The Magento shipment a Polkurier order goes on when the order has nothing left to ship, with
-     * the cancelled Polkurier order it replaces and what the shipment carries; null when there is
-     * none.
+     * The Magento shipment a Polkurier order goes on, the one chosen or, when the order has
+     * nothing left to ship, the latest without a Polkurier order, with the cancelled Polkurier
+     * order it replaces and what the shipment carries; null when there is none.
      *
-     * @return array{increment_id: string, replaces: string|null, shipment_value: float}|null
+     * @return array{increment_id: string, replaces: string|null, shipment_value: float, worth: array{products: float, order_total: float, whole: bool, value: float}, qtys: array<int, float>}|null
      */
-    private function getReplaced(Order $order): ?array
+    private function getReplaced(Order $order, ?int $targetId): ?array
     {
         $free = $this->magentoShipment->getFreeShipments($order);
-        if ($free === []) {
+        $id = $targetId ?? ($free === [] ? null : \max(\array_keys($free)));
+        if ($id === null || !isset($free[$id])) {
             return null;
         }
-        $id = \max(\array_keys($free));
-        $qtys = [];
-        foreach ($order->getShipmentsCollection() as $magentoShipment) {
-            if ((int)$magentoShipment->getId() === $id) {
-                foreach ($magentoShipment->getAllItems() as $item) {
-                    $qtys[(int)$item->getOrderItemId()] = (float)$item->getQty();
-                }
-            }
-        }
+        $qtys = $this->magentoShipment->getShipmentQuantities($order, $id);
 
-        return $free[$id] + ['shipment_value' => $this->amounts->getShipmentValue($order, $qtys)];
+        $worth = $this->amounts->getShipmentWorth($order, $qtys);
+
+        return $free[$id] + ['shipment_value' => $worth['value'], 'worth' => $worth, 'qtys' => $qtys];
     }
 
+    /**
+     * @throws LocalizedException when the order is gone or wasn't placed with a Polkurier method
+     */
     private function getOrder(int $orderId): Order
     {
-        $order = $this->orderRepository->get($orderId);
-        if (!$order instanceof Order) {
-            throw new LocalizedException(\__('The order no longer exists.'));
-        }
-
-        return $order;
+        return $this->ownOrders->get($orderId);
     }
 
     /**
@@ -392,6 +441,8 @@ class DataProvider extends AbstractDataProvider
             'carrier_code' => $labels($this->options->getCarrierOptions()),
             'shipment_type' => (object)$this->shipmentTypes->toArray(),
             'pack_type' => (object)$this->packTypes->toArray(),
+            // What each parcel type makes the shipment.
+            'pack_shipment_type' => (object)PackKinds::map(),
             'cod_type' => (object)$this->codTypes->toArray(),
             'cod_return_type' => (object)$this->codReturnTypes->toArray(),
             'cod_bank_account_id' => $labels($this->options->getBankAccountOptions()),

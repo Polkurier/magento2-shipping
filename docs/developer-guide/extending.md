@@ -75,11 +75,13 @@ The pickup point component and its template can be replaced or mixed into like a
 component (see `view/frontend/layout/checkout_index_index.xml` and `requirejs-config.js`). The module
 sets the shipping step's `shippingMethodItemTemplate` to its own copy of the method row, which adds
 a `pickup-point-choice` region. If your theme or another module sets a different row template,
-render that region in it too, or the picker won't show. The copy is based on Magento_Checkout
-100.4.9 (its header says so); after a Magento upgrade, compare it with the new original.
+render that region in it too, or the picker won't show. The copy matches the original of
+Magento_Checkout 100.4.7 to 100.4.9 (Magento 2.4.7 to 2.4.9; its header says so); after a Magento
+upgrade, compare it with the new original.
 
-The multi-address checkout's picker is `Block\Multishipping\PickupPoint` with the template
-`multishipping/pickup-point.phtml`; override the template in your theme as usual.
+The multi-address checkout's picker is in the bridge module, `polkurier/magento2-multishipping`:
+`Polkurier\Multishipping\Block\PickupPoint` with the template `pickup-point.phtml`
+(`Polkurier_Multishipping::pickup-point.phtml`); override the template in your theme as usual.
 
 Whatever you change, keep the Polkurier name off the storefront.
 

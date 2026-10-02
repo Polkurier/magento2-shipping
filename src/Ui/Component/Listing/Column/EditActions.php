@@ -14,7 +14,7 @@ use Magento\Ui\Component\Listing\Columns\Column;
 
 /**
  * Edit and delete links of the settings grids, to the paths the listing gives in its config:
- * editUrlPath, and deleteUrlPath where entries can be deleted.
+ * editUrlPath, and deleteUrlPath where entries can be deleted, confirmed with deleteMessage.
  */
 class EditActions extends Column
 {
@@ -41,6 +41,7 @@ class EditActions extends Column
         $index = (string)$this->getData('config/indexField');
         $editPath = (string)$this->getData('config/editUrlPath');
         $deletePath = (string)$this->getData('config/deleteUrlPath');
+        $deleteMessage = (string)($this->getData('config/deleteMessage') ?: \__('Delete this entry?'));
 
         if (!isset($dataSource['data']['items'])) {
             return $dataSource;
@@ -56,7 +57,7 @@ class EditActions extends Column
                     'href' => $this->url->getUrl($deletePath, ['id' => $id]),
                     'label' => \__('Delete'),
                     'post' => true,
-                    'confirm' => ['title' => \__('Delete'), 'message' => \__('Delete this entry?')],
+                    'confirm' => ['title' => \__('Delete'), 'message' => $deleteMessage],
                 ];
             }
         }

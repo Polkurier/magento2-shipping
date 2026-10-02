@@ -2,10 +2,21 @@
  * Copyright (c) 2026 Polkurier.pl
  * All Rights Reserved
  */
-/* The pickup point button in the delivery method list: kept small so it fits the table's cell. */
+/* The pickup point, in the carrier's cell of its delivery method's row. */
+.pickup-point-choice .selected-point {
+    margin-bottom: 8px;
+    overflow-wrap: anywhere;
+}
+
+/* A narrow cell on a phone: the button's label wraps rather than widening the table. */
+.pickup-point-choice .action-show-map {
+    max-width: 100%;
+    white-space: normal;
+}
+
+/* A full-size button, in both checkouts: easy to tap on a phone. */
 .action.primary.action-show-map {
-    padding: 2px 8px;
-    font-size: 11px;
+    min-height: 40px;
 }
 
 /* The carrier's logo in front of the method name. */

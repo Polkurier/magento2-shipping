@@ -144,6 +144,30 @@ class AutoPackerTest extends TestCase
         self::assertSame([1, 1], [$result['packs'][0]->getTemplateId(), $result['packs'][1]->getTemplateId()]);
     }
 
+    public function testWithoutParcelsTheItemsGoAsTheSmallestKindThatTakesThemAll(): void
+    {
+        $templates = [
+            $this->template(1, 'Box S', 20, 20, 15, 0.5),
+            $this->template(9, 'Pallet', 120, 80, 150, 25.0, 'palette'),
+            $this->template(3, 'Envelope', 30, 20, 2, 0.1, 'envelope'),
+        ];
+
+        $mugs = $this->packer($templates)->packByItems($this->order(), [5 => 2.0]);
+        self::assertSame([1], \array_map(static fn(Pack $pack): ?int => $pack->getTemplateId(), $mugs['packs']), 'Mugs go in a box, not on the pallet.');
+
+        $rug = $this->packer($templates)->packByItems($this->order(), [7 => 1.0]);
+        self::assertSame([9], \array_map(static fn(Pack $pack): ?int => $pack->getTemplateId(), $rug['packs']), 'Too long for a box: a pallet.');
+    }
+
+    public function testWhatNoKindTakesWholeGoesAsParcelsOfItsOwnSize(): void
+    {
+        $result = $this->packer([$this->template(1, 'Box S', 20, 20, 15, 0.5)])->packByItems($this->order(), [7 => 1.0]);
+
+        self::assertCount(1, $result['packs']);
+        self::assertNull($result['packs'][0]->getTemplateId());
+        self::assertSame('ST', $result['packs'][0]->getPackType());
+    }
+
     public function testEachParcelGetsTheSmallestBoxForWhatItHolds(): void
     {
         // The rug fits no box, the lamp leaves no room for the mugs beside it, the mugs share one.

@@ -8,8 +8,10 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Model\Carrier;
 
 use Magento\Framework\App\Config\ScopeConfigInterface;
+use Magento\Framework\DataObject;
 use Magento\Quote\Model\Quote\Address\RateRequest;
 use Magento\Sales\Model\Order;
+use Magento\Quote\Model\Quote\Address\RateResult\Error;
 use Magento\Quote\Model\Quote\Address\RateResult\ErrorFactory;
 use Magento\Shipping\Model\Carrier\AbstractCarrier;
 use Magento\Shipping\Model\Carrier\CarrierInterface;
@@ -99,6 +101,23 @@ class Polkurier extends AbstractCarrier implements CarrierInterface
         }
 
         return $this->rateCollector->collect($request);
+    }
+
+    /**
+     * Magento titles the "not available" row it shows for a country outside Ship to Specific
+     * Countries with the carrier's title, which customers must not see: the row goes without one.
+     *
+     * @param DataObject $request
+     * @return $this|bool|Error
+     */
+    public function checkAvailableShipCountries(DataObject $request)
+    {
+        $result = parent::checkAvailableShipCountries($request);
+        if ($result instanceof Error) {
+            $result->setCarrierTitle('');
+        }
+
+        return $result;
     }
 
     /**

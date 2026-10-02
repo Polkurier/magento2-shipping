@@ -37,18 +37,30 @@ class StatusRefresh
         if ($number === null) {
             throw new LocalizedException(\__('This shipment has no Polkurier order to read.'));
         }
-        $remote = $this->reconciler->findByNumber($shipment, $number);
+        $remote = $this->reconciler->findByNumber($number);
         $before = $shipment->getWaybills();
+        $wasDelivered = $shipment->getDeliveredAt() !== null;
         $wasCancelled = $shipment->getState() === ShipmentInterface::STATE_CANCELLED;
         $this->snapshot->apply($remote, $shipment);
         $shipment->setLastError(null)->setStatusCheckedAt((string)$this->dateTime->gmtDate());
         $this->shipmentRepository->save($shipment);
+        if (!$wasDelivered && $shipment->getDeliveredAt() !== null) {
+            $this->followUp->remark($shipment->getShipmentId(), \__(
+                'Polkurier order %1 delivered (%2).',
+                $number,
+                (string)$shipment->getDeliveredAt(),
+            ));
+        }
         if (!$wasCancelled && $shipment->getState() === ShipmentInterface::STATE_CANCELLED) {
-            // Cancelled in the Polkurier panel: its Magento shipment goes, as when cancelled here.
+            // Cancelled in the Polkurier panel: its Magento shipment is cleared, as when cancelled here.
             $order = $this->followUp->order($shipment->getOrderId());
-            $removed = $this->followUp->removeShipment($order, $shipment);
-            $this->followUp->comment($order, $removed !== null
-                ? \__('Polkurier order %1 was cancelled in Polkurier, and with it Magento shipment #%2, so its items can be shipped again.', $number, $removed)
+            $cleared = $this->followUp->clearShipment($order, $shipment);
+            $this->followUp->remark($shipment->getShipmentId(), \__(
+                'Polkurier order %1 was cancelled in Polkurier. Its label and tracking numbers were removed; another Polkurier order can be placed on this shipment.',
+                $number,
+            ));
+            $this->followUp->comment($order, $cleared !== null
+                ? \__('Polkurier order %1 was cancelled in Polkurier. Magento shipment #%2 stays, without its label and tracking numbers, for another Polkurier order.', $number, $cleared)
                 : \__('Polkurier order %1 was cancelled in Polkurier.', $number));
 
             return $shipment;

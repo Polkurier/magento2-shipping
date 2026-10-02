@@ -20,12 +20,10 @@
                     <timeout>30</timeout>
                     <logging>1</logging>
                     <log_methods>create_order,cancel_order,create_multi_order_pickup,create_money_box_payout</log_methods>
-                    <!-- TODO: remove before publishing. Local development instance of the API; empty
-                         lets the SDK choose between production and sandbox. -->
-                    <api_url>http://api.polkurier.local</api_url>
+                    <!-- Empty: the SDK chooses between production and sandbox. -->
+                    <api_url />
                 </general>
                 <shipment_defaults>
-                    <default_shipment_type>box</default_shipment_type>
                     <insure_by_default>0</insure_by_default>
                     <description_format>%s</description_format>
                 </shipment_defaults>
@@ -58,13 +56,13 @@
                     <show_list>1</show_list>
                     <show_search_input>1</show_search_input>
                     <required_point_functions>collect</required_point_functions>
-                    <!-- TODO: remove before publishing. Local development instance of the map; its
-                         tokens come from the local API only. -->
-                    <url>http://maps.polkurier.local</url>
+                    <!-- Empty: production or sandbox, following the API's mode. -->
+                    <url />
                 </map>
                 <sync>
                     <enabled>1</enabled>
                     <status_enabled>1</status_enabled>
+                    <status_schedule>*/30 * * * *</status_schedule>
                 </sync>
             </polkurier>
         </carriers>

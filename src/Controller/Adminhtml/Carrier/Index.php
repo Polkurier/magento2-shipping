@@ -16,6 +16,13 @@ class Index extends Action implements HttpGetActionInterface
 {
     public const string ADMIN_RESOURCE = 'Polkurier_Shipping::carriers';
 
+    /**
+     * Opened from the admin's notifications, whose links have no secret key.
+     *
+     * @var string[]
+     */
+    protected $_publicActions = ['index'];
+
     public function execute(): Page
     {
         $page = $this->resultFactory->create(ResultFactory::TYPE_PAGE);

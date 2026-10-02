@@ -91,11 +91,11 @@ class SynchronizationTest extends TestCase
     {
         $entry = $this->createStub(SyncableInterface::class);
 
-        $summary = $this->synchronization()->push(SyncEntityEnum::PackTemplate, $entry);
+        $result = $this->synchronization()->push(SyncEntityEnum::PackTemplate, $entry);
 
         self::assertSame([SyncEntityEnum::PackTemplate], $this->ran);
         self::assertSame([$entry], $this->only);
-        self::assertCount(1, $summary);
+        self::assertSame(SyncEntityEnum::PackTemplate, $result->entityType, 'What became of it, to report with the rest of the action.');
         self::assertSame(['lock polkurier_sync', 'unlock polkurier_sync'], $this->lockLog);
     }
 

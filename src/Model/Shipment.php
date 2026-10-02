@@ -345,6 +345,21 @@ class Shipment extends AbstractModel implements ShipmentInterface
         return $this->setData(self::REQUEST, $request);
     }
 
+    public function getDraft(): array
+    {
+        $draft = [];
+        foreach (self::decode($this->getData(self::DRAFT)) as $key => $value) {
+            $draft[(string)$key] = $value;
+        }
+
+        return $draft;
+    }
+
+    public function setDraft(?array $draft): static
+    {
+        return $this->setData(self::DRAFT, $draft ? (string)\json_encode($draft, \JSON_UNESCAPED_UNICODE) : null);
+    }
+
     public function getDetails(): array
     {
         return self::decode($this->getData(self::DETAILS));

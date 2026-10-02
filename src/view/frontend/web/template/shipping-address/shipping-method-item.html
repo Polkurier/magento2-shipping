@@ -3,9 +3,10 @@
  ~ All Rights Reserved
 -->
 <!--
- ~ A copy of Magento_Checkout/shipping-address/shipping-method-item as of Magento_Checkout 100.4.9
- ~ (Magento 2.4.9), plus the carrier's logo and the pickup point in a last column. Compare it with
- ~ the new original when upgrading Magento: changes there don't reach this copy.
+ ~ A copy of Magento_Checkout/shipping-address/shipping-method-item, the same from Magento_Checkout
+ ~ 100.4.7 (Magento 2.4.7) to 100.4.9 (Magento 2.4.9), plus the carrier's logo, and the pickup point in the carrier's cell, which
+ ~ the module's methods leave empty. Compare it with the new original when upgrading Magento:
+ ~ changes there don't reach this copy.
 -->
 <tr class="row"
     click="element.selectShippingMethod">
@@ -30,10 +31,10 @@
              attr="src: method.extension_attributes.method_logo"/>
         <span text="method.method_title"></span>
     </td>
-    <td class="col col-carrier"
-        attr="'id': 'label_carrier_' + method.method_code + '_' + method.carrier_code"
-        text="method.carrier_title"></td>
-    <td class="col col-button">
+    <td class="col col-carrier">
+        <!-- The carrier names the radio button: only the carrier, not the point under it. -->
+        <span attr="'id': 'label_carrier_' + method.method_code + '_' + method.carrier_code"
+              text="method.carrier_title"></span>
         <!-- ko foreach: element.getRegion('pickup-point-choice') -->
         <!-- ko template: { name: getTemplate(), data: {element: $data, method: method} } --><!-- /ko -->
         <!-- /ko -->
@@ -41,7 +42,7 @@
 </tr>
 <tr class="row row-error"
     if="method.error_message">
-    <td class="col col-error" colspan="5">
+    <td class="col col-error" colspan="4">
         <div role="alert" class="message error">
             <div text="method.error_message"></div>
         </div>

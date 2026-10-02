@@ -20,6 +20,7 @@ use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Model\Carrier\Polkurier;
 use Polkurier\Shipping\Model\Config\Source\ShipmentState;
 use Polkurier\Shipping\Model\ResourceModel\Shipment\CollectionFactory;
+use Polkurier\Shipping\Model\Shipment\MagentoShipment;
 
 /**
  * The Polkurier order of each Magento shipment, linked to its details. Left out for an order
@@ -106,15 +107,24 @@ class PolkurierOrder extends Column
             return [];
         }
         $states = $this->states->toArray();
+        // A Magento shipment keeps every Polkurier order it has had: the one placed shows, or the
+        // latest.
         $collection = $this->collectionFactory->create()
-            ->addFieldToFilter(ShipmentInterface::SHIPMENT_ID, ['in' => $magentoShipmentIds]);
+            ->addFieldToFilter(ShipmentInterface::SHIPMENT_ID, ['in' => $magentoShipmentIds])
+            ->setOrder(ShipmentInterface::ENTITY_ID, 'ASC');
         $links = [];
+        $holding = [];
         foreach ($collection->getItems() as $shipment) {
+            $magentoShipmentId = (int)$shipment->getShipmentId();
+            if ($holding[$magentoShipmentId] ?? false) {
+                continue;
+            }
+            $holding[$magentoShipmentId] = \in_array($shipment->getState(), MagentoShipment::HOLDING_STATES, true);
             $label = $shipment->getPolkurierNumber() ?? '#' . $shipment->getId();
             if ($shipment->getState() !== ShipmentInterface::STATE_CREATED) {
                 $label .= ' (' . ($states[$shipment->getState()] ?? $shipment->getState()) . ')';
             }
-            $links[(int)$shipment->getShipmentId()] = \sprintf(
+            $links[$magentoShipmentId] = \sprintf(
                 '<a href="%s">%s</a>',
                 $this->escaper->escapeUrl($this->url->getUrl('polkurier/shipment/view', ['id' => (int)$shipment->getId()])),
                 $this->escaper->escapeHtml($label),

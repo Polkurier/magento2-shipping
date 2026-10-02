@@ -25,20 +25,23 @@ trait EditsSyncableEntries
      * Runs a change of the entries while no synchronization is running, so that none saves its
      * older copy of the entry over it.
      *
-     * @param callable(): string[] $change
-     * @return string[]
+     * @template T
+     * @param callable(): T $change
+     * @return T
      * @throws LocalizedException
      */
-    protected function exclusively(callable $change): array
+    protected function exclusively(callable $change): mixed
     {
         return $this->syncLock->run($change);
     }
 
     /**
      * Copies the form's fields onto the entity, leaving the synchronization's own fields alone,
-     * and marks it as changed in Magento.
+     * and marks it as changed in Magento. Its name, which tells it apart in the lists and
+     * choices, must be its own.
      *
      * @param array<string, mixed> $data
+     * @throws LocalizedException when another entry has the name
      */
     protected function applyFormData(SyncableInterface $entity, array $data): void
     {
@@ -53,10 +56,19 @@ trait EditsSyncableEntries
             $data[SyncableInterface::CREATED_AT],
             $data[SyncableInterface::UPDATED_AT],
         );
+        if (isset($data['name']) && \is_string($data['name'])) {
+            $data['name'] = \trim($data['name']);
+        }
         /** @var AbstractModel&SyncableInterface $entity */
         $entity->addData($data);
+        $this->assertUniqueName($entity);
         $entity->setUpdatedAt($this->now())->setSyncState(SyncableInterface::STATE_PENDING)->setSyncError(null);
     }
+
+    /**
+     * @throws LocalizedException when another entry, not deleted, has the entity's name
+     */
+    abstract protected function assertUniqueName(SyncableInterface $entity): void;
 
     protected function now(): string
     {

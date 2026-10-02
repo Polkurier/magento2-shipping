@@ -16,31 +16,30 @@ for other carriers' methods; `Polkurier::isOrderOf()` tells whether an order was
 `Model\Carrier\RateCollector`, tracking titles from `Model\Shipment\TrackingLookup`, and shipping
 labels from `Model\Shipment\NativeLabel`.
 
-`collectRates()`, through `RateCollector::collect()`:
+`collectRates()` returns nothing when the method is disabled for the website; otherwise
+`RateCollector::collect()`:
 
-1. returns nothing when the method is disabled for the website;
-2. loads the switched-on carriers (`Model\Carrier\CarrierConfigs`), leaving out those the account
+1. loads the switched-on carriers (`Model\Carrier\CarrierConfigs`), leaving out those the account
    no longer offers;
-3. checks them against the account's carrier list (`Model\Carrier\CarrierCatalog`, cached). For a
+2. checks them against the account's carrier list (`Model\Carrier\CarrierCatalog`, cached). For a
    destination outside Poland, only carriers that deliver abroad are kept. If the list can't be
    fetched, domestic carriers are still offered;
-4. prices each carrier through `Model\Pricing\PriceCalculatorPool`. A carrier the calculator
+3. prices each carrier through `Model\Pricing\PriceCalculatorPool`. A carrier the calculator
    returns `null` for is left out, even with free shipping; the others cost 0 when the request has
    free shipping;
-5. titles each method with `CarrierConfigInterface::getLabelForStore()`.
+4. titles each method with `CarrierConfigInterface::getLabelForStore()`.
 
 The carrier title is deliberately empty. Magento shows "carrier title - method title" in many
 places, and the storefront must never show the Polkurier name. The checkout mixin
 `view/frontend/web/js/view/method-title-mixin.js` handles the places where Magento would still
-print a separator. In the multi-address checkout, `Plugin\Multishipping\ShippingStepPlugin` and
-`Plugin\Multishipping\OverviewPlugin` give Polkurier methods a neutral heading instead.
+print a separator. In the multi-address checkout, the bridge module's plugins give Polkurier
+methods a neutral heading instead (see [Multi-address checkout](#multi-address-checkout)).
 
 Each method can carry the carrier's logo. `Plugin\Quote\ShippingMethodLogoPlugin`
 (`afterModelToDataObject` on Magento's `ShippingMethodConverter`) sets it as the `method_logo`
 extension attribute of `ShippingMethodInterface`, named neutrally because it reaches the
 storefront, and the method row template shows it. The multi-address checkout prints method titles
-as escaped text, so there `Block\Multishipping\MethodLogos` hands a code-to-URL map to
-`view/frontend/web/js/multishipping/method-logos.js`, which puts each logo in front of its label.
+as escaped text, so the bridge module puts the logos in with a script there.
 
 Tracking is available: `getTrackingInfo()` finds the shipment by waybill
 (`Model\Shipment\TrackingLookup`) and returns the carrier's tracking link, titled with the method's
@@ -68,16 +67,26 @@ the highest tier the cart reaches wins; a cart that reaches none gets `null`.
 
 What `CarrierFeatures` reports about a carrier decides whether it needs a pickup point. For those
 methods, the checkout shows a point picker (`view/frontend/web/js/view/checkout/pickup-point.js`,
-rendered in a `pickup-point-choice` region of the module's copy of the method row template) that
-opens the Polkurier map through `view/frontend/web/js/model/points-map.js`. The map script is
-loaded from Polkurier's map host and needs a token, which `Model\Checkout\MapTokenProvider`
-fetches and caches per account. The map configuration reaches the page through
-`Model\Checkout\MapConfigProvider`, under `window.checkoutConfig.pickupPoints`.
+rendered in a `pickup-point-choice` region of the module's copy of the method row template, in
+the `col-carrier` cell, which the module's methods leave without a carrier title; the
+`label_carrier_*` id that names the radio button is on the title's own span, so the point doesn't
+become part of the method's name; opening the map selects the method) that opens the Polkurier map through
+`view/frontend/web/js/model/points-map.js`. The map script is loaded from Polkurier's map host and
+needs a token, which `Model\Checkout\MapTokenProvider` fetches and caches per account. The map
+configuration reaches the page through `Model\Checkout\MapConfigProvider`, under
+`window.checkoutConfig.pickupPoints`.
 
-Without a token the map can't open, so the storefront gets no point picker, and `RateCollector`
-leaves the methods that require a point out of the rates altogether: the shopper couldn't give
-the point the order would need. Orders created in the admin keep them, since the merchant sets
-the point when shipping.
+The token runs out some hours after it's issued: the token says when (it's a JWT with `exp`), and
+`MapTokenProvider::getExpiry()` reads it, or takes four hours from when the token was fetched. The
+page gets the token with `tokenExpires` and `tokenUrl`; opening the map asks `tokenUrl`
+(`Controller\Map\Token`, the neutral frontName `pickup-points`, never cached) for a fresh one when
+the page has none or it runs out within ten minutes, so a checkout left open still shows the map.
+The admin's map does the same through `polkurier/shipment/mapToken`.
+
+The methods that deliver to points reach the page whether or not there's a token right then. When
+Polkurier gives no token at all, `RateCollector` leaves the methods that require a point out of the
+rates: the shopper couldn't give the point the order would need. Orders created in the admin keep
+them, since the merchant sets the point when shipping.
 
 From there:
 
@@ -91,9 +100,16 @@ From there:
 3. `Observer\ValidatePickupPoint` (`sales_model_service_quote_submit_before`) checks again when
    the order is placed. It's disabled in the admin area, where orders are created without a
    picker; the merchant sets the point when shipping instead.
-4. `Observer\CopyPickupPointToOrder` (`sales_model_service_quote_submit_success`) copies it to
+4. `Observer\DescribePickupPoint`, on the same event (and, registered by the bridge module, on
+   `checkout_type_multishipping_create_orders_single` for each multi-address order), adds the point
+   to the order's shipping description before the order is saved, through
+   `Model\Checkout\PointDescription`: "Paczkomat InPost, pickup point WAW01A (address)", the address
+   left out when it would overflow the 255-character column. Magento prints that description in
+   the order's e-mails, the customer's account, invoices, packing slips and PDFs, so the point
+   shows wherever the method does. Tracks are titled with the carrier's label instead.
+5. `Observer\CopyPickupPointToOrder` (`sales_model_service_quote_submit_success`) copies it to
    `polkurier_order_point`. The order is placed by then, so a failure is only logged.
-5. `Plugin\Sales\OrderRepositoryPlugin` exposes it as the `polkurier_point` extension attribute of
+6. `Plugin\Sales\OrderRepositoryPlugin` exposes it as the `polkurier_point` extension attribute of
    `OrderInterface`.
 
 `Model\OrderPointStore` is the one place that reads and writes both tables, handing out
@@ -107,22 +123,17 @@ accept it, for any of the cart's addresses.
 
 ## Multi-address checkout
 
-Points are stored per quote address (`polkurier_quote_point.quote_address_id`, 0 in the regular
-checkout). The multi-address checkout is block-based, so it has its own pieces:
+Magento's multi-address checkout (`Magento_Multishipping`) is often disabled or removed, so its
+part is a bridge module of its own: `polkurier/magento2-multishipping` (`Polkurier_Multishipping`),
+which requires this module and `magento/module-multishipping`. Its README describes its pieces.
 
-- `Plugin\Multishipping\ShippingStepPlugin` renders `Block\Multishipping\PickupPoint` under each
-  address, through the step's `getItemsBoxTextAfter()` slot. Its configuration is
-  `MapConfigProvider::getMapConfig()` with the address's point, the same as the regular
-  checkout's, plus the address id and its postcode and town. The widget
-  (`view/frontend/web/js/multishipping/pickup-point.js`) posts the point as
-  `pickup_point[<address id>]`.
-- `Observer\CaptureMultishippingPoints` (`checkout_controller_multishipping_shipping_post`) takes
-  the posted points into `Model\Checkout\MultishippingPoints`, and
-  `Plugin\Multishipping\CheckoutPlugin` stores and checks them in `setShippingMethods()` and
-  requires them again in `createOrders()`. The model plugin doesn't read the request itself.
-- `Observer\TagMultishippingOrder` notes each order's quote address, which Magento doesn't keep,
-  and `Observer\CopyPickupPointsToOrders` (`checkout_submit_all_after`) copies the points once the
-  orders are saved.
+What it builds on stays here: points are stored per quote address
+(`polkurier_quote_point.quote_address_id`, 0 in the regular checkout), through
+`Model\Checkout\PointSelection`; the picker's configuration is
+`MapConfigProvider::getMapConfig()`, the same as the regular checkout's; the map is
+`view/frontend/web/js/model/points-map.js`, the styles `view/frontend/web/css/pickup-point.css`;
+and `Observer\DescribePickupPoint` names each order's point in its shipping description.
+`Observer\RestrictCashOnDelivery` checks every address of a multi-address cart either way.
 
 ## Styling
 

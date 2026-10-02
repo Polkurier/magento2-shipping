@@ -283,7 +283,7 @@ class SyncEngineTest extends TestCase
     ): PackTemplate {
         $entity = (new ObjectManager($this))->getObject(PackTemplate::class);
         $entity->setId(\count($this->local) + 1);
-        $entity->setWebsiteId(1)->setExtId($extId)->setName($name)
+        $entity->setExtId($extId)->setName($name)
             ->setUpdatedAt($updatedAt)->setSyncedAt($syncedAt)->setSyncState($state)
             ->setRemoteHash($hashOf !== null ? $this->hash($hashOf) : null)
             ->setRemoteUpdatedAt($syncedAt);

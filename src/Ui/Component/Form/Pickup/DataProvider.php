@@ -12,6 +12,7 @@ use Magento\Framework\App\RequestInterface;
 use Magento\Framework\Stdlib\DateTime\TimezoneInterface;
 use Magento\Ui\DataProvider\AbstractDataProvider;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
+use Polkurier\Shipping\Model\Carrier\CarrierNames;
 use Polkurier\Shipping\Model\ResourceModel\Shipment\CollectionFactory;
 
 /**
@@ -30,6 +31,7 @@ class DataProvider extends AbstractDataProvider
         CollectionFactory $collectionFactory,
         private readonly RequestInterface $request,
         private readonly TimezoneInterface $timezone,
+        private readonly CarrierNames $carrierNames,
         array $meta = [],
         array $data = [],
     ) {
@@ -52,11 +54,15 @@ class DataProvider extends AbstractDataProvider
         $ids = \array_filter(\array_map('intval', \explode(',', (string)$this->request->getParam('ids'))));
         $numbers = [];
         foreach ($this->collection->addFieldToFilter(ShipmentInterface::ENTITY_ID, ['in' => $ids ?: [0]])->getItems() as $shipment) {
-            $numbers[] = \sprintf('%s (%s)', (string)$shipment->getPolkurierNumber(), $shipment->getCarrierCode());
+            $numbers[] = \sprintf('%s (%s)', (string)$shipment->getPolkurierNumber(), $this->carrierNames->get($shipment->getCarrierCode()));
         }
 
         return [(string)$this->request->getParam('ids') => [
             'ids' => \implode(',', $ids),
+            // Booked from an order's Polkurier tab: back to the order afterwards; or to wherever
+            // the booking was started from.
+            'order_id' => (string)(int)$this->request->getParam('order_id') ?: '',
+            'uenc' => (string)$this->request->getParam('uenc'),
             'shipments' => \implode(', ', $numbers),
             // The next working day where the store is, not where the server's clock is.
             'pickup_date' => \DateTimeImmutable::createFromMutable($this->timezone->date())->modify('+1 weekday')->format('Y-m-d'),

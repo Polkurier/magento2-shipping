@@ -8,9 +8,8 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Model\Mapper;
 
 use Polkurier\Shipping\Api\Data\PackTemplateInterface;
+use Polkurier\Shipping\Model\Shipment\PackKinds;
 use Polkurier\Webservice\Enum\Order\AdditionalServiceEnum;
-use Polkurier\Webservice\Enum\Order\PackTypeEnum;
-use Polkurier\Webservice\Enum\Order\ShipmentTypeEnum;
 use Polkurier\Webservice\Request\Common\DeleteMessage;
 use Polkurier\Webservice\Request\PackTemplate\SaveMessage;
 use Polkurier\Webservice\Response\PackTemplate;
@@ -35,8 +34,7 @@ class PackTemplateMapper
             'id' => $template->getId(),
             'name' => $template->getName(),
             'description' => $template->getDescription() ?: null,
-            'shipment_type' => $template->getShipmentType()->value,
-            'pack_type' => $template->getType()->value,
+            'pack_type' => PackKinds::fromPolkurier($template->getShipmentType(), $template->getType()),
             'length' => $template->getLength(),
             'width' => $template->getWidth(),
             'height' => $template->getHeight(),
@@ -56,8 +54,7 @@ class PackTemplateMapper
         $template->setExtId(isset($remote['id']) ? (string)$remote['id'] : null)
             ->setName((string)$remote['name'])
             ->setDescription($remote['description'])
-            ->setShipmentType((string)$remote['shipment_type'])
-            ->setPackType((string)$remote['pack_type'])
+            ->setPackType(PackKinds::normalize((string)$remote['pack_type']))
             ->setLength((int)$remote['length'])
             ->setWidth((int)$remote['width'])
             ->setHeight((int)$remote['height'])
@@ -76,8 +73,8 @@ class PackTemplateMapper
             width: $template->getWidth(),
             height: $template->getHeight(),
             weight: $template->getWeight(),
-            shipmentType: ShipmentTypeEnum::tryFrom($template->getShipmentType()) ?? ShipmentTypeEnum::Box,
-            type: PackTypeEnum::tryFrom($template->getPackType()) ?? PackTypeEnum::Standard,
+            shipmentType: PackKinds::shipmentTypeOf($template->getPackType()),
+            type: PackKinds::polkurierTypeOf($template->getPackType()),
             id: $template->getExtId(),
             cod: $template->getCodAmount(),
             insurance: $template->getInsuranceAmount(),

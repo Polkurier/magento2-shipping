@@ -13,6 +13,7 @@ use Magento\Framework\App\Action\HttpPostActionInterface;
 use Magento\Framework\Controller\Result\Json;
 use Magento\Framework\Controller\Result\JsonFactory;
 use Magento\Framework\Exception\LocalizedException;
+use Polkurier\Shipping\Model\ErrorMessages;
 use Polkurier\Shipping\Model\Shipment\CostEstimator;
 use Polkurier\Shipping\Model\Shipment\DraftHydrator;
 use Polkurier\Shipping\Model\Shipment\OwnOrders;
@@ -31,6 +32,7 @@ class Calculate extends Action implements HttpPostActionInterface
         private readonly CostEstimator $costEstimator,
         private readonly DraftHydrator $hydrator,
         private readonly OwnOrders $ownOrders,
+        private readonly ErrorMessages $errorMessages,
     ) {
         parent::__construct($context);
     }
@@ -44,13 +46,19 @@ class Calculate extends Action implements HttpPostActionInterface
             $draft = $this->hydrator->fromArray($data);
             $quotes = $this->costEstimator->quoteAll($draft, (int)$order->getStoreId());
         } catch (LocalizedException $e) {
-            return $result->setData(['error' => true, 'message' => $e->getMessage(), 'quotes' => (object)[]]);
+            return $result->setData([
+                'error' => true,
+                'message' => $e->getMessage(),
+                // Offered again only when that may help; a refusal waits for a change to the shipment.
+                'retry' => $this->errorMessages->isTransient($e),
+                'quotes' => (object)[],
+            ]);
         }
         $cost = $quotes[$draft->getCarrierCode()] ?? null;
 
         return $result->setData([
             'error' => $cost === null,
-            'message' => $cost === null ? (string)\__('The carrier does not price this shipment.') : '',
+            'message' => $cost === null ? (string)\__('Service unavailable') : '',
             'net' => $cost['net'] ?? null,
             'gross' => $cost['gross'] ?? null,
             'quotes' => (object)$quotes,

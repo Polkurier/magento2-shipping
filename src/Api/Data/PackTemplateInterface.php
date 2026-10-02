@@ -14,7 +14,6 @@ interface PackTemplateInterface extends SyncableInterface
 {
     public const string NAME = 'name';
     public const string DESCRIPTION = 'description';
-    public const string SHIPMENT_TYPE = 'shipment_type';
     public const string PACK_TYPE = 'pack_type';
     public const string LENGTH = 'length';
     public const string WIDTH = 'width';
@@ -49,15 +48,11 @@ interface PackTemplateInterface extends SyncableInterface
     public function setDescription(?string $description): static;
 
     /**
+     * The shipment type its parcel type makes, e.g. "envelope" for an envelope.
+     *
      * @return string
      */
     public function getShipmentType(): string;
-
-    /**
-     * @param string $shipmentType
-     * @return $this
-     */
-    public function setShipmentType(string $shipmentType): static;
 
     /**
      * @return string

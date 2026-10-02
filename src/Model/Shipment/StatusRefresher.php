@@ -25,7 +25,6 @@ use Psr\Log\LoggerInterface;
 class StatusRefresher
 {
     public const int BATCH_SIZE = 200;
-    public const int MIN_AGE_MINUTES = 30;
 
     public function __construct(
         private readonly CollectionFactory $collectionFactory,
@@ -37,6 +36,8 @@ class StatusRefresher
     ) {}
 
     /**
+     * The scheduled run: the shipments not checked since the previous one.
+     *
      * @return int how many shipments were refreshed
      */
     public function refreshPending(): int
@@ -44,23 +45,49 @@ class StatusRefresher
         if (!$this->config->isStatusSyncEnabled()) {
             return 0;
         }
-        $checkedBefore = \gmdate('Y-m-d H:i:s', $this->dateTime->gmtTimestamp() - self::MIN_AGE_MINUTES * 60);
+        // A minute short of the interval, so that a shipment checked by the previous run is due.
+        $minAge = \max(1, $this->config->getStatusIntervalMinutes() - 1);
+
+        return $this->refresh($minAge)['refreshed'];
+    }
+
+    /**
+     * Asked for in the admin: the shipments still in motion, however recently checked, oldest
+     * check first.
+     *
+     * @return array{refreshed: int, failed: int}
+     */
+    public function refreshNow(): array
+    {
+        return $this->refresh(0);
+    }
+
+    /**
+     * @return array{refreshed: int, failed: int}
+     */
+    private function refresh(int $minAgeMinutes): array
+    {
         $collection = $this->collectionFactory->create()
             ->addFieldToFilter(ShipmentInterface::STATE, ShipmentInterface::STATE_CREATED)
             ->addFieldToFilter(ShipmentInterface::IS_FINAL, ['eq' => 0])
-            ->addFieldToFilter(ShipmentInterface::STATUS_CHECKED_AT, [
-                ['null' => true],
-                ['lt' => $checkedBefore],
-            ])
             ->setOrder(ShipmentInterface::STATUS_CHECKED_AT, 'ASC')
             ->setPageSize(self::BATCH_SIZE);
+        if ($minAgeMinutes > 0) {
+            $checkedBefore = \gmdate('Y-m-d H:i:s', $this->dateTime->gmtTimestamp() - $minAgeMinutes * 60);
+            $collection->addFieldToFilter(ShipmentInterface::STATUS_CHECKED_AT, [
+                ['null' => true],
+                ['lt' => $checkedBefore],
+            ]);
+        }
 
         $refreshed = 0;
+        $failed = 0;
         foreach ($collection->getItems() as $shipment) {
             try {
                 $this->management->refreshStatus((int)$shipment->getId());
                 $refreshed++;
             } catch (\Throwable $e) {
+                $failed++;
                 $this->logger->warning('Polkurier status refresh failed', [
                     'shipment' => $shipment->getId(),
                     'error' => $e->getMessage(),
@@ -70,7 +97,6 @@ class StatusRefresher
             }
         }
 
-        return $refreshed;
+        return ['refreshed' => $refreshed, 'failed' => $failed];
     }
-
 }

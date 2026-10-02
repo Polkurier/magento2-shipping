@@ -36,7 +36,7 @@ class CarrierConfigRepository implements CarrierConfigRepositoryInterface
         $entity = $this->entityFactory->create();
         $this->resource->load($entity, $id);
         if (!$entity->getId()) {
-            throw new NoSuchEntityException(\__('The carrier config with id "%1" does not exist.', $id));
+            throw new NoSuchEntityException(\__('The carrier settings with id "%1" do not exist.', $id));
         }
 
         return $entity;
@@ -61,7 +61,7 @@ class CarrierConfigRepository implements CarrierConfigRepositoryInterface
             /** @var CarrierConfig $entity */
             $this->resource->save($entity);
         } catch (\Exception $e) {
-            throw new CouldNotSaveException(\__('Could not save the carrier config: %1', $e->getMessage()), $e);
+            throw new CouldNotSaveException(\__('Could not save the carrier settings: %1', $e->getMessage()), $e);
         }
 
         return $entity;
@@ -73,7 +73,7 @@ class CarrierConfigRepository implements CarrierConfigRepositoryInterface
             /** @var CarrierConfig $entity */
             $this->resource->delete($entity);
         } catch (\Exception $e) {
-            throw new CouldNotDeleteException(\__('Could not delete the carrier config: %1', $e->getMessage()), $e);
+            throw new CouldNotDeleteException(\__('Could not delete the carrier settings: %1', $e->getMessage()), $e);
         }
 
         return true;

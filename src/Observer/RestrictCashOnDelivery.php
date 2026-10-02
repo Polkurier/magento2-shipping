@@ -53,7 +53,7 @@ class RestrictCashOnDelivery implements ObserverInterface
             return;
         }
         foreach ($this->getDeliveries($quote) as [$carrierCode, $quoteAddressId]) {
-            if (!$this->canCollect($quote, $carrierCode, $quoteAddressId, $storeId)) {
+            if (!$this->canCollect($quote, $carrierCode, $quoteAddressId)) {
                 $result->setData('is_available', false);
 
                 return;
@@ -84,7 +84,7 @@ class RestrictCashOnDelivery implements ObserverInterface
         return $deliveries;
     }
 
-    private function canCollect(\Magento\Quote\Model\Quote $quote, string $carrierCode, int $quoteAddressId, int $storeId): bool
+    private function canCollect(\Magento\Quote\Model\Quote $quote, string $carrierCode, int $quoteAddressId): bool
     {
         try {
             $carrier = $this->catalog->getCarrier($carrierCode);

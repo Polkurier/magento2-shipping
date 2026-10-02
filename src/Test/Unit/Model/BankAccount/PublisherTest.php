@@ -137,6 +137,6 @@ class PublisherTest extends SdkTestCase
         /** @var BankAccount $account */
         $account = (new ObjectManager($this))->getObject(BankAccount::class);
 
-        return $account->setName('Main')->setNumber('PL61 1090 1014 0000 0712 1981 2874')->setDefault(true)->setWebsiteId(1);
+        return $account->setName('Main')->setNumber('PL61 1090 1014 0000 0712 1981 2874')->setDefault(true);
     }
 }

@@ -10,7 +10,7 @@
              sortOrder="17" resource="Polkurier_Shipping::root" />
 
         <add id="Polkurier_Shipping::sales" title="Sales" translate="title" module="Polkurier_Shipping"
-             sortOrder="10" parent="Polkurier_Shipping::root" resource="Polkurier_Shipping::shipments" />
+             sortOrder="10" parent="Polkurier_Shipping::root" resource="Polkurier_Shipping::sales" />
         <add id="Polkurier_Shipping::orders" title="Orders" translate="title" module="Polkurier_Shipping"
              sortOrder="5" parent="Polkurier_Shipping::sales" action="polkurier/order/index"
              resource="Polkurier_Shipping::orders" />

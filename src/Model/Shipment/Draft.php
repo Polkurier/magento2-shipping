@@ -8,6 +8,7 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Model\Shipment;
 
 use Magento\Framework\DataObject;
+use Polkurier\Shipping\Api\Data\ShipmentDraft\PackInterface;
 use Polkurier\Shipping\Api\Data\ShipmentDraftInterface;
 
 /**
@@ -27,11 +28,18 @@ class Draft extends DataObject implements ShipmentDraftInterface
         return $this->setData(self::CARRIER_CODE, $carrierCode);
     }
 
+    /**
+     * What its parcels are (PackKinds); the type set is for a shipment with no parcels yet, or
+     * parcels of more than one kind, which can't go.
+     */
     public function getShipmentType(): string
     {
-        $value = $this->getData(self::SHIPMENT_TYPE);
+        $types = PackKinds::shipmentTypesOf(\array_map(
+            static fn(PackInterface $pack): string => $pack->getPackType(),
+            $this->getPacks(),
+        ));
 
-        return (string)$value;
+        return \count($types) === 1 ? $types[0]->value : (string)$this->getData(self::SHIPMENT_TYPE);
     }
 
     public function setShipmentType(string $shipmentType): static
@@ -229,6 +237,16 @@ class Draft extends DataObject implements ShipmentDraftInterface
         return $this->setData(self::PACKS_ESTIMATED, $estimated);
     }
 
+    public function isShippingIncluded(): bool
+    {
+        return (bool)$this->getData(self::SHIPPING_INCLUDED);
+    }
+
+    public function setShippingIncluded(bool $included): static
+    {
+        return $this->setData(self::SHIPPING_INCLUDED, $included);
+    }
+
     public function getCodAmount(): ?float
     {
         $value = $this->getData(self::COD_AMOUNT);
@@ -371,5 +389,17 @@ class Draft extends DataObject implements ShipmentDraftInterface
     public function setAdditionalFields(array $additionalFields): static
     {
         return $this->setData(self::ADDITIONAL_FIELDS, $additionalFields);
+    }
+
+    public function getTargetShipmentId(): ?int
+    {
+        $value = $this->getData(self::TARGET_SHIPMENT_ID);
+
+        return $value === null || $value === '' ? null : (int)$value;
+    }
+
+    public function setTargetShipmentId(?int $targetShipmentId): static
+    {
+        return $this->setData(self::TARGET_SHIPMENT_ID, $targetShipmentId);
     }
 }

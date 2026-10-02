@@ -13,6 +13,8 @@ use Polkurier\Shipping\Model\Carrier\CarrierFeatures;
 use Polkurier\Webservice\Response\Carrier;
 use Polkurier\Webservice\Response\Carrier\AdditionalData;
 use Polkurier\Webservice\Response\Carrier\AdditionalData\Pickup;
+use Polkurier\Webservice\Response\Carrier\AdditionalData\Property;
+use Polkurier\Webservice\Response\Carrier\AdditionalData\ShipmentType;
 
 #[CoversClass(CarrierFeatures::class)]
 class CarrierFeaturesTest extends TestCase
@@ -33,6 +35,20 @@ class CarrierFeaturesTest extends TestCase
             self::assertFalse($features->isDropOffAvailable($carrier));
             self::assertFalse($features->isDropOffDefault($carrier));
             self::assertFalse($features->isRecipientPointAllowed($carrier));
+        }
+    }
+
+    public function testACarrierTakingPalletsOffersTheServicesForPallets(): void
+    {
+        $features = new CarrierFeatures();
+        $types = static fn(bool $palette): ShipmentType => new ShipmentType(new Property(false, ''), new Property(true, ''), new Property($palette, ''));
+
+        $pallets = $features->getServices(new Carrier('AMBRO', 'Ambro', false, new AdditionalData(shipmentType: $types(true))));
+        $parcels = $features->getServices(new Carrier('INPOST', 'InPost', false, new AdditionalData(shipmentType: $types(false))));
+
+        foreach (CarrierFeatures::PALLET_SERVICES as $service) {
+            self::assertContains($service, $pallets);
+            self::assertNotContains($service, $parcels);
         }
     }
 }

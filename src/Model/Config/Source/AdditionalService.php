@@ -10,13 +10,18 @@ namespace Polkurier\Shipping\Model\Config\Source;
 use Polkurier\Webservice\Enum\Order\AdditionalServiceEnum;
 
 /**
- * Additional services that can be bought with a shipment.
+ * Additional services that can be bought with a shipment, to choose from. The cover sender address
+ * isn't one to tick: it comes with the address chosen to print as the sender (the shipment's cover
+ * address), which Polkurier needs for it and switches it on by. labels() has it, for what was sent.
  */
 class AdditionalService extends AbstractOptions
 {
     public function toArray(): array
     {
-        return self::labels();
+        $labels = self::labels();
+        unset($labels[AdditionalServiceEnum::CoverSenderAddress->value]);
+
+        return $labels;
     }
 
     /**
@@ -25,24 +30,30 @@ class AdditionalService extends AbstractOptions
     public static function labels(): array
     {
         return [
-            AdditionalServiceEnum::SmsNotificationRecipient->value => (string)\__('SMS notification when dispatched'),
-            AdditionalServiceEnum::SmsNotificationRecipientWithName->value => (string)\__('SMS notification when dispatched, with the sender name'),
-            AdditionalServiceEnum::SmsNotificationRecipientOutForDelivery->value => (string)\__('SMS notification when out for delivery'),
-            AdditionalServiceEnum::SmsNotificationRecipientOutForDeliveryWithName->value => (string)\__('SMS notification when out for delivery, with the sender name'),
-            AdditionalServiceEnum::PhoneNotificationRecipient->value => (string)\__('Phone notification before delivery'),
-            AdditionalServiceEnum::PhoneNotificationCollection->value => (string)\__('Phone notification before collection'),
-            AdditionalServiceEnum::CheckContent->value => (string)\__('Content check on delivery'),
+            AdditionalServiceEnum::SmsOnDispatch->value => (string)\__('SMS notification when dispatched'),
+            AdditionalServiceEnum::SmsOnDispatchWithSenderName->value => (string)\__('SMS notification when dispatched, with the sender name'),
+            AdditionalServiceEnum::SmsOutForDelivery->value => (string)\__('SMS notification when out for delivery'),
+            AdditionalServiceEnum::SmsOutForDeliveryWithSenderName->value => (string)\__('SMS notification when out for delivery, with the sender name'),
+            AdditionalServiceEnum::PhoneCallBeforeDelivery->value => (string)\__('Phone call before delivery'),
+            AdditionalServiceEnum::PhoneCallBeforePickup->value => (string)\__('Phone call before collection'),
+            AdditionalServiceEnum::CheckContent->value => (string)\__('Contents checked by the recipient'),
             AdditionalServiceEnum::ReturnOfDocuments->value => (string)\__('Return of documents (ROD)'),
-            AdditionalServiceEnum::CourierWithLabel->value => (string)\__('Courier brings the label'),
+            AdditionalServiceEnum::CourierBringsLabel->value => (string)\__('Courier brings the label'),
             AdditionalServiceEnum::Labelless->value => (string)\__('No label (shipment code)'),
-            AdditionalServiceEnum::WeekCollection->value => (string)\__('Weekend collection'),
+            AdditionalServiceEnum::WeekendDelivery->value => (string)\__('Weekend delivery'),
             AdditionalServiceEnum::SaturdayDelivery->value => (string)\__('Saturday delivery'),
-            AdditionalServiceEnum::DeliveryToTime->value => (string)\__('Delivery by a given hour'),
-            AdditionalServiceEnum::HandDelivery->value => (string)\__('Delivery to own hands'),
+            AdditionalServiceEnum::DeliveryByTime->value => (string)\__('Delivery by a set time'),
+            AdditionalServiceEnum::HandDelivery->value => (string)\__('Hand delivery'),
             AdditionalServiceEnum::HandleWithCare->value => (string)\__('Fragile'),
-            AdditionalServiceEnum::CoverAddressSender->value => (string)\__('Cover address as sender'),
+            AdditionalServiceEnum::CoverSenderAddress->value => (string)\__('Another sender on the label'),
             AdditionalServiceEnum::Tires->value => (string)\__('Tires'),
-            AdditionalServiceEnum::BringingDeliveredParcel->value => (string)\__('Bringing the parcel in'),
+            AdditionalServiceEnum::CarryIn->value => (string)\__('Carried in to the door'),
+            AdditionalServiceEnum::DangerousGoods->value => (string)\__('Dangerous goods (ADR)'),
+            AdditionalServiceEnum::DoNotStack->value => (string)\__('Do not stack'),
+            AdditionalServiceEnum::TailLiftAtPickup->value => (string)\__('Tail lift at collection'),
+            AdditionalServiceEnum::TailLiftAtDelivery->value => (string)\__('Tail lift at delivery'),
+            AdditionalServiceEnum::SideLoadAtPickup->value => (string)\__('Side loading at collection'),
+            AdditionalServiceEnum::SideUnloadAtDelivery->value => (string)\__('Side unloading at delivery'),
         ];
     }
 }

@@ -33,7 +33,7 @@ abstract class AbstractEdit extends AbstractAction implements HttpGetActionInter
         }
         $page->setActiveMenu($this->handler->getMenuId());
         $page->getConfig()->getTitle()->prepend($this->handler->getLabel());
-        $page->getConfig()->getTitle()->prepend($id ? (string)\__('Edit') : (string)\__('New'));
+        $page->getConfig()->getTitle()->prepend($id ? (string)\__('Edit') : (string)\__('New entry'));
 
         return $page;
     }

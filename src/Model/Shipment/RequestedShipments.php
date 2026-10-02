@@ -43,17 +43,23 @@ class RequestedShipments
     public function getSelected(RequestInterface $request): array
     {
         $ids = \array_filter(\array_map('intval', \explode(',', (string)$request->getParam('ids'))));
+        // Sent from an order's Polkurier tab (Ui\Component\MassAction\OrderScopedAction): that
+        // order's shipments only, whatever else the selection says.
+        $orderId = (int)$request->getParam('order_id');
         if ($ids !== []) {
-            return \array_values($this->collectionFactory->create()
-                ->addFieldToFilter(ShipmentInterface::ENTITY_ID, ['in' => $ids])
-                ->getItems());
-        }
-        if ($request->getParam('id')) {
-            return [$this->getOne($request)];
-        }
+            $collection = $this->collectionFactory->create()
+                ->addFieldToFilter(ShipmentInterface::ENTITY_ID, ['in' => $ids]);
+        } elseif ($request->getParam('id')) {
+            $shipment = $this->getOne($request);
 
-        $collection = $this->collectionFactory->create();
-        $this->filter->getCollection($collection);
+            return $orderId && $shipment->getOrderId() !== $orderId ? [] : [$shipment];
+        } else {
+            $collection = $this->collectionFactory->create();
+            $this->filter->getCollection($collection);
+        }
+        if ($orderId) {
+            $collection->addFieldToFilter(ShipmentInterface::ORDER_ID, (string)$orderId);
+        }
 
         return \array_values($collection->getItems());
     }

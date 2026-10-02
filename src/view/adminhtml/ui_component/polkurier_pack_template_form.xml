@@ -24,6 +24,7 @@
                 <class>back</class>
                 <label translate="true">Back</label>
             </button>
+            <button name="delete" class="Polkurier\Shipping\Ui\Component\Control\DeletePackTemplateButton"/>
             <button name="save_and_continue" class="Polkurier\Shipping\Ui\Component\Control\SaveAndContinuePackTemplate"/>
             <button name="save" class="Polkurier\Shipping\Ui\Component\Control\SaveButton"/>
         </buttons>
@@ -70,21 +71,6 @@
                 <dataScope>description</dataScope>
             </settings>
         </field>
-        <field name="shipment_type" formElement="select">
-            <settings>
-                <label translate="true">Shipment type</label>
-                <dataType>text</dataType>
-                <dataScope>shipment_type</dataScope>
-                <validation><rule name="required-entry" xsi:type="boolean">true</rule></validation>
-            </settings>
-            <formElements>
-                <select>
-                    <settings>
-                        <options class="Polkurier\Shipping\Model\Config\Source\ShipmentType"/>
-                    </settings>
-                </select>
-            </formElements>
-        </field>
         <field name="pack_type" formElement="select">
             <settings>
                 <label translate="true">Parcel type</label>
@@ -102,7 +88,7 @@
         </field>
         <field name="length" formElement="input">
             <settings>
-                <label translate="true">Length [cm]</label>
+                <label translate="true">Length (cm)</label>
                 <dataType>text</dataType>
                 <dataScope>length</dataScope>
                 <validation><rule name="validate-digits" xsi:type="boolean">true</rule><rule name="validate-greater-than-zero" xsi:type="boolean">true</rule><rule name="required-entry" xsi:type="boolean">true</rule></validation>
@@ -110,7 +96,7 @@
         </field>
         <field name="width" formElement="input">
             <settings>
-                <label translate="true">Width [cm]</label>
+                <label translate="true">Width (cm)</label>
                 <dataType>text</dataType>
                 <dataScope>width</dataScope>
                 <validation><rule name="validate-digits" xsi:type="boolean">true</rule><rule name="validate-greater-than-zero" xsi:type="boolean">true</rule><rule name="required-entry" xsi:type="boolean">true</rule></validation>
@@ -118,7 +104,7 @@
         </field>
         <field name="height" formElement="input">
             <settings>
-                <label translate="true">Height [cm]</label>
+                <label translate="true">Height (cm)</label>
                 <dataType>text</dataType>
                 <dataScope>height</dataScope>
                 <validation><rule name="validate-digits" xsi:type="boolean">true</rule><rule name="validate-greater-than-zero" xsi:type="boolean">true</rule><rule name="required-entry" xsi:type="boolean">true</rule></validation>
@@ -126,7 +112,7 @@
         </field>
         <field name="weight" formElement="input">
             <settings>
-                <label translate="true">Maximum weight [kg]</label>
+                <label translate="true">Maximum weight (kg)</label>
                 <notice translate="true">The most a parcel of this template may weigh with what's in it.</notice>
                 <dataType>text</dataType>
                 <dataScope>weight</dataScope>
@@ -149,12 +135,20 @@
                 <validation><rule name="validate-number" xsi:type="boolean">true</rule><rule name="validate-zero-or-greater" xsi:type="boolean">true</rule></validation>
             </settings>
         </field>
-        <field name="carrier_code" formElement="input">
+        <field name="carrier_code" formElement="select">
             <settings>
-                <label translate="true">Carrier code</label>
+                <label translate="true">Carrier</label>
                 <dataType>text</dataType>
                 <dataScope>carrier_code</dataScope>
             </settings>
+            <formElements>
+                <select>
+                    <settings>
+                        <options class="Polkurier\Shipping\Model\Config\Source\CarrierName"/>
+                        <caption translate="true">Any carrier</caption>
+                    </settings>
+                </select>
+            </formElements>
         </field>
         <field name="services" formElement="multiselect">
             <settings>

@@ -23,6 +23,9 @@ use Polkurier\Shipping\Model\Mapper\SenderMapper;
 use Polkurier\Shipping\Model\Mapper\StreetParser;
 use Polkurier\Shipping\Model\Shipment\Draft;
 use Polkurier\Shipping\Model\Shipment\Draft\Pack;
+use Polkurier\Shipping\Model\Shipment\PackKinds;
+use Polkurier\Webservice\Enum\Order\PackTypeEnum;
+use Polkurier\Webservice\Enum\Order\ShipmentTypeEnum;
 use Polkurier\Webservice\Request\Order\CreateOrderMessage;
 use Polkurier\Webservice\Serializer\SerializerProvider;
 use Polkurier\Webservice\Validator\DefaultValidatorRegistryFactory;
@@ -126,6 +129,46 @@ class CreateOrderMessageMapperTest extends TestCase
         $this->expectException(LocalizedException::class);
 
         $this->mapper()->map($this->draft()->setCodAmount(10)->setCodReturnType('BA')->setCodBankAccountId(null), 1);
+    }
+
+    public function testTheCoverAddressSwitchesTheServiceOnBySendingItself(): void
+    {
+        $payload = $this->payload($this->mapper()->map($this->draft()->setCoverAddressId(8)->setServices(['COVER_ADDRESS_SENDER', 'SMS_NOTIFICATION_RECIPIENT']), 1));
+
+        self::assertSame('Zwroty 1', $payload['cover_address']['street']);
+        self::assertSame(['SMS_NOTIFICATION_RECIPIENT' => true], $payload['courierservice']);
+    }
+
+    public function testTheCoverSenderAddressWithoutAnAddressIsRefused(): void
+    {
+        $this->expectException(LocalizedException::class);
+        $this->mapper()->map($this->draft()->setCoverAddressId(null)->setServices(['COVER_ADDRESS_SENDER']), 1);
+    }
+
+    public function testTheShipmentTypeIsWhatTheParcelsAre(): void
+    {
+        $envelope = (new Pack())->setPackType(PackKinds::ENVELOPE)->setLength(35)->setWidth(25)->setHeight(2)->setWeight(0.5)->setAmount(1);
+
+        $message = $this->mapper()->map($this->draft()->setShipmentType('box')->setPacks([$envelope]), 1);
+
+        self::assertSame(ShipmentTypeEnum::Envelope, $message->getShipmentType());
+        // Polkurier knows an envelope by the shipment type alone.
+        self::assertSame(PackTypeEnum::Standard->value, $this->payload($message)['packs'][0]['type']);
+
+        $pallet = (new Pack())->setPackType('PAL')->setLength(120)->setWidth(80)->setHeight(100)->setWeight(200)->setAmount(1);
+        self::assertSame(ShipmentTypeEnum::Palette, $this->mapper()->map($this->draft()->setPacks([$pallet]), 1)->getShipmentType());
+    }
+
+    public function testParcelsOfMoreThanOneKindAreRefused(): void
+    {
+        $draft = $this->draft();
+        $draft->setPacks([
+            ...$draft->getPacks(),
+            (new Pack())->setPackType(PackKinds::ENVELOPE)->setLength(35)->setWidth(25)->setHeight(2)->setWeight(0.5)->setAmount(1),
+        ]);
+
+        $this->expectException(LocalizedException::class);
+        $this->mapper()->map($draft, 1);
     }
 
     private function draft(): Draft

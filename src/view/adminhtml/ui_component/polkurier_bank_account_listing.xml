@@ -32,7 +32,7 @@
             <updateUrl path="mui/index/render"/>
         </settings>
         <aclResource>Polkurier_Shipping::bank_accounts</aclResource>
-        <dataProvider class="Magento\Framework\View\Element\UiComponent\DataProvider\DataProvider" name="polkurier_bank_account_listing_data_source">
+        <dataProvider class="Polkurier\Shipping\Ui\Component\DataProvider\GridDataProvider" name="polkurier_bank_account_listing_data_source">
             <settings>
                 <requestFieldName>id</requestFieldName>
                 <primaryFieldName>account_id</primaryFieldName>
@@ -42,6 +42,7 @@
     <listingToolbar name="listing_top">
         <bookmark name="bookmarks"/>
         <columnsControls name="columns_controls"/>
+        <filterSearch name="fulltext"/>
         <filters name="listing_filters"/>
         <massaction name="listing_massaction">
             <action name="delete">
@@ -51,7 +52,7 @@
                     <label translate="true">Delete</label>
                     <confirm>
                         <title translate="true">Delete bank accounts</title>
-                        <message translate="true">Accounts from Polkurier come back at the next synchronization; delete them in the Polkurier panel.</message>
+                        <message translate="true">The accounts are deleted in Polkurier and in Magento. An account locked with a PIN can only be deleted on its own page, with the PIN.</message>
                     </confirm>
                 </settings>
             </action>
@@ -97,6 +98,9 @@
                 <label translate="true">Account name</label>
                 <filter>text</filter>
                 <editor>
+                    <validation>
+                        <rule name="required-entry" xsi:type="boolean">true</rule>
+                    </validation>
                     <editorType>text</editorType>
                 </editor>
             </settings>
@@ -106,6 +110,9 @@
                 <label translate="true">Account number</label>
                 <filter>text</filter>
                 <editor>
+                    <validation>
+                        <rule name="required-entry" xsi:type="boolean">true</rule>
+                    </validation>
                     <editorType>text</editorType>
                 </editor>
             </settings>
@@ -155,6 +162,7 @@
                 <item name="config" xsi:type="array">
                     <item name="editUrlPath" xsi:type="string">polkurier/bankaccount/edit</item>
                     <item name="deleteUrlPath" xsi:type="string">polkurier/bankaccount/delete</item>
+                    <item name="deleteMessage" xsi:type="string" translate="true">Delete this bank account in Polkurier and in Magento?</item>
                 </item>
             </argument>
             <settings>

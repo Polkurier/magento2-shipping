@@ -22,7 +22,9 @@ use Polkurier\Shipping\Model\Admin\PackTemplateHandler;
 use Polkurier\Shipping\Model\Admin\SyncableEntityHandler;
 use Polkurier\Shipping\Model\PackTemplate;
 use Polkurier\Shipping\Model\PackTemplateFactory;
+use Polkurier\Shipping\Model\ResourceModel\PackTemplate as PackTemplateResource;
 use Polkurier\Shipping\Model\Sync\SyncLock;
+use Polkurier\Shipping\Model\Sync\SyncResult;
 use Polkurier\Shipping\Test\Unit\Support\FixedDateTime;
 
 #[CoversClass(PackTemplateHandler::class)]
@@ -35,6 +37,11 @@ class PackTemplateHandlerTest extends TestCase
      */
     private array $log = [];
     private bool $syncRunning = false;
+
+    /**
+     * @var string[] names other templates already have
+     */
+    private array $taken = [];
 
     public function testASaveKeepsTheFormNotTheSyncFieldsAndSendsThatEntryAlone(): void
     {
@@ -54,7 +61,30 @@ class PackTemplateHandlerTest extends TestCase
         self::assertSame(SyncableInterface::STATE_PENDING, $template->getSyncState());
         self::assertSame('2026-09-30 10:00:00', $template->getUpdatedAt());
         self::assertSame(['lock polkurier_sync', 'save Karton L', 'push pack_template Karton L', 'unlock polkurier_sync'], $this->log);
-        self::assertSame(['Pack templates: 1 sent to Polkurier.'], $report);
+        self::assertSame(1, $report->pushed, 'What the push did, for the action to tell.');
+    }
+
+    public function testANameAnotherTemplateHasIsRefusedBeforeAnythingIsSaved(): void
+    {
+        $this->taken = ['karton l'];
+        $template = $this->template()->setName('Karton M');
+
+        try {
+            $this->handler()->save($template, ['name' => '  Karton L ']);
+            self::fail('Two templates can\'t share a name.');
+        } catch (LocalizedException $e) {
+            self::assertSame('A pack template named "Karton L" already exists. Choose another name.', $e->getMessage());
+        }
+        self::assertSame(['lock polkurier_sync', 'unlock polkurier_sync'], $this->log, 'Neither saved nor sent.');
+    }
+
+    public function testTheNameIsSavedWithoutSurroundingSpaces(): void
+    {
+        $template = $this->template();
+
+        $this->handler()->save($template, ['name' => ' Karton L ']);
+
+        self::assertSame('Karton L', $template->getName());
     }
 
     public function testAnEntryNeverSentIsDeletedInMagentoAlone(): void
@@ -75,7 +105,7 @@ class PackTemplateHandlerTest extends TestCase
         self::assertSame(['lock polkurier_sync', 'save Karton M', 'push pack_template Karton M', 'unlock polkurier_sync'], $this->log);
     }
 
-    public function testNothingChangesWhileTheWebsiteIsSynchronizing(): void
+    public function testNothingChangesWhileASynchronizationRuns(): void
     {
         $this->syncRunning = true;
         $template = $this->template()->setName('Karton M');
@@ -104,11 +134,13 @@ class PackTemplateHandlerTest extends TestCase
             return true;
         });
         $synchronization = $this->createStub(SynchronizationInterface::class);
-        $synchronization->method('push')->willReturnCallback(function (SyncEntityEnum $kind, SyncableInterface $entry): array {
+        $synchronization->method('push')->willReturnCallback(function (SyncEntityEnum $kind, SyncableInterface $entry): SyncResult {
             \assert($entry instanceof PackTemplate);
             $this->log[] = 'push ' . $kind->value . ' ' . $entry->getName();
+            $result = new SyncResult($kind);
+            $result->pushed++;
 
-            return ['Pack templates: 1 sent to Polkurier.'];
+            return $result;
         });
         $locks = $this->createStub(LockManagerInterface::class);
         $locks->method('lock')->willReturnCallback(function (string $name): bool {
@@ -131,7 +163,18 @@ class PackTemplateHandlerTest extends TestCase
             $synchronization,
             new FixedDateTime((int)\strtotime('2026-09-30 10:00:00 UTC')),
             new SyncLock($locks),
+            $this->resource(),
         );
+    }
+
+    private function resource(): PackTemplateResource
+    {
+        $resource = $this->createStub(PackTemplateResource::class);
+        $resource->method('isNameTaken')->willReturnCallback(
+            fn(string $name): bool => \in_array(\mb_strtolower(\trim($name)), $this->taken, true),
+        );
+
+        return $resource;
     }
 
     private function template(): PackTemplate
@@ -139,6 +182,6 @@ class PackTemplateHandlerTest extends TestCase
         /** @var PackTemplate $template */
         $template = (new ObjectManager($this))->getObject(PackTemplate::class);
 
-        return $template->setWebsiteId(1);
+        return $template;
     }
 }

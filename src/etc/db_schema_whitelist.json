@@ -176,6 +176,7 @@
             "multi_pickup": true,
             "pickup_booked": true,
             "request": true,
+            "draft": true,
             "last_error": true,
             "created_at": true,
             "updated_at": true,
@@ -187,20 +188,22 @@
             "tracking_synced_at": true,
             "ship_items": true,
             "target_shipment_id": true,
-            "ship_packages": true
+            "ship_packages": true,
+            "attention_notified_at": true
         },
         "index": {
             "POLKURIER_SHIPMENT_ORDER_ID": true,
             "POLKURIER_SHIPMENT_STATE": true,
-            "POLKURIER_SHIPMENT_STATE_IS_FINAL_STATUS_CHECKED_AT": true
+            "POLKURIER_SHIPMENT_STATE_IS_FINAL_STATUS_CHECKED_AT": true,
+            "POLKURIER_SHIPMENT_MAGENTO_SHIPMENT": true
         },
         "constraint": {
             "PRIMARY": true,
             "POLKURIER_SHIPMENT_POLKURIER_NUMBER": true,
             "POLKURIER_SHIPMENT_ORDER_ID_SALES_ORDER_ENTITY_ID": true,
             "POLKURIER_SHIPMENT_SHIPMENT_ID_SALES_SHIPMENT_ENTITY_ID": true,
-            "POLKURIER_SHIPMENT_SHIPMENT_ID": true,
-            "POLKURIER_SHIPMENT_STORE_ID_STORE_STORE_ID": true
+            "POLKURIER_SHIPMENT_STORE_ID_STORE_STORE_ID": true,
+            "POLKURIER_SHIPMENT_SHIPMENT_ID": true
         }
     },
     "polkurier_carrier_label": {
@@ -219,6 +222,22 @@
     "sales_order": {
         "index": {
             "SALES_ORDER_SHIPPING_METHOD": true
+        }
+    },
+    "polkurier_order_shipping_choice": {
+        "column": {
+            "order_id": true,
+            "shipping_method": true,
+            "shipping_description": true,
+            "point_method_code": true,
+            "point_id": true,
+            "point_label": true,
+            "point_cod": true,
+            "created_at": true
+        },
+        "constraint": {
+            "PRIMARY": true,
+            "POLKURIER_ORDER_SHPP_CHOICE_ORDER_ID_SALES_ORDER_ENTT_ID": true
         }
     }
 }

@@ -31,7 +31,9 @@ The adapters are registered in `etc/di.xml` as the `adapters` argument of
 Saving or deleting an entry in the admin sends that entry alone, through
 `SynchronizationInterface::push()`: the engine runs as for a full sync, with the remote list read
 for conflicts and natural keys, but only for that entry. Other changes, on either side, wait for
-the hourly run or the **Synchronize** button.
+the hourly run or the *Synchronize with Polkurier* button. It returns the run's `SyncResult`, not a
+line of text: the admin action adds it to its one message, and a mass delete adds up those of all
+its rows.
 
 ## One at a time
 

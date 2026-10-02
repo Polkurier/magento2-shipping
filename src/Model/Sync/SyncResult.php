@@ -31,6 +31,23 @@ class SyncResult
         public readonly SyncEntityEnum $entityType,
     ) {}
 
+    /**
+     * Adds what another run did, as for the entries of a mass action pushed one by one.
+     */
+    public function add(self $other): self
+    {
+        $this->created += $other->created;
+        $this->pulled += $other->pulled;
+        $this->pushed += $other->pushed;
+        $this->deleted += $other->deleted;
+        $this->unchanged += $other->unchanged;
+        $this->unconfirmed += $other->unconfirmed;
+        $this->failed += $other->failed;
+        $this->errors = \array_merge($this->errors, $other->errors);
+
+        return $this;
+    }
+
     public function summary(): string
     {
         return (string)\__(

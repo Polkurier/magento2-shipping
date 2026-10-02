@@ -1,11 +1,6 @@
 # Copyright (c) 2026 Polkurier.pl
 # All Rights Reserved
 
-# Internal development tooling
-# ----------------------------
-# dev-tools/ holds our own scripts and configuration for working on the module against a local
-# Magento installation (refresh script, PHPUnit and PHPStan setup). This repository is published
-# as a public Composer package: never commit or push anything from dev-tools/.
 /dev-tools/
 
 # JetBrains IDE

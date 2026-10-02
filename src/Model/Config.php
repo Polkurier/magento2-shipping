@@ -18,7 +18,6 @@ use Polkurier\Webservice\Enum\Order\AdditionalServiceEnum;
 use Polkurier\Webservice\Enum\Order\CodReturnTypeEnum;
 use Polkurier\Webservice\Enum\Order\CodTypeEnum;
 use Polkurier\Webservice\Enum\Order\LabelFileFormatEnum;
-use Polkurier\Webservice\Enum\Order\ShipmentTypeEnum;
 
 
 /**
@@ -43,12 +42,12 @@ class Config
     public const string XML_PATH_LOGGING = 'carriers/polkurier/general/logging';
     public const string XML_PATH_LOG_METHODS = 'carriers/polkurier/general/log_methods';
     public const string XML_PATH_AVAILABLE_CARRIERS = 'carriers/polkurier/shipment_defaults/available_carriers';
-    public const string XML_PATH_DEFAULT_SHIPMENT_TYPE = 'carriers/polkurier/shipment_defaults/default_shipment_type';
     public const string XML_PATH_USE_STORE_INFORMATION_ADDRESS = 'carriers/polkurier/sender/use_store_information_address';
     public const string XML_PATH_USE_ORIGIN_ADDRESS = 'carriers/polkurier/sender/use_store_origin_address';
     public const string XML_PATH_SENDER_EMAIL = 'carriers/polkurier/sender/default_sender_email';
     public const string XML_PATH_DEFAULT_SERVICES = 'carriers/polkurier/shipment_defaults/default_additional_services';
     public const string XML_PATH_INSURE_BY_DEFAULT = 'carriers/polkurier/shipment_defaults/insure_by_default';
+    public const string XML_PATH_DEFAULT_COVER_ADDRESS = 'carriers/polkurier/shipment_defaults/default_cover_address';
     public const string XML_PATH_PACK_NEW_SHIPMENTS = 'carriers/polkurier/packing/pack_new_shipments';
     public const string XML_PATH_PACKING_MARGIN = 'carriers/polkurier/packing/packing_margin';
     public const string XML_PATH_WEIGHT_LIMIT = 'carriers/polkurier/packing/weight_limit';
@@ -69,6 +68,7 @@ class Config
     public const string XML_PATH_MAP_POINT_FUNCTIONS = 'carriers/polkurier/map/required_point_functions';
     public const string XML_PATH_SYNC_ENABLED = 'carriers/polkurier/sync/enabled';
     public const string XML_PATH_STATUS_SYNC_ENABLED = 'carriers/polkurier/sync/status_enabled';
+    public const string XML_PATH_STATUS_SCHEDULE = 'carriers/polkurier/sync/status_schedule';
 
     public const string MAP_URL = 'https://maps.polkurier.pl';
     public const string SANDBOX_MAP_URL = 'https://maps-sandbox.polkurier.pl';
@@ -157,12 +157,6 @@ class Config
         return \array_values(\array_filter(\array_map('trim', \explode(',', (string)$this->globalValue(self::XML_PATH_AVAILABLE_CARRIERS)))));
     }
 
-    public function getDefaultShipmentType(?int $storeId = null): ShipmentTypeEnum
-    {
-        return ShipmentTypeEnum::tryFrom((string)$this->value(self::XML_PATH_DEFAULT_SHIPMENT_TYPE, $storeId))
-            ?? ShipmentTypeEnum::Box;
-    }
-
     /**
      * Whether a shipment without a sender from the address book is sent from the store's address
      * (General > Store Information).
@@ -194,6 +188,16 @@ class Config
             static fn(string $service): ?AdditionalServiceEnum => AdditionalServiceEnum::tryFrom($service),
             $this->list(self::XML_PATH_DEFAULT_SERVICES, $storeId),
         )));
+    }
+
+    /**
+     * The address printed on the label as the sender by default, null for the sender address.
+     */
+    public function getDefaultCoverAddressId(?int $storeId = null): ?int
+    {
+        $id = (int)$this->value(self::XML_PATH_DEFAULT_COVER_ADDRESS, $storeId);
+
+        return $id > 0 ? $id : null;
     }
 
     public function isInsureByDefault(?int $storeId = null): bool
@@ -341,6 +345,20 @@ class Config
     public function isStatusSyncEnabled(): bool
     {
         return $this->globalFlag(self::XML_PATH_STATUS_SYNC_ENABLED);
+    }
+
+    /**
+     * How many minutes apart the scheduled status updates run, read from their cron schedule:
+     * every 15 minutes is 15, every hour 60.
+     */
+    public function getStatusIntervalMinutes(): int
+    {
+        $schedule = \trim((string)$this->globalValue(self::XML_PATH_STATUS_SCHEDULE));
+        if (\preg_match('#^\*/(\d+) #', $schedule, $match) && (int)$match[1] > 0) {
+            return (int)$match[1];
+        }
+
+        return \str_starts_with($schedule, '0 ') ? 60 : 30;
     }
 
     /**

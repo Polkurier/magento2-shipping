@@ -17,7 +17,7 @@
                         <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                         <config_path>carriers/polkurier/active</config_path>
                     </field>
-                    <field id="title" translate="label" type="text" sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                    <field id="title" translate="label comment" type="text" sortOrder="20" showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
                         <label>Title</label>
                         <comment>Admin only: customers see just each delivery method's label, never this title.</comment>
                         <config_path>carriers/polkurier/title</config_path>
@@ -50,7 +50,7 @@
                     </field>
                 </group>
 
-                <group id="general" translate="label" sortOrder="10" showInDefault="1">
+                <group id="general" translate="label comment" sortOrder="10" showInDefault="1">
                     <label>Polkurier account</label>
                     <comment>One Polkurier account serves every website and store view.</comment>
                     <field id="customer_id" translate="label" type="obscure" sortOrder="10" showInDefault="1">
@@ -75,9 +75,9 @@
                         <validate>validate-digits validate-greater-than-zero</validate>
                     </field>
                     <field id="logging" translate="label comment" type="select" sortOrder="60" showInDefault="1" canRestore="1">
-                        <label>Log errors</label>
+                        <label>Log failed requests</label>
                         <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
-                        <comment>To var/log/polkurier.log, with the API token masked.</comment>
+                        <comment>Requests to Polkurier that fail, in var/log/polkurier.log with the API token masked. The module's own warnings go there whatever this says.</comment>
                     </field>
                     <field id="log_methods" translate="label comment" type="multiselect" sortOrder="70" showInDefault="1" canRestore="1">
                         <label>Log all traffic of</label>
@@ -98,15 +98,16 @@
                         <can_be_empty>1</can_be_empty>
                         <comment>The carriers you work with. Only these appear under Polkurier > Settings > Carriers, in checkout and when shipping; the others keep their settings but stay out of sight. Nothing selected: all of the account's carriers. The list comes from the Polkurier account.</comment>
                     </field>
-                    <field id="default_shipment_type" translate="label" type="select" sortOrder="20" showInDefault="1" showInWebsite="1" canRestore="1">
-                        <label>Default shipment type</label>
-                        <source_model>Polkurier\Shipping\Model\Config\Source\ShipmentType</source_model>
-                    </field>
                     <field id="default_additional_services" translate="label comment" type="multiselect" sortOrder="50" showInDefault="1" showInWebsite="1" canRestore="1">
                         <label>Additional services selected by default</label>
                         <source_model>Polkurier\Shipping\Model\Config\Source\AdditionalService</source_model>
                         <can_be_empty>1</can_be_empty>
-                        <comment>Only those the chosen carrier sells are preselected.</comment>
+                        <comment>Only those the chosen carrier offers are preselected.</comment>
+                    </field>
+                    <field id="default_cover_address" translate="label comment" type="select" sortOrder="55" showInDefault="1" showInWebsite="1" canRestore="1">
+                        <label>Another sender on the label by default</label>
+                        <source_model>Polkurier\Shipping\Model\Config\Source\CoverAddress</source_model>
+                        <comment>The address printed on the label as the sender, for carriers that offer it. Only addresses marked "Can be a cover address" are listed.</comment>
                     </field>
                     <field id="insure_by_default" translate="label comment" type="select" sortOrder="60" showInDefault="1" showInWebsite="1" canRestore="1">
                         <label>Insure for the order total by default</label>
@@ -145,7 +146,7 @@
                     <field id="pack_new_shipments" translate="label comment" type="select" sortOrder="64" showInDefault="1" showInWebsite="1" canRestore="1">
                         <label>Pack new shipments automatically</label>
                         <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
-                        <comment>Whether a new shipment starts with its items packed into your pack templates. With No, it starts with one parcel of your default pack template, and Pack automatically in the parcels still packs the items when asked.</comment>
+                        <comment>Whether a new shipment starts with its items packed into your pack templates, on the Polkurier shipment screen and in Magento's packaging window. With No, it starts with one parcel of your default pack template, and Pack automatically still packs the items when asked.</comment>
                     </field>
                     <field id="packing_margin" translate="label comment" type="text" sortOrder="65" showInDefault="1" showInWebsite="1" canRestore="1">
                         <label>Packing margin (cm)</label>
@@ -193,7 +194,7 @@
                     <field id="shipment_screen" translate="label comment" type="select" sortOrder="140" showInDefault="1" showInWebsite="1" canRestore="1">
                         <label>Polkurier shipment screen</label>
                         <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
-                        <comment>Adds a "Ship with Polkurier" button to the order page, for any order.</comment>
+                        <comment>Adds a "Ship with Polkurier" button to the page of every order placed with one of these delivery methods.</comment>
                     </field>
                 </group>
 
@@ -229,13 +230,21 @@
                 <group id="sync" translate="label" sortOrder="40" showInDefault="1">
                     <label>Synchronization</label>
                     <field id="enabled" translate="label comment" type="select" sortOrder="10" showInDefault="1" canRestore="1">
-                        <label>Synchronize addresses, bank accounts and pack templates hourly</label>
+                        <label>Synchronize carriers, addresses, bank accounts and pack templates hourly</label>
                         <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
                         <comment>Changes made in Magento are also sent as soon as they are saved.</comment>
                     </field>
                     <field id="status_enabled" translate="label" type="select" sortOrder="20" showInDefault="1" canRestore="1">
-                        <label>Update shipment statuses every 30 minutes</label>
+                        <label>Update shipment statuses on schedule</label>
                         <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    </field>
+                    <field id="status_schedule" translate="label comment" type="select" sortOrder="30" showInDefault="1" canRestore="1">
+                        <label>Update shipment statuses</label>
+                        <source_model>Polkurier\Shipping\Model\Config\Source\StatusSchedule</source_model>
+                        <comment>For shipments not yet delivered and settled. More often means more requests to Polkurier.</comment>
+                        <depends>
+                            <field id="status_enabled">1</field>
+                        </depends>
                     </field>
                 </group>
             </group>

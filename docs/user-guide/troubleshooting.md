@@ -8,10 +8,11 @@
 
 ## Getting more information
 
-Turn on **Log errors** on the [configuration page](configuration.md#connecting-your-account),
-repeat what failed, and look at `var/log/polkurier.log`. For more detail, select the kinds of
-requests under **Log all traffic of**. It's safe to send the log to Polkurier support: your API
-token, PINs and confirmation codes are masked.
+Turn on **Log failed requests** on the [configuration
+page](configuration.md#connecting-your-account), repeat what failed, and look at
+`var/log/polkurier.log`. For more detail, select the kinds of requests under **Log all traffic
+of**. It's safe to send the log to Polkurier support: your API token, PINs and confirmation codes
+are masked.
 
 ## Connection
 
@@ -29,13 +30,14 @@ panel. Enter the new one.
 
 - **Enabled** is Yes on the configuration page;
 - at least one carrier in the carriers list is **Enabled** (the list shows only the carriers your
-  account offers);
+  account offers and you selected under **Available carriers**);
 - the cart reaches one of the carrier's price tiers;
 - **Ship to Applicable Countries** doesn't exclude the customer's country, and the carrier
   delivers there (carriers for Poland only aren't offered abroad).
 
-**A carrier is missing.** It may not be on your account any more (**Offered by the account** is
-No), or the cart doesn't reach any of its price tiers. Click **Refresh carriers from Polkurier**
+**A carrier is missing.** It may not be on your account any more, or not selected under
+**Available carriers** (either way it isn't in the carriers list), or the cart doesn't reach any of
+its price tiers. Click **Synchronize with Polkurier**
 if Polkurier added it recently. A carrier that delivers only to lockers or pickup points is also
 left out while the pickup point map can't be used, since customers would have no way to choose a
 point; it comes back by itself within a couple of minutes of the map working again. The module's
@@ -71,7 +73,8 @@ shipping origin, and the first and last name of your admin user (see
 - cash on delivery without a bank account, or with a carrier that doesn't offer it.
 
 **The shipment was created but has no label.** Polkurier hadn't issued the label yet when the
-shipment was saved. Print it from the order's Polkurier shipments, or click **Create Shipping
+shipment was saved. Open the shipment from the **Polkurier order** column on the order's Shipments
+tab, or from **Polkurier > Sales > Shipments**, and use **Print label**; or click **Create Shipping
 Label** on the Magento shipment later; that fetches the label of the existing Polkurier order and
 doesn't place a new one.
 

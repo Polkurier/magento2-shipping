@@ -9,6 +9,7 @@ namespace Polkurier\Shipping\Test\Unit\Controller\Adminhtml;
 
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Exception\NoSuchEntityException;
+use Magento\Framework\Stdlib\DateTime\TimezoneInterface;
 use Magento\Framework\View\Result\PageFactory;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -25,6 +26,7 @@ use Polkurier\Shipping\Model\MoneyBox\Payouts;
 use Polkurier\Shipping\Model\ResourceModel\CarrierConfig\Collection;
 use Polkurier\Shipping\Model\ResourceModel\CarrierConfig\CollectionFactory;
 use Polkurier\Shipping\Model\Shipment\OwnOrders;
+use Polkurier\Shipping\Model\Shipment\SendAgain;
 use Polkurier\Shipping\Test\Unit\Support\AdminActionTestCase;
 
 #[CoversClass(Create::class)]
@@ -42,7 +44,7 @@ class RedirectingActionsTest extends AdminActionTestCase
         $pages = $this->createMock(PageFactory::class);
         $pages->expects(self::never())->method('create');
 
-        (new Create($this->context(), $pages, $orders))->execute();
+        (new Create($this->context(), $pages, $orders, $this->createStub(SendAgain::class), $this->createStub(TimezoneInterface::class), $this->createStub(\Polkurier\Shipping\Model\Shipment\NotPlaced::class)))->execute();
 
         self::assertSame(['sales/order/view', ['order_id' => 30]], $this->redirect);
         self::assertStringStartsWith('Order #000000052 wasn\'t placed with a Polkurier delivery method', $this->messages['error'][0]);
@@ -52,12 +54,12 @@ class RedirectingActionsTest extends AdminActionTestCase
     {
         $this->params = ['id' => '999'];
         $repository = $this->createStub(CarrierConfigRepositoryInterface::class);
-        $repository->method('get')->willThrowException(new NoSuchEntityException(\__('The carrier config with id "%1" does not exist.', 999)));
+        $repository->method('get')->willThrowException(new NoSuchEntityException(\__('The carrier settings with id "%1" do not exist.', 999)));
 
         (new Edit($this->context(), $repository))->execute();
 
         self::assertSame(['*/*/index', []], $this->redirect);
-        self::assertSame(['The carrier config with id "999" does not exist.'], $this->messages['error']);
+        self::assertSame(['The carrier settings with id "999" do not exist.'], $this->messages['error']);
     }
 
     public function testTheChosenCarriersAreEachSwitchedTheOtherWay(): void

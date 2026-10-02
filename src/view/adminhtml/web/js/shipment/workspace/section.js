@@ -77,26 +77,56 @@ define([
         },
 
         /**
+         * Where the problem is fixed: what the issue says, or else where its card's problems are.
+         *
+         * @param {Object} issue
+         * @returns {{part: String}|{modal: String}|null}
+         */
+        fixTarget: function (issue) {
+            const fix = issue.fix;
+
+            if (fix === false) {
+                return null;
+            }
+            if (fix && fix.modal) {
+                return {modal: fix.modal};
+            }
+            if (fix && (fix.part || fix.parcel !== undefined)) {
+                return {part: fix.part || this.fixParts[issue.card]};
+            }
+            if (this.fixParts[issue.card]) {
+                return {part: this.fixParts[issue.card]};
+            }
+
+            return this.fixModals[issue.card] ? {modal: this.fixModals[issue.card]} : null;
+        },
+
+        /**
          * @param {Object} issue
          * @returns {Boolean} whether the problem is fixed somewhere else than the section itself
          */
         canFix: function (issue) {
-            return Boolean(this.fixModals[issue.card] || this.fixParts[issue.card]);
+            const target = this.fixTarget(issue);
+
+            return Boolean(target && (target.part || target.modal));
         },
 
         /**
-         * Takes the merchant to where the problem is fixed.
+         * Takes the merchant to where the problem is fixed: a modal of the form, or a part of the
+         * section, which is handed the issue to open what fixes it.
          *
          * @param {Object} issue
          */
         fix: function (issue) {
-            if (this.fixModals[issue.card]) {
-                registry.get(this.formName + '.' + this.fixModals[issue.card], function (modal) {
+            const target = this.fixTarget(issue);
+
+            if (target && target.modal) {
+                registry.get(this.formName + '.' + target.modal, function (modal) {
                     modal.openModal();
                 });
-            } else if (this.fixParts[issue.card]) {
-                registry.get(this.name + '.' + this.fixParts[issue.card], function (part) {
-                    part.add();
+            } else if (target && target.part) {
+                registry.get(this.name + '.' + target.part, function (part) {
+                    part.fix(issue);
                 });
             }
         }

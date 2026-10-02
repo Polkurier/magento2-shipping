@@ -25,7 +25,8 @@ interface SynchronizationInterface
      *
      * @param \Polkurier\Shipping\Api\SyncEntityEnum $kind
      * @param \Polkurier\Shipping\Api\Data\SyncableInterface $entry
-     * @return string[] a human-readable summary line
+     * @return \Polkurier\Shipping\Model\Sync\SyncResult what happened to it, for the caller to report
+     *     together with whatever else it did
      */
-    public function push(SyncEntityEnum $kind, Data\SyncableInterface $entry): array;
+    public function push(SyncEntityEnum $kind, Data\SyncableInterface $entry): \Polkurier\Shipping\Model\Sync\SyncResult;
 }

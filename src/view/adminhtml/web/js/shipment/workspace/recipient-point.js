@@ -3,7 +3,8 @@
  * All Rights Reserved
  */
 /**
- * The recipient's pickup point, for carriers that deliver to points, chosen on the map.
+ * The recipient's pickup point, for carriers that deliver to points, chosen on the map, or by its
+ * code when there's no map.
  */
 define([
     'ko',
@@ -28,6 +29,7 @@ define([
             this.required = ko.observable(false);
             this.missing = ko.observable(false);
             this.canChoose = ko.observable(false);
+            this.closed = ko.observable(false);
         },
 
         refresh: function () {
@@ -39,7 +41,8 @@ define([
             this.pointId(this.get('recipient_point_id') || '');
             // The address is only known for a point chosen on the map or the one from checkout.
             this.label(this.get('recipient_point_label_id') === this.pointId() ? this.get('recipient_point_label') || '' : '');
-            this.canChoose(!!(this.get('map') || {}).token);
+            this.canChoose(pointsMap.canOpen(this.get('map')));
+            this.closed(rules.filled(this.pointId()) && this.get('recipient_point_closed') === this.pointId());
         },
 
         chooseOnMap: function () {
@@ -48,7 +51,8 @@ define([
             pointsMap.open(
                 data.map,
                 this.features().providers,
-                [data.recipient_postcode, data.recipient_city].filter(rules.filled).join(' '),
+                // The postcode alone: a city changed afterwards can't contradict it.
+                rules.filled(data.recipient_postcode) ? String(data.recipient_postcode).trim() : '',
                 function (pointId, point) {
                     this.set('recipient_point_id', pointId);
                     this.set('recipient_point_label', pointsMap.describe(point));
@@ -59,6 +63,24 @@ define([
 
         edit: function () {
             this.openModal(this.recipientModal);
+        },
+
+        /**
+         * On the map when there is one, or by typing the point's code.
+         */
+        change: function () {
+            if (this.canChoose()) {
+                this.chooseOnMap();
+            } else {
+                this.edit();
+            }
+        },
+
+        /**
+         * A missing point is chosen as it's changed.
+         */
+        fix: function () {
+            this.change();
         },
 
         remove: function () {

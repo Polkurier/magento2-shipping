@@ -7,21 +7,31 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Model\Config\Source;
 
+use Polkurier\Shipping\Model\Carrier\CarrierCatalog;
+use Polkurier\Webservice\Exception\Exception as PolkurierException;
+
 /**
  * Every carrier of the Polkurier account, for choosing the available carriers.
+ * Empty until the account is configured and reachable.
  */
-class AccountCarrier extends Carrier
+class AccountCarrier extends AbstractOptions
 {
+    public function __construct(
+        private readonly CarrierCatalog $catalog,
+    ) {}
+
     public function toArray(): array
     {
-        $options = parent::toArray();
-        unset($options['']);
+        try {
+            $carriers = $this->catalog->getAccountCarriers();
+        } catch (PolkurierException) {
+            return [];
+        }
+        $options = [];
+        foreach ($carriers as $code => $carrier) {
+            $options[$code] = $carrier->getName() !== '' ? $carrier->getName() : $code;
+        }
 
         return $options;
-    }
-
-    protected function loadCarriers(): array
-    {
-        return $this->catalog->getAccountCarriers();
     }
 }

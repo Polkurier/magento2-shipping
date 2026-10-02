@@ -15,6 +15,7 @@ use Magento\Framework\Exception\LocalizedException;
 use Magento\Ui\Component\MassAction\Filter;
 use Polkurier\Shipping\Api\CarrierConfigRepositoryInterface;
 use Polkurier\Shipping\Api\Data\CarrierConfigInterface;
+use Polkurier\Shipping\Controller\Adminhtml\ReturnsBack;
 use Polkurier\Shipping\Model\ResourceModel\CarrierConfig\CollectionFactory;
 
 /**
@@ -22,6 +23,8 @@ use Polkurier\Shipping\Model\ResourceModel\CarrierConfig\CollectionFactory;
  */
 class MassToggle extends Action implements HttpPostActionInterface
 {
+    use ReturnsBack;
+
     public const string ADMIN_RESOURCE = 'Polkurier_Shipping::carriers';
 
     public function __construct(
@@ -48,6 +51,6 @@ class MassToggle extends Action implements HttpPostActionInterface
             $this->messageManager->addErrorMessage($e->getMessage());
         }
 
-        return $this->resultRedirectFactory->create()->setPath('*/*/index');
+        return $this->returnBack('*/*/index');
     }
 }

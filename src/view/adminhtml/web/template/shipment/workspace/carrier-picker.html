@@ -20,8 +20,8 @@
                 <strong text="priceText"></strong>
                 <span class="polkurier-muted" if="grossText" text="grossText"></span>
             </span>
+            <span class="polkurier-carriers__lacking polkurier-muted" if="lacking" text="lacking"></span>
             <span class="polkurier-carriers__meta">
-                <span class="polkurier-carriers__code" text="code"></span>
                 <!-- ko if: pointOnly --><span class="polkurier-badge" translate="'Points only'"></span><!-- /ko -->
                 <!-- ko if: point && !pointOnly --><span class="polkurier-badge" translate="'Points'"></span><!-- /ko -->
                 <!-- ko if: cod --><span class="polkurier-badge" translate="'COD'"></span><!-- /ko -->

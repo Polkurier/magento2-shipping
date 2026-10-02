@@ -7,16 +7,22 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Cron;
 
+use Polkurier\Shipping\Model\Config;
 use Polkurier\Shipping\Model\Shipment\StatusRefresher;
 
 class RefreshShipmentStatus
 {
     public function __construct(
         private readonly StatusRefresher $statusRefresher,
+        private readonly Config $config,
     ) {}
 
     public function execute(): void
     {
+        // As every job asking Polkurier: not before the account is configured.
+        if (!$this->config->hasCredentials()) {
+            return;
+        }
         $this->statusRefresher->refreshPending();
     }
 }

@@ -14,6 +14,6 @@ class ProtocolButton extends AbstractButton
      */
     public function getButtonData(): array
     {
-        return $this->isCreated() ? $this->link((string)\__('Print protocol'), 'protocol', 80) : [];
+        return $this->isCreated() ? $this->link((string)\__('Print handover protocol'), 'protocol', 80) : [];
     }
 }

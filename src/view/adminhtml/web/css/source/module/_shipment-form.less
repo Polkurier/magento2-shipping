@@ -3,7 +3,7 @@
 //  * All Rights Reserved
 //  */
 /* The Polkurier shipment screen: Magento's page sections in two columns, the form on the left and
-   the pack templates and placing on the right. Only layout and a few list styles are added; the
+   the parcels and placing on the right. Only layout and a few list styles are added; the
    rest is the admin's own. */
 
 .polkurier-workspace {
@@ -11,6 +11,29 @@
     grid-template-columns: minmax(0, 2fr) minmax(24rem, 1fr);
     gap: 0 3rem;
     align-items: start;
+}
+
+/* The sections one under another, but for the shipment and its items, side by side */
+.polkurier-workspace__main {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0 3rem;
+    align-items: start;
+}
+
+.polkurier-workspace__main > * {
+    grid-column: ~'1 / -1';
+}
+
+.polkurier-workspace__main > .polkurier-section--shipment,
+.polkurier-workspace__main > .polkurier-section--items {
+    grid-column: auto;
+}
+
+/* Half as wide, the shipment's details take the whole of it, as the parcels do. */
+.polkurier-section--shipment .polkurier-section__content,
+.polkurier-section--items .polkurier-section__content {
+    grid-template-columns: minmax(0, 1fr);
 }
 
 .polkurier-workspace__side {
@@ -77,6 +100,58 @@
     box-shadow: none;
 }
 
+//  A smaller admin button, for actions inside a section
+.polkurier-small-button {
+    display: inline-flex;
+    align-items: center;
+    height: 2.8rem;
+    padding: 0 1rem;
+    font-size: 1.2rem;
+    line-height: 1;
+}
+
+//  An action shown as one of the admin's icons; its text is for screen readers, its title the tooltip
+.polkurier-icon-button {
+    width: 3rem;
+    height: 3rem;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: @color-very-dark-gray;
+    line-height: 1;
+    cursor: pointer;
+
+    &:before {
+        font-family: @icons-admin__font-name;
+        font-size: 1.8rem;
+        -webkit-font-smoothing: antialiased;
+    }
+
+    &._edit:before {
+        content: @icon-edit__content;
+    }
+
+    &._remove:before {
+        content: @icon-delete__content;
+    }
+
+    &:hover,
+    &:focus {
+        background: none;
+        box-shadow: none;
+        color: @color-very-dark-gray-black2;
+    }
+
+    &[disabled] {
+        opacity: .5;
+        cursor: default;
+    }
+
+    > span {
+        &:extend(.abs-visually-hidden all);
+    }
+}
+
 .polkurier-hidden {
     display: none;
 }
@@ -103,20 +178,24 @@
     margin: 0;
 }
 
+//  A line of its own under the value
+.polkurier-facts__line {
+    flex-basis: 100%;
+}
+
 .polkurier-facts dd._loading {
     opacity: .5;
 }
 
 /* Parcels */
-.polkurier-parcels__head {
+/* Under the list */
+.polkurier-parcels__actions-bar {
     display: flex;
-    justify-content: space-between;
-    margin-bottom: .6rem;
+    justify-content: flex-end;
+    align-items: center;
+    margin-top: .8rem;
 }
 
-.polkurier-parcels__title {
-    color: @color-gray43;
-}
 
 .polkurier-parcels__list,
 .polkurier-templates__list,
@@ -152,7 +231,7 @@
 
 .polkurier-parcels__actions {
     display: flex;
-    gap: 1rem;
+    gap: .2rem;
     white-space: nowrap;
 }
 
@@ -247,6 +326,10 @@
     margin: .6rem 0 0 2.4rem;
 }
 
+.polkurier-handover__any-time {
+    align-self: center;
+}
+
 .polkurier-handover__dates .admin__control-select {
     width: auto;
     min-width: 12rem;
@@ -330,8 +413,13 @@
     background: @polkurier__selected-background;
 }
 
-.polkurier-templates .message {
+.polkurier-parcels__notice {
     margin-top: 1.5rem;
+}
+
+/* In the narrow column, the parcels take its whole width. */
+.polkurier-section--parcels .polkurier-section__content {
+    grid-template-columns: minmax(0, 1fr);
 }
 
 /* Summary */
@@ -353,10 +441,6 @@
 
 .polkurier-summary__gross {
     font-size: 2.4rem;
-}
-
-.polkurier-summary__note {
-    margin: 0;
 }
 
 /* Carrier list in its modal */
@@ -391,6 +475,10 @@
 .polkurier-carriers__item:hover,
 .polkurier-carriers__item:focus {
     background: @color-white-smoke;
+}
+
+/* The keyboard's focus stays visible, as on the pack templates. */
+.polkurier-carriers__item:focus:not(:focus-visible) {
     outline: none;
 }
 
@@ -413,17 +501,16 @@
     gap: 0 .6rem;
 }
 
+.polkurier-carriers__lacking {
+    font-size: 1.2rem;
+}
+
 .polkurier-carriers__meta {
     display: flex;
     flex-wrap: wrap;
     gap: .4rem;
     align-items: center;
     font-size: 1.1rem;
-}
-
-.polkurier-carriers__code {
-    color: @color-gray43;
-    margin-right: .4rem;
 }
 
 .polkurier-badge {
@@ -470,6 +557,7 @@
     max-width: 60rem;
 }
 
+
 /* A modal with a single group already carries its title. */
 .polkurier-workspace-modal .modal-content > div > .fieldset-wrapper:only-child > .fieldset-wrapper-title {
     display: none;
@@ -498,38 +586,58 @@
     .polkurier-section__content {
         grid-template-columns: minmax(0, 1fr);
     }
+
+    .polkurier-workspace__main > .polkurier-section--shipment,
+    .polkurier-workspace__main > .polkurier-section--items {
+        grid-column: ~'1 / -1';
+    }
 }
 
 /* Items to ship */
+/* Compact, to fit beside the shipment section */
 .polkurier-items__table {
     margin-bottom: 1rem;
 }
 
+.polkurier-items__table > thead > tr > th,
+.polkurier-items__table > tbody > tr > td {
+    padding: .6rem .8rem;
+}
+
 .polkurier-items__table .polkurier-items__number {
-    width: 8rem;
+    width: 5.5rem;
     text-align: right;
 }
 
 .polkurier-items__table .polkurier-items__qty {
-    width: 16rem;
-    white-space: nowrap;
+    width: 8rem;
 }
 
 .polkurier-items__qty .admin__control-text {
-    width: 7rem;
-    margin-right: .6rem;
+    width: 6.5rem;
 }
 
-.polkurier-items__foot {
-    display: flex;
-    flex-wrap: wrap;
-    gap: .4rem 1.5rem;
-    align-items: baseline;
+//  How many are left, under the quantity
+.polkurier-items__qty .polkurier-muted {
+    display: block;
+    margin-top: .2rem;
+    font-size: 1.2rem;
+    white-space: nowrap;
 }
+
+
 
 /* What each parcel holds */
 .polkurier-parcels__contents {
-    margin-top: .3rem;
+    // A line of its own, under the type and size.
+    flex-basis: 100%;
+    margin: .3rem 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.polkurier-parcels__contents > li {
+    margin: 0;
 }
 
 .polkurier-parcels__unpacked {
@@ -550,8 +658,8 @@
     margin-right: .6rem;
 }
 
-.polkurier-parcels__links .polkurier-link + .polkurier-link {
-    margin-left: 1.5rem;
+.polkurier-parcels__links .polkurier-small-button + .polkurier-small-button {
+    margin-left: .8rem;
 }
 
 .polkurier-parcels__empty .action-secondary + .action-secondary {

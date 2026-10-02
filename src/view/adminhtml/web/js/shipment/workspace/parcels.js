@@ -4,9 +4,9 @@
  */
 /**
  * The parcels of the shipment: a list with a way to add, change and remove each, and a parcel
- * editor. A new parcel opens in the editor, empty or filled in from a pack template chosen in this
- * list or beside the form, so its size, weight and the shipped items it holds can be set before
- * it's added. Until it's typed in, its weight follows the parcel weight setting: what the items in
+ * editor. A new parcel opens in the editor, empty or filled in from a pack template chosen under
+ * "Add a parcel", so its size, weight and the shipped items it holds can be set
+ * before it's added. Until it's typed in, its weight follows the parcel weight setting: what the items in
  * it weigh, or its template's weight (rules.parcelWeight).
  */
 define([
@@ -34,6 +34,8 @@ define([
         initState: function () {
             this.rows = ko.observableArray([]);
             this.templates = ko.observableArray([]);
+            this.hasDefault = ko.observable(true);
+            this.templatesUrl = ko.observable('');
             this.packTypes = ko.observableArray([]);
             this.editor = {
                 index: -1,
@@ -69,6 +71,10 @@ define([
                 describe = this.describeContents.bind(this);
 
             this.templates(this.get('templates') || []);
+            this.hasDefault(this.templates().some(function (template) {
+                return template.is_default;
+            }));
+            this.templatesUrl(this.get('urls.pack_templates') || '');
             this.packTypes(_.map(choices, function (label, value) {
                 return {value: value, label: label};
             }));
@@ -102,14 +108,14 @@ define([
             const pack = function () {
                 this.packing(true);
                 request().post(this.get('urls.pack'), {
-                    data: {order_id: this.get('order_id'), items: this.get('items'), shipment_type: this.get('shipment_type')}
+                    // Without parcels, the items decide what they go as (AutoPacker::packByItems).
+                    data: {order_id: this.get('order_id'), items: this.get('items'), shipment_type: this.packs().length ? this.get('shipment_type') : ''}
                 }, {
                     done: function (response) {
                         if (response.error) {
                             alert({title: $t('Pack automatically'), content: _.escape(response.message)});
                         } else {
-                            this.set('packs_estimated', true);
-                            this.store(response.packs);
+                            this.store(response.packs, true);
                             if (response.message) {
                                 alert({title: $t('Pack automatically'), content: _.escape(response.message)});
                             }
@@ -124,25 +130,21 @@ define([
                 });
             }.bind(this);
 
-            if (!this.packs().length) {
-                pack();
-
-                return;
-            }
             confirm({
                 title: $t('Pack automatically?'),
-                content: $t('The parcels there are give way to parcels of your pack templates, with the items spread over them by their size.')
-                    + ' ' + $t('It\'s an estimate: every product counts as a box of its dimensions, whatever its real shape.'),
+                content: this.packs().length
+                    ? $t('The current parcels are replaced with parcels of your pack templates, with the items spread over them by their size.')
+                    : $t('The items are spread over parcels of your pack templates by their size.'),
                 actions: {confirm: pack}
             });
         },
 
         /**
-         * What one parcel holds and weighs, in one line; empty when not said.
+         * What one parcel holds, an item a line, and what that weighs; none when not said.
          *
          * @param {Object} pack
          * @param {Object} items the shipped items by order item id
-         * @returns {String}
+         * @returns {Array<String>}
          */
         describeContents: function (pack, items) {
             const parts = (pack.items || []).filter(function (row) {
@@ -152,11 +154,11 @@ define([
                 }),
                 weight = rules.contentsWeight(pack, items);
 
-            if (!parts.length) {
-                return '';
+            if (parts.length && weight > 0) {
+                parts.push($t('What it holds weighs %1 kg.').replace('%1', String(weight)));
             }
 
-            return parts.join(', ') + (weight > 0 ? ' · ' + $t('%1 kg').replace('%1', String(weight)) : '');
+            return parts;
         },
 
         /**
@@ -199,28 +201,57 @@ define([
 
         /**
          * @param {Array<Object>} packs
+         * @param {Boolean} [estimated] whether automatic packing made them; a change by hand makes
+         *     them the merchant's
          */
-        store: function (packs) {
+        store: function (packs, estimated) {
+            const types = rules.shipmentTypes(packs, (this.get('choices') || {}).pack_shipment_type);
+
+            this.set('packs_estimated', Boolean(estimated));
             this.set('packs', packs);
+            // The shipment is what its parcels are. Without any, it's back to what a new one
+            // starts as, so automatic packing doesn't keep to the kind of parcels removed.
+            if (types.length === 1) {
+                this.set('shipment_type', types[0]);
+            } else if (!packs.length) {
+                this.set('shipment_type', this.startingType());
+            }
         },
 
         /**
-         * The id of the template the last parcel came from, for the template list to mark.
-         *
-         * @returns {String}
+         * @returns {String} the default pack template's kind, or the first kind the carrier takes
+         *     when it doesn't take that
          */
-        activeTemplateId: function () {
-            const packs = this.packs(),
-                last = packs[packs.length - 1];
+        startingType: function () {
+            const type = this.get('default_shipment_type') || 'box',
+                taken = this.features().shipment_types || [];
 
-            return last && last.template_id ? String(last.template_id) : '';
+            return !taken.length || taken.indexOf(type) !== -1 ? type : taken[0];
         },
 
         add: function () {
+            if (this.packing()) {
+                return;
+            }
             if (this.templates().length) {
                 this.chooserModal.modal('openModal');
             } else {
                 this.addCustom();
+            }
+        },
+
+        /**
+         * A problem with one parcel opens it in the editor; any other adds a parcel.
+         *
+         * @param {Object} issue
+         */
+        fix: function (issue) {
+            const index = issue.fix && issue.fix.parcel !== undefined ? issue.fix.parcel : -1;
+
+            if (index >= 0 && this.packs()[index]) {
+                this.edit({index: index});
+            } else {
+                this.add();
             }
         },
 
@@ -236,7 +267,7 @@ define([
                 return true;
             }
             if (template) {
-                this.applyTemplate(template, true);
+                this.applyTemplate(template);
             } else {
                 this.addCustom();
             }
@@ -247,6 +278,9 @@ define([
         addCustom: function () {
             const weight = rules.amount(this.get('order_weight'));
 
+            if (this.packing()) {
+                return;
+            }
             this.closeChooser();
             // Starts from what the order's products weigh, when their weight is known.
             this.openEditor(-1, {pack_type: 'ST', weight: weight > 0 ? weight : ''});
@@ -256,6 +290,9 @@ define([
          * @param {Object} row
          */
         edit: function (row) {
+            if (this.packing()) {
+                return;
+            }
             this.openEditor(row.index, this.packs()[row.index] || {});
         },
 
@@ -263,6 +300,9 @@ define([
          * @param {Object} row
          */
         remove: function (row) {
+            if (this.packing()) {
+                return;
+            }
             confirm({
                 title: $t('Remove the parcel?'),
                 content: _.escape(row.name + ' (' + row.size + ')'),
@@ -278,17 +318,17 @@ define([
         },
 
         /**
-         * Starts a parcel from a template. A new parcel, asked for or when there's none yet, opens
-         * in the editor filled in from the template; otherwise the last parcel takes the template's
-         * type, size and weight. A template of another shipment type replaces the parcels there
-         * are, once confirmed, since one shipment can't mix types.
+         * Opens a new parcel in the editor, filled in from a template. A template of another
+         * shipment type replaces the parcels there are, once confirmed, since one shipment can't
+         * mix types.
          *
          * @param {Object} template
-         * @param {Boolean} [asNew]
          */
-        applyTemplate: function (template, asNew) {
+        applyTemplate: function (template) {
+            if (this.packing()) {
+                return;
+            }
             const packs = this.packs(),
-                adding = asNew || !packs.length,
                 otherType = Boolean(template.shipment_type) && template.shipment_type !== this.get('shipment_type'),
                 pack = {
                     template_id: template.id,
@@ -299,41 +339,21 @@ define([
                     weight: template.weight,
                     amount: 1
                 },
-                apply = function (replace) {
-                    if (adding) {
-                        this.openEditor(-1, pack, otherType ? template.shipment_type : null);
-
-                        return;
-                    }
-                    if (replace) {
-                        this.store([pack]);
-                    } else {
-                        // The parcel keeps what it holds; only its size and weight change.
-                        pack.items = packs[packs.length - 1].items || [];
-                        pack.weight = this.weigh(template.weight, pack.items);
-                        packs[packs.length - 1] = pack;
-                        this.store(packs);
-                    }
-                    if (template.shipment_type) {
-                        this.set('shipment_type', template.shipment_type);
-                    }
+                open = function () {
+                    this.openEditor(-1, pack, otherType ? template.shipment_type : null);
                 }.bind(this);
 
             this.closeChooser();
-            if (otherType && packs.length > (adding ? 0 : 1)) {
+            if (otherType && packs.length) {
                 confirm({
                     title: $t('Change the shipment type?'),
                     content: $t('This template is for another shipment type than the parcels you have. Changing the type removes them.'),
-                    actions: {
-                        confirm: function () {
-                            apply(true);
-                        }
-                    }
+                    actions: {confirm: open}
                 });
 
                 return;
             }
-            apply(false);
+            open();
         },
 
         /**
@@ -400,6 +420,13 @@ define([
                         leftText: $t('of %1 left').replace('%1', String(Math.round(left * 1000) / 1000)),
                         qty: ko.observable(held[id] ? String(held[id]) : '')
                     };
+
+                // Marked as the items to ship are.
+                row.invalid = ko.pureComputed(function () {
+                    const qty = rules.amount(row.qty());
+
+                    return qty < 0 || qty > left + 0.0001;
+                });
 
                 row.qty.subscribe(this.followContents, this);
 
@@ -502,6 +529,15 @@ define([
 
                 return;
             }
+            const mixed = rules.kindProblem(rules.shipmentTypes(packs.filter(function (other, position) {
+                return position !== editor.index;
+            }).concat([pack]), (this.get('choices') || {}).pack_shipment_type), []);
+
+            if (mixed) {
+                editor.error(mixed);
+
+                return;
+            }
             // A parcel of another type or size no longer is the template it came from; its weight
             // may be what's in it.
             pack.template_id = editor.templateId && ['pack_type', 'length', 'width', 'height'].every(function (field) {
@@ -513,9 +549,6 @@ define([
                 packs.push(pack);
             }
             this.store(packs);
-            if (editor.shipmentType) {
-                this.set('shipment_type', editor.shipmentType);
-            }
             this.editorModal.modal('closeModal');
         },
 
@@ -540,7 +573,7 @@ define([
                         this.closeModal();
                     }
                 }, {
-                    text: $t('Confirm'),
+                    text: $t('Done'),
                     class: 'action-primary',
                     click: this.saveEditor.bind(this)
                 }]
@@ -554,8 +587,14 @@ define([
             this.chooserModal = $(element).modal({
                 type: 'popup',
                 title: $t('Add a parcel'),
-                modalClass: 'polkurier-workspace-modal',
-                buttons: []
+                modalClass: 'polkurier-workspace-modal polkurier-parcel-modal',
+                buttons: [{
+                    text: $t('Cancel'),
+                    class: 'action-secondary',
+                    click: function () {
+                        this.closeModal();
+                    }
+                }]
             });
         }
     });

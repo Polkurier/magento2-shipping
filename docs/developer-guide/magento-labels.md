@@ -9,9 +9,9 @@
 Besides its own shipment screen, the module plugs into Magento's own label flow, the one online
 carriers such as UPS or DHL use: **Create Shipping Label** on the New Shipment page, the packaging
 popup, `Magento\Shipping\Model\Shipping\LabelGenerator` and the label stored on `sales_shipment`.
-The aim is to use Magento's mechanism as it is, with as few overrides as possible: there are no
-preferences or plugins on Magento's classes for this, only the carrier's own methods, one block and
-two observers.
+The aim is to use Magento's mechanism as it is, with as few overrides as possible: no preferences,
+only the carrier's own methods, one block, two observers and one plugin, on the Save action (see
+below).
 
 ## Why `AbstractCarrier`
 
@@ -27,8 +27,9 @@ doesn't configure.
    `Model\Shipment\NativeLabel::isAvailable()`. Only orders placed with a Polkurier method get this
    far, because Magento always asks the order's own carrier.
 2. **Packaging popup.** Magento asks the carrier for container types.
-   `NativeLabel::getContainerTypes()` returns the parcel types (`ST`, `NST`, `DLU`, `PPAL`, `PAL`),
-   all customizable. Pack templates are not container types: they fill in a package from a list of
+   `NativeLabel::getContainerTypes()` returns the parcel types (`ST`, `NST`, `DLU`, `ENV`, `PPAL`,
+   `PAL`), all customizable; they make the shipment's type (see [Shipments](shipments.md#the-draft)),
+   and the label options check them when the label is asked for. Pack templates are not container types: they fill in a package from a list of
    their own (see below), so the package's fields stay editable. `isGirthAllowed()` answers no,
    and there are no delivery confirmation or content types.
 3. **Label request.** On save, Magento calls the carrier's `requestToShipment()` with the shipment
@@ -81,28 +82,45 @@ orders placed with a Polkurier method, with native labels on, for admins allowed
 shipments.
 
 `view/adminhtml/web/js/shipment/label-options.js` ticks Magento's **Create Shipping Label** box
-when the page opens (by clicking it, so Magento's own handler runs), so a shipment of a Polkurier
-order is created with its Polkurier order unless the admin unticks it. It shows one summary line
-per group of options, each edited in its own modal, and keeps the values in the hidden fields. Its
-parts are in `label-options/`: `state.js` (the values and the rules they follow), `sections.js`
-(each group's summary, warning and fields), `modal.js` (one modal per group, built once and
-refilled) and `packaging.js` (kilograms and centimetres, and pack templates, in Magento's
-packaging popup). It gets the default draft, the
+when the page opens (by clicking it, so Magento's own handler runs), hides it, and ticks it again
+before every submit: Magento unticks it when the packaging popup is closed, as after a refused
+label, and the next submit would save a shipment without a Polkurier order. The server doesn't
+rely on that: `Plugin\Adminhtml\ShipmentSavePlugin`, around Magento's
+`Order\Shipment\Save`, refuses a submit without the label for an order placed with a Polkurier
+method, with the shipment screen or these labels on. It also replaces Magento's "created the
+shipping label" message with one saying the label isn't ready, when it wasn't, so the save still
+leaves one message.
+
+`label-options.js` shows one summary line per group of options, each edited in place in its line,
+one at a time, and keeps the values in the hidden fields. Its parts are in `label-options/`:
+`state.js` (the values and the rules they follow), `sections.js` (each group's summary, what's
+wrong with it and fields), `editor.js` (a group's fields in its line, with Apply and Cancel; not a
+`<form>`, as it sits inside the shipment's, and its fields belong to a form that doesn't exist, so
+they're never sent with the shipment) and `packaging.js` (kilograms and centimetres, pack templates, and
+packing automatically, in Magento's packaging popup). Packing automatically posts the items the
+popup offers (its own items grid, read through `processPackagePrepare()`) to `polkurier/shipment/pack`,
+the shipment screen's action, with the kinds of the packages holding items, or with the
+Magento shipment's id on a shipment's page, where the shipment's own items are packed; each
+parcel it answers with becomes a package filled in and packed through the popup's own
+`newPackage()` and `packItems()`. It runs when the popup opens without packages if
+`packing/pack_new_shipments` is on, and from the popup's **Pack automatically** button. It gets the default draft, the
 carriers with what each supports, and the choices for every select, from the block's JSON config.
-Changing the carrier drops what the new one doesn't support. Lines turn red for a missing required
-point or collection date, and for cash on delivery above what's left to collect; nothing else is
-checked on the page, and Polkurier's refusal shows in the popup like any other label error.
+Changing the carrier drops what the new one doesn't support. A line turns red, with what's wrong
+under it, for a missing required point or collection date, cash on delivery above what's left to
+collect, insurance below it where the carrier wants that, or a service the carrier doesn't offer;
+Polkurier's refusal shows in the popup like any other label error. The collection date and window
+are chosen from those `polkurier/shipment/pickupTimes` returns, as on the shipment screen.
 
 The block also passes `codCollected` and `codRemaining` (see `Model\Shipment\OrderAmounts`) and
 `items`: the unit value and quantity of each item that ships. The script watches the page's
 `shipment[items][…]` fields and keeps the insurance at the value of the quantities entered. It uses
 the same rule as the server: the grand total for the whole order. It stops once the insurance is
-changed in its modal, and never turns insurance on by itself.
+changed by hand, and never turns insurance on by itself.
 
-The pickup point modal opens the same map as the shipment screen, through
+The pickup point's editor opens the same map as the shipment screen, through
 `view/adminhtml/web/js/shipment/points-map.js`, which loads the map widget once, in an iframe away
 from the admin's Prototype.js (see [Admin UI](admin-ui.md#the-shipment-screen)), and passes
-back the chosen point. The block passes the map token and the order's postcode and town to start from.
+back the chosen point. The block passes the map token and the order's postcode to start from.
 
 The script also sets the popup's package template to kilograms and centimetres, since Magento
 hardcodes pounds and inches there, and adds a **Pack template…** list to it, so every package the

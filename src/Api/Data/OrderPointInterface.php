@@ -8,7 +8,8 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Api\Data;
 
 /**
- * The pickup point a customer chose in checkout, carried onto the order.
+ * The order's pickup point: the one the customer chose in checkout, or the one its Polkurier
+ * order went with when that changed (the customer's is then kept, see ShippingChoiceInterface).
  */
 interface OrderPointInterface
 {

@@ -113,20 +113,64 @@ class ShipmentGateway implements ShipmentGatewayInterface
     }
 
     /**
-     * Placing an order isn't idempotent, and only a refusal with a specific reason (validation,
-     * carrier, account) is known to have created nothing. No answer, one that couldn't be read,
-     * or a vaguer refusal may hide a placed order.
+     * The one refusal without an error code that Polkurier gives after an order may already be
+     * saved: a failure while saving it, or right after. Every other uncoded refusal (validation,
+     * the carrier's checks, prices, funds, collective pickup) comes before anything is saved.
+     */
+    private const string FATAL_PREFIX = 'Wystąpił nieoczekiwany błąd';
+
+    /**
+     * cURL errors that mean the request never reached Polkurier: no proxy or host found, no
+     * connection, no TLS handshake.
+     */
+    private const array NOT_SENT_CURL_ERRORS = [5, 6, 7, 35];
+
+    /**
+     * Placing an order isn't idempotent, so an order is taken as possibly placed unless the
+     * failure says it can't have been: a request that never left, or a refusal with a reason that
+     * Polkurier only gives before saving anything. An answer lost or unreadable, UNKNOWN_ERROR, the
+     * fatal refusal (FATAL_PREFIX) and a refusal with no reason at all may hide a placed order.
      */
     private function mayHaveBeenPlaced(PolkurierException $e): bool
     {
-        if ($e instanceof ConnectionException || $e instanceof MalformedResponseException) {
+        if ($e instanceof ConnectionException) {
+            return !$this->wasNotSent($e);
+        }
+        if ($e instanceof MalformedResponseException) {
             return true;
         }
         if (!$e instanceof WebserviceException) {
             return false;
         }
-        $code = $e->getErrorMessage()->getErrorCode();
+        $error = $e->getErrorMessage();
+        $code = (string)$error->getErrorCode();
+        if ($code === ApiErrorCodeEnum::UnknownError->value) {
+            return true;
+        }
+        if ($code !== '') {
+            return false;
+        }
+        $reason = \trim(\is_string($error->getResponse()) ? $error->getResponse() : '');
 
-        return $code === null || $code === '' || $code === ApiErrorCodeEnum::UnknownError->value;
+        return $reason === '' || \str_starts_with($reason, self::FATAL_PREFIX);
+    }
+
+    /**
+     * Whether the connection failed before the request went out: so Polkurier can't have it. A
+     * timeout counts only while connecting; one while waiting for the answer may follow a placed order.
+     */
+    private function wasNotSent(ConnectionException $e): bool
+    {
+        $message = $e->getMessage();
+        $previous = $e->getPrevious();
+        $errno = $previous !== null && \method_exists($previous, 'getHandlerContext')
+            ? (int)($previous->getHandlerContext()['errno'] ?? 0)
+            : 0;
+        if ($errno === 0 && \preg_match('/cURL error (\d+):/', $message, $match)) {
+            $errno = (int)$match[1];
+        }
+
+        return \in_array($errno, self::NOT_SENT_CURL_ERRORS, true)
+            || ($errno === 28 && (\str_contains($message, 'Connection timed out') || \str_contains($message, 'Resolving timed out')));
     }
 }

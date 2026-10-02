@@ -58,11 +58,15 @@ prices, collection times and collective pickups) doesn't use the pool directly. 
 the SDK's request message and returns its answer, but lets no SDK exception through: a refusal or
 failure becomes a `LocalizedException` with the reason described.
 
-Placing an order is the one call where a failure may hide a success. When there's no answer, an
-unreadable one, or a refusal without a specific reason, `placeOrder()` throws
-`Model\Sdk\PlacementUncertainException` instead, and the shipment is marked for reconciliation
-rather than failed. The rest of the module (checkout, synchronization, cash on delivery) uses the
-pool and handles the SDK's exceptions as below.
+Placing an order is the one call where a failure may hide a success. When the request may have
+arrived but no answer came back (a timeout while waiting, a dropped connection), the answer can't
+be read, or Polkurier reports an unexpected failure of the kind that can follow a saved order,
+`placeOrder()` throws `Model\Sdk\PlacementUncertainException` instead, and the shipment is marked
+for reconciliation rather than failed. A refusal for a stated reason (the parcel's size, the
+carrier's terms, the account's funds) and a connection that failed before the request went out (no
+host, no connection, no TLS handshake, a timeout while connecting) fail the shipment at once, so it
+can be corrected and sent again. The rest of the module (checkout, synchronization, cash on
+delivery) uses the pool and handles the SDK's exceptions as below.
 
 ## Caching
 
@@ -116,6 +120,16 @@ by class where the difference matters:
 `Model\ErrorMessages::describe()` turns any of them into a message for the admin, including the
 fields a validation error is about. Service methods throw `LocalizedException` with that message,
 so controllers and REST callers only ever see Magento exceptions.
+
+`ErrorMessages::isTransient()` tells whether asking again, unchanged, may get another answer; the
+shipment screen offers **Try again** for prices and collection dates only then. It looks through
+the `LocalizedException` to the SDK failure. A failed connection or unreadable answer qualifies, and
+so do the codes for a Polkurier that is down or busy (`UNKNOWN_ERROR`, `MAINTENANCE_MODE`,
+`TOO_MANY_REQUESTS`, `INTERNAL_SERVER_ERROR`). Every other code is a refusal of the request as it
+is, and so is every uncoded refusal unless its wording says it passes ("spróbuj ponownie",
+"chwilowo", "za chwilę", "później", an overload) or gives no reason. Most refusals are uncoded:
+`ADDITIONAL_SERVICE_UNAVAILABLE` is used for weekend delivery only, and the carriers' own refusals
+of a service, a size or a configuration arrive with code 0, worded by the carrier.
 
 Don't let an SDK exception escape into checkout. The carrier and the pickup point code log the
 error and carry on without Polkurier: no rates for carriers it can't vouch for, or no point check.

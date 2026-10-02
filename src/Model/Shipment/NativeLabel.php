@@ -14,7 +14,6 @@ use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Framework\Measure\Length;
 use Magento\Framework\Measure\Weight;
-use Magento\Framework\Message\ManagerInterface;
 use Magento\Sales\Api\OrderRepositoryInterface;
 use Magento\Sales\Api\ShipmentRepositoryInterface as MagentoShipmentRepository;
 use Magento\Sales\Model\Order;
@@ -26,9 +25,9 @@ use Polkurier\Shipping\Model\Carrier\Polkurier;
 use Polkurier\Shipping\Model\Config;
 use Polkurier\Shipping\Model\Config\Source\PackType;
 use Polkurier\Shipping\Model\ResourceModel\Shipment\CollectionFactory;
+use Polkurier\Shipping\Model\Shipment\Draft\ItemFactory;
 use Polkurier\Shipping\Model\Shipment\Draft\Pack;
 use Polkurier\Shipping\Model\Shipment\Draft\PackFactory;
-use Polkurier\Webservice\Enum\Order\PackTypeEnum;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -54,6 +53,12 @@ class NativeLabel
     public const string NO_LABEL = 'polkurier_no_label';
 
     /**
+     * Data key on the Magento shipment: the carrier its Polkurier order went with, which titles the
+     * tracks Magento adds for the label (Observer\PrepareLabelledShipment).
+     */
+    public const string CARRIER = 'polkurier_carrier_code';
+
+    /**
      * Request parameter carrying the options set on the shipment page.
      */
     public const string OPTIONS_PARAM = 'polkurier';
@@ -64,7 +69,6 @@ class NativeLabel
      */
     public const array OPTION_FIELDS = [
         ShipmentDraftInterface::CARRIER_CODE,
-        ShipmentDraftInterface::SHIPMENT_TYPE,
         ShipmentDraftInterface::DESCRIPTION,
         ShipmentDraftInterface::SENDER_ADDRESS_ID,
         ShipmentDraftInterface::RECIPIENT_POINT_ID,
@@ -74,6 +78,7 @@ class NativeLabel
         ShipmentDraftInterface::COD_BANK_ACCOUNT_ID,
         ShipmentDraftInterface::INSURANCE_AMOUNT,
         ShipmentDraftInterface::SERVICES,
+        ShipmentDraftInterface::COVER_ADDRESS_ID,
         ShipmentDraftInterface::PICKUP_MODE,
         ShipmentDraftInterface::PICKUP_DATE,
         ShipmentDraftInterface::PICKUP_TIME_FROM,
@@ -82,6 +87,8 @@ class NativeLabel
 
     private const float KG_PER_POUND = 0.45359237;
     private const float CM_PER_INCH = 2.54;
+
+    private ?string $unreadyLabel = null;
 
     public function __construct(
         private readonly Config $config,
@@ -98,8 +105,8 @@ class NativeLabel
         private readonly Documents $documents,
         private readonly MagentoShipment $magentoShipment,
         private readonly TrackFactory $trackFactory,
-        private readonly ManagerInterface $messageManager,
         private readonly LoggerInterface $logger,
+        private readonly ItemFactory $itemFactory,
     ) {}
 
     public function isAvailable(?int $storeId): bool
@@ -147,7 +154,11 @@ class NativeLabel
         $shipment = $magentoShipment->getId() ? $this->findLinked((int)$magentoShipment->getId()) : null;
         if ($shipment === null) {
             $draft = $this->buildDraft($magentoShipment, $order, (array)$request->getData('packages'));
-            $shipment = $this->placing->forMagentoShipment((int)$order->getEntityId(), $draft);
+            $shipment = $this->placing->forMagentoShipment(
+                (int)$order->getEntityId(),
+                $draft,
+                $magentoShipment->getId() ? (int)$magentoShipment->getId() : null,
+            );
             $magentoShipment->setData(self::LINK, (int)$shipment->getId());
         }
 
@@ -169,12 +180,40 @@ class NativeLabel
             $data = \array_replace($data, \array_intersect_key($options, \array_flip(self::OPTION_FIELDS)));
         }
         $draft = $this->hydrator->fromArray($data);
+        $this->assertPackedOnce($packages, $qtys);
         $packs = $this->toPacks($packages);
         if ($packs !== []) {
             $draft->setPacks($packs);
         }
 
         return $draft;
+    }
+
+    /**
+     * No item is shipped twice: the packages hold no more of an item than the shipment carries,
+     * and nothing it doesn't. Magento's packaging window keeps to that; this checks what's posted.
+     *
+     * @param array<int|string, mixed> $packages
+     * @param array<int, float> $qtys what the shipment carries, by order item id
+     * @throws LocalizedException
+     */
+    private function assertPackedOnce(array $packages, array $qtys): void
+    {
+        $packed = [];
+        foreach ($packages as $package) {
+            foreach (\is_array($package) ? (array)($package['items'] ?? []) : [] as $key => $item) {
+                $orderItemId = (int)(\is_array($item) && isset($item['order_item_id']) ? $item['order_item_id'] : $key);
+                $packed[$orderItemId] = ($packed[$orderItemId] ?? 0.0) + (float)(\is_array($item) ? ($item['qty'] ?? 0) : 0);
+            }
+        }
+        foreach ($packed as $orderItemId => $qty) {
+            if ($qty > 0 && !isset($qtys[$orderItemId])) {
+                throw new LocalizedException(\__('A package holds an item the shipment doesn\'t carry.'));
+            }
+            if ($qty > ($qtys[$orderItemId] ?? 0.0) + 0.0001) {
+                throw new LocalizedException(\__('The packages hold more of an item than the shipment carries.'));
+            }
+        }
     }
 
     /**
@@ -187,10 +226,20 @@ class NativeLabel
         foreach ($packages as $package) {
             $params = \is_array($package) ? (array)($package['params'] ?? []) : [];
             $units = (string)($params['dimension_units'] ?? '');
-            $type = PackTypeEnum::tryFrom((string)($params['container'] ?? '')) ?? PackTypeEnum::Standard;
+            // What it holds, as the packaging window put it in.
+            $items = [];
+            foreach (\is_array($package) ? (array)($package['items'] ?? []) : [] as $key => $item) {
+                $qty = (float)(\is_array($item) ? ($item['qty'] ?? 0) : 0);
+                if ($qty > 0) {
+                    $items[] = $this->itemFactory->create()
+                        ->setOrderItemId((int)(\is_array($item) && isset($item['order_item_id']) ? $item['order_item_id'] : $key))
+                        ->setQty($qty);
+                }
+            }
             $packs[] = $this->packFactory->create()
+                ->setItems($items)
                 ->setTemplateId(null)
-                ->setPackType($type->value)
+                ->setPackType(PackKinds::normalize((string)($params['container'] ?? '')))
                 ->setLength($this->centimetres((float)($params['length'] ?? 0), $units))
                 ->setWidth($this->centimetres((float)($params['width'] ?? 0), $units))
                 ->setHeight($this->centimetres((float)($params['height'] ?? 0), $units))
@@ -217,6 +266,7 @@ class NativeLabel
      */
     private function answer(MagentoShipmentModel $magentoShipment, Order $order, ShipmentInterface $shipment): DataObject
     {
+        $magentoShipment->setData(self::CARRIER, $shipment->getCarrierCode());
         $waybills = $shipment->getWaybills();
         $label = $waybills === [] ? null : $this->fetchLabel($shipment);
         if ($label !== null) {
@@ -235,12 +285,22 @@ class NativeLabel
             $magentoShipment->addTrack($track);
         }
         $magentoShipment->setData(self::NO_LABEL, true);
-        $this->messageManager->addNoticeMessage(\__(
-            'Polkurier order %1 is placed, but its label is not ready yet. Print it later from the Polkurier shipments of the order.',
-            (string)$shipment->getPolkurierNumber(),
-        ));
+        // Told in Magento's own message about the shipment (Plugin\Adminhtml\ShipmentSavePlugin).
+        $this->unreadyLabel = (string)$shipment->getPolkurierNumber();
 
         return new DataObject(['info' => []]);
+    }
+
+    /**
+     * The Polkurier order of the shipment just labelled, when its label wasn't ready to go with
+     * it; asked once, by what tells the admin about the shipment.
+     */
+    public function takeUnreadyLabel(): ?string
+    {
+        $number = $this->unreadyLabel;
+        $this->unreadyLabel = null;
+
+        return $number;
     }
 
     private function fetchLabel(ShipmentInterface $shipment): ?string

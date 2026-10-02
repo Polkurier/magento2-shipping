@@ -10,12 +10,48 @@
  * runs in a blank same-origin iframe laid over the page, with clean built-ins of its own; the
  * iframe is only shown while the map dialog is open. The widget's script and styles are loaded
  * into it once, from the map host, the first time the map is needed.
+ *
+ * The map's token runs out some hours after it's issued: opening the map asks map.tokenUrl for a
+ * fresh one when the page has none or it's about to run out, so a screen left open still works.
  */
 define(['mage/translate', 'Magento_Ui/js/modal/alert'], function ($t, alert) {
     'use strict';
 
+    // Seconds before a token runs out when a fresh one is asked for instead.
+    const REFRESH_BEFORE = 600;
+
     let frame = null,
         widget = null;
+
+    /**
+     * @param {Object} map the map settings; given a fresh token in place
+     * @returns {Promise<String>}
+     */
+    function freshToken(map) {
+        const now = Date.now() / 1000;
+
+        if (map.token && (!map.expires || map.expires - now > REFRESH_BEFORE)) {
+            return Promise.resolve(map.token);
+        }
+        if (!map.tokenUrl) {
+            return map.token ? Promise.resolve(map.token) : Promise.reject(new Error('No map token'));
+        }
+
+        return fetch(map.tokenUrl + (map.tokenUrl.indexOf('?') === -1 ? '?' : '&') + 'isAjax=true', {
+            credentials: 'same-origin',
+            headers: {'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest'}
+        }).then(function (response) {
+            return response.ok ? response.json() : Promise.reject(new Error('No map token'));
+        }).then(function (answer) {
+            if (!answer || !answer.token) {
+                return Promise.reject(new Error('No map token'));
+            }
+            map.token = answer.token;
+            map.expires = answer.expires || 0;
+
+            return map.token;
+        });
+    }
 
     /**
      * @returns {HTMLIFrameElement}
@@ -81,6 +117,14 @@ define(['mage/translate', 'Magento_Ui/js/modal/alert'], function ($t, alert) {
 
     return {
         /**
+         * @param {Object} [map]
+         * @returns {Boolean} whether the map can be opened: with a token, or a way to get one
+         */
+        canOpen: function (map) {
+            return !!(map && (map.token || map.tokenUrl));
+        },
+
+        /**
          * The point's address in one line, for showing next to its code.
          *
          * @param {Object} point as the map returns it
@@ -97,11 +141,13 @@ define(['mage/translate', 'Magento_Ui/js/modal/alert'], function ($t, alert) {
         /**
          * @param {{token: String, baseUrl: String}} map
          * @param {String[]} providers the carrier's point providers
-         * @param {String} searchQuery where the map should start, e.g. "00-001 Warszawa"
+         * @param {String} searchQuery where the map should start: the postcode, e.g. "00-001"
          * @param {Function} onChoose called with the point's id and the point
          */
         open: function (map, providers, searchQuery, onChoose) {
-            loadWidget(map.baseUrl).then(function (target) {
+            freshToken(map).then(function () {
+                return loadWidget(map.baseUrl);
+            }).then(function (target) {
                 // The providers array is made in the iframe, so it has the widget's built-ins too.
                 const instance = new target.POLKURIER.PointsMap({
                     token: map.token,
@@ -119,7 +165,8 @@ define(['mage/translate', 'Magento_Ui/js/modal/alert'], function ($t, alert) {
                 });
                 showFrame(true);
                 instance.showMapDialog();
-            }, function () {
+            }).catch(function () {
+                // Also when the widget fails to start once loaded.
                 showFrame(false);
                 alert({title: $t('Pickup point map'), content: $t('The pickup point map could not be loaded.')});
             });

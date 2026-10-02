@@ -14,6 +14,7 @@ use Polkurier\Shipping\Api\Data\SyncableInterface;
 use Polkurier\Shipping\Api\SyncEntityEnum;
 use Polkurier\Shipping\Api\SynchronizationInterface;
 use Polkurier\Shipping\Model\Sync\SyncLock;
+use Polkurier\Shipping\Model\Sync\SyncResult;
 
 /**
  * Admin editing of one kind of synchronized entity: a change is saved locally, marked for
@@ -63,12 +64,11 @@ abstract class SyncableEntityHandler implements EntityHandlerInterface
 
     /**
      * @param array<string, mixed> $data
-     * @return string[] what the synchronization reported
      * @throws LocalizedException
      */
-    public function save(SyncableInterface $entity, array $data): array
+    public function save(SyncableInterface $entity, array $data): SyncResult
     {
-        return $this->exclusively(function () use ($entity, $data): array {
+        return $this->exclusively(function () use ($entity, $data): SyncResult {
             $this->applyFormData($entity, $data);
             $this->store($entity);
 
@@ -77,16 +77,18 @@ abstract class SyncableEntityHandler implements EntityHandlerInterface
     }
 
     /**
-     * @return string[] what the synchronization reported
      * @throws LocalizedException
      */
-    public function delete(SyncableInterface $entity, array $confirmation = []): array
+    public function delete(SyncableInterface $entity, array $confirmation = []): SyncResult
     {
-        return $this->exclusively(function () use ($entity): array {
+        return $this->exclusively(function () use ($entity): SyncResult {
             if ($entity->getExtId() === null) {
+                // Never sent to Polkurier: nothing to delete there.
                 $this->remove($entity);
+                $result = new SyncResult($this->getEntityType());
+                $result->deleted++;
 
-                return [];
+                return $result;
             }
             $entity->setDeletedAt($this->now())->setSyncState(SyncableInterface::STATE_PENDING);
             $this->store($entity);

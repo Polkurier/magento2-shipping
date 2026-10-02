@@ -32,7 +32,7 @@
             <updateUrl path="mui/index/render"/>
         </settings>
         <aclResource>Polkurier_Shipping::pack_templates</aclResource>
-        <dataProvider class="Magento\Framework\View\Element\UiComponent\DataProvider\DataProvider" name="polkurier_pack_template_listing_data_source">
+        <dataProvider class="Polkurier\Shipping\Ui\Component\DataProvider\GridDataProvider" name="polkurier_pack_template_listing_data_source">
             <settings>
                 <requestFieldName>id</requestFieldName>
                 <primaryFieldName>template_id</primaryFieldName>
@@ -42,6 +42,7 @@
     <listingToolbar name="listing_top">
         <bookmark name="bookmarks"/>
         <columnsControls name="columns_controls"/>
+        <filterSearch name="fulltext"/>
         <filters name="listing_filters"/>
         <massaction name="listing_massaction">
             <action name="delete">
@@ -51,7 +52,7 @@
                     <label translate="true">Delete</label>
                     <confirm>
                         <title translate="true">Delete pack templates</title>
-                        <message translate="true">The templates are deleted here and, at the next synchronization, in Polkurier.</message>
+                        <message translate="true">The pack templates are deleted here and in Polkurier.</message>
                     </confirm>
                 </settings>
             </action>
@@ -97,18 +98,10 @@
                 <label translate="true">Template name</label>
                 <filter>text</filter>
                 <editor>
+                    <validation>
+                        <rule name="required-entry" xsi:type="boolean">true</rule>
+                    </validation>
                     <editorType>text</editorType>
-                </editor>
-            </settings>
-        </column>
-        <column name="shipment_type" component="Magento_Ui/js/grid/columns/select">
-            <settings>
-                <label translate="true">Shipment type</label>
-                <options class="Polkurier\Shipping\Model\Config\Source\ShipmentType"/>
-                <filter>select</filter>
-                <dataType>select</dataType>
-                <editor>
-                    <editorType>select</editorType>
                 </editor>
             </settings>
         </column>
@@ -125,49 +118,71 @@
         </column>
         <column name="length">
             <settings>
-                <label translate="true">Length</label>
+                <label translate="true">Length (cm)</label>
                 <filter>textRange</filter>
                 <editor>
+                    <validation>
+                        <rule name="required-entry" xsi:type="boolean">true</rule>
+                        <rule name="validate-digits" xsi:type="boolean">true</rule>
+                        <rule name="validate-greater-than-zero" xsi:type="boolean">true</rule>
+                    </validation>
                     <editorType>text</editorType>
                 </editor>
             </settings>
         </column>
         <column name="width">
             <settings>
-                <label translate="true">Width</label>
+                <label translate="true">Width (cm)</label>
                 <filter>textRange</filter>
                 <editor>
+                    <validation>
+                        <rule name="required-entry" xsi:type="boolean">true</rule>
+                        <rule name="validate-digits" xsi:type="boolean">true</rule>
+                        <rule name="validate-greater-than-zero" xsi:type="boolean">true</rule>
+                    </validation>
                     <editorType>text</editorType>
                 </editor>
             </settings>
         </column>
         <column name="height">
             <settings>
-                <label translate="true">Height</label>
+                <label translate="true">Height (cm)</label>
                 <filter>textRange</filter>
                 <editor>
+                    <validation>
+                        <rule name="required-entry" xsi:type="boolean">true</rule>
+                        <rule name="validate-digits" xsi:type="boolean">true</rule>
+                        <rule name="validate-greater-than-zero" xsi:type="boolean">true</rule>
+                    </validation>
                     <editorType>text</editorType>
                 </editor>
             </settings>
         </column>
         <column name="weight">
             <settings>
-                <label translate="true">Weight</label>
+                <label translate="true">Maximum weight (kg)</label>
                 <filter>textRange</filter>
                 <editor>
+                    <validation>
+                        <rule name="required-entry" xsi:type="boolean">true</rule>
+                        <rule name="validate-number" xsi:type="boolean">true</rule>
+                        <rule name="validate-greater-than-zero" xsi:type="boolean">true</rule>
+                    </validation>
                     <editorType>text</editorType>
                 </editor>
             </settings>
         </column>
-        <column name="carrier_code">
+        <column name="carrier_code" component="Magento_Ui/js/grid/columns/select">
             <settings>
                 <label translate="true">Carrier</label>
-                <filter>text</filter>
+                <options class="Polkurier\Shipping\Model\Config\Source\CarrierName"/>
+                <filter>select</filter>
+                <dataType>select</dataType>
             </settings>
         </column>
         <column name="is_default" component="Magento_Ui/js/grid/columns/select">
             <settings>
-                <label translate="true">Default</label>
+                <label translate="true">Default for new shipments</label>
                 <options class="Magento\Config\Model\Config\Source\Yesno"/>
                 <filter>select</filter>
                 <dataType>select</dataType>
@@ -210,6 +225,7 @@
                 <item name="config" xsi:type="array">
                     <item name="editUrlPath" xsi:type="string">polkurier/packtemplate/edit</item>
                     <item name="deleteUrlPath" xsi:type="string">polkurier/packtemplate/delete</item>
+                    <item name="deleteMessage" xsi:type="string" translate="true">Delete this pack template here and in Polkurier?</item>
                 </item>
             </argument>
             <settings>

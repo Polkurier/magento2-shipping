@@ -15,13 +15,22 @@ abstract class AbstractDelete extends AbstractAction implements HttpPostActionIn
 {
     public function execute(): Redirect
     {
+        $id = (int)$this->getRequest()->getParam('id');
+        $gone = [];
         try {
-            $this->reportSync($this->handler->delete($this->handler->get((int)$this->getRequest()->getParam('id'))));
-            $this->messageManager->addSuccessMessage(\__('Deleted.'));
+            $result = $this->handler->delete($this->handler->get($id));
+            // Its edit page is gone with it.
+            $gone = ['/edit/id/' . $id . '/'];
+            $result->failed > 0
+                ? $this->messageManager->addWarningMessage(\__(
+                    'Deleted in Magento, but Polkurier hasn\'t deleted it yet: %1 It\'s tried again with the next synchronization.',
+                    $this->reasons($result),
+                ))
+                : $this->messageManager->addSuccessMessage(\__('Deleted.'));
         } catch (LocalizedException $e) {
             $this->messageManager->addErrorMessage($e->getMessage());
         }
 
-        return $this->resultRedirectFactory->create()->setPath('*/*/index');
+        return $this->returnBack('*/*/index', [], $gone);
     }
 }

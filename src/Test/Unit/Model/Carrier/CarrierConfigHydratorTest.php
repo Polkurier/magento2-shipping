@@ -72,7 +72,7 @@ class CarrierConfigHydratorTest extends TestCase
         /** @var CarrierConfig $config */
         $config = (new ObjectManager($this))->getObject(CarrierConfig::class);
 
-        return $config->setWebsiteId(1);
+        return $config;
     }
 
     private function hydrator(): CarrierConfigHydrator

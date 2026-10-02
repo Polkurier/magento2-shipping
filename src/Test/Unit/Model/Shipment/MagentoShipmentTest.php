@@ -24,8 +24,10 @@ use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
-use Polkurier\Shipping\Api\ShipmentRepositoryInterface as PolkurierShipmentRepository;
+use Polkurier\Shipping\Model\Carrier\CarrierConfigs;
+use Polkurier\Shipping\Model\CarrierConfig;
 use Polkurier\Shipping\Model\Config;
+use Magento\Framework\TestFramework\Unit\Helper\ObjectManager;
 use Polkurier\Shipping\Model\ResourceModel\Shipment\Collection;
 use Polkurier\Shipping\Model\ResourceModel\Shipment\CollectionFactory;
 use Polkurier\Shipping\Model\Shipment;
@@ -52,6 +54,15 @@ class MagentoShipmentTest extends TestCase
         ]);
 
         self::assertSame([5 => 1.0], $qtys);
+    }
+
+    public function testATrackIsTitledWithTheCarrierItWentWith(): void
+    {
+        $shipments = $this->magentoShipment();
+
+        self::assertSame('Kurier InPost', $shipments->getTrackTitle($this->order(), 'INPOST'), 'The carrier\'s label, not the description with the point.');
+        self::assertSame('Kurier DPD', $shipments->getTrackTitle($this->order(), 'DPD'), 'Without settings: the method the customer chose.');
+        self::assertSame('GLS', $shipments->getTrackTitle($this->order(), 'GLS'), 'Another carrier without settings: its code.');
     }
 
     public function testNoItemsMeansEverythingLeft(): void
@@ -117,7 +128,7 @@ class MagentoShipmentTest extends TestCase
         $this->magentoShipment()->getTarget($this->order(canShip: false, shipments: [3 => '000000003']), new Draft());
     }
 
-    public function testAReplacementTakesTheMagentoShipmentOverFromTheCancelledOrder(): void
+    public function testAReplacementGoesOnTheMagentoShipmentOfTheCancelledOrder(): void
     {
         $cancelled = $this->polkurier(11, 4, ShipmentInterface::STATE_CANCELLED, ['WB-OLD']);
         $this->linked = [$cancelled];
@@ -131,8 +142,7 @@ class MagentoShipmentTest extends TestCase
         $id = $this->magentoShipment()->ship($this->order(canShip: false, shipments: [4 => '000000004']), $replacement, [], 4);
 
         self::assertSame(4, $id);
-        self::assertNull($cancelled->getShipmentId(), 'The cancelled order lets go of the shipment.');
-        self::assertSame([$cancelled], $this->savedPolkurier);
+        self::assertSame(4, $cancelled->getShipmentId(), 'The shipment keeps every Polkurier order it has had.');
         self::assertSame([$oldTrack], $this->deletedTracks, 'Only its waybills leave the tracking.');
         self::assertSame(['WB-NEW'], $this->savedTrackNumbers);
     }
@@ -201,10 +211,6 @@ class MagentoShipmentTest extends TestCase
      */
     private array $magentoShipments = [];
     /**
-     * @var ShipmentInterface[]
-     */
-    private array $savedPolkurier = [];
-    /**
      * @var ShipmentTrackInterface[]
      */
     private array $deletedTracks = [];
@@ -235,6 +241,7 @@ class MagentoShipmentTest extends TestCase
 
                 return $collection;
             });
+            $collection->method('setOrder')->willReturnSelf();
             $collection->method('getItems')->willReturnCallback(function () use (&$filters): array {
                 return \array_values(\array_filter($this->linked, static function (ShipmentInterface $shipment) use (&$filters): bool {
                     $values = [ShipmentInterface::SHIPMENT_ID => $shipment->getShipmentId(), ShipmentInterface::STATE => $shipment->getState()];
@@ -255,12 +262,6 @@ class MagentoShipmentTest extends TestCase
             });
 
             return $collection;
-        });
-        $polkurierRepository = $this->createStub(PolkurierShipmentRepository::class);
-        $polkurierRepository->method('save')->willReturnCallback(function (ShipmentInterface $shipment): ShipmentInterface {
-            $this->savedPolkurier[] = $shipment;
-
-            return $shipment;
         });
         $magentoRepository = $this->createStub(ShipmentRepositoryInterface::class);
         $magentoRepository->method('get')->willReturnCallback(function (int $id): MagentoShipmentModel {
@@ -294,8 +295,8 @@ class MagentoShipmentTest extends TestCase
             $trackRepository,
             $magentoRepository,
             $collections,
-            $polkurierRepository,
             $this->createStub(Config::class),
+            $this->carrierConfigs(),
         );
     }
 
@@ -342,7 +343,19 @@ class MagentoShipmentTest extends TestCase
         $order->method('getEntityId')->willReturn(42);
         $order->method('getStoreId')->willReturn(1);
         $order->method('getShippingDescription')->willReturn('Kurier DPD');
+        $order->method('getShippingMethod')->willReturn('polkurier_DPD');
 
         return $order;
+    }
+
+    private function carrierConfigs(): CarrierConfigs
+    {
+        /** @var CarrierConfig $inpost */
+        $inpost = (new ObjectManager($this))->getObject(CarrierConfig::class);
+        $inpost->setCarrierCode('INPOST')->setCustomLabel('Kurier InPost');
+        $configs = $this->createStub(CarrierConfigs::class);
+        $configs->method('get')->willReturnCallback(static fn(string $code): ?CarrierConfig => $code === 'INPOST' ? $inpost : null);
+
+        return $configs;
     }
 }

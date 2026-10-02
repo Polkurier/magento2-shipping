@@ -10,8 +10,8 @@
   and the multi-address checkout. Other checkouts, such as Hyvä or one-step checkout modules,
   aren't supported yet.
 - **Labels stored with Magento shipments are always PDF**, because that's what Magento stores,
-  whatever **Label format** says. Labels printed from the Polkurier shipment lists follow the
-  setting.
+  whatever **Label format** says. Labels printed from **Polkurier > Sales > Shipments** and the
+  shipment details page follow the setting.
 - **Magento's shipment page ships the address as it is.** To correct the recipient before placing
   a shipment, use the Polkurier shipment screen.
 - **One Polkurier account per installation.** All websites share it; separate accounts per
@@ -26,5 +26,6 @@
   or template was last changed, a change made in the Polkurier panel counts as made when the module
   first notices it. If you edit the same entry on both sides between two syncs, the Magento edit may
   win even if it was made first.
-- **Cancelling** a Polkurier shipment leaves the Magento shipment in place, since Magento can't
-  take a shipment back.
+- **Cancelling can't take back the shipment e-mail.** The Magento shipment is removed with the
+  Polkurier order, but a customer who already got the "your order has shipped" e-mail keeps it.
+  Add a comment to the order if they should know.

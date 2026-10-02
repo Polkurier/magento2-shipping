@@ -17,7 +17,7 @@ class CodType extends AbstractOptions
     public function toArray(): array
     {
         return [
-            CodTypeEnum::Standard->value => (string)\__('Standard'),
+            CodTypeEnum::Standard->value => (string)\__('Standard time'),
             CodTypeEnum::OneDay->value => (string)\__('Next day'),
             CodTypeEnum::FourDays->value => (string)\__('Within 4 days'),
         ];

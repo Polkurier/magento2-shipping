@@ -100,12 +100,6 @@
                 <visible>false</visible>
             </settings>
         </column>
-        <column name="carrier_code">
-            <settings>
-                <label translate="true">Code</label>
-                <filter>text</filter>
-            </settings>
-        </column>
         <column name="carrier_name">
             <settings>
                 <label translate="true">Carrier</label>
@@ -152,6 +146,10 @@
                 <label translate="true">Fixed price</label>
                 <sortable>false</sortable>
                 <editor>
+                    <validation>
+                        <rule name="validate-number" xsi:type="boolean">true</rule>
+                        <rule name="validate-zero-or-greater" xsi:type="boolean">true</rule>
+                    </validation>
                     <editorType>text</editorType>
                 </editor>
             </settings>

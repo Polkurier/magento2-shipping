@@ -8,9 +8,9 @@
 
 ## Shipping with cash on delivery
 
-1. Under **Cash on delivery payment methods** in the [configuration](configuration.md#shipments),
-   select the payment methods that mean "the customer pays the courier", such as Magento's
-   **Cash On Delivery**.
+1. Under **Cash on delivery payment methods** in the
+   [configuration](configuration.md#cash-on-delivery), select the payment methods that mean "the
+   customer pays the courier", such as Magento's **Cash On Delivery**.
 2. Add at least one bank account under **Polkurier > Settings > Bank accounts** (see
    [Addresses, bank accounts and pack templates](master-data.md#bank-accounts)), unless you have
    the money paid into your Polkurier money box or by postal order.

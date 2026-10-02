@@ -7,6 +7,7 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Ui\Component\Listing\Column;
 
+use Magento\Framework\AuthorizationInterface;
 use Magento\Framework\UrlInterface;
 use Magento\Framework\View\Element\UiComponent\ContextInterface;
 use Magento\Framework\View\Element\UiComponentFactory;
@@ -25,6 +26,7 @@ class PayoutActions extends Column
         ContextInterface $context,
         UiComponentFactory $uiComponentFactory,
         private readonly UrlInterface $url,
+        private readonly AuthorizationInterface $authorization,
         array $components = [],
         array $data = [],
     ) {
@@ -37,7 +39,7 @@ class PayoutActions extends Column
      */
     public function prepareDataSource(array $dataSource): array
     {
-        if (!isset($dataSource['data']['items'])) {
+        if (!isset($dataSource['data']['items']) || !$this->authorization->isAllowed('Polkurier_Shipping::money_box_payout')) {
             return $dataSource;
         }
         foreach ($dataSource['data']['items'] as &$item) {

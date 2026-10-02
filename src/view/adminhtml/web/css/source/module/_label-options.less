@@ -21,9 +21,16 @@
 
 .polkurier-label-options__summary dd {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 1rem;
+    gap: .3rem 1rem;
     margin: 0;
+}
+
+/* Why the line is red, on a line of its own under it */
+.polkurier-label-options__why {
+    flex-basis: 100%;
+    color: @color-tomato-brick;
 }
 
 .polkurier-label-options__edit {
@@ -35,12 +42,30 @@
     color: @color-tomato-brick;
 }
 
-.polkurier-label-options__modal .modal-inner-wrap {
+/* A group being edited, in its line: its name level with the top of its fields */
+.polkurier-label-options__summary dt.polkurier-label-options__editing {
+    align-self: start;
+    padding-top: 1.3rem;
+}
+
+/* A group being edited, in its line */
+.polkurier-label-options__form {
+    flex-basis: 100%;
     max-width: 64rem;
+    margin: 0;
+    padding: 1.2rem 1.5rem;
+    border: 1px solid @color-gray89;
+    background: @color-white;
 }
 
 .polkurier-label-options__form .admin__field {
-    margin-bottom: 1.5rem;
+    margin-bottom: 1.2rem;
+}
+
+.polkurier-label-options__actions {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
 }
 
 .polkurier-label-options__form .admin__field-option {
@@ -58,8 +83,11 @@
     max-width: 20rem;
 }
 
-/* The pack template choice in each package's header, in Magento's packaging window. */
+/* The pack template choice, a column before the package type in Magento's packaging window. */
 #packaging_window .polkurier-pack-template {
     width: auto;
-    margin-left: 2rem;
+}
+
+.polkurier-packaging-note {
+    margin-bottom: 1.5rem;
 }

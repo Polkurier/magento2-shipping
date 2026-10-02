@@ -4,8 +4,8 @@
  */
 /**
  * The carrier, chosen in its modal from a list that shows what each carrier would charge for the
- * shipment as it stands, cheapest first. Carriers that can't take it are tucked away until asked
- * for. Choosing one closes the modal.
+ * shipment as it stands, cheapest first. Carriers that can't take it, such as those without a
+ * service chosen, are tucked away until asked for. Choosing one closes the modal.
  */
 define([
     'Polkurier_Shipping/js/shipment/carrier',
@@ -55,16 +55,22 @@ define([
                 query = this.search().trim().toLowerCase(),
                 selected = this.value();
 
+            const data = this.source.get('data') || {},
+                serviceLabels = (data.choices || {}).services || {};
+
             return (this.options() || []).filter(function (option) {
                 return option.value !== '' && (!query || option.label.toLowerCase().indexOf(query) !== -1);
             }).map(function (option) {
                 const carrier = carriers[option.value] || {},
-                    quote = quotes ? quotes[option.value] || null : null;
+                    // The chosen services it doesn't offer: it can't take the shipment as it is.
+                    lacking = rules.servicesLacking(data, carrier.services).map(function (service) {
+                        return service === 'COVER_ADDRESS_SENDER' ? $t('Another sender on the label') : serviceLabels[service] || service;
+                    }),
+                    quote = quotes && !lacking.length ? quotes[option.value] || null : null;
 
                 return {
                     value: option.value,
                     name: carrier.name || option.label,
-                    code: option.value,
                     selected: option.value === selected,
                     priced: !!quote,
                     gross: quote ? quote.gross : null,
@@ -74,7 +80,8 @@ define([
                     grossText: quote ? rules.money(quote.gross, currency) + ' ' + $t('gross') : '',
                     point: carrier.point && carrier.point !== 'NONE',
                     pointOnly: carrier.point === 'REQUIRED',
-                    cod: !!carrier.cod
+                    cod: !!carrier.cod,
+                    lacking: lacking.length ? $t('Does not offer: %1').replace('%1', lacking.join(', ')) : ''
                 };
             });
         },

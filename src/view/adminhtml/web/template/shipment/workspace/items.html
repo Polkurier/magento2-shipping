@@ -2,7 +2,7 @@
  ~ Copyright (c) 2026 Polkurier.pl
  ~ All Rights Reserved
 -->
-<div class="polkurier-section__part polkurier-section__wide polkurier-items">
+<div class="polkurier-section__part polkurier-items">
     <!-- ko if: canShip -->
     <table class="data-table admin__table-primary polkurier-items__table">
         <thead>
@@ -29,16 +29,9 @@
         </tr>
         </tbody>
     </table>
-    <div class="polkurier-items__foot">
-        <span text="valueText"></span>
-        <button type="button" class="polkurier-link" click="shipAll">
-            <span translate="'Ship everything left'"></span>
-        </button>
-    </div>
     <!-- /ko -->
     <!-- ko if: !canShip() && replacingText() -->
     <p text="replacingText"></p>
-    <p class="polkurier-muted" text="valueText"></p>
     <!-- /ko -->
     <!-- ko if: !canShip() && !replacingText() -->
     <p class="polkurier-muted" translate="'Everything on the order is shipped, and each of its Magento shipments has its Polkurier order. To send a replacement, cancel the Polkurier order it replaces first.'"></p>

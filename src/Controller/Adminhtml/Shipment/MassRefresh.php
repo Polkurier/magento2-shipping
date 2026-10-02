@@ -13,6 +13,7 @@ use Magento\Framework\Controller\Result\Redirect;
 use Magento\Framework\Exception\LocalizedException;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Api\ShipmentManagementInterface;
+use Polkurier\Shipping\Model\Admin\Flash;
 use Polkurier\Shipping\Model\Shipment\RequestedShipments;
 
 /**
@@ -31,6 +32,8 @@ class MassRefresh extends AbstractShipmentAction implements HttpPostActionInterf
     public function execute(): Redirect
     {
         $refreshed = 0;
+        $failed = [];
+        $flash = new Flash();
         try {
             foreach ($this->getSelectedShipments() as $shipment) {
                 if ($shipment->getState() !== ShipmentInterface::STATE_CREATED) {
@@ -40,14 +43,19 @@ class MassRefresh extends AbstractShipmentAction implements HttpPostActionInterf
                     $this->management->refreshStatus((int)$shipment->getId());
                     $refreshed++;
                 } catch (LocalizedException $e) {
-                    $this->messageManager->addErrorMessage(\__('%1: %2', $shipment->getPolkurierNumber(), $e->getMessage()));
+                    $failed[] = (string)\__('%1: %2', $shipment->getPolkurierNumber(), $e->getMessage());
                 }
             }
         } catch (LocalizedException $e) {
-            $this->messageManager->addErrorMessage($e->getMessage());
+            $flash->error($e->getMessage());
         }
-        $this->messageManager->addSuccessMessage(\__('%1 shipment(s) updated.', $refreshed));
+        $flash->success(\__('%1 shipment(s) updated.', $refreshed));
+        if ($failed !== []) {
+            $notUpdated = \__('Not updated: %1', \implode('; ', $failed));
+            $refreshed > 0 ? $flash->warning($notUpdated) : $flash->error($notUpdated);
+        }
+        $flash->send($this->messageManager);
 
-        return $this->resultRedirectFactory->create()->setPath('*/*/index');
+        return $this->back();
     }
 }

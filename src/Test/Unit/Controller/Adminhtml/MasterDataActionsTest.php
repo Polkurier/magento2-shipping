@@ -15,6 +15,7 @@ use Magento\Ui\Component\MassAction\Filter;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use Polkurier\Shipping\Api\Data\SyncableInterface;
+use Polkurier\Shipping\Api\SyncEntityEnum;
 use Polkurier\Shipping\Controller\Adminhtml\Bankaccount\InlineEdit;
 use Polkurier\Shipping\Controller\Adminhtml\Bankaccount\Save;
 use Polkurier\Shipping\Controller\Adminhtml\MasterData\AbstractInlineEdit;
@@ -26,6 +27,7 @@ use Polkurier\Shipping\Model\Admin\PackTemplateHandler;
 use Polkurier\Shipping\Model\BankAccount;
 use Polkurier\Shipping\Model\PackTemplate;
 use Polkurier\Shipping\Model\ResourceModel\PackTemplate\CollectionFactory;
+use Polkurier\Shipping\Model\Sync\SyncResult;
 use Polkurier\Shipping\Test\Unit\Support\AdminActionTestCase;
 
 #[CoversClass(AbstractSave::class)]
@@ -46,13 +48,12 @@ class MasterDataActionsTest extends AdminActionTestCase
         $handler = $this->bankAccounts($this->account(3));
         $handler->expects(self::once())->method('save')
             ->with(self::anything(), ['name' => 'Firmowe'])
-            ->willReturn(['Bank accounts: 1 sent to Polkurier.']);
+            ->willReturn($this->synced(pushed: 1));
 
         $this->save($handler)->execute();
 
         self::assertSame(['*/*/index', []], $this->redirect);
-        self::assertSame(['Saved.'], $this->messages['success']);
-        self::assertSame(['Bank accounts: 1 sent to Polkurier.'], $this->messages['notice']);
+        self::assertSame(['success' => ['Saved.']], $this->messages, 'One message, and nothing else.');
     }
 
     public function testAnAccountPolkurierRefusedIsSavedWithAWarning(): void
@@ -70,7 +71,7 @@ class MasterDataActionsTest extends AdminActionTestCase
     {
         $this->post = ['id' => '3', 'name' => 'Firmowe', BankAccountHandler::CONFIRMATION_PIN => '2342', 'two_factor_code' => '123456'];
         $handler = $this->bankAccounts($this->account(3));
-        $handler->method('save')->willThrowException(new LocalizedException(\__('A synchronization with Polkurier is already running for this website. Try again in a moment.')));
+        $handler->method('save')->willThrowException(new LocalizedException(\__('A synchronization with Polkurier is already running. Try again in a moment.')));
 
         $this->save($handler)->execute();
 
@@ -96,13 +97,13 @@ class MasterDataActionsTest extends AdminActionTestCase
     public function testAMassDeleteCarriesOnPastARefusal(): void
     {
         $handler = $this->createMock(PackTemplateHandler::class);
-        $handler->method('delete')->willReturnCallback(static function (SyncableInterface $template): array {
+        $handler->method('delete')->willReturnCallback(function (SyncableInterface $template): SyncResult {
             \assert($template instanceof PackTemplate);
             if ($template->getName() === 'Karton M') {
                 throw new LocalizedException(\__('Polkurier did not delete Karton M.'));
             }
 
-            return [];
+            return $this->synced(deleted: 1);
         });
         $filter = $this->createStub(Filter::class);
         $filter->method('getCollection')->willReturn([$this->template('Karton S'), $this->template('Karton M'), $this->template('Karton L')]);
@@ -111,9 +112,38 @@ class MasterDataActionsTest extends AdminActionTestCase
 
         (new MassDelete($this->context(), $handler, $filter, $collections))->execute();
 
-        self::assertSame(['Polkurier did not delete Karton M.'], $this->messages['error']);
-        self::assertSame(['2 deleted, 1 not deleted.'], $this->messages['warning']);
+        self::assertSame(['warning' => ['2 deleted. 1 not deleted: Polkurier did not delete Karton M.']], $this->messages, 'One message for all of them.');
         self::assertSame(['*/*/index', []], $this->redirect);
+    }
+
+    public function testAMassDeletePolkurierDidntCarryOutYetIsToldOnce(): void
+    {
+        $handler = $this->createMock(PackTemplateHandler::class);
+        $handler->method('delete')->willReturnCallback(fn(): SyncResult => $this->synced(failed: 1, errors: ['Polkurier could not be reached.']));
+        $filter = $this->createStub(Filter::class);
+        $filter->method('getCollection')->willReturn([$this->template('Karton S'), $this->template('Karton M')]);
+        $collections = $this->createStub(CollectionFactory::class);
+        $collections->method('create')->willReturn($this->createStub(\Polkurier\Shipping\Model\ResourceModel\PackTemplate\Collection::class));
+
+        (new MassDelete($this->context(), $handler, $filter, $collections))->execute();
+
+        self::assertSame(['warning' => [
+            '2 deleted. Polkurier hasn\'t deleted 2 of them yet: Polkurier could not be reached. They\'re tried again with the next synchronization.',
+        ]], $this->messages);
+    }
+
+    /**
+     * @param string[] $errors
+     */
+    private function synced(int $pushed = 0, int $deleted = 0, int $failed = 0, array $errors = []): SyncResult
+    {
+        $result = new SyncResult(SyncEntityEnum::PackTemplate);
+        $result->pushed = $pushed;
+        $result->deleted = $deleted;
+        $result->failed = $failed;
+        $result->errors = $errors;
+
+        return $result;
     }
 
     public function testAnAccountEditedInTheListSaysItWaitsForAConfirmation(): void
@@ -157,7 +187,7 @@ class MasterDataActionsTest extends AdminActionTestCase
         $account = (new ObjectManager($this))->getObject(BankAccount::class);
         $account->setId($id);
 
-        return $account->setWebsiteId(1)->setName('Firmowe');
+        return $account->setName('Firmowe');
     }
 
     private function template(string $name): PackTemplate

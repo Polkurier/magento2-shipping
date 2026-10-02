@@ -11,15 +11,21 @@ cost is set under **Polkurier > Settings > Carriers**.
 
 ## Fetching your carriers
 
-Click **Refresh carriers from Polkurier**. The module fetches the carriers available on your
-account and adds any new ones to the list, switched off. Run it again whenever Polkurier adds a
-carrier or your contract changes.
+Click **Synchronize with Polkurier**. The module fetches the carriers available on your
+account and adds any new ones to the list, switched off. Your account's carriers can change over
+time, so the module also checks every hour while the hourly synchronization is on (see
+[Configuration](configuration.md#synchronization)); click the button when you want a change to
+show at once.
 
 Only the carriers selected under **Available carriers** in the
-[configuration](configuration.md#shipments) are listed; with none selected, all of them are.
+[configuration](configuration.md#new-shipments) are listed; with none selected, all of them are.
 
 A carrier your account no longer offers disappears from the list and from checkout. Its settings
 are kept, so if the account offers it again, it comes back as it was.
+
+Either way, a message in **System > Notifications** says which carriers came or went. Shipping an
+order placed with a carrier that's gone asks you to choose another: the Polkurier shipment screen
+and the New Shipment page mark the carrier, and the order isn't sent with it.
 
 ## Setting up a carrier
 
@@ -27,11 +33,11 @@ Open a carrier from the list:
 
 - **Enabled** switches it on for customers.
 - **Label in checkout** is the name customers see, for example "Kurier DPD" or "Paczkomat
-  InPost". It's also what they see in e-mails and on their order page, and it becomes the title of
-  the tracking numbers. Leave it empty to use the carrier's own name.
+  InPost". It's also what they see in e-mails and on their order page, and the title of the
+  tracking numbers of parcels sent with the carrier. Leave it empty to use the carrier's own name.
 - **Label per store view** gives the carrier a different name in a particular store view, for
-  example in English for an English store view. Click **Add**, pick the store view and type the
-  label. Store views without a label of their own use the one above.
+  example in English for an English store view. Click **Add a store view label**, pick the store
+  view and type the label. Store views without a label of their own use the one above.
 - **Logo in checkout** is shown in front of the method name at checkout. Click **Upload** and
   choose a JPG, PNG, GIF or WebP file; something around 60 × 30 pixels looks best, as the logo is
   shown at most 60 pixels wide and 24 high. Click the bin icon on the preview to remove it. The
@@ -82,7 +88,7 @@ weights as set in the catalog.
 
 **Heavier parcels cost more**, with **By cart weight**:
 
-| Weight from [kg] | Price |
+| Weight from (kg) | Price |
 |---|---|
 | 0 | 16.00 |
 | 10 | 22.00 |

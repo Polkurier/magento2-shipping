@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<!--
+ ~ Copyright (c) 2026 Polkurier.pl
+ ~ All Rights Reserved
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:App/etc/routes.xsd">
+    <!-- A neutral name: shoppers' browsers see it -->
+    <router id="standard">
+        <route id="polkurier_points" frontName="pickup-points">
+            <module name="Polkurier_Shipping" />
+        </route>
+    </router>
+</config>

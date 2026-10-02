@@ -11,35 +11,74 @@
 - **On the order page**, on the Shipments tab, the **Polkurier order** column, right after the
   shipment number, shows the Polkurier order each Magento shipment was sent with; click it to open
   its details.
+- **On the order page**, on the **Polkurier** tab, right after Shipments: every Polkurier shipment
+  of the order, also the ones that weren't placed and so have no Magento shipment, with why under
+  **Last error**, and what can be done with each. It has the same search, filters, columns and
+  **Actions** menu as the shipments list below, for that order's shipments only.
+- **On the page of a Magento shipment**, the **Polkurier order** button opens the details of the
+  Polkurier order it was sent with.
+- **Polkurier > Sales > Shipments** lists the shipments of all orders, newest first, with filters,
+  the collective pickup and **Update statuses**. Search by keyword finds a shipment by its order
+  number, Polkurier order, waybill, carrier, recipient's postcode or phone, delivery status or the
+  customer's name or e-mail.
 
 Every Magento shipment goes with one Polkurier order, and the module links them for you: creating
 a shipment with a label on Magento's page places its Polkurier order, and placing a Polkurier order
 from the shipment screen creates its Magento shipment.
-- **Polkurier > Sales > Shipments** lists the shipments of all orders, with filters, search and
-  the collective pickup.
 
 **Polkurier > Sales > Orders** is Magento's orders list, with only the orders placed with a Polkurier
 method, so you don't have to filter Magento's list. Its **Actions**
 menu is Magento's: cancel, hold and unhold, and print invoices, packing slips, credit memos, all of
 these at once, or shipping labels.
 
-Every attempt to place a shipment is listed, including refused ones, so you can see what happened
-and why.
+A shipment that failed on Polkurier's side (Polkurier down, busy or out of reach) is listed as
+**Not placed**, with why and as it was filled in, to be sent again; the shipment screen and the
+label options say so too. The order's next attempt places that same shipment, so it's never listed
+twice. **Discard** removes it. One neither placed nor discarded gets you a notification (the bell
+in the admin's header, and **System > Notifications**) a day after it was last tried, and is
+removed a day later, noted in the order's history: no shipment stays **Not placed** for good.
+
+The notifications also tell you about a shipment Polkurier didn't answer for that the automatic
+check hasn't settled within an hour, and one placed without its Magento shipment for an hour. Each
+links to the shipment's details, and comes once per shipment.
+
+Actions in the lists, on the order's **Polkurier** tab and on a shipment's page take you back to
+where you started them; one that removes the page you were on, like **Discard** on a shipment's
+details, takes you to its order instead. One that Polkurier refused as it is (a parcel too big, say) isn't kept: you see the reason
+at once, change the shipment and place it again.
+
+## Sending again what wasn't placed
+
+**Send again**, in the row of a shipment that wasn't placed (on the order's Polkurier tab or in
+the shipments list) and on its details page, opens the shipment screen as it was filled in then,
+with why it wasn't placed above it, to place it again once Polkurier is back. It's offered for the latest
+attempt of an order that still has something to send: items left to ship, or a Magento shipment
+without a Polkurier order.
+
+## A Magento shipment without a Polkurier order
+
+When an order has a Magento shipment without a Polkurier order (made before the module was
+installed, through Magento's API or another integration, or while the module's shipping was turned
+off), the page of that Magento shipment has an **Add a Polkurier order** button, once the order has
+nothing left to ship. The shipment screen then places the
+Polkurier order on that shipment, and its waybills become its tracking numbers. **Ship with
+Polkurier** on the order page is only there while the order has something left to ship, next to
+Magento's **Ship**.
 
 ## What the list shows
 
 | Column | |
 |---|---|
-| Order | the Magento order (Shipments page only) |
+| Order | the Magento order |
 | Created | when the shipment was placed |
-| Carrier | the Polkurier carrier code |
+| Carrier | the carrier the shipment goes with |
 | State | see below |
 | Polkurier order | the order number in your Polkurier account |
 | Waybills | the carrier's tracking numbers, linked to the carrier's tracking page |
 | Delivery status, Status date | the latest status reported by the carrier |
 | Cash on delivery, COD status | the amount to collect and where the money is (see [Cash on delivery](cash-on-delivery.md#following-the-money)) |
 | Cost (gross) | what Polkurier charged you |
-| Collective pickup, Pickup booked | whether the shipment waits for a collective pickup, and whether it's booked (Shipments page only) |
+| Collective pickup, Pickup booked | whether the shipment waits for a collective pickup, and whether it's booked |
 | Last error | why the last action on the shipment failed, if it did |
 
 The **State** tells you where the shipment stands with Polkurier:
@@ -49,14 +88,14 @@ The **State** tells you where the shipment stands with Polkurier:
 | Sending | being placed right now |
 | Placed | Polkurier accepted it |
 | Outcome unknown | Polkurier didn't confirm it; it's being checked (see [When the result is unclear](shipping-an-order.md#when-the-result-is-unclear)) |
-| Not placed | Polkurier refused it, or it turned out not to exist; the order can be shipped again |
+| Not placed | it failed on Polkurier's side, or turned out not to exist; it can be sent again, with **Send again** |
 | Cancelled | cancelled in Polkurier |
 
 ## Shipment details
 
 **Details** in a shipment's row opens everything about it on one page:
 
-- the Polkurier order: number, state, carrier, shipment type, contents, when it was placed, and
+- the Polkurier order: number, state, carrier, shipment type, shipment description, when it was placed, and
   links to the Magento order and shipment;
 - the delivery: status, status date, delivery date and the waybills, linked to the carrier's
   tracking page;
@@ -64,8 +103,9 @@ The **State** tells you where the shipment stands with Polkurier:
 - cash on delivery (amount, payout time and account, and where the money is), insurance, the
   additional services, and how the parcels are handed over, with the collection date and pickup
   number;
-- the parcels, and what Polkurier charges for each item, with the total, any rebate, and whether
-  it's paid and invoiced;
+- the order's items it shipped, with their SKUs and quantities;
+- the parcels, with what each one holds, and what Polkurier charges for each item, with the total,
+  any rebate, and whether it's paid and invoiced;
 - the status history: every scan the carrier has reported, newest first.
 
 The details are kept in Magento: the page reads them from Polkurier only when they aren't stored
@@ -83,7 +123,7 @@ What each row offers depends on its state.
 For placed shipments:
 
 - **Print label** downloads the shipping label, in the **Label format** you configured.
-- **Print protocol** downloads the handover protocol, which the courier signs when collecting.
+- **Print handover protocol** downloads the protocol, which the courier signs when collecting.
 - **Update status** asks Polkurier for the current delivery and cash on delivery status, and the
   carrier's scans.
 - **Create Magento shipment** appears when the Magento order hasn't been shipped yet (see below).
@@ -98,19 +138,22 @@ it's the one, open the shipment's details and use **Link to a Polkurier order** 
 
 ## Several shipments at once
 
-Tick the shipments in either list and use the **Actions** menu:
+Tick the shipments in **Polkurier > Sales > Shipments**, or on an order's **Polkurier** tab, and
+use the **Actions** menu:
 
 - **Print labels**: one file with the labels of all selected shipments.
 - **Print handover protocol**: one protocol for all of them.
-- **Update statuses** (Shipments page).
-- **Book a collective pickup** (Shipments page, see below).
+- **Update statuses**.
+- **Book a collective pickup** (see below).
 
 Shipments that can't take part, for example refused ones, are skipped.
 
 ## Delivery status
 
-With **Update shipment statuses every 30 minutes** switched on, the module follows each placed
-shipment until it's finished, and you don't need to update anything by hand. A shipment counts
+With **Update shipment statuses on schedule** switched on, the module follows each placed
+shipment until it's finished, as often as **Update shipment statuses** says, and you don't need to
+update anything by hand. **Update statuses** above the shipments list updates every unfinished
+shipment right away, also with the schedule switched off. A shipment counts
 as finished when it's:
 
 - cancelled;
@@ -137,18 +180,36 @@ Only placed shipments that wait for a collective pickup and aren't booked yet ar
 see which shipments were booked and, for any that weren't, the reason. Collective pickups have to
 be available on your Polkurier account.
 
+## On Magento's shipment page
+
+The page of a Magento shipment of a Polkurier order shows, above **Payment & Shipping Method**:
+
+- **Polkurier shipping label**, when the shipment has no Polkurier order that stands: the options
+  of the one **Create Shipping Label** places for it;
+- **Polkurier orders**: every Polkurier order the shipment has had, the cancelled ones included.
+
+Its **Shipment History** notes, internally (the customer isn't notified, and it isn't shown on the
+storefront), each Polkurier order that goes with the shipment, its cancellation, here or in
+Polkurier, and its delivery.
+
 ## Cancelling
 
 **Cancel** cancels the Polkurier order, as long as the carrier hasn't collected the parcel yet.
-Its Magento shipment is removed with it, tracking numbers and all, so the items it shipped can be
-shipped again; a complete order is back to processing. A Polkurier order cancelled in the Polkurier
-panel does the same once its status is next updated. The order's comments say which shipment went.
-Add a comment of your own if the customer should know: Magento can't take back the shipment e-mail
-they may have had.
+Its Magento shipment stays, with its items, but without the cancelled order's label, packages and
+tracking numbers. A Polkurier order cancelled in the Polkurier panel does the same once its status
+is next updated. The order's comments say which shipment was cleared.
 
-To send the parcel again, ship the order as before. If the Magento shipment couldn't be removed
-(the reason is in the log), a new Polkurier order takes it over instead: the cancelled order is
-unlinked and its tracking numbers are replaced by the new waybills.
+To send the parcel again, open that Magento shipment and either:
+
+- click **Create Shipping Label** and pack the parcels in Magento's packaging window, with the
+  **Polkurier shipping label** options below; or
+- click **Add a Polkurier order** to place one on the shipment screen.
+
+Either way the new Polkurier order goes on the same Magento shipment, for its items, and its
+waybills become the shipment's tracking numbers. The shipment keeps every Polkurier order it has had,
+cancelled ones included (see the order's **Polkurier** tab), but never more than one that stands, so
+no item is shipped twice: a shipment whose Polkurier order stands can't get another until that one
+is cancelled, and a new Magento shipment can only ship what the order has left.
 
 ## When the Magento shipment is missing
 

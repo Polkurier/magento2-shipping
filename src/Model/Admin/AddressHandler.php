@@ -7,6 +7,7 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Model\Admin;
 
+use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Stdlib\DateTime\DateTime;
 use Polkurier\Shipping\Model\Sync\SyncLock;
 use Polkurier\Shipping\Api\AddressRepositoryInterface;
@@ -15,6 +16,7 @@ use Polkurier\Shipping\Api\Data\SyncableInterface;
 use Polkurier\Shipping\Api\SyncEntityEnum;
 use Polkurier\Shipping\Api\SynchronizationInterface;
 use Polkurier\Shipping\Model\AddressFactory;
+use Polkurier\Shipping\Model\ResourceModel\Address as AddressResource;
 
 class AddressHandler extends SyncableEntityHandler
 {
@@ -24,6 +26,7 @@ class AddressHandler extends SyncableEntityHandler
         SynchronizationInterface $synchronization,
         DateTime $dateTime,
         SyncLock $syncLock,
+        private readonly AddressResource $resource,
     ) {
         parent::__construct($synchronization, $dateTime, $syncLock);
     }
@@ -53,6 +56,15 @@ class AddressHandler extends SyncableEntityHandler
     protected function getEntityType(): SyncEntityEnum
     {
         return SyncEntityEnum::Address;
+    }
+
+    protected function assertUniqueName(SyncableInterface $entity): void
+    {
+        /** @var AddressInterface $entity */
+        $id = $entity->getId() ? (int)$entity->getId() : null;
+        if ($this->resource->isNameTaken($entity->getName(), $id)) {
+            throw new LocalizedException(\__('An address labelled "%1" already exists. Choose another label.', $entity->getName()));
+        }
     }
 
     public function getMenuId(): string

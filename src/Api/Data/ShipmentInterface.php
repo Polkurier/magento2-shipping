@@ -49,6 +49,7 @@ interface ShipmentInterface
     public const string IS_FINAL = 'is_final';
     public const string STATUS_CHECKED_AT = 'status_checked_at';
     public const string REQUEST = 'request';
+    public const string DRAFT = 'draft';
     public const string DETAILS = 'details';
     public const string DETAILS_SYNCED_AT = 'details_synced_at';
     public const string TRACKING = 'tracking';
@@ -354,6 +355,20 @@ interface ShipmentInterface
      * @return $this
      */
     public function setRequest(?string $request): static;
+
+    /**
+     * The shipment as it was filled in to place it, as DraftHydrator gives it: what sending it
+     * again starts from. Empty when it wasn't kept.
+     *
+     * @return array<string, mixed>
+     */
+    public function getDraft(): array;
+
+    /**
+     * @param array<string, mixed>|null $draft
+     * @return $this
+     */
+    public function setDraft(?array $draft): static;
 
     /**
      * The local copy of the order as Polkurier last reported it, or an empty array before it has

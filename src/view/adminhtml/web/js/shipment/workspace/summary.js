@@ -24,14 +24,6 @@ define([
 ], function (Component, registry, $, ko, _, $t, rules, request) {
     'use strict';
 
-    const DRAFT_FIELDS = [
-        'order_id', 'carrier_code', 'shipment_type', 'description', 'sender_address_id',
-        'recipient_person', 'recipient_company', 'recipient_street', 'recipient_house_number',
-        'recipient_flat_number', 'recipient_postcode', 'recipient_city', 'recipient_country',
-        'recipient_phone', 'recipient_email', 'recipient_point_id', 'packs', 'cod_amount', 'cod_type',
-        'cod_return_type', 'cod_bank_account_id', 'insurance_amount', 'cover_address_id', 'services',
-        'pickup_mode', 'pickup_date', 'pickup_time_from', 'pickup_time_to', 'additional_fields'
-    ];
 
     return Component.extend({
         defaults: {
@@ -55,7 +47,8 @@ define([
             this.price = ko.observable(null);
             this.message = ko.observable('');
             this.quoting = ko.observable(false);
-            this.blocked = ko.observable(false);
+            this.failed = ko.observable(false);
+            this.retryable = ko.observable(false);
             this.carrierName = ko.observable('');
             this.cheaper = ko.observable(null);
             this.lastPayload = null;
@@ -115,7 +108,7 @@ define([
          */
         payload: function () {
             const data = this.source.get('data') || {},
-                payload = _.pick(data, DRAFT_FIELDS);
+                payload = rules.draft(data);
 
             // Polkurier won't price a courier pickup without its date and window, and they don't
             // change the price: until they're chosen, price it as handed over at a point.
@@ -158,10 +151,11 @@ define([
 
                     // No quote at all means the draft couldn't be priced, not that no carrier takes it.
                     this.source.set('quotes', _.isEmpty(quotes) ? null : quotes);
-                    this.setMessage(response.error ? response.message : '');
+                    // Asked again when the merchant says so, or the draft changes.
+                    this.setMessage(response.error ? response.message : '', Boolean(response.error), Boolean(response.retry));
                 }.bind(this),
                 fail: function () {
-                    this.setMessage($t('Prices could not be loaded.'));
+                    this.setMessage($t('Prices could not be loaded.'), true, true);
                     this.lastPayload = null;
                 }.bind(this),
                 always: function () {
@@ -174,10 +168,19 @@ define([
 
         /**
          * @param {String} message why there's no price, shown in the shipment section too
+         * @param {Boolean} [failed] whether pricing failed
+         * @param {Boolean} [retryable] whether asking again may help: not after a refusal, which would repeat
          */
-        setMessage: function (message) {
+        setMessage: function (message, failed, retryable) {
             this.message(message);
+            this.failed(Boolean(failed));
+            this.retryable(Boolean(failed && retryable));
             this.source.set('quoteMessage', message);
+        },
+
+        retry: function () {
+            this.lastPayload = null;
+            this.quote();
         },
 
         /**
@@ -199,14 +202,11 @@ define([
          * Works out what needs attention, once for the whole screen, and publishes it as the
          * provider's "issues" for the sections.
          *
-         * @returns {Array<{card: String, text: String, blocking: Boolean}>}
+         * @returns {Array<{card: String, text: String, blocking: Boolean, fix: (Object|Boolean|null)}>}
          */
         publishIssues: function () {
             const issues = rules.issues(this.source.get('data') || {}, this.source.get('quotes') || null);
 
-            this.blocked(issues.some(function (issue) {
-                return issue.blocking;
-            }));
             this.source.set('issues', issues);
 
             return issues;

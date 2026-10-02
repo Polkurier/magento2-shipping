@@ -80,7 +80,7 @@ class DefaultDraftBuilderTest extends TestCase
         $amounts = $this->createStub(OrderAmounts::class);
         $amounts->method('getItems')->willReturn([5 => ['name' => 'Mug', 'weight' => $mugWeight]]);
         $autoPacker = $this->createStub(AutoPacker::class);
-        $autoPacker->method('pack')->willReturnCallback(function (): array {
+        $autoPacker->method('packByItems')->willReturnCallback(function (): array {
             $this->packings++;
 
             return ['packs' => [(new Pack())->setAmount(3)], 'unmeasured' => [], 'unweighed' => [], 'templates' => true];

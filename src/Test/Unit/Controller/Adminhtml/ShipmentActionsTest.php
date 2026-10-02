@@ -45,7 +45,7 @@ class ShipmentActionsTest extends AdminActionTestCase
      */
     private ?array $kept = null;
 
-    public function testAPlacedShipmentGoesBackToTheOrderWithItsWaybills(): void
+    public function testAPlacedShipmentOpensItsPolkurierOrderWithItsWaybills(): void
     {
         $this->post = ['order_id' => '29'];
         $management = $this->createStub(ShipmentManagementInterface::class);
@@ -53,7 +53,7 @@ class ShipmentActionsTest extends AdminActionTestCase
 
         $this->save($management)->execute();
 
-        self::assertSame(['sales/order/view', ['order_id' => 29]], $this->redirect);
+        self::assertSame(['*/*/view', ['id' => 41]], $this->redirect);
         self::assertSame(['Polkurier order POL1 placed. Waybills: WB-1, WB-2.'], $this->messages['success']);
         self::assertNull($this->kept);
     }
@@ -71,7 +71,7 @@ class ShipmentActionsTest extends AdminActionTestCase
         self::assertSame(['order_id' => '29', 'recipient_phone' => '600'], $this->kept);
     }
 
-    public function testAnUnconfirmedShipmentWarnsToReconcileIt(): void
+    public function testAnUnconfirmedShipmentOpensWithAWarningToReconcileIt(): void
     {
         $this->post = ['order_id' => '29'];
         $management = $this->createStub(ShipmentManagementInterface::class);
@@ -79,7 +79,7 @@ class ShipmentActionsTest extends AdminActionTestCase
 
         $this->save($management)->execute();
 
-        self::assertSame(['sales/order/view', ['order_id' => 29]], $this->redirect);
+        self::assertSame(['*/*/view', ['id' => 41]], $this->redirect);
         self::assertStringContainsString('use "Reconcile"', $this->messages['warning'][0]);
         self::assertStringEndsWith('(Timed out.)', $this->messages['warning'][0]);
         self::assertArrayNotHasKey('success', $this->messages);
@@ -110,6 +110,19 @@ class ShipmentActionsTest extends AdminActionTestCase
         self::assertSame(['error' => true, 'message' => 'Everything in this order is shipped already.'], $this->json);
     }
 
+    public function testAMagentoShipmentThereIsPacksItsOwnItems(): void
+    {
+        // Its items count as shipped on the order: what the order has left is not what it carries.
+        $this->params = ['data' => ['order_id' => '29', 'target_shipment_id' => '11']];
+        $packer = $this->createMock(AutoPacker::class);
+        $packer->expects(self::once())->method('pack')->with(self::anything(), [7 => 1.0])
+            ->willReturn(['packs' => [(new DraftPack())->setAmount(1)], 'unmeasured' => [], 'unweighed' => [], 'templates' => true]);
+
+        $this->pack($packer, [], 11, [7 => 1.0])->execute();
+
+        self::assertFalse($this->json['error'] ?? true);
+    }
+
     public function testUnmeasuredProductsAreNamed(): void
     {
         $this->params = ['data' => ['order_id' => '29']];
@@ -123,7 +136,7 @@ class ShipmentActionsTest extends AdminActionTestCase
 
     public function testAMaskedTokenIsTheSavedOne(): void
     {
-        $this->params = ['website' => '1', 'customer_id' => ' 12345 ', 'api_token' => '******'];
+        $this->params = ['customer_id' => ' 12345 ', 'api_token' => '******'];
         $asked = null;
 
         $this->testConnection(function (AuthorizationMessage $authorization) use (&$asked): AuthConfirmationMessage {
@@ -176,19 +189,21 @@ class ShipmentActionsTest extends AdminActionTestCase
 
     /**
      * @param array<int, float> $left what the order has left to ship
+     * @param array<int, float> $inShipment what the Magento shipment of the draft carries
      */
-    private function pack(AutoPacker $packer, array $left): Pack
+    private function pack(AutoPacker $packer, array $left, ?int $targetId = null, array $inShipment = []): Pack
     {
         $orders = $this->createStub(OwnOrders::class);
         $orders->method('get')->willReturn($this->createStub(Order::class));
         $draft = new Draft();
-        $draft->setItems([])->setShipmentType('box');
+        $draft->setItems([])->setShipmentType('box')->setTargetShipmentId($targetId);
         $hydrator = $this->createStub(DraftHydrator::class);
         $hydrator->method('fromArray')->willReturn($draft);
         $hydrator->method('toArray')->willReturn([ShipmentDraftInterface::PACKS => [['amount' => 1]]]);
         $magentoShipment = $this->createStub(MagentoShipment::class);
         $magentoShipment->method('getQuantities')->willReturn([]);
         $magentoShipment->method('getQuantitiesLeft')->willReturn($left);
+        $magentoShipment->method('getShipmentQuantities')->willReturn($inShipment);
 
         return new Pack($this->context(), $this->jsonFactory(), $orders, $hydrator, $magentoShipment, $packer);
     }
@@ -215,6 +230,7 @@ class ShipmentActionsTest extends AdminActionTestCase
         $shipment->method('getPolkurierNumber')->willReturn($number);
         $shipment->method('getWaybills')->willReturn($waybills);
         $shipment->method('getLastError')->willReturn($error);
+        $shipment->method('getId')->willReturn(41);
 
         return $shipment;
     }

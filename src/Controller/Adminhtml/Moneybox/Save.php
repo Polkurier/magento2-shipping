@@ -10,6 +10,7 @@ namespace Polkurier\Shipping\Controller\Adminhtml\Moneybox;
 use Magento\Backend\App\Action;
 use Magento\Backend\App\Action\Context;
 use Magento\Framework\App\Action\HttpPostActionInterface;
+use Magento\Framework\App\Request\DataPersistorInterface;
 use Magento\Framework\Controller\Result\Redirect;
 use Magento\Framework\Exception\LocalizedException;
 use Polkurier\Shipping\Model\MoneyBox\OrderNumbers;
@@ -24,9 +25,17 @@ class Save extends Action implements HttpPostActionInterface
 {
     public const string ADMIN_RESOURCE = 'Polkurier_Shipping::money_box_payout';
 
+    /**
+     * Where what was chosen waits for the form, when the payout couldn't be requested.
+     */
+    public const string PERSISTOR_KEY = 'polkurier_payout';
+
+    private const array KEPT_FIELDS = ['orders', 'payout_type', 'fee_payment_type', 'bank_account_number'];
+
     public function __construct(
         Context $context,
         private readonly Payouts $payouts,
+        private readonly DataPersistorInterface $dataPersistor,
     ) {
         parent::__construct($context);
     }
@@ -54,6 +63,8 @@ class Save extends Action implements HttpPostActionInterface
             ));
         } catch (LocalizedException $e) {
             $this->messageManager->addErrorMessage($e->getMessage());
+            // Back to the form with what was chosen; the code, its token and the PIN are asked again.
+            $this->dataPersistor->set(self::PERSISTOR_KEY, \array_intersect_key($data, \array_flip(self::KEPT_FIELDS)));
 
             return $this->resultRedirectFactory->create()->setPath('*/*/payout');
         }

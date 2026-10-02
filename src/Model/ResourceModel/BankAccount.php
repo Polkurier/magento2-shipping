@@ -11,6 +11,8 @@ use Magento\Framework\Model\ResourceModel\Db\AbstractDb;
 
 class BankAccount extends AbstractDb
 {
+    use NamedEntries;
+
     public const string TABLE_NAME = 'polkurier_bank_account';
 
     protected function _construct(): void

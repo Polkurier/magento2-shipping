@@ -9,7 +9,19 @@
     <type name="Magento\Sales\Block\Adminhtml\Order\View">
         <plugin name="polkurier_order_view_buttons" type="Polkurier\Shipping\Plugin\Adminhtml\OrderViewPlugin" />
     </type>
-    <!-- Order view: the customer's pickup point in the Shipping & Handling Information -->
+    <!-- Magento's shipment page: a Polkurier order's shipment isn't saved without its Polkurier order -->
+    <type name="Magento\Shipping\Controller\Adminhtml\Order\Shipment\Save">
+        <plugin name="polkurier_shipment_save_needs_order" type="Polkurier\Shipping\Plugin\Adminhtml\ShipmentSavePlugin" />
+    </type>
+        <!-- Magento shipment page: "Add a Polkurier order" for one made without -->
+    <type name="Magento\Shipping\Block\Adminhtml\View">
+        <plugin name="polkurier_shipment_view_buttons" type="Polkurier\Shipping\Plugin\Adminhtml\ShipmentViewPlugin" />
+    </type>
+    <!-- Order view: "Ship with Polkurier" right after Magento's "Ship" -->
+    <type name="Magento\Backend\Block\Widget\Button\Toolbar">
+        <plugin name="polkurier_ship_button_position" type="Polkurier\Shipping\Plugin\Adminhtml\ShipButtonPosition" />
+    </type>
+    <!-- Order and shipment views: the customer's pickup point and the carrier the parcels went with, in the shipping information -->
     <type name="Magento\Sales\Block\Adminhtml\Order\AbstractOrder">
         <plugin name="polkurier_order_pickup_point" type="Polkurier\Shipping\Plugin\Adminhtml\ShippingInfoPlugin" />
     </type>
@@ -59,11 +71,41 @@
             <argument name="class" xsi:type="string">secondary</argument>
         </arguments>
     </virtualType>
+    <virtualType name="Polkurier\Shipping\Ui\Component\Control\DeleteAddressButton" type="Polkurier\Shipping\Ui\Component\Control\DeleteButton">
+        <arguments>
+            <argument name="path" xsi:type="string">polkurier/address/delete</argument>
+            <argument name="message" xsi:type="string">Delete this address here and in Polkurier?</argument>
+        </arguments>
+    </virtualType>
+    <virtualType name="Polkurier\Shipping\Ui\Component\Control\DeletePackTemplateButton" type="Polkurier\Shipping\Ui\Component\Control\DeleteButton">
+        <arguments>
+            <argument name="path" xsi:type="string">polkurier/packtemplate/delete</argument>
+            <argument name="message" xsi:type="string">Delete this pack template here and in Polkurier?</argument>
+        </arguments>
+    </virtualType>
+    <virtualType name="Polkurier\Shipping\Ui\Component\Control\BookPickupButton" type="Polkurier\Shipping\Ui\Component\Control\SaveButton">
+        <arguments>
+            <argument name="label" xsi:type="string">Book the pickup</argument>
+        </arguments>
+    </virtualType>
+    <virtualType name="Polkurier\Shipping\Ui\Component\Control\RequestPayoutLink" type="Polkurier\Shipping\Ui\Component\Control\LinkButton">
+        <arguments>
+            <argument name="label" xsi:type="string">Request a payout</argument>
+            <argument name="path" xsi:type="string">polkurier/moneybox/payout</argument>
+            <argument name="resource" xsi:type="string">Polkurier_Shipping::money_box_payout</argument>
+        </arguments>
+    </virtualType>
     <virtualType name="Polkurier\Shipping\Ui\Component\Control\RefreshCarriersButton" type="Polkurier\Shipping\Ui\Component\Control\PostButton">
         <arguments>
-            <argument name="label" xsi:type="string">Refresh carriers from Polkurier</argument>
+            <argument name="label" xsi:type="string">Synchronize with Polkurier</argument>
             <argument name="path" xsi:type="string">polkurier/carrier/refresh</argument>
-            <argument name="class" xsi:type="string">primary</argument>
+            <argument name="class" xsi:type="string">secondary</argument>
+        </arguments>
+    </virtualType>
+    <virtualType name="Polkurier\Shipping\Ui\Component\Control\RefreshStatusesButton" type="Polkurier\Shipping\Ui\Component\Control\PostButton">
+        <arguments>
+            <argument name="label" xsi:type="string">Update statuses</argument>
+            <argument name="path" xsi:type="string">polkurier/shipment/refreshAll</argument>
         </arguments>
     </virtualType>
     <!-- "Save and Continue Edit" on each settings form -->

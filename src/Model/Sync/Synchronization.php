@@ -42,15 +42,15 @@ class Synchronization implements SynchronizationInterface
         return $this->lock->run(fn(): array => $this->run($entities));
     }
 
-    public function push(SyncEntityEnum $kind, SyncableInterface $entry): array
+    public function push(SyncEntityEnum $kind, SyncableInterface $entry): SyncResult
     {
-        return $this->lock->run(function () use ($kind, $entry): array {
+        return $this->lock->run(function () use ($kind, $entry): SyncResult {
             foreach ($this->adapters as $adapter) {
                 if ($adapter->getEntityType() !== $kind) {
                     continue;
                 }
                 try {
-                    return [$this->engine->run($adapter, $entry)->summary()];
+                    return $this->engine->run($adapter, $entry);
                 } catch (\Throwable $e) {
                     throw new LocalizedException(
                         \__('%1: %2', $kind->label(), $this->errorMessages->describe($e)),
@@ -59,7 +59,7 @@ class Synchronization implements SynchronizationInterface
                 }
             }
 
-            return [];
+            return new SyncResult($kind);
         });
     }
 

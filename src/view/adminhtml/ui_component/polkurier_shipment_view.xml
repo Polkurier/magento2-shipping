@@ -20,6 +20,8 @@
         <buttons>
             <button name="back" class="Polkurier\Shipping\Ui\Component\Control\ShipmentView\BackButton"/>
             <button name="reconcile" class="Polkurier\Shipping\Ui\Component\Control\ShipmentView\ReconcileButton"/>
+            <button name="send_again" class="Polkurier\Shipping\Ui\Component\Control\ShipmentView\SendAgainButton"/>
+            <button name="discard" class="Polkurier\Shipping\Ui\Component\Control\ShipmentView\DiscardButton"/>
             <button name="link" class="Polkurier\Shipping\Ui\Component\Control\ShipmentView\LinkButton"/>
             <button name="cancel" class="Polkurier\Shipping\Ui\Component\Control\ShipmentView\CancelButton"/>
             <button name="ship" class="Polkurier\Shipping\Ui\Component\Control\ShipmentView\ShipButton"/>

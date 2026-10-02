@@ -13,6 +13,7 @@ use Magento\Framework\App\Action\HttpPostActionInterface;
 use Magento\Framework\Controller\Result\Json;
 use Magento\Framework\Controller\Result\JsonFactory;
 use Magento\Framework\Exception\LocalizedException;
+use Polkurier\Shipping\Model\ErrorMessages;
 use Polkurier\Shipping\Api\AddressRepositoryInterface;
 use Polkurier\Shipping\Model\Mapper\SenderMapper;
 use Polkurier\Shipping\Model\Shipment\OwnOrders;
@@ -30,6 +31,7 @@ class PickupTimes extends Action implements HttpPostActionInterface
         private readonly JsonFactory $jsonFactory,
         private readonly Pickups $pickups,
         private readonly OwnOrders $ownOrders,
+        private readonly ErrorMessages $errorMessages,
         private readonly AddressRepositoryInterface $addressRepository,
         private readonly SenderMapper $senderMapper,
     ) {
@@ -59,7 +61,13 @@ class PickupTimes extends Action implements HttpPostActionInterface
                 (string)($data['shipment_type'] ?? 'box'),
             );
         } catch (LocalizedException $e) {
-            return $result->setData(['error' => true, 'message' => $e->getMessage(), 'days' => []]);
+            return $result->setData([
+                'error' => true,
+                'message' => $e->getMessage(),
+                // Offered again only when that may help; a refusal waits for a change to the shipment.
+                'retry' => $this->errorMessages->isTransient($e),
+                'days' => [],
+            ]);
         }
 
         return $result->setData(['error' => false, 'days' => $days]);

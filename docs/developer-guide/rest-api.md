@@ -88,4 +88,9 @@ curl -G -H "Authorization: Bearer $TOKEN" https://shop.example/rest/V1/polkurier
 An order's pickup point is available as `$order->getExtensionAttributes()->getPolkurierPoint()`
 (`OrderPointInterface`), and in REST order responses under `extension_attributes.polkurier_point`.
 
+When the order was shipped with another carrier or point than the customer chose, the order's
+shipping method, description and point are the ones it went with, and the customer's choice is
+`getPolkurierShippingChoice()` (`ShippingChoiceInterface`), `extension_attributes.polkurier_shipping_choice`
+in REST (see [Shipments](shipments.md#the-orders-shipping)).
+
 Next: [Events](events.md)

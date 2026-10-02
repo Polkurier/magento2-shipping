@@ -14,12 +14,20 @@ use Polkurier\Shipping\Api\ApiEventEnum;
 use Polkurier\Shipping\Api\Data\ShipmentDraftInterface;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Api\ShipmentRepositoryInterface;
+use Polkurier\Shipping\Model\Admin\AttentionNotifier;
 use Polkurier\Shipping\Model\ApiEventDispatcher;
+use Polkurier\Shipping\Model\ErrorMessages;
+use Polkurier\Shipping\Model\Carrier\CarrierCatalog;
+use Polkurier\Shipping\Model\Carrier\CarrierFeatures;
+use Polkurier\Shipping\Model\Carrier\CarrierNames;
 use Polkurier\Shipping\Model\Mapper\CreateOrderMessageMapper;
 use Polkurier\Shipping\Model\ResourceModel\Shipment\CollectionFactory;
 use Polkurier\Shipping\Model\Sdk\PlacementUncertainException;
 use Polkurier\Shipping\Model\Sdk\ShipmentGatewayInterface;
+use Polkurier\Shipping\Model\Shipment;
 use Polkurier\Shipping\Model\ShipmentFactory;
+use Polkurier\Webservice\Enum\Order\ShipmentTypeEnum;
+use Polkurier\Webservice\Exception\Exception as PolkurierException;
 use Polkurier\Webservice\Request\Order\CreateOrderMessage;
 use Polkurier\Webservice\Response\Order\CreatedOrderMessage;
 use Polkurier\Webservice\Serializer\SerializerProviderInterface;
@@ -55,7 +63,12 @@ class Placing
         private readonly ApiEventDispatcher $events,
         private readonly ShipmentAge $age,
         private readonly MagentoFollowUp $followUp,
+        private readonly DraftHydrator $hydrator,
+        private readonly CarrierNames $carrierNames,
         private readonly LoggerInterface $logger,
+        private readonly ErrorMessages $errorMessages,
+        private readonly CarrierCatalog $catalog,
+        private readonly CarrierFeatures $features,
     ) {}
 
     /**
@@ -70,13 +83,15 @@ class Placing
 
     /**
      * Places a Polkurier order for a Magento shipment that Magento is creating itself, as with a
-     * shipping label from Magento's shipment page. The order is not shipped here.
+     * shipping label from Magento's shipment page, or for one it has, whose Polkurier order was
+     * cancelled. The order is not shipped here.
      *
+     * @param int|null $magentoShipmentId the Magento shipment it's for, null for one being created
      * @throws LocalizedException when Polkurier refused the order, or did not confirm it
      */
-    public function forMagentoShipment(int $orderId, ShipmentDraftInterface $draft): ShipmentInterface
+    public function forMagentoShipment(int $orderId, ShipmentDraftInterface $draft, ?int $magentoShipmentId = null): ShipmentInterface
     {
-        $shipment = $this->place($orderId, $draft, false);
+        $shipment = $this->place($orderId, $draft, false, $magentoShipmentId);
         if ($shipment->getState() !== ShipmentInterface::STATE_CREATED) {
             // Magento would save a shipment without tracking; it is created once the order is reconciled.
             throw new LocalizedException(\__(
@@ -87,7 +102,38 @@ class Placing
         return $shipment;
     }
 
-    private function place(int $orderId, ShipmentDraftInterface $draft, bool $shipInMagento): ShipmentInterface
+    /**
+     * The carrier is one the merchant works with, and takes the shipment's type: Polkurier takes a
+     * shipment of a type its carrier doesn't, so it's checked here. A carrier list that can't be
+     * read leaves it to Polkurier.
+     *
+     * @throws LocalizedException
+     */
+    private function assertCarrierTakes(string $carrierCode, ShipmentTypeEnum $type): void
+    {
+        try {
+            $carrier = $this->catalog->getCarrier($carrierCode);
+        } catch (PolkurierException $e) {
+            $this->logger->warning('Polkurier carrier list unavailable to check the shipment type', ['exception' => $e]);
+
+            return;
+        }
+        if ($carrier === null) {
+            // The account's carriers change: the order's may have gone, or been left out of the
+            // carriers worked with, since.
+            throw new LocalizedException(\__('This carrier is no longer available: choose another.'));
+        }
+        if (\in_array($type, $this->features->getShipmentTypes($carrier), true)) {
+            return;
+        }
+        throw new LocalizedException(match ($type) {
+            ShipmentTypeEnum::Envelope => \__('This carrier does not take envelopes.'),
+            ShipmentTypeEnum::Palette => \__('This carrier does not take pallets.'),
+            ShipmentTypeEnum::Box => \__('This carrier does not take parcels.'),
+        });
+    }
+
+    private function place(int $orderId, ShipmentDraftInterface $draft, bool $shipInMagento, ?int $magentoShipmentId = null): ShipmentInterface
     {
         $order = $this->ownOrders->get($orderId);
         // Until the pending row below is saved, a second request for the same order (a double
@@ -103,17 +149,29 @@ class Placing
             $qtys = [];
             $targetId = null;
             $packages = [];
+            // No item goes with two Polkurier orders that stand: each Magento shipment has at most
+            // one, and a new one ships only what the order has left.
             if ($shipInMagento) {
                 ['qtys' => $qtys, 'shipment_id' => $targetId, 'packages' => $packages] = $this->magentoShipment->getTarget($order, $draft);
             } else {
+                if ($magentoShipmentId !== null) {
+                    $this->magentoShipment->assertFree($order, $magentoShipmentId);
+                }
+                // A Magento shipment being created is checked by Magento against what the order has
+                // left, and its items already count as shipped on the order: they're taken as they are.
                 foreach ($draft->getItems() as $item) {
                     $qtys[$item->getOrderItemId()] = $item->getQty();
                 }
             }
             $storeId = (int)$order->getStoreId();
             $message = $this->messageMapper->map($draft, $storeId);
+            $this->assertCarrierTakes($draft->getCarrierCode(), $message->getShipmentType());
 
-            $shipment = $this->shipmentFactory->create()
+            // The order's shipment that wasn't placed, if any, is the one placed now: one shipment,
+            // however many times it's tried, not a row per attempt.
+            $shipment = $this->notPlaced($orderId) ?? $this->shipmentFactory->create();
+            $previous = $shipment->getId() ? $shipment->getData() : null;
+            $shipment
                 ->setOrderId($orderId)
                 ->setStoreId($storeId)
                 ->setState(ShipmentInterface::STATE_PENDING)
@@ -129,7 +187,16 @@ class Placing
                 ->setShipItems($qtys ?: null)
                 ->setTargetShipmentId($targetId)
                 ->setShipPackages($packages ?: null)
-                ->setRequest($this->serializerProvider->getSerializer()->serialize($message, 'json'));
+                ->setRequest($this->serializerProvider->getSerializer()->serialize($message, 'json'))
+                // What sending it again starts from, should it fail on Polkurier's side.
+                ->setDraft($this->hydrator->toArray($draft))
+                ->setLastError(null)
+                // A new attempt: whatever the admin was told about the earlier one is past.
+                ->setData(AttentionNotifier::NOTIFIED_AT, null);
+            if ($previous !== null) {
+                // Its age is this attempt's: an interrupted one is told apart by it.
+                $shipment->setData('created_at', \gmdate('Y-m-d H:i:s'));
+            }
             // Recorded before the request goes out, so an interrupted request still leaves a trace,
             // and the next request for the order finds it.
             $this->shipmentRepository->save($shipment);
@@ -142,6 +209,19 @@ class Placing
         } catch (PlacementUncertainException $e) {
             return $this->markUnknown($shipment, $order, $message, $e);
         } catch (LocalizedException $e) {
+            if (!$this->errorMessages->isTransient($e)) {
+                // Refused as it is: the same answer every time. Nothing of this attempt is kept;
+                // the reason is shown, for the shipment to be changed and placed again. A shipment
+                // that wasn't placed before stays as it was.
+                if ($previous !== null) {
+                    $this->shipmentRepository->save($shipment->setData($previous));
+                } else {
+                    $this->shipmentRepository->delete($shipment);
+                }
+
+                throw $e;
+            }
+            // Polkurier down, busy or out of reach: kept, to be sent again as it is.
             $shipment->setState(ShipmentInterface::STATE_FAILED)->setLastError($e->getMessage());
             $this->shipmentRepository->save($shipment);
 
@@ -153,7 +233,7 @@ class Placing
         $this->followUp->comment($order, \__(
             'Polkurier order %1 placed with %2. Waybills: %3.',
             $shipment->getPolkurierNumber(),
-            $shipment->getCarrierCode(),
+            $this->carrierNames->get($shipment->getCarrierCode()),
             \implode(', ', $shipment->getWaybills()) ?: (string)\__('not issued yet'),
         ));
         if ($shipInMagento) {
@@ -195,6 +275,23 @@ class Placing
      *
      * @throws LocalizedException
      */
+    /**
+     * The order's latest shipment that wasn't placed.
+     */
+    private function notPlaced(int $orderId): ?Shipment
+    {
+        $collection = $this->shipmentCollectionFactory->create()
+            ->addFieldToFilter(ShipmentInterface::ORDER_ID, ['eq' => $orderId])
+            ->addFieldToFilter(ShipmentInterface::STATE, ['eq' => ShipmentInterface::STATE_FAILED])
+            ->setOrder(ShipmentInterface::ENTITY_ID, 'DESC')
+            ->setPageSize(1);
+        foreach ($collection->getItems() as $shipment) {
+            return $shipment instanceof Shipment ? $shipment : null;
+        }
+
+        return null;
+    }
+
     private function assertNothingUnresolved(int $orderId): void
     {
         $collection = $this->shipmentCollectionFactory->create()

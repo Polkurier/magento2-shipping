@@ -11,7 +11,8 @@
 **At checkout**, your customers choose from the carriers you offer through Polkurier: couriers
 such as DPD, DHL, UPS or GLS, parcel lockers, pickup shops and so on. They pay the prices you set,
 not what Polkurier charges you. For lockers and other pickup points, they pick the point on a map.
-Both Magento's regular checkout and the multi-address checkout are supported.
+Both Magento's regular checkout and, with an add-on module, the multi-address checkout are
+supported.
 
 **In the admin**, you ship an order straight from the order page, in one of two ways:
 
@@ -41,9 +42,10 @@ admin.
 
 ## Requirements
 
-- Magento Open Source or Adobe Commerce 2.4 (tested on 2.4.9), with the standard Luma-based
-  checkout
-- PHP 8.4 or 8.5
+- Magento Open Source or Adobe Commerce 2.4.7 or later (tested on 2.4.9), with the standard
+  Luma-based checkout
+- PHP 8.3, 8.4 or 8.5, as far as your Magento version supports it: 2.4.7 runs on PHP 8.3, 2.4.8
+  on 8.3 and 8.4, 2.4.9 on 8.3 to 8.5
 - Magento's cron running on the server, for status updates, synchronization and settling unclear
   shipments
 - A Polkurier account with API access. You'll need the customer ID and the API token from the

@@ -41,9 +41,13 @@ interface ShipmentDraftInterface
     public const string PACKS = 'packs';
     public const string ITEMS = 'items';
     /**
-     * Set on a draft whose parcels were packed automatically: an estimate to check.
+     * Set on a draft whose parcels were packed automatically, which the screen asks to check.
      */
     public const string PACKS_ESTIMATED = 'packs_estimated';
+    /**
+     * Whether cash on delivery and insurance cover the shipping and handling charged.
+     */
+    public const string SHIPPING_INCLUDED = 'shipping_included';
     public const string COD_AMOUNT = 'cod_amount';
     public const string COD_TYPE = 'cod_type';
     public const string COD_RETURN_TYPE = 'cod_return_type';
@@ -56,6 +60,7 @@ interface ShipmentDraftInterface
     public const string PICKUP_TIME_FROM = 'pickup_time_from';
     public const string PICKUP_TIME_TO = 'pickup_time_to';
     public const string ADDITIONAL_FIELDS = 'additional_fields';
+    public const string TARGET_SHIPMENT_ID = 'target_shipment_id';
 
     /**
      * @return string
@@ -69,6 +74,9 @@ interface ShipmentDraftInterface
     public function setCarrierCode(string $carrierCode): static;
 
     /**
+     * The shipment type its parcels make: "box", "envelope" or "palette". Without parcels, or with
+     * parcels of more than one kind, the one set.
+     *
      * @return string
      */
     public function getShipmentType(): string;
@@ -248,7 +256,7 @@ interface ShipmentDraftInterface
     public function setItems(array $items): static;
 
     /**
-     * Whether the parcels were packed automatically: an estimate to check.
+     * Whether the parcels were packed automatically, which the screen asks to check.
      *
      * @return bool
      */
@@ -259,6 +267,20 @@ interface ShipmentDraftInterface
      * @return $this
      */
     public function setPacksEstimated(bool $estimated): static;
+
+    /**
+     * Whether the cash on delivery and the insurance cover the shipping and handling charged,
+     * besides the products (OrderAmounts::getShipmentWorth).
+     *
+     * @return bool
+     */
+    public function isShippingIncluded(): bool;
+
+    /**
+     * @param bool $included
+     * @return $this
+     */
+    public function setShippingIncluded(bool $included): static;
 
     /**
      * @return float|null
@@ -391,4 +413,18 @@ interface ShipmentDraftInterface
      * @return $this
      */
     public function setAdditionalFields(array $additionalFields): static;
+
+    /**
+     * The order's Magento shipment the Polkurier order goes on, one whose Polkurier order was
+     * cancelled; null to ship items the order has left.
+     *
+     * @return int|null
+     */
+    public function getTargetShipmentId(): ?int;
+
+    /**
+     * @param int|null $targetShipmentId
+     * @return $this
+     */
+    public function setTargetShipmentId(?int $targetShipmentId): static;
 }

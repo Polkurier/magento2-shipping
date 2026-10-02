@@ -9,5 +9,8 @@
         <span data-bind="text: text, css: {'polkurier-address__strong': $data.strong, 'polkurier-muted': $data.muted}"></span>
         <!-- /ko -->
     </address>
-    <div class="polkurier-text-error" if="missing" text="missing"></div>
+    <div class="polkurier-text-error" if="missing">
+        <span text="missing"></span>
+        <a data-bind="attr: {href: addressesUrl}" target="_blank" translate="'Add one'"></a>
+    </div>
 </div>

@@ -9,9 +9,8 @@
 `Model\Config` is the only class that reads the module's system configuration. The module works
 with one Polkurier account for the whole installation, so the account's settings (credentials,
 sandbox, timeout, logging, available carriers, synchronization) are global: their getters take no
-store and read the default scope only. The admin shows them at the default scope only, and the
-data patch `Setup\Patch\Data\RemoveAccountScopeOverrides` deletes any values of them saved for a
-website or store view. Every other getter takes an optional store id and reads at store scope,
+store and read the default scope only. The admin shows them at the default scope only, so no
+value is saved for a website or store view. Every other getter takes an optional store id and reads at store scope,
 which also resolves website and default values. A null store id means the current store, which in
 the admin is the default scope.
 

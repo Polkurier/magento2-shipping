@@ -11,7 +11,6 @@ use Magento\Framework\AuthorizationInterface;
 use Magento\Sales\Block\Adminhtml\Order\View;
 use Polkurier\Shipping\Model\Carrier\Polkurier;
 use Polkurier\Shipping\Model\Config;
-use Polkurier\Shipping\Model\Shipment\MagentoShipment;
 
 /**
  * Opens the Polkurier shipment screen from the page of an order placed with a Polkurier method,
@@ -28,7 +27,6 @@ class OrderViewPlugin
     public function __construct(
         private readonly AuthorizationInterface $authorization,
         private readonly Config $config,
-        private readonly MagentoShipment $magentoShipment,
     ) {}
 
     /**
@@ -45,8 +43,9 @@ class OrderViewPlugin
         ) {
             return [$layout];
         }
-        $canShip = $order->canShip();
-        if (!$canShip && $this->magentoShipment->getFreeShipments($order) === []) {
+        // Alongside Magento's Ship only. A Polkurier order for a Magento shipment made without one
+        // is added from that shipment's page (ShipmentViewPlugin).
+        if (!$order->canShip()) {
             return [$layout];
         }
         $storeId = (int)$order->getStoreId();
@@ -55,14 +54,15 @@ class OrderViewPlugin
         }
         $url = $subject->getUrl('polkurier/shipment/create', ['order_id' => $order->getId()]);
 
-        if ($canShip && !$this->config->isNativeLabelsEnabled($storeId)) {
+        if (!$this->config->isNativeLabelsEnabled($storeId)) {
             $subject->updateButton('order_ship', 'onclick', \sprintf("setLocation('%s')", $url));
         } else {
-            $subject->addButton('polkurier_ship', [
+            // Placed next to Magento's "Ship" by ShipButtonPosition.
+            $subject->addButton(ShipButtonPosition::BUTTON, [
                 'label' => \__('Ship with Polkurier'),
                 'onclick' => \sprintf("setLocation('%s')", $url),
                 'class' => 'ship',
-            ], 0, 45);
+            ]);
         }
 
         return [$layout];

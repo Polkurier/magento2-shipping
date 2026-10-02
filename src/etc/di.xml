@@ -136,7 +136,32 @@
             <argument name="logger" xsi:type="object">Polkurier\Shipping\Logger\Logger</argument>
         </arguments>
     </type>
-    <type name="Polkurier\Shipping\Model\Shipment\ShipmentManagement">
+    <type name="Polkurier\Shipping\Model\Shipment\Placing">
+        <arguments>
+            <argument name="logger" xsi:type="object">Polkurier\Shipping\Logger\Logger</argument>
+        </arguments>
+    </type>
+    <type name="Polkurier\Shipping\Model\Shipment\MagentoFollowUp">
+        <arguments>
+            <argument name="logger" xsi:type="object">Polkurier\Shipping\Logger\Logger</argument>
+        </arguments>
+    </type>
+    <type name="Polkurier\Shipping\Model\Shipment\ShipmentOptions">
+        <arguments>
+            <argument name="logger" xsi:type="object">Polkurier\Shipping\Logger\Logger</argument>
+        </arguments>
+    </type>
+    <type name="Polkurier\Shipping\Model\Carrier\CarrierNotices">
+        <arguments>
+            <argument name="logger" xsi:type="object">Polkurier\Shipping\Logger\Logger</argument>
+        </arguments>
+    </type>
+    <type name="Polkurier\Shipping\Controller\Map\Token">
+        <arguments>
+            <argument name="logger" xsi:type="object">Polkurier\Shipping\Logger\Logger</argument>
+        </arguments>
+    </type>
+    <type name="Polkurier\Shipping\Observer\DescribePickupPoint">
         <arguments>
             <argument name="logger" xsi:type="object">Polkurier\Shipping\Logger\Logger</argument>
         </arguments>
@@ -146,9 +171,36 @@
             <argument name="logger" xsi:type="object">Polkurier\Shipping\Logger\Logger</argument>
         </arguments>
     </type>
-    <type name="Polkurier\Shipping\Observer\CopyPickupPointsToOrders">
+    <!-- The module's grids: a keyword search over their own fields, which in the shipment grids
+         include the order number and the customer (Ui\Component\DataProvider\KeywordSearch) -->
+    <virtualType name="Polkurier\Shipping\Ui\Component\DataProvider\GridFilterPool"
+                 type="Magento\Framework\View\Element\UiComponent\DataProvider\FilterPool">
+        <arguments>
+            <argument name="appliers" xsi:type="array">
+                <item name="fulltext" xsi:type="object">Polkurier\Shipping\Ui\Component\DataProvider\KeywordSearch</item>
+            </argument>
+        </arguments>
+    </virtualType>
+    <virtualType name="Polkurier\Shipping\Ui\Component\DataProvider\GridReporting"
+                 type="Magento\Framework\View\Element\UiComponent\DataProvider\Reporting">
+        <arguments>
+            <argument name="filterPool" xsi:type="object">Polkurier\Shipping\Ui\Component\DataProvider\GridFilterPool</argument>
+        </arguments>
+    </virtualType>
+    <virtualType name="Polkurier\Shipping\Ui\Component\DataProvider\GridDataProvider"
+                 type="Magento\Framework\View\Element\UiComponent\DataProvider\DataProvider">
+        <arguments>
+            <argument name="reporting" xsi:type="object">Polkurier\Shipping\Ui\Component\DataProvider\GridReporting</argument>
+        </arguments>
+    </virtualType>
+    <type name="Polkurier\Shipping\Observer\FollowShipmentCarrier">
         <arguments>
             <argument name="logger" xsi:type="object">Polkurier\Shipping\Logger\Logger</argument>
+        </arguments>
+    </type>
+    <type name="Polkurier\Shipping\Model\Shipment\ActualShipping">
+        <arguments>
+            <argument name="orderGrid" xsi:type="object">Magento\Sales\Model\ResourceModel\Order\Grid</argument>
         </arguments>
     </type>
     <type name="Polkurier\Shipping\Model\Shipment\CostEstimator">
@@ -207,21 +259,21 @@
         </arguments>
     </type>
     <virtualType name="Polkurier\Shipping\Model\ResourceModel\Address\Grid\Collection"
-                 type="Magento\Framework\View\Element\UiComponent\DataProvider\SearchResult">
+                 type="Polkurier\Shipping\Model\ResourceModel\Grid\SyncableCollection">
         <arguments>
             <argument name="mainTable" xsi:type="string">polkurier_address</argument>
             <argument name="resourceModel" xsi:type="string">Polkurier\Shipping\Model\ResourceModel\Address</argument>
         </arguments>
     </virtualType>
     <virtualType name="Polkurier\Shipping\Model\ResourceModel\BankAccount\Grid\Collection"
-                 type="Magento\Framework\View\Element\UiComponent\DataProvider\SearchResult">
+                 type="Polkurier\Shipping\Model\ResourceModel\Grid\SyncableCollection">
         <arguments>
             <argument name="mainTable" xsi:type="string">polkurier_bank_account</argument>
             <argument name="resourceModel" xsi:type="string">Polkurier\Shipping\Model\ResourceModel\BankAccount</argument>
         </arguments>
     </virtualType>
     <virtualType name="Polkurier\Shipping\Model\ResourceModel\PackTemplate\Grid\Collection"
-                 type="Magento\Framework\View\Element\UiComponent\DataProvider\SearchResult">
+                 type="Polkurier\Shipping\Model\ResourceModel\Grid\SyncableCollection">
         <arguments>
             <argument name="mainTable" xsi:type="string">polkurier_pack_template</argument>
             <argument name="resourceModel" xsi:type="string">Polkurier\Shipping\Model\ResourceModel\PackTemplate</argument>
@@ -232,6 +284,8 @@
             <argument name="collections" xsi:type="array">
                 <item name="polkurier_order_listing_data_source" xsi:type="string">Polkurier\Shipping\Model\ResourceModel\SalesOrder\Grid\Collection</item>
                 <item name="polkurier_shipment_listing_data_source" xsi:type="string">Polkurier\Shipping\Model\ResourceModel\Shipment\Grid\Collection</item>
+                <item name="polkurier_order_view_shipment_listing_data_source" xsi:type="string">Polkurier\Shipping\Model\ResourceModel\Shipment\Grid\Collection</item>
+                <item name="polkurier_magento_shipment_listing_data_source" xsi:type="string">Polkurier\Shipping\Model\ResourceModel\Shipment\Grid\Collection</item>
                 <item name="polkurier_address_listing_data_source" xsi:type="string">Polkurier\Shipping\Model\ResourceModel\Address\Grid\Collection</item>
                 <item name="polkurier_bank_account_listing_data_source" xsi:type="string">Polkurier\Shipping\Model\ResourceModel\BankAccount\Grid\Collection</item>
                 <item name="polkurier_pack_template_listing_data_source" xsi:type="string">Polkurier\Shipping\Model\ResourceModel\PackTemplate\Grid\Collection</item>

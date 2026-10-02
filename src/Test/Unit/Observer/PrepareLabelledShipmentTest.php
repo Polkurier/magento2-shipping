@@ -41,6 +41,18 @@ class PrepareLabelledShipmentTest extends TestCase
         self::assertSame('Polkurier', $other->getData('title'), 'Other carriers are left alone.');
     }
 
+    public function testTracksAreTitledByTheCarrierTheParcelsWentWithNotTheOrderedOne(): void
+    {
+        $new = $this->track(null, 'WB-1', 'Polkurier');
+        $shipment = $this->shipment([$new]);
+        $shipment->setData(NativeLabel::CARRIER, 'INPOST_PACZKOMAT');
+
+        $this->observer()->execute($this->event($shipment));
+
+        self::assertSame('InPost Paczkomat', $new->getData('title'));
+        self::assertFalse($shipment->hasData(NativeLabel::CARRIER));
+    }
+
     public function testALabelThatWasNotAvailableIsNotStored(): void
     {
         $shipment = $this->shipment([]);
@@ -58,7 +70,9 @@ class PrepareLabelledShipmentTest extends TestCase
         $config = $this->createStub(Config::class);
         $config->method('getTitle')->willReturn('Polkurier');
         $titles = $this->createStub(MagentoShipment::class);
-        $titles->method('getTrackTitle')->willReturn('Kurier DPD');
+        $titles->method('getTrackTitle')->willReturnCallback(
+            static fn(Order $order, string $carrierCode): string => $carrierCode === 'DPD' ? 'Kurier DPD' : 'InPost Paczkomat',
+        );
 
         return new PrepareLabelledShipment($config, $titles);
     }

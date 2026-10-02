@@ -38,6 +38,7 @@ class StatusRefresherTest extends TestCase
      */
     private array $stored = [];
     private ?\Throwable $failure = null;
+    private int $interval = 30;
 
     public function testOnlyUnfinishedShipmentsAreTakenLeastRecentlyCheckedFirst(): void
     {
@@ -46,8 +47,25 @@ class StatusRefresherTest extends TestCase
         self::assertSame(ShipmentInterface::STATE_CREATED, $this->filters[ShipmentInterface::STATE]);
         self::assertSame(['eq' => 0], $this->filters[ShipmentInterface::IS_FINAL], 'Finished shipments are excluded by the query.');
         self::assertArrayNotHasKey(ShipmentInterface::STORE_ID, $this->filters, 'One account: every store\'s shipments.');
-        self::assertSame([['null' => true], ['lt' => '2026-09-30 09:30:00']], $this->filters[ShipmentInterface::STATUS_CHECKED_AT], 'Each is read at most every half hour.');
+        self::assertSame([['null' => true], ['lt' => '2026-09-30 09:31:00']], $this->filters[ShipmentInterface::STATUS_CHECKED_AT], 'Those the previous half-hourly run checked are due again.');
         self::assertSame(ShipmentInterface::STATUS_CHECKED_AT, $this->order);
+    }
+
+    public function testTheScheduleSetsHowRecentlyCheckedIsTooRecent(): void
+    {
+        $this->interval = 10;
+        $this->refresher([])->refreshPending();
+
+        self::assertSame([['null' => true], ['lt' => '2026-09-30 09:51:00']], $this->filters[ShipmentInterface::STATUS_CHECKED_AT]);
+    }
+
+    public function testUpdatingNowTakesEveryUnfinishedShipmentHoweverRecentlyChecked(): void
+    {
+        $result = $this->refresher([$this->shipment(5), $this->shipment(7)], false)->refreshNow();
+
+        self::assertSame(['refreshed' => 1, 'failed' => 1], $result, 'Also with scheduled updates off.');
+        self::assertArrayNotHasKey(ShipmentInterface::STATUS_CHECKED_AT, $this->filters);
+        self::assertSame(ShipmentInterface::STATE_CREATED, $this->filters[ShipmentInterface::STATE]);
     }
 
     public function testNothingIsReadWithStatusUpdatesOff(): void
@@ -132,6 +150,7 @@ class StatusRefresherTest extends TestCase
 
         $config = $this->createStub(Config::class);
         $config->method('isStatusSyncEnabled')->willReturn($statusSync);
+        $config->method('getStatusIntervalMinutes')->willReturnCallback(fn(): int => $this->interval);
 
         return new StatusRefresher($factory, $management, $resource, $config, new NullLogger(), new FixedDateTime((int)\strtotime('2026-09-30 10:00:00 UTC')));
     }

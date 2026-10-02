@@ -9,15 +9,17 @@ namespace Polkurier\Shipping\Model\Admin;
 
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Stdlib\DateTime\DateTime;
-use Polkurier\Shipping\Model\Sync\SyncLock;
 use Polkurier\Shipping\Api\BankAccountRepositoryInterface;
 use Polkurier\Shipping\Api\Data\BankAccountInterface;
 use Polkurier\Shipping\Api\Data\SyncableInterface;
 use Polkurier\Shipping\Api\SyncEntityEnum;
 use Polkurier\Shipping\Api\SynchronizationInterface;
 use Polkurier\Shipping\Model\BankAccountFactory;
+use Polkurier\Shipping\Model\ResourceModel\BankAccount as BankAccountResource;
 use Polkurier\Shipping\Model\BankAccount\Confirmation;
 use Polkurier\Shipping\Model\BankAccount\Publisher;
+use Polkurier\Shipping\Model\Sync\SyncLock;
+use Polkurier\Shipping\Model\Sync\SyncResult;
 
 /**
  * Admin editing of bank accounts, which Polkurier changes only with the merchant's confirmation: a
@@ -40,6 +42,7 @@ class BankAccountHandler implements EntityHandlerInterface
         private readonly SynchronizationInterface $synchronization,
         private readonly DateTime $dateTime,
         private readonly SyncLock $syncLock,
+        private readonly BankAccountResource $resource,
     ) {}
 
     /**
@@ -52,28 +55,34 @@ class BankAccountHandler implements EntityHandlerInterface
      * Without one, or when Polkurier refuses it, the account waits in Magento for a confirmation.
      *
      * @param array<string, mixed> $data
-     * @return string[]
      */
-    public function save(SyncableInterface $entity, array $data): array
+    public function save(SyncableInterface $entity, array $data): SyncResult
     {
         $confirmation = Confirmation::fromForm($data);
 
-        return $this->exclusively(function () use ($entity, $data, $confirmation): array {
+        return $this->exclusively(function () use ($entity, $data, $confirmation): SyncResult {
+            $result = new SyncResult(SyncEntityEnum::BankAccount);
             $this->applyFormData($entity, \array_diff_key($data, \array_flip(self::CONFIRMATION_FIELDS)));
             $entity->setSyncState(SyncableInterface::STATE_UNCONFIRMED);
             $this->store($entity);
             if (!$confirmation->isGiven()) {
-                return [(string)\__('Saved in Magento. It goes to Polkurier once you confirm it with the code or your security PIN.')];
+                // It goes to Polkurier once confirmed with the code or the security PIN.
+                $result->unconfirmed++;
+
+                return $result;
             }
             /** @var BankAccountInterface $entity */
             try {
                 $this->publisher->save($entity, $confirmation);
+                $result->pushed++;
             } catch (LocalizedException $e) {
                 $entity->setSyncError($e->getMessage());
                 $this->store($entity);
+                $result->failed++;
+                $result->errors[] = $e->getMessage();
             }
 
-            return [];
+            return $result;
         });
     }
 
@@ -82,13 +91,12 @@ class BankAccountHandler implements EntityHandlerInterface
      * bank account form can give.
      *
      * @param array<string, string> $confirmation the PIN under self::CONFIRMATION_PIN, if given
-     * @return string[]
      */
-    public function delete(SyncableInterface $entity, array $confirmation = []): array
+    public function delete(SyncableInterface $entity, array $confirmation = []): SyncResult
     {
         $pin = \trim((string)($confirmation[self::CONFIRMATION_PIN] ?? '')) ?: null;
 
-        return $this->exclusively(function () use ($entity, $pin): array {
+        return $this->exclusively(function () use ($entity, $pin): SyncResult {
             /** @var BankAccountInterface $entity */
             try {
                 $this->publisher->delete($entity, $pin);
@@ -99,8 +107,10 @@ class BankAccountHandler implements EntityHandlerInterface
                     $e->getMessage(),
                 ), $e);
             }
+            $result = new SyncResult(SyncEntityEnum::BankAccount);
+            $result->deleted++;
 
-            return [];
+            return $result;
         });
     }
 
@@ -126,6 +136,15 @@ class BankAccountHandler implements EntityHandlerInterface
     {
         /** @var BankAccountInterface $entity */
         $this->repository->save($entity);
+    }
+
+    protected function assertUniqueName(SyncableInterface $entity): void
+    {
+        /** @var BankAccountInterface $entity */
+        $id = $entity->getId() ? (int)$entity->getId() : null;
+        if ($this->resource->isNameTaken($entity->getName(), $id)) {
+            throw new LocalizedException(\__('A bank account named "%1" already exists. Choose another name.', $entity->getName()));
+        }
     }
 
     public function getMenuId(): string

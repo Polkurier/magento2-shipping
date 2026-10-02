@@ -12,14 +12,5 @@
             </argument>
         </arguments>
     </type>
-    <!-- Multi-address checkout: a pickup point per address -->
-    <type name="Magento\Multishipping\Block\Checkout\Shipping">
-        <plugin name="polkurier_pickup_point_picker" type="Polkurier\Shipping\Plugin\Multishipping\ShippingStepPlugin" />
-    </type>
-    <type name="Magento\Multishipping\Block\Checkout\Overview">
-        <plugin name="polkurier_method_title" type="Polkurier\Shipping\Plugin\Multishipping\OverviewPlugin" />
-    </type>
-    <type name="Magento\Multishipping\Model\Checkout\Type\Multishipping">
-        <plugin name="polkurier_pickup_points" type="Polkurier\Shipping\Plugin\Multishipping\CheckoutPlugin" />
-    </type>
+    <!-- The multi-address checkout is polkurier/magento2-multishipping's -->
 </config>

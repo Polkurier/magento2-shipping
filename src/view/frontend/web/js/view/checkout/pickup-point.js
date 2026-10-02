@@ -3,15 +3,18 @@
  * All Rights Reserved
  */
 /**
- * "Choose a pickup point" next to each method that delivers to one.
+ * "Choose a pickup point" for each method that delivers to one, in the carrier's cell of the
+ * method's row. Opening the map selects the method too, as a click on its row does.
  */
 define([
     'uiComponent',
     'Magento_Checkout/js/model/quote',
+    'Magento_Checkout/js/action/select-shipping-method',
+    'Magento_Checkout/js/checkout-data',
     'Polkurier_Shipping/js/model/pickup-point',
     'Polkurier_Shipping/js/model/points-map',
     'mage/translate'
-], function (Component, quote, pickupPoint, pointsMap, $t) {
+], function (Component, quote, selectShippingMethod, checkoutData, pickupPoint, pointsMap, $t) {
     'use strict';
 
     return Component.extend({
@@ -20,7 +23,8 @@ define([
          * @returns {Boolean}
          */
         hasMap: function (method) {
-            return pickupPoint.isOwnMethod(method) && pickupPoint.hasMap(method.method_code) && !!pickupPoint.config.token;
+            // The token is fetched when the map opens, if the page has none.
+            return pickupPoint.isOwnMethod(method) && pickupPoint.hasMap(method.method_code);
         },
 
         /**
@@ -34,15 +38,32 @@ define([
         },
 
         /**
-         * @param {String} methodCode
+         * Selects the method, as a click on its row does.
+         *
+         * @param {Object} method a shipping rate
+         * @returns {Boolean}
          */
-        openMap: function (methodCode) {
-            const address = quote.shippingAddress();
+        select: function (method) {
+            selectShippingMethod(method);
+            checkoutData.setSelectedShippingRate(method.carrier_code + '_' + method.method_code);
+
+            return true;
+        },
+
+        /**
+         * @param {Object} method a shipping rate
+         */
+        openMap: function (method) {
+            const address = quote.shippingAddress(),
+                methodCode = method.method_code;
+
+            this.select(method);
 
             pointsMap.open(
                 pickupPoint.config,
                 pickupPoint.getProviders(methodCode),
-                address ? [address.postcode, address.city].filter(Boolean).join(' ') : '',
+                // The postcode alone: a city typed afterwards can't contradict it.
+                address && address.postcode ? String(address.postcode).trim() : '',
                 function (point) {
                     pickupPoint.set(methodCode, point);
                 }

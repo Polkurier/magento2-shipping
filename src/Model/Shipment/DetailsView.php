@@ -7,7 +7,11 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Model\Shipment;
 
+use Magento\Framework\Exception\NoSuchEntityException;
+use Magento\Sales\Api\OrderRepositoryInterface;
+use Magento\Sales\Model\Order;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
+use Polkurier\Shipping\Model\Carrier\CarrierNames;
 use Polkurier\Shipping\Model\Shipment\Details\Formatter;
 use Polkurier\Shipping\Model\Shipment\Details\Links;
 use Polkurier\Shipping\Model\Shipment\Details\OptionLabels;
@@ -25,6 +29,9 @@ class DetailsView
         private readonly OptionLabels $labels,
         private readonly Formatter $format,
         private readonly SentOrder $sentOrder,
+        private readonly CarrierNames $carrierNames,
+        private readonly OrderRepositoryInterface $orderRepository,
+        private readonly OrderAmounts $amounts,
     ) {}
 
     /**
@@ -65,7 +72,8 @@ class DetailsView
             ],
         ];
 
-        $tables = [$this->packsTable($details)];
+        $products = $this->products($shipment);
+        $tables = [$this->itemsTable($shipment, $products), $this->packsTable($details, $shipment, $products)];
         if (!empty($details['items'])) {
             $tables[] = $this->costTable($details);
         }
@@ -97,10 +105,10 @@ class DetailsView
             [\__('Number'), $shipment->getPolkurierNumber() ?: '—'],
             [\__('State'), $this->labels->state($shipment->getState())],
             [\__('Carrier'), empty($details['carrier_name'])
-                ? $shipment->getCarrierCode()
-                : $details['carrier_name'] . ' (' . $shipment->getCarrierCode() . ')'],
+                ? $this->carrierNames->get($shipment->getCarrierCode())
+                : (string)$details['carrier_name']],
             [\__('Shipment type'), $this->labels->shipmentType($details['shipment_type'] ?? null)],
-            [\__('Contents'), $details['description'] ?? $shipment->getDescription()],
+            [\__('Shipment description'), $details['description'] ?? $shipment->getDescription()],
             [\__('Placed'), $this->format->storedTime($shipment->getCreatedAt())],
             [\__('Magento order'), $order['label'] ?? '#' . $shipment->getOrderId(), $order['url'] ?? null],
             [\__('Magento shipment'), $magentoShipment['label'] ?? (string)\__('none yet'), $magentoShipment['url'] ?? null],
@@ -205,27 +213,111 @@ class DetailsView
 
     /**
      * @param array<string, mixed> $details
+     * @param array<int, array<string, mixed>> $products
      * @return array<string, mixed>
      */
-    private function packsTable(array $details): array
+    private function packsTable(array $details, ShipmentInterface $shipment, array $products): array
     {
         $rows = [];
-        foreach ((array)($details['packs'] ?? []) as $pack) {
+        $packs = \array_values((array)($details['packs'] ?? []));
+        // What each parcel holds, as it was sent: parcel by parcel, while they still match up.
+        $sent = \array_values((array)($shipment->getDraft()['packs'] ?? []));
+        $contents = \count($sent) === \count($packs) ? $sent : [];
+        foreach ($packs as $index => $pack) {
             $rows[] = [
-                $this->labels->packType($pack['type'] ?? null),
+                // An envelope is one by the shipment type alone.
+                $this->labels->packType(PackKinds::fromPolkurier($details['shipment_type'] ?? null, $pack['type'] ?? null)),
                 $this->format->size($pack['length'] ?? null, $pack['width'] ?? null, $pack['height'] ?? null),
                 $this->format->weight((float)($pack['weight'] ?? 0)),
                 (string)($pack['amount'] ?? 1),
                 isset($pack['price_gross']) ? $this->format->money((float)$pack['price_gross']) : '—',
+                $this->describeContents((array)($contents[$index]['items'] ?? []), $products),
             ];
         }
 
         return [
             'title' => (string)\__('Parcels'),
-            'columns' => [(string)\__('Type'), (string)\__('Size'), (string)\__('Weight'), (string)\__('Quantity'), (string)\__('Price (gross)')],
+            'columns' => [(string)\__('Type'), (string)\__('Size'), (string)\__('Weight'), (string)\__('Quantity'), (string)\__('Price (gross)'), (string)\__('Contents')],
             'rows' => $rows,
             'empty' => (string)\__('No parcels.'),
         ];
+    }
+
+    /**
+     * The order's items, by order item id, for naming what was shipped; none when the order can't
+     * be read.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function products(ShipmentInterface $shipment): array
+    {
+        try {
+            $order = $this->orderRepository->get((int)$shipment->getOrderId());
+        } catch (NoSuchEntityException) {
+            return [];
+        }
+
+        return $order instanceof Order ? $this->amounts->getItems($order) : [];
+    }
+
+    /**
+     * What the Polkurier order shipped of the order, as it was sent.
+     *
+     * @param array<int, array<string, mixed>> $products
+     * @return array<string, mixed>
+     */
+    private function itemsTable(ShipmentInterface $shipment, array $products): array
+    {
+        $qtys = [];
+        foreach ((array)($shipment->getDraft()['items'] ?? []) as $row) {
+            $id = (int)($row['order_item_id'] ?? 0);
+            if ($id && (float)($row['qty'] ?? 0) > 0) {
+                $qtys[$id] = ($qtys[$id] ?? 0.0) + (float)$row['qty'];
+            }
+        }
+        if ($qtys === []) {
+            $qtys = $shipment->getShipItems();
+        }
+        $rows = [];
+        foreach ($qtys as $id => $qty) {
+            $rows[] = [
+                (string)($products[$id]['name'] ?? \__('Order item #%1', $id)),
+                (string)($products[$id]['sku'] ?? '—'),
+                self::quantity((float)$qty),
+            ];
+        }
+
+        return [
+            'title' => (string)\__('Items shipped'),
+            'columns' => [(string)\__('Product'), (string)\__('SKU'), (string)\__('Quantity')],
+            'rows' => $rows,
+            'empty' => (string)\__('Which items it shipped isn\'t known.'),
+        ];
+    }
+
+    /**
+     * An item a line: "2 × Mug".
+     *
+     * @param array<int, mixed> $rows the parcel's items: order_item_id and qty
+     * @param array<int, array<string, mixed>> $products
+     */
+    private function describeContents(array $rows, array $products): string
+    {
+        $lines = [];
+        foreach ($rows as $row) {
+            $id = \is_array($row) ? (int)($row['order_item_id'] ?? 0) : 0;
+            $qty = \is_array($row) ? (float)($row['qty'] ?? 0) : 0.0;
+            if ($id && $qty > 0) {
+                $lines[] = self::quantity($qty) . ' × ' . ($products[$id]['name'] ?? (string)\__('Order item #%1', $id));
+            }
+        }
+
+        return $lines !== [] ? \implode("\n", $lines) : '—';
+    }
+
+    private static function quantity(float $qty): string
+    {
+        return \rtrim(\rtrim(\number_format($qty, 4, '.', ''), '0'), '.');
     }
 
     /**

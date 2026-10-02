@@ -10,7 +10,7 @@
             <strong text="carrierName"></strong>
             <!-- /ko -->
             <!-- ko ifnot: carrierName -->
-            <span class="polkurier-text-error" translate="'No carrier chosen'"></span>
+            <span data-bind="css: {'polkurier-text-error': carrierMissing, 'polkurier-muted': !carrierMissing()}" translate="'No carrier chosen'"></span>
             <!-- /ko -->
             <button type="button" class="polkurier-link" click="changeCarrier">
                 <span translate="'Change'"></span>
@@ -21,7 +21,7 @@
                 <!-- /ko -->
             </ul>
         </dd>
-        <dt translate="'Contents'"></dt>
+        <dt translate="'Shipment description'"></dt>
         <dd>
             <strong data-bind="text: contents() || '—'"></strong>
             <span class="polkurier-muted" if="shipmentType" data-bind="text: '(' + shipmentType() + ')'"></span>
@@ -38,9 +38,40 @@
             <!-- ko ifnot: price -->
             <span class="polkurier-muted" text="noPrice()"></span>
             <!-- /ko -->
+            <div class="polkurier-text-error polkurier-facts__line" if="unpriced">
+                <!-- Bound through $t: an apostrophe would end a translate attribute's string. -->
+                <span data-bind="text: $t('This carrier won\'t take the shipment as it is. Change the parcels or services, or choose another carrier.')"></span>
+            </div>
         </dd>
+        <!-- ko with: worth -->
+        <dt text="productsLabel"></dt>
+        <dd>
+            <span text="products"></span>
+            <span class="polkurier-muted" translate="'with tax, after discounts'"></span>
+        </dd>
+        <dt translate="'Shipping and handling'"></dt>
+        <dd>
+            <span text="shipping"></span>
+            <span class="polkurier-muted" translate="'what the customer was charged, with tax, after discounts'"></span>
+        </dd>
+        <dt translate="'Order total'"></dt>
+        <dd text="total"></dd>
+        <dt translate="'Shipment value'"></dt>
+        <dd>
+            <strong text="value"></strong>
+            <span class="polkurier-muted" text="basis"></span>
+        </dd>
+        <!-- ko if: canIncludeShipping -->
+        <dt></dt>
+        <dd>
+            <div class="admin__field-option">
+                <input type="checkbox" class="admin__control-checkbox" id="polkurier-shipping-included"
+                       data-bind="checked: $parent.shippingIncluded"/>
+                <label class="admin__field-label" for="polkurier-shipping-included"
+                       translate="'Include shipping and handling in cash on delivery and insurance'"></label>
+            </div>
+        </dd>
+        <!-- /ko -->
+        <!-- /ko -->
     </dl>
-    <div class="polkurier-text-error" if="unpriced">
-        <span translate="'This carrier cannot take the shipment as it is.'"></span>
-    </div>
 </div>

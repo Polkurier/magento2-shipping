@@ -3,12 +3,14 @@
  ~ All Rights Reserved
 -->
 <!-- ko if: element.hasMap(method) -->
-<div class="selected-point">
-    <span text="element.getPointLabel(method.method_code)"></span>
+<div class="pickup-point-choice">
+    <div class="selected-point">
+        <span text="element.getPointLabel(method.method_code)"></span>
+    </div>
+    <button type="button"
+            class="action primary action-show-map"
+            click="function () { element.openMap(method); }">
+        <span translate="'Choose a pickup point'"></span>
+    </button>
 </div>
-<button type="button"
-        class="action primary action-show-map"
-        click="function () { element.openMap(method.method_code); }">
-    <span translate="'Choose a pickup point'"></span>
-</button>
 <!-- /ko -->

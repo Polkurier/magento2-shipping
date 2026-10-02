@@ -16,8 +16,8 @@ use Polkurier\Shipping\Model\Sdk\ShipmentGatewayInterface;
 use Polkurier\Webservice\Request\Order\OrderIdMessage;
 
 /**
- * Cancels placed Polkurier orders. The Magento shipment goes with it, so the items can be shipped
- * again (MagentoFollowUp::removeShipment()).
+ * Cancels placed Polkurier orders. The Magento shipment stays, without the order's label,
+ * packages and waybills, for another Polkurier order to go on it (MagentoFollowUp::clearShipment()).
  */
 class Cancellation
 {
@@ -46,9 +46,13 @@ class Cancellation
         $shipment->setState(ShipmentInterface::STATE_CANCELLED)->setIsFinal(true)->setLastError(null);
         $this->shipmentRepository->save($shipment);
         $order = $this->followUp->order($shipment->getOrderId());
-        $removed = $this->followUp->removeShipment($order, $shipment);
-        $this->followUp->comment($order, $removed !== null
-            ? \__('Polkurier order %1 cancelled, and with it Magento shipment #%2, so its items can be shipped again.', $number, $removed)
+        $cleared = $this->followUp->clearShipment($order, $shipment);
+        $this->followUp->remark($shipment->getShipmentId(), \__(
+            'Polkurier order %1 cancelled. Its label and tracking numbers were removed; another Polkurier order can be placed on this shipment.',
+            $number,
+        ));
+        $this->followUp->comment($order, $cleared !== null
+            ? \__('Polkurier order %1 cancelled. Magento shipment #%2 stays, without its label and tracking numbers, for another Polkurier order.', $number, $cleared)
             : \__('Polkurier order %1 cancelled.', $number));
         $this->events->dispatch(ApiEventEnum::OrderCancelAfter, $shipment->getStoreId(), [
             'shipment' => $shipment,

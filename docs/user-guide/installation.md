@@ -37,8 +37,28 @@ bin/magento cache:flush
 ```
 
 Composer installs the Polkurier SDK (`polkurier/polkurier-sdk`) along with the module; you don't
-need to install it separately. The module also needs Magento's multi-address checkout module
-(`Magento_Multishipping`), which is part of every standard Magento installation.
+need to install it separately.
+
+### Multi-address checkout
+
+Pickup points in Magento's multi-address checkout (**Check Out with Multiple Addresses**) come
+with a separate module, `polkurier/magento2-multishipping`, since that checkout
+(`Magento_Multishipping`) is often disabled or removed. Install it only if you use that checkout:
+
+```bash
+composer require polkurier/magento2-multishipping
+```
+
+```bash
+bin/magento module:enable Polkurier_Multishipping
+```
+
+```bash
+bin/magento setup:upgrade
+```
+
+Without it, the regular checkout works as usual, and customers can still check out with multiple
+addresses, but with no pickup point to choose for each address.
 
 The module comes with English and Polish translations.
 
@@ -50,7 +70,7 @@ Three scheduled jobs keep things up to date. They run through Magento's cron, so
 | Job | How often | What it does |
 |---|---|---|
 | Synchronization | every hour, at a quarter past | brings addresses, bank accounts and pack templates in line with your Polkurier account |
-| Shipment statuses | every 30 minutes | updates the delivery and cash on delivery status of shipments that aren't finished yet |
+| Shipment statuses | every 30 minutes, or as often as set (see [Configuration](configuration.md)) | updates the delivery and cash on delivery status of shipments that aren't finished yet |
 | Unclear shipments | every 10 minutes | looks for shipments whose placing wasn't confirmed (see [When the result is unclear](shipping-an-order.md#when-the-result-is-unclear)) |
 
 The first two can be switched off under **Synchronization** on the configuration page. The third

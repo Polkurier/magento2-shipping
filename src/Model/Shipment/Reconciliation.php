@@ -102,7 +102,7 @@ class Reconciliation
         if ($shipment->getState() !== ShipmentInterface::STATE_UNKNOWN) {
             throw new LocalizedException(\__('Only a shipment whose outcome is unknown can be linked by hand.'));
         }
-        $remote = $this->reconciler->findByNumber($shipment, \trim($polkurierNumber));
+        $remote = $this->reconciler->findByNumber(\trim($polkurierNumber));
         $this->snapshot->apply($remote, $shipment);
         $shipment->setState(ShipmentInterface::STATE_CREATED)->setLastError(null);
         $this->shipmentRepository->save($shipment);

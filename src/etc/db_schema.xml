@@ -112,7 +112,6 @@
         <column xsi:type="varchar" name="ext_id" nullable="true" length="64" comment="Id in Polkurier" />
         <column xsi:type="varchar" name="name" nullable="false" length="255" />
         <column xsi:type="text" name="description" nullable="true" />
-        <column xsi:type="varchar" name="shipment_type" nullable="false" length="16" default="box" />
         <column xsi:type="varchar" name="pack_type" nullable="false" length="16" default="ST" />
         <column xsi:type="int" name="length" nullable="false" unsigned="true" />
         <column xsi:type="int" name="width" nullable="false" unsigned="true" />
@@ -178,6 +177,25 @@
                     referenceColumn="entity_id" onDelete="CASCADE" />
     </table>
 
+    <!-- The shipping the customer chose, kept once the order's shipping is changed to what its
+         Polkurier order went with -->
+    <table name="polkurier_order_shipping_choice" resource="sales" engine="innodb" comment="Shipping the customer chose for a Polkurier order">
+        <column xsi:type="int" name="order_id" nullable="false" unsigned="true" />
+        <column xsi:type="varchar" name="shipping_method" nullable="true" length="120" />
+        <column xsi:type="varchar" name="shipping_description" nullable="true" length="255" />
+        <column xsi:type="varchar" name="point_method_code" nullable="true" length="64" />
+        <column xsi:type="varchar" name="point_id" nullable="true" length="64" />
+        <column xsi:type="varchar" name="point_label" nullable="true" length="512" />
+        <column xsi:type="smallint" name="point_cod" nullable="false" unsigned="true" default="0" />
+        <column xsi:type="timestamp" name="created_at" nullable="false" default="CURRENT_TIMESTAMP" on_update="false" />
+        <constraint xsi:type="primary" referenceId="PRIMARY">
+            <column name="order_id" />
+        </constraint>
+        <constraint xsi:type="foreign" referenceId="POLKURIER_ORDER_SHPP_CHOICE_ORDER_ID_SALES_ORDER_ENTT_ID"
+                    table="polkurier_order_shipping_choice" column="order_id" referenceTable="sales_order"
+                    referenceColumn="entity_id" onDelete="CASCADE" />
+    </table>
+
     <!-- A Polkurier order placed for a Magento order -->
     <table name="polkurier_shipment" resource="sales" engine="innodb" comment="Polkurier orders">
         <column xsi:type="int" name="entity_id" identity="true" nullable="false" unsigned="true" />
@@ -211,6 +229,8 @@
         <column xsi:type="datetime" name="status_checked_at" nullable="true"
                 comment="Last time the statuses were read, whether or not they changed" />
         <column xsi:type="mediumtext" name="request" nullable="true" comment="The create_order payload sent, as JSON" />
+        <column xsi:type="mediumtext" name="draft" nullable="true"
+                comment="The shipment as filled in to place it, as JSON: what sending it again starts from" />
         <column xsi:type="text" name="ship_items" nullable="true"
                 comment="Quantities to ship in Magento by order item id, as JSON; empty for everything left" />
         <column xsi:type="text" name="ship_packages" nullable="true"
@@ -222,6 +242,8 @@
         <column xsi:type="mediumtext" name="tracking" nullable="true" comment="Local copy of the carrier's scan history, as JSON" />
         <column xsi:type="datetime" name="tracking_synced_at" nullable="true" />
         <column xsi:type="text" name="last_error" nullable="true" />
+        <column xsi:type="datetime" name="attention_notified_at" nullable="true"
+                comment="When the admin was notified that it needs attention; cleared by a new attempt" />
         <column xsi:type="timestamp" name="created_at" nullable="false" default="CURRENT_TIMESTAMP" on_update="false" />
         <column xsi:type="timestamp" name="updated_at" nullable="false" default="CURRENT_TIMESTAMP" on_update="true" />
         <constraint xsi:type="primary" referenceId="PRIMARY">
@@ -230,10 +252,11 @@
         <constraint xsi:type="unique" referenceId="POLKURIER_SHIPMENT_POLKURIER_NUMBER">
             <column name="polkurier_number" />
         </constraint>
-        <!-- One Polkurier order per Magento shipment -->
-        <constraint xsi:type="unique" referenceId="POLKURIER_SHIPMENT_SHIPMENT_ID">
+        <!-- A Magento shipment keeps every Polkurier order it has had: at most one placed, any
+             number cancelled before it -->
+        <index referenceId="POLKURIER_SHIPMENT_MAGENTO_SHIPMENT" indexType="btree">
             <column name="shipment_id" />
-        </constraint>
+        </index>
         <index referenceId="POLKURIER_SHIPMENT_ORDER_ID" indexType="btree">
             <column name="order_id" />
         </index>

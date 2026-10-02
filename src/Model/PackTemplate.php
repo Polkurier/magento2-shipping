@@ -9,6 +9,7 @@ namespace Polkurier\Shipping\Model;
 
 use Magento\Framework\Model\AbstractModel;
 use Polkurier\Shipping\Api\Data\PackTemplateInterface;
+use Polkurier\Shipping\Model\Shipment\PackKinds;
 
 /**
  * A pack template kept in Magento and mirrored with Polkurier.
@@ -73,14 +74,7 @@ class PackTemplate extends AbstractModel implements PackTemplateInterface
 
     public function getShipmentType(): string
     {
-        $value = $this->getData(self::SHIPMENT_TYPE);
-
-        return (string)$value;
-    }
-
-    public function setShipmentType(string $shipmentType): static
-    {
-        return $this->setData(self::SHIPMENT_TYPE, $shipmentType);
+        return PackKinds::shipmentTypeOf($this->getPackType())->value;
     }
 
     public function getPackType(): string

@@ -12,6 +12,7 @@ use Magento\Backend\App\Action\Context;
 use Magento\Framework\Controller\Result\Redirect;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
+use Polkurier\Shipping\Controller\Adminhtml\ReturnsBack;
 use Polkurier\Shipping\Model\Shipment\RequestedShipments;
 
 /**
@@ -20,6 +21,8 @@ use Polkurier\Shipping\Model\Shipment\RequestedShipments;
  */
 abstract class AbstractShipmentAction extends Action
 {
+    use ReturnsBack;
+
     public const string ADMIN_RESOURCE = 'Polkurier_Shipping::shipments';
 
     public function __construct(
@@ -51,13 +54,19 @@ abstract class AbstractShipmentAction extends Action
         return $this->requestedShipments->getSelected($this->getRequest());
     }
 
-    protected function back(): Redirect
+    /**
+     * Back to where the action was started; without that, to the order the request names, or
+     * the shipments grid.
+     *
+     * @param string[] $gone paths of pages the action did away with
+     */
+    protected function back(array $gone = []): Redirect
     {
-        $redirect = $this->resultRedirectFactory->create();
         $orderId = (int)$this->getRequest()->getParam('order_id');
 
         return $orderId
-            ? $redirect->setPath('sales/order/view', ['order_id' => $orderId])
-            : $redirect->setRefererOrBaseUrl();
+            ? $this->returnBack('sales/order/view', ['order_id' => $orderId], $gone)
+            : $this->returnBack('polkurier/shipment/index', [], $gone);
     }
+
 }

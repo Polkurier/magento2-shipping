@@ -19,7 +19,7 @@ class PickupMode extends AbstractOptions
         return [
             ShipmentDraftInterface::PICKUP_COURIER => (string)\__('A courier collects them'),
             ShipmentDraftInterface::PICKUP_DROP_OFF => (string)\__('I drop them off at a point'),
-            ShipmentDraftInterface::PICKUP_MULTI => (string)\__('Collect later, together with other shipments'),
+            ShipmentDraftInterface::PICKUP_MULTI => (string)\__('A courier collects them later, with other shipments'),
         ];
     }
 }

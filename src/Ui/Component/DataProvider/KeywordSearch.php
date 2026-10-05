@@ -18,7 +18,7 @@ use Magento\Framework\View\Element\UiComponent\DataProvider\FilterApplierInterfa
  * Magento's own searches the main table's full-text index only, which would leave out the order
  * number and the customer the shipment grids join from the order.
  */
-class KeywordSearch implements FilterApplierInterface
+readonly class KeywordSearch implements FilterApplierInterface
 {
     /**
      * The fields searched, by the grid's main table, as its collection names them.

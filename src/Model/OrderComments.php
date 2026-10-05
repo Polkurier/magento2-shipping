@@ -17,10 +17,10 @@ use Magento\Sales\Model\Order;
  * Adds a comment to an order's history, saving the comment alone rather than the whole order,
  * which would save its addresses, items and payment again.
  */
-class OrderComments
+readonly class OrderComments
 {
     public function __construct(
-        private readonly OrderStatusHistoryRepositoryInterface $historyRepository,
+        private OrderStatusHistoryRepositoryInterface $historyRepository,
     ) {}
 
     /**

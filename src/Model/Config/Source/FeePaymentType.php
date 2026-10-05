@@ -12,7 +12,7 @@ use Polkurier\Webservice\Enum\MoneyBox\MoneyBoxFeePaymentTypeEnum;
 /**
  * How a payout fee is paid.
  */
-class FeePaymentType extends AbstractOptions
+readonly class FeePaymentType extends AbstractOptions
 {
     public function toArray(): array
     {

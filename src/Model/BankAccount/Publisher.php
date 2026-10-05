@@ -21,6 +21,7 @@ use Polkurier\Shipping\Model\Sync\SyncEngine;
 use Polkurier\Webservice\Enum\TwoFactorToken\TwoFactorNamespaceEnum;
 use Polkurier\Webservice\Exception\Exception as PolkurierException;
 use Polkurier\Webservice\Request\TwoFactorToken\RegisterMessage;
+use Polkurier\Webservice\Response\TwoFactorToken;
 
 /**
  * Sends bank account changes to Polkurier, with the confirmation Polkurier requires for them.
@@ -30,17 +31,17 @@ use Polkurier\Webservice\Request\TwoFactorToken\RegisterMessage;
  * of that can come from a background synchronization, so changes go out here, when the merchant
  * saves; a change that could not be sent stays "awaiting confirmation" until it is.
  */
-class Publisher
+readonly class Publisher
 {
     public function __construct(
-        private readonly ClientPool $clientPool,
-        private readonly BankAccountMapper $mapper,
-        private readonly BankAccountAdapter $adapter,
-        private readonly SyncEngine $syncEngine,
-        private readonly BankAccountRepositoryInterface $repository,
-        private readonly ApiEventDispatcher $events,
-        private readonly ErrorMessages $errorMessages,
-        private readonly DateTime $dateTime,
+        private ClientPool $clientPool,
+        private BankAccountMapper $mapper,
+        private BankAccountAdapter $adapter,
+        private SyncEngine $syncEngine,
+        private BankAccountRepositoryInterface $repository,
+        private ApiEventDispatcher $events,
+        private ErrorMessages $errorMessages,
+        private DateTime $dateTime,
     ) {}
 
     /**
@@ -60,10 +61,10 @@ class Publisher
     /**
      * Has Polkurier send the account holder the code a bank account save needs.
      *
-     * @return string the two-factor token the save must carry together with the code
+     * @return TwoFactorToken whose id the save must carry together with the code
      * @throws LocalizedException
      */
-    public function requestCode(): string
+    public function requestCode(): TwoFactorToken
     {
         try {
             $token = $this->clientPool->twoFactorToken()->twoFactorTokenRegister(
@@ -76,7 +77,7 @@ class Publisher
             'namespace' => TwoFactorNamespaceEnum::ChangeBankAccountNumber,
         ]);
 
-        return $token->getId();
+        return $token;
     }
 
     /**

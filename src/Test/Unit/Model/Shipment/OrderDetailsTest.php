@@ -66,4 +66,29 @@ class OrderDetailsTest extends SdkTestCase
         self::assertSame('Warszawa', $tracking[0]['location']);
         self::assertSame('Przesyłka doręczona', $tracking[0]['description']);
     }
+
+    public function testAScanPolkurierDoesntDescribeIsDescribedInTheCarriersWords(): void
+    {
+        $http = new RecordingClient(self::success([
+            'status' => 'Oczekuje na odbiór',
+            'status_code' => 'OC',
+            'status_date' => '2026-10-05 12:47',
+            'delivered_date' => null,
+            'url' => 'https://tracking.example/1',
+            'tracking' => [
+                ['status_date' => '2026-10-05 12:47:55', 'status_code' => 'OC', 'status' => 'Oczekuje na odbiór',
+                    'tracking_status' => 'Przygotowana przez Nadawcę, oczekuje na odbiór', 'location' => null, 'description' => null],
+                ['status_date' => '2026-10-05 12:40:00', 'status_code' => 'P', 'status' => 'Przyjęta',
+                    'tracking_status' => 'Przyjęta', 'location' => null, 'description' => null],
+            ],
+        ]));
+        $status = $this->clientPool($http)->orders()->getStatus(new GetStatusMessage('12345-678', tracking: true));
+
+        $tracking = (new OrderDetails())->tracking($status);
+
+        self::assertSame('Przygotowana przez Nadawcę, oczekuje na odbiór', $tracking[0]['description']);
+        self::assertSame('', $tracking[0]['location']);
+        // Not the status again.
+        self::assertSame('', $tracking[1]['description']);
+    }
 }

@@ -7,7 +7,7 @@
    "pickup":{"pickupdate":{"status":false,"required":false,"description":""},"pickuptimefrom":{"status":false,"required":false,"description":""},"pickuptimeto":{"status":false,"required":false,"description":""},"nocourierorder":{"available":true,"description":"","default":true}},
    "points_map":{"available_providers":["INPOST"],"sender_point":"OPTIONAL","recipient_point":"REQUIRED"},
    "additional_fields":[]}},
- {"servicecode":"DPD","name":"DPD Classic","foreign_shipments":true,"additional_data":{
+ {"servicecode":"DPD","name":"DPD Classic","foreign_shipments":false,"additional_data":{
    "COD":{"available":true,"description":"","require_insurance":false},
    "insurance":{"available":true,"description":""},
    "courierservice":{"ROD":{"available":true,"description":""}},

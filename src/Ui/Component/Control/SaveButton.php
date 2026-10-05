@@ -13,10 +13,10 @@ use Magento\Framework\View\Element\UiComponent\Control\ButtonProviderInterface;
  * The button that submits a form; a form whose submit does something else than save names it in a
  * virtual type in adminhtml/di.xml.
  */
-class SaveButton implements ButtonProviderInterface
+readonly class SaveButton implements ButtonProviderInterface
 {
     public function __construct(
-        private readonly string $label = 'Save',
+        private string $label = 'Save',
     ) {}
 
     /**

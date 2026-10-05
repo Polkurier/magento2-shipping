@@ -1,0 +1,22 @@
+<!--
+ ~ Copyright (c) 2026 Polkurier.pl
+ ~ All Rights Reserved
+-->
+<div class="admin__field polkurier-field-fee">
+    <div class="admin__field-label"></div>
+    <div class="admin__field-control">
+        <div class="polkurier-payout-fee" aria-live="polite">
+            <span class="polkurier-payout-fee__label" translate="'Payout fee'"></span>
+            <!-- ko if: fee() && !error() -->
+            <strong class="polkurier-payout-fee__amount" data-bind="text: $t('%1 PLN gross').replace('%1', fee().gross)"></strong>
+            <span class="polkurier-muted" data-bind="text: $t('(%1 PLN net)').replace('%1', fee().net)"></span>
+            <span class="polkurier-muted" text="fee().free"></span>
+            <span class="polkurier-muted" if="fee().available" text="fee().available"></span>
+            <!-- /ko -->
+            <span class="polkurier-text-error" if="error" text="error"></span>
+            <span class="polkurier-muted" if="loading() && !fee() && !error()" translate="'Working out the fee…'"></span>
+            <span class="polkurier-muted polkurier-payout-fee__updating" if="loading() && (fee() || error())" translate="'Updating…'"></span>
+        </div>
+        <div class="message message-warning polkurier-payout-fee__unknown" if="unknown" text="unknown" role="status"></div>
+    </div>
+</div>

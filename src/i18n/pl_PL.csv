@@ -132,10 +132,7 @@ Polkurier orders,Zamówienia Polkurier
 Payout by,Forma wypłaty
 Fee paid,Opłata pobierana
 Bank account number,Numer konta bankowego
-For transfers; empty uses the money box setting.,Dla przelewów; puste oznacza ustawienie skarbonki.
-Show the fee,Pokaż opłatę
 Confirmation token,Token potwierdzenia
-Send me the confirmation code,Wyślij mi kod potwierdzenia
 Confirmation code,Kod potwierdzenia
 Security PIN,PIN bezpieczeństwa
 Only if the money box settings are locked with a PIN.,Tylko jeśli ustawienia skarbonki są zablokowane PIN-em.
@@ -196,7 +193,7 @@ Check: %1,Sprawdź: %1
 Choose a carrier first.,Najpierw wybierz przewoźnika.
 Choose the bank account the cash on delivery is paid out to.,"Wybierz konto bankowe, na które ma być wypłacone pobranie."
 Code sent to %1; valid until %2.,Kod wysłano na %1; ważny do %2.
-Collective pickups are not available for this Polkurier account.,Odbiory zbiorcze nie są dostępne dla tego konta Polkurier.
+Code sent; valid until %1.,Kod wysłano; ważny do %1.
 Compensation,Odszkodowanie
 Configure the Polkurier customer ID and API token first.,Najpierw skonfiguruj numer klienta i token API Polkuriera.
 Contents checked by the recipient,Sprawdzenie zawartości przez odbiorcę
@@ -225,7 +222,6 @@ Free,Bezpłatnie
 From the money box,Ze skarbonki
 From the prepaid balance,Z przedpłaty
 Give the collection date as YYYY-MM-DD and the window as HH:MM.,"Podaj datę odbioru jako RRRR-MM-DD, a godziny jako GG:MM."
-Half pallet,Półpaleta
 I drop them off at a point,Nadaję w punkcie
 In sync,Zsynchronizowane
 In the money box,W skarbonce
@@ -268,6 +264,8 @@ Polkurier order %1 cancelled.,Anulowano zamówienie Polkurier %1.
 Polkurier order %1 found and linked after an unconfirmed request.,Znaleziono i powiązano zamówienie Polkurier %1 po niepotwierdzonym zapytaniu.
 Polkurier order %1 found and linked.,Znaleziono i powiązano zamówienie Polkurier %1.
 Polkurier order %1 linked by hand after an unconfirmed request.,Ręcznie powiązano zamówienie Polkurier %1 po niepotwierdzonym zapytaniu.
+"Polkurier order %1 was found after an unconfirmed request, already cancelled in Polkurier. The order can be shipped again.","Po niepotwierdzonym zapytaniu znaleziono zamówienie Polkurier %1, już anulowane w Polkurier. Zamówienie można wysłać ponownie."
+"Polkurier order %1 linked by hand after an unconfirmed request, already cancelled in Polkurier. The order can be shipped again.","Ręcznie powiązano zamówienie Polkurier %1 po niepotwierdzonym zapytaniu, już anulowane w Polkurier. Zamówienie można wysłać ponownie."
 Polkurier order %1 linked.,Powiązano zamówienie Polkurier %1.
 Polkurier order %1 placed with %2. Waybills: %3.,Złożono zamówienie Polkurier %1 u %2. Listy przewozowe: %3.
 Polkurier order %1 placed. Waybills: %2.,Złożono zamówienie Polkurier %1. Listy przewozowe: %2.
@@ -288,7 +286,6 @@ Saturday delivery,Doręczenie w sobotę
 Save,Zapisz
 "Saved in Magento, but not in Polkurier: %1","Zapisano w Magento, ale nie w Polkurierze: %1"
 Saved.,Zapisano.
-Send yourself the confirmation code and enter it first.,Najpierw wyślij sobie kod potwierdzenia i go wpisz.
 Sending,Wysyłanie
 Settled,Rozliczone
 Ship order #%1 with Polkurier,Wyślij zamówienie #%1 przez Polkurier
@@ -339,10 +336,6 @@ Awaiting confirmation,Czeka na potwierdzenie
 "%1: %2 new from Polkurier, %3 updated from Polkurier, %4 sent to Polkurier, %5 removed, %6 unchanged, %7 awaiting confirmation, %8 failed.","%1: nowe z Polkuriera %2, zaktualizowane z Polkuriera %3, wysłane do Polkuriera %4, usunięte %5, bez zmian %6, czeka na potwierdzenie %7, błędy %8."
 Saved in Magento. It goes to Polkurier once you confirm it with the code or your security PIN.,Zapisano w Magento. Trafi do Polkuriera po potwierdzeniu kodem lub PIN-em bezpieczeństwa.
 "Polkurier did not delete bank account %1: %2 If your account locks bank accounts with a PIN, open it and delete it there with the PIN.","Polkurier nie usunął konta bankowego %1: %2 Jeśli Twoje konto Polkurier chroni konta bankowe PIN-em, otwórz to konto bankowe i usuń je tam, podając PIN."
-"Code sent. Enter it below, then save.","Kod wysłany. Wpisz go poniżej i zapisz."
-Confirmation with Polkurier,Potwierdzenie w Polkurierze
-"Polkurier accepts a new or changed bank account only with your confirmation. Without it, the account is saved in Magento and waits for it.","Polkurier przyjmuje nowe lub zmienione konto bankowe tylko z Twoim potwierdzeniem. Bez niego konto zostaje zapisane w Magento i czeka na potwierdzenie."
-Your account locks bank accounts with a PIN. It is needed to save or delete one.,Twoje konto chroni konta bankowe PIN-em. Jest potrzebny do zapisania lub usunięcia konta.
 Delete this bank account in Polkurier and in Magento?,Usunąć to konto bankowe w Polkurierze i w Magento?
 Kept in Magento only.,Przechowywane tylko w Magento.
 Delivery,Dostawa
@@ -404,7 +397,6 @@ Available carriers,Dostępni przewoźnicy
 "The carriers you work with. Only these appear under Polkurier > Settings > Carriers, in checkout and when shipping; the others keep their settings but stay out of sight. Nothing selected: all of the account's carriers. The list comes from the Polkurier account.","Przewoźnicy, z którymi pracujesz. Tylko oni pojawiają się w Polkurier > Ustawienia > Przewoźnicy, w koszyku i przy wysyłce; pozostali zachowują swoje ustawienia, ale są ukryci. Nic nie zaznaczone: wszyscy przewoźnicy z konta. Lista pochodzi z konta Polkurier."
 Fall back to the store's address,W razie braku użyj adresu sklepu
 "When no default sender is set in Polkurier > Settings > Addresses, send from the address in General > Store Information. Comes before the shipping origin.","Gdy w Polkurier > Ustawienia > Adresy nie ma domyślnego nadawcy, nadawaj z adresu w Ogólne > Informacje o sklepie. Ma pierwszeństwo przed adresem wysyłki."
-"No sender address: choose one, add one to Polkurier > Settings > Addresses, or let the store's address or shipping origin be used in the Shipments settings.","Brak adresu nadawcy: wybierz go, dodaj w Polkurier > Ustawienia > Adresy albo pozwól użyć adresu sklepu lub adresu wysyłki w ustawieniach przesyłek."
 Province,Województwo
 Save and Continue Edit,Zapisz i kontynuuj edycję
 none,brak
@@ -537,6 +529,7 @@ Link to a Polkurier order,Powiąż z zamówieniem Polkurier
 "The number of the Polkurier order that is this shipment, as the Polkurier panel shows it.","Numer zamówienia Polkurier, które jest tą przesyłką, tak jak pokazuje go panel Polkurier."
 "The order is in %1, which can't be converted to złoty here: enter the amount in złoty yourself.","Zamówienie jest w walucie %1, której nie da się tu przeliczyć na złote: wpisz kwotę w złotych samodzielnie."
 "These products have no weight, so their parcels take the pack template's weight: %1.","Te produkty nie mają wagi, więc ich paczki mają wagę z szablonu paczki: %1."
+"These products have no weight and their parcels have no pack template, so enter those parcels' weights yourself: %1.","Te produkty nie mają wagi, a ich paczki nie mają szablonu, więc wpisz wagę tych paczek samodzielnie: %1."
 "Parcel %1 weighs %2 kg, more than %3 may weigh (%4 kg).","Paczka %1 waży %2 kg, więcej niż dopuszcza szablon %3 (%4 kg)."
 "The most a parcel of this template may weigh with what's in it.","Najwięcej, ile paczka tego szablonu może ważyć razem z zawartością."
 Pack template weight limits,Limity wagi szablonów paczek
@@ -565,7 +558,6 @@ None of these carriers exists any more. Reload the list.,Żaden z tych przewoźn
 "Adds a ""Ship with Polkurier"" button to the page of every order placed with one of these delivery methods.",Dodaje przycisk „Wyślij przez Polkurier” na stronie każdego zamówienia złożonego z jedną z tych metod dostawy.
 "Synchronize carriers, addresses, bank accounts and pack templates hourly","Synchronizuj co godzinę przewoźników, adresy, konta bankowe i szablony paczek"
 Log failed requests,Zapisuj nieudane żądania
-"Requests to Polkurier that fail, in var/log/polkurier.log with the API token masked. The module's own warnings go there whatever this says.","Nieudane żądania do Polkurier, w var/log/polkurier.log, z zamaskowanym tokenem API. Ostrzeżenia samego modułu trafiają tam niezależnie od tego ustawienia."
 Book the pickup,Zamów odbiór
 Collective pickup booked for: %1.,Zamówiono odbiór zbiorczy dla: %1.
 Delete this address here and in Polkurier?,Usunąć ten adres tutaj i w Polkurier?
@@ -624,6 +616,7 @@ Update shipment statuses,Aktualizuj statusy przesyłek
 "For shipments not yet delivered and settled. More often means more requests to Polkurier.","Dla przesyłek jeszcze niedostarczonych i nierozliczonych. Częściej oznacza więcej zapytań do Polkuriera."
 Every 10 minutes,Co 10 minut
 Every 15 minutes,Co 15 minut
+Every 20 minutes,Co 20 minut
 Every 30 minutes,Co 30 minut
 Every hour,Co godzinę
 "Polkurier order %1 cancelled. Magento shipment #%2 stays, without its label and tracking numbers, for another Polkurier order.","Anulowano zamówienie Polkurier %1. Wysyłka Magento #%2 pozostaje, bez etykiety i numerów śledzenia, na kolejne zamówienie Polkurier."
@@ -647,7 +640,7 @@ Discard this shipment?,Odrzucić tę wysyłkę?
 "Polkurier order %1 was cancelled in Polkurier. Its label and tracking numbers were removed; another Polkurier order can be placed on this shipment.","Zamówienie Polkurier %1 anulowano w Polkurierze. Usunięto jego etykietę i numery śledzenia; na tę wysyłkę można złożyć kolejne zamówienie Polkurier."
 "Polkurier order %1 delivered (%2).","Zamówienie Polkurier %1 doręczone (%2)."
 Cash on delivery is more than the %1 left to collect.,Pobranie przekracza kwotę %1 pozostałą do pobrania.
-With cash on delivery, this carrier needs the shipment insured for at least %1.,"Przy pobraniu ten przewoźnik wymaga ubezpieczenia przesyłki na co najmniej %1."
+"With cash on delivery, this carrier needs the shipment insured for at least %1.",Przy pobraniu ten przewoźnik wymaga ubezpieczenia przesyłki na co najmniej %1.
 Choose when the courier collects the parcels.,Wybierz termin odbioru paczek przez kuriera.
 The Polkurier shipping label isn't ready,Etykieta Polkurier nie jest gotowa
 "Fix these in ""Polkurier shipping label"" first:","Najpierw popraw w sekcji „Etykieta Polkurier”:"
@@ -695,3 +688,106 @@ SKU,SKU
 Apply,Zastosuj
 "Leave empty for none. Shipment value: %1, the products with tax and after discounts and the shipping and handling, as this part carries the rest of the order (order total: %2, of which shipping and handling: %3).","Zostaw puste, jeśli bez ubezpieczenia. Wartość przesyłki: %1, czyli wartość produktów z podatkiem i po rabatach wraz z wysyłką i obsługą, bo ta część zamyka zamówienie (wartość zamówienia: %2, w tym wysyłka i obsługa: %3)."
 "the products and the shipping and handling, as this part carries the rest of the order","wartość produktów z wysyłką i obsługą, bo ta część zamyka zamówienie"
+"No sender address: choose one, type one in, or let the store's address or shipping origin be used in the Shipments settings.","Brak adresu nadawcy: wybierz go, wpisz nowy albo pozwól użyć adresu sklepu lub miejsca nadania w ustawieniach przesyłek."
+name,imię i nazwisko
+street,ulicę
+house number,numer domu
+postcode,kod pocztowy
+city,miejscowość
+phone,telefon
+e-mail,e-mail
+Fill in the sender's %1.,Uzupełnij u nadawcy: %1.
+Enter the number of the bank account the cash on delivery is paid out to.,"Wpisz numer konta bankowego, na które ma trafić pobranie."
+Account ending %1,Konto kończące się na %1
+"""%1"" wasn't saved to %2: you aren't allowed to change them.",Nie zapisano „%1” w ustawieniach (%2): nie masz uprawnień do ich zmiany.
+"""%1"" wasn't saved to %2: %3",Nie zapisano „%1” w ustawieniach (%2): %3
+"""%1"" was saved to %2 in Magento, but not in Polkurier: %3","Zapisano „%1” w ustawieniach (%2) w Magento, ale nie w Polkurier: %3"
+"""%1"" was saved to %2 in Magento. It goes to Polkurier once you confirm it there with the code or your security PIN.","Zapisano „%1” w ustawieniach (%2) w Magento. Trafi do Polkurier, gdy potwierdzisz go tam kodem lub PIN-em bezpieczeństwa."
+"""%1"" was saved to %2.",Zapisano „%1” w ustawieniach (%2).
+A new address,Nowy adres
+A new bank account,Nowe konto bankowe
+Fill in the sender's postcode first.,Najpierw wpisz kod pocztowy nadawcy.
+"Typed in for this shipment, and saved for later if you like.","Wpisany dla tej przesyłki, a jeśli chcesz, zapisany na później."
+"A new address, saved to your addresses once placed","Nowy adres, zapisany w adresach po złożeniu zamówienia"
+"A new address, for this shipment only","Nowy adres, tylko dla tej przesyłki"
+The shipment is sent from this address. Polkurier needs all but the company and the flat number.,Przesyłka zostanie nadana z tego adresu. Polkurier wymaga wszystkich pól poza firmą i numerem lokalu.
+Its two-letter code; PL if left empty.,"Dwuliterowy kod; PL, jeśli zostawisz puste."
+Save to your addresses for later shipments,Zapisz w adresach na kolejne przesyłki
+Saved as,Zapisz jako
+"If left empty: the company or the name, and the city. Saved once the shipment is placed.",Jeśli puste: firma lub imię i nazwisko oraz miejscowość. Zapisywany po złożeniu zamówienia.
+Save to your bank accounts for later shipments,Zapisz w kontach bankowych na kolejne przesyłki
+"If left empty: ""Account ending"" and its last four digits. Saved once the shipment is placed; Polkurier takes it once you confirm it with the code or your security PIN.","Jeśli puste: „Konto kończące się na” i jego cztery ostatnie cyfry. Zapisywane po złożeniu zamówienia; Polkurier przyjmie je, gdy potwierdzisz je kodem lub PIN-em bezpieczeństwa."
+saved to your addresses once placed,zapisany w adresach po złożeniu zamówienia
+for this shipment only,tylko dla tej przesyłki
+saved to your bank accounts once placed,zapisane w kontach bankowych po złożeniu zamówienia
+"Saved as the pack template ""%1"" once placed",Po złożeniu zamówienia zapisana jako szablon paczki „%1”
+%1 %2 × %3 × %4 cm,%1 %2 × %3 × %4 cm
+Save as a pack template for later shipments,Zapisz jako szablon paczki na kolejne przesyłki
+If left empty: its type and size. Saved once the shipment is placed.,Jeśli puste: jej typ i wymiary. Zapisywany po złożeniu zamówienia.
+Save as a pack template,Zapisz jako szablon paczki
+Its type and size,Jej typ i wymiary
+Tare (kg),Tara (kg)
+What the packaging itself weighs. Optional; added to what a parcel holds when parcels weigh what's in them. Kept in Magento only.,"Waga samego opakowania. Opcjonalna; doliczana do zawartości paczki, gdy paczki ważą tyle, co ich zawartość. Przechowywana tylko w Magento."
+Enter the confirmation code Polkurier sent you.,"Wpisz kod potwierdzający, który wysłał Ci Polkurier."
+Requesting the payout asks for your confirmation: Polkurier sends you a confirmation code to enter.,Zlecenie wypłaty wymaga Twojego potwierdzenia: Polkurier wysyła Ci kod potwierdzający do wpisania.
+Confirm the bank account,Potwierdź konto bankowe
+Confirm the payout,Potwierdź wypłatę
+Confirm with Polkurier,Potwierdź w Polkurier
+The confirmation code wasn't sent,Nie wysłano kodu potwierdzającego
+Send a new code,Wyślij nowy kod
+Your Polkurier account locks this with a security PIN.,Twoje konto Polkurier chroni to PIN-em bezpieczeństwa.
+Enter the code.,Wpisz kod.
+Enter the security PIN.,Wpisz PIN bezpieczeństwa.
+Confirm and save,Potwierdź i zapisz
+Delete the bank account,Usuń konto bankowe
+Your Polkurier account locks bank accounts with a security PIN: enter it.,Twoje konto Polkurier chroni konta bankowe PIN-em bezpieczeństwa: wpisz go.
+"Polkurier takes a new or changed bank account only once you confirm it: saving sends you a code to enter, or asks for your security PIN.",Polkurier przyjmuje nowe lub zmienione konto bankowe dopiero po Twoim potwierdzeniu: zapisanie wysyła Ci kod do wpisania albo prosi o PIN bezpieczeństwa.
+Another account number,Inny numer konta
+The account the money is transferred to.,"Konto, na które trafi przelew."
+Enter the bank account the payout is transferred to.,"Podaj konto bankowe, na które ma trafić wypłata."
+Free payouts left: %1 of %2.,Pozostało darmowych wypłat: %1 z %2.
+Payout fee,Opłata za wypłatę
+%1 PLN gross,%1 zł brutto
+(%1 PLN net),(%1 zł netto)
+Working out the fee…,Obliczanie opłaty…
+Updating…,Aktualizowanie…
+Pallet 120 × 100,Paleta 120 × 100
+Pallet 150 × 150,Paleta 150 × 150
+Quarter pallet 60 × 40,Ćwierćpaleta 60 × 40
+Half pallet 80 × 60,Półpaleta 80 × 60
+EURO pallet 120 × 80,Paleta EURO 120 × 80
+"EURO pallet 120 × 80, non-standard","Paleta EURO 120 × 80, niestandardowa"
+Pallet 120 × 120,Paleta 120 × 120
+This carrier takes the parcels at a point: choose the drop-off point you hand them over at.,"Ten przewoźnik przyjmuje paczki w punkcie: wybierz punkt nadania, w którym je oddasz."
+Drop-off point,Punkt nadania
+"None: the courier collects them, or you choose the point when dropping them off",Brak: kurier je odbierze albo wybierzesz punkt przy nadaniu
+drop-off point %1,punkt nadania %1
+"Where you hand the parcels over, for a carrier that takes them at points.","Gdzie oddajesz paczki, gdy przewoźnik przyjmuje je w punktach."
+Logging,Logi
+"Requests to Polkurier, in var/log/polkurier.log. Your API token, security PINs and confirmation codes are always hidden. The module's own warnings go there whatever these say.","Żądania do Polkurier, w var/log/polkurier.log. Token API, PIN-y bezpieczeństwa i kody potwierdzające są zawsze ukryte. Ostrzeżenia samego modułu trafiają tam niezależnie od tych ustawień."
+Log personal data,Zapisuj dane osobowe
+"Names, addresses, email addresses, phone numbers, tax numbers and bank account numbers are logged as they are. No: they are hidden.","Imiona i nazwiska, adresy, adresy e-mail, numery telefonów, NIP-y i numery kont bankowych są zapisywane bez zmian. Nie: są ukryte."
+Save files,Zapisuj pliki
+"Labels, protocols, invoices and attachments in logged requests and answers are saved, and the log says where. No: the log gives only their size. A label shows the recipient's name and address whatever ""Log personal data"" says.","Etykiety, protokoły, faktury i załączniki z zapisywanych żądań i odpowiedzi są zapisywane jako pliki, a log podaje, gdzie. Nie: log podaje tylko ich rozmiar. Etykieta pokazuje imię, nazwisko i adres odbiorcy niezależnie od ustawienia „Zapisuj dane osobowe”."
+Save files in,Zapisuj pliki w
+"Relative to Magento's root, or absolute, outside the pub directory. Empty: var/log/polkurier-files.","Względem katalogu głównego Magento albo bezwzględnie, poza katalogiem pub. Puste: var/log/polkurier-files."
+Keep saved files for (days),Przechowuj zapisane pliki (dni)
+"Older ones are deleted every night, also once files are no longer saved. 0: kept until you delete them.","Starsze są usuwane co noc, także gdy pliki nie są już zapisywane. 0: zostają, dopóki ich nie usuniesz."
+"Logged files can't be saved in the pub directory: anyone could download them. Choose a directory outside it.","Plików z logów nie można zapisywać w katalogu pub: każdy mógłby je pobrać. Wybierz katalog poza nim."
+Identify orders to Polkurier by,Identyfikuj zamówienia w Polkurier przez
+The Magento shipment's number,Numer przesyłki Magento
+The Magento order's number,Numer zamówienia Magento
+"Sent with each Polkurier order, with this installation's id, %1, so that an order whose answer was lost is found exactly. A new shipment's number is taken before the order is placed: a refused order leaves a gap in shipment numbers.","Wysyłany z każdym zamówieniem Polkurier, wraz z identyfikatorem tej instalacji, %1, by zamówienie, na które nie dotarła odpowiedź, dało się dokładnie odnaleźć. Numer nowej przesyłki jest pobierany przed złożeniem zamówienia: odrzucone zamówienie zostawia lukę w numeracji przesyłek."
+"Left out, as they don't await a collective pickup: %1.","Pominięte, bo nie czekają na zbiorczy odbiór: %1."
+The money box has nothing to pay out yet. No code was sent.,Skarbonka nie ma jeszcze nic do wypłaty. Kodu nie wysłano.
+Available to pay out: %1 PLN.,Do wypłaty: %1 zł.
+"Not in the money box as far as this shop knows: %1. Polkurier leaves out the orders it can't pay out, without saying so.","Według tego sklepu nie ma ich w skarbonce: %1. Polkurier pomija zamówienia, których nie może wypłacić, bez uprzedzenia."
+Point,Punkt
+Length,Długość
+Width,Szerokość
+Height,Wysokość
+From,Od
+To,Do
+"Polkurier took parcel %1 as %2, not %3, and priced it as that.","Polkurier przyjął paczkę %1 jako: %2, nie: %3, i tak ją wycenił."
+Parcels go as,Przesyłki nadawane jako
+"What a new shipment's parcels are, and what automatic packing packs into, so that a shipment keeps to one kind: the pack templates of the kind, and for an item none of them takes, one of the item's own size. A carrier that doesn't take the kind gets the first it takes.","Rodzaj przesyłek nowej wysyłki, w które pakuje automatyczne pakowanie, tak by wysyłka była jednego rodzaju: szablony paczek tego rodzaju, a dla produktu, którego żaden nie mieści, paczka w jego rozmiarze. Przewoźnik, który nie przyjmuje tego rodzaju, dostaje pierwszy przyjmowany."

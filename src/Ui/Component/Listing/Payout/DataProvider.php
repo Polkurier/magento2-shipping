@@ -16,7 +16,8 @@ use Polkurier\Shipping\Model\MoneyBox\Payouts;
 use Polkurier\Shipping\Model\ResourceModel\Shipment\CollectionFactory;
 
 /**
- * Payouts of the money box, read from Polkurier page by page. Nothing is stored in Magento.
+ * Payouts of the money box, read from Polkurier page by page, the newest first. Nothing is stored
+ * in Magento.
  */
 class DataProvider extends AbstractDataProvider
 {
@@ -86,6 +87,10 @@ class DataProvider extends AbstractDataProvider
                 'cancellable' => (int)$payout->isCancellable(),
             ];
         }
+
+        // Polkurier lists the newest first, by the moment each was requested, but leaves those of
+        // the same second in no set order: the number settles it.
+        \usort($items, static fn(array $a, array $b): int => [$b['date'], $b['number']] <=> [$a['date'], $a['number']]);
 
         return ['items' => $items, 'totalRecords' => $list->getTotalRows()];
     }

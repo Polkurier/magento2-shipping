@@ -96,7 +96,10 @@ define([
                 control.append($('<button type="button" class="action-secondary polkurier-label-options__map"/>')
                     .text($t('Choose on map'))
                     .on('click', function () {
-                        pointsMap.open(config.map, carrier.providers, config.mapSearch || '', function (pointId, point) {
+                        // The recipient's postcode, or what the field says, e.g. the sender's.
+                        const search = typeof field.mapSearch === 'function' ? field.mapSearch(control.closest('.polkurier-label-options__form')) : config.mapSearch;
+
+                        pointsMap.open(config.map, carrier.providers, search || '', function (pointId, point) {
                             if (config.pointLabels) {
                                 config.pointLabels[pointId] = pointsMap.describe(point);
                             }
@@ -156,6 +159,7 @@ define([
                 order_id: setup.orderId,
                 carrier_code: values.carrier_code,
                 sender_address_id: values.sender_address_id || '',
+                new_sender_postcode: values.new_sender_postcode || '',
                 recipient_postcode: setup.recipientPostcode || ''
             }}, {
                 done: function (response) {
@@ -191,6 +195,16 @@ define([
 
             if (definition.type === 'pickup') {
                 pickup(id, control);
+            } else if (definition.type === 'checkbox') {
+                // A single choice, said by its label beside the box.
+                wrapper.addClass('admin__field-option');
+                wrapper.children('.admin__field-label').remove();
+                control.append(
+                    $('<input type="checkbox" class="admin__control-checkbox" value="1"/>').attr({id: id, name: definition.name})
+                        .prop('checked', filled(values[definition.name]) && String(values[definition.name]) !== '0'
+                            && values[definition.name] !== false),
+                    $('<label class="admin__field-label"/>').attr('for', id).text(definition.label)
+                );
             } else if (definition.type === 'select') {
                 control.append(select(definition, form, id));
             } else if (definition.type === 'checkboxes') {
@@ -203,7 +217,7 @@ define([
                     wrapper.toggle(definition.shownFor(form));
                 };
 
-                form.on('change.polkurierFields', 'select', update);
+                form.on('change.polkurierFields', 'select, input[type=checkbox]', update);
                 // The form is filled field by field; decide once every field is in it.
                 setTimeout(update, 0);
             }
@@ -222,7 +236,9 @@ define([
          * @param {jQuery} form
          */
         function apply(section, form) {
-            const carrierBefore = values.carrier_code,
+            const senderBefore = values.sender_address_id,
+                senderPointBefore = values.sender_point_id,
+                carrierBefore = values.carrier_code,
                 insuranceBefore = values.insurance_amount,
                 codBefore = values.cod_amount;
 
@@ -242,6 +258,11 @@ define([
                 if (!fields.length) {
                     return;
                 }
+                if (definition.type === 'checkbox') {
+                    values[definition.name] = fields.prop('checked') ? '1' : '';
+
+                    return;
+                }
                 values[definition.name] = definition.type === 'checkboxes'
                     ? form.find('[name=' + definition.name + ']:checked').map(function () {
                         return this.value;
@@ -256,6 +277,13 @@ define([
             }
             if (carrierBefore !== values.carrier_code) {
                 state.swapPoint(carrierBefore, values.carrier_code);
+            }
+            // Another sender, or carrier, hands the parcels over at its own drop-off point,
+            // unless one was just chosen.
+            if ((senderBefore !== values.sender_address_id || carrierBefore !== values.carrier_code)
+                && String(senderPointBefore || '') === String(values.sender_point_id || '')
+            ) {
+                values.sender_point_id = state.senderAddressPoint();
             }
             if (carrierBefore !== values.carrier_code || section.normalizes) {
                 state.normalize();

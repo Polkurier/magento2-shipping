@@ -54,7 +54,7 @@ class NativeLabel
 
     /**
      * Data key on the Magento shipment: the carrier its Polkurier order went with, which titles the
-     * tracks Magento adds for the label (Observer\PrepareLabelledShipment).
+     * tracks Magento adds for the label (Observer\PrepareLabelledShipmentObserver).
      */
     public const string CARRIER = 'polkurier_carrier_code';
 
@@ -71,6 +71,7 @@ class NativeLabel
         ShipmentDraftInterface::CARRIER_CODE,
         ShipmentDraftInterface::DESCRIPTION,
         ShipmentDraftInterface::SENDER_ADDRESS_ID,
+        ShipmentDraftInterface::SENDER_POINT_ID,
         ShipmentDraftInterface::RECIPIENT_POINT_ID,
         ShipmentDraftInterface::COD_AMOUNT,
         ShipmentDraftInterface::COD_TYPE,
@@ -83,7 +84,29 @@ class NativeLabel
         ShipmentDraftInterface::PICKUP_DATE,
         ShipmentDraftInterface::PICKUP_TIME_FROM,
         ShipmentDraftInterface::PICKUP_TIME_TO,
+        // A sender or bank account typed in, and whether it's kept.
+        'new_sender_person',
+        'new_sender_company',
+        'new_sender_street',
+        'new_sender_house_number',
+        'new_sender_flat_number',
+        'new_sender_postcode',
+        'new_sender_city',
+        'new_sender_country',
+        'new_sender_phone',
+        'new_sender_email',
+        ShipmentDraftInterface::KEEP_NEW_SENDER,
+        ShipmentDraftInterface::NEW_SENDER_NAME,
+        ShipmentDraftInterface::NEW_BANK_ACCOUNT_NUMBER,
+        ShipmentDraftInterface::KEEP_NEW_BANK_ACCOUNT,
+        ShipmentDraftInterface::NEW_BANK_ACCOUNT_NAME,
     ];
+
+    /**
+     * A package's name to save it as a pack template under, which the packaging window adds to the
+     * package's params.
+     */
+    public const string KEEP_AS_PARAM = 'polkurier_keep_as';
 
     private const float KG_PER_POUND = 0.45359237;
     private const float CM_PER_INCH = 2.54;
@@ -160,6 +183,10 @@ class NativeLabel
                 $magentoShipment->getId() ? (int)$magentoShipment->getId() : null,
             );
             $magentoShipment->setData(self::LINK, (int)$shipment->getId());
+        }
+        // Magento saves it once the label is done: with the number the order was sent with.
+        if ($shipment->getReservedShipmentNumber() !== null && !$magentoShipment->getIncrementId()) {
+            $magentoShipment->setIncrementId($shipment->getReservedShipmentNumber());
         }
 
         return $this->answer($magentoShipment, $order, $shipment);
@@ -244,7 +271,9 @@ class NativeLabel
                 ->setWidth($this->centimetres((float)($params['width'] ?? 0), $units))
                 ->setHeight($this->centimetres((float)($params['height'] ?? 0), $units))
                 ->setWeight(\max(0.1, $this->kilograms((float)($params['weight'] ?? 0), (string)($params['weight_units'] ?? ''))))
-                ->setAmount(1);
+                ->setAmount(1)
+                // Saved as a pack template once placed, as asked in the packaging window.
+                ->setKeepAs(\trim((string)($params[self::KEEP_AS_PARAM] ?? '')));
         }
 
         return $packs;

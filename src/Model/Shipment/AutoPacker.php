@@ -41,61 +41,41 @@ use Polkurier\Webservice\Enum\Order\ShipmentTypeEnum;
  * avoided wherever another parcel or a bigger template can take the rest; an item too heavy for
  * every template is still packed by size.
  */
-class AutoPacker
+readonly class AutoPacker
 {
     public function __construct(
-        private readonly OrderAmounts $amounts,
-        private readonly ItemDimensions $dimensions,
-        private readonly MasterData $masterData,
-        private readonly PackFactory $packFactory,
-        private readonly ItemFactory $itemFactory,
-        private readonly Config $config,
+        private OrderAmounts $amounts,
+        private ItemDimensions $dimensions,
+        private MasterData $masterData,
+        private PackFactory $packFactory,
+        private ItemFactory $itemFactory,
+        private Config $config,
     ) {}
 
     /**
-     * With no parcels to go by, the items decide what they go as: of envelopes, parcels and
-     * pallets, the smallest kind whose pack templates take every item. When none takes them all,
-     * the kind leaving out the fewest items goes, parcels on a tie, then the fewer parcels.
+     * With no parcels to go by: as the parcels of the website go (parcels, envelopes or pallets),
+     * or as given, e.g. what the carrier takes. Every parcel is of that kind, so a shipment never
+     * mixes them: an item no template of the kind takes goes in one of its own size of the kind.
      *
      * @param array<int, float> $qtys shipped by order item id
-     * @return array{packs: Draft\Pack[], unmeasured: string[], unweighed: string[], templates: bool}
+     * @param string|null $shipmentType the kind; the website's when none
+     * @return array{packs: Draft\Pack[], unmeasured: string[], unweighed: string[], unweighed_own: string[], templates: bool}
      *     as pack() gives it
      */
-    public function packByItems(Order $order, array $qtys): array
+    public function packByItems(Order $order, array $qtys, ?string $shipmentType = null): array
     {
-        $best = null;
-        $bestScore = null;
-        foreach ([ShipmentTypeEnum::Envelope, ShipmentTypeEnum::Box, ShipmentTypeEnum::Palette] as $kind) {
-            $result = $this->pack($order, $qtys, $kind->value);
-            if ($result['packs'] === []) {
-                // Items without dimensions can't be packed as anything.
-                if ($result['unmeasured'] !== []) {
-                    return $result;
-                }
-                continue;
-            }
-            // Parcels of an item's own size: what the kind's templates don't take.
-            $left = \count(\array_filter($result['packs'], static fn(Draft\Pack $pack): bool => $pack->getTemplateId() === null));
-            if ($left === 0) {
-                return $result;
-            }
-            $score = [$left, $kind === ShipmentTypeEnum::Box ? 0 : 1, \count($result['packs'])];
-            if ($bestScore === null || $score < $bestScore) {
-                $best = $result;
-                $bestScore = $score;
-            }
-        }
+        $kind = $shipmentType ?: $this->config->getDefaultShipmentType((int)$order->getStoreId())->value;
 
-        // No template with a size at all: pack() says so.
-        return $best ?? $this->pack($order, $qtys);
+        return $this->pack($order, $qtys, $kind);
     }
 
     /**
      * @param array<int, float> $qtys shipped by order item id
      * @param string|null $shipmentType only templates of this shipment type, e.g. no pallets for boxes
-     * @return array{packs: Draft\Pack[], unmeasured: string[], unweighed: string[], templates: bool}
+     * @return array{packs: Draft\Pack[], unmeasured: string[], unweighed: string[], unweighed_own: string[], templates: bool}
      *     the parcels, or why there are none: the items without dimensions, or no pack template
-     *     with a size; and the items without a weight, which the parcels' weights leave out
+     *     with a size; the items without a weight, which the parcels' weights leave out; and of
+     *     those, the ones in a parcel of their own size, with no template's weight to take
      */
     public function pack(Order $order, array $qtys, ?string $shipmentType = null): array
     {
@@ -116,7 +96,7 @@ class AutoPacker
             }
         }
         if ($qtys === [] || $unmeasured !== [] || $templates === []) {
-            return ['packs' => [], 'unmeasured' => $unmeasured, 'unweighed' => $unweighed, 'templates' => $templates !== []];
+            return ['packs' => [], 'unmeasured' => $unmeasured, 'unweighed' => $unweighed, 'unweighed_own' => [], 'templates' => $templates !== []];
         }
 
         $margin = $this->config->getPackingMargin((int)$order->getStoreId());
@@ -135,19 +115,28 @@ class AutoPacker
         $parcels = $this->merge($templates, $this->fill($templates, self::biggestFirst($units)));
         $parcelWeight = $this->config->getParcelWeight((int)$order->getStoreId());
         $packs = [];
+        $unweighedOwn = [];
         foreach ($parcels as $parcel) {
             if ($parcel['template'] !== null) {
                 $parcel['template'] = $this->smallest($templates, $parcel['units']) ?? $parcel['template'];
             }
+            foreach ($parcel['template'] === null ? $parcel['units'] : [] as $unit) {
+                if ($unit['weight'] <= 0) {
+                    $unweighedOwn[$unit['id']] = $items[$unit['id']]['name'] ?? (string)$unit['id'];
+                }
+            }
             $pack = $this->toPack($parcel, $parcelWeight);
-            // One of its own size is of the kind packed, so the shipment stays of one kind.
+            // One of its own size is of the kind packed, so the shipment stays of one kind: the
+            // smallest pallet it stands on, or an envelope.
             if ($pack->getTemplateId() === null && $shipmentType === ShipmentTypeEnum::Palette->value) {
-                $pack->setPackType(PackTypeEnum::Palette->value);
+                $pack->setPackType(PackKinds::palletFor($pack->getLength(), $pack->getWidth()));
+            } elseif ($pack->getTemplateId() === null && $shipmentType === ShipmentTypeEnum::Envelope->value) {
+                $pack->setPackType(PackKinds::ENVELOPE);
             }
             $packs[] = $pack;
         }
 
-        return ['packs' => $packs, 'unmeasured' => [], 'unweighed' => $unweighed, 'templates' => true];
+        return ['packs' => $packs, 'unmeasured' => [], 'unweighed' => $unweighed, 'unweighed_own' => \array_values($unweighedOwn), 'templates' => true];
     }
 
     /**
@@ -299,7 +288,7 @@ class AutoPacker
             ->setLength($template['length'])
             ->setWidth($template['width'])
             ->setHeight($template['height'])
-            ->setWeight($parcelWeight->weigh((float)$template['weight'], $weight, $weighed));
+            ->setWeight($parcelWeight->weigh((float)$template['weight'], $weight, $weighed, $template['tare'] ?? null));
     }
 
     /**
@@ -336,7 +325,9 @@ class AutoPacker
             'width' => $template->getWidth(),
             'height' => $template->getHeight(),
             'weight' => $template->getWeight(),
-            'max_weight' => $template->getWeight() > 0 ? $template->getWeight() : null,
+            'tare' => $template->getTare(),
+            // What it may hold: its maximum weight less the packaging's.
+            'max_weight' => $template->getWeight() > 0 ? \max(0.0, $template->getWeight() - (float)$template->getTare()) : null,
             'size' => self::sorted([(float)$template->getLength(), (float)$template->getWidth(), (float)$template->getHeight()]),
         ];
     }

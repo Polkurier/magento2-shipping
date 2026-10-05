@@ -13,6 +13,7 @@ use Magento\Framework\App\Action\HttpPostActionInterface;
 use Magento\Framework\Controller\Result\Json;
 use Magento\Framework\Controller\Result\JsonFactory;
 use Magento\Framework\Exception\LocalizedException;
+use Polkurier\Shipping\Model\Admin\CodeSent;
 use Polkurier\Shipping\Model\MoneyBox\Payouts;
 
 /**
@@ -41,7 +42,7 @@ class SendCode extends Action implements HttpPostActionInterface
         return $this->jsonFactory->create()->setData([
             'error' => false,
             'token' => $token->getId(),
-            'message' => (string)\__('Code sent to %1; valid until %2.', $token->getPhoneNumber(), $token->getExpiresAt()->format('H:i')),
+            'message' => CodeSent::message($token),
         ]);
     }
 }

@@ -23,7 +23,7 @@ use Magento\Shipping\Block\Adminhtml\View\Form as ShipmentForm;
  *    Method go the Polkurier label options (polkurier_label_options) and the shipment's Polkurier
  *    orders (polkurier_shipment_orders).
  */
-class ShippingInfoPlugin
+readonly class ShippingInfoPlugin
 {
     private const string ORDER_BLOCK = 'order_shipping_view';
     private const string SHIPMENT_BLOCK = 'form';

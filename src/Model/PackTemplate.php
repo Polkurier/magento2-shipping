@@ -44,6 +44,12 @@ class PackTemplate extends AbstractModel implements PackTemplateInterface
         if (\is_array($services)) {
             $this->setData(self::SERVICES, \implode(',', \array_filter(\array_map('strval', $services))));
         }
+        // Left empty in a form: not said, not none.
+        $tare = $this->getData(self::TARE);
+        if ($tare !== null && !\is_float($tare)) {
+            $tare = \trim(\str_replace(',', '.', (string)$tare));
+            $this->setData(self::TARE, $tare === '' ? null : (float)$tare);
+        }
 
         return parent::beforeSave();
     }
@@ -135,6 +141,18 @@ class PackTemplate extends AbstractModel implements PackTemplateInterface
     public function setWeight(float $weight): static
     {
         return $this->setData(self::WEIGHT, $weight);
+    }
+
+    public function getTare(): ?float
+    {
+        $value = $this->getData(self::TARE);
+
+        return $value === null || $value === '' ? null : (float)$value;
+    }
+
+    public function setTare(?float $tare): static
+    {
+        return $this->setData(self::TARE, $tare);
     }
 
     public function getCodAmount(): float

@@ -14,10 +14,10 @@ use Magento\Framework\App\ResponseInterface;
 /**
  * Sends a label or protocol read from Polkurier to the browser as a file.
  */
-class DocumentDownload
+readonly class DocumentDownload
 {
     public function __construct(
-        private readonly FileFactory $fileFactory,
+        private FileFactory $fileFactory,
     ) {}
 
     /**

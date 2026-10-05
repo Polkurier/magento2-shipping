@@ -19,15 +19,15 @@ use Polkurier\Shipping\Model\ResourceModel\PackTemplate\CollectionFactory;
 use Polkurier\Shipping\Model\Sdk\ClientPool;
 use Polkurier\Shipping\Model\Sync\PushableAdapterInterface;
 
-class PackTemplateAdapter implements PushableAdapterInterface
+readonly class PackTemplateAdapter implements PushableAdapterInterface
 {
     public function __construct(
-        private readonly ClientPool $clientPool,
-        private readonly PackTemplateMapper $mapper,
-        private readonly CollectionFactory $collectionFactory,
-        private readonly PackTemplateFactory $packTemplateFactory,
-        private readonly PackTemplateRepositoryInterface $repository,
-        private readonly ApiEventDispatcher $events,
+        private ClientPool $clientPool,
+        private PackTemplateMapper $mapper,
+        private CollectionFactory $collectionFactory,
+        private PackTemplateFactory $packTemplateFactory,
+        private PackTemplateRepositoryInterface $repository,
+        private ApiEventDispatcher $events,
     ) {}
 
     public function getEntityType(): SyncEntityEnum

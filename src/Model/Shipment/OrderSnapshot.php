@@ -17,11 +17,11 @@ use Polkurier\Webservice\Response\Order;
  * Copies what Polkurier reports about an order onto the local shipment record, with a full copy
  * of the order's details for the shipment details page.
  */
-class OrderSnapshot
+readonly class OrderSnapshot
 {
     public function __construct(
-        private readonly OrderDetails $details,
-        private readonly DateTime $dateTime,
+        private OrderDetails $details,
+        private DateTime $dateTime,
     ) {}
 
     /**
@@ -47,8 +47,9 @@ class OrderSnapshot
             ->setWaybills(\array_values(\array_unique(\array_filter($waybills))))
             ->setStatusCode($order->getStatusCode())
             ->setStatusLabel($order->getStatus())
-            ->setStatusDate($order->getStatusDate()->format('Y-m-d H:i:s'))
-            ->setDeliveredAt($order->getDeliveredDate()?->format('Y-m-d H:i:s'))
+            // In UTC, as every time the module stores: Polkurier reports them in Polish time.
+            ->setStatusDate(self::utc($order->getStatusDate()))
+            ->setDeliveredAt($order->getDeliveredDate() !== null ? self::utc($order->getDeliveredDate()) : null)
             ->setTrackingUrl($order->getTrackingUri() ?: $shipment->getTrackingUrl())
             ->setPriceNet($order->getPriceNet())
             ->setPriceGross($order->getPriceGross())
@@ -97,5 +98,10 @@ class OrderSnapshot
         } catch (\DateMalformedStringException) {
             return false;
         }
+    }
+
+    private static function utc(\DateTimeInterface $time): string
+    {
+        return \DateTimeImmutable::createFromInterface($time)->setTimezone(new \DateTimeZone('UTC'))->format('Y-m-d H:i:s');
     }
 }

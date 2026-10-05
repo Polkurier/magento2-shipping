@@ -28,15 +28,15 @@ use Psr\Log\LoggerInterface;
  * delivery come from that lookup. If Polkurier cannot be
  * asked, the id is kept, labelled with itself, and treated as not accepting cash on delivery.
  */
-class PointSelection
+readonly class PointSelection
 {
     public function __construct(
-        private readonly OrderPointStore $pointStore,
-        private readonly QuotePointFactory $quotePointFactory,
-        private readonly CarrierCatalog $catalog,
-        private readonly CarrierFeatures $features,
-        private readonly Config $config,
-        private readonly LoggerInterface $logger,
+        private OrderPointStore $pointStore,
+        private QuotePointFactory $quotePointFactory,
+        private CarrierCatalog $catalog,
+        private CarrierFeatures $features,
+        private Config $config,
+        private LoggerInterface $logger,
     ) {}
 
     /**

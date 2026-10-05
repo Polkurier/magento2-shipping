@@ -13,10 +13,10 @@ use Polkurier\Shipping\Model\Shipment\ShipmentOptions;
  * The address book's addresses that can be printed on the label as the sender (marked "Can be a
  * cover address"), with none first.
  */
-class CoverAddress extends AbstractOptions
+readonly class CoverAddress extends AbstractOptions
 {
     public function __construct(
-        private readonly ShipmentOptions $options,
+        private ShipmentOptions $options,
     ) {}
 
     public function toArray(): array

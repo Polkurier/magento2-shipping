@@ -23,16 +23,16 @@ use Polkurier\Webservice\Exception\Exception as PolkurierException;
  * its row, with the merchant's settings, and is marked unavailable, so it disappears from checkout
  * and comes back as it was if the account offers it again.
  */
-class CarrierConfigSynchronizer
+readonly class CarrierConfigSynchronizer
 {
     public function __construct(
-        private readonly CarrierCatalog $catalog,
-        private readonly CarrierConfigs $carrierConfigs,
-        private readonly CarrierConfigRepositoryInterface $repository,
-        private readonly CarrierConfigFactory $configFactory,
-        private readonly ErrorMessages $errorMessages,
-        private readonly NotifierInterface $notifier,
-        private readonly UrlInterface $url,
+        private CarrierCatalog $catalog,
+        private CarrierConfigs $carrierConfigs,
+        private CarrierConfigRepositoryInterface $repository,
+        private CarrierConfigFactory $configFactory,
+        private ErrorMessages $errorMessages,
+        private NotifierInterface $notifier,
+        private UrlInterface $url,
     ) {}
 
     /**

@@ -15,7 +15,7 @@ use Magento\Sales\Model\Order;
  * gives its base amounts. Any other order can't be converted: its amounts aren't filled in, and
  * the merchant enters them in złoty.
  */
-class PlnAmounts
+readonly class PlnAmounts
 {
     public const string CURRENCY = 'PLN';
 

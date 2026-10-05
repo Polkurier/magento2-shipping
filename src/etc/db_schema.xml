@@ -48,7 +48,7 @@
     <!-- Address book, mirrored with the Polkurier account's -->
     <table name="polkurier_address" resource="default" engine="innodb" comment="Polkurier address book">
         <column xsi:type="int" name="address_id" identity="true" nullable="false" unsigned="true" />
-        <column xsi:type="varchar" name="ext_id" nullable="true" length="64" comment="Id in Polkurier" />
+        <column xsi:type="varbinary" name="ext_id" nullable="true" length="64" comment="Id in Polkurier; its case matters" />
         <column xsi:type="varchar" name="name" nullable="false" length="255" />
         <column xsi:type="varchar" name="type" nullable="false" length="16" default="SENDER" />
         <column xsi:type="varchar" name="person" nullable="false" length="255" />
@@ -86,7 +86,7 @@
     <!-- Bank accounts cash on delivery is paid out to, mirrored from the Polkurier account -->
     <table name="polkurier_bank_account" resource="default" engine="innodb" comment="Polkurier bank accounts">
         <column xsi:type="int" name="account_id" identity="true" nullable="false" unsigned="true" />
-        <column xsi:type="varchar" name="ext_id" nullable="true" length="64" comment="Id in Polkurier" />
+        <column xsi:type="varbinary" name="ext_id" nullable="true" length="64" comment="Id in Polkurier; its case matters" />
         <column xsi:type="varchar" name="name" nullable="false" length="255" />
         <column xsi:type="varchar" name="number" nullable="false" length="64" />
         <column xsi:type="smallint" name="is_default" nullable="false" unsigned="true" default="0" />
@@ -109,7 +109,7 @@
     <!-- Parcel templates, mirrored with the Polkurier account's -->
     <table name="polkurier_pack_template" resource="default" engine="innodb" comment="Polkurier pack templates">
         <column xsi:type="int" name="template_id" identity="true" nullable="false" unsigned="true" />
-        <column xsi:type="varchar" name="ext_id" nullable="true" length="64" comment="Id in Polkurier" />
+        <column xsi:type="varbinary" name="ext_id" nullable="true" length="64" comment="Id in Polkurier; its case matters" />
         <column xsi:type="varchar" name="name" nullable="false" length="255" />
         <column xsi:type="text" name="description" nullable="true" />
         <column xsi:type="varchar" name="pack_type" nullable="false" length="16" default="ST" />
@@ -117,6 +117,7 @@
         <column xsi:type="int" name="width" nullable="false" unsigned="true" />
         <column xsi:type="int" name="height" nullable="false" unsigned="true" />
         <column xsi:type="decimal" name="weight" scale="3" precision="12" unsigned="true" nullable="false" />
+        <column xsi:type="decimal" name="tare" scale="3" precision="12" unsigned="true" nullable="true" comment="What the packaging itself weighs, kg; Magento only" />
         <column xsi:type="decimal" name="cod_amount" scale="2" precision="12" unsigned="true" nullable="false" default="0" />
         <column xsi:type="decimal" name="insurance_amount" scale="2" precision="12" unsigned="true" nullable="false" default="0" />
         <column xsi:type="varchar" name="carrier_code" nullable="true" length="64" />
@@ -237,6 +238,10 @@
                 comment="Packages of the Magento shipment, as Magento keeps them, as JSON" />
         <column xsi:type="int" name="target_shipment_id" nullable="true" unsigned="true"
                 comment="Existing Magento shipment to go on once placed, instead of shipping items" />
+        <column xsi:type="varchar" name="external_order_id" nullable="true" length="50"
+                comment="Sent to Polkurier as external_order_id: the Magento shipment or order number" />
+        <column xsi:type="varchar" name="reserved_shipment_number" nullable="true" length="50"
+                comment="Number taken for the Magento shipment to be created, sent as its external_order_id" />
         <column xsi:type="mediumtext" name="details" nullable="true" comment="Local copy of the order as Polkurier reports it, as JSON" />
         <column xsi:type="datetime" name="details_synced_at" nullable="true" />
         <column xsi:type="mediumtext" name="tracking" nullable="true" comment="Local copy of the carrier's scan history, as JSON" />

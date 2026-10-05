@@ -17,11 +17,11 @@ use Magento\Sales\Api\ShipmentCommentRepositoryInterface;
  * Adds an internal remark to a Magento shipment's history: the customer isn't notified, and it
  * isn't shown on the storefront. Only the remark is saved, not the shipment.
  */
-class ShipmentComments
+readonly class ShipmentComments
 {
     public function __construct(
-        private readonly ShipmentCommentInterfaceFactory $commentFactory,
-        private readonly ShipmentCommentRepositoryInterface $commentRepository,
+        private ShipmentCommentInterfaceFactory $commentFactory,
+        private ShipmentCommentRepositoryInterface $commentRepository,
     ) {}
 
     /**

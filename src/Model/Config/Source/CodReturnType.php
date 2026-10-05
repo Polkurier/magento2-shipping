@@ -12,7 +12,7 @@ use Polkurier\Webservice\Enum\Order\CodReturnTypeEnum;
 /**
  * Where cash on delivery is paid out to.
  */
-class CodReturnType extends AbstractOptions
+readonly class CodReturnType extends AbstractOptions
 {
     public function toArray(): array
     {

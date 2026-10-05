@@ -15,7 +15,7 @@ use Polkurier\Webservice\Response\Order\OrderStatusMessage;
  * Turns what Polkurier reports about an order into the local copy kept with the shipment: plain
  * arrays of scalars, so the copy stays readable whatever the SDK's classes become.
  */
-class OrderDetails
+readonly class OrderDetails
 {
     private const string DATE = 'Y-m-d H:i:s';
 
@@ -102,7 +102,8 @@ class OrderDetails
     }
 
     /**
-     * The carrier's scans, newest first.
+     * The carrier's scans, newest first. Where Polkurier describes a scan no further, its
+     * description is the carrier's own wording of it.
      *
      * @return array<int, array<string, string>>
      */
@@ -110,12 +111,13 @@ class OrderDetails
     {
         $events = [];
         foreach ($status->getTracking() as $event) {
+            $carrierWording = $event->getTrackingStatus() !== $event->getStatus() ? $event->getTrackingStatus() : '';
             $events[] = [
                 'date' => (string)$event->getStatusDate()?->format(self::DATE),
                 'status_code' => $event->getStatusCode(),
                 'status' => $event->getStatus(),
                 'location' => $event->getLocation(),
-                'description' => $event->getDescription(),
+                'description' => $event->getDescription() ?: $carrierWording,
             ];
         }
         \usort($events, static fn(array $a, array $b): int => \strcmp($b['date'], $a['date']));

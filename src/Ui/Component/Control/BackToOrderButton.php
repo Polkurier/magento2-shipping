@@ -11,11 +11,11 @@ use Magento\Framework\App\RequestInterface;
 use Magento\Framework\UrlInterface;
 use Magento\Framework\View\Element\UiComponent\Control\ButtonProviderInterface;
 
-class BackToOrderButton implements ButtonProviderInterface
+readonly class BackToOrderButton implements ButtonProviderInterface
 {
     public function __construct(
-        private readonly RequestInterface $request,
-        private readonly UrlInterface $url,
+        private RequestInterface $request,
+        private UrlInterface $url,
     ) {}
 
     /**

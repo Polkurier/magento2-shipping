@@ -20,42 +20,81 @@ use Polkurier\Webservice\Request\Order\OrderAddressMessage;
 /**
  * Builds the sender of an order: an address book entry, the store's address or its shipping origin.
  */
-class SenderMapper
+readonly class SenderMapper
 {
     public function __construct(
-        private readonly ScopeConfigInterface $scopeConfig,
-        private readonly Config $config,
-        private readonly StreetParser $streetParser,
+        private ScopeConfigInterface $scopeConfig,
+        private Config $config,
+        private StreetParser $streetParser,
     ) {}
 
     public function fromAddress(AddressInterface $address): OrderAddressMessage
     {
+        return $this->fromFields([
+            AddressInterface::PERSON => $address->getPerson(),
+            AddressInterface::COMPANY => (string)$address->getCompany(),
+            AddressInterface::STREET => $address->getStreet(),
+            AddressInterface::HOUSE_NUMBER => (string)$address->getHouseNumber(),
+            AddressInterface::FLAT_NUMBER => (string)$address->getFlatNumber(),
+            AddressInterface::CITY => $address->getCity(),
+            AddressInterface::POSTCODE => $address->getPostcode(),
+            AddressInterface::COUNTRY => $address->getCountry(),
+            AddressInterface::EMAIL => $address->getEmail(),
+            AddressInterface::PHONE => $address->getPhone(),
+            AddressInterface::POINT_ID => (string)$address->getPointId(),
+        ]);
+    }
+
+    /**
+     * A sender given field by field, as one typed in for a shipment; Poland unless said otherwise.
+     *
+     * @param array<string, string> $fields by address field
+     */
+    public function fromFields(array $fields): OrderAddressMessage
+    {
+        $value = static fn(string $field): string => \trim((string)($fields[$field] ?? ''));
         $builder = OrderAddressMessageBuilder::create()
-            ->person($address->getPerson())
-            ->street($address->getStreet())
-            ->houseNumber($address->getHouseNumber())
-            ->city($address->getCity())
-            ->postcode($address->getPostcode())
-            ->country($address->getCountry() ?: 'PL')
-            ->email($address->getEmail())
-            ->phone($address->getPhone());
-        if ($address->getCompany()) {
-            $builder->company($address->getCompany());
+            ->person($value(AddressInterface::PERSON))
+            ->street($value(AddressInterface::STREET))
+            ->houseNumber($value(AddressInterface::HOUSE_NUMBER))
+            ->city($value(AddressInterface::CITY))
+            ->postcode($value(AddressInterface::POSTCODE))
+            ->country($value(AddressInterface::COUNTRY) ?: 'PL')
+            ->email($value(AddressInterface::EMAIL))
+            ->phone($value(AddressInterface::PHONE));
+        if ($value(AddressInterface::COMPANY) !== '') {
+            $builder->company($value(AddressInterface::COMPANY));
         }
-        if ($address->getFlatNumber()) {
-            $builder->flatNumber($address->getFlatNumber());
+        if ($value(AddressInterface::FLAT_NUMBER) !== '') {
+            $builder->flatNumber($value(AddressInterface::FLAT_NUMBER));
         }
-        if ($address->getPointId()) {
-            $builder->pointId($address->getPointId());
+        if ($value(AddressInterface::POINT_ID) !== '') {
+            $builder->pointId($value(AddressInterface::POINT_ID));
         }
 
         return $builder->build();
     }
 
     /**
-     * The sender when none is chosen from the address book: the store's address, then its shipping
-     * origin, each only when the Shipments settings allow it. Null when neither applies.
+     * The sender handing the parcels over at the point given, or at none.
      */
+    public function withPoint(OrderAddressMessage $sender, ?string $pointId): OrderAddressMessage
+    {
+        return $this->fromFields([
+            AddressInterface::PERSON => $sender->getPerson(),
+            AddressInterface::COMPANY => (string)$sender->getCompany(),
+            AddressInterface::STREET => $sender->getStreet(),
+            AddressInterface::HOUSE_NUMBER => (string)$sender->getHouseNumber(),
+            AddressInterface::FLAT_NUMBER => (string)$sender->getFlatNumber(),
+            AddressInterface::CITY => $sender->getCity(),
+            AddressInterface::POSTCODE => $sender->getPostcode(),
+            AddressInterface::COUNTRY => $sender->getCountry(),
+            AddressInterface::EMAIL => $sender->getEmail(),
+            AddressInterface::PHONE => $sender->getPhone(),
+            AddressInterface::POINT_ID => (string)$pointId,
+        ]);
+    }
+
     public function fromStore(int $storeId): ?OrderAddressMessage
     {
         return ($this->config->isUseStoreInformationAddress($storeId) ? $this->fromStoreInformation($storeId) : null)

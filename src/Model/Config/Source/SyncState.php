@@ -12,7 +12,7 @@ use Polkurier\Shipping\Api\Data\SyncableInterface;
 /**
  * Synchronization states.
  */
-class SyncState extends AbstractOptions
+readonly class SyncState extends AbstractOptions
 {
     public function toArray(): array
     {

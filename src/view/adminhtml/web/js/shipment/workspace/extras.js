@@ -114,7 +114,8 @@ define([
                 amount: on ? this.money(data.cod_amount) : '',
                 details: on ? [this.choice('cod_type', data.cod_type), this.choice('cod_return_type', data.cod_return_type)]
                     .filter(rules.filled).join(' · ') : '',
-                problem: on && data.cod_return_type === 'BA' && !rules.filled(data.cod_bank_account_id)
+                problem: on && data.cod_return_type === 'BA' && (!rules.filled(data.cod_bank_account_id)
+                    || (data.cod_bank_account_id === 'new' && !rules.filled(data.new_bank_account_number)))
                     ? $t('No bank account to pay it out to.')
                     : '',
                 unavailable: unavailable ? $t('This carrier does not collect cash on delivery.') : '',

@@ -185,15 +185,16 @@ class DataProvider extends AbstractDataProvider
         // Only those that can be printed as the sender.
         $data['cover_addresses'] = $this->options->getSenderOptions(true);
         $data['templates'] = $this->context->getTemplates();
-        // What a shipment is until it has parcels: the default pack template's kind, as a new one
+        // What a shipment is until it has parcels: as the website's parcels go, as a new one
         // starts (DefaultDraftBuilder), for automatic packing.
-        $data['default_shipment_type'] = PackKinds::shipmentTypeOf($this->masterData->getDefaultPackTemplate()?->getPackType())->value;
+        $data['default_shipment_type'] = $this->context->getDefaultShipmentType($storeId);
         $data['parcel_weight'] = $this->context->getParcelWeight($storeId);
         $data['carrier_notices'] = $this->carrierNotices->getNotices();
         $data['choices'] = $this->getChoices();
         $data['urls'] = [
             'calculate' => $this->url->getUrl('polkurier/shipment/calculate'),
             'pickup_times' => $this->url->getUrl('polkurier/shipment/pickupTimes'),
+            'collective_pickup' => $this->url->getUrl('polkurier/shipment/collectivePickup'),
             'pack' => $this->url->getUrl('polkurier/shipment/pack'),
             'pack_templates' => $this->url->getUrl('polkurier/packtemplate/index'),
             'addresses' => $this->url->getUrl('polkurier/address/index'),
@@ -214,10 +215,7 @@ class DataProvider extends AbstractDataProvider
         }
         $order = $this->getOrder($orderId);
 
-        $senders = \array_merge(
-            [['value' => '', 'label' => (string)\__('The store\'s address')]],
-            $this->options->getSenderOptions(),
-        );
+        $senders = $this->options->getSenderChoices((int)$order->getStoreId());
         $carriers = \array_merge(
             [['value' => '', 'label' => (string)\__('-- Choose a carrier --')]],
             $this->options->getCarrierOptions(),
@@ -227,7 +225,7 @@ class DataProvider extends AbstractDataProvider
         $meta['carrier_modal']['children']['carrier']['children']['carrier_code']['arguments']['data']['config']['options'] = $carriers;
         $meta['sender_modal']['children']['sender']['children']['sender_address_id']['arguments']['data']['config']['options'] = $senders;
         $meta['cod_modal']['children']['cod']['children']['cod_bank_account_id']['arguments']['data']['config']['options']
-            = $this->options->getBankAccountOptions();
+            = $this->options->getBankAccountChoices();
         $meta['cod_modal']['children']['cod']['children']['cod_amount']['arguments']['data']['config']['notice']
             = $this->getCodNotice($order);
         if (!$this->amounts->isPriced($order)) {
@@ -381,10 +379,13 @@ class DataProvider extends AbstractDataProvider
             'person' => $address->getPerson(),
             'street' => $this->street($address->getStreet(), $address->getHouseNumber(), $address->getFlatNumber()),
             'city' => \trim($address->getPostcode() . ' ' . $address->getCity()),
+            'postcode' => $address->getPostcode(),
             'country' => $address->getCountry(),
             'phone' => $address->getPhone(),
             'email' => $address->getEmail(),
             'default' => $address->isDefault() ? '1' : '',
+            // Where its parcels are handed over at a point.
+            'point_id' => (string)$address->getPointId(),
         ];
     }
 
@@ -396,6 +397,7 @@ class DataProvider extends AbstractDataProvider
         return [
             'label' => (string)\__('The store\'s address'),
             'company' => (string)$address->getCompany(),
+            'postcode' => $address->getPostcode(),
             'person' => $address->getPerson() === $address->getCompany() ? '' : $address->getPerson(),
             'street' => $this->street($address->getStreet(), (string)$address->getHouseNumber(), $address->getFlatNumber()),
             'city' => \trim($address->getPostcode() . ' ' . $address->getCity()),
@@ -445,7 +447,7 @@ class DataProvider extends AbstractDataProvider
             'pack_shipment_type' => (object)PackKinds::map(),
             'cod_type' => (object)$this->codTypes->toArray(),
             'cod_return_type' => (object)$this->codReturnTypes->toArray(),
-            'cod_bank_account_id' => $labels($this->options->getBankAccountOptions()),
+            'cod_bank_account_id' => $labels($this->options->getBankAccountChoices()),
             'services' => (object)$this->services->toArray(),
             'pickup_mode' => (object)$this->pickupModes->toArray(),
         ];

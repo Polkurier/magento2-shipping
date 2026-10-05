@@ -295,6 +295,107 @@ class Draft extends DataObject implements ShipmentDraftInterface
         return $this->setData(self::COD_BANK_ACCOUNT_ID, $codBankAccountId);
     }
 
+    public function getSenderPointId(): ?string
+    {
+        $value = \trim((string)$this->getData(self::SENDER_POINT_ID));
+
+        return $value === '' ? null : $value;
+    }
+
+    public function setSenderPointId(?string $pointId): static
+    {
+        return $this->setData(self::SENDER_POINT_ID, $pointId);
+    }
+
+    public function isNewSender(): bool
+    {
+        return (bool)$this->getData(self::NEW_SENDER);
+    }
+
+    public function setNewSender(bool $newSender): static
+    {
+        return $this->setData(self::NEW_SENDER, $newSender);
+    }
+
+    public function getNewSenderAddress(): array
+    {
+        $address = [];
+        foreach (self::NEW_SENDER_FIELDS as $field => $key) {
+            $address[$field] = \trim((string)$this->getData($key));
+        }
+
+        return $address;
+    }
+
+    public function setNewSenderAddress(array $address): static
+    {
+        foreach (self::NEW_SENDER_FIELDS as $field => $key) {
+            $this->setData($key, \trim((string)($address[$field] ?? '')));
+        }
+
+        return $this;
+    }
+
+    public function isKeepingNewSender(): bool
+    {
+        return (bool)$this->getData(self::KEEP_NEW_SENDER);
+    }
+
+    public function setKeepingNewSender(bool $keep): static
+    {
+        return $this->setData(self::KEEP_NEW_SENDER, $keep);
+    }
+
+    public function getNewSenderName(): string
+    {
+        return \trim((string)$this->getData(self::NEW_SENDER_NAME));
+    }
+
+    public function setNewSenderName(string $name): static
+    {
+        return $this->setData(self::NEW_SENDER_NAME, $name);
+    }
+
+    public function isNewBankAccount(): bool
+    {
+        return (bool)$this->getData(self::NEW_BANK_ACCOUNT);
+    }
+
+    public function setNewBankAccount(bool $newBankAccount): static
+    {
+        return $this->setData(self::NEW_BANK_ACCOUNT, $newBankAccount);
+    }
+
+    public function getNewBankAccountNumber(): string
+    {
+        return \trim((string)$this->getData(self::NEW_BANK_ACCOUNT_NUMBER));
+    }
+
+    public function setNewBankAccountNumber(string $number): static
+    {
+        return $this->setData(self::NEW_BANK_ACCOUNT_NUMBER, $number);
+    }
+
+    public function isKeepingNewBankAccount(): bool
+    {
+        return (bool)$this->getData(self::KEEP_NEW_BANK_ACCOUNT);
+    }
+
+    public function setKeepingNewBankAccount(bool $keep): static
+    {
+        return $this->setData(self::KEEP_NEW_BANK_ACCOUNT, $keep);
+    }
+
+    public function getNewBankAccountName(): string
+    {
+        return \trim((string)$this->getData(self::NEW_BANK_ACCOUNT_NAME));
+    }
+
+    public function setNewBankAccountName(string $name): static
+    {
+        return $this->setData(self::NEW_BANK_ACCOUNT_NAME, $name);
+    }
+
     public function getInsuranceAmount(): ?float
     {
         $value = $this->getData(self::INSURANCE_AMOUNT);

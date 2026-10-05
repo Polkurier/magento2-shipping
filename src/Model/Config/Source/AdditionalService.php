@@ -14,7 +14,7 @@ use Polkurier\Webservice\Enum\Order\AdditionalServiceEnum;
  * isn't one to tick: it comes with the address chosen to print as the sender (the shipment's cover
  * address), which Polkurier needs for it and switches it on by. labels() has it, for what was sent.
  */
-class AdditionalService extends AbstractOptions
+readonly class AdditionalService extends AbstractOptions
 {
     public function toArray(): array
     {

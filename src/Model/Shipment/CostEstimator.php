@@ -19,12 +19,12 @@ use Psr\Log\LoggerInterface;
  *
  * The prices are read by ValuationQuotes, whichever of the shapes Polkurier answers with.
  */
-class CostEstimator
+readonly class CostEstimator
 {
     public function __construct(
-        private readonly CreateOrderMessageMapper $messageMapper,
-        private readonly ShipmentGatewayInterface $gateway,
-        private readonly LoggerInterface $logger,
+        private CreateOrderMessageMapper $messageMapper,
+        private ShipmentGatewayInterface $gateway,
+        private LoggerInterface $logger,
     ) {}
 
     /**

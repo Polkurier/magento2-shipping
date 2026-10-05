@@ -19,7 +19,7 @@ use Polkurier\Webservice\Response\Carrier\AdditionalData\Property;
  *
  * A carrier listed without additional data is treated as supporting nothing optional.
  */
-class CarrierFeatures
+readonly class CarrierFeatures
 {
     /**
      * Services offered with every carrier, whatever the carrier list says.
@@ -53,6 +53,14 @@ class CarrierFeatures
     public function isRecipientPointRequired(Carrier $carrier): bool
     {
         return $carrier->getAdditionalData()?->getPointsMap()?->getRecipientPoint() === PointRequirementEnum::Required;
+    }
+
+    /**
+     * Whether the parcels are handed over at a point, and must be: none, optional or required.
+     */
+    public function getSenderPointRequirement(Carrier $carrier): PointRequirementEnum
+    {
+        return $carrier->getAdditionalData()?->getPointsMap()?->getSenderPoint() ?? PointRequirementEnum::None;
     }
 
     public function isRecipientPointAllowed(Carrier $carrier): bool

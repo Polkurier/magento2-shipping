@@ -161,12 +161,12 @@
             <argument name="logger" xsi:type="object">Polkurier\Shipping\Logger\Logger</argument>
         </arguments>
     </type>
-    <type name="Polkurier\Shipping\Observer\DescribePickupPoint">
+    <type name="Polkurier\Shipping\Observer\DescribePickupPointObserver">
         <arguments>
             <argument name="logger" xsi:type="object">Polkurier\Shipping\Logger\Logger</argument>
         </arguments>
     </type>
-    <type name="Polkurier\Shipping\Observer\CopyPickupPointToOrder">
+    <type name="Polkurier\Shipping\Observer\CopyPickupPointToOrderObserver">
         <arguments>
             <argument name="logger" xsi:type="object">Polkurier\Shipping\Logger\Logger</argument>
         </arguments>
@@ -193,7 +193,7 @@
             <argument name="reporting" xsi:type="object">Polkurier\Shipping\Ui\Component\DataProvider\GridReporting</argument>
         </arguments>
     </virtualType>
-    <type name="Polkurier\Shipping\Observer\FollowShipmentCarrier">
+    <type name="Polkurier\Shipping\Observer\FollowShipmentCarrierObserver">
         <arguments>
             <argument name="logger" xsi:type="object">Polkurier\Shipping\Logger\Logger</argument>
         </arguments>
@@ -233,7 +233,7 @@
             <argument name="logger" xsi:type="object">Polkurier\Shipping\Logger\Logger</argument>
         </arguments>
     </type>
-    <type name="Polkurier\Shipping\Cron\Synchronize">
+    <type name="Polkurier\Shipping\Cron\SynchronizeTask">
         <arguments>
             <argument name="logger" xsi:type="object">Polkurier\Shipping\Logger\Logger</argument>
         </arguments>
@@ -245,6 +245,10 @@
     </type>
     <type name="Magento\Sales\Api\OrderRepositoryInterface">
         <plugin name="polkurier_order_point" type="Polkurier\Shipping\Plugin\Sales\OrderRepositoryPlugin" />
+    </type>
+    <!-- A Magento shipment made for a Polkurier order takes the number the order was sent with -->
+    <type name="Magento\Sales\Model\Order\ShipmentDocumentFactory">
+        <plugin name="polkurier_reserved_number" type="Polkurier\Shipping\Plugin\Sales\ShipmentDocumentFactoryPlugin" />
     </type>
     <!-- Carrier logos next to the methods in checkout -->
     <type name="Magento\Quote\Model\Cart\ShippingMethodConverter">

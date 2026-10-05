@@ -18,12 +18,12 @@ use Polkurier\Shipping\Model\ResourceModel\Shipment\CollectionFactory;
 /**
  * The Polkurier shipments an admin request is about: one by id, a list of ids, or a grid selection.
  */
-class RequestedShipments
+readonly class RequestedShipments
 {
     public function __construct(
-        private readonly ShipmentRepositoryInterface $shipmentRepository,
-        private readonly CollectionFactory $collectionFactory,
-        private readonly Filter $filter,
+        private ShipmentRepositoryInterface $shipmentRepository,
+        private CollectionFactory $collectionFactory,
+        private Filter $filter,
     ) {}
 
     /**

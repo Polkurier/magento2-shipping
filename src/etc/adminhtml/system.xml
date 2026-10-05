@@ -74,19 +74,12 @@
                         <label>Request timeout (seconds)</label>
                         <validate>validate-digits validate-greater-than-zero</validate>
                     </field>
-                    <field id="logging" translate="label comment" type="select" sortOrder="60" showInDefault="1" canRestore="1">
-                        <label>Log failed requests</label>
-                        <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
-                        <comment>Requests to Polkurier that fail, in var/log/polkurier.log with the API token masked. The module's own warnings go there whatever this says.</comment>
-                    </field>
-                    <field id="log_methods" translate="label comment" type="multiselect" sortOrder="70" showInDefault="1" canRestore="1">
-                        <label>Log all traffic of</label>
-                        <source_model>Polkurier\Shipping\Model\Config\Source\ApiMethod</source_model>
-                        <can_be_empty>1</can_be_empty>
-                        <comment>Successful requests and answers of these API methods are logged too.</comment>
-                        <depends>
-                            <field id="logging">1</field>
-                        </depends>
+                    <field id="external_order_id" translate="label" type="select" sortOrder="60" showInDefault="1" canRestore="1">
+                        <label>Identify orders to Polkurier by</label>
+                        <source_model>Polkurier\Shipping\Model\Config\Source\ExternalOrderId</source_model>
+                        <comment>
+                            <model>Polkurier\Shipping\Model\Config\Comment\ApplicationIdComment</model>
+                        </comment>
                     </field>
                 </group>
 
@@ -97,6 +90,11 @@
                         <source_model>Polkurier\Shipping\Model\Config\Source\AccountCarrier</source_model>
                         <can_be_empty>1</can_be_empty>
                         <comment>The carriers you work with. Only these appear under Polkurier > Settings > Carriers, in checkout and when shipping; the others keep their settings but stay out of sight. Nothing selected: all of the account's carriers. The list comes from the Polkurier account.</comment>
+                    </field>
+                    <field id="default_shipment_type" translate="label comment" type="select" sortOrder="10" showInDefault="1" showInWebsite="1" canRestore="1">
+                        <label>Parcels go as</label>
+                        <source_model>Polkurier\Shipping\Model\Config\Source\ShipmentType</source_model>
+                        <comment>What a new shipment's parcels are, and what automatic packing packs into, so that a shipment keeps to one kind: the pack templates of the kind, and for an item none of them takes, one of the item's own size. A carrier that doesn't take the kind gets the first it takes.</comment>
                     </field>
                     <field id="default_additional_services" translate="label comment" type="multiselect" sortOrder="50" showInDefault="1" showInWebsite="1" canRestore="1">
                         <label>Additional services selected by default</label>
@@ -244,6 +242,58 @@
                         <comment>For shipments not yet delivered and settled. More often means more requests to Polkurier.</comment>
                         <depends>
                             <field id="status_enabled">1</field>
+                        </depends>
+                    </field>
+                </group>
+
+                <group id="logging" translate="label comment" sortOrder="50" showInDefault="1">
+                    <label>Logging</label>
+                    <comment>Requests to Polkurier, in var/log/polkurier.log. Your API token, security PINs and confirmation codes are always hidden. The module's own warnings go there whatever these say.</comment>
+                    <field id="failed_requests" translate="label" type="select" sortOrder="10" showInDefault="1" canRestore="1">
+                        <label>Log failed requests</label>
+                        <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    </field>
+                    <field id="methods" translate="label comment" type="multiselect" sortOrder="20" showInDefault="1" canRestore="1">
+                        <label>Log all traffic of</label>
+                        <source_model>Polkurier\Shipping\Model\Config\Source\ApiMethod</source_model>
+                        <can_be_empty>1</can_be_empty>
+                        <comment>Successful requests and answers of these API methods are logged too.</comment>
+                        <depends>
+                            <field id="failed_requests">1</field>
+                        </depends>
+                    </field>
+                    <field id="personal_data" translate="label comment" type="select" sortOrder="30" showInDefault="1" canRestore="1">
+                        <label>Log personal data</label>
+                        <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                        <comment>Names, addresses, email addresses, phone numbers, tax numbers and bank account numbers are logged as they are. No: they are hidden.</comment>
+                        <depends>
+                            <field id="failed_requests">1</field>
+                        </depends>
+                    </field>
+                    <field id="files" translate="label comment" type="select" sortOrder="40" showInDefault="1" canRestore="1">
+                        <label>Save files</label>
+                        <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                        <comment>Labels, protocols, invoices and attachments in logged requests and answers are saved, and the log says where. No: the log gives only their size. A label shows the recipient's name and address whatever "Log personal data" says.</comment>
+                        <depends>
+                            <field id="failed_requests">1</field>
+                        </depends>
+                    </field>
+                    <field id="files_directory" translate="label comment" type="text" sortOrder="50" showInDefault="1" canRestore="1">
+                        <label>Save files in</label>
+                        <backend_model>Polkurier\Shipping\Model\Config\Backend\LogFilesDirectory</backend_model>
+                        <comment>Relative to Magento's root, or absolute, outside the pub directory. Empty: var/log/polkurier-files.</comment>
+                        <depends>
+                            <field id="failed_requests">1</field>
+                            <field id="files">1</field>
+                        </depends>
+                    </field>
+                    <field id="files_lifetime" translate="label comment" type="text" sortOrder="60" showInDefault="1" canRestore="1">
+                        <label>Keep saved files for (days)</label>
+                        <validate>validate-digits</validate>
+                        <comment>Older ones are deleted every night, also once files are no longer saved. 0: kept until you delete them.</comment>
+                        <depends>
+                            <field id="failed_requests">1</field>
+                            <field id="files">1</field>
                         </depends>
                     </field>
                 </group>

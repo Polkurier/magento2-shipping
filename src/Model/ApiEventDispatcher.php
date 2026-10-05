@@ -17,11 +17,11 @@ use Psr\Log\LoggerInterface;
  * They report changes Polkurier has already made, so a listener's exception is logged instead of
  * thrown: the caller's outcome stands whatever a listener does.
  */
-class ApiEventDispatcher
+readonly class ApiEventDispatcher
 {
     public function __construct(
-        private readonly ManagerInterface $eventManager,
-        private readonly LoggerInterface $logger,
+        private ManagerInterface $eventManager,
+        private LoggerInterface $logger,
     ) {}
 
     /**

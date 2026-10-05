@@ -18,14 +18,15 @@ use Polkurier\Webservice\Http\Request\AuthorizationMessage;
  * SDK configuration for the Polkurier account, read from Magento's configuration when it is asked
  * for. The SDK's services read it once, in their constructors; {@see ClientPool} builds them.
  */
-class AccountConfigProvider implements ConfigProviderInterface
+readonly class AccountConfigProvider implements ConfigProviderInterface
 {
     public const string PLATFORM = 'magento2';
     public const string MODULE_NAME = 'Polkurier_Shipping';
 
     public function __construct(
-        private readonly Config $config,
-        private readonly PackageInfo $packageInfo,
+        private Config $config,
+        private PackageInfo $packageInfo,
+        private LogFilesDirectory $logFilesDirectory,
     ) {}
 
     public function getConfig(): ConfigInterface
@@ -42,6 +43,9 @@ class AccountConfigProvider implements ConfigProviderInterface
             sandbox: $this->config->isSandbox(),
             loggingEnabled: $this->config->isLoggingEnabled(),
             methodsToLog: $this->config->getMethodsToLog(),
+            logPersonalData: $this->config->isPersonalDataLoggingEnabled(),
+            logFiles: $this->config->isFileLoggingEnabled(),
+            logFilesDirectory: $this->logFilesDirectory->resolve($this->config->getLogFilesDirectory()),
         );
     }
 }

@@ -3,7 +3,8 @@
  * All Rights Reserved
  */
 /**
- * The sender, chosen from the address book, shown in full. Choosing one closes the modal.
+ * The sender, chosen from the address book, shown in full, or one typed in for the shipment.
+ * Choosing a stored one closes the modal; a new one shows its fields below (./new-entry).
  */
 define([
     'Magento_Ui/js/form/element/select',
@@ -34,10 +35,21 @@ define([
                 store = this.source.get('data.store_sender'),
                 selected = this.value() || '';
 
-            return (this.options() || []).filter(function (option) {
+            // As given: the select takes the store's address, valued '', for its caption.
+            return (this.initialOptions || this.options() || []).filter(function (option) {
                 return option.value !== '' || store;
             }).map(function (option) {
                 const address = option.value === '' ? store : senders[String(option.value)] || {};
+
+                if (option.value === 'new') {
+                    return {
+                        value: 'new',
+                        title: $t('A new address'),
+                        lines: [$t('Typed in for this shipment, and saved for later if you like.')],
+                        isDefault: false,
+                        selected: selected === 'new'
+                    };
+                }
 
                 return {
                     value: String(option.value),
@@ -58,7 +70,15 @@ define([
          * @param {Object} tile
          */
         choose: function (tile) {
+            const address = (this.source.get('data.senders') || {})[String(tile.value)];
+
             this.value(tile.value);
+            // Handed over at that address's drop-off point, if it has one.
+            this.source.set('data.sender_point_id', address && address.point_id ? String(address.point_id) : '');
+            // Its fields are filled in below first.
+            if (tile.value === 'new') {
+                return;
+            }
             registry.get(this.modal, function (modal) {
                 modal.closeModal();
             });

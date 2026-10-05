@@ -11,6 +11,7 @@ use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Stdlib\DateTime\DateTime;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Model\ResourceModel\Shipment\CollectionFactory;
+use Polkurier\Shipping\Model\Sdk\ApplicationId;
 use Polkurier\Shipping\Model\Sdk\ShipmentGatewayInterface;
 use Polkurier\Webservice\Request\Order\GetOrdersMessage;
 use Polkurier\Webservice\Response\Order;
@@ -18,14 +19,16 @@ use Polkurier\Webservice\Response\Order;
 /**
  * Looks for a Polkurier order whose creation went unanswered.
  *
- * A shipment can't carry the integration's own order identifiers that would make this lookup
- * exact, so the match is strict and heuristic: the same carrier, placed from the day before the
- * attempt to the day after (Polkurier filters by date only), with the same description (by
- * default it carries the Magento increment id), recipient postcode and phone, and the same number
- * of parcels, and not adopted by another shipment. An order Polkurier lists without its parcels
- * can't be told apart that well: it's only a possible match, never adopted automatically.
+ * An order sent with the shop's own ids (the installation's application id, and the Magento
+ * shipment's or order's number) is looked up by them first. They aren't unique, and Polkurier may
+ * not have kept them, so the match is strict all the same, and heuristic without them: the same
+ * carrier, placed from the day before the attempt to the day after (Polkurier filters by date
+ * only), with the same description (by default it carries the Magento increment id), recipient
+ * postcode and phone, and the same number of parcels, and not adopted by another shipment. An
+ * order Polkurier lists without its parcels can't be told apart that well: it's only a possible
+ * match, never adopted automatically.
  */
-class Reconciler
+readonly class Reconciler
 {
     public const int WINDOW_DAYS = 1;
     public const int MAX_PAGES = 5;
@@ -35,9 +38,10 @@ class Reconciler
     private const string NO_MATCH = '';
 
     public function __construct(
-        private readonly ShipmentGatewayInterface $gateway,
-        private readonly CollectionFactory $collectionFactory,
-        private readonly DateTime $dateTime,
+        private ShipmentGatewayInterface $gateway,
+        private CollectionFactory $collectionFactory,
+        private DateTime $dateTime,
+        private ApplicationId $applicationId,
     ) {}
 
     /**
@@ -47,6 +51,12 @@ class Reconciler
      */
     public function findCandidates(ShipmentInterface $shipment): array
     {
+        // Sent with the shop's own ids, it's found by them; Polkurier may have failed to keep
+        // them without saying so, so not finding it that way proves nothing.
+        $found = $this->findByExternalIds($shipment);
+        if ($found['sure'] !== [] || $found['possible'] !== []) {
+            return $found;
+        }
         $createdAt = new \DateTimeImmutable((string)($shipment->getCreatedAt() ?: '@' . $this->dateTime->gmtTimestamp()));
         $found = ['sure' => [], 'possible' => []];
 
@@ -70,12 +80,59 @@ class Reconciler
             }
         }
 
+        return $this->unclaimed($shipment, $found);
+    }
+
+    /**
+     * Without the orders another shipment already holds.
+     *
+     * @param array{sure: Order[], possible: Order[]} $found
+     * @return array{sure: Order[], possible: Order[]}
+     */
+    private function unclaimed(ShipmentInterface $shipment, array $found): array
+    {
         $taken = $this->getAdoptedNumbers((int)$shipment->getId(), \array_merge($found['sure'], $found['possible']));
         foreach ($found as $kind => $orders) {
             $found[$kind] = \array_values(\array_filter($orders, static fn(Order $order): bool => !isset($taken[(string)$order->getNumber()])));
         }
 
         return $found;
+    }
+
+    /**
+     * The orders Polkurier lists with the ids the shipment was sent with, that match it as well:
+     * the ids aren't unique, e.g. an order's number goes with each of its shipments.
+     *
+     * @return array{sure: Order[], possible: Order[]}
+     * @throws LocalizedException
+     */
+    private function findByExternalIds(ShipmentInterface $shipment): array
+    {
+        $found = ['sure' => [], 'possible' => []];
+        $externalOrderId = $shipment->getExternalOrderId();
+        if ($externalOrderId === null) {
+            return $found;
+        }
+        for ($page = 1; $page <= self::MAX_PAGES; $page++) {
+            $list = $this->gateway->findOrders(new GetOrdersMessage(
+                pageSize: GetOrdersMessage::MAX_PAGE_SIZE,
+                page: $page,
+                packs: true,
+                externalApplicationId: $this->applicationId->get(),
+                externalOrderId: $externalOrderId,
+            ));
+            foreach ($list->getResult() as $order) {
+                $match = $order->getNumber() !== null ? $this->match($shipment, $order) : self::NO_MATCH;
+                if ($match !== self::NO_MATCH) {
+                    $found[$match][] = $order;
+                }
+            }
+            if ($page >= $list->getTotalPages()) {
+                break;
+            }
+        }
+
+        return $this->unclaimed($shipment, $found);
     }
 
     /**

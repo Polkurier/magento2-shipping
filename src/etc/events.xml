@@ -6,17 +6,17 @@
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:noNamespaceSchemaLocation="urn:magento:framework:Event/etc/events.xsd">
     <event name="sales_model_service_quote_submit_before">
-        <observer name="polkurier_validate_pickup_point" instance="Polkurier\Shipping\Observer\ValidatePickupPoint" />
-        <observer name="polkurier_describe_pickup_point" instance="Polkurier\Shipping\Observer\DescribePickupPoint" />
+        <observer name="polkurier_validate_pickup_point" instance="Polkurier\Shipping\Observer\ValidatePickupPointObserver" />
+        <observer name="polkurier_describe_pickup_point" instance="Polkurier\Shipping\Observer\DescribePickupPointObserver" />
     </event>
     <event name="sales_model_service_quote_submit_success">
-        <observer name="polkurier_copy_pickup_point" instance="Polkurier\Shipping\Observer\CopyPickupPointToOrder" />
+        <observer name="polkurier_copy_pickup_point" instance="Polkurier\Shipping\Observer\CopyPickupPointToOrderObserver" />
     </event>
     <!-- The order's shipping follows the carrier and point its Polkurier order went with -->
     <event name="polkurier_shipment_save_after">
-        <observer name="polkurier_follow_shipment_carrier" instance="Polkurier\Shipping\Observer\FollowShipmentCarrier" />
+        <observer name="polkurier_follow_shipment_carrier" instance="Polkurier\Shipping\Observer\FollowShipmentCarrierObserver" />
     </event>
     <event name="payment_method_is_active">
-        <observer name="polkurier_restrict_cash_on_delivery" instance="Polkurier\Shipping\Observer\RestrictCashOnDelivery" />
+        <observer name="polkurier_restrict_cash_on_delivery" instance="Polkurier\Shipping\Observer\RestrictCashOnDeliveryObserver" />
     </event>
 </config>

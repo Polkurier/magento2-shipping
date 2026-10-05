@@ -27,6 +27,41 @@ interface ShipmentDraftInterface
     public const string SHIPMENT_TYPE = 'shipment_type';
     public const string DESCRIPTION = 'description';
     public const string SENDER_ADDRESS_ID = 'sender_address_id';
+    /**
+     * The point the parcels are handed over at, for carriers that take them at points; it starts
+     * as the sender address's drop-off point.
+     */
+    public const string SENDER_POINT_ID = 'sender_point_id';
+    /**
+     * The choice of a sender address or bank account typed in for this shipment rather than one
+     * of those stored, as the screens send it in place of an id.
+     */
+    public const string NEW = 'new';
+    /**
+     * Whether the sender is the one typed in for this shipment (NEW_SENDER_FIELDS).
+     */
+    public const string NEW_SENDER = 'new_sender';
+    /**
+     * The sender typed in, field by field, by the address field each one is.
+     */
+    public const array NEW_SENDER_FIELDS = [
+        AddressInterface::PERSON => 'new_sender_person',
+        AddressInterface::COMPANY => 'new_sender_company',
+        AddressInterface::STREET => 'new_sender_street',
+        AddressInterface::HOUSE_NUMBER => 'new_sender_house_number',
+        AddressInterface::FLAT_NUMBER => 'new_sender_flat_number',
+        AddressInterface::POSTCODE => 'new_sender_postcode',
+        AddressInterface::CITY => 'new_sender_city',
+        AddressInterface::COUNTRY => 'new_sender_country',
+        AddressInterface::PHONE => 'new_sender_phone',
+        AddressInterface::EMAIL => 'new_sender_email',
+    ];
+    /**
+     * Whether the sender typed in is saved to the addresses, under NEW_SENDER_NAME, once the
+     * shipment is placed.
+     */
+    public const string KEEP_NEW_SENDER = 'keep_new_sender';
+    public const string NEW_SENDER_NAME = 'new_sender_name';
     public const string RECIPIENT_PERSON = 'recipient_person';
     public const string RECIPIENT_COMPANY = 'recipient_company';
     public const string RECIPIENT_STREET = 'recipient_street';
@@ -52,6 +87,17 @@ interface ShipmentDraftInterface
     public const string COD_TYPE = 'cod_type';
     public const string COD_RETURN_TYPE = 'cod_return_type';
     public const string COD_BANK_ACCOUNT_ID = 'cod_bank_account_id';
+    /**
+     * Whether cash on delivery is paid out to the account number typed in for this shipment.
+     */
+    public const string NEW_BANK_ACCOUNT = 'new_bank_account';
+    public const string NEW_BANK_ACCOUNT_NUMBER = 'new_bank_account_number';
+    /**
+     * Whether that account is saved to the bank accounts, under NEW_BANK_ACCOUNT_NAME, once the
+     * shipment is placed.
+     */
+    public const string KEEP_NEW_BANK_ACCOUNT = 'keep_new_bank_account';
+    public const string NEW_BANK_ACCOUNT_NAME = 'new_bank_account_name';
     public const string INSURANCE_AMOUNT = 'insurance_amount';
     public const string COVER_ADDRESS_ID = 'cover_address_id';
     public const string SERVICES = 'services';
@@ -325,6 +371,49 @@ interface ShipmentDraftInterface
      * @return $this
      */
     public function setCodBankAccountId(?int $codBankAccountId): static;
+
+    public function getSenderPointId(): ?string;
+
+    public function setSenderPointId(?string $pointId): static;
+
+    public function isNewSender(): bool;
+
+    public function setNewSender(bool $newSender): static;
+
+    /**
+     * @return array<string, string> the sender typed in, by address field (NEW_SENDER_FIELDS)
+     */
+    public function getNewSenderAddress(): array;
+
+    /**
+     * @param array<string, string> $address by address field
+     * @return $this
+     */
+    public function setNewSenderAddress(array $address): static;
+
+    public function isKeepingNewSender(): bool;
+
+    public function setKeepingNewSender(bool $keep): static;
+
+    public function getNewSenderName(): string;
+
+    public function setNewSenderName(string $name): static;
+
+    public function isNewBankAccount(): bool;
+
+    public function setNewBankAccount(bool $newBankAccount): static;
+
+    public function getNewBankAccountNumber(): string;
+
+    public function setNewBankAccountNumber(string $number): static;
+
+    public function isKeepingNewBankAccount(): bool;
+
+    public function setKeepingNewBankAccount(bool $keep): static;
+
+    public function getNewBankAccountName(): string;
+
+    public function setNewBankAccountName(string $name): static;
 
     /**
      * @return float|null

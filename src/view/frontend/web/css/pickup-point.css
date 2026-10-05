@@ -4,7 +4,7 @@
  */
 /* The pickup point, in the carrier's cell of its delivery method's row. */
 .pickup-point-choice .selected-point {
-    margin-bottom: 8px;
+    margin-bottom: 4px;
     overflow-wrap: anywhere;
 }
 
@@ -14,9 +14,11 @@
     white-space: normal;
 }
 
-/* A full-size button, in both checkouts: easy to tap on a phone. */
+/* A small button: it sits in its method's row, beside the method's own details. */
 .action.primary.action-show-map {
-    min-height: 40px;
+    font-size: 1.2rem;
+    line-height: 1.4rem;
+    padding: 4px 10px;
 }
 
 /* The carrier's logo in front of the method name. */

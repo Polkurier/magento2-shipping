@@ -11,7 +11,7 @@ patches live in `Setup/Patch/Data`.
 
 | Data patch | |
 |---|---|
-| `AddProductDimensions` | adds the product attributes for one unit's shipping size, used to pack orders into parcels |
+| `AddProductDimensionsPatch` | adds the product attributes for one unit's shipping size, used to pack orders into parcels |
 
 The module hasn't been released, so there are no patches that move data from an earlier version:
 every installation starts clean. Add one only for a change after the first release.
@@ -86,7 +86,8 @@ including failed ones.
 | `polkurier_number` | the order number on the account |
 | `carrier_code`, `description`, `recipient_postcode`, `recipient_phone`, `pack_count` | what was sent, kept for matching during reconciliation |
 | `waybills` | JSON list of the carrier's tracking numbers |
-| `status_code`, `status_label`, `status_date`, `delivered_at`, `tracking_url` | the latest delivery status |
+| `status_code`, `status_label`, `status_date`, `delivered_at`, `tracking_url` | the latest delivery status; its times in UTC |
+| `external_order_id`, `reserved_shipment_number` | the shop's id the order was sent with, and the number taken for a Magento shipment still to be made |
 | `price_net`, `price_gross` | what Polkurier charged |
 | `insurance_amount`, `cod_amount`, `cod_status` | insurance and cash on delivery |
 | `multi_pickup`, `pickup_booked` | placed for a collective pickup, and whether it's booked |

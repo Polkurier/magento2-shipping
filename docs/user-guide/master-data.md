@@ -38,19 +38,22 @@ Where Polkurier pays out the cash on delivery money you collect.
 - **Account number**: the account's number.
 - **Default**: preselected for shipments with cash on delivery.
 
-Polkurier wants your confirmation for every new or changed bank account, so the form has a
-**Confirmation with Polkurier** section:
+Polkurier wants your confirmation for every new or changed bank account, so **Save** asks for it
+in a window:
 
-- If your account protects bank accounts with a security PIN, enter it under **Security PIN**.
-- Otherwise click **Send me the confirmation code**, enter the code Polkurier sends you under
-  **Confirmation code**, and save.
+- If your account protects bank accounts with a security PIN, enter the PIN.
+- Otherwise Polkurier sends you a confirmation code by text message as you click **Save**; the
+  window says where it went and how long it's valid. Enter it and click **Confirm and save**.
+  **Send a new code** sends another.
 
-Without a confirmation, or if Polkurier doesn't accept it, the account is still saved in Magento,
-but shown as **Awaiting confirmation** until you open it and confirm it. Changes made in the
+**Cancel** saves nothing. If Polkurier doesn't accept the confirmation, the account is still saved
+in Magento, but shown as **Awaiting confirmation** until you open it and save it again. So is a
+bank account saved while shipping (see
+[Typing in a sender, an account or a parcel](shipping-an-order.md#typing-in-a-sender-an-account-or-a-parcel)). Changes made in the
 Polkurier panel still come back with the sync in the meantime.
 
-To delete a bank account protected by a PIN, open it, enter the PIN and use **Delete** on the
-form. Otherwise **Delete** in the list works as for the others. When you delete several at once,
+To delete a bank account protected by a PIN, open it and use **Delete** on the form: a window asks
+for the PIN. Otherwise **Delete** in the list works as for the others. When you delete several at once,
 the ones Polkurier refuses stay, with the reason shown, and the others are deleted.
 
 ## Pack templates
@@ -58,13 +61,19 @@ the ones Polkurier refuses stay, with the reason shown, and the others are delet
 The parcels you ship most often, so you don't have to type sizes every time.
 
 - **Template name** and **Description**.
-- **Parcel type**: a standard, non-standard or long parcel, an envelope, a half pallet or a pallet.
+- **Parcel type**: a standard, non-standard or long parcel, an envelope, or a pallet by its size:
+  quarter (60 × 40), half (80 × 60), EURO (120 × 80, standard or non-standard), 120 × 100,
+  120 × 120 or 150 × 150.
   The parcels make the shipment's type: envelopes go as an envelope shipment, pallets as a pallet
   shipment, anything else as parcels.
 - **Length**, **Width** and **Height** in centimetres.
 - **Maximum weight** in kilograms: the most a parcel of the template may weigh with what's in it.
   With **Parcel weight** set to the pack template's weight, it's also the weight a parcel of the
   template is sent with.
+- **Tare** in kilograms, optional: what the packaging itself weighs. A parcel of the template that
+  weighs what's in it weighs that and the tare, and packing automatically leaves room for it under
+  the **Maximum weight**. It's kept in Magento only, since Polkurier's pack templates have no such
+  field.
 - **Cash on delivery**, **Insurance**, **Carrier** and **Additional services**: kept with the
   template in your Polkurier account, for use in the Polkurier panel.
 - **Default for new shipments**: new shipments start with one parcel of this template, unless

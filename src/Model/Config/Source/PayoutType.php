@@ -12,7 +12,7 @@ use Polkurier\Webservice\Enum\MoneyBox\MoneyBoxPayoutTypeEnum;
 /**
  * How the money box pays out.
  */
-class PayoutType extends AbstractOptions
+readonly class PayoutType extends AbstractOptions
 {
     public function toArray(): array
     {

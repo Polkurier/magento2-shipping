@@ -21,7 +21,7 @@ use Psr\Log\LoggerInterface;
  * have been interrupted, and reconciles them: found orders are adopted, and orders still missing
  * after a while are marked as not placed. Least recently checked first, like the status refresh.
  */
-class AutoReconciler
+readonly class AutoReconciler
 {
     public const int BATCH_SIZE = 50;
     /** A pending shipment younger than this may still be waiting for its answer. */
@@ -29,11 +29,11 @@ class AutoReconciler
     public const int RECHECK_AFTER_MINUTES = 5;
 
     public function __construct(
-        private readonly CollectionFactory $collectionFactory,
-        private readonly ShipmentManagementInterface $management,
-        private readonly ShipmentResource $shipmentResource,
-        private readonly LoggerInterface $logger,
-        private readonly DateTime $dateTime,
+        private CollectionFactory $collectionFactory,
+        private ShipmentManagementInterface $management,
+        private ShipmentResource $shipmentResource,
+        private LoggerInterface $logger,
+        private DateTime $dateTime,
     ) {}
 
     /**

@@ -9,7 +9,7 @@ namespace Polkurier\Shipping\Ui\Component\Control;
 
 use Magento\Framework\View\Element\UiComponent\Control\ButtonProviderInterface;
 
-class RequestPayoutButton implements ButtonProviderInterface
+readonly class RequestPayoutButton implements ButtonProviderInterface
 {
     /**
      * @return array<string, mixed>

@@ -83,7 +83,7 @@ modification times become available, only this preference needs to change.
 ## When it runs
 
 - Saving or deleting in the admin pushes that entry straight away (`Model\Admin\*Handler`).
-- `Cron\Synchronize` runs the full sync hourly, with the carrier list, when `sync/enabled` is on
+- `Cron\SynchronizeTask` runs the full sync hourly, with the carrier list, when `sync/enabled` is on
   and the credentials are set.
 - The *Synchronize with Polkurier* button on each settings screen runs it for that kind of entry,
   once the credentials are set.
@@ -106,6 +106,13 @@ sync can't supply either, so:
   (`Model\BankAccount\Confirmation`), then records the result with `SyncEngine::pushed()`;
 - `Publisher::isPinLocked()` tells the form which kind of confirmation to ask for, and
   `Publisher::requestCode()` sends the code.
+
+The form asks for the confirmation as it's saved: its data provider
+(`view/adminhtml/web/js/form/bank-account-provider.js`, over `form/confirmed-provider.js`) has the
+code sent (`polkurier/bankaccount/sendCode`) and asks for it in a modal, or asks for the PIN where
+bank accounts are locked, then submits the form with it; cancelled, nothing is posted. Deleting asks
+for the PIN the same way (`form/bank-account-delete.js`). The payout form works alike
+(`form/payout-provider.js`, `polkurier/moneybox/sendCode`), with the PIN optional beside the code.
 
 The PIN, two-factor token and code are never stored, logged, kept in the form's persisted data
 (`Controller\Adminhtml\MasterData\AbstractSave::getTransientFields()`) or put into events.

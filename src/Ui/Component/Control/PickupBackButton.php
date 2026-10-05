@@ -16,12 +16,12 @@ use Magento\Framework\View\Element\UiComponent\Control\ButtonProviderInterface;
  * "Back" on the collective pickup form: to where the booking was started from, or the order
  * whose Polkurier tab it was opened from, or the shipments grid.
  */
-class PickupBackButton implements ButtonProviderInterface
+readonly class PickupBackButton implements ButtonProviderInterface
 {
     public function __construct(
-        private readonly RequestInterface $request,
-        private readonly UrlInterface $url,
-        private readonly DecoderInterface $urlDecoder,
+        private RequestInterface $request,
+        private UrlInterface $url,
+        private DecoderInterface $urlDecoder,
     ) {}
 
     /**

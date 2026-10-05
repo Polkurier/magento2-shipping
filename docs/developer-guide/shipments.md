@@ -55,9 +55,13 @@ insurance, cover address, services, handover (courier, drop-off or a later colle
 an optional date and time window) and carrier-specific fields.
 
 The shipment type isn't chosen: it's what the parcels are. Each parcel's type is a standard,
-non-standard or long parcel, an envelope (`ENV`), a half pallet or a pallet, and
-`Model\Shipment\PackKinds` turns that into Polkurier's two fields: the order's `shipmenttype` and
-each parcel's `type` (an envelope goes as `ST`). `getShipmentType()` of a draft with parcels says
+non-standard or long parcel, an envelope (`ENV`), or a pallet by its size: `VP` 60 × 40, `PPAL`
+80 × 60, the EURO pallet 120 × 80 (`EURO`, and `EURO_NST` non-standard), `EUR2` 120 × 100, `PAL`
+120 × 120, `PA15` 150 × 150. `Model\Shipment\PackKinds` turns that into Polkurier's two fields: the
+order's `shipmenttype` and each parcel's `type`. An envelope goes as `ST`; under a pallet shipment
+Polkurier reads `ST` and `NST` as the EURO pallet and its non-standard variant, which is why those
+two have codes of their own. A pallet of its own size, made by automatic packing, is the smallest
+that takes its footprint (`PackKinds::palletFor()`). `getShipmentType()` of a draft with parcels says
 what they are; without parcels, it's the type the draft was given, which automatic packing keeps
 to. Parcels of more than one kind are refused by `CreateOrderMessageMapper`, and a type the carrier
 doesn't take (`available_carriers`' `additional_data.shipmenttype`) by `Placing`, since Polkurier
@@ -181,7 +185,7 @@ order items, converted to kilograms from the store's weight unit.
 
 `Model\Shipment\AutoPacker` packs a shipment's items into parcels. It uses the products' shipping
 dimensions (`polkurier_length`, `polkurier_width`, `polkurier_height`, decimal centimetres, added by
-`Setup\Patch\Data\AddProductDimensions` in a "Shipping dimensions" group, admin only and removed
+`Setup\Patch\Data\AddProductDimensionsPatch` in a "Shipping dimensions" group, admin only and removed
 when the patch is reverted), read through `Model\Shipment\ItemDimensions`. For the option of a
 configurable product it uses the option's product, falling back to the parent's dimensions. A
 bundle shipped together uses its own dimensions, or else a box around its parts stacked lying
@@ -189,9 +193,9 @@ flat (the largest part's length and width, the sum of their heights per bundle),
 unmeasured if any part has no dimensions. The templates are the pack templates with a size.
 
 The packing aims for the fewest parcels, and only uses templates of one shipment type: the
-draft's when it has parcels (`pack()`), otherwise the smallest of envelope, box and palette whose
-templates take every unit (`packByItems()`; with none taking them all, the one leaving out the
-fewest, box on a tie).
+draft's when it has parcels (`pack()`), otherwise the one given or `shipment_defaults/default_shipment_type`
+(`packByItems()`). Units no template of the type takes go in packs of their own size of the type:
+parcels (`ST`), envelopes (`ENV`), or the smallest pallet they stand on.
 `fill()` builds the parcels one at a time. If the smallest template that takes every unit left
 exists, it's the last parcel. Otherwise the template that packs the most volume of what's left
 makes the next parcel, the smaller one on a tie. A unit that fits no template gets a parcel of its
@@ -217,7 +221,7 @@ automatically**), with the quantities chosen.
 
 Going on an existing shipment, `release()` unlinks the cancelled order there and deletes its
 waybills from the shipment's tracks, then the new waybills are added. The native label flow does
-the same in `Observer\LinkLabelledShipment` when a label is created again for a shipment whose
+the same in `Observer\LinkLabelledShipmentObserver` when a label is created again for a shipment whose
 Polkurier order was cancelled.
 
 The Polkurier order exists whatever happens there, so a failure is recorded in `last_error`
@@ -228,7 +232,7 @@ again, and `shipOrder()` does it on demand.
 
 `Model\Shipment\ActualShipping` keeps the order's `shipping_method`, `shipping_description` and
 pickup point (`polkurier_order_point`) what its latest `created` Polkurier order went with. It runs
-from `Observer\FollowShipmentCarrier` on `polkurier_shipment_save_after` whenever a shipment
+from `Observer\FollowShipmentCarrierObserver` on `polkurier_shipment_save_after` whenever a shipment
 becomes or stops being `created`. The first change keeps the customer's choice in
 `polkurier_order_shipping_choice` (`ShippingChoiceStore`), exposed as the order's
 `polkurier_shipping_choice` extension attribute; with no `created` shipment left it's put back
@@ -240,7 +244,7 @@ a comment to the order's history.
 
 ## Settling what's undecided
 
-`Cron\ReconcileShipments`, every 10 minutes, settles what's undecided: `Model\Shipment\NotPlaced`
+`Cron\ReconcileShipmentsTask`, every 10 minutes, settles what's undecided: `Model\Shipment\NotPlaced`
 removes `failed` shipments 48 hours (`LIFETIME_HOURS`) after their last attempt (`created_at`,
 renewed by each attempt) and **Discard** removes one at once, each noted on the order;
 `AutoReconciler` looks for unanswered ones; and `Model\Admin\AttentionNotifier` adds a major
@@ -253,14 +257,29 @@ details page without a URL key (made by the cron, outside any session), so that 
 
 ## Reconciliation
 
-`reconcile()` asks `Model\Shipment\Reconciler` for orders on the account that match the recorded
-attempt: the same carrier, placed from the day before to the day after (Polkurier filters orders by
-date only), with the same description, recipient postcode, phone and number of parcels, and not
-held by another shipment.
+Every order is sent with the shop's own ids: `external_application_id` is the installation's
+(`Sdk\ApplicationId`: `magento2-` and 12 hex digits from the first encryption key),
+`external_order_id` the Magento shipment's number or the order's (`general/external_order_id`), and
+`external_order_number` the order's. A new Magento shipment's number is taken from Magento's
+sequence before placing (`Shipment\ExternalIds`), kept as `reserved_shipment_number`, and given to
+the shipment once made: by `NativeLabel` to the shipment Magento is saving, and through
+`ReservedShipmentNumbers` and a plugin on `ShipmentDocumentFactory` to one the module ships. An
+attempt sent again keeps its number. Polkurier stores the ids as given (up to 50 characters, not
+unique, never checked) and may fail to keep them without saying so.
 
-- **One or more matches**: the earliest is adopted, and the shipment is finished as if it had been
-  accepted: Magento shipment, event. Any others are reported in an order comment and in
-  `last_error` as probable duplicates.
+`reconcile()` asks `Model\Shipment\Reconciler` for orders on the account that match the recorded
+attempt. It first lists the orders with the attempt's ids; failing that, it looks as for an order
+sent without them: the same carrier, placed from the day before to the day after (Polkurier
+filters orders by date only). Either way an order must have the same description, recipient
+postcode, phone and number of parcels, and not be held by another shipment.
+
+- **One or more matches**: the earliest one not cancelled is adopted, and the shipment is finished
+  as if it had been accepted: Magento shipment, event. Any other live ones are reported in an
+  order comment and in `last_error` as probable duplicates. A description such as the order
+  number is no unique key: an order shipped again after a cancellation has two orders with it.
+- **Only cancelled orders match**: the earliest is linked as `cancelled`, so that it isn't found
+  again, without a Magento shipment or event; the order can be shipped again. Linking one by
+  hand does the same.
 - **Only orders listed without their parcels match**: they may be it, but can't be told apart well
   enough. The shipment stays `unknown` with their numbers in `last_error`, to be linked by hand, and
   is never taken as not placed.
@@ -268,7 +287,7 @@ held by another shipment.
   shipment becomes `failed`, which makes it safe to send again. Until then it stays `unknown`,
   because the order may not be listed yet.
 
-`Cron\ReconcileShipments` runs this every 10 minutes through `Model\Shipment\AutoReconciler`, for
+`Cron\ReconcileShipmentsTask` runs this every 10 minutes through `Model\Shipment\AutoReconciler`, for
 `unknown` and `pending` shipments whose attempt is more than
 `AutoReconciler::PENDING_AFTER_MINUTES` (5) minutes old. A `pending` shipment that old was cut off
 mid-request. `adopt()` links a shipment to a Polkurier order number given by the caller, for
@@ -294,8 +313,9 @@ on it, is left to `refreshStatus()`, from the cron or **Update status**.
 stored request, which `Details\SentOrder` reads into the same shape) and the scans into the page's
 sections. `Details\Links` finds the Magento order and shipment, `Details\OptionLabels` names the
 codes, and `Details\Formatter` writes the values. Times Polkurier reports are in Polish time
-(`Formatter::POLKURIER_TIME_ZONE`); they are shown in the admin's time zone like the module's own
-UTC times, so both kinds on the page agree.
+(`Formatter::POLKURIER_TIME_ZONE`). The status and delivery times are stored in UTC, like every
+time the module stores, so grids and their filters convert them as Magento's own; the scans are
+kept as reported. All are shown in the admin's time zone, so the times on the page agree.
 
 `OrderSnapshot::isFinal()` decides when a shipment is finished:
 
@@ -305,7 +325,7 @@ UTC times, so both kinds on the page agree.
 - returning to the sender with no change for 14 days, since returns don't get a final status of
   their own.
 
-`Model\Shipment\StatusRefresher`, run by `Cron\RefreshShipmentStatus` on the schedule of
+`Model\Shipment\StatusRefresher`, run by `Cron\RefreshShipmentStatusTask` on the schedule of
 `carriers/polkurier/sync/status_schedule` (a cron expression, every 30 minutes by default; the job's
 `config_path` in `etc/crontab.xml`), refreshes `created` shipments of every store that aren't final
 and weren't checked since the previous run (`Config::getStatusIntervalMinutes()`, less a minute),
@@ -338,3 +358,26 @@ checked, also with the status sync off.
 - `Model\Shipment\TrackingLookup` finds a shipment by waybill, for Magento's tracking popup.
 
 Next: [Shipping labels in Magento](magento-labels.md)
+
+## Entries typed in for a shipment
+
+A sender or a cash on delivery account can be typed in rather than chosen: the screens send
+`sender_address_id` or `cod_bank_account_id` as `new` (`ShipmentDraftInterface::NEW`), with the
+fields flat beside the recipient's (`new_sender_*` by `NEW_SENDER_FIELDS`, `new_bank_account_number`).
+`DraftHydrator` turns `new` into `isNewSender()` / `isNewBankAccount()` and back.
+`CreateOrderMessageMapper` sends them as typed (`SenderMapper::fromFields()`; the account number
+without spaces), and refuses a typed-in sender missing what Polkurier needs. A parcel without a
+template carries `keep_as`, the pack template name to save it under; Magento's packaging window
+adds it to a package's params as `polkurier_keep_as` (`NativeLabel::KEEP_AS_PARAM`).
+
+`keep_new_sender`, `keep_new_bank_account` and `keep_as` ask for them to be saved for later:
+`Placing` calls `KeepForLater::keep()` once Polkurier has accepted the order, which saves each
+through the settings pages' handlers (`AddressHandler`, `BankAccountHandler`,
+`PackTemplateHandler`), so they're pushed to Polkurier the same way, and says the outcome as admin
+messages. A save that fails never undoes the shipment. `DefaultDraftBuilder` starts with a typed-in
+sender when there's no address and no store address to fall back on, and with a typed-in account
+when cash on delivery has no account to go to, both to be kept.
+
+A pack template's `tare` (Magento only; not in Polkurier's pack templates, so never synced) is
+added to what a parcel holds when parcels weigh their contents (`ParcelWeightEnum::weigh()`,
+`rules.parcelWeight()`), and taken off the maximum weight the packer fills a template up to.

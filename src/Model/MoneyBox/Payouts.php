@@ -33,12 +33,12 @@ use Polkurier\Webservice\Response\TwoFactorToken;
  * A payout moves real money. Polkurier requires a two-factor code for it, and the security PIN
  * when the account has locked its money box settings; neither is stored.
  */
-class Payouts
+readonly class Payouts
 {
     public function __construct(
-        private readonly ClientPool $clientPool,
-        private readonly ErrorMessages $errorMessages,
-        private readonly ApiEventDispatcher $events,
+        private ClientPool $clientPool,
+        private ErrorMessages $errorMessages,
+        private ApiEventDispatcher $events,
     ) {}
 
     /**
@@ -60,6 +60,18 @@ class Payouts
     }
 
     /**
+     * What can be paid out now, in złoty, or null when Polkurier can't be asked.
+     */
+    public function getAvailableBalance(): ?float
+    {
+        try {
+            return $this->call(fn(): float => $this->clientPool->account()->getAccountInfo()->getMoneyBoxPayoutAvailableBalance());
+        } catch (LocalizedException) {
+            return null;
+        }
+    }
+
+    /**
      * What a payout of the given orders (or of everything available, when none) would cost.
      *
      * @param string[] $orderNumbers
@@ -73,12 +85,17 @@ class Payouts
     }
 
     /**
-     * Sends the account holder the two-factor code a payout needs.
+     * Sends the account holder the two-factor code a payout needs; not when the money box has
+     * nothing to pay out, for a payout that can't be made.
      *
      * @throws LocalizedException
      */
     public function requestCode(): TwoFactorToken
     {
+        $available = $this->getAvailableBalance();
+        if ($available !== null && $available <= 0) {
+            throw new LocalizedException(\__('The money box has nothing to pay out yet. No code was sent.'));
+        }
         $token = $this->call(fn() => $this->clientPool->twoFactorToken()->twoFactorTokenRegister(
             new RegisterMessage(TwoFactorNamespaceEnum::MoneyBoxPayout),
         ));

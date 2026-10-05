@@ -97,6 +97,7 @@
             "width": true,
             "height": true,
             "weight": true,
+            "tare": true,
             "cod_amount": true,
             "insurance_amount": true,
             "carrier_code": true,
@@ -189,7 +190,9 @@
             "ship_items": true,
             "target_shipment_id": true,
             "ship_packages": true,
-            "attention_notified_at": true
+            "attention_notified_at": true,
+            "external_order_id": true,
+            "reserved_shipment_number": true
         },
         "index": {
             "POLKURIER_SHIPMENT_ORDER_ID": true,

@@ -17,9 +17,12 @@ use Polkurier\Shipping\Model\ApiEventDispatcher;
 use Polkurier\Shipping\Model\Sdk\ShipmentGatewayInterface;
 use Polkurier\Shipping\Model\Shipment\Pickups;
 use Polkurier\Shipping\Test\Unit\Support\RecordingEventManager;
+use Polkurier\Webservice\Enum\Order\PackTypeEnum;
 use Polkurier\Webservice\Enum\Order\ShipmentTypeEnum;
 use Polkurier\Webservice\Request\Courier\GetPickupTimeMessage;
+use Polkurier\Webservice\Request\Order\MultiPickupAvailabilityRequestMessage;
 use Polkurier\Webservice\Request\Order\MultiPickupRequestMessage;
+use Polkurier\Webservice\Request\Order\PackMessage;
 use Polkurier\Webservice\Response\Courier\PickupTimeMessage;
 use Polkurier\Webservice\Response\Courier\TimeIntervalMessage;
 use Polkurier\Webservice\Response\Order\MultiPickupResultMessage;
@@ -31,6 +34,7 @@ class PickupsTest extends TestCase
 {
     private ?GetPickupTimeMessage $timesAsked = null;
     private ?MultiPickupRequestMessage $booking = null;
+    private ?MultiPickupAvailabilityRequestMessage $availabilityAsked = null;
     private bool $multiPickupAvailable = true;
 
     /**
@@ -101,16 +105,27 @@ class PickupsTest extends TestCase
         }
     }
 
-    public function testAnAccountWithoutCollectivePickupsBooksNone(): void
+    public function testPolkurierIsAskedToBookWithoutAskingFirstWhetherTheAccountCan(): void
     {
+        // Polkurier answers "available" only for a carrier and parcels given, never for an
+        // account as a whole: asked without them, it always says no.
         $this->multiPickupAvailable = false;
-        $this->expectExceptionMessage('Collective pickups are not available for this Polkurier account.');
+        $this->bookable = ['18015-1'];
 
-        try {
-            $this->pickups()->bookCollective([$this->shipment('18015-1')], '2026-10-01', '10:00', '16:00');
-        } finally {
-            self::assertNull($this->booking);
-        }
+        $result = $this->pickups()->bookCollective([$this->shipment('18015-1')], '2026-10-01', '10:00', '16:00');
+
+        self::assertSame(['18015-1'], $result['booked']);
+    }
+
+    public function testWhetherACollectivePickupIsPossibleIsAskedForTheShipment(): void
+    {
+        $pack = new PackMessage(length: 40, width: 30, height: 20, weight: 0.55, type: PackTypeEnum::Standard, amount: 1);
+
+        self::assertTrue($this->pickups()->isCollectiveAvailable('DPD', '31-042', 'box', [$pack]));
+        self::assertSame('DPD', $this->availabilityAsked?->getCourier());
+        self::assertSame('31-042', $this->availabilityAsked->getSenderPostCode());
+        self::assertSame(ShipmentTypeEnum::Box, $this->availabilityAsked->getShipmentType());
+        self::assertSame([$pack], $this->availabilityAsked->getPacks());
     }
 
     public function testABookingPolkurierTurnsDownEntirelyIsNotReported(): void
@@ -136,7 +151,11 @@ class PickupsTest extends TestCase
                 new PickupTimeMessage(new \DateTimeImmutable('2026-10-02')),
             ];
         });
-        $gateway->method('isMultiPickupAvailable')->willReturnCallback(fn(): bool => $this->multiPickupAvailable);
+        $gateway->method('isMultiPickupAvailable')->willReturnCallback(function (MultiPickupAvailabilityRequestMessage $message): bool {
+            $this->availabilityAsked = $message;
+
+            return $this->multiPickupAvailable;
+        });
         $gateway->method('bookMultiPickup')->willReturnCallback(function (MultiPickupRequestMessage $message): MultiPickupResultMessage {
             $this->booking = $message;
             $failed = [];

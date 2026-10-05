@@ -8,16 +8,20 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Model\Shipment;
 
 use Magento\Sales\Model\Order;
+use Polkurier\Shipping\Api\Data\AddressInterface;
+use Polkurier\Shipping\Api\Data\PackTemplateInterface;
 use Polkurier\Shipping\Api\Data\ShipmentDraftInterface;
 use Polkurier\Shipping\Model\Carrier\CarrierCatalog;
 use Polkurier\Shipping\Model\Carrier\CarrierFeatures;
 use Polkurier\Shipping\Model\Carrier\Polkurier;
 use Polkurier\Shipping\Model\Config;
 use Polkurier\Shipping\Model\MasterData;
+use Polkurier\Shipping\Model\Mapper\SenderMapper;
 use Polkurier\Shipping\Model\Mapper\StreetParser;
 use Polkurier\Shipping\Model\OrderPointStore;
 use Polkurier\Shipping\Model\Shipment\Draft\ItemFactory;
 use Polkurier\Shipping\Model\Shipment\Draft\PackFactory;
+use Polkurier\Webservice\Enum\Courier\PointRequirementEnum;
 use Polkurier\Webservice\Enum\Order\AdditionalServiceEnum;
 use Polkurier\Webservice\Enum\Order\ShipmentTypeEnum;
 use Polkurier\Webservice\Exception\Exception as PolkurierException;
@@ -28,21 +32,22 @@ use Psr\Log\LoggerInterface;
  * Prepares the draft a merchant starts from: what the customer ordered, where to, and the defaults
  * configured for the order's store, narrowed to what the carrier supports.
  */
-class DefaultDraftBuilder
+readonly class DefaultDraftBuilder
 {
     public function __construct(
-        private readonly DraftFactory $draftFactory,
-        private readonly PackFactory $packFactory,
-        private readonly Config $config,
-        private readonly MasterData $masterData,
-        private readonly OrderPointStore $orderPointStore,
-        private readonly StreetParser $streetParser,
-        private readonly CarrierCatalog $catalog,
-        private readonly CarrierFeatures $features,
-        private readonly OrderAmounts $amounts,
-        private readonly ItemFactory $itemFactory,
-        private readonly AutoPacker $autoPacker,
-        private readonly LoggerInterface $logger,
+        private DraftFactory $draftFactory,
+        private PackFactory $packFactory,
+        private Config $config,
+        private MasterData $masterData,
+        private OrderPointStore $orderPointStore,
+        private StreetParser $streetParser,
+        private CarrierCatalog $catalog,
+        private CarrierFeatures $features,
+        private OrderAmounts $amounts,
+        private ItemFactory $itemFactory,
+        private AutoPacker $autoPacker,
+        private LoggerInterface $logger,
+        private SenderMapper $senderMapper,
     ) {}
 
     /**
@@ -57,13 +62,22 @@ class DefaultDraftBuilder
 
         $draft = $this->draftFactory->create();
         $draft->setCarrierCode((string)$carrierCode);
-        $draft->setShipmentType($this->getShipmentType($carrier));
+        $draft->setShipmentType($this->getShipmentType($carrier, $storeId));
         $draft->setDescription(\sprintf($this->config->getDescriptionFormat($storeId), $order->getIncrementId()));
-        $senderId = $this->masterData->getDefaultSenderAddress()?->getId();
+        $sender = $this->masterData->getDefaultSenderAddress();
+        $senderId = $sender?->getId();
         $draft->setSenderAddressId($senderId !== null ? (int)$senderId : null);
+        // Handed over at the sender's drop-off point, for a carrier that takes parcels at points.
+        if ($carrier !== null && $this->features->getSenderPointRequirement($carrier) !== PointRequirementEnum::None) {
+            $draft->setSenderPointId($sender?->getPointId() ?: null);
+        }
+        // Nothing to send from, neither an address nor the store's: one is typed in, and kept.
+        if ($senderId === null && $this->masterData->getSenderAddresses() === [] && $this->senderMapper->fromStore($storeId) === null) {
+            $draft->setNewSender(true)->setKeepingNewSender(true)->setNewSenderAddress([AddressInterface::COUNTRY => 'PL']);
+        }
         $this->setRecipient($draft, $order);
         $draft->setItems($this->createItems($order, $qtys));
-        [$packs, $estimated] = $this->createPacks($order, $draft->getItems());
+        [$packs, $estimated] = $this->createPacks($order, $draft->getItems(), $draft->getShipmentType());
         $draft->setPacks($packs);
         // Packed automatically: the screen asks to check the parcels.
         $draft->setPacksEstimated($estimated);
@@ -84,6 +98,10 @@ class DefaultDraftBuilder
             $draft->setCodReturnType($this->config->getDefaultCodReturnType($storeId)->value);
             $bankAccountId = $this->masterData->getPreferredBankAccount()?->getId();
             $draft->setCodBankAccountId($bankAccountId !== null ? (int)$bankAccountId : null);
+            // No account to pay out to: one is typed in, and kept.
+            if ($bankAccountId === null) {
+                $draft->setNewBankAccount(true)->setKeepingNewBankAccount(true);
+            }
         }
         $insuranceRequired = $cod && $carrier !== null && $this->features->isInsuranceRequiredWithCod($carrier);
         if ($this->config->isInsureByDefault($storeId) || $insuranceRequired) {
@@ -160,13 +178,12 @@ class DefaultDraftBuilder
     }
 
     /**
-     * What the parcels are to be until there are some: the default pack template's kind, a parcel
-     * without one, or the first the carrier takes when it doesn't take that.
+     * What the parcels are to be until there are some: as the website's parcels go, or the first
+     * kind the carrier takes when it doesn't take that.
      */
-    private function getShipmentType(?Carrier $carrier): string
+    private function getShipmentType(?Carrier $carrier, int $storeId): string
     {
-        $template = $this->masterData->getDefaultPackTemplate();
-        $default = PackKinds::shipmentTypeOf($template?->getPackType());
+        $default = $this->config->getDefaultShipmentType($storeId);
         if ($carrier === null) {
             return $default->value;
         }
@@ -216,26 +233,27 @@ class DefaultDraftBuilder
 
     /**
      * The items packed into parcels of the pack templates, when every product has its shipping
-     * dimensions; otherwise one parcel of the default pack template, or none without one:
+     * dimensions; otherwise one parcel of the default pack template, or of the first of the
+     * shipment's kind when the default is of another, or none without one:
      * a parcel nobody sized would only stand in the way.
      *
      * @param \Polkurier\Shipping\Api\Data\ShipmentDraft\ItemInterface[] $items
      * @return array{0: Draft\Pack[], 1: bool} the parcels, and whether they were packed automatically
      */
-    private function createPacks(Order $order, array $items): array
+    private function createPacks(Order $order, array $items, string $shipmentType): array
     {
         if ($this->config->isPackingNewShipments((int)$order->getStoreId())) {
             $qtys = [];
             foreach ($items as $item) {
                 $qtys[$item->getOrderItemId()] = $item->getQty();
             }
-            // No parcels yet: the items decide what they go as.
-            $packed = $this->autoPacker->packByItems($order, $qtys)['packs'];
+            // No parcels yet: packed as the shipment's kind.
+            $packed = $this->autoPacker->packByItems($order, $qtys, $shipmentType)['packs'];
             if ($packed !== []) {
                 return [$packed, true];
             }
         }
-        $template = $this->masterData->getDefaultPackTemplate();
+        $template = $this->templateOf($shipmentType);
         if ($template === null) {
             return [[], false];
         }
@@ -255,7 +273,25 @@ class DefaultDraftBuilder
             ->setLength($template->getLength())
             ->setWidth($template->getWidth())
             ->setHeight($template->getHeight())
-            ->setWeight($this->config->getParcelWeight((int)$order->getStoreId())->weigh($template->getWeight(), $weight, $weighed))
+            ->setWeight($this->config->getParcelWeight((int)$order->getStoreId())->weigh($template->getWeight(), $weight, $weighed, $template->getTare()))
             ->setAmount(1)], false];
+    }
+
+    /**
+     * The default pack template, when of the kind given; otherwise the first that is.
+     */
+    private function templateOf(string $shipmentType): ?PackTemplateInterface
+    {
+        $default = $this->masterData->getDefaultPackTemplate();
+        if ($default !== null && PackKinds::shipmentTypeOf($default->getPackType())->value === $shipmentType) {
+            return $default;
+        }
+        foreach ($this->masterData->getPackTemplates() as $template) {
+            if (PackKinds::shipmentTypeOf($template->getPackType())->value === $shipmentType) {
+                return $template;
+            }
+        }
+
+        return null;
     }
 }

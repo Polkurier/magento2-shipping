@@ -21,7 +21,7 @@ use Polkurier\Shipping\Model\ResourceModel\Shipment\CollectionFactory;
  * later still it's removed. None stays "Not placed" for good. Each removal is noted in the order's
  * history.
  */
-class NotPlaced
+readonly class NotPlaced
 {
     /**
      * From its last attempt to the admin's notice of it.
@@ -34,11 +34,11 @@ class NotPlaced
     public const int LIFETIME_HOURS = 48;
 
     public function __construct(
-        private readonly ShipmentRepositoryInterface $shipmentRepository,
-        private readonly CollectionFactory $collectionFactory,
-        private readonly MagentoFollowUp $followUp,
-        private readonly CarrierNames $carrierNames,
-        private readonly DateTime $dateTime,
+        private ShipmentRepositoryInterface $shipmentRepository,
+        private CollectionFactory $collectionFactory,
+        private MagentoFollowUp $followUp,
+        private CarrierNames $carrierNames,
+        private DateTime $dateTime,
     ) {}
 
     /**

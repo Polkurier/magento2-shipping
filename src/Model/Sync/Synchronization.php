@@ -20,17 +20,17 @@ use Psr\Log\LoggerInterface;
  * can't be synchronized doesn't keep the others from it: its failure is logged and reported with
  * the others' summaries, and only when every kind asked for failed is it an error.
  */
-class Synchronization implements SynchronizationInterface
+readonly class Synchronization implements SynchronizationInterface
 {
     /**
      * @param AdapterInterface[] $adapters one per kind, in the order they run
      */
     public function __construct(
-        private readonly SyncEngine $engine,
-        private readonly ErrorMessages $errorMessages,
-        private readonly SyncLock $lock,
-        private readonly LoggerInterface $logger,
-        private readonly array $adapters = [],
+        private SyncEngine $engine,
+        private ErrorMessages $errorMessages,
+        private SyncLock $lock,
+        private LoggerInterface $logger,
+        private array $adapters = [],
     ) {}
 
     /**

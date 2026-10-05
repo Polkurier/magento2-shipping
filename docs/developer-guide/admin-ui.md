@@ -129,7 +129,7 @@ Buttons that trigger such actions from a listing (*Synchronize with Polkurier*, 
 statuses*) are `Ui\Component\Control\PostButton` virtual types in `etc/adminhtml/di.xml`,
 posting through `mage/dataPost` with the form key; row actions post the same way. So does the
 Delete button of the address and pack template forms, a `Ui\Component\Control\DeleteButton` virtual
-type confirmed with the same text as the list's row action (`deleteMessage` of `EditActions`); the
+type confirmed with the same text as the list's row action (`deleteMessage` of `EditActionsColumn`); the
 bank account form has its own, which sends the PIN typed into it.
 
 Scripts that ask an action for an answer without leaving the page (prices, collection dates,
@@ -242,7 +242,7 @@ Configuration). Its icon is `view/adminhtml/web/images/menu-icon.svg`, applied a
   `Plugin\Adminhtml\ShippingInfoPlugin` puts the child's HTML in before the section's content
   closes. The point is changed per shipment, on the shipment screen or in the label options.
 - `view/adminhtml/ui_component/sales_order_view_shipment_grid.xml` adds a **Polkurier order**
-  column to Magento's Shipments tab (`Ui\Component\Listing\Column\PolkurierOrder`): the
+  column to Magento's Shipments tab (`Ui\Component\Listing\Column\PolkurierOrderColumn`): the
   Polkurier order linked to each Magento shipment through `polkurier_shipment.shipment_id`, linked
   to its details page. The column turns off the grid's row click, so a click on the link doesn't
   open the Magento shipment, and it's disabled without `Polkurier_Shipping::shipments`. Its
@@ -253,13 +253,13 @@ Configuration). Its icon is `view/adminhtml/web/images/menu-icon.svg`, applied a
 - The **Polkurier** tab (`Block\Adminhtml\Order\View\Tab\PolkurierShipments`, added after
   `order_shipments` in `sales_order_view.xml`) holds `polkurier_order_view_shipment_listing`: the
   order's Polkurier shipments of every state, filtered by `order_id` like Magento's own tabs, with
-  `ShipmentActions` (without **View order**, through its `onOrderPage` config).
+  `ShipmentActionsColumn` (without **View order**, through its `onOrderPage` config).
 - Every action leaves one message, whatever it did and however many rows it touched:
   `Model\Admin\Flash` gathers what it has to say and sends it once, at the gravest of its kinds.
   Mass actions and synchronizations add their results up (`SyncResult::add()`) rather than
   reporting each row; the master data handlers return the `SyncResult` of their push for that.
 - `Plugin\Adminhtml\OrderViewPlugin` handles the **Ship** and **Ship with Polkurier** buttons,
-  only while the order can ship. `Plugin\Adminhtml\ShipButtonPosition`, on the toolbar, puts
+  only while the order can ship. `Plugin\Adminhtml\ShipButtonPositionPlugin`, on the toolbar, puts
   **Ship with Polkurier** right after **Ship**: Magento's order page buttons share one sort order,
   and some come in late (Inventory reworks **Ship** in a block of its own), so it renumbers them
   in their order each time the toolbar lays them out.
@@ -271,7 +271,7 @@ Configuration). Its icon is `view/adminhtml/web/images/menu-icon.svg`, applied a
   data provider starts from the draft that attempt kept (`polkurier_shipment.draft`, saved by
   `Placing` with every attempt it keeps: those that failed on Polkurier's side; a refusal of the
   shipment as it is isn't kept), and the page says why it wasn't placed. Offered, in
-  `ShipmentActions` and as `SendAgainButton`, for a failed shipment that is the order's latest
+  `ShipmentActionsColumn` and as `SendAgainButton`, for a failed shipment that is the order's latest
   attempt, while the order can ship or has a Magento shipment without a Polkurier order.
 - On an order placed with another carrier's method, none of this appears: there's no point to
   show, the **Polkurier order** column of the Shipments tab disables itself, and

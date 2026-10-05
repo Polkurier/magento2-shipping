@@ -22,16 +22,17 @@ use Polkurier\Shipping\Model\Shipment\Details\SentOrder;
  * record, the local copy of the Polkurier order (or, until Polkurier has been read, the order as
  * it was sent) and the carrier's scans.
  */
-class DetailsView
+readonly class DetailsView
 {
     public function __construct(
-        private readonly Links $links,
-        private readonly OptionLabels $labels,
-        private readonly Formatter $format,
-        private readonly SentOrder $sentOrder,
-        private readonly CarrierNames $carrierNames,
-        private readonly OrderRepositoryInterface $orderRepository,
-        private readonly OrderAmounts $amounts,
+        private Links $links,
+        private OptionLabels $labels,
+        private Formatter $format,
+        private SentOrder $sentOrder,
+        private CarrierNames $carrierNames,
+        private OrderRepositoryInterface $orderRepository,
+        private OrderAmounts $amounts,
+        private PackChanges $packChanges,
     ) {}
 
     /**
@@ -84,6 +85,7 @@ class DetailsView
             'notes' => \array_values(\array_filter([
                 $fromPolkurier ? null : (string)\__('Polkurier has not been read for this order yet: shown as it was sent.'),
                 $shipment->getLastError() ? (string)\__('Last error: %1', $shipment->getLastError()) : null,
+                ...$this->packChanges->describe($shipment),
             ])),
             'errors' => \array_values($errors),
             'synced' => $this->syncedLine($shipment),
@@ -124,8 +126,8 @@ class DetailsView
         $url = (string)($details['tracking_url'] ?? $shipment->getTrackingUrl() ?? '');
         $rows = [
             [\__('Status'), $shipment->getStatusLabel() ?: '—'],
-            [\__('Status date'), $this->format->polkurierTime($shipment->getStatusDate())],
-            [\__('Delivered'), $this->format->polkurierTime($shipment->getDeliveredAt())],
+            [\__('Status date'), $this->format->storedTime($shipment->getStatusDate())],
+            [\__('Delivered'), $this->format->storedTime($shipment->getDeliveredAt())],
         ];
         foreach ($shipment->getWaybills() as $waybill) {
             $rows[] = [\__('Waybill'), $waybill, $url !== '' ? $url : null];

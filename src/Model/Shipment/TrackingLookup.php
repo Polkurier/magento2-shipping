@@ -14,11 +14,11 @@ use Polkurier\Shipping\Model\ResourceModel\Shipment\CollectionFactory;
 /**
  * Finds the Polkurier shipment a waybill belongs to, for its tracking page and carrier.
  */
-class TrackingLookup
+readonly class TrackingLookup
 {
     public function __construct(
-        private readonly CollectionFactory $collectionFactory,
-        private readonly CarrierConfigs $carrierConfigs,
+        private CollectionFactory $collectionFactory,
+        private CarrierConfigs $carrierConfigs,
     ) {}
 
     /**

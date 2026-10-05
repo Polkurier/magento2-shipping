@@ -16,15 +16,15 @@ use Magento\Framework\View\Element\UiComponent\Control\ButtonProviderInterface;
  *
  * For actions that change data; configured per button as a virtual type in adminhtml/di.xml.
  */
-class PostButton implements ButtonProviderInterface
+readonly class PostButton implements ButtonProviderInterface
 {
     public function __construct(
-        private readonly UrlInterface $url,
-        private readonly Json $json,
-        private readonly string $label,
-        private readonly string $path,
-        private readonly string $class = 'secondary',
-        private readonly int $sortOrder = 20,
+        private UrlInterface $url,
+        private Json $json,
+        private string $label,
+        private string $path,
+        private string $class = 'secondary',
+        private int $sortOrder = 20,
     ) {}
 
     /**

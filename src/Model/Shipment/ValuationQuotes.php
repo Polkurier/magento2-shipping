@@ -16,7 +16,7 @@ namespace Polkurier\Shipping\Model\Shipment;
  * and price_gross instead, and a single quote without a code is the draft's carrier. All three
  * are read; anything else is counted as unrecognised, for the caller to log.
  */
-class ValuationQuotes
+readonly class ValuationQuotes
 {
     /**
      * @param array<array-key, mixed> $valuation

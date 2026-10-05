@@ -16,14 +16,14 @@ use Polkurier\Shipping\Model\ResourceModel\QuotePoint as QuotePointResource;
 /**
  * Loads and stores the pickup point of a quote and of an order.
  */
-class OrderPointStore
+readonly class OrderPointStore
 {
     public function __construct(
-        private readonly OrderPointFactory $orderPointFactory,
-        private readonly OrderPointResource $orderPointResource,
-        private readonly OrderPointCollectionFactory $orderPointCollectionFactory,
-        private readonly QuotePointFactory $quotePointFactory,
-        private readonly QuotePointResource $quotePointResource,
+        private OrderPointFactory $orderPointFactory,
+        private OrderPointResource $orderPointResource,
+        private OrderPointCollectionFactory $orderPointCollectionFactory,
+        private QuotePointFactory $quotePointFactory,
+        private QuotePointResource $quotePointResource,
     ) {}
 
     public function getForOrder(int $orderId): ?OrderPointInterface

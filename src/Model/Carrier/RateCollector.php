@@ -38,21 +38,21 @@ use Psr\Log\LoggerInterface;
  * points map can't open (no map token), since the shopper would have no way to choose the point
  * the order then needs. Orders created in the admin keep it: the point is set when shipping.
  */
-class RateCollector
+readonly class RateCollector
 {
     private const float KG_PER_POUND = 0.45359237;
 
     public function __construct(
-        private readonly ResultFactory $rateResultFactory,
-        private readonly MethodFactory $rateMethodFactory,
-        private readonly CarrierConfigs $carrierConfigs,
-        private readonly CarrierCatalog $catalog,
-        private readonly CarrierFeatures $features,
-        private readonly PriceCalculatorInterface $priceCalculator,
-        private readonly ScopeConfigInterface $scopeConfig,
-        private readonly LoggerInterface $logger,
-        private readonly MapTokenProvider $mapTokenProvider,
-        private readonly State $appState,
+        private ResultFactory $rateResultFactory,
+        private MethodFactory $rateMethodFactory,
+        private CarrierConfigs $carrierConfigs,
+        private CarrierCatalog $catalog,
+        private CarrierFeatures $features,
+        private PriceCalculatorInterface $priceCalculator,
+        private ScopeConfigInterface $scopeConfig,
+        private LoggerInterface $logger,
+        private MapTokenProvider $mapTokenProvider,
+        private State $appState,
     ) {}
 
     /**
@@ -81,7 +81,12 @@ class RateCollector
             if ($carriers !== null && $carrier === null) {
                 continue;
             }
+            // Carriers for abroad go abroad only, the others only at home: Polkurier prices
+            // neither the other way.
             if ($foreign && ($carrier === null || !$this->features->isForeign($carrier))) {
+                continue;
+            }
+            if (!$foreign && $carrier !== null && $this->features->isForeign($carrier)) {
                 continue;
             }
             if ($carrier !== null && $this->features->isRecipientPointRequired($carrier)

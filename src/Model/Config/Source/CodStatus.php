@@ -12,7 +12,7 @@ use Polkurier\Webservice\Enum\Order\CodStatusEnum;
 /**
  * Cash on delivery states reported by Polkurier.
  */
-class CodStatus extends AbstractOptions
+readonly class CodStatus extends AbstractOptions
 {
     public function toArray(): array
     {

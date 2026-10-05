@@ -216,6 +216,8 @@ class LabelOptions implements ArgumentInterface
             'autoPack' => $this->getAutoPack(),
             // Where the point map starts: the postcode alone, which the city can't contradict.
             'mapSearch' => \trim((string)$order->getShippingAddress()?->getPostcode()),
+            // The sender addresses' postcodes and drop-off points, for the drop-off point.
+            'senderPoints' => (object)$this->context->getSenderPoints(),
             // The collection dates and windows, as the Polkurier shipment screen asks for them.
             'pickupTimes' => [
                 'url' => $this->url->getUrl('polkurier/shipment/pickupTimes'),
@@ -225,10 +227,7 @@ class LabelOptions implements ArgumentInterface
             'point' => $this->describePoint($order, $values),
             'options' => [
                 'carrier_code' => $this->options->getCarrierOptions(),
-                'sender_address_id' => \array_merge(
-                    [['value' => '', 'label' => (string)\__('The store\'s address')]],
-                    $this->options->getSenderOptions(),
-                ),
+                'sender_address_id' => $this->options->getSenderChoices($storeId),
                 'services' => $this->services->toOptionArray(),
                 // Only those that can be printed as the sender.
                 'cover_address_id' => \array_merge(
@@ -237,7 +236,7 @@ class LabelOptions implements ArgumentInterface
                 ),
                 'cod_type' => $this->codTypes->toOptionArray(),
                 'cod_return_type' => $this->codReturnTypes->toOptionArray(),
-                'cod_bank_account_id' => $this->options->getBankAccountOptions(),
+                'cod_bank_account_id' => $this->options->getBankAccountChoices(),
                 'pickup_mode' => $this->pickupModes->toOptionArray(),
             ],
         ]);

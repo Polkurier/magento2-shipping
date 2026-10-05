@@ -12,10 +12,10 @@ use Polkurier\Shipping\Model\Carrier\CarrierNames;
 /**
  * Carriers by name, for grids and forms that keep a carrier code: the code stays the value.
  */
-class CarrierName extends AbstractOptions
+readonly class CarrierName extends AbstractOptions
 {
     public function __construct(
-        private readonly CarrierNames $carrierNames,
+        private CarrierNames $carrierNames,
     ) {}
 
     public function toArray(): array

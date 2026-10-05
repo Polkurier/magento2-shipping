@@ -12,7 +12,7 @@ use Polkurier\Webservice\Enum\Order\CodTypeEnum;
 /**
  * Cash on delivery payout times. 16 days is left out: it can't be ordered through the module.
  */
-class CodType extends AbstractOptions
+readonly class CodType extends AbstractOptions
 {
     public function toArray(): array
     {

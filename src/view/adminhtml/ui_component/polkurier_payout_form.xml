@@ -29,7 +29,7 @@
     <dataSource name="polkurier_payout_form_data_source">
         <argument name="data" xsi:type="array">
             <item name="js_config" xsi:type="array">
-                <item name="component" xsi:type="string">Magento_Ui/js/form/provider</item>
+                <item name="component" xsi:type="string">Polkurier_Shipping/js/form/payout-provider</item>
             </item>
         </argument>
         <settings>
@@ -46,8 +46,23 @@
         <settings>
             <label translate="true">Payout</label>
         </settings>
+        <!-- First under the header: what requesting asks for, and the fee, worked out as the choices change -->
+        <container name="confirmation_note">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="component" xsi:type="string">Magento_Ui/js/form/components/html</item>
+                    <item name="template" xsi:type="string">Polkurier_Shipping/form/field-note</item>
+                    <item name="additionalClasses" xsi:type="string">polkurier-form-note</item>
+                    <item name="content" xsi:type="string" translate="true">Requesting the payout asks for your confirmation: Polkurier sends you a confirmation code to enter.</item>
+                </item>
+            </argument>
+        </container>
+        <container name="fee" component="Polkurier_Shipping/js/moneybox/fee"/>
         <field name="orders" formElement="textarea">
             <settings>
+                <additionalClasses>
+                    <class name="polkurier-payout-orders">true</class>
+                </additionalClasses>
                 <label translate="true">Polkurier orders</label>
                 <dataType>text</dataType>
                 <dataScope>orders</dataScope>
@@ -84,59 +99,44 @@
                 </select>
             </formElements>
         </field>
-        <field name="bank_account_number" formElement="input">
-            <settings>
-                <label translate="true">Bank account number</label>
-                <dataType>text</dataType>
-                <dataScope>bank_account_number</dataScope>
-                <notice translate="true">For transfers; empty uses the money box setting.</notice>
-            </settings>
-        </field>
-        <container name="fee_quote" component="Polkurier_Shipping/js/moneybox/action" sortOrder="60">
+        <field name="bank_account_choice" formElement="select" component="Polkurier_Shipping/js/form/element/shown-when-select">
             <argument name="data" xsi:type="array">
                 <item name="config" xsi:type="array">
-                    <item name="action" xsi:type="string">quote</item>
-                    <item name="buttonLabel" xsi:type="string" translate="true">Show the fee</item>
-                    <item name="fields" xsi:type="array">
-                        <item name="orders" xsi:type="string">orders</item>
-                        <item name="payout_type" xsi:type="string">payout_type</item>
+                    <item name="shownWhen" xsi:type="array">
+                        <item name="payout_type" xsi:type="string">ACCOUNT</item>
                     </item>
-                    <item name="template" xsi:type="string">Polkurier_Shipping/moneybox/action</item>
                 </item>
             </argument>
-        </container>
-        <field name="two_factor_token" formElement="input">
             <settings>
-                <label translate="true">Confirmation token</label>
+                <label translate="true">Bank account</label>
                 <dataType>text</dataType>
-                <dataScope>two_factor_token</dataScope>
-                <visible>false</visible>
-            </settings>
-        </field>
-        <container name="send_code" component="Polkurier_Shipping/js/moneybox/action" sortOrder="80">
-            <argument name="data" xsi:type="array">
-                <item name="config" xsi:type="array">
-                    <item name="action" xsi:type="string">send_code</item>
-                    <item name="buttonLabel" xsi:type="string" translate="true">Send me the confirmation code</item>
-                    <item name="template" xsi:type="string">Polkurier_Shipping/moneybox/action</item>
-                </item>
-            </argument>
-        </container>
-        <field name="two_factor_code" formElement="input">
-            <settings>
-                <label translate="true">Confirmation code</label>
-                <dataType>text</dataType>
-                <dataScope>two_factor_code</dataScope>
+                <dataScope>bank_account_choice</dataScope>
+                <!-- Validated only while shown: for a transfer. -->
                 <validation><rule name="required-entry" xsi:type="boolean">true</rule></validation>
             </settings>
+            <formElements>
+                <select>
+                    <settings>
+                        <options/>
+                    </settings>
+                </select>
+            </formElements>
         </field>
-        <field name="security_pin" formElement="input">
+        <field name="bank_account_number" formElement="input" component="Polkurier_Shipping/js/form/element/shown-when-input">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="shownWhen" xsi:type="array">
+                        <item name="payout_type" xsi:type="string">ACCOUNT</item>
+                        <item name="bank_account_choice" xsi:type="string">new</item>
+                    </item>
+                </item>
+            </argument>
             <settings>
-                <label translate="true">Security PIN</label>
+                <label translate="true">Account number</label>
                 <dataType>text</dataType>
-                <dataScope>security_pin</dataScope>
-                <elementTmpl>Polkurier_Shipping/form/element/password</elementTmpl>
-                <notice translate="true">Only if the money box settings are locked with a PIN.</notice>
+                <dataScope>bank_account_number</dataScope>
+                <validation><rule name="required-entry" xsi:type="boolean">true</rule></validation>
+                <notice translate="true">The account the money is transferred to.</notice>
             </settings>
         </field>
     </fieldset>

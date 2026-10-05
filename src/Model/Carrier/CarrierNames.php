@@ -12,10 +12,10 @@ namespace Polkurier\Shipping\Model\Carrier;
  * settings. Its code is for the API and for developers; it's shown only for a carrier the module
  * knows nothing else of.
  */
-class CarrierNames
+readonly class CarrierNames
 {
     public function __construct(
-        private readonly CarrierConfigs $carrierConfigs,
+        private CarrierConfigs $carrierConfigs,
     ) {}
 
     public function get(string $carrierCode): string

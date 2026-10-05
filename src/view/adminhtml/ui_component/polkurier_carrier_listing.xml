@@ -115,7 +115,7 @@
                 </editor>
             </settings>
         </column>
-        <column name="logo" class="Polkurier\Shipping\Ui\Component\Listing\Column\CarrierLogo" component="Magento_Ui/js/grid/columns/thumbnail">
+        <column name="logo" class="Polkurier\Shipping\Ui\Component\Listing\Column\CarrierLogoColumn" component="Magento_Ui/js/grid/columns/thumbnail">
             <settings>
                 <label translate="true">Logo</label>
                 <hasPreview>1</hasPreview>
@@ -154,7 +154,7 @@
                 </editor>
             </settings>
         </column>
-        <actionsColumn name="actions" class="Polkurier\Shipping\Ui\Component\Listing\Column\EditActions">
+        <actionsColumn name="actions" class="Polkurier\Shipping\Ui\Component\Listing\Column\EditActionsColumn">
             <argument name="data" xsi:type="array">
                 <item name="config" xsi:type="array">
                     <item name="editUrlPath" xsi:type="string">polkurier/carrier/edit</item>

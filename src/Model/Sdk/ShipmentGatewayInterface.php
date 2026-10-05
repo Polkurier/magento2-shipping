@@ -12,6 +12,7 @@ use Polkurier\Webservice\Request\Courier\GetPickupTimeMessage;
 use Polkurier\Webservice\Request\Order\CreateOrderMessage;
 use Polkurier\Webservice\Request\Order\GetDocumentMessage;
 use Polkurier\Webservice\Request\Order\GetOrdersMessage;
+use Polkurier\Webservice\Request\Order\MultiPickupAvailabilityRequestMessage;
 use Polkurier\Webservice\Request\Order\MultiPickupRequestMessage;
 use Polkurier\Webservice\Request\Order\OrderIdMessage;
 use Polkurier\Webservice\Response\Courier\PickupTimeMessage;
@@ -76,9 +77,12 @@ interface ShipmentGatewayInterface
     public function getPickupTimes(GetPickupTimeMessage $message): array;
 
     /**
+     * Whether a shipment can be collected with others, as Polkurier answers for its carrier and
+     * parcels: false also when it can't tell.
+     *
      * @throws LocalizedException
      */
-    public function isMultiPickupAvailable(): bool;
+    public function isMultiPickupAvailable(MultiPickupAvailabilityRequestMessage $message): bool;
 
     /**
      * @throws LocalizedException

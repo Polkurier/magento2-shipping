@@ -56,6 +56,8 @@ interface ShipmentInterface
     public const string TRACKING_SYNCED_AT = 'tracking_synced_at';
     public const string SHIP_ITEMS = 'ship_items';
     public const string TARGET_SHIPMENT_ID = 'target_shipment_id';
+    public const string EXTERNAL_ORDER_ID = 'external_order_id';
+    public const string RESERVED_SHIPMENT_NUMBER = 'reserved_shipment_number';
     public const string SHIP_PACKAGES = 'ship_packages';
     public const string LAST_ERROR = 'last_error';
     public const string CREATED_AT = 'created_at';
@@ -447,6 +449,34 @@ interface ShipmentInterface
      * @return $this
      */
     public function setTargetShipmentId(?int $shipmentId): static;
+
+    /**
+     * What identifies the order to Polkurier as its external_order_id, with the installation's
+     * application id: the Magento shipment's number or the order's, as configured when it was sent.
+     *
+     * @return string|null
+     */
+    public function getExternalOrderId(): ?string;
+
+    /**
+     * @param string|null $externalOrderId
+     * @return $this
+     */
+    public function setExternalOrderId(?string $externalOrderId): static;
+
+    /**
+     * The number taken for the Magento shipment still to be created for the order, which it gets
+     * once created; sent as the external_order_id.
+     *
+     * @return string|null
+     */
+    public function getReservedShipmentNumber(): ?string;
+
+    /**
+     * @param string|null $number
+     * @return $this
+     */
+    public function setReservedShipmentNumber(?string $number): static;
 
     /**
      * The packages of the Magento shipment: the parcels and what each holds, in the form

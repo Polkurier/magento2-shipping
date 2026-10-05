@@ -20,6 +20,7 @@ use Polkurier\Webservice\Request\Order\CreateOrderMessage;
 use Polkurier\Webservice\Request\Order\GetDocumentMessage;
 use Polkurier\Webservice\Request\Order\GetOrdersMessage;
 use Polkurier\Webservice\Request\Order\GetStatusMessage;
+use Polkurier\Webservice\Request\Order\MultiPickupAvailabilityRequestMessage;
 use Polkurier\Webservice\Request\Order\MultiPickupRequestMessage;
 use Polkurier\Webservice\Request\Order\OrderIdMessage;
 use Polkurier\Webservice\Response\Order\CancellationMessage;
@@ -32,11 +33,11 @@ use Polkurier\Webservice\Response\Order\OrderStatusMessage;
 /**
  * The shipment calls over the SDK clients of the client pool.
  */
-class ShipmentGateway implements ShipmentGatewayInterface
+readonly class ShipmentGateway implements ShipmentGatewayInterface
 {
     public function __construct(
-        private readonly ClientPool $clientPool,
-        private readonly ErrorMessages $errorMessages,
+        private ClientPool $clientPool,
+        private ErrorMessages $errorMessages,
     ) {}
 
     public function placeOrder(CreateOrderMessage $message): CreatedOrderMessage
@@ -87,9 +88,9 @@ class ShipmentGateway implements ShipmentGatewayInterface
         return $this->call(fn(): array => $this->clientPool->courier()->getCourierPickupTime($message));
     }
 
-    public function isMultiPickupAvailable(): bool
+    public function isMultiPickupAvailable(MultiPickupAvailabilityRequestMessage $message): bool
     {
-        return $this->call(fn(): bool => $this->clientPool->orders()->isMultiPickupAvailable()->isAvailable());
+        return $this->call(fn(): bool => $this->clientPool->orders()->isMultiPickupAvailable($message)->isAvailable());
     }
 
     public function bookMultiPickup(MultiPickupRequestMessage $message): MultiPickupResultMessage

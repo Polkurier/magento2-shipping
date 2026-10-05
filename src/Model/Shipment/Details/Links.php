@@ -15,12 +15,12 @@ use Magento\Sales\Api\ShipmentRepositoryInterface as MagentoShipmentRepository;
 /**
  * The Magento order and shipment a Polkurier order belongs to, as links for its details page.
  */
-class Links
+readonly class Links
 {
     public function __construct(
-        private readonly OrderRepositoryInterface $orderRepository,
-        private readonly MagentoShipmentRepository $magentoShipmentRepository,
-        private readonly UrlInterface $url,
+        private OrderRepositoryInterface $orderRepository,
+        private MagentoShipmentRepository $magentoShipmentRepository,
+        private UrlInterface $url,
     ) {}
 
     /**

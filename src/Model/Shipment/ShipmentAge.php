@@ -13,10 +13,10 @@ use Polkurier\Shipping\Api\Data\ShipmentInterface;
 /**
  * How long ago a shipment was recorded, for the rules that wait for Polkurier to catch up.
  */
-class ShipmentAge
+readonly class ShipmentAge
 {
     public function __construct(
-        private readonly DateTime $dateTime,
+        private DateTime $dateTime,
     ) {}
 
     /**

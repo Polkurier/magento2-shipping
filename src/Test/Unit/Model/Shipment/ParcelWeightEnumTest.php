@@ -35,4 +35,12 @@ class ParcelWeightEnumTest extends TestCase
         self::assertSame(1.2, ParcelWeightEnum::Template->weigh(null, 1.2, true));
         self::assertSame(0.0, ParcelWeightEnum::Products->weigh(0.0, 0.0, false), 'Nothing to go by: the weight is left to be typed in.');
     }
+
+    public function testTheTareIsAddedOnlyToWhatsInIt(): void
+    {
+        self::assertSame(2.75, ParcelWeightEnum::Products->weigh(10.0, 2.5, true, 0.25));
+        self::assertSame(10.0, ParcelWeightEnum::Template->weigh(10.0, 2.5, true, 0.25), 'The template\'s weight holds the packaging.');
+        self::assertSame(10.0, ParcelWeightEnum::Products->weigh(10.0, 2.5, false, 0.25), 'Unweighed: the template\'s weight.');
+        self::assertSame(2.5, ParcelWeightEnum::Products->weigh(null, 2.5, true, 0.25), 'No template, no packaging known.');
+    }
 }

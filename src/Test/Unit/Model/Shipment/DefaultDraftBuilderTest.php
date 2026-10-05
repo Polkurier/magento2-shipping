@@ -15,6 +15,7 @@ use Polkurier\Shipping\Api\Data\PackTemplateInterface;
 use Polkurier\Shipping\Model\Carrier\CarrierCatalog;
 use Polkurier\Shipping\Model\Carrier\CarrierFeatures;
 use Polkurier\Shipping\Model\Config;
+use Polkurier\Shipping\Model\Mapper\SenderMapper;
 use Polkurier\Shipping\Model\Mapper\StreetParser;
 use Polkurier\Shipping\Model\MasterData;
 use Polkurier\Shipping\Model\OrderPointStore;
@@ -55,6 +56,14 @@ class DefaultDraftBuilderTest extends TestCase
         self::assertSame(0.8, $packs[0]->getWeight(), 'Two mugs of 0.4 kg.');
     }
 
+    public function testTheDefaultParcelIsOfTheShipmentsKind(): void
+    {
+        // The default template is an envelope; the shipment goes as parcels.
+        [$packs] = $this->createPacks(false, defaultPackType: 'ENV');
+
+        self::assertSame(14, $packs[0]->getTemplateId(), 'The first parcel template, not the envelope.');
+    }
+
     public function testTheDefaultParcelWeighsItsTemplatesWeightWhenSetTo(): void
     {
         [$packs] = $this->createPacks(false, ParcelWeightEnum::Template);
@@ -72,7 +81,7 @@ class DefaultDraftBuilderTest extends TestCase
     /**
      * @return array{0: Pack[], 1: bool}
      */
-    private function createPacks(bool $packNewShipments, ParcelWeightEnum $parcelWeight = ParcelWeightEnum::Products, float $mugWeight = 0.4): array
+    private function createPacks(bool $packNewShipments, ParcelWeightEnum $parcelWeight = ParcelWeightEnum::Products, float $mugWeight = 0.4, string $defaultPackType = 'ST'): array
     {
         $config = $this->createStub(Config::class);
         $config->method('isPackingNewShipments')->willReturn($packNewShipments);
@@ -83,14 +92,19 @@ class DefaultDraftBuilderTest extends TestCase
         $autoPacker->method('packByItems')->willReturnCallback(function (): array {
             $this->packings++;
 
-            return ['packs' => [(new Pack())->setAmount(3)], 'unmeasured' => [], 'unweighed' => [], 'templates' => true];
+            return ['packs' => [(new Pack())->setAmount(3)], 'unmeasured' => [], 'unweighed' => [], 'unweighed_own' => [], 'templates' => true];
         });
         $template = $this->createStub(PackTemplateInterface::class);
         $template->method('getId')->willReturn(12);
-        $template->method('getPackType')->willReturn('box');
+        $template->method('getPackType')->willReturn($defaultPackType);
         $template->method('getWeight')->willReturn(25.0);
+        $box = $this->createStub(PackTemplateInterface::class);
+        $box->method('getId')->willReturn(14);
+        $box->method('getPackType')->willReturn('ST');
+        $box->method('getWeight')->willReturn(1.0);
         $masterData = $this->createStub(MasterData::class);
         $masterData->method('getDefaultPackTemplate')->willReturn($template);
+        $masterData->method('getPackTemplates')->willReturn([$template, $box]);
         $packs = $this->createStub(PackFactory::class);
         $packs->method('create')->willReturnCallback(static fn(): Pack => new Pack());
 
@@ -107,6 +121,7 @@ class DefaultDraftBuilderTest extends TestCase
             $this->createStub(ItemFactory::class),
             $autoPacker,
             new NullLogger(),
+            $this->createStub(SenderMapper::class),
         );
         $order = $this->createStub(Order::class);
         $order->method('getStoreId')->willReturn(1);

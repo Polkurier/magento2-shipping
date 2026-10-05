@@ -12,7 +12,7 @@ use Polkurier\Shipping\Api\Data\ShipmentInterface;
 /**
  * States of a Polkurier shipment in Magento.
  */
-class ShipmentState extends AbstractOptions
+readonly class ShipmentState extends AbstractOptions
 {
     public function toArray(): array
     {

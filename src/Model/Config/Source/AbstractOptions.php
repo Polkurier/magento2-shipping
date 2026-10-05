@@ -12,7 +12,7 @@ use Magento\Framework\Data\OptionSourceInterface;
 /**
  * A fixed list of options, value => label.
  */
-abstract class AbstractOptions implements OptionSourceInterface
+abstract readonly class AbstractOptions implements OptionSourceInterface
 {
     /**
      * @return array<string, string>

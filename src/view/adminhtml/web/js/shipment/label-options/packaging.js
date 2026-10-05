@@ -60,7 +60,74 @@ define([
             select.append(option);
         });
         type.first().before($('<th class="col-polkurier-template"/>').text($t('Pack template')));
-        type.last().before($('<td class="col-polkurier-template"/>').append(select));
+        type.last().before($('<td class="col-polkurier-template"/>').append(select, keepChoice()));
+    }
+
+    /**
+     * Under "No template": saving the package as a pack template once the shipment is placed,
+     * under a name. Copied with the package, as the template choice is.
+     *
+     * @returns {jQuery}
+     */
+    function keepChoice() {
+        return $('<div class="polkurier-pack-keep" style="display: none"/>').append(
+            $('<label class="admin__field-option"/>').append(
+                $('<input type="checkbox" class="admin__control-checkbox polkurier-pack-keep__box"/>'),
+                $('<span/>').text(' ' + $t('Save as a pack template'))
+            ),
+            $('<input type="text" class="admin__control-text polkurier-pack-keep__name" style="display: none"/>')
+                .attr({placeholder: $t('Its type and size'), 'aria-label': $t('Saved as')})
+        );
+    }
+
+    /**
+     * Shows the keep choice of a package without a template, and its name once ticked.
+     *
+     * @param {jQuery} pack a package block
+     */
+    function toggleKeep(pack) {
+        const keep = pack.find('.polkurier-pack-keep'),
+            none = !pack.find('select.polkurier-pack-template').val();
+
+        keep.toggle(none);
+        keep.find('.polkurier-pack-keep__name').toggle(none && keep.find('.polkurier-pack-keep__box').prop('checked'));
+    }
+
+    /**
+     * The packages to save as pack templates go with the label request, in their params, as the
+     * name to save each under (NativeLabel::KEEP_AS_PARAM); unnamed, as its type and size.
+     */
+    function sendKeptPackages() {
+        const prototype = window.Packaging && window.Packaging.prototype,
+            original = prototype && prototype.sendCreateLabelRequest;
+
+        if (typeof original !== 'function' || original.polkurierKeep) {
+            return;
+        }
+        prototype.sendCreateLabelRequest = function () {
+            const params = this.paramsCreateLabelRequest;
+
+            Object.keys(params).forEach(function (key) {
+                if (/\[polkurier_keep_as]$/.test(key)) {
+                    delete params[key];
+                }
+            });
+            this.packagesContent.childElements().each(function (element) {
+                const pack = $(element),
+                    name = (pack.find('.polkurier-pack-keep__name').val() || '').trim(),
+                    size = ['container_length', 'container_width', 'container_height'].map(function (field) {
+                        return pack.find('[name=' + field + ']').val();
+                    }).join(' × ');
+
+                if (!pack.find('select.polkurier-pack-template').val() && pack.find('.polkurier-pack-keep__box').prop('checked')) {
+                    params['packages[' + this.getPackageId(element) + '][params][polkurier_keep_as]'] = name
+                        || pack.find('select[name=package_container] option:selected').text().trim() + ' ' + size + ' cm';
+                }
+            }.bind(this));
+
+            return original.apply(this, arguments);
+        };
+        prototype.sendCreateLabelRequest.polkurierKeep = true;
     }
 
     /**
@@ -92,6 +159,7 @@ define([
             if (select && select.value) {
                 applyTemplate(select, templates, mode);
             }
+            toggleKeep(pack);
         });
     }
 
@@ -111,11 +179,13 @@ define([
         prototype.newPackage = function () {
             original.apply(this, arguments);
             // Magento puts the new package on top.
-            const select = $('#packages_content [id^=package_block]').first().find('select.polkurier-pack-template')[0];
+            const block = $('#packages_content [id^=package_block]').first(),
+                select = block.find('select.polkurier-pack-template')[0];
 
             if (select && select.value) {
                 applyTemplate(select, templates, mode);
             }
+            toggleKeep(block);
         };
         prototype.newPackage.polkurier = true;
     }
@@ -142,7 +212,7 @@ define([
                     qty: rules.amount($(this).find('[name=qty]').val())
                 };
             }).get(),
-            weight = rules.parcelWeight(mode, template ? rules.amount(template.weight) : null, contents);
+            weight = rules.parcelWeight(mode, template ? rules.amount(template.weight) : null, contents, template ? template.tare : null);
 
         if (template || isNaN(parseFloat(field.val()))) {
             field.val(weight > 0 ? weight : '');
@@ -282,6 +352,7 @@ define([
         if (select) {
             select.value = template ? template.id : '';
         }
+        toggleKeep(block);
         if (template) {
             applyTemplate(select, templates, mode);
         } else {
@@ -444,7 +515,12 @@ define([
             started = true;
             $(document).on('change', '#packages_content select.polkurier-pack-template', function () {
                 applyTemplate(this, templates, mode);
+                toggleKeep($(this).closest('[id^=package_block]'));
             });
+            $(document).on('change', '#packages_content .polkurier-pack-keep__box', function () {
+                toggleKeep($(this).closest('[id^=package_block]'));
+            });
+            sendKeptPackages();
             followParcelWeight(templates, mode);
             applyOnNewPackage(templates, mode);
             if (autoPack) {

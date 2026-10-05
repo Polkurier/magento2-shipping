@@ -21,14 +21,14 @@ use Polkurier\Shipping\Model\CarrierConfigFactory;
 use Polkurier\Shipping\Model\ResourceModel\CarrierConfig as ResourceModel;
 use Polkurier\Shipping\Model\ResourceModel\CarrierConfig\CollectionFactory;
 
-class CarrierConfigRepository implements CarrierConfigRepositoryInterface
+readonly class CarrierConfigRepository implements CarrierConfigRepositoryInterface
 {
     public function __construct(
-        private readonly CarrierConfigFactory $entityFactory,
-        private readonly ResourceModel $resource,
-        private readonly CollectionFactory $collectionFactory,
-        private readonly CollectionProcessorInterface $collectionProcessor,
-        private readonly CarrierConfigSearchResultsInterfaceFactory $searchResultsFactory,
+        private CarrierConfigFactory $entityFactory,
+        private ResourceModel $resource,
+        private CollectionFactory $collectionFactory,
+        private CollectionProcessorInterface $collectionProcessor,
+        private CarrierConfigSearchResultsInterfaceFactory $searchResultsFactory,
     ) {}
 
     public function get(int $id): CarrierConfigInterface

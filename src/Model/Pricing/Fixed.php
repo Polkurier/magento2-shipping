@@ -12,7 +12,7 @@ use Polkurier\Shipping\Api\Data\CarrierConfigInterface;
 /**
  * price_info: {"price": 12.99}
  */
-class Fixed implements PriceCalculatorInterface
+readonly class Fixed implements PriceCalculatorInterface
 {
     public const string PRICE = 'price';
 

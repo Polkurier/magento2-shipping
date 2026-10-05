@@ -19,13 +19,13 @@ use Polkurier\Webservice\Request\Order\OrderIdMessage;
  * Cancels placed Polkurier orders. The Magento shipment stays, without the order's label,
  * packages and waybills, for another Polkurier order to go on it (MagentoFollowUp::clearShipment()).
  */
-class Cancellation
+readonly class Cancellation
 {
     public function __construct(
-        private readonly ShipmentRepositoryInterface $shipmentRepository,
-        private readonly ShipmentGatewayInterface $gateway,
-        private readonly ApiEventDispatcher $events,
-        private readonly MagentoFollowUp $followUp,
+        private ShipmentRepositoryInterface $shipmentRepository,
+        private ShipmentGatewayInterface $gateway,
+        private ApiEventDispatcher $events,
+        private MagentoFollowUp $followUp,
     ) {}
 
     /**

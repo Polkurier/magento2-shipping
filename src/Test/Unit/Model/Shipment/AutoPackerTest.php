@@ -23,10 +23,16 @@ use Polkurier\Shipping\Model\Shipment\ItemDimensions;
 use Polkurier\Shipping\Model\Shipment\OrderAmounts;
 use Polkurier\Shipping\Model\Shipment\ParcelWeightEnum;
 use Polkurier\Shipping\Model\Shipment\WeightLimitEnum;
+use Polkurier\Webservice\Enum\Order\ShipmentTypeEnum;
 
 #[CoversClass(AutoPacker::class)]
 class AutoPackerTest extends TestCase
 {
+    /**
+     * What the website's parcels go as.
+     */
+    private ShipmentTypeEnum $shipmentType = ShipmentTypeEnum::Box;
+
     private const array ITEMS = [
         5 => ['name' => 'Mug', 'sku' => 'MUG', 'product_id' => 1, 'unit' => 30.0, 'weight' => 0.4, 'qty' => 4.0, 'qty_shipped' => 0.0, 'qty_to_ship' => 4.0],
         6 => ['name' => 'Lamp', 'sku' => 'LAMP', 'product_id' => 2, 'unit' => 200.0, 'weight' => 2.5, 'qty' => 1.0, 'qty_shipped' => 0.0, 'qty_to_ship' => 1.0],
@@ -144,7 +150,7 @@ class AutoPackerTest extends TestCase
         self::assertSame([1, 1], [$result['packs'][0]->getTemplateId(), $result['packs'][1]->getTemplateId()]);
     }
 
-    public function testWithoutParcelsTheItemsGoAsTheSmallestKindThatTakesThemAll(): void
+    public function testWithoutParcelsTheItemsGoAsTheWebsitesParcelsGo(): void
     {
         $templates = [
             $this->template(1, 'Box S', 20, 20, 15, 0.5),
@@ -153,19 +159,47 @@ class AutoPackerTest extends TestCase
         ];
 
         $mugs = $this->packer($templates)->packByItems($this->order(), [5 => 2.0]);
-        self::assertSame([1], \array_map(static fn(Pack $pack): ?int => $pack->getTemplateId(), $mugs['packs']), 'Mugs go in a box, not on the pallet.');
+        self::assertSame([1], \array_map(static fn(Pack $pack): ?int => $pack->getTemplateId(), $mugs['packs']), 'Parcels by default: a box, not an envelope or the pallet.');
 
-        $rug = $this->packer($templates)->packByItems($this->order(), [7 => 1.0]);
-        self::assertSame([9], \array_map(static fn(Pack $pack): ?int => $pack->getTemplateId(), $rug['packs']), 'Too long for a box: a pallet.');
+        $rug = $this->packer($templates)->packByItems($this->order(), [7 => 1.0, 5 => 2.0]);
+        self::assertSame([1, null], \array_map(static fn(Pack $pack): ?int => $pack->getTemplateId(), $rug['packs']), 'Too long for a box: a parcel of its own size, not a pallet for the order.');
+        self::assertSame(['ST', 'ST'], \array_map(static fn(Pack $pack): string => $pack->getPackType(), $rug['packs']));
     }
 
-    public function testWhatNoKindTakesWholeGoesAsParcelsOfItsOwnSize(): void
+    public function testAWebsiteShippingPalletsPacksOnlyPallets(): void
     {
-        $result = $this->packer([$this->template(1, 'Box S', 20, 20, 15, 0.5)])->packByItems($this->order(), [7 => 1.0]);
+        $this->shipmentType = ShipmentTypeEnum::Palette;
+        $templates = [
+            $this->template(1, 'Box S', 20, 20, 15, 0.5),
+            $this->template(9, 'Pallet', 120, 80, 150, 25.0, 'palette'),
+        ];
+
+        $mugs = $this->packer($templates)->packByItems($this->order(), [5 => 2.0]);
+
+        self::assertSame([9], \array_map(static fn(Pack $pack): ?int => $pack->getTemplateId(), $mugs['packs']), 'On the pallet, not in a box.');
+    }
+
+    public function testWhatNoEnvelopeTakesGoesAsAnEnvelopeOfItsOwnSize(): void
+    {
+        $this->shipmentType = ShipmentTypeEnum::Envelope;
+
+        $result = $this->packer([$this->template(3, 'Envelope', 30, 20, 2, 0.1, 'envelope')])->packByItems($this->order(), [7 => 1.0]);
 
         self::assertCount(1, $result['packs']);
         self::assertNull($result['packs'][0]->getTemplateId());
-        self::assertSame('ST', $result['packs'][0]->getPackType());
+        self::assertSame('ENV', $result['packs'][0]->getPackType(), 'The shipment stays of envelopes.');
+    }
+
+    public function testTheKindGivenGoesBeforeTheWebsites(): void
+    {
+        $templates = [
+            $this->template(1, 'Box S', 20, 20, 15, 0.5),
+            $this->template(9, 'Pallet', 120, 80, 150, 25.0, 'palette'),
+        ];
+
+        $mugs = $this->packer($templates)->packByItems($this->order(), [5 => 2.0], 'palette');
+
+        self::assertSame([9], \array_map(static fn(Pack $pack): ?int => $pack->getTemplateId(), $mugs['packs']), 'What the carrier takes, say.');
     }
 
     public function testEachParcelGetsTheSmallestBoxForWhatItHolds(): void
@@ -255,6 +289,15 @@ class AutoPackerTest extends TestCase
         self::assertSame(5.0, $result['packs'][0]->getWeight(), 'Not the 0.8 kg of mugs.');
     }
 
+    public function testAParcelWeighedByWhatItHoldsWeighsItsPackagingToo(): void
+    {
+        $templates = [$this->template(1, 'Box S', 20, 20, 15, 5.0, 'box', 0.35)];
+
+        $result = $this->packer($templates)->pack($this->order(), [5 => 2.0]);
+
+        self::assertSame(1.15, $result['packs'][0]->getWeight(), 'The 0.8 kg of mugs and the 0.35 kg box.');
+    }
+
     public function testAParcelWithAProductWithoutAWeightWeighsItsTemplatesWeight(): void
     {
         $this->weights = [5 => 0.0];
@@ -265,6 +308,16 @@ class AutoPackerTest extends TestCase
         self::assertCount(1, $result['packs']);
         self::assertSame(10.0, $result['packs'][0]->getWeight(), 'Not just the lamp\'s 2.5 kg.');
         self::assertSame(['Mug'], $result['unweighed']);
+    }
+
+    public function testAProductWithoutAWeightInAParcelOfItsOwnSizeIsTold(): void
+    {
+        // The rug fits no box: its parcel has no template whose weight it could take.
+        $this->weights = [7 => 0.0];
+
+        $result = $this->packer([$this->template(1, 'Box S', 20, 20, 15, 0.5)])->pack($this->order(), [5 => 1.0, 7 => 1.0], 'box');
+
+        self::assertSame(['Rug'], $result['unweighed_own']);
     }
 
     public function testProductsWithoutAWeightAreReported(): void
@@ -323,13 +376,15 @@ class AutoPackerTest extends TestCase
         $config->method('getPackingMargin')->willReturnCallback(fn(): float => $this->margin);
         $config->method('getWeightLimit')->willReturnCallback(fn(): WeightLimitEnum => $this->weightLimit);
         $config->method('getParcelWeight')->willReturnCallback(fn(): ParcelWeightEnum => $this->parcelWeight);
+        $config->method('getDefaultShipmentType')->willReturnCallback(fn(): ShipmentTypeEnum => $this->shipmentType);
 
         return new AutoPacker($amounts, $dimensions, $masterData, $packs, $items, $config);
     }
 
-    private function template(int $id, string $name, int $length, int $width, int $height, float $weight, string $shipmentType = 'box'): PackTemplateInterface
+    private function template(int $id, string $name, int $length, int $width, int $height, float $weight, string $shipmentType = 'box', ?float $tare = null): PackTemplateInterface
     {
         $template = $this->createStub(PackTemplateInterface::class);
+        $template->method('getTare')->willReturn($tare);
         $template->method('getShipmentType')->willReturn($shipmentType);
         $template->method('getId')->willReturn($id);
         $template->method('getName')->willReturn($name);

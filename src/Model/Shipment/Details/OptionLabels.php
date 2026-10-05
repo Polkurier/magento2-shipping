@@ -19,18 +19,18 @@ use Polkurier\Shipping\Model\Config\Source\ShipmentType;
  * The names of the codes a shipment's details are made of, from the module's option lists. A code
  * without a name is shown as it is.
  */
-class OptionLabels
+readonly class OptionLabels
 {
     private const string NONE = '—';
 
     public function __construct(
-        private readonly ShipmentState $states,
-        private readonly ShipmentType $shipmentTypes,
-        private readonly PackType $packTypes,
-        private readonly CodType $codTypes,
-        private readonly CodReturnType $codReturnTypes,
-        private readonly CodStatus $codStatuses,
-        private readonly AdditionalService $services,
+        private ShipmentState $states,
+        private ShipmentType $shipmentTypes,
+        private PackType $packTypes,
+        private CodType $codTypes,
+        private CodReturnType $codReturnTypes,
+        private CodStatus $codStatuses,
+        private AdditionalService $services,
     ) {}
 
     public function state(string $state): string

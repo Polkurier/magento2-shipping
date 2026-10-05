@@ -12,7 +12,7 @@ use Polkurier\Shipping\Model\Shipment\ParcelWeightEnum;
 /**
  * What a parcel of a pack template weighs.
  */
-class ParcelWeight extends AbstractOptions
+readonly class ParcelWeight extends AbstractOptions
 {
     public function toArray(): array
     {

@@ -236,7 +236,7 @@
                 <visible>false</visible>
             </settings>
         </column>
-        <column name="synced_at" component="Magento_Ui/js/grid/columns/date">
+        <column name="synced_at" class="Magento\Ui\Component\Listing\Columns\Date" component="Magento_Ui/js/grid/columns/date">
             <settings>
                 <label translate="true">Last synchronized</label>
                 <filter>dateRange</filter>
@@ -250,7 +250,7 @@
                 <visible>false</visible>
             </settings>
         </column>
-        <actionsColumn name="actions" class="Polkurier\Shipping\Ui\Component\Listing\Column\EditActions">
+        <actionsColumn name="actions" class="Polkurier\Shipping\Ui\Component\Listing\Column\EditActionsColumn">
             <argument name="data" xsi:type="array">
                 <item name="config" xsi:type="array">
                     <item name="editUrlPath" xsi:type="string">polkurier/address/edit</item>

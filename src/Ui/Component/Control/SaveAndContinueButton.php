@@ -12,10 +12,10 @@ use Magento\Framework\View\Element\UiComponent\Control\ButtonProviderInterface;
 /**
  * Saves the form and comes back to it. One virtual type per form, naming it.
  */
-class SaveAndContinueButton implements ButtonProviderInterface
+readonly class SaveAndContinueButton implements ButtonProviderInterface
 {
     public function __construct(
-        private readonly string $formName = '',
+        private string $formName = '',
     ) {}
 
     /**

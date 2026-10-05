@@ -19,13 +19,13 @@ use Polkurier\Shipping\Model\Carrier\Polkurier;
  * Adds the carrier's logo to each of the module's shipping methods, as the "method_logo"
  * extension attribute, for checkout to show next to the method name.
  */
-class ShippingMethodLogoPlugin
+readonly class ShippingMethodLogoPlugin
 {
     public function __construct(
-        private readonly ShippingMethodExtensionFactory $extensionFactory,
-        private readonly CarrierConfigs $carrierConfigs,
-        private readonly CarrierLogo $carrierLogo,
-        private readonly StoreManagerInterface $storeManager,
+        private ShippingMethodExtensionFactory $extensionFactory,
+        private CarrierConfigs $carrierConfigs,
+        private CarrierLogo $carrierLogo,
+        private StoreManagerInterface $storeManager,
     ) {}
 
     /**

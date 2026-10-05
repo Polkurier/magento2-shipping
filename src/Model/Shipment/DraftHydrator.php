@@ -16,12 +16,12 @@ use Polkurier\Shipping\Model\Shipment\Draft\PackFactory;
 /**
  * Converts a shipment draft to and from the flat array the admin form works with.
  */
-class DraftHydrator
+readonly class DraftHydrator
 {
     public function __construct(
-        private readonly DraftFactory $draftFactory,
-        private readonly PackFactory $packFactory,
-        private readonly ItemFactory $itemFactory,
+        private DraftFactory $draftFactory,
+        private PackFactory $packFactory,
+        private ItemFactory $itemFactory,
     ) {}
 
     /**
@@ -33,7 +33,18 @@ class DraftHydrator
         $draft->setCarrierCode(self::string($data, ShipmentDraftInterface::CARRIER_CODE));
         $draft->setShipmentType(self::string($data, ShipmentDraftInterface::SHIPMENT_TYPE));
         $draft->setDescription(self::nullableString($data, ShipmentDraftInterface::DESCRIPTION));
-        $draft->setSenderAddressId(self::nullableInt($data, ShipmentDraftInterface::SENDER_ADDRESS_ID));
+        // A sender typed in comes as "new" in place of an address's id, as the screens choose it.
+        $newSender = ($data[ShipmentDraftInterface::SENDER_ADDRESS_ID] ?? null) === ShipmentDraftInterface::NEW;
+        $draft->setNewSender($newSender);
+        $draft->setSenderAddressId($newSender ? null : self::nullableInt($data, ShipmentDraftInterface::SENDER_ADDRESS_ID));
+        $address = [];
+        foreach (ShipmentDraftInterface::NEW_SENDER_FIELDS as $field => $key) {
+            $address[$field] = self::string($data, $key);
+        }
+        $draft->setNewSenderAddress($address);
+        $draft->setKeepingNewSender(self::flag($data, ShipmentDraftInterface::KEEP_NEW_SENDER));
+        $draft->setSenderPointId(self::nullableString($data, ShipmentDraftInterface::SENDER_POINT_ID));
+        $draft->setNewSenderName(self::string($data, ShipmentDraftInterface::NEW_SENDER_NAME));
         $draft->setRecipientPerson(self::string($data, ShipmentDraftInterface::RECIPIENT_PERSON));
         $draft->setRecipientCompany(self::nullableString($data, ShipmentDraftInterface::RECIPIENT_COMPANY));
         $draft->setRecipientStreet(self::string($data, ShipmentDraftInterface::RECIPIENT_STREET));
@@ -48,9 +59,14 @@ class DraftHydrator
         $draft->setCodAmount(self::nullableFloat($data, ShipmentDraftInterface::COD_AMOUNT));
         $draft->setCodType(self::nullableString($data, ShipmentDraftInterface::COD_TYPE));
         $draft->setCodReturnType(self::nullableString($data, ShipmentDraftInterface::COD_RETURN_TYPE));
-        $draft->setCodBankAccountId(self::nullableInt($data, ShipmentDraftInterface::COD_BANK_ACCOUNT_ID));
+        $newBankAccount = ($data[ShipmentDraftInterface::COD_BANK_ACCOUNT_ID] ?? null) === ShipmentDraftInterface::NEW;
+        $draft->setNewBankAccount($newBankAccount);
+        $draft->setCodBankAccountId($newBankAccount ? null : self::nullableInt($data, ShipmentDraftInterface::COD_BANK_ACCOUNT_ID));
+        $draft->setNewBankAccountNumber(self::string($data, ShipmentDraftInterface::NEW_BANK_ACCOUNT_NUMBER));
+        $draft->setKeepingNewBankAccount(self::flag($data, ShipmentDraftInterface::KEEP_NEW_BANK_ACCOUNT));
+        $draft->setNewBankAccountName(self::string($data, ShipmentDraftInterface::NEW_BANK_ACCOUNT_NAME));
         $draft->setInsuranceAmount(self::nullableFloat($data, ShipmentDraftInterface::INSURANCE_AMOUNT));
-        $draft->setShippingIncluded(\filter_var($data[ShipmentDraftInterface::SHIPPING_INCLUDED] ?? false, \FILTER_VALIDATE_BOOLEAN));
+        $draft->setShippingIncluded(self::flag($data, ShipmentDraftInterface::SHIPPING_INCLUDED));
         $draft->setCoverAddressId(self::nullableInt($data, ShipmentDraftInterface::COVER_ADDRESS_ID));
         $draft->setServices(\array_values(\array_filter(\array_map('strval', (array)($data[ShipmentDraftInterface::SERVICES] ?? [])))));
         $draft->setPickupMode(self::string($data, ShipmentDraftInterface::PICKUP_MODE) ?: ShipmentDraftInterface::PICKUP_COURIER);
@@ -76,6 +92,7 @@ class DraftHydrator
                 ->setWidth((int)($row[PackInterface::WIDTH] ?? 0))
                 ->setHeight((int)($row[PackInterface::HEIGHT] ?? 0))
                 ->setWeight((float)\str_replace(',', '.', (string)($row[PackInterface::WEIGHT] ?? 0)))
+                ->setKeepAs(self::string($row, PackInterface::KEEP_AS))
                 // Each parcel is one: identical ones are listed one by one.
                 ->setAmount(1);
         }
@@ -103,12 +120,21 @@ class DraftHydrator
                 PackInterface::WEIGHT => $pack->getWeight(),
                 PackInterface::AMOUNT => $pack->getAmount(),
                 PackInterface::ITEMS => self::itemRows($pack->getItems()),
+                PackInterface::KEEP_AS => $pack->getKeepAs(),
             ],
             $draft->getPacks(),
         );
         $data[ShipmentDraftInterface::ITEMS] = self::itemRows($draft->getItems());
         $data[ShipmentDraftInterface::PACKS_ESTIMATED] = $draft->isPacksEstimated();
         $data[ShipmentDraftInterface::SHIPPING_INCLUDED] = $draft->isShippingIncluded();
+        // Chosen on the screens as "new", in place of an id.
+        if ($draft->isNewSender()) {
+            $data[ShipmentDraftInterface::SENDER_ADDRESS_ID] = ShipmentDraftInterface::NEW;
+        }
+        if ($draft->isNewBankAccount()) {
+            $data[ShipmentDraftInterface::COD_BANK_ACCOUNT_ID] = ShipmentDraftInterface::NEW;
+        }
+        unset($data[ShipmentDraftInterface::NEW_SENDER], $data[ShipmentDraftInterface::NEW_BANK_ACCOUNT]);
 
         return $data;
     }
@@ -153,6 +179,14 @@ class DraftHydrator
     private static function string(array $data, string $key): string
     {
         return \trim((string)($data[$key] ?? ''));
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     */
+    private static function flag(array $data, string $key): bool
+    {
+        return \filter_var($data[$key] ?? false, \FILTER_VALIDATE_BOOLEAN);
     }
 
     /**

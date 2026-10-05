@@ -22,7 +22,7 @@ use Psr\Http\Message\RequestInterface;
  * Monolog 2 (array records, Magento 2.4.7) and Monolog 3 (LogRecord, Magento 2.4.8 and later):
  * Monolog takes any callable as a processor, and this one handles both kinds of record.
  */
-class TokenRedactingProcessor
+readonly class TokenRedactingProcessor
 {
     public const string MASK = '***';
 

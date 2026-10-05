@@ -431,6 +431,30 @@ class Shipment extends AbstractModel implements ShipmentInterface
         return $this->setData(self::TARGET_SHIPMENT_ID, $shipmentId);
     }
 
+    public function getExternalOrderId(): ?string
+    {
+        $value = $this->getData(self::EXTERNAL_ORDER_ID);
+
+        return $value === null || $value === '' ? null : (string)$value;
+    }
+
+    public function setExternalOrderId(?string $externalOrderId): static
+    {
+        return $this->setData(self::EXTERNAL_ORDER_ID, $externalOrderId);
+    }
+
+    public function getReservedShipmentNumber(): ?string
+    {
+        $value = $this->getData(self::RESERVED_SHIPMENT_NUMBER);
+
+        return $value === null || $value === '' ? null : (string)$value;
+    }
+
+    public function setReservedShipmentNumber(?string $number): static
+    {
+        return $this->setData(self::RESERVED_SHIPMENT_NUMBER, $number);
+    }
+
     public function getShipPackages(): array
     {
         $packages = [];

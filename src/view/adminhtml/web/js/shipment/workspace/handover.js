@@ -6,7 +6,8 @@
  * How the parcels get to the carrier: a courier collecting them, on a date and in a window read
  * from Polkurier; dropping them off at a point; or a collective pickup booked later. The dates
  * are read again whenever the carrier, the sender or the shipment changes, and the first free
- * one is taken until the merchant picks another.
+ * one is taken until the merchant picks another. A collective pickup is offered unless Polkurier
+ * says the carrier can't collect these parcels so, which it's asked whenever they change.
  */
 define([
     'ko',
@@ -42,6 +43,11 @@ define([
             this.datesKey = null;
             // Only the answer to the latest request for collection dates counts.
             this.dates = request();
+            // Whether Polkurier can collect the parcels with others: null until it says.
+            this.collective = ko.observable(null);
+            this.collectiveKey = null;
+            this.collectiveRequest = request();
+            this.scheduleCollective = _.debounce(this.askCollective.bind(this), 600);
             this.scheduleLoad = _.debounce(this.load.bind(this), 400);
             this.mode.subscribe(function (mode) {
                 if (mode && mode !== this.get('pickup_mode')) {
@@ -70,29 +76,76 @@ define([
                 labels = (data.choices || {}).pickup_mode || {},
                 modes = [];
 
+            this.watchCollective(data);
             _.each(labels, function (label, value) {
-                if (value !== 'drop_off' || features.drop_off !== false) {
+                if ((value !== 'drop_off' || features.drop_off !== false) && (value !== 'multi' || this.collective() !== false)) {
                     modes.push({value: value, label: label, id: 'polkurier-handover-' + value});
                 }
-            });
+            }, this);
             this.modes(modes);
+            if (data.pickup_mode === 'multi' && this.collective() === false) {
+                // No longer possible for these parcels: a courier collects them, as by default.
+                this.set('pickup_mode', 'courier');
+
+                return;
+            }
             this.mode(data.pickup_mode || 'courier');
             this.showDates(this.mode() === 'courier' && features.pickup_date !== false);
             this.dateMissing(this.validated() && this.showDates() && Boolean(features.pickup_date_required) && !rules.filled(data.pickup_date));
             this.windowMissing(this.validated() && this.showDates() && Boolean(features.pickup_time_required)
                 && !(rules.filled(data.pickup_time_from) && rules.filled(data.pickup_time_to)));
             if (this.showDates()) {
-                const key = JSON.stringify(_.pick(data, 'carrier_code', 'sender_address_id', 'shipment_type', 'recipient_postcode'));
+                const key = JSON.stringify(_.pick(data, 'carrier_code', 'sender_address_id', 'new_sender_postcode', 'shipment_type', 'recipient_postcode'));
 
                 if (key !== this.datesKey) {
                     this.datesKey = key;
                     this.scheduleLoad();
                 }
+            } else if (this.mode() === 'courier' && features.pickup_date === false) {
+                // A carrier that takes no collection date: one chosen for another would go unseen.
+                this.datesKey = null;
+                this.days([]);
+                this.forgetDate();
             }
         },
 
         retry: function () {
             this.load();
+        },
+
+        /**
+         * Asks again whenever what Polkurier answers by changes.
+         *
+         * @param {Object} data
+         */
+        watchCollective: function (data) {
+            const key = JSON.stringify([
+                _.pick(data, 'carrier_code', 'sender_address_id', 'new_sender_postcode', 'shipment_type'),
+                (data.packs || []).map(function (pack) {
+                    return _.pick(pack, 'pack_type', 'length', 'width', 'height', 'weight', 'amount');
+                })
+            ]);
+
+            if (key !== this.collectiveKey) {
+                this.collectiveKey = key;
+                this.scheduleCollective();
+            }
+        },
+
+        askCollective: function () {
+            this.collectiveRequest.post(this.get('urls.collective_pickup'), {
+                data: _.pick(this.get(), 'order_id', 'carrier_code', 'sender_address_id', 'new_sender_postcode', 'shipment_type', 'packs')
+            }, {
+                done: function (response) {
+                    this.collective(typeof response.available === 'boolean' ? response.available : null);
+                    this.refresh();
+                }.bind(this),
+                fail: function () {
+                    // Offered all the same: Polkurier says so when placing, should it not take it.
+                    this.collective(null);
+                    this.refresh();
+                }.bind(this)
+            });
         },
 
         load: function () {
@@ -110,7 +163,7 @@ define([
             this.loading(true);
             this.message('');
             this.dates.post(this.get('urls.pickup_times'), {
-                data: _.pick(this.get(), 'order_id', 'carrier_code', 'sender_address_id', 'shipment_type', 'recipient_postcode')
+                data: _.pick(this.get(), 'order_id', 'carrier_code', 'sender_address_id', 'new_sender_postcode', 'shipment_type', 'recipient_postcode')
             }, {
                 done: function (response) {
                     this.days((response.days || []).map(function (day) {

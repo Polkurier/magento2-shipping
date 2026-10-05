@@ -96,7 +96,7 @@
                 <sortable>false</sortable>
             </settings>
         </column>
-        <actionsColumn name="actions" class="Polkurier\Shipping\Ui\Component\Listing\Column\PayoutActions">
+        <actionsColumn name="actions" class="Polkurier\Shipping\Ui\Component\Listing\Column\PayoutActionsColumn">
             <settings>
                 <indexField>number</indexField>
                 <label translate="true">Actions</label>

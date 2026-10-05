@@ -119,6 +119,15 @@
                 <validation><rule name="validate-number" xsi:type="boolean">true</rule><rule name="validate-greater-than-zero" xsi:type="boolean">true</rule><rule name="required-entry" xsi:type="boolean">true</rule></validation>
             </settings>
         </field>
+        <field name="tare" formElement="input">
+            <settings>
+                <label translate="true">Tare (kg)</label>
+                <notice translate="true">What the packaging itself weighs. Optional; added to what a parcel holds when parcels weigh what's in them. Kept in Magento only.</notice>
+                <dataType>text</dataType>
+                <dataScope>tare</dataScope>
+                <validation><rule name="validate-zero-or-greater" xsi:type="boolean">true</rule></validation>
+            </settings>
+        </field>
         <field name="cod_amount" formElement="input">
             <settings>
                 <label translate="true">Cash on delivery</label>

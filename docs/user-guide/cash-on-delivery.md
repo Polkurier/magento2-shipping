@@ -50,18 +50,21 @@ The status is updated along with the delivery status.
 **Polkurier > Sales > Cash on delivery payouts** shows the payouts you've requested, with their
 amount, fee, what was paid out, to which account, for how many shipments and their status.
 
-To have money from your money box paid out, click **Request a payout**:
+To have money from your money box paid out, click **Request a payout**. The payout's fee shows at
+the top of the form, gross and net, with how many free payouts you have left and how much there is
+to pay out; it's worked out again as you change the orders or how they're paid out.
 
 1. **Polkurier orders**: the shipments whose money you want paid out. Leave it empty to pay out
-   everything available.
-2. **Payout by**: bank transfer or postal order. For a transfer, enter the **Bank account
-   number**.
+   everything available. Polkurier pays out only the orders it can and leaves out the others
+   without saying so, so the form warns about any number it doesn't know as in the money box.
+2. **Payout by**: bank transfer or postal order. For a transfer, choose the **Bank account** from
+   your [bank accounts](master-data.md#bank-accounts), or **Another account number** and type it
+   in. A transfer needs one; the form starts with the account in your money box settings.
 3. **Fee paid**: how Polkurier's payout fee is paid, for example from the money box itself or on
-   your invoice. Click **Show the fee** to see how much it is.
-4. Click **Send me the confirmation code**. Polkurier sends you a code; enter it under
-   **Confirmation code**. If your account protects payouts with a security PIN, enter it under
-   **Security PIN** too.
-5. Click **Request the payout**.
+   your invoice.
+4. Click **Request the payout**. Polkurier sends you a confirmation code by text message, and a
+   window asks for it (not while there's nothing to pay out: no code is sent then); if your account protects payouts with a security PIN, enter it there too.
+   Click **Confirm and save**; **Cancel** requests nothing.
 
 A payout that hasn't been processed yet can be cancelled from the list with **Cancel**; the money
 then stays in your money box.

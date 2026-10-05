@@ -25,16 +25,16 @@ use Polkurier\Shipping\Model\Shipment\MagentoShipment;
  * shipment's items, on it (Magento's own "Create Shipping Label" does the same with the packaging
  * window).
  */
-class ShipmentViewPlugin
+readonly class ShipmentViewPlugin
 {
     public const string BUTTON = 'polkurier_add_order';
     public const string VIEW_BUTTON = 'polkurier_view_order';
 
     public function __construct(
-        private readonly AuthorizationInterface $authorization,
-        private readonly Config $config,
-        private readonly MagentoShipment $magentoShipment,
-        private readonly CollectionFactory $collectionFactory,
+        private AuthorizationInterface $authorization,
+        private Config $config,
+        private MagentoShipment $magentoShipment,
+        private CollectionFactory $collectionFactory,
     ) {}
 
     /**

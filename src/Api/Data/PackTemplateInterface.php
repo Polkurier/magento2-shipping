@@ -19,6 +19,11 @@ interface PackTemplateInterface extends SyncableInterface
     public const string WIDTH = 'width';
     public const string HEIGHT = 'height';
     public const string WEIGHT = 'weight';
+    /**
+     * What the packaging itself weighs, added to what's in a parcel weighed by its contents. Kept
+     * in Magento only: Polkurier's pack templates have no such thing.
+     */
+    public const string TARE = 'tare';
     public const string COD_AMOUNT = 'cod_amount';
     public const string INSURANCE_AMOUNT = 'insurance_amount';
     public const string CARRIER_CODE = 'carrier_code';
@@ -110,6 +115,19 @@ interface PackTemplateInterface extends SyncableInterface
      * @return $this
      */
     public function setWeight(float $weight): static;
+
+    /**
+     * What the packaging itself weighs, in kilograms; null when not said.
+     *
+     * @return float|null
+     */
+    public function getTare(): ?float;
+
+    /**
+     * @param float|null $tare
+     * @return $this
+     */
+    public function setTare(?float $tare): static;
 
     /**
      * @return float

@@ -11,12 +11,14 @@ use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Stdlib\DateTime\DateTime;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Api\ShipmentRepositoryInterface;
+use Polkurier\Webservice\Enum\Order\OrderStatusCodeEnum;
+use Polkurier\Webservice\Response\Order;
 
 /**
  * Settles attempts whose outcome is unknown: finds the Polkurier order they placed, if any, or
  * links the one the merchant names. What counts as a match is Reconciler's.
  */
-class Reconciliation
+readonly class Reconciliation
 {
     /**
      * How long after an unconfirmed attempt an order that Polkurier does not list counts as not
@@ -25,12 +27,12 @@ class Reconciliation
     public const int NOT_PLACED_AFTER_MINUTES = 15;
 
     public function __construct(
-        private readonly ShipmentRepositoryInterface $shipmentRepository,
-        private readonly Reconciler $reconciler,
-        private readonly OrderSnapshot $snapshot,
-        private readonly ShipmentAge $age,
-        private readonly MagentoFollowUp $followUp,
-        private readonly DateTime $dateTime,
+        private ShipmentRepositoryInterface $shipmentRepository,
+        private Reconciler $reconciler,
+        private OrderSnapshot $snapshot,
+        private ShipmentAge $age,
+        private MagentoFollowUp $followUp,
+        private DateTime $dateTime,
     ) {}
 
     /**
@@ -70,17 +72,30 @@ class Reconciliation
             return $shipment;
         }
 
-        // Several matches mean the order went through more than once: keep the first, report the rest.
-        \usort($candidates, static fn($a, $b): int => $a->getDate() <=> $b->getDate());
+        // Several matches mean the order went through more than once: keep the first one still
+        // live, and report the other live ones. Cancelled ones need nothing more.
+        \usort($candidates, static fn(Order $a, Order $b): int => [self::isCancelled($a), $a->getDate()] <=> [self::isCancelled($b), $b->getDate()]);
         $adopted = \array_shift($candidates);
-        $duplicates = \array_map(static fn($candidate): string => (string)$candidate->getNumber(), $candidates);
+        $duplicates = \array_map(
+            static fn(Order $candidate): string => (string)$candidate->getNumber(),
+            \array_filter($candidates, static fn(Order $candidate): bool => !self::isCancelled($candidate)),
+        );
+        // Placed, or cancelled since in the Polkurier panel: as the order says.
         $this->snapshot->apply($adopted, $shipment);
         $duplicatesNote = $duplicates === [] ? null : \__(
             'Polkurier also has %1 for this order, probably duplicates. Check them in the Polkurier panel and cancel the ones not needed.',
             \implode(', ', $duplicates),
         );
-        $shipment->setState(ShipmentInterface::STATE_CREATED)->setLastError($duplicatesNote !== null ? (string)$duplicatesNote : null);
+        $shipment->setLastError($duplicatesNote !== null ? (string)$duplicatesNote : null);
         $this->shipmentRepository->save($shipment);
+        if ($shipment->getState() === ShipmentInterface::STATE_CANCELLED) {
+            $this->followUp->comment($order, \__(
+                'Polkurier order %1 was found after an unconfirmed request, already cancelled in Polkurier. The order can be shipped again.',
+                $shipment->getPolkurierNumber(),
+            ));
+
+            return $shipment;
+        }
         $this->followUp->comment($order, \__('Polkurier order %1 found and linked after an unconfirmed request.', $shipment->getPolkurierNumber()));
         if ($duplicatesNote !== null) {
             $this->followUp->comment($order, $duplicatesNote);
@@ -104,13 +119,26 @@ class Reconciliation
         }
         $remote = $this->reconciler->findByNumber(\trim($polkurierNumber));
         $this->snapshot->apply($remote, $shipment);
-        $shipment->setState(ShipmentInterface::STATE_CREATED)->setLastError(null);
+        $shipment->setLastError(null);
         $this->shipmentRepository->save($shipment);
         $order = $this->followUp->order($shipment->getOrderId());
+        if ($shipment->getState() === ShipmentInterface::STATE_CANCELLED) {
+            $this->followUp->comment($order, \__(
+                'Polkurier order %1 linked by hand after an unconfirmed request, already cancelled in Polkurier. The order can be shipped again.',
+                $shipment->getPolkurierNumber(),
+            ));
+
+            return $shipment;
+        }
         $this->followUp->comment($order, \__('Polkurier order %1 linked by hand after an unconfirmed request.', $shipment->getPolkurierNumber()));
         $this->followUp->ship($order, $shipment);
         $this->followUp->linked($shipment, $order, 'adopt');
 
         return $shipment;
+    }
+
+    private static function isCancelled(Order $order): bool
+    {
+        return $order->getStatusCode() === OrderStatusCodeEnum::Canceled->value;
     }
 }

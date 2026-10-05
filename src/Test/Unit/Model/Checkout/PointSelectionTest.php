@@ -33,7 +33,7 @@ class PointSelectionTest extends TestCase
 
     public function testAnOpenPointThatHandsOutParcelsIsKept(): void
     {
-        $this->selection(new CourierPoint('WAW195M', available: true, functions: [PointFunctionEnum::Collect, PointFunctionEnum::Send], address: 'Krótka 5, Warszawa'))
+        $this->selection(new CourierPoint('WAW195M', available: true, functions: [PointFunctionEnum::Collect->value, PointFunctionEnum::Send->value], address: 'Krótka 5, Warszawa'))
             ->select($this->quote(), 'polkurier', 'INPOST_PACZKOMAT', 'WAW195M');
 
         self::assertSame('WAW195M', $this->saved?->getPointId());
@@ -44,14 +44,14 @@ class PointSelectionTest extends TestCase
     {
         $this->expectException(InputException::class);
 
-        $this->selection(new CourierPoint('WAW195M', available: false, functions: [PointFunctionEnum::Collect]))
+        $this->selection(new CourierPoint('WAW195M', available: false, functions: [PointFunctionEnum::Collect->value]))
             ->select($this->quote(), 'polkurier', 'INPOST_PACZKOMAT', 'WAW195M');
     }
 
     public function testAPointThatOnlyTakesParcelsInIsRefused(): void
     {
         try {
-            $this->selection(new CourierPoint('WAW01N', available: true, functions: [PointFunctionEnum::Send]))
+            $this->selection(new CourierPoint('WAW01N', available: true, functions: [PointFunctionEnum::Send->value]))
                 ->select($this->quote(), 'polkurier', 'INPOST_PACZKOMAT', 'WAW01N');
             self::fail('The customer could not collect the parcel there.');
         } catch (InputException) {

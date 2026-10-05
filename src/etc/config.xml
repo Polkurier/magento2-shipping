@@ -18,12 +18,21 @@
                 <general>
                     <sandbox_mode>1</sandbox_mode>
                     <timeout>30</timeout>
-                    <logging>1</logging>
-                    <log_methods>create_order,cancel_order,create_multi_order_pickup,create_money_box_payout</log_methods>
+                    <external_order_id>shipment</external_order_id>
                     <!-- Empty: the SDK chooses between production and sandbox. -->
                     <api_url />
                 </general>
+                <logging>
+                    <failed_requests>1</failed_requests>
+                    <methods>create_order,cancel_order,create_multi_order_pickup,create_money_box_payout</methods>
+                    <personal_data>0</personal_data>
+                    <files>0</files>
+                    <!-- Empty: var/log/polkurier-files. -->
+                    <files_directory />
+                    <files_lifetime>7</files_lifetime>
+                </logging>
                 <shipment_defaults>
+                    <default_shipment_type>box</default_shipment_type>
                     <insure_by_default>0</insure_by_default>
                     <description_format>%s</description_format>
                 </shipment_defaults>

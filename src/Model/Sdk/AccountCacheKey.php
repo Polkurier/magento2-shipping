@@ -13,10 +13,10 @@ use Polkurier\Shipping\Model\Config;
  * The cache key of something kept for the Polkurier account: another account, or the sandbox,
  * never sees it, so changing the credentials can't serve the old account's answers.
  */
-class AccountCacheKey
+readonly class AccountCacheKey
 {
     public function __construct(
-        private readonly Config $config,
+        private Config $config,
     ) {}
 
     /**

@@ -97,17 +97,17 @@ From there:
    it's closed or lacks a function the map is set to require (*Show only points that*), and
    stores it in `polkurier_quote_point`, or removes it when the customer switches to another
    method.
-3. `Observer\ValidatePickupPoint` (`sales_model_service_quote_submit_before`) checks again when
+3. `Observer\ValidatePickupPointObserver` (`sales_model_service_quote_submit_before`) checks again when
    the order is placed. It's disabled in the admin area, where orders are created without a
    picker; the merchant sets the point when shipping instead.
-4. `Observer\DescribePickupPoint`, on the same event (and, registered by the bridge module, on
+4. `Observer\DescribePickupPointObserver`, on the same event (and, registered by the bridge module, on
    `checkout_type_multishipping_create_orders_single` for each multi-address order), adds the point
    to the order's shipping description before the order is saved, through
    `Model\Checkout\PointDescription`: "Paczkomat InPost, pickup point WAW01A (address)", the address
    left out when it would overflow the 255-character column. Magento prints that description in
    the order's e-mails, the customer's account, invoices, packing slips and PDFs, so the point
    shows wherever the method does. Tracks are titled with the carrier's label instead.
-5. `Observer\CopyPickupPointToOrder` (`sales_model_service_quote_submit_success`) copies it to
+5. `Observer\CopyPickupPointToOrderObserver` (`sales_model_service_quote_submit_success`) copies it to
    `polkurier_order_point`. The order is placed by then, so a failure is only logged.
 6. `Plugin\Sales\OrderRepositoryPlugin` exposes it as the `polkurier_point` extension attribute of
    `OrderInterface`.
@@ -117,7 +117,7 @@ From there:
 
 ## Cash on delivery at checkout
 
-`Observer\RestrictCashOnDelivery` (`payment_method_is_active`) hides the payment methods
+`Observer\RestrictCashOnDeliveryObserver` (`payment_method_is_active`) hides the payment methods
 configured as cash on delivery when the chosen carrier can't collect, or the chosen point doesn't
 accept it, for any of the cart's addresses.
 
@@ -132,8 +132,8 @@ What it builds on stays here: points are stored per quote address
 `Model\Checkout\PointSelection`; the picker's configuration is
 `MapConfigProvider::getMapConfig()`, the same as the regular checkout's; the map is
 `view/frontend/web/js/model/points-map.js`, the styles `view/frontend/web/css/pickup-point.css`;
-and `Observer\DescribePickupPoint` names each order's point in its shipping description.
-`Observer\RestrictCashOnDelivery` checks every address of a multi-address cart either way.
+and `Observer\DescribePickupPointObserver` names each order's point in its shipping description.
+`Observer\RestrictCashOnDeliveryObserver` checks every address of a multi-address cart either way.
 
 ## Styling
 

@@ -13,12 +13,12 @@ use Magento\Framework\App\Request\DataPersistorInterface;
  * The shipment form as it was sent when placing it failed, kept in the admin session so the form
  * opens again with what the merchant entered rather than the defaults.
  */
-class RejectedDraft
+readonly class RejectedDraft
 {
     private const string KEY = 'polkurier_shipment_form';
 
     public function __construct(
-        private readonly DataPersistorInterface $dataPersistor,
+        private DataPersistorInterface $dataPersistor,
     ) {}
 
     /**

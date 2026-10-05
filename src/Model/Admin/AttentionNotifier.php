@@ -21,9 +21,10 @@ use Polkurier\Shipping\Model\Shipment\NotPlaced;
  * Polkurier shipment that needs someone, so none is missed: not placed a day after its last
  * attempt (removed a day later), placed without an answer and still not settled by the automatic
  * check an hour on, or placed without its Magento shipment an hour on. Once per shipment: a new
- * attempt clears it (Placing).
+ * attempt clears it (Placing). A notice whose shipment no longer needs anyone (placed, discarded,
+ * removed, settled, tried again since) is withdrawn, rather than left pointing at what's past.
  */
-class AttentionNotifier
+readonly class AttentionNotifier
 {
     public const string NOTIFIED_AT = 'attention_notified_at';
 
@@ -32,13 +33,16 @@ class AttentionNotifier
      */
     public const int SETTLE_HOURS = 1;
 
+    private const string INBOX_TABLE = 'adminnotification_inbox';
+    private const string VIEW_PATH = 'polkurier/shipment/view';
+
     public function __construct(
-        private readonly ResourceConnection $resource,
-        private readonly NotifierInterface $notifier,
-        private readonly UrlInterface $url,
-        private readonly TimezoneInterface $timezone,
-        private readonly DateTime $dateTime,
-        private readonly NotPlaced $notPlaced,
+        private ResourceConnection $resource,
+        private NotifierInterface $notifier,
+        private UrlInterface $url,
+        private TimezoneInterface $timezone,
+        private DateTime $dateTime,
+        private NotPlaced $notPlaced,
     ) {}
 
     /**
@@ -51,6 +55,7 @@ class AttentionNotifier
         $settleBefore = \gmdate('Y-m-d H:i:s', $now - self::SETTLE_HOURS * 3600);
         $connection = $this->resource->getConnection('sales');
         $table = $this->resource->getTableName(ShipmentResource::TABLE_NAME, 'sales');
+        $this->withdrawSettled($noticeBefore, $settleBefore);
         $select = $connection->select()
             ->from(['shipment' => $table], ['entity_id', 'state', 'shipment_id', 'polkurier_number', 'created_at', 'last_error'])
             ->joinLeft(
@@ -59,15 +64,11 @@ class AttentionNotifier
                 ['increment_id'],
             )
             ->where('shipment.' . self::NOTIFIED_AT . ' IS NULL')
-            ->where(\implode(' OR ', [
-                $connection->quoteInto('(shipment.state = ?', ShipmentInterface::STATE_FAILED) . $connection->quoteInto(' AND shipment.created_at < ?)', $noticeBefore),
-                $connection->quoteInto('(shipment.state IN (?)', [ShipmentInterface::STATE_UNKNOWN, ShipmentInterface::STATE_PENDING]) . $connection->quoteInto(' AND shipment.created_at < ?)', $settleBefore),
-                $connection->quoteInto('(shipment.state = ? AND shipment.shipment_id IS NULL', ShipmentInterface::STATE_CREATED) . $connection->quoteInto(' AND shipment.created_at < ?)', $settleBefore),
-            ]));
+            ->where($this->needsSomeone($noticeBefore, $settleBefore));
         $notified = 0;
         foreach ($connection->fetchAll($select) as $row) {
             [$title, $description] = $this->describe($row);
-            $this->notifier->addMajor($title, $description, $this->url->getUrl('polkurier/shipment/view', [
+            $this->notifier->addMajor($title, $description, $this->url->getUrl(self::VIEW_PATH, [
                 'id' => (int)$row['entity_id'],
                 // Followed outside the session it was made in; the page opens without a key.
                 '_nosecret' => true,
@@ -77,6 +78,57 @@ class AttentionNotifier
         }
 
         return $notified;
+    }
+
+    /**
+     * The condition on a shipment (as "shipment") that it needs someone.
+     */
+    private function needsSomeone(string $noticeBefore, string $settleBefore): string
+    {
+        $connection = $this->resource->getConnection('sales');
+
+        return \implode(' OR ', [
+            $connection->quoteInto('(shipment.state = ?', ShipmentInterface::STATE_FAILED) . $connection->quoteInto(' AND shipment.created_at < ?)', $noticeBefore),
+            $connection->quoteInto('(shipment.state IN (?)', [ShipmentInterface::STATE_UNKNOWN, ShipmentInterface::STATE_PENDING]) . $connection->quoteInto(' AND shipment.created_at < ?)', $settleBefore),
+            $connection->quoteInto('(shipment.state = ? AND shipment.shipment_id IS NULL', ShipmentInterface::STATE_CREATED) . $connection->quoteInto(' AND shipment.created_at < ?)', $settleBefore),
+        ]);
+    }
+
+    /**
+     * Withdraws the notices still showing whose shipment is gone, was tried again since, or no
+     * longer needs anyone. Without Magento's notifications there are none to withdraw.
+     */
+    private function withdrawSettled(string $noticeBefore, string $settleBefore): void
+    {
+        $inbox = $this->resource->getConnection();
+        $inboxTable = $this->resource->getTableName(self::INBOX_TABLE);
+        if (!$inbox->isTableExists($inboxTable)) {
+            return;
+        }
+        $shown = [];
+        foreach ($inbox->fetchPairs($inbox->select()
+            ->from($inboxTable, ['notification_id', 'url'])
+            ->where('is_remove = 0')
+            ->where('title LIKE ?', 'Polkurier: %')
+            ->where('url LIKE ?', '%/' . self::VIEW_PATH . '/id/%')) as $notificationId => $url
+        ) {
+            if (\preg_match('#/' . \preg_quote(self::VIEW_PATH, '#') . '/id/(\d+)/?$#', (string)$url, $m)) {
+                $shown[(int)$notificationId] = (int)$m[1];
+            }
+        }
+        if ($shown === []) {
+            return;
+        }
+        $connection = $this->resource->getConnection('sales');
+        $stillNeeded = \array_map('intval', $connection->fetchCol($connection->select()
+            ->from(['shipment' => $this->resource->getTableName(ShipmentResource::TABLE_NAME, 'sales')], ['entity_id'])
+            ->where('shipment.entity_id IN (?)', \array_values(\array_unique($shown)))
+            ->where('shipment.' . self::NOTIFIED_AT . ' IS NOT NULL')
+            ->where($this->needsSomeone($noticeBefore, $settleBefore))));
+        $settled = \array_keys(\array_diff($shown, $stillNeeded));
+        if ($settled !== []) {
+            $inbox->update($inboxTable, ['is_read' => 1, 'is_remove' => 1], ['notification_id IN (?)' => $settled]);
+        }
     }
 
     /**

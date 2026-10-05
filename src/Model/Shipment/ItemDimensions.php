@@ -16,14 +16,14 @@ use Magento\Sales\Model\Order;
  * bundle shipped together is measured as a whole; without a size of its own, its parts stacked
  * one on another stand in for it, which is never smaller than the parts packed well.
  */
-class ItemDimensions
+readonly class ItemDimensions
 {
     public const string LENGTH = 'polkurier_length';
     public const string WIDTH = 'polkurier_width';
     public const string HEIGHT = 'polkurier_height';
 
     public function __construct(
-        private readonly CollectionFactory $productCollectionFactory,
+        private CollectionFactory $productCollectionFactory,
     ) {}
 
     /**

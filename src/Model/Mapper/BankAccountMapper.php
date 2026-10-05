@@ -15,7 +15,7 @@ use Polkurier\Webservice\Response\BankAccount;
 /**
  * Maps bank accounts between Magento and the Polkurier account.
  */
-class BankAccountMapper
+readonly class BankAccountMapper
 {
     /**
      * Polkurier takes a bank account only with one confirmation: the PIN when bank account edits

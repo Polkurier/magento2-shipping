@@ -14,11 +14,11 @@ use Polkurier\Shipping\Model\Carrier\Polkurier;
  * The order as it was sent to Polkurier, in the shape of the copy read back from Polkurier, for
  * the details of shipments Polkurier hasn't been read for. An unreadable request gives nothing.
  */
-class SentOrder
+readonly class SentOrder
 {
     public function __construct(
-        private readonly Json $json,
-        private readonly OptionLabels $labels,
+        private Json $json,
+        private OptionLabels $labels,
     ) {}
 
     /**

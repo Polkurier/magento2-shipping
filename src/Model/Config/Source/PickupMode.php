@@ -12,7 +12,7 @@ use Polkurier\Shipping\Api\Data\ShipmentDraftInterface;
 /**
  * How parcels get to the carrier.
  */
-class PickupMode extends AbstractOptions
+readonly class PickupMode extends AbstractOptions
 {
     public function toArray(): array
     {

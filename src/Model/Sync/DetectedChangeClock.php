@@ -16,7 +16,7 @@ use Polkurier\Shipping\Api\Data\SyncableInterface;
  * So when both sides changed between two synchronizations, the remote change counts as the later
  * one. Local edits are sent to Polkurier as soon as they are saved, which keeps that case rare.
  */
-class DetectedChangeClock implements RemoteClockInterface
+readonly class DetectedChangeClock implements RemoteClockInterface
 {
     public function getModifiedAt(array $remote, string $remoteHash, SyncableInterface $local, \DateTimeImmutable $now): \DateTimeImmutable
     {

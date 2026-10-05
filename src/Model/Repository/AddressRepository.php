@@ -21,14 +21,14 @@ use Polkurier\Shipping\Model\AddressFactory;
 use Polkurier\Shipping\Model\ResourceModel\Address as ResourceModel;
 use Polkurier\Shipping\Model\ResourceModel\Address\CollectionFactory;
 
-class AddressRepository implements AddressRepositoryInterface
+readonly class AddressRepository implements AddressRepositoryInterface
 {
     public function __construct(
-        private readonly AddressFactory $entityFactory,
-        private readonly ResourceModel $resource,
-        private readonly CollectionFactory $collectionFactory,
-        private readonly CollectionProcessorInterface $collectionProcessor,
-        private readonly AddressSearchResultsInterfaceFactory $searchResultsFactory,
+        private AddressFactory $entityFactory,
+        private ResourceModel $resource,
+        private CollectionFactory $collectionFactory,
+        private CollectionProcessorInterface $collectionProcessor,
+        private AddressSearchResultsInterfaceFactory $searchResultsFactory,
     ) {}
 
     public function get(int $id): AddressInterface

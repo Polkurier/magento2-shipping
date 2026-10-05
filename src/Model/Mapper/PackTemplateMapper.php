@@ -17,7 +17,7 @@ use Polkurier\Webservice\Response\PackTemplate;
 /**
  * Maps pack templates between Magento and the Polkurier account.
  */
-class PackTemplateMapper
+readonly class PackTemplateMapper
 {
     /**
      * @return array<string, mixed>

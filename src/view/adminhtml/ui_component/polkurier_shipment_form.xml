@@ -135,7 +135,12 @@
                         <item name="additionalClasses" xsi:type="string">polkurier-section polkurier-section--sender</item>
                         <!-- What in the section the checks in rules.js report on -->
                         <item name="cards" xsi:type="array">
-                            <item name="0" xsi:type="string">handover</item>
+                            <item name="0" xsi:type="string">sender</item>
+                            <item name="1" xsi:type="string">handover</item>
+                        </item>
+                        <!-- Where the checks' problems are fixed -->
+                        <item name="fixModals" xsi:type="array">
+                            <item name="sender" xsi:type="string">sender_modal</item>
                         </item>
                     </item>
                 </argument>
@@ -146,6 +151,7 @@
                         </item>
                     </argument>
                 </container>
+                <container name="sender_point" component="Polkurier_Shipping/js/shipment/workspace/sender-point" sortOrder="15"></container>
                 <container name="handover" component="Polkurier_Shipping/js/shipment/workspace/handover" sortOrder="20"></container>
             </container>
             <container name="recipient_section" component="Polkurier_Shipping/js/shipment/workspace/section" sortOrder="40">
@@ -318,6 +324,13 @@
                             <item name="0" xsi:type="string">actionCancel</item>
                         </item>
                     </item>
+                    <item name="1" xsi:type="array">
+                        <item name="text" xsi:type="string" translate="true">Done</item>
+                        <item name="class" xsi:type="string">action-primary</item>
+                        <item name="actions" xsi:type="array">
+                            <item name="0" xsi:type="string">actionDone</item>
+                        </item>
+                    </item>
                 </option>
             </options>
         </settings>
@@ -345,6 +358,72 @@
                     </select>
                 </formElements>
             </field>
+            <!-- A sender typed in for the shipment, kept for later if asked -->
+            <container name="new_sender" component="Polkurier_Shipping/js/shipment/workspace/new-entry" sortOrder="20">
+                <argument name="data" xsi:type="array">
+                    <item name="config" xsi:type="array">
+                        <item name="choiceField" xsi:type="string">sender_address_id</item>
+                        <item name="intro" xsi:type="string" translate="true">The shipment is sent from this address. Polkurier needs all but the company and the flat number.</item>
+                        <item name="fields" xsi:type="array">
+                        <item name="0" xsi:type="array">
+                            <item name="name" xsi:type="string">new_sender_person</item>
+                            <item name="label" xsi:type="string" translate="true">Name</item>
+                            <item name="required" xsi:type="boolean">true</item>
+                        </item>
+                        <item name="1" xsi:type="array">
+                            <item name="name" xsi:type="string">new_sender_company</item>
+                            <item name="label" xsi:type="string" translate="true">Company</item>
+                        </item>
+                        <item name="2" xsi:type="array">
+                            <item name="name" xsi:type="string">new_sender_street</item>
+                            <item name="label" xsi:type="string" translate="true">Street</item>
+                            <item name="required" xsi:type="boolean">true</item>
+                        </item>
+                        <item name="3" xsi:type="array">
+                            <item name="name" xsi:type="string">new_sender_house_number</item>
+                            <item name="label" xsi:type="string" translate="true">House number</item>
+                            <item name="required" xsi:type="boolean">true</item>
+                        </item>
+                        <item name="4" xsi:type="array">
+                            <item name="name" xsi:type="string">new_sender_flat_number</item>
+                            <item name="label" xsi:type="string" translate="true">Flat number</item>
+                        </item>
+                        <item name="5" xsi:type="array">
+                            <item name="name" xsi:type="string">new_sender_postcode</item>
+                            <item name="label" xsi:type="string" translate="true">Postcode</item>
+                            <item name="required" xsi:type="boolean">true</item>
+                        </item>
+                        <item name="6" xsi:type="array">
+                            <item name="name" xsi:type="string">new_sender_city</item>
+                            <item name="label" xsi:type="string" translate="true">City</item>
+                            <item name="required" xsi:type="boolean">true</item>
+                        </item>
+                        <item name="7" xsi:type="array">
+                            <item name="name" xsi:type="string">new_sender_country</item>
+                            <item name="label" xsi:type="string" translate="true">Country</item>
+                            <item name="notice" xsi:type="string" translate="true">Its two-letter code; PL if left empty.</item>
+                        </item>
+                        <item name="8" xsi:type="array">
+                            <item name="name" xsi:type="string">new_sender_phone</item>
+                            <item name="label" xsi:type="string" translate="true">Phone</item>
+                            <item name="required" xsi:type="boolean">true</item>
+                            <item name="type" xsi:type="string">tel</item>
+                        </item>
+                        <item name="9" xsi:type="array">
+                            <item name="name" xsi:type="string">new_sender_email</item>
+                            <item name="label" xsi:type="string" translate="true">E-mail</item>
+                            <item name="required" xsi:type="boolean">true</item>
+                            <item name="type" xsi:type="string">email</item>
+                        </item>
+                        </item>
+                        <item name="keepField" xsi:type="string">keep_new_sender</item>
+                        <item name="nameField" xsi:type="string">new_sender_name</item>
+                        <item name="keepLabel" xsi:type="string" translate="true">Save to your addresses for later shipments</item>
+                        <item name="nameLabel" xsi:type="string" translate="true">Saved as</item>
+                        <item name="nameNotice" xsi:type="string" translate="true">If left empty: the company or the name, and the city. Saved once the shipment is placed.</item>
+                    </item>
+                </argument>
+            </container>
         </fieldset>
     </modal>
     <modal name="recipient_modal">
@@ -549,6 +628,29 @@
                     </select>
                 </formElements>
             </field>
+            <!-- An account typed in for the shipment, kept for later if asked -->
+            <container name="new_bank_account" component="Polkurier_Shipping/js/shipment/workspace/new-entry" sortOrder="50">
+                <argument name="data" xsi:type="array">
+                    <item name="config" xsi:type="array">
+                        <item name="choiceField" xsi:type="string">cod_bank_account_id</item>
+                        <item name="alsoWhen" xsi:type="array">
+                            <item name="cod_return_type" xsi:type="string">BA</item>
+                        </item>
+                        <item name="fields" xsi:type="array">
+                            <item name="0" xsi:type="array">
+                                <item name="name" xsi:type="string">new_bank_account_number</item>
+                                <item name="label" xsi:type="string" translate="true">Account number</item>
+                                <item name="required" xsi:type="boolean">true</item>
+                            </item>
+                        </item>
+                        <item name="keepField" xsi:type="string">keep_new_bank_account</item>
+                        <item name="nameField" xsi:type="string">new_bank_account_name</item>
+                        <item name="keepLabel" xsi:type="string" translate="true">Save to your bank accounts for later shipments</item>
+                        <item name="nameLabel" xsi:type="string" translate="true">Saved as</item>
+                        <item name="nameNotice" xsi:type="string" translate="true">If left empty: "Account ending" and its last four digits. Saved once the shipment is placed; Polkurier takes it once you confirm it with the code or your security PIN.</item>
+                    </item>
+                </argument>
+            </container>
         </fieldset>
     </modal>
     <modal name="insurance_modal">

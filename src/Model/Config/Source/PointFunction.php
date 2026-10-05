@@ -12,7 +12,7 @@ use Polkurier\Webservice\Enum\Courier\PointFunctionEnum;
 /**
  * What a pickup point must allow to be shown.
  */
-class PointFunction extends AbstractOptions
+readonly class PointFunction extends AbstractOptions
 {
     public function toArray(): array
     {

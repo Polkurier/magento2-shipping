@@ -16,16 +16,16 @@ use Magento\Framework\View\Element\UiComponent\Control\ButtonProviderInterface;
  *
  * Configured per button as a virtual type in adminhtml/di.xml.
  */
-class LinkButton implements ButtonProviderInterface
+readonly class LinkButton implements ButtonProviderInterface
 {
     public function __construct(
-        private readonly UrlInterface $url,
-        private readonly AuthorizationInterface $authorization,
-        private readonly string $label,
-        private readonly string $path,
-        private readonly string $resource,
-        private readonly string $class = 'primary',
-        private readonly int $sortOrder = 10,
+        private UrlInterface $url,
+        private AuthorizationInterface $authorization,
+        private string $label,
+        private string $path,
+        private string $resource,
+        private string $class = 'primary',
+        private int $sortOrder = 10,
     ) {}
 
     /**

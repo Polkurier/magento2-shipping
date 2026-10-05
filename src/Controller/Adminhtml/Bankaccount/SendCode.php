@@ -13,6 +13,7 @@ use Magento\Framework\App\Action\HttpPostActionInterface;
 use Magento\Framework\Controller\Result\Json;
 use Magento\Framework\Controller\Result\JsonFactory;
 use Magento\Framework\Exception\LocalizedException;
+use Polkurier\Shipping\Model\Admin\CodeSent;
 use Polkurier\Shipping\Model\BankAccount\Publisher;
 
 /**
@@ -40,8 +41,8 @@ class SendCode extends Action implements HttpPostActionInterface
 
         return $this->jsonFactory->create()->setData([
             'error' => false,
-            'token' => $token,
-            'message' => (string)\__('Code sent. Enter it below, then save.'),
+            'token' => $token->getId(),
+            'message' => CodeSent::message($token),
         ]);
     }
 }

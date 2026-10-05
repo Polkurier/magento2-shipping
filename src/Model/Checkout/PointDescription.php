@@ -13,7 +13,7 @@ namespace Polkurier\Shipping\Model\Checkout;
  * names the shipping method, so the customer sees the point in the order's e-mails, their account
  * and printed documents, and the merchant on the order, invoices and packing slips.
  */
-class PointDescription
+readonly class PointDescription
 {
     /**
      * The length of the order's shipping_description column.

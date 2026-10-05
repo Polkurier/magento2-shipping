@@ -22,11 +22,11 @@ use Polkurier\Shipping\Model\Config;
  * The button stays while the order has items left to ship, or a Magento shipment without a
  * Polkurier order to send one for.
  */
-class OrderViewPlugin
+readonly class OrderViewPlugin
 {
     public function __construct(
-        private readonly AuthorizationInterface $authorization,
-        private readonly Config $config,
+        private AuthorizationInterface $authorization,
+        private Config $config,
     ) {}
 
     /**
@@ -57,8 +57,8 @@ class OrderViewPlugin
         if (!$this->config->isNativeLabelsEnabled($storeId)) {
             $subject->updateButton('order_ship', 'onclick', \sprintf("setLocation('%s')", $url));
         } else {
-            // Placed next to Magento's "Ship" by ShipButtonPosition.
-            $subject->addButton(ShipButtonPosition::BUTTON, [
+            // Placed next to Magento's "Ship" by ShipButtonPositionPlugin.
+            $subject->addButton(ShipButtonPositionPlugin::BUTTON, [
                 'label' => \__('Ship with Polkurier'),
                 'onclick' => \sprintf("setLocation('%s')", $url),
                 'class' => 'ship',

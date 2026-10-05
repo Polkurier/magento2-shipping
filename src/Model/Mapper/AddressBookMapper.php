@@ -16,7 +16,7 @@ use Polkurier\Webservice\Response\Address;
 /**
  * Maps address book entries between Magento and the Polkurier account.
  */
-class AddressBookMapper
+readonly class AddressBookMapper
 {
     /**
      * The fields both sides keep, as compared and copied by the synchronization.
@@ -48,10 +48,15 @@ class AddressBookMapper
     }
 
     /**
+     * What Polkurier can't keep stays as Magento has it: a sender's drop-off point (Polkurier
+     * keeps points for recipients only) and a province it has none for (it knows no Polish
+     * ones).
+     *
      * @param array<string, mixed> $remote as returned by {@see normalize()}
      */
     public function apply(array $remote, AddressInterface $address): void
     {
+        $sender = (string)$remote['type'] === AddressInterface::TYPE_SENDER;
         $address->setExtId(isset($remote['id']) ? (string)$remote['id'] : null)
             ->setName((string)$remote['name'])
             ->setType((string)$remote['type'])
@@ -62,9 +67,9 @@ class AddressBookMapper
             ->setFlatNumber($remote['flat_number'])
             ->setCity((string)$remote['city'])
             ->setPostcode((string)$remote['postcode'])
-            ->setProvince($remote['province'])
+            ->setProvince(($remote['province'] ?? null) ?: $address->getProvince())
             ->setCountry((string)$remote['country'])
-            ->setPointId($remote['point_id'])
+            ->setPointId($sender ? $address->getPointId() : $remote['point_id'])
             ->setEmail((string)$remote['email'])
             ->setPhone((string)$remote['phone'])
             ->setDefault((bool)$remote['default'])

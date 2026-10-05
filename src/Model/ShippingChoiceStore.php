@@ -14,13 +14,13 @@ use Polkurier\Shipping\Api\Data\ShippingChoiceInterface;
 /**
  * Keeps the shipping the customer chose, on the side, while the order shows another.
  */
-class ShippingChoiceStore
+readonly class ShippingChoiceStore
 {
     private const string TABLE = 'polkurier_order_shipping_choice';
 
     public function __construct(
-        private readonly ResourceConnection $resource,
-        private readonly ShippingChoiceFactory $factory,
+        private ResourceConnection $resource,
+        private ShippingChoiceFactory $factory,
     ) {}
 
     public function get(int $orderId): ?ShippingChoiceInterface

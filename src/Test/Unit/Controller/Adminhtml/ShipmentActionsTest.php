@@ -9,6 +9,7 @@ namespace Polkurier\Shipping\Test\Unit\Controller\Adminhtml;
 
 use Magento\Framework\App\Request\DataPersistorInterface;
 use Magento\Framework\Exception\LocalizedException;
+use Magento\Framework\Url\EncoderInterface;
 use Magento\Sales\Model\Order;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -16,6 +17,7 @@ use Polkurier\Shipping\Api\Data\ShipmentDraftInterface;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Api\ShipmentManagementInterface;
 use Polkurier\Shipping\Controller\Adminhtml\Config\TestConnection;
+use Polkurier\Shipping\Controller\Adminhtml\Shipment\MassPickup;
 use Polkurier\Shipping\Controller\Adminhtml\Shipment\Pack;
 use Polkurier\Shipping\Controller\Adminhtml\Shipment\Save;
 use Polkurier\Shipping\Model\Config;
@@ -27,6 +29,8 @@ use Polkurier\Shipping\Model\Shipment\Draft\Pack as DraftPack;
 use Polkurier\Shipping\Model\Shipment\DraftHydrator;
 use Polkurier\Shipping\Model\Shipment\MagentoShipment;
 use Polkurier\Shipping\Model\Shipment\OwnOrders;
+use Polkurier\Shipping\Model\Shipment\Pickups;
+use Polkurier\Shipping\Model\Shipment\RequestedShipments;
 use Polkurier\Shipping\Model\Shipment\RejectedDraft;
 use Polkurier\Shipping\Test\Unit\Support\AdminActionTestCase;
 use Polkurier\Webservice\Api\Service\UtilsServiceInterface;
@@ -36,6 +40,7 @@ use Polkurier\Webservice\Response\Util\AuthConfirmationMessage;
 
 #[CoversClass(Save::class)]
 #[CoversClass(Pack::class)]
+#[CoversClass(MassPickup::class)]
 #[CoversClass(TestConnection::class)]
 #[AllowMockObjectsWithoutExpectations]
 class ShipmentActionsTest extends AdminActionTestCase
@@ -90,13 +95,28 @@ class ShipmentActionsTest extends AdminActionTestCase
         $this->params = ['data' => ['order_id' => '29']];
         $packer = $this->createMock(AutoPacker::class);
         $packer->expects(self::once())->method('pack')->with(self::anything(), [5 => 2.0])
-            ->willReturn(['packs' => [(new DraftPack())->setAmount(1)], 'unmeasured' => [], 'unweighed' => ['Mug'], 'templates' => true]);
+            ->willReturn(['packs' => [(new DraftPack())->setAmount(1)], 'unmeasured' => [], 'unweighed' => ['Mug'], 'unweighed_own' => [], 'templates' => true]);
 
         $this->pack($packer, [5 => 2.0])->execute();
 
         self::assertFalse($this->json['error'] ?? true);
         self::assertTrue($this->json['estimated']);
         self::assertSame('These products have no weight, so their parcels take the pack template\'s weight: Mug.', $this->json['message']);
+    }
+
+    public function testAParcelOfItsOwnSizeWithoutAWeightIsToBeWeighedByHand(): void
+    {
+        $this->params = ['data' => ['order_id' => '29']];
+        $packer = $this->createStub(AutoPacker::class);
+        $packer->method('pack')->willReturn(['packs' => [(new DraftPack())->setAmount(1)], 'unmeasured' => [], 'unweighed' => ['Mug', 'Rug'], 'unweighed_own' => ['Rug'], 'templates' => true]);
+
+        $this->pack($packer, [5 => 2.0])->execute();
+
+        self::assertSame(
+            'These products have no weight, so their parcels take the pack template\'s weight: Mug.'
+            . ' These products have no weight and their parcels have no pack template, so enter those parcels\' weights yourself: Rug.',
+            $this->json['message'],
+        );
     }
 
     public function testNothingLeftToShipIsSaidSo(): void
@@ -116,7 +136,7 @@ class ShipmentActionsTest extends AdminActionTestCase
         $this->params = ['data' => ['order_id' => '29', 'target_shipment_id' => '11']];
         $packer = $this->createMock(AutoPacker::class);
         $packer->expects(self::once())->method('pack')->with(self::anything(), [7 => 1.0])
-            ->willReturn(['packs' => [(new DraftPack())->setAmount(1)], 'unmeasured' => [], 'unweighed' => [], 'templates' => true]);
+            ->willReturn(['packs' => [(new DraftPack())->setAmount(1)], 'unmeasured' => [], 'unweighed' => [], 'unweighed_own' => [], 'templates' => true]);
 
         $this->pack($packer, [], 11, [7 => 1.0])->execute();
 
@@ -127,7 +147,7 @@ class ShipmentActionsTest extends AdminActionTestCase
     {
         $this->params = ['data' => ['order_id' => '29']];
         $packer = $this->createStub(AutoPacker::class);
-        $packer->method('pack')->willReturn(['packs' => [], 'unmeasured' => ['Mug', 'Lamp'], 'unweighed' => [], 'templates' => true]);
+        $packer->method('pack')->willReturn(['packs' => [], 'unmeasured' => ['Mug', 'Lamp'], 'unweighed' => [], 'unweighed_own' => [], 'templates' => true]);
 
         $this->pack($packer, [5 => 2.0])->execute();
 
@@ -173,6 +193,54 @@ class ShipmentActionsTest extends AdminActionTestCase
         })->execute();
 
         self::assertSame(['success' => false, 'message' => 'Polkurier could not be reached, or did not answer in time: Timed out.'], $this->json);
+    }
+
+    public function testOnlyShipmentsAwaitingACollectivePickupGoToItsForm(): void
+    {
+        $this->massPickup([
+            $this->collective(41, 'POL1', awaiting: true),
+            $this->collective(42, 'POL2', awaiting: false),
+        ])->execute();
+
+        self::assertSame('*/*/pickupForm', $this->redirect[0] ?? null);
+        self::assertSame('41', $this->redirect[1]['ids'] ?? null);
+        self::assertSame(['Left out, as they don\'t await a collective pickup: POL2.'], $this->messages['notice']);
+    }
+
+    public function testNoFormOpensWithoutAShipmentAwaitingACollectivePickup(): void
+    {
+        $this->massPickup([$this->collective(42, 'POL2', awaiting: false)])->execute();
+
+        self::assertNotSame('*/*/pickupForm', $this->redirect[0] ?? null);
+        self::assertSame(['None of the selected shipments awaits a collective pickup.'], $this->messages['error']);
+    }
+
+    /**
+     * @param ShipmentInterface[] $selected
+     */
+    private function massPickup(array $selected): MassPickup
+    {
+        $requested = $this->createStub(RequestedShipments::class);
+        $requested->method('getSelected')->willReturn($selected);
+
+        return new MassPickup(
+            $this->context(),
+            $requested,
+            $this->createStub(EncoderInterface::class),
+            (new \ReflectionClass(Pickups::class))->newInstanceWithoutConstructor(),
+        );
+    }
+
+    private function collective(int $id, string $number, bool $awaiting): ShipmentInterface
+    {
+        $shipment = $this->createStub(ShipmentInterface::class);
+        $shipment->method('getId')->willReturn($id);
+        $shipment->method('getPolkurierNumber')->willReturn($number);
+        $shipment->method('getState')->willReturn(ShipmentInterface::STATE_CREATED);
+        $shipment->method('isMultiPickup')->willReturn($awaiting);
+        $shipment->method('isPickupBooked')->willReturn(false);
+
+        return $shipment;
     }
 
     private function save(ShipmentManagementInterface $management): Save

@@ -23,7 +23,7 @@ use Psr\Log\LoggerInterface;
  * locally, unless it was edited locally since the last synchronization, in which case it is sent
  * again. New remote entries are created locally; new local ones are sent.
  */
-class SyncEngine
+readonly class SyncEngine
 {
     public const string DATE_FORMAT = 'Y-m-d H:i:s';
 
@@ -34,10 +34,10 @@ class SyncEngine
     ];
 
     public function __construct(
-        private readonly RemoteClockInterface $clock,
-        private readonly ErrorMessages $errorMessages,
-        private readonly DateTime $dateTime,
-        private readonly LoggerInterface $logger,
+        private RemoteClockInterface $clock,
+        private ErrorMessages $errorMessages,
+        private DateTime $dateTime,
+        private LoggerInterface $logger,
     ) {}
 
     /**

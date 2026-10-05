@@ -21,14 +21,14 @@ use Polkurier\Shipping\Model\ShipmentFactory;
 use Polkurier\Shipping\Model\ResourceModel\Shipment as ResourceModel;
 use Polkurier\Shipping\Model\ResourceModel\Shipment\CollectionFactory;
 
-class ShipmentRepository implements ShipmentRepositoryInterface
+readonly class ShipmentRepository implements ShipmentRepositoryInterface
 {
     public function __construct(
-        private readonly ShipmentFactory $entityFactory,
-        private readonly ResourceModel $resource,
-        private readonly CollectionFactory $collectionFactory,
-        private readonly CollectionProcessorInterface $collectionProcessor,
-        private readonly ShipmentSearchResultsInterfaceFactory $searchResultsFactory,
+        private ShipmentFactory $entityFactory,
+        private ResourceModel $resource,
+        private CollectionFactory $collectionFactory,
+        private CollectionProcessorInterface $collectionProcessor,
+        private ShipmentSearchResultsInterfaceFactory $searchResultsFactory,
     ) {}
 
     public function get(int $id): ShipmentInterface

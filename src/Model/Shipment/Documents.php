@@ -18,12 +18,12 @@ use Polkurier\Webservice\Request\Order\GetDocumentMessage;
  * Labels and handover protocols for Polkurier orders. Several orders of one account come back as
  * one document.
  */
-class Documents
+readonly class Documents
 {
     public function __construct(
-        private readonly ShipmentGatewayInterface $gateway,
-        private readonly Config $config,
-        private readonly DateTime $dateTime,
+        private ShipmentGatewayInterface $gateway,
+        private Config $config,
+        private DateTime $dateTime,
     ) {}
 
     /**

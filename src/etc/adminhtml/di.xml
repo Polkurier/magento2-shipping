@@ -19,7 +19,7 @@
     </type>
     <!-- Order view: "Ship with Polkurier" right after Magento's "Ship" -->
     <type name="Magento\Backend\Block\Widget\Button\Toolbar">
-        <plugin name="polkurier_ship_button_position" type="Polkurier\Shipping\Plugin\Adminhtml\ShipButtonPosition" />
+        <plugin name="polkurier_ship_button_position" type="Polkurier\Shipping\Plugin\Adminhtml\ShipButtonPositionPlugin" />
     </type>
     <!-- Order and shipment views: the customer's pickup point and the carrier the parcels went with, in the shipping information -->
     <type name="Magento\Sales\Block\Adminhtml\Order\AbstractOrder">

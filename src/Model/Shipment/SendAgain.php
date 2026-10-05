@@ -20,16 +20,16 @@ use Polkurier\Shipping\Model\ResourceModel\Shipment\CollectionFactory;
  * and why it failed. Only failures on Polkurier's side leave a shipment that wasn't placed
  * (Placing); it's placed by the order's next attempt, from here or not.
  */
-class SendAgain
+readonly class SendAgain
 {
     public const string PARAM = 'retry';
 
     public function __construct(
-        private readonly ShipmentRepositoryInterface $shipmentRepository,
-        private readonly CollectionFactory $collectionFactory,
-        private readonly OwnOrders $ownOrders,
-        private readonly MagentoShipment $magentoShipment,
-        private readonly UrlInterface $url,
+        private ShipmentRepositoryInterface $shipmentRepository,
+        private CollectionFactory $collectionFactory,
+        private OwnOrders $ownOrders,
+        private MagentoShipment $magentoShipment,
+        private UrlInterface $url,
     ) {}
 
     /**

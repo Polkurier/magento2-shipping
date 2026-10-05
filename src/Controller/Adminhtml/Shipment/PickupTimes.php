@@ -14,10 +14,8 @@ use Magento\Framework\Controller\Result\Json;
 use Magento\Framework\Controller\Result\JsonFactory;
 use Magento\Framework\Exception\LocalizedException;
 use Polkurier\Shipping\Model\ErrorMessages;
-use Polkurier\Shipping\Api\AddressRepositoryInterface;
-use Polkurier\Shipping\Model\Mapper\SenderMapper;
-use Polkurier\Shipping\Model\Shipment\OwnOrders;
 use Polkurier\Shipping\Model\Shipment\Pickups;
+use Polkurier\Shipping\Model\Shipment\SenderPostcode;
 
 /**
  * Days and windows the chosen carrier can collect on, from the sender's postcode.
@@ -30,10 +28,8 @@ class PickupTimes extends Action implements HttpPostActionInterface
         Context $context,
         private readonly JsonFactory $jsonFactory,
         private readonly Pickups $pickups,
-        private readonly OwnOrders $ownOrders,
         private readonly ErrorMessages $errorMessages,
-        private readonly AddressRepositoryInterface $addressRepository,
-        private readonly SenderMapper $senderMapper,
+        private readonly SenderPostcode $senderPostcode,
     ) {
         parent::__construct($context);
     }
@@ -43,14 +39,7 @@ class PickupTimes extends Action implements HttpPostActionInterface
         $result = $this->jsonFactory->create();
         $data = (array)$this->getRequest()->getParam('data', []);
         try {
-            $storeId = (int)$this->ownOrders->get((int)($data['order_id'] ?? 0))->getStoreId();
-            $senderId = (int)($data['sender_address_id'] ?? 0);
-            $senderPostcode = $senderId
-                ? $this->addressRepository->get($senderId)->getPostcode()
-                : $this->senderMapper->fromStore($storeId)?->getPostcode();
-            if ($senderPostcode === null) {
-                throw new LocalizedException(\__('Choose the sender address first.'));
-            }
+            $senderPostcode = $this->senderPostcode->of($data);
             if (empty($data['carrier_code'])) {
                 throw new LocalizedException(\__('Choose a carrier first.'));
             }

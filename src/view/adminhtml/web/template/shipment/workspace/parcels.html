@@ -10,6 +10,7 @@
             <div class="polkurier-parcels__text">
                 <strong text="name"></strong>
                 <span class="polkurier-muted" text="size"></span>
+                <span class="polkurier-muted" if="kept" text="kept"></span>
                 <ul class="polkurier-muted polkurier-parcels__contents" if="contents.length">
                     <!-- ko foreach: contents -->
                     <li text="$data"></li>
@@ -120,6 +121,19 @@
                         </tbody>
                     </table>
                 </div>
+                <!-- ko if: editor.canKeep -->
+                <div class="admin__field admin__field-option">
+                    <input id="polkurier-parcel-keep" type="checkbox" class="admin__control-checkbox" data-bind="checked: editor.keep"/>
+                    <label class="admin__field-label" for="polkurier-parcel-keep" translate="'Save as a pack template for later shipments'"></label>
+                </div>
+                <div class="admin__field" if="editor.keep">
+                    <label class="admin__field-label" for="polkurier-parcel-keep-name"><span translate="'Saved as'"></span></label>
+                    <div class="admin__field-control">
+                        <input id="polkurier-parcel-keep-name" class="admin__control-text" type="text" data-bind="textInput: editor.keepName"/>
+                        <div class="admin__field-note" data-bind="text: $t('If left empty: its type and size. Saved once the shipment is placed.')"></div>
+                    </div>
+                </div>
+                <!-- /ko -->
                 <div class="message message-error" if="editor.error">
                     <span text="editor.error"></span>
                 </div>

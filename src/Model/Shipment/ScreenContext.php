@@ -24,20 +24,20 @@ use Polkurier\Webservice\Response\CourierPoint;
  * What both shipment screens start from: the Polkurier shipment screen and the shipping label
  * options on Magento's New Shipment page. Built in one place so the two don't drift apart.
  */
-class ScreenContext
+readonly class ScreenContext
 {
     public function __construct(
-        private readonly ShipmentManagementInterface $management,
-        private readonly DraftHydrator $hydrator,
-        private readonly MasterData $masterData,
-        private readonly PackType $packTypes,
-        private readonly MapTokenProvider $mapTokenProvider,
-        private readonly Config $config,
-        private readonly OrderAmounts $amounts,
-        private readonly UrlInterface $url,
-        private readonly CarrierCatalog $catalog,
-        private readonly CarrierFeatures $features,
-        private readonly DefaultDraftBuilder $draftBuilder,
+        private ShipmentManagementInterface $management,
+        private DraftHydrator $hydrator,
+        private MasterData $masterData,
+        private PackType $packTypes,
+        private MapTokenProvider $mapTokenProvider,
+        private Config $config,
+        private OrderAmounts $amounts,
+        private UrlInterface $url,
+        private CarrierCatalog $catalog,
+        private CarrierFeatures $features,
+        private DefaultDraftBuilder $draftBuilder,
     ) {}
 
     /**
@@ -84,11 +84,35 @@ class ScreenContext
     }
 
     /**
+     * What the parcels go as until a shipment has some: parcels, envelopes or pallets.
+     */
+    public function getDefaultShipmentType(int $storeId): string
+    {
+        return $this->config->getDefaultShipmentType($storeId)->value;
+    }
+
+    /**
      * What a parcel of a pack template weighs, as the screens weigh it (ParcelWeightEnum).
      */
     public function getParcelWeight(int $storeId): string
     {
         return $this->config->getParcelWeight($storeId)->value;
+    }
+
+    /**
+     * Where each sender address is and the point it hands parcels over at, for the drop-off
+     * point's map and default.
+     *
+     * @return array<string, array{postcode: string, point_id: string}> by address id
+     */
+    public function getSenderPoints(): array
+    {
+        $points = [];
+        foreach ($this->masterData->getSenderAddresses() as $address) {
+            $points[(string)$address->getId()] = ['postcode' => $address->getPostcode(), 'point_id' => (string)$address->getPointId()];
+        }
+
+        return $points;
     }
 
     /**
@@ -111,6 +135,8 @@ class ScreenContext
                 'width' => $template->getWidth(),
                 'height' => $template->getHeight(),
                 'weight' => $template->getWeight(),
+                // What the packaging weighs, added to what a parcel holds (rules.parcelWeight).
+                'tare' => $template->getTare(),
                 'is_default' => $template->isDefault(),
             ];
         }

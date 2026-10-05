@@ -12,7 +12,7 @@ use Polkurier\Webservice\Enum\Http\ApiMethodEnum;
 /**
  * API methods whose whole traffic may be logged.
  */
-class ApiMethod extends AbstractOptions
+readonly class ApiMethod extends AbstractOptions
 {
     public function toArray(): array
     {

@@ -22,7 +22,7 @@ use Polkurier\Shipping\Api\Data\CarrierConfigInterface;
  *
  * The directory name is neutral on purpose: logo URLs end up in the storefront's pages.
  */
-class CarrierLogo
+readonly class CarrierLogo
 {
     public const string DIRECTORY = 'shipping/carrier_logos';
 
@@ -32,9 +32,9 @@ class CarrierLogo
     public const array EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
 
     public function __construct(
-        private readonly UploaderFactory $uploaderFactory,
-        private readonly Filesystem $filesystem,
-        private readonly StoreManagerInterface $storeManager,
+        private UploaderFactory $uploaderFactory,
+        private Filesystem $filesystem,
+        private StoreManagerInterface $storeManager,
     ) {}
 
     /**

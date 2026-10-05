@@ -12,13 +12,13 @@ use Polkurier\Shipping\Api\Data\CarrierConfigInterface;
 /**
  * Prices a carrier with the calculator its pricing model names. Calculators are registered in di.xml.
  */
-class PriceCalculatorPool implements PriceCalculatorInterface
+readonly class PriceCalculatorPool implements PriceCalculatorInterface
 {
     /**
      * @param array<string, PriceCalculatorInterface> $calculators keyed by PricingModelEnum value
      */
     public function __construct(
-        private readonly array $calculators = [],
+        private array $calculators = [],
     ) {}
 
     public function calculate(CarrierConfigInterface $config, RateContext $context): ?float

@@ -10,6 +10,7 @@ namespace Polkurier\Shipping\Model;
 use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\Encryption\EncryptorInterface;
 use Magento\Store\Model\ScopeInterface;
+use Polkurier\Shipping\Model\Shipment\ExternalOrderIdEnum;
 use Polkurier\Shipping\Model\Shipment\ParcelWeightEnum;
 use Polkurier\Shipping\Model\Shipment\WeightLimitEnum;
 use Polkurier\Webservice\Enum\Courier\PointFunctionEnum;
@@ -18,6 +19,7 @@ use Polkurier\Webservice\Enum\Order\AdditionalServiceEnum;
 use Polkurier\Webservice\Enum\Order\CodReturnTypeEnum;
 use Polkurier\Webservice\Enum\Order\CodTypeEnum;
 use Polkurier\Webservice\Enum\Order\LabelFileFormatEnum;
+use Polkurier\Webservice\Enum\Order\ShipmentTypeEnum;
 
 
 /**
@@ -29,7 +31,7 @@ use Polkurier\Webservice\Enum\Order\LabelFileFormatEnum;
  * may differ per website or store view. A null store id means the current store, which in the
  * admin is the default scope.
  */
-class Config
+readonly class Config
 {
     public const string XML_PATH_ACTIVE = 'carriers/polkurier/active';
     public const string XML_PATH_TITLE = 'carriers/polkurier/title';
@@ -39,14 +41,20 @@ class Config
     public const string XML_PATH_API_URL = 'carriers/polkurier/general/api_url';
     public const string XML_PATH_MAP_URL = 'carriers/polkurier/map/url';
     public const string XML_PATH_TIMEOUT = 'carriers/polkurier/general/timeout';
-    public const string XML_PATH_LOGGING = 'carriers/polkurier/general/logging';
-    public const string XML_PATH_LOG_METHODS = 'carriers/polkurier/general/log_methods';
+    public const string XML_PATH_EXTERNAL_ORDER_ID = 'carriers/polkurier/general/external_order_id';
+    public const string XML_PATH_LOGGING = 'carriers/polkurier/logging/failed_requests';
+    public const string XML_PATH_LOG_METHODS = 'carriers/polkurier/logging/methods';
+    public const string XML_PATH_LOG_PERSONAL_DATA = 'carriers/polkurier/logging/personal_data';
+    public const string XML_PATH_LOG_FILES = 'carriers/polkurier/logging/files';
+    public const string XML_PATH_LOG_FILES_DIRECTORY = 'carriers/polkurier/logging/files_directory';
+    public const string XML_PATH_LOG_FILES_LIFETIME = 'carriers/polkurier/logging/files_lifetime';
     public const string XML_PATH_AVAILABLE_CARRIERS = 'carriers/polkurier/shipment_defaults/available_carriers';
     public const string XML_PATH_USE_STORE_INFORMATION_ADDRESS = 'carriers/polkurier/sender/use_store_information_address';
     public const string XML_PATH_USE_ORIGIN_ADDRESS = 'carriers/polkurier/sender/use_store_origin_address';
     public const string XML_PATH_SENDER_EMAIL = 'carriers/polkurier/sender/default_sender_email';
     public const string XML_PATH_DEFAULT_SERVICES = 'carriers/polkurier/shipment_defaults/default_additional_services';
     public const string XML_PATH_INSURE_BY_DEFAULT = 'carriers/polkurier/shipment_defaults/insure_by_default';
+    public const string XML_PATH_DEFAULT_SHIPMENT_TYPE = 'carriers/polkurier/shipment_defaults/default_shipment_type';
     public const string XML_PATH_DEFAULT_COVER_ADDRESS = 'carriers/polkurier/shipment_defaults/default_cover_address';
     public const string XML_PATH_PACK_NEW_SHIPMENTS = 'carriers/polkurier/packing/pack_new_shipments';
     public const string XML_PATH_PACKING_MARGIN = 'carriers/polkurier/packing/packing_margin';
@@ -74,8 +82,8 @@ class Config
     public const string SANDBOX_MAP_URL = 'https://maps-sandbox.polkurier.pl';
 
     public function __construct(
-        private readonly ScopeConfigInterface $scopeConfig,
-        private readonly EncryptorInterface $encryptor,
+        private ScopeConfigInterface $scopeConfig,
+        private EncryptorInterface $encryptor,
     ) {}
 
     public function isActive(?int $storeId = null): bool
@@ -130,6 +138,14 @@ class Config
         return $timeout > 0 ? $timeout : 30;
     }
 
+    /**
+     * What identifies an order to Polkurier: the Magento shipment's number or the order's.
+     */
+    public function getExternalOrderId(): ExternalOrderIdEnum
+    {
+        return ExternalOrderIdEnum::tryFrom((string)$this->globalValue(self::XML_PATH_EXTERNAL_ORDER_ID)) ?? ExternalOrderIdEnum::Shipment;
+    }
+
     public function isLoggingEnabled(): bool
     {
         return $this->globalFlag(self::XML_PATH_LOGGING);
@@ -144,6 +160,32 @@ class Config
             static fn(string $method): ?ApiMethodEnum => ApiMethodEnum::tryFrom($method),
             $this->globalList(self::XML_PATH_LOG_METHODS),
         )));
+    }
+
+    public function isPersonalDataLoggingEnabled(): bool
+    {
+        return $this->globalFlag(self::XML_PATH_LOG_PERSONAL_DATA);
+    }
+
+    public function isFileLoggingEnabled(): bool
+    {
+        return $this->globalFlag(self::XML_PATH_LOG_FILES);
+    }
+
+    /**
+     * Where logged files are saved, as entered: see {@see \Polkurier\Shipping\Model\Sdk\LogFilesDirectory}.
+     */
+    public function getLogFilesDirectory(): string
+    {
+        return \trim((string)$this->globalValue(self::XML_PATH_LOG_FILES_DIRECTORY));
+    }
+
+    /**
+     * How many days files saved for the log are kept; 0 for as long as someone keeps them.
+     */
+    public function getLogFilesLifetimeDays(): int
+    {
+        return \max(0, (int)$this->globalValue(self::XML_PATH_LOG_FILES_LIFETIME));
     }
 
     /**
@@ -198,6 +240,15 @@ class Config
         $id = (int)$this->value(self::XML_PATH_DEFAULT_COVER_ADDRESS, $storeId);
 
         return $id > 0 ? $id : null;
+    }
+
+    /**
+     * What a shipment's parcels go as, unless the carrier doesn't take them so: parcels (boxes),
+     * envelopes or pallets. Packing keeps to it.
+     */
+    public function getDefaultShipmentType(?int $storeId = null): ShipmentTypeEnum
+    {
+        return ShipmentTypeEnum::tryFrom((string)$this->value(self::XML_PATH_DEFAULT_SHIPMENT_TYPE, $storeId)) ?? ShipmentTypeEnum::Box;
     }
 
     public function isInsureByDefault(?int $storeId = null): bool

@@ -45,10 +45,30 @@ class AttentionNotifierTest extends TestCase
         ], $this->log);
     }
 
+    public function testNoticesWhoseShipmentNoLongerNeedsSomeoneAreWithdrawn(): void
+    {
+        $this->notifier([], [
+            3 => 'http://shop.test/admin/polkurier/shipment/view/id/5/',
+            4 => 'http://shop.test/admin/polkurier/shipment/view/id/8/',
+            6 => 'http://shop.test/admin/polkurier/shipment/view/id/12/',
+        ], [8])->notify();
+
+        self::assertSame(['withdrawn 3,6'], $this->log);
+    }
+
+    public function testNothingIsWithdrawnWithoutMagentosNotifications(): void
+    {
+        $this->notifier([], null)->notify();
+
+        self::assertSame([], $this->log);
+    }
+
     /**
      * @param list<array<string, mixed>> $rows
+     * @param array<int, string>|null $shown the notices showing, by id; null: no notifications table
+     * @param int[] $stillNeeded the shipments of those that still need someone
      */
-    private function notifier(array $rows): AttentionNotifier
+    private function notifier(array $rows, ?array $shown = [], array $stillNeeded = []): AttentionNotifier
     {
         $select = $this->createStub(Select::class);
         $select->method('from')->willReturnSelf();
@@ -58,7 +78,16 @@ class AttentionNotifierTest extends TestCase
         $connection->method('select')->willReturn($select);
         $connection->method('quoteInto')->willReturnCallback(static fn(string $text): string => $text);
         $connection->method('fetchAll')->willReturn($rows);
+        $connection->method('isTableExists')->willReturn($shown !== null);
+        $connection->method('fetchPairs')->willReturn($shown ?? []);
+        $connection->method('fetchCol')->willReturn(\array_map('strval', $stillNeeded));
         $connection->method('update')->willReturnCallback(function (string $table, array $data, array $where): int {
+            if ($table === 'adminnotification_inbox') {
+                self::assertSame(['is_read' => 1, 'is_remove' => 1], $data);
+                $this->log[] = 'withdrawn ' . \implode(',', \current($where));
+
+                return 1;
+            }
             $this->log[] = 'notified ' . \current($where);
 
             return 1;

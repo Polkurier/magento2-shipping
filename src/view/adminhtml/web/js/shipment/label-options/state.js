@@ -220,6 +220,17 @@ define([
                 if (!c) {
                     return [$t('This carrier is no longer available: choose another.')];
                 }
+                if (c.sender_point === 'REQUIRED' && !filled(values.sender_point_id)) {
+                    problems.push($t('This carrier takes the parcels at a point: choose the drop-off point you hand them over at.'));
+                }
+                if (values.sender_address_id === 'new' && rules.newSenderLacking(values).length) {
+                    problems.push($t('Fill in the sender\'s %1.').replace('%1', rules.newSenderLacking(values).join(', ')));
+                }
+                if (filled(values.cod_amount) && values.cod_return_type === 'BA' && values.cod_bank_account_id === 'new'
+                    && !filled(values.new_bank_account_number)
+                ) {
+                    problems.push($t('Enter the number of the bank account the cash on delivery is paid out to.'));
+                }
                 if (c.point === 'REQUIRED' && !filled(values.recipient_point_id)) {
                     problems.push($t('This carrier delivers to pickup points only: choose one.'));
                 }
@@ -228,7 +239,7 @@ define([
                         ? $t('Another sender on the label')
                         : state.optionLabel('services', service) || service));
                 });
-                                if (state.codTooHigh()) {
+                if (state.codTooHigh()) {
                     problems.push($t('Cash on delivery is more than the %1 left to collect.').replace('%1', state.money(config.codRemaining)));
                 }
                 if (state.insuranceTooLow()) {
@@ -294,6 +305,27 @@ define([
              * Drops what the chosen carrier does not support, and adds insurance where the carrier
              * insists on it with cash on delivery.
              */
+            /**
+             * @returns {String} the drop-off point of the chosen sender address, '' without one
+             */
+            senderAddressPoint: function () {
+                const address = (config.senderPoints || {})[String(values.sender_address_id || '')];
+
+                return address && address.point_id ? address.point_id : '';
+            },
+
+            /**
+             * @returns {String} the chosen sender's postcode, where the drop-off point's map starts
+             */
+            senderPostcode: function () {
+                if (values.sender_address_id === 'new') {
+                    return values.new_sender_postcode || '';
+                }
+                const address = (config.senderPoints || {})[String(values.sender_address_id || '')];
+
+                return address ? address.postcode : '';
+            },
+
             normalize: function () {
                 const c = state.carrier();
 
@@ -308,6 +340,9 @@ define([
                 if (c.point === 'NONE') {
                     values.recipient_point_id = '';
                 }
+                if ((c.sender_point || 'NONE') === 'NONE') {
+                    values.sender_point_id = '';
+                }
                 if (!c.cod) {
                     values.cod_amount = '';
                 }
@@ -318,6 +353,10 @@ define([
                 }
                 if (values.pickup_mode === 'drop_off' && !c.drop_off) {
                     values.pickup_mode = 'courier';
+                }
+                // Taken only at points: dropped off there.
+                if (c.sender_point === 'REQUIRED' && c.drop_off) {
+                    values.pickup_mode = 'drop_off';
                 }
                 if (!c.pickup_date) {
                     values.pickup_date = values.pickup_time_from = values.pickup_time_to = '';

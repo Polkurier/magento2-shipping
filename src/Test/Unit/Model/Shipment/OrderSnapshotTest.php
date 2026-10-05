@@ -64,7 +64,7 @@ class OrderSnapshotTest extends SdkTestCase
         self::assertSame('12345-678', $shipment->getPolkurierNumber());
         self::assertSame(['6211000015757'], $shipment->getWaybills());
         self::assertSame(['D', 'Dostarczone'], [$shipment->getStatusCode(), $shipment->getStatusLabel()]);
-        self::assertSame('2026-06-25 17:20:00', $shipment->getStatusDate());
+        self::assertSame('2026-06-25 15:20:00', $shipment->getStatusDate(), 'Reported at 17:20 Polish time: stored in UTC.');
         self::assertSame(self::NOW, $shipment->getDetailsSyncedAt());
         self::assertSame('12345-678', $shipment->getDetails()['number'] ?? null, 'The copy the details page shows.');
         self::assertNotNull($shipment->getTrackingUrl());

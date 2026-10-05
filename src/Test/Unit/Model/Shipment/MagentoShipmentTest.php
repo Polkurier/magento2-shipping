@@ -35,6 +35,7 @@ use Polkurier\Shipping\Model\Shipment\Draft;
 use Polkurier\Shipping\Model\Shipment\Draft\Item;
 use Polkurier\Shipping\Model\Shipment\Draft\Pack;
 use Polkurier\Shipping\Model\Shipment\MagentoShipment;
+use Polkurier\Shipping\Model\Shipment\ReservedShipmentNumbers;
 use Polkurier\Shipping\Model\Shipment\OrderAmounts;
 
 #[CoversClass(MagentoShipment::class)]
@@ -202,10 +203,37 @@ class MagentoShipmentTest extends TestCase
         self::assertSame(77, $this->magentoShipment($shipOrder)->ship($this->order(), $shipment, [5 => 1.0]));
     }
 
+    public function testTheMagentoShipmentMadeTakesTheNumberTheOrderWasSentWith(): void
+    {
+        $seen = null;
+        $shipOrder = $this->createStub(ShipOrderInterface::class);
+        $shipOrder->method('execute')->willReturnCallback(function () use (&$seen): string {
+            // What the plugin on Magento's shipment factory gives the shipment it makes.
+            $seen = $this->reservedNumbers->take(42);
+
+            return '77';
+        });
+        $shipment = $this->createStub(ShipmentInterface::class);
+        $shipment->method('getWaybills')->willReturn(['WB-1']);
+        $shipment->method('getCarrierCode')->willReturn('DPD');
+        $shipment->method('getReservedShipmentNumber')->willReturn('000000077');
+
+        $this->magentoShipment($shipOrder)->ship($this->order(), $shipment, [5 => 1.0]);
+
+        self::assertSame('000000077', $seen);
+        self::assertNull($this->reservedNumbers->take(42), 'Not left for another shipment.');
+    }
+
     /**
      * @var ShipmentInterface[] Polkurier orders linked to the order's Magento shipments
      */
     private array $linked = [];
+    private ReservedShipmentNumbers $reservedNumbers;
+
+    protected function setUp(): void
+    {
+        $this->reservedNumbers = new ReservedShipmentNumbers();
+    }
     /**
      * @var array<int, ShipmentTrackInterface[]> tracks by Magento shipment id
      */
@@ -297,6 +325,7 @@ class MagentoShipmentTest extends TestCase
             $collections,
             $this->createStub(Config::class),
             $this->carrierConfigs(),
+            $this->reservedNumbers,
         );
     }
 

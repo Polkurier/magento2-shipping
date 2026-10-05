@@ -16,11 +16,11 @@ use Polkurier\Shipping\Model\Checkout\PointSelection;
 /**
  * Takes the pickup point chosen in checkout along with the shipping method.
  */
-class ShippingInformationManagementPlugin
+readonly class ShippingInformationManagementPlugin
 {
     public function __construct(
-        private readonly CartRepositoryInterface $quoteRepository,
-        private readonly PointSelection $pointSelection,
+        private CartRepositoryInterface $quoteRepository,
+        private PointSelection $pointSelection,
     ) {}
 
     /**

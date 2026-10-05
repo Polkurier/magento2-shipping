@@ -21,7 +21,7 @@ use Psr\Log\LoggerInterface;
  * Polkurier's current notices about carriers (delays, suspensions, extra fees), shown on the
  * shipment screen next to the chosen carrier. Kept for a quarter of an hour per account.
  */
-class CarrierNotices
+readonly class CarrierNotices
 {
     public const int CACHE_LIFETIME = 900;
 
@@ -31,12 +31,12 @@ class CarrierNotices
     private const array ALLOWED_TAGS = ['a', 'b', 'strong', 'em', 'i', 'br', 'p', 'span'];
 
     public function __construct(
-        private readonly ClientPool $clientPool,
-        private readonly CacheInterface $cache,
-        private readonly Escaper $escaper,
-        private readonly LoggerInterface $logger,
-        private readonly Json $json,
-        private readonly AccountCacheKey $cacheKeys,
+        private ClientPool $clientPool,
+        private CacheInterface $cache,
+        private Escaper $escaper,
+        private LoggerInterface $logger,
+        private Json $json,
+        private AccountCacheKey $cacheKeys,
     ) {}
 
     /**

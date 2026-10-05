@@ -113,6 +113,11 @@ yet, and every status update keeps them current. The scans are read again when y
 if they're more than an hour old and the shipment is still on its way. For a shipment Polkurier
 hasn't confirmed, the page shows the order as it was sent.
 
+Polkurier sometimes takes a parcel as another type than it was sent as, without saying so: a
+standard parcel over the carrier's weight for standard parcels becomes non-standard, for example,
+and is priced as that. The page then says which parcel was taken as what. You land on it right
+after placing an order on the Polkurier shipment screen.
+
 The buttons at the top are the same actions as in the list (see below), and bring you back to the
 details page.
 
@@ -176,9 +181,10 @@ pickup (the **Handover** option when shipping) and then book one courier visit f
 2. Choose **Book a collective pickup** in the **Actions** menu.
 3. Enter the date and the time window, and confirm.
 
-Only placed shipments that wait for a collective pickup and aren't booked yet are included. You'll
-see which shipments were booked and, for any that weren't, the reason. Collective pickups have to
-be available on your Polkurier account.
+Only placed shipments that wait for a collective pickup and aren't booked yet are included; the
+form opens with just those, and names the others left out. You'll see which shipments were booked
+and, for any that weren't, Polkurier's reason. Whether a shipment can be collected that way is
+Polkurier's to say, for its carrier and parcels.
 
 ## On Magento's shipment page
 

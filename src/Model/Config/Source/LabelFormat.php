@@ -12,7 +12,7 @@ use Polkurier\Webservice\Enum\Order\LabelFileFormatEnum;
 /**
  * Label formats. PDF is what the API returns when none is asked for.
  */
-class LabelFormat extends AbstractOptions
+readonly class LabelFormat extends AbstractOptions
 {
     public function toArray(): array
     {

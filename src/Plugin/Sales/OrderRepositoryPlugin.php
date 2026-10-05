@@ -21,12 +21,12 @@ use Polkurier\Shipping\Model\ShippingChoiceStore;
  * order's shipping was changed to what its Polkurier order went with, the shipping the customer
  * chose as polkurier_shipping_choice.
  */
-class OrderRepositoryPlugin
+readonly class OrderRepositoryPlugin
 {
     public function __construct(
-        private readonly OrderPointStore $pointStore,
-        private readonly ShippingChoiceStore $choices,
-        private readonly OrderExtensionFactory $extensionFactory,
+        private OrderPointStore $pointStore,
+        private ShippingChoiceStore $choices,
+        private OrderExtensionFactory $extensionFactory,
     ) {}
 
     public function afterGet(OrderRepositoryInterface $subject, OrderInterface $order): OrderInterface

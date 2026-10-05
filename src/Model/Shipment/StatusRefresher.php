@@ -22,17 +22,17 @@ use Psr\Log\LoggerInterface;
  * is in the query, and every shipment taken is marked as checked, even when the check fails:
  * a shipment that is skipped or failing must not stay first in line and crowd out the rest.
  */
-class StatusRefresher
+readonly class StatusRefresher
 {
     public const int BATCH_SIZE = 200;
 
     public function __construct(
-        private readonly CollectionFactory $collectionFactory,
-        private readonly ShipmentManagementInterface $management,
-        private readonly ShipmentResource $shipmentResource,
-        private readonly Config $config,
-        private readonly LoggerInterface $logger,
-        private readonly DateTime $dateTime,
+        private CollectionFactory $collectionFactory,
+        private ShipmentManagementInterface $management,
+        private ShipmentResource $shipmentResource,
+        private Config $config,
+        private LoggerInterface $logger,
+        private DateTime $dateTime,
     ) {}
 
     /**

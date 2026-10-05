@@ -12,7 +12,7 @@ use Polkurier\Shipping\Model\Pricing\PricingModelEnum;
 /**
  * Checkout pricing models.
  */
-class PricingModel extends AbstractOptions
+readonly class PricingModel extends AbstractOptions
 {
     public function toArray(): array
     {

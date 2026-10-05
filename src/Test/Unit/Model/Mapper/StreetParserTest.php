@@ -29,6 +29,9 @@ class StreetParserTest extends TestCase
             'three lines' => [['Długa', '12', '3'], ['street' => 'Długa', 'house_number' => '12', 'flat_number' => '3']],
             'no number' => [['Rynek'], ['street' => 'Rynek', 'house_number' => null, 'flat_number' => null]],
             'range' => [['Polna 10-12'], ['street' => 'Polna', 'house_number' => '10-12', 'flat_number' => null]],
+            'double number and flat' => [['Marszałkowska 84/92 m. 12'], ['street' => 'Marszałkowska', 'house_number' => '84/92', 'flat_number' => '12']],
+            'double number and flat on the second line' => [['Marszałkowska', '84/92 lok. 12'], ['street' => 'Marszałkowska', 'house_number' => '84/92', 'flat_number' => '12']],
+            'flat after lokal' => [['Długa 12 lokal 3'], ['street' => 'Długa', 'house_number' => '12', 'flat_number' => '3']],
         ];
     }
 

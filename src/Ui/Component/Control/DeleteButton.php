@@ -16,14 +16,14 @@ use Magento\Framework\View\Element\UiComponent\Control\ButtonProviderInterface;
  * Deletes the entry being edited, once confirmed, by POST to the path given: the form's own
  * delete, as the list's row action is. Configured per form as a virtual type in adminhtml/di.xml.
  */
-class DeleteButton implements ButtonProviderInterface
+readonly class DeleteButton implements ButtonProviderInterface
 {
     public function __construct(
-        private readonly RequestInterface $request,
-        private readonly UrlInterface $url,
-        private readonly Json $json,
-        private readonly string $path,
-        private readonly string $message,
+        private RequestInterface $request,
+        private UrlInterface $url,
+        private Json $json,
+        private string $path,
+        private string $message,
     ) {}
 
     /**

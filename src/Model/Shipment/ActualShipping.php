@@ -32,21 +32,21 @@ use Polkurier\Shipping\Model\ShippingChoiceStore;
  * The order is the repository's instance, which a page saving the order later holds too, and only
  * its shipping fields are written, so nothing else of it is saved again.
  */
-class ActualShipping
+readonly class ActualShipping
 {
     public function __construct(
-        private readonly OrderRepositoryInterface $orderRepository,
-        private readonly CollectionFactory $collectionFactory,
-        private readonly ShippingChoiceStore $choices,
-        private readonly OrderPointStore $pointStore,
-        private readonly SentOrder $sentOrder,
-        private readonly ScreenContext $context,
-        private readonly MagentoShipment $magentoShipment,
-        private readonly PointDescription $pointDescription,
-        private readonly Emulation $emulation,
-        private readonly SalesAttribute $salesAttribute,
-        private readonly GridInterface $orderGrid,
-        private readonly OrderComments $comments,
+        private OrderRepositoryInterface $orderRepository,
+        private CollectionFactory $collectionFactory,
+        private ShippingChoiceStore $choices,
+        private OrderPointStore $pointStore,
+        private SentOrder $sentOrder,
+        private ScreenContext $context,
+        private MagentoShipment $magentoShipment,
+        private PointDescription $pointDescription,
+        private Emulation $emulation,
+        private SalesAttribute $salesAttribute,
+        private GridInterface $orderGrid,
+        private OrderComments $comments,
     ) {}
 
     public function sync(int $orderId): void

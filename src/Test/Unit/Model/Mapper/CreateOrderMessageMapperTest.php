@@ -27,6 +27,7 @@ use Polkurier\Shipping\Model\Shipment\PackKinds;
 use Polkurier\Webservice\Enum\Order\PackTypeEnum;
 use Polkurier\Webservice\Enum\Order\ShipmentTypeEnum;
 use Polkurier\Webservice\Request\Order\CreateOrderMessage;
+use Polkurier\Webservice\Serializer\SerializerConfig;
 use Polkurier\Webservice\Serializer\SerializerProvider;
 use Polkurier\Webservice\Validator\DefaultValidatorRegistryFactory;
 
@@ -93,11 +94,22 @@ class CreateOrderMessageMapperTest extends TestCase
     {
         $payload = $this->payload($this->mapper()->map($this->draft(), 1));
 
-        foreach (['COD', 'insurance', 'cover_address', 'courierservice', 'additional_fields', 'pickup'] as $absent) {
+        foreach (['COD', 'insurance', 'cover_address', 'courierservice', 'additional_fields', 'pickup', 'external_application_id', 'external_order_id', 'external_order_number'] as $absent) {
             self::assertArrayNotHasKey($absent, $payload);
         }
         self::assertSame('Warszawa', $payload['sender']['city'], 'No sender chosen: the store origin.');
         self::assertSame('sklep@example.com', $payload['sender']['email']);
+    }
+
+    public function testTheShopsIdsAreSentWithTheOrder(): void
+    {
+        $message = $this->mapper()->map($this->draft(), 1, ['application' => 'magento2-0123456789ab', 'id' => '000000077', 'number' => '000000042']);
+        DefaultValidatorRegistryFactory::create()->validate($message);
+        $payload = $this->payload($message);
+
+        self::assertSame('magento2-0123456789ab', $payload['external_application_id']);
+        self::assertSame('000000077', $payload['external_order_id']);
+        self::assertSame('000000042', $payload['external_order_number']);
     }
 
     public function testPointDeliveryAndDropOff(): void
@@ -129,6 +141,77 @@ class CreateOrderMessageMapperTest extends TestCase
         $this->expectException(LocalizedException::class);
 
         $this->mapper()->map($this->draft()->setCodAmount(10)->setCodReturnType('BA')->setCodBankAccountId(null), 1);
+    }
+
+    public function testASenderTypedInGoesAsItWasTyped(): void
+    {
+        $draft = $this->draft()->setNewSender(true)->setNewSenderAddress([
+            'person' => 'Ewa Lis', 'company' => '', 'street' => 'Polna', 'house_number' => '3', 'flat_number' => '2',
+            'postcode' => '30-001', 'city' => 'Kraków', 'country' => '', 'phone' => '501000111', 'email' => 'ewa@example.com',
+        ]);
+
+        // Even with the store's address to fall back on.
+        $sender = $this->mapper()->map($draft, 1)->getSender();
+
+        self::assertSame(['Ewa Lis', 'Polna', '3', '2', '30-001', 'Kraków', 'PL', null], [
+            $sender->getPerson(), $sender->getStreet(), $sender->getHouseNumber(), $sender->getFlatNumber(),
+            $sender->getPostcode(), $sender->getCity(), $sender->getCountry(), $sender->getCompany(),
+        ]);
+    }
+
+    public function testASenderTypedInSaysWhatItLacks(): void
+    {
+        $draft = $this->draft()->setNewSender(true)->setNewSenderAddress(['person' => 'Ewa Lis', 'street' => 'Polna', 'city' => 'Kraków']);
+
+        $this->expectException(LocalizedException::class);
+        $this->expectExceptionMessage('Fill in the sender\'s house number, postcode, phone, e-mail.');
+
+        $this->mapper()->map($draft, 1);
+    }
+
+    public function testCashOnDeliveryToAnAccountTypedInCarriesItsNumber(): void
+    {
+        $draft = $this->draft()->setCodAmount(10)->setCodReturnType('BA')->setCodBankAccountId(null)
+            ->setNewBankAccount(true)->setNewBankAccountNumber('61 1090 1014 0000 0712 1981 2874');
+
+        self::assertSame('61109010140000071219812874', $this->mapper()->map($draft, 1)->getCod()?->getBankAccount());
+
+        $this->expectException(LocalizedException::class);
+        $this->mapper()->map($draft->setNewBankAccountNumber(' '), 1);
+    }
+
+    public function testTheCollectionWindowGoesAsPolishTimeWhateverPhpsZone(): void
+    {
+        // Magento runs PHP in UTC; the module's serializer writes dates in Polish time.
+        $zone = \date_default_timezone_get();
+        \date_default_timezone_set('UTC');
+        try {
+            $message = $this->mapper()->map($this->draft()->setPickupDate('2026-10-05')->setPickupTimeFrom('14:00')->setPickupTimeTo('17:00'), 1);
+            $pickup = (array)\json_decode((new SerializerProvider(new SerializerConfig(timezone: new \DateTimeZone('Europe/Warsaw'))))
+                ->getSerializer()->serialize($message, 'json'), true)['pickup'];
+        } finally {
+            \date_default_timezone_set($zone);
+        }
+
+        self::assertSame(['2026-10-05', '14:00', '17:00'], [$pickup['pickupdate'], $pickup['pickuptimefrom'], $pickup['pickuptimeto']]);
+    }
+
+    public function testTheShipmentsDropOffPointGoesWithTheSender(): void
+    {
+        $withPoint = $this->mapper()->map($this->draft()->setSenderAddressId(7)->setSenderPointId('U16880214'), 1)->getSender();
+        $fromStore = $this->mapper()->map($this->draft()->setSenderPointId('U16880214'), 1)->getSender();
+        $without = $this->mapper()->map($this->draft()->setSenderAddressId(7), 1)->getSender();
+
+        self::assertSame(['U16880214', 'U16880214', null], [$withPoint->getPointId(), $fromStore->getPointId(), $without->getPointId()]);
+        self::assertSame('Fabryczna', $withPoint->getStreet());
+    }
+
+    public function testParcelsHandedOverAtAPointBookNoCourier(): void
+    {
+        $pickup = $this->payload($this->mapper()->map($this->draft()->setSenderPointId('U16880214'), 1))['pickup'];
+
+        self::assertTrue($pickup['nocourierorder']);
+        self::assertArrayNotHasKey('pickupdate', \array_filter($pickup, static fn($v) => $v !== null));
     }
 
     public function testTheCoverAddressSwitchesTheServiceOnBySendingItself(): void

@@ -8,11 +8,11 @@
 
 ## Getting more information
 
-Turn on **Log failed requests** on the [configuration
-page](configuration.md#connecting-your-account), repeat what failed, and look at
-`var/log/polkurier.log`. For more detail, select the kinds of requests under **Log all traffic
-of**. It's safe to send the log to Polkurier support: your API token, PINs and confirmation codes
-are masked.
+Turn on **Log failed requests** on the [configuration page](configuration.md#logging), repeat
+what failed, and look at `var/log/polkurier.log`. For more detail, select the kinds of requests
+under **Log all traffic of**. It's safe to send the log to Polkurier support: your API token, PINs
+and confirmation codes are always hidden, and personal data too unless you turned on **Log
+personal data**.
 
 ## Connection
 
@@ -97,8 +97,8 @@ are switched on under **Synchronization** on the configuration page.
 **An entry shows "Error".** Polkurier refused the change. The reason is in the **Sync error**
 column; fix the entry and save it again.
 
-**A bank account stays "Awaiting confirmation".** Open it, enter the security PIN or request and
-enter a confirmation code, and save.
+**A bank account stays "Awaiting confirmation".** Open it and save it: enter the confirmation code
+Polkurier sends you, or the security PIN, in the window that opens.
 
 **A change made in the Polkurier panel doesn't show up.** It comes with the next hourly sync. Click
 **Synchronize with Polkurier** to get it now.

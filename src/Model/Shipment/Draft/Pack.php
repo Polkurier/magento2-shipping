@@ -99,6 +99,16 @@ class Pack extends DataObject implements PackInterface
         return $this->setData(self::AMOUNT, $amount);
     }
 
+    public function getKeepAs(): string
+    {
+        return \trim((string)$this->getData(self::KEEP_AS));
+    }
+
+    public function setKeepAs(string $name): static
+    {
+        return $this->setData(self::KEEP_AS, $name);
+    }
+
     public function getItems(): array
     {
         $value = $this->getData(self::ITEMS);

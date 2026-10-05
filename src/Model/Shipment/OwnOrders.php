@@ -17,10 +17,10 @@ use Polkurier\Shipping\Model\Carrier\Polkurier;
  * Loads an order to start a Polkurier shipment for. Only orders placed with a Polkurier method
  * qualify: the module never ships orders of other carriers, whose integrations handle them.
  */
-class OwnOrders
+readonly class OwnOrders
 {
     public function __construct(
-        private readonly OrderRepositoryInterface $orderRepository,
+        private OrderRepositoryInterface $orderRepository,
     ) {}
 
     /**

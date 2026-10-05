@@ -13,19 +13,22 @@ use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Api\ShipmentRepositoryInterface;
 use Polkurier\Shipping\Model\ApiEventDispatcher;
 use Polkurier\Shipping\Model\Sdk\ShipmentGatewayInterface;
+use Polkurier\Shipping\Model\Shipment\Details\Formatter;
 use Polkurier\Webservice\Enum\Order\ShipmentTypeEnum;
 use Polkurier\Webservice\Request\Courier\GetPickupTimeMessage;
+use Polkurier\Webservice\Request\Order\MultiPickupAvailabilityRequestMessage;
 use Polkurier\Webservice\Request\Order\MultiPickupRequestMessage;
+use Polkurier\Webservice\Request\Order\PackMessage;
 
 /**
  * Collections: when a courier can come, and one collection for several shipments.
  */
-class Pickups
+readonly class Pickups
 {
     public function __construct(
-        private readonly ShipmentGatewayInterface $gateway,
-        private readonly ShipmentRepositoryInterface $shipmentRepository,
-        private readonly ApiEventDispatcher $events,
+        private ShipmentGatewayInterface $gateway,
+        private ShipmentRepositoryInterface $shipmentRepository,
+        private ApiEventDispatcher $events,
     ) {}
 
     /**
@@ -56,6 +59,32 @@ class Pickups
     }
 
     /**
+     * Whether Polkurier can collect a shipment with others later, for its carrier and parcels.
+     * It answers no as well when it can't tell.
+     *
+     * @param PackMessage[] $packs
+     * @throws LocalizedException
+     */
+    public function isCollectiveAvailable(string $carrierCode, string $senderPostcode, string $shipmentType, array $packs): bool
+    {
+        return $this->gateway->isMultiPickupAvailable(new MultiPickupAvailabilityRequestMessage(
+            courier: $carrierCode,
+            packs: $packs,
+            senderPostCode: $senderPostcode,
+            shipmentType: ShipmentTypeEnum::tryFrom($shipmentType),
+        ));
+    }
+
+    /**
+     * Whether a shipment was placed for a later collective pickup that isn't booked yet.
+     */
+    public function awaitsCollective(ShipmentInterface $shipment): bool
+    {
+        return $shipment->getState() === ShipmentInterface::STATE_CREATED && $shipment->isMultiPickup()
+            && !$shipment->isPickupBooked() && $shipment->getPolkurierNumber() !== null;
+    }
+
+    /**
      * Books one collection for shipments placed for a later collective pickup.
      *
      * @param ShipmentInterface[] $shipments
@@ -66,22 +95,21 @@ class Pickups
     {
         $numbers = [];
         foreach ($shipments as $shipment) {
-            if ($shipment->getState() === ShipmentInterface::STATE_CREATED && $shipment->isMultiPickup()
-                && !$shipment->isPickupBooked() && $shipment->getPolkurierNumber() !== null
-            ) {
-                $numbers[$shipment->getPolkurierNumber()] = $shipment;
+            if ($this->awaitsCollective($shipment)) {
+                $numbers[(string)$shipment->getPolkurierNumber()] = $shipment;
             }
         }
         if ($numbers === []) {
             throw new LocalizedException(\__('None of the selected shipments awaits a collective pickup.'));
         }
-        if (!$this->gateway->isMultiPickupAvailable()) {
-            throw new LocalizedException(\__('Collective pickups are not available for this Polkurier account.'));
-        }
+        // Whether a shipment can be collected so is Polkurier's answer for each one, given with
+        // the ones it couldn't book: it depends on the carrier and the parcels, not the account.
+        // Polish time, as Polkurier offers the dates, whatever PHP's own zone.
+        $zone = new \DateTimeZone(Formatter::POLKURIER_TIME_ZONE);
         $request = new MultiPickupRequestMessage(
-            pickupDate: new \DateTimeImmutable($date),
-            pickupTimeFrom: new \DateTimeImmutable($date . ' ' . $from),
-            pickupTimeTo: new \DateTimeImmutable($date . ' ' . $to),
+            pickupDate: new \DateTimeImmutable($date, $zone),
+            pickupTimeFrom: new \DateTimeImmutable($date . ' ' . $from, $zone),
+            pickupTimeTo: new \DateTimeImmutable($date . ' ' . $to, $zone),
             orders: \array_map('strval', \array_keys($numbers)),
         );
         $result = $this->gateway->bookMultiPickup($request);

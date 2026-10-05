@@ -24,6 +24,17 @@ use Psr\Http\Message\ResponseInterface;
 #[CoversClass(ErrorMessages::class)]
 class ErrorMessagesTest extends TestCase
 {
+    public function testFieldsAreNamedAsOnTheShipmentScreen(): void
+    {
+        $messages = new ErrorMessages();
+
+        self::assertSame('Recipient: Phone', $messages->fieldLabel('recipient.phone'));
+        self::assertSame('Sender: House number', $messages->fieldLabel('sender.housenumber'));
+        self::assertSame('Parcel 2: Weight', $messages->fieldLabel('packs.1.weight'));
+        self::assertSame('Shipment description', $messages->fieldLabel('description'));
+        self::assertSame('something.else', $messages->fieldLabel('something.else'), 'One it doesn\'t know stays as it is.');
+    }
+
     public function testTheExceptionCarriesTheDescribedMessageAsItIs(): void
     {
         $failure = new ConnectionException('Timed out.');

@@ -295,4 +295,11 @@ class NativeLabelTest extends TestCase
 
         return $factory;
     }
+
+    public function testTheLabelOptionsCarryEveryFieldOfASenderTypedIn(): void
+    {
+        foreach (ShipmentDraftInterface::NEW_SENDER_FIELDS as $key) {
+            self::assertContains($key, NativeLabel::OPTION_FIELDS);
+        }
+    }
 }

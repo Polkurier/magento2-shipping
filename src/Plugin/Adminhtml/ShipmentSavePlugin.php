@@ -29,14 +29,14 @@ use Polkurier\Shipping\Model\Shipment\NativeLabel;
  * With a label, Magento's own message tells about the shipment; when Polkurier had no label ready
  * yet, it's replaced by one that says so.
  */
-class ShipmentSavePlugin
+readonly class ShipmentSavePlugin
 {
     public function __construct(
-        private readonly OrderRepositoryInterface $orderRepository,
-        private readonly Config $config,
-        private readonly ManagerInterface $messageManager,
-        private readonly RedirectFactory $redirectFactory,
-        private readonly NativeLabel $nativeLabel,
+        private OrderRepositoryInterface $orderRepository,
+        private Config $config,
+        private ManagerInterface $messageManager,
+        private RedirectFactory $redirectFactory,
+        private NativeLabel $nativeLabel,
     ) {}
 
     public function aroundExecute(Save $subject, callable $proceed): mixed

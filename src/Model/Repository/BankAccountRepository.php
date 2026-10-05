@@ -21,14 +21,14 @@ use Polkurier\Shipping\Model\BankAccountFactory;
 use Polkurier\Shipping\Model\ResourceModel\BankAccount as ResourceModel;
 use Polkurier\Shipping\Model\ResourceModel\BankAccount\CollectionFactory;
 
-class BankAccountRepository implements BankAccountRepositoryInterface
+readonly class BankAccountRepository implements BankAccountRepositoryInterface
 {
     public function __construct(
-        private readonly BankAccountFactory $entityFactory,
-        private readonly ResourceModel $resource,
-        private readonly CollectionFactory $collectionFactory,
-        private readonly CollectionProcessorInterface $collectionProcessor,
-        private readonly BankAccountSearchResultsInterfaceFactory $searchResultsFactory,
+        private BankAccountFactory $entityFactory,
+        private ResourceModel $resource,
+        private CollectionFactory $collectionFactory,
+        private CollectionProcessorInterface $collectionProcessor,
+        private BankAccountSearchResultsInterfaceFactory $searchResultsFactory,
     ) {}
 
     public function get(int $id): BankAccountInterface

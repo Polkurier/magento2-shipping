@@ -13,6 +13,7 @@ use Magento\Framework\App\Action\HttpPostActionInterface;
 use Magento\Framework\Controller\Result\Json;
 use Magento\Framework\Controller\Result\JsonFactory;
 use Magento\Framework\Exception\LocalizedException;
+use Polkurier\Shipping\Model\MoneyBox\MoneyBoxOrders;
 use Polkurier\Shipping\Model\MoneyBox\OrderNumbers;
 use Polkurier\Shipping\Model\MoneyBox\Payouts;
 use Polkurier\Webservice\Enum\MoneyBox\MoneyBoxPayoutTypeEnum;
@@ -28,6 +29,7 @@ class Quote extends Action implements HttpPostActionInterface
         Context $context,
         private readonly JsonFactory $jsonFactory,
         private readonly Payouts $payouts,
+        private readonly MoneyBoxOrders $moneyBoxOrders,
     ) {
         parent::__construct($context);
     }
@@ -35,9 +37,10 @@ class Quote extends Action implements HttpPostActionInterface
     public function execute(): Json
     {
         $data = (array)$this->getRequest()->getParam('data', []);
+        $numbers = OrderNumbers::parse((string)($data['orders'] ?? ''));
         try {
             $fee = $this->payouts->quote(
-                OrderNumbers::parse((string)($data['orders'] ?? '')),
+                $numbers,
                 MoneyBoxPayoutTypeEnum::tryFrom((string)($data['payout_type'] ?? '')),
             );
         } catch (LocalizedException $e) {
@@ -46,6 +49,13 @@ class Quote extends Action implements HttpPostActionInterface
 
         return $this->jsonFactory->create()->setData([
             'error' => false,
+            'available' => $this->payouts->getAvailableBalance(),
+            // Polkurier leaves out what it can't pay out without saying so.
+            'unknown' => $this->moneyBoxOrders->unknown($numbers),
+            'fee' => $fee->getFee(),
+            'fee_net' => $fee->getFeeNett(),
+            'free_left' => $fee->getFreePayoutsLeft(),
+            'free_total' => $fee->getFreePayoutsTotal(),
             'message' => (string)\__(
                 'Fee: %1 PLN gross (%2 PLN net). Free payouts left: %3 of %4.',
                 \number_format($fee->getFee(), 2),

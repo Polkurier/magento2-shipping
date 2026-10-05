@@ -8,9 +8,11 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Model\Shipment;
 
 use Polkurier\Shipping\Api\Data\AddressInterface;
+use Polkurier\Shipping\Api\Data\ShipmentDraftInterface;
 use Polkurier\Shipping\Model\Carrier\CarrierCatalog;
 use Polkurier\Shipping\Model\Carrier\CarrierFeatures;
 use Polkurier\Shipping\Model\ErrorMessages;
+use Polkurier\Shipping\Model\Mapper\SenderMapper;
 use Polkurier\Shipping\Model\MasterData;
 use Polkurier\Webservice\Enum\Courier\PointRequirementEnum;
 use Polkurier\Webservice\Exception\Exception as PolkurierException;
@@ -29,6 +31,7 @@ class ShipmentOptions
         private readonly MasterData $masterData,
         private readonly ErrorMessages $errorMessages,
         private readonly LoggerInterface $logger,
+        private readonly SenderMapper $senderMapper,
     ) {}
 
     /**
@@ -76,6 +79,8 @@ class ShipmentOptions
                 'services' => \array_map(static fn($service): string => $service->value, $this->features->getServices($carrier)),
                 'point' => $carrier->getAdditionalData()?->getPointsMap()?->getRecipientPoint()->value ?? PointRequirementEnum::None->value,
                 'providers' => $this->features->getPointProviders($carrier),
+                // Whether the parcels are handed over at a point: NONE, OPTIONAL or REQUIRED.
+                'sender_point' => $this->features->getSenderPointRequirement($carrier)->value,
                 'cod' => $this->features->isCodAvailable($carrier),
                 'insurance' => $this->features->isInsuranceAvailable($carrier),
                 'insurance_with_cod' => $this->features->isInsuranceRequiredWithCod($carrier),
@@ -120,6 +125,36 @@ class ShipmentOptions
         }
 
         return $options;
+    }
+
+    /**
+     * What a shipment can be sent from: the store's address when there is one to send from, the
+     * addresses, and one typed in for the shipment.
+     *
+     * @return array<int, array{value: string, label: string}>
+     */
+    public function getSenderChoices(int $storeId): array
+    {
+        return \array_merge(
+            $this->senderMapper->fromStore($storeId) !== null
+                ? [['value' => '', 'label' => (string)\__('The store\'s address')]]
+                : [],
+            $this->getSenderOptions(),
+            [['value' => ShipmentDraftInterface::NEW, 'label' => (string)\__('A new address')]],
+        );
+    }
+
+    /**
+     * What cash on delivery can be paid out to: the bank accounts, and one typed in.
+     *
+     * @return array<int, array{value: string, label: string}>
+     */
+    public function getBankAccountChoices(): array
+    {
+        return \array_merge(
+            $this->getBankAccountOptions(),
+            [['value' => ShipmentDraftInterface::NEW, 'label' => (string)\__('A new bank account')]],
+        );
     }
 
     /**

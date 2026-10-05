@@ -15,15 +15,15 @@ use Polkurier\Shipping\Api\ShipmentManagementInterface;
  * The shipment service contract, as the admin and the REST API use it, over the services that
  * each handle one part of a shipment's life.
  */
-class ShipmentManagement implements ShipmentManagementInterface
+readonly class ShipmentManagement implements ShipmentManagementInterface
 {
     public function __construct(
-        private readonly OwnOrders $ownOrders,
-        private readonly DefaultDraftBuilder $draftBuilder,
-        private readonly Placing $placing,
-        private readonly Reconciliation $reconciliation,
-        private readonly StatusRefresh $statusRefresh,
-        private readonly Cancellation $cancellation,
+        private OwnOrders $ownOrders,
+        private DefaultDraftBuilder $draftBuilder,
+        private Placing $placing,
+        private Reconciliation $reconciliation,
+        private StatusRefresh $statusRefresh,
+        private Cancellation $cancellation,
     ) {}
 
     public function getDefaultDraft(int $orderId): ShipmentDraftInterface

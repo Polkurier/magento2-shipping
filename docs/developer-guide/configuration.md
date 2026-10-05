@@ -25,7 +25,9 @@ as a regular delivery method.
 | `general/sandbox_mode` | `isSandbox()` | global |
 | `general/api_url` | `getApiUrl()` | global, not shown in the admin |
 | `general/timeout` | `getTimeout()` | global |
-| `general/logging`, `general/log_methods` | `isLoggingEnabled()`, `getMethodsToLog()` | global |
+| `general/external_order_id` | `getExternalOrderId()` | global; `shipment` (default) or `order`, see `Shipment\ExternalIds` |
+| `logging/failed_requests`, `logging/methods` | `isLoggingEnabled()`, `getMethodsToLog()` | global |
+| `logging/personal_data`, `logging/files`, `logging/files_directory`, `logging/files_lifetime` | `isPersonalDataLoggingEnabled()`, `isFileLoggingEnabled()`, `getLogFilesDirectory()`, `getLogFilesLifetimeDays()` | global; the directory is resolved by `Sdk\LogFilesDirectory`, and `Sdk\LogFilesCleaner` deletes old files nightly |
 | `shipment_defaults/available_carriers` | `getAvailableCarriers()` | global |
 | `shipment_defaults/default_shipment_type` | `getDefaultShipmentType()` | website |
 | `sender/use_store_information_address`, `sender/use_store_origin_address`, `sender/default_sender_email` | `isUseStoreInformationAddress()`, `isUseStoreOriginAddress()`, `getSenderEmailIdentity()` | website |

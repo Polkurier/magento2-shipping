@@ -35,7 +35,7 @@ use Polkurier\Shipping\Model\ResourceModel\Shipment\CollectionFactory;
  * one made without a label, or one whose Polkurier order was cancelled (LabelRemoval clears it of
  * that order's label, packages and waybills).
  */
-class MagentoShipment
+readonly class MagentoShipment
 {
     /**
      * Polkurier orders that hold on to their Magento shipment; a cancelled one lets it go.
@@ -47,16 +47,17 @@ class MagentoShipment
     ];
 
     public function __construct(
-        private readonly ShipOrderInterface $shipOrder,
-        private readonly ShipmentItemCreationInterfaceFactory $itemCreationFactory,
-        private readonly OrderAmounts $amounts,
-        private readonly ShipmentTrackCreationInterfaceFactory $trackCreationFactory,
-        private readonly ShipmentTrackInterfaceFactory $trackFactory,
-        private readonly ShipmentTrackRepositoryInterface $trackRepository,
-        private readonly ShipmentRepositoryInterface $shipmentRepository,
-        private readonly CollectionFactory $shipmentCollectionFactory,
-        private readonly Config $config,
-        private readonly CarrierConfigs $carrierConfigs,
+        private ShipOrderInterface $shipOrder,
+        private ShipmentItemCreationInterfaceFactory $itemCreationFactory,
+        private OrderAmounts $amounts,
+        private ShipmentTrackCreationInterfaceFactory $trackCreationFactory,
+        private ShipmentTrackInterfaceFactory $trackFactory,
+        private ShipmentTrackRepositoryInterface $trackRepository,
+        private ShipmentRepositoryInterface $shipmentRepository,
+        private CollectionFactory $shipmentCollectionFactory,
+        private Config $config,
+        private CarrierConfigs $carrierConfigs,
+        private ReservedShipmentNumbers $reservedNumbers,
     ) {}
 
     /**
@@ -337,14 +338,23 @@ class MagentoShipment
                     ->setCarrierCode(Polkurier::CODE);
             }
 
-            $shipmentId = (int)$this->shipOrder->execute(
-                (int)$order->getEntityId(),
-                $items,
-                $this->config->isNotifyCustomer((int)$order->getStoreId()),
-                false,
-                null,
-                $tracks,
-            );
+            // The number the Polkurier order was sent with, taken for this shipment beforehand.
+            $number = $shipment->getReservedShipmentNumber();
+            if ($number !== null) {
+                $this->reservedNumbers->expect((int)$order->getEntityId(), $number);
+            }
+            try {
+                $shipmentId = (int)$this->shipOrder->execute(
+                    (int)$order->getEntityId(),
+                    $items,
+                    $this->config->isNotifyCustomer((int)$order->getStoreId()),
+                    false,
+                    null,
+                    $tracks,
+                );
+            } finally {
+                $this->reservedNumbers->forget((int)$order->getEntityId());
+            }
             $magentoShipment = $packages !== [] ? $this->shipmentRepository->get($shipmentId) : null;
             if ($magentoShipment instanceof MagentoShipmentModel) {
                 // What each parcel holds, for Magento's "Show Packages". Magento keeps packages as

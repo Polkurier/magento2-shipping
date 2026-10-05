@@ -79,6 +79,60 @@
     color: @color-gray43;
 }
 
+// A short note above a settings form's fields
+.polkurier-form-note {
+    margin-bottom: 2rem;
+    color: @color-gray43;
+}
+
+// The payout form: its fee atop it, and room for many order numbers
+.polkurier-payout-fee {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: .4rem 1rem;
+    margin-bottom: 2.5rem;
+    padding: 1.2rem 1.6rem;
+    border: 1px solid @color-gray85;
+    background: @color-gray98;
+}
+
+.polkurier-payout-fee__label {
+    font-weight: 600;
+}
+
+.polkurier-payout-fee__amount {
+    font-size: 1.6rem;
+}
+
+// In a form's fields: close to each other and to the fields below
+.admin__field-control > .polkurier-form-note,
+.admin__field-control > .polkurier-payout-fee {
+    margin-bottom: 0;
+}
+
+.admin__fieldset > .admin__field.polkurier-field-note {
+    margin-bottom: .5rem;
+}
+
+.admin__fieldset > .admin__field.polkurier-field-fee {
+    margin-top: 0;
+    margin-bottom: 3rem;
+}
+
+// Their label column is empty: no field's height to keep, but its width, for the control's column
+.admin__fieldset > .admin__field.polkurier-field-note > .admin__field-label,
+.admin__fieldset > .admin__field.polkurier-field-fee > .admin__field-label {
+    min-height: 1px;
+    padding-top: 0;
+    padding-bottom: 0;
+    line-height: 1px;
+}
+
+.polkurier-payout-orders textarea {
+    min-height: 12rem;
+}
+
 .polkurier-text-error {
     color: @color-tomato-brick;
 }

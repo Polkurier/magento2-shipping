@@ -11,20 +11,22 @@ use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Stdlib\DateTime\DateTime;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Api\ShipmentRepositoryInterface;
+use Polkurier\Shipping\Model\Shipment\Details\Formatter;
 
 /**
  * Brings a placed shipment up to date with Polkurier, and catches the Magento side up with it:
  * the Magento shipment if it failed before, the waybills Polkurier issued since.
  */
-class StatusRefresh
+readonly class StatusRefresh
 {
     public function __construct(
-        private readonly ShipmentRepositoryInterface $shipmentRepository,
-        private readonly Reconciler $reconciler,
-        private readonly OrderSnapshot $snapshot,
-        private readonly MagentoShipment $magentoShipment,
-        private readonly MagentoFollowUp $followUp,
-        private readonly DateTime $dateTime,
+        private ShipmentRepositoryInterface $shipmentRepository,
+        private Reconciler $reconciler,
+        private OrderSnapshot $snapshot,
+        private MagentoShipment $magentoShipment,
+        private MagentoFollowUp $followUp,
+        private DateTime $dateTime,
+        private Formatter $format,
     ) {}
 
     /**
@@ -48,7 +50,7 @@ class StatusRefresh
             $this->followUp->remark($shipment->getShipmentId(), \__(
                 'Polkurier order %1 delivered (%2).',
                 $number,
-                (string)$shipment->getDeliveredAt(),
+                $this->format->storedTime($shipment->getDeliveredAt()),
             ));
         }
         if (!$wasCancelled && $shipment->getState() === ShipmentInterface::STATE_CANCELLED) {

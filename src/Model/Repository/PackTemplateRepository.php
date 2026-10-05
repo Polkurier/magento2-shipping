@@ -21,14 +21,14 @@ use Polkurier\Shipping\Model\PackTemplateFactory;
 use Polkurier\Shipping\Model\ResourceModel\PackTemplate as ResourceModel;
 use Polkurier\Shipping\Model\ResourceModel\PackTemplate\CollectionFactory;
 
-class PackTemplateRepository implements PackTemplateRepositoryInterface
+readonly class PackTemplateRepository implements PackTemplateRepositoryInterface
 {
     public function __construct(
-        private readonly PackTemplateFactory $entityFactory,
-        private readonly ResourceModel $resource,
-        private readonly CollectionFactory $collectionFactory,
-        private readonly CollectionProcessorInterface $collectionProcessor,
-        private readonly PackTemplateSearchResultsInterfaceFactory $searchResultsFactory,
+        private PackTemplateFactory $entityFactory,
+        private ResourceModel $resource,
+        private CollectionFactory $collectionFactory,
+        private CollectionProcessorInterface $collectionProcessor,
+        private PackTemplateSearchResultsInterfaceFactory $searchResultsFactory,
     ) {}
 
     public function get(int $id): PackTemplateInterface

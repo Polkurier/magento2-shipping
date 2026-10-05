@@ -14,10 +14,10 @@ use Polkurier\Webservice\Exception\Exception as PolkurierException;
  * Every carrier of the Polkurier account, for choosing the available carriers.
  * Empty until the account is configured and reachable.
  */
-class AccountCarrier extends AbstractOptions
+readonly class AccountCarrier extends AbstractOptions
 {
     public function __construct(
-        private readonly CarrierCatalog $catalog,
+        private CarrierCatalog $catalog,
     ) {}
 
     public function toArray(): array

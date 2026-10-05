@@ -16,18 +16,21 @@ use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Api\ShipmentRepositoryInterface;
 use Polkurier\Shipping\Model\Admin\AttentionNotifier;
 use Polkurier\Shipping\Model\ApiEventDispatcher;
-use Polkurier\Shipping\Model\ErrorMessages;
 use Polkurier\Shipping\Model\Carrier\CarrierCatalog;
 use Polkurier\Shipping\Model\Carrier\CarrierFeatures;
 use Polkurier\Shipping\Model\Carrier\CarrierNames;
+use Polkurier\Shipping\Model\ErrorMessages;
 use Polkurier\Shipping\Model\Mapper\CreateOrderMessageMapper;
 use Polkurier\Shipping\Model\ResourceModel\Shipment\CollectionFactory;
 use Polkurier\Shipping\Model\Sdk\PlacementUncertainException;
 use Polkurier\Shipping\Model\Sdk\ShipmentGatewayInterface;
+use Polkurier\Shipping\Model\Sdk\Validator;
 use Polkurier\Shipping\Model\Shipment;
 use Polkurier\Shipping\Model\ShipmentFactory;
+use Polkurier\Webservice\Enum\Courier\PointRequirementEnum;
 use Polkurier\Webservice\Enum\Order\ShipmentTypeEnum;
 use Polkurier\Webservice\Exception\Exception as PolkurierException;
+use Polkurier\Webservice\Exception\ValidationException;
 use Polkurier\Webservice\Request\Order\CreateOrderMessage;
 use Polkurier\Webservice\Response\Order\CreatedOrderMessage;
 use Polkurier\Webservice\Serializer\SerializerProviderInterface;
@@ -37,7 +40,7 @@ use Psr\Log\LoggerInterface;
  * Places Polkurier orders. An attempt is recorded before it's sent, one order at a time per
  * Magento order, and never sent again while an earlier one may have gone through unseen.
  */
-class Placing
+readonly class Placing
 {
     /**
      * A shipment still "pending" after this long was interrupted mid-request; its outcome is unknown.
@@ -51,24 +54,27 @@ class Placing
     private const int LOCK_TIMEOUT_SECONDS = 10;
 
     public function __construct(
-        private readonly OwnOrders $ownOrders,
-        private readonly ShipmentRepositoryInterface $shipmentRepository,
-        private readonly ShipmentFactory $shipmentFactory,
-        private readonly CollectionFactory $shipmentCollectionFactory,
-        private readonly CreateOrderMessageMapper $messageMapper,
-        private readonly ShipmentGatewayInterface $gateway,
-        private readonly MagentoShipment $magentoShipment,
-        private readonly SerializerProviderInterface $serializerProvider,
-        private readonly LockManagerInterface $lockManager,
-        private readonly ApiEventDispatcher $events,
-        private readonly ShipmentAge $age,
-        private readonly MagentoFollowUp $followUp,
-        private readonly DraftHydrator $hydrator,
-        private readonly CarrierNames $carrierNames,
-        private readonly LoggerInterface $logger,
-        private readonly ErrorMessages $errorMessages,
-        private readonly CarrierCatalog $catalog,
-        private readonly CarrierFeatures $features,
+        private OwnOrders $ownOrders,
+        private ShipmentRepositoryInterface $shipmentRepository,
+        private ShipmentFactory $shipmentFactory,
+        private CollectionFactory $shipmentCollectionFactory,
+        private CreateOrderMessageMapper $messageMapper,
+        private ShipmentGatewayInterface $gateway,
+        private MagentoShipment $magentoShipment,
+        private SerializerProviderInterface $serializerProvider,
+        private LockManagerInterface $lockManager,
+        private ApiEventDispatcher $events,
+        private ShipmentAge $age,
+        private MagentoFollowUp $followUp,
+        private DraftHydrator $hydrator,
+        private CarrierNames $carrierNames,
+        private LoggerInterface $logger,
+        private ErrorMessages $errorMessages,
+        private CarrierCatalog $catalog,
+        private CarrierFeatures $features,
+        private KeepForLater $keepForLater,
+        private ExternalIds $externalIds,
+        private Validator $validator,
     ) {}
 
     /**
@@ -133,6 +139,31 @@ class Placing
         });
     }
 
+    /**
+     * The point the parcels are handed over at goes only to a carrier that takes them at points,
+     * and one that takes them only there gets one: Polkurier itself doesn't check, and the
+     * carrier would refuse the shipment later. A carrier list that can't be read leaves it as it is.
+     *
+     * @throws LocalizedException
+     */
+    private function settleSenderPoint(ShipmentDraftInterface $draft): void
+    {
+        try {
+            $carrier = $this->catalog->getCarrier($draft->getCarrierCode());
+        } catch (PolkurierException) {
+            return;
+        }
+        if ($carrier === null) {
+            return;
+        }
+        $requirement = $this->features->getSenderPointRequirement($carrier);
+        if ($requirement === PointRequirementEnum::None) {
+            $draft->setSenderPointId(null);
+        } elseif ($requirement === PointRequirementEnum::Required && $draft->getSenderPointId() === null) {
+            throw new LocalizedException(\__('This carrier takes the parcels at a point: choose the drop-off point you hand them over at.'));
+        }
+    }
+
     private function place(int $orderId, ShipmentDraftInterface $draft, bool $shipInMagento, ?int $magentoShipmentId = null): ShipmentInterface
     {
         $order = $this->ownOrders->get($orderId);
@@ -164,12 +195,26 @@ class Placing
                 }
             }
             $storeId = (int)$order->getStoreId();
-            $message = $this->messageMapper->map($draft, $storeId);
-            $this->assertCarrierTakes($draft->getCarrierCode(), $message->getShipmentType());
-
+            $this->settleSenderPoint($draft);
             // The order's shipment that wasn't placed, if any, is the one placed now: one shipment,
             // however many times it's tried, not a row per attempt.
-            $shipment = $this->notPlaced($orderId) ?? $this->shipmentFactory->create();
+            $attempt = $this->notPlaced($orderId);
+            // Checked before a shipment's number is taken for it, which an order the SDK refuses
+            // as it is would leave unused.
+            try {
+                $this->validator->validate($this->messageMapper->map($draft, $storeId));
+            } catch (ValidationException $e) {
+                throw $this->errorMessages->exception($e);
+            }
+            $externalIds = $this->externalIds->forAttempt($order, $attempt, $targetId ?? $magentoShipmentId);
+            $message = $this->messageMapper->map($draft, $storeId, [
+                'application' => $this->externalIds->getApplicationId(),
+                'id' => $externalIds['id'],
+                'number' => (string)$order->getIncrementId(),
+            ]);
+            $this->assertCarrierTakes($draft->getCarrierCode(), $message->getShipmentType());
+
+            $shipment = $attempt ?? $this->shipmentFactory->create();
             $previous = $shipment->getId() ? $shipment->getData() : null;
             $shipment
                 ->setOrderId($orderId)
@@ -186,6 +231,8 @@ class Placing
                 ->setWaybills([])
                 ->setShipItems($qtys ?: null)
                 ->setTargetShipmentId($targetId)
+                ->setExternalOrderId($externalIds['id'])
+                ->setReservedShipmentNumber($externalIds['reserved'])
                 ->setShipPackages($packages ?: null)
                 ->setRequest($this->serializerProvider->getSerializer()->serialize($message, 'json'))
                 // What sending it again starts from, should it fail on Polkurier's side.
@@ -246,6 +293,8 @@ class Placing
             'request' => $message,
             'response' => $created,
         ]);
+        // What was typed in to be kept goes once the shipment is placed, never before.
+        $this->keepForLater->keep($draft);
 
         return $shipment;
     }
@@ -264,7 +313,7 @@ class Placing
         $this->shipmentRepository->save($shipment);
         $this->followUp->comment($order, \__(
             'Polkurier order for %1: Polkurier did not confirm it, and it may or may not have been placed. Reconcile it before sending again.',
-            $message->getCourier(),
+            $this->carrierNames->get((string)$message->getCourier()),
         ));
 
         return $shipment;

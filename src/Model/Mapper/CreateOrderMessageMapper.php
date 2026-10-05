@@ -11,9 +11,11 @@ use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Polkurier\Shipping\Api\AddressRepositoryInterface;
 use Polkurier\Shipping\Api\BankAccountRepositoryInterface;
+use Polkurier\Shipping\Api\Data\AddressInterface;
 use Polkurier\Shipping\Api\Data\ShipmentDraft\PackInterface;
 use Polkurier\Shipping\Api\Data\ShipmentDraftInterface;
 use Polkurier\Shipping\Model\Config;
+use Polkurier\Shipping\Model\Shipment\Details\Formatter;
 use Polkurier\Shipping\Model\Shipment\PackKinds;
 use Polkurier\Webservice\Builder\Order\CodMessageBuilder;
 use Polkurier\Webservice\Builder\Order\CreateOrderMessageBuilder;
@@ -35,20 +37,24 @@ use Polkurier\Webservice\Request\Order\PickupMessage;
  *
  * Only shapes the payload; the SDK validates it when it is sent, and the API decides.
  */
-class CreateOrderMessageMapper
+readonly class CreateOrderMessageMapper
 {
     public function __construct(
-        private readonly SenderMapper $senderMapper,
-        private readonly AddressRepositoryInterface $addressRepository,
-        private readonly BankAccountRepositoryInterface $bankAccountRepository,
-        private readonly Config $config,
+        private SenderMapper $senderMapper,
+        private AddressRepositoryInterface $addressRepository,
+        private BankAccountRepositoryInterface $bankAccountRepository,
+        private Config $config,
     ) {}
 
     /**
      * @throws LocalizedException when the draft refers to something that does not exist, or its
      *     parcels are of more than one kind
      */
-    public function map(ShipmentDraftInterface $draft, int $storeId): CreateOrderMessage
+    /**
+     * @param array{application: string, id: string, number: string}|null $externalIds what
+     *        identifies the order as the shop's, see {@see \Polkurier\Shipping\Model\Shipment\ExternalIds}
+     */
+    public function map(ShipmentDraftInterface $draft, int $storeId, ?array $externalIds = null): CreateOrderMessage
     {
         $types = PackKinds::shipmentTypesOf(\array_map(
             static fn(PackInterface $pack): string => $pack->getPackType(),
@@ -85,6 +91,11 @@ class CreateOrderMessageMapper
         $services = $this->mapServices($draft->getServices());
         if ($services !== []) {
             $builder->courierService($services);
+        }
+        if ($externalIds !== null) {
+            $builder->externalApplicationId($externalIds['application'])
+                ->externalOrderId($externalIds['id'])
+                ->externalOrderNumber($externalIds['number']);
         }
         $fields = \array_filter(
             \array_map('strval', $draft->getAdditionalFields()),
@@ -168,17 +179,51 @@ class CreateOrderMessageMapper
      */
     private function mapSender(ShipmentDraftInterface $draft, int $storeId): OrderAddressMessage
     {
-        if ($draft->getSenderAddressId()) {
-            return $this->senderMapper->fromAddress($this->address($draft->getSenderAddressId()));
+        if ($draft->isNewSender()) {
+            $sender = $this->senderMapper->fromFields($this->newSender($draft));
+        } elseif ($draft->getSenderAddressId()) {
+            $sender = $this->senderMapper->fromAddress($this->address($draft->getSenderAddressId()));
+        } else {
+            $sender = $this->senderMapper->fromStore($storeId);
         }
-        $sender = $this->senderMapper->fromStore($storeId);
         if ($sender === null) {
             throw new LocalizedException(\__(
-                'No sender address: choose one, add one to Polkurier > Settings > Addresses, or let the store\'s address or shipping origin be used in the Shipments settings.',
+                'No sender address: choose one, type one in, or let the store\'s address or shipping origin be used in the Shipments settings.',
             ));
         }
 
-        return $sender;
+        // The point the parcels are handed over at is the shipment's, whichever the sender is.
+        return $this->senderMapper->withPoint($sender, $draft->getSenderPointId());
+    }
+
+    /**
+     * The sender typed in for this shipment.
+     *
+     * @return array<string, string> by address field
+     * @throws LocalizedException when it lacks what Polkurier needs of a sender
+     */
+    private function newSender(ShipmentDraftInterface $draft): array
+    {
+        $fields = $draft->getNewSenderAddress();
+        $labels = [
+            AddressInterface::PERSON => \__('name'),
+            AddressInterface::STREET => \__('street'),
+            AddressInterface::HOUSE_NUMBER => \__('house number'),
+            AddressInterface::POSTCODE => \__('postcode'),
+            AddressInterface::CITY => \__('city'),
+            AddressInterface::PHONE => \__('phone'),
+            AddressInterface::EMAIL => \__('e-mail'),
+        ];
+        $missing = \array_map('strval', \array_values(\array_filter(
+            $labels,
+            static fn(string $field): bool => ($fields[$field] ?? '') === '',
+            \ARRAY_FILTER_USE_KEY,
+        )));
+        if ($missing !== []) {
+            throw new LocalizedException(\__('Fill in the sender\'s %1.', \implode(', ', $missing)));
+        }
+
+        return $fields;
     }
 
     /**
@@ -193,7 +238,13 @@ class CreateOrderMessageMapper
             ->amount(\round((float)$draft->getCodAmount(), 2))
             ->type(CodTypeEnum::tryFrom((string)$draft->getCodType()) ?? $this->config->getDefaultCodType($storeId))
             ->returnType($returnType);
-        if ($returnType === CodReturnTypeEnum::BankAccount) {
+        if ($returnType === CodReturnTypeEnum::BankAccount && $draft->isNewBankAccount()) {
+            $number = self::accountNumber($draft->getNewBankAccountNumber());
+            if ($number === '') {
+                throw new LocalizedException(\__('Enter the number of the bank account the cash on delivery is paid out to.'));
+            }
+            $builder->bankAccount($number);
+        } elseif ($returnType === CodReturnTypeEnum::BankAccount) {
             if (!$draft->getCodBankAccountId()) {
                 throw new LocalizedException(\__('Choose the bank account the cash on delivery is paid out to.'));
             }
@@ -207,8 +258,22 @@ class CreateOrderMessageMapper
         return $builder->build();
     }
 
+    /**
+     * A bank account number as typed, without the spaces it's often written with.
+     */
+    public static function accountNumber(string $typed): string
+    {
+        return (string)\preg_replace('/\s+/', '', $typed);
+    }
+
     private function mapPickup(ShipmentDraftInterface $draft): ?PickupMessage
     {
+        // Handed over at a drop-off point, no courier comes: said outright, since without it
+        // Polkurier books one for some point carriers, at the moment of placing.
+        if ($draft->getSenderPointId() !== null) {
+            return PickupMessageBuilder::create()->noCourierOrder(true)->build();
+        }
+
         return match ($draft->getPickupMode()) {
             ShipmentDraftInterface::PICKUP_DROP_OFF => PickupMessageBuilder::create()->noCourierOrder(true)->build(),
             ShipmentDraftInterface::PICKUP_MULTI => PickupMessageBuilder::create()->multiPickup(true)->build(),
@@ -221,12 +286,14 @@ class CreateOrderMessageMapper
         if (!$draft->getPickupDate()) {
             return null;
         }
-        $builder = PickupMessageBuilder::create()->pickupDate(new \DateTimeImmutable($draft->getPickupDate()));
+        // The date and window are Polish time, as Polkurier offers them, whatever PHP's own zone.
+        $zone = new \DateTimeZone(Formatter::POLKURIER_TIME_ZONE);
+        $builder = PickupMessageBuilder::create()->pickupDate(new \DateTimeImmutable($draft->getPickupDate(), $zone));
         if ($draft->getPickupTimeFrom()) {
-            $builder->pickupTimeFrom(new \DateTimeImmutable($draft->getPickupDate() . ' ' . $draft->getPickupTimeFrom()));
+            $builder->pickupTimeFrom(new \DateTimeImmutable($draft->getPickupDate() . ' ' . $draft->getPickupTimeFrom(), $zone));
         }
         if ($draft->getPickupTimeTo()) {
-            $builder->pickupTimeTo(new \DateTimeImmutable($draft->getPickupDate() . ' ' . $draft->getPickupTimeTo()));
+            $builder->pickupTimeTo(new \DateTimeImmutable($draft->getPickupDate() . ' ' . $draft->getPickupTimeTo(), $zone));
         }
 
         return $builder->build();

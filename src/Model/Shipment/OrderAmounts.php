@@ -19,7 +19,7 @@ use Polkurier\Shipping\Model\ResourceModel\Shipment\CollectionFactory;
  * The amounts a shipment of an order starts from when the order ships in parts: how much cash on
  * delivery is still to be collected, and what the items shipped are worth and weigh.
  */
-class OrderAmounts
+readonly class OrderAmounts
 {
     /**
      * Polkurier orders that collect their cash on delivery, or may: an unconfirmed one may exist.
@@ -33,9 +33,9 @@ class OrderAmounts
     private const float KG_PER_POUND = 0.45359237;
 
     public function __construct(
-        private readonly CollectionFactory $shipmentCollectionFactory,
-        private readonly ScopeConfigInterface $scopeConfig,
-        private readonly PlnAmounts $pln,
+        private CollectionFactory $shipmentCollectionFactory,
+        private ScopeConfigInterface $scopeConfig,
+        private PlnAmounts $pln,
     ) {}
 
     /**

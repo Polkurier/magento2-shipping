@@ -42,7 +42,7 @@ public function execute(): void
 | `twoFactorToken()` | sending two-factor codes |
 
 The methods take no store: every store uses the same account. `ClientPool::reset()` drops the
-cached client, so the next call builds it again; `Observer\CredentialsChanged` calls it when the
+cached client, so the next call builds it again; `Observer\CredentialsChangedObserver` calls it when the
 configuration is saved.
 
 The pool builds the SDK through Magento's generated factories. Its configuration comes from

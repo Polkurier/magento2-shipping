@@ -18,13 +18,13 @@ use Polkurier\Shipping\Api\Data\CarrierConfigInterface;
  * sends take the places they held among all carriers, in their new order, so the carriers it didn't
  * show stay where they were. Every carrier is then numbered 10, 20, 30… in that order.
  */
-class CarrierOrder
+readonly class CarrierOrder
 {
     public const int STEP = 10;
 
     public function __construct(
-        private readonly CarrierConfigs $carrierConfigs,
-        private readonly CarrierConfigRepositoryInterface $repository,
+        private CarrierConfigs $carrierConfigs,
+        private CarrierConfigRepositoryInterface $repository,
     ) {}
 
     /**

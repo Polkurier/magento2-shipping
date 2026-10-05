@@ -26,18 +26,18 @@ use Psr\Log\LoggerInterface;
  * and comments, and the event that reports it. None of it may undo the Polkurier order, so
  * failures here are recorded or logged rather than thrown.
  */
-class MagentoFollowUp
+readonly class MagentoFollowUp
 {
     public function __construct(
-        private readonly OrderRepositoryInterface $orderRepository,
-        private readonly ShipmentRepositoryInterface $shipmentRepository,
-        private readonly MagentoShipment $magentoShipment,
-        private readonly LabelRemoval $labelRemoval,
-        private readonly OrderComments $orderComments,
-        private readonly ApiEventDispatcher $events,
-        private readonly LoggerInterface $logger,
-        private readonly ShipmentComments $shipmentComments,
-        private readonly CarrierNames $carrierNames,
+        private OrderRepositoryInterface $orderRepository,
+        private ShipmentRepositoryInterface $shipmentRepository,
+        private MagentoShipment $magentoShipment,
+        private LabelRemoval $labelRemoval,
+        private OrderComments $orderComments,
+        private ApiEventDispatcher $events,
+        private LoggerInterface $logger,
+        private ShipmentComments $shipmentComments,
+        private CarrierNames $carrierNames,
     ) {}
 
     /**

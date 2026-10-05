@@ -31,19 +31,19 @@ use Psr\Log\LoggerInterface;
  * Polkurier cannot be asked, no method offers the map, and the server refuses an order that needed
  * a point without one.
  */
-class MapConfigProvider implements ConfigProviderInterface
+readonly class MapConfigProvider implements ConfigProviderInterface
 {
     public function __construct(
-        private readonly Config $config,
-        private readonly CarrierConfigs $carrierConfigs,
-        private readonly CarrierCatalog $catalog,
-        private readonly CarrierFeatures $features,
-        private readonly MapTokenProvider $tokenProvider,
-        private readonly OrderPointStore $pointStore,
-        private readonly Session $checkoutSession,
-        private readonly StoreManagerInterface $storeManager,
-        private readonly UrlInterface $url,
-        private readonly LoggerInterface $logger,
+        private Config $config,
+        private CarrierConfigs $carrierConfigs,
+        private CarrierCatalog $catalog,
+        private CarrierFeatures $features,
+        private MapTokenProvider $tokenProvider,
+        private OrderPointStore $pointStore,
+        private Session $checkoutSession,
+        private StoreManagerInterface $storeManager,
+        private UrlInterface $url,
+        private LoggerInterface $logger,
     ) {}
 
     /**

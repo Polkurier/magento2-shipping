@@ -13,6 +13,7 @@ use Magento\Framework\App\Action\HttpPostActionInterface;
 use Magento\Framework\App\Request\DataPersistorInterface;
 use Magento\Framework\Controller\Result\Redirect;
 use Magento\Framework\Exception\LocalizedException;
+use Polkurier\Shipping\Model\Mapper\CreateOrderMessageMapper;
 use Polkurier\Shipping\Model\MoneyBox\OrderNumbers;
 use Polkurier\Shipping\Model\MoneyBox\Payouts;
 use Polkurier\Webservice\Enum\MoneyBox\MoneyBoxFeePaymentTypeEnum;
@@ -30,7 +31,12 @@ class Save extends Action implements HttpPostActionInterface
      */
     public const string PERSISTOR_KEY = 'polkurier_payout';
 
-    private const array KEPT_FIELDS = ['orders', 'payout_type', 'fee_payment_type', 'bank_account_number'];
+    private const array KEPT_FIELDS = ['orders', 'payout_type', 'fee_payment_type', 'bank_account_choice', 'bank_account_number'];
+
+    /**
+     * The bank account choice that takes the number typed in.
+     */
+    public const string ANOTHER_ACCOUNT = 'new';
 
     public function __construct(
         Context $context,
@@ -44,17 +50,22 @@ class Save extends Action implements HttpPostActionInterface
     {
         $data = $this->getPostData();
         try {
+            $payoutType = MoneyBoxPayoutTypeEnum::tryFrom((string)($data['payout_type'] ?? '')) ?? MoneyBoxPayoutTypeEnum::Account;
+            $accountNumber = $payoutType === MoneyBoxPayoutTypeEnum::Account ? self::accountNumber($data) : null;
+            if ($payoutType === MoneyBoxPayoutTypeEnum::Account && $accountNumber === null) {
+                throw new LocalizedException(\__('Enter the bank account the payout is transferred to.'));
+            }
             if (empty($data['two_factor_token']) || empty($data['two_factor_code'])) {
-                throw new LocalizedException(\__('Send yourself the confirmation code and enter it first.'));
+                throw new LocalizedException(\__('Enter the confirmation code Polkurier sent you.'));
             }
             $payout = $this->payouts->createPayout(
                 OrderNumbers::parse((string)($data['orders'] ?? '')),
-                MoneyBoxPayoutTypeEnum::tryFrom((string)($data['payout_type'] ?? '')) ?? MoneyBoxPayoutTypeEnum::Account,
+                $payoutType,
                 MoneyBoxFeePaymentTypeEnum::tryFrom((string)($data['fee_payment_type'] ?? '')) ?? MoneyBoxFeePaymentTypeEnum::MoneyBox,
                 (string)$data['two_factor_token'],
                 (string)$data['two_factor_code'],
                 isset($data['security_pin']) ? (string)$data['security_pin'] : null,
-                isset($data['bank_account_number']) ? (string)$data['bank_account_number'] : null,
+                $accountNumber,
             );
             $this->messageManager->addSuccessMessage(\__(
                 'Payout %1 requested: %2 PLN.',
@@ -70,6 +81,22 @@ class Save extends Action implements HttpPostActionInterface
         }
 
         return $this->resultRedirectFactory->create()->setPath('*/*/index');
+    }
+
+    /**
+     * The account a transfer goes to: one of the bank accounts, or the number typed in; none when
+     * neither is given.
+     *
+     * @param array<string, mixed> $data
+     */
+    private static function accountNumber(array $data): ?string
+    {
+        $choice = (string)($data['bank_account_choice'] ?? self::ANOTHER_ACCOUNT);
+        $number = CreateOrderMessageMapper::accountNumber($choice === self::ANOTHER_ACCOUNT || $choice === ''
+            ? (string)($data['bank_account_number'] ?? '')
+            : $choice);
+
+        return $number !== '' ? $number : null;
     }
 
     /**

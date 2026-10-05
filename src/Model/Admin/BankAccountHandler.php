@@ -26,7 +26,7 @@ use Polkurier\Shipping\Model\Sync\SyncResult;
  * save is sent with the code or PIN from the form, or waits in Magento for one, and a delete goes
  * to Polkurier first, with the PIN when the account locks bank accounts.
  */
-class BankAccountHandler implements EntityHandlerInterface
+readonly class BankAccountHandler implements EntityHandlerInterface
 {
     use EditsSyncableEntries;
 
@@ -36,13 +36,13 @@ class BankAccountHandler implements EntityHandlerInterface
     public const string CONFIRMATION_PIN = 'confirmation_pin';
 
     public function __construct(
-        private readonly BankAccountRepositoryInterface $repository,
-        private readonly BankAccountFactory $factory,
-        private readonly Publisher $publisher,
-        private readonly SynchronizationInterface $synchronization,
-        private readonly DateTime $dateTime,
-        private readonly SyncLock $syncLock,
-        private readonly BankAccountResource $resource,
+        private BankAccountRepositoryInterface $repository,
+        private BankAccountFactory $factory,
+        private Publisher $publisher,
+        private SynchronizationInterface $synchronization,
+        private DateTime $dateTime,
+        private SyncLock $syncLock,
+        private BankAccountResource $resource,
     ) {}
 
     /**

@@ -13,6 +13,7 @@ use PHPUnit\Framework\TestCase;
 use Polkurier\Shipping\Model\Carrier\CarrierCatalog;
 use Polkurier\Shipping\Model\Carrier\CarrierFeatures;
 use Polkurier\Shipping\Model\ErrorMessages;
+use Polkurier\Shipping\Model\Mapper\SenderMapper;
 use Polkurier\Shipping\Model\MasterData;
 use Polkurier\Shipping\Model\Shipment\ShipmentOptions;
 use Polkurier\Webservice\Exception\ConnectionException;
@@ -62,6 +63,6 @@ class ShipmentOptionsTest extends TestCase
             $this->logged[] = $message;
         });
 
-        return new ShipmentOptions($catalog, new CarrierFeatures(), $this->createStub(MasterData::class), new ErrorMessages(), $logger);
+        return new ShipmentOptions($catalog, new CarrierFeatures(), $this->createStub(MasterData::class), new ErrorMessages(), $logger, $this->createStub(SenderMapper::class));
     }
 }

@@ -16,12 +16,12 @@ use Magento\Framework\View\Element\UiComponent\Control\ButtonProviderInterface;
  * Deletes the bank account being edited, in Polkurier and Magento, sending the security PIN
  * typed into the form: the only place a PIN-locked account can be deleted from.
  */
-class DeleteBankAccountButton implements ButtonProviderInterface
+readonly class DeleteBankAccountButton implements ButtonProviderInterface
 {
     public function __construct(
-        private readonly RequestInterface $request,
-        private readonly UrlInterface $url,
-        private readonly Json $json,
+        private RequestInterface $request,
+        private UrlInterface $url,
+        private Json $json,
     ) {}
 
     /**
@@ -39,9 +39,9 @@ class DeleteBankAccountButton implements ButtonProviderInterface
         return [
             'label' => \__('Delete'),
             'class' => 'delete',
-            // The PIN is read when the button is clicked, not when the page is built.
+            // Confirmed, or asked for the security PIN where bank accounts are locked with one.
             'on_click' => \sprintf(
-                "deleteConfirm(%s, %s, {data: {id: %d, delete: 1, confirmation_pin: (document.querySelector('[name=\"confirmation_pin\"]') || {}).value || ''}}); return false;",
+                "require(['Polkurier_Shipping/js/form/bank-account-delete'], function (remove) { remove(%s, %s, %d); }); return false;",
                 $message,
                 $url,
                 $id,

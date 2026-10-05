@@ -12,7 +12,7 @@ use Polkurier\Webservice\Enum\Order\ShipmentTypeEnum;
 /**
  * Shipment types.
  */
-class ShipmentType extends AbstractOptions
+readonly class ShipmentType extends AbstractOptions
 {
     public function toArray(): array
     {

@@ -12,7 +12,7 @@ use Polkurier\Shipping\Model\Shipment\WeightLimitEnum;
 /**
  * What packing automatically does with the pack templates' weight limits.
  */
-class WeightLimit extends AbstractOptions
+readonly class WeightLimit extends AbstractOptions
 {
     public function toArray(): array
     {

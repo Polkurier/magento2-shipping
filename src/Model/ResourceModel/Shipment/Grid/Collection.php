@@ -7,10 +7,12 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Model\ResourceModel\Shipment\Grid;
 
+use Magento\Framework\Data\Collection as DataCollection;
 use Magento\Framework\View\Element\UiComponent\DataProvider\SearchResult;
 
 /**
- * Polkurier shipments for the admin grids, with the order number they belong to.
+ * Polkurier shipments for the admin grids, with the order number they belong to. Newest first
+ * unless sorted otherwise.
  */
 class Collection extends SearchResult
 {
@@ -31,5 +33,19 @@ class Collection extends SearchResult
         $this->addFilterToMap('increment_id', 'sales_order.increment_id');
 
         return $this;
+    }
+
+    /**
+     * A grid sorts by its default column, unless the admin's saved state for it names none, e.g.
+     * one saved before the default was set: then by the newest still, not in the table's order.
+     */
+    protected function _beforeLoad(): static
+    {
+        if ($this->_orders === []) {
+            $this->setOrder('main_table.created_at', DataCollection::SORT_ORDER_DESC);
+            $this->setOrder('main_table.entity_id', DataCollection::SORT_ORDER_DESC);
+        }
+
+        return parent::_beforeLoad();
     }
 }

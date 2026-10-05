@@ -24,14 +24,14 @@ use Polkurier\Shipping\Model\Sync\SyncResult;
  *
  * One subclass per entity.
  */
-abstract class SyncableEntityHandler implements EntityHandlerInterface
+abstract readonly class SyncableEntityHandler implements EntityHandlerInterface
 {
     use EditsSyncableEntries;
 
     public function __construct(
-        private readonly SynchronizationInterface $synchronization,
-        protected readonly DateTime $dateTime,
-        protected readonly SyncLock $syncLock,
+        private SynchronizationInterface $synchronization,
+        protected DateTime $dateTime,
+        protected SyncLock $syncLock,
     ) {}
 
     /**

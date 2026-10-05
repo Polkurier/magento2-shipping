@@ -13,6 +13,7 @@ use Magento\Framework\App\Action\HttpPostActionInterface;
 use Magento\Framework\Controller\Result\Redirect;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Url\EncoderInterface;
+use Polkurier\Shipping\Model\Shipment\Pickups;
 use Polkurier\Shipping\Model\Shipment\RequestedShipments;
 
 /**
@@ -26,6 +27,7 @@ class MassPickup extends AbstractShipmentAction implements HttpPostActionInterfa
         Context $context,
         RequestedShipments $requestedShipments,
         private readonly EncoderInterface $urlEncoder,
+        private readonly Pickups $pickups,
     ) {
         parent::__construct($context, $requestedShipments);
     }
@@ -33,13 +35,34 @@ class MassPickup extends AbstractShipmentAction implements HttpPostActionInterfa
     public function execute(): Redirect
     {
         try {
-            $ids = \array_map(static fn($shipment): int => (int)$shipment->getId(), $this->getSelectedShipments());
+            $selected = $this->getSelectedShipments();
         } catch (LocalizedException $e) {
             $this->messageManager->addErrorMessage($e->getMessage());
-            $ids = [];
+
+            return $this->back();
+        }
+        // Only those awaiting a collective pickup go to the form, the others are named.
+        $ids = [];
+        $leftOut = [];
+        foreach ($selected as $shipment) {
+            if ($this->pickups->awaitsCollective($shipment)) {
+                $ids[] = (int)$shipment->getId();
+            } else {
+                $leftOut[] = $shipment->getPolkurierNumber() ?? '#' . $shipment->getId();
+            }
         }
         if ($ids === []) {
+            if ($selected !== []) {
+                $this->messageManager->addErrorMessage(\__('None of the selected shipments awaits a collective pickup.'));
+            }
+
             return $this->back();
+        }
+        if ($leftOut !== []) {
+            $this->messageManager->addNoticeMessage(\__(
+                'Left out, as they don\'t await a collective pickup: %1.',
+                \implode(', ', $leftOut),
+            ));
         }
 
         // The form takes along where the booking was started from, to go back there once booked.

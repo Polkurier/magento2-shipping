@@ -10,7 +10,7 @@ All settings are in **Stores > Configuration > Sales > Delivery Methods > Polkur
 **Polkurier > Settings > Configuration** menu item takes you to the same page.
 
 The module works with one Polkurier account for the whole Magento installation, so the account
-settings (**Polkurier account**, **Available carriers**, **Synchronization**) are set at the
+settings (**Polkurier account**, **Available carriers**, **Synchronization**, **Logging**) are set at the
 default scope only. Most other settings can be set for a particular website with the scope
 switcher at the top of the page, and a few texts also per store view; they're marked below.
 
@@ -28,13 +28,12 @@ Under **Polkurier account**:
   tells you whether Polkurier accepted them.
 - **Request timeout (seconds)**: how long to wait for Polkurier before giving up. The default of
   30 seconds is fine for almost everyone.
-- **Log failed requests**: writes failed requests to `var/log/polkurier.log`. The module's own
-  warnings go there either way.
-- **Log all traffic of**: also logs successful requests of the kinds you select, which helps if
-  Polkurier support asks for details. Only shown when **Log failed requests** is on.
-
-Your API token, security PINs and confirmation codes are masked before anything is written to the
-log, so the log file is safe to send to support.
+- **Identify orders to Polkurier by**: each Polkurier order carries the Magento shipment's number
+  (the default) or the order's, with an id of this Magento installation shown under the setting,
+  e.g. `magento2-3f9a1c7e5b20`. If Polkurier's answer to an order is lost, the module finds the
+  order by them. A new shipment's number is taken before the order is placed, so the Magento
+  shipment gets the number Polkurier has; a refused order leaves a gap in the shipment numbers.
+  The order number is always sent as well, for you to see in the Polkurier panel.
 
 When the credentials change, the module forgets everything it cached for the old account, such as
 the carrier list.
@@ -71,6 +70,9 @@ shipment page alike. You can change all of them for each shipment. They come in 
   ones you don't use don't clutter anything. Carriers you
   leave out keep their settings and come back as they were if you select them again. With
   nothing selected, all of the account's carriers are available.
+- **Parcels go as**: parcels (boxes, the default), envelopes or pallets. A new shipment's parcels
+  are of this kind, and automatic packing uses only pack templates of it, so a shipment never mixes
+  kinds. A carrier that doesn't take the kind gets the first kind it takes. Can be set per website.
 - **Additional services selected by default**, such as SMS notifications. Only services the chosen
   carrier offers get ticked.
 - **Another sender on the label by default**: one of your addresses marked **Can be a cover
@@ -98,7 +100,8 @@ shipment page alike. You can change all of them for each shipment. They come in 
 ### Parcels
 
 - **Parcel weight**: the weight a parcel of a pack template is priced and sent with.
-  - **What the products in it weigh** (the default): the sum of the products' weights.
+  - **What the products in it weigh** (the default): the sum of the products' weights, and the
+    template's **Tare**, if it has one.
   - **The pack template's weight**: the template's **Maximum weight**, whatever is in the parcel.
     Choose this when your products' weights aren't filled in, or aren't reliable.
 
@@ -166,9 +169,34 @@ The first five can be set per store view.
   changes made in the Polkurier panel.
 - **Update shipment statuses on schedule**: follows each shipment until it's delivered,
   returned or cancelled.
-- **Update shipment statuses**: how often: every 10, 15 or 30 minutes (the default), or every
-  hour. More often keeps the statuses fresher, at the cost of more requests to Polkurier.
+- **Update shipment statuses**: how often: every 10, 15, 20 or 30 minutes (the default), or
+  every hour. More often keeps the statuses fresher, at the cost of more requests to Polkurier.
 
 Both need Magento's cron, and both are set for the whole installation (default scope).
+
+## Logging
+
+Requests to Polkurier are logged to `var/log/polkurier.log`. The module's own warnings go there
+whatever these settings say.
+
+- **Log failed requests**: writes requests that failed, with Polkurier's answer.
+- **Log all traffic of**: also logs successful requests of the kinds you select, which helps if
+  Polkurier support asks for details.
+- **Log personal data**: off by default, so names, addresses, email addresses, phone numbers, tax
+  numbers and bank account numbers are replaced with `***`. Turn it on only while you need them,
+  e.g. to show support exactly what was sent.
+- **Save files**: off by default, so a label, protocol, invoice or attachment in a logged request
+  or answer is noted only by its size. On, each one is saved as a file, and the log says where.
+  A label shows the recipient's name and address even with **Log personal data** off.
+- **Save files in**: the directory for those files, relative to Magento's root or absolute. Empty
+  means `var/log/polkurier-files`. It can't be in the `pub` directory, which the web server
+  serves.
+- **Keep saved files for (days)**: files older than this are deleted every night, 7 days by
+  default, also after you turn **Save files** off. 0 keeps them until you delete them. Only the
+  files the module saved are deleted, so other files in the directory stay. Needs Magento's cron.
+
+The other settings are shown only when **Log failed requests** is on. Your API token, security PINs
+and confirmation codes are always hidden, so with personal data and files off the log is safe to
+send to Polkurier support.
 
 Next: [Carriers and prices](carriers-and-prices.md)

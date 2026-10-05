@@ -10,7 +10,7 @@ namespace Polkurier\Shipping\Model\MoneyBox;
 /**
  * Polkurier order numbers typed one per line, or separated by commas or spaces.
  */
-final class OrderNumbers
+final readonly class OrderNumbers
 {
     /**
      * @return string[]

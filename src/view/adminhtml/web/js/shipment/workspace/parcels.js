@@ -53,8 +53,21 @@ define([
                 weight: ko.observable(''),
                 items: ko.observableArray([]),
                 contentsWeight: ko.observable(0),
+                // Saved as a pack template, under the name, once the shipment is placed.
+                keep: ko.observable(false),
+                keepName: ko.observable(''),
                 error: ko.observable('')
             };
+            // Only a parcel that isn't a template's as it is can be saved as one.
+            this.editor.canKeep = ko.pureComputed(function () {
+                const editor = this.editor,
+                    origin = editor.origin || {};
+
+                return !(editor.templateId && editor.packType() === origin.pack_type
+                    && ['length', 'width', 'height'].every(function (field) {
+                        return String(editor[field]()) === String(origin[field]);
+                    }));
+            }, this);
             // The weight the editor last filled in from the contents: anything else was typed.
             this.followedWeight = null;
             this.unpacked = ko.observable('');
@@ -88,6 +101,9 @@ define([
                         .replace('%3', pack.height || '?')
                         .replace('%4', pack.weight || '?'),
                     contents: describe(pack, items),
+                    kept: pack.keep_as
+                        ? $t('Saved as the pack template "%1" once placed').replace('%1', pack.keep_as)
+                        : '',
                     incomplete: FIELDS.some(function (field) {
                         return rules.amount(pack[field]) <= 0;
                     })
@@ -195,7 +211,7 @@ define([
             return _.filter(_.values(this.get('packs') || []), function (pack) {
                 return pack && !pack.delete;
             }).map(function (pack) {
-                return _.pick(pack, 'template_id', 'pack_type', 'length', 'width', 'height', 'weight', 'amount', 'items');
+                return _.pick(pack, 'template_id', 'pack_type', 'length', 'width', 'height', 'weight', 'amount', 'items', 'keep_as');
             });
         },
 
@@ -376,6 +392,8 @@ define([
             });
             editor.items(this.editorItems(index, pack));
             editor.contentsWeight(this.weighContents());
+            editor.keep(Boolean(pack.keep_as));
+            editor.keepName(pack.keep_as || '');
             // A weight other than the setting's of a parcel that says what it holds was typed in.
             this.followedWeight = (pack.items || []).length && rules.amount(editor.weight()) !== this.editorWeight()
                 ? null
@@ -447,17 +465,18 @@ define([
          * What a parcel of the template given, holding the items given, weighs by the setting.
          *
          * @param {Number|String|null} templateWeight
+         * @param {Number|String|null} [tare] what the template's packaging weighs
          * @param {Array<Object>} rows the parcel's items: order_item_id and qty
          * @returns {Number}
          */
-        weigh: function (templateWeight, rows) {
+        weigh: function (templateWeight, rows, tare) {
             const items = rules.itemsById(this.get() || {});
 
             return rules.parcelWeight(this.get('parcel_weight') || 'products', rules.amount(templateWeight) || null, (rows || []).map(function (row) {
                 const item = items[String(row.order_item_id)];
 
                 return {weight: item ? rules.amount(item.weight) : 0, qty: rules.amount(row.qty)};
-            }));
+            }), rules.amount(tare) || null);
         },
 
         /**
@@ -473,12 +492,24 @@ define([
         },
 
         /**
+         * @param {String|Number|null} templateId
+         * @returns {Number|null} what that pack template's packaging weighs, null when not said
+         */
+        templateTare: function (templateId) {
+            const template = templateId ? this.templates().find(function (candidate) {
+                return String(candidate.id) === String(templateId);
+            }) : null;
+
+            return template && rules.filled(template.tare) ? rules.amount(template.tare) : null;
+        },
+
+        /**
          * @returns {Number} what the parcel in the editor weighs by the setting, 0 when unknown
          */
         editorWeight: function () {
             return this.weigh(this.editor.templateWeight, this.editor.items().map(function (row) {
                 return {order_item_id: row.id, qty: row.qty()};
-            }));
+            }), this.templateTare(this.editor.templateId));
         },
 
         /**
@@ -543,6 +574,12 @@ define([
             pack.template_id = editor.templateId && ['pack_type', 'length', 'width', 'height'].every(function (field) {
                 return String(previous[field]) === String(pack[field]);
             }) ? editor.templateId : null;
+            // Named as its type and size when no name was given.
+            pack.keep_as = !pack.template_id && editor.keep()
+                ? editor.keepName().trim() || $t('%1 %2 × %3 × %4 cm')
+                    .replace('%1', ((this.get('choices') || {}).pack_type || {})[pack.pack_type] || pack.pack_type)
+                    .replace('%2', pack.length).replace('%3', pack.width).replace('%4', pack.height)
+                : '';
             if (editor.index >= 0) {
                 packs[editor.index] = pack;
             } else {

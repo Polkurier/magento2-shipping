@@ -24,6 +24,68 @@ define(['mage/translate', 'Polkurier_Shipping/js/shipment/workspace/rules'], fun
             pointLabels = config.pointLabels = config.pointLabels || {},
             closedPoint = config.point && config.point.closed ? config.point.id : '';
 
+        /**
+         * @param {String} choice the select whose "new" shows the fields
+         * @returns {Function} whether the field shows in the group's fields
+         */
+        /**
+         * @returns {String} whether the carrier takes the parcels at a point: NONE, OPTIONAL or REQUIRED
+         */
+        function senderPoint() {
+            const c = carrier();
+
+            return c && c.sender_point ? c.sender_point : 'NONE';
+        }
+
+        function typingIn(choice) {
+            return function (form) {
+                return form.find('[name=' + choice + ']').val() === 'new';
+            };
+        }
+
+        /**
+         * @param {String} choice
+         * @param {String} keep the checkbox saving it for later
+         * @returns {Function}
+         */
+        function keeping(choice, keep) {
+            return function (form) {
+                return typingIn(choice)(form) && form.find('[name=' + keep + ']').prop('checked');
+            };
+        }
+
+        /**
+         * @param {String} field
+         * @returns {Boolean} whether what's typed in is saved for later
+         */
+        function kept(field) {
+            return filled(values[field]) && String(values[field]) !== '0' && values[field] !== false;
+        }
+
+        /**
+         * The sender typed in, field by field, shown while "A new address" is chosen.
+         *
+         * @returns {Array<Object>}
+         */
+        function newSenderFields() {
+            const shown = typingIn('sender_address_id');
+
+            return [
+                {name: 'new_sender_person', label: $t('Name'), type: 'text'},
+                {name: 'new_sender_company', label: $t('Company'), type: 'text'},
+                {name: 'new_sender_street', label: $t('Street'), type: 'text'},
+                {name: 'new_sender_house_number', label: $t('House number'), type: 'text'},
+                {name: 'new_sender_flat_number', label: $t('Flat number'), type: 'text'},
+                {name: 'new_sender_postcode', label: $t('Postcode'), type: 'text'},
+                {name: 'new_sender_city', label: $t('City'), type: 'text'},
+                {name: 'new_sender_country', label: $t('Country'), type: 'text', note: $t('Its two-letter code; PL if left empty.')},
+                {name: 'new_sender_phone', label: $t('Phone'), type: 'tel'},
+                {name: 'new_sender_email', label: $t('E-mail'), type: 'email'}
+            ].map(function (field) {
+                return Object.assign(field, {shownFor: shown});
+            });
+        }
+
         if (config.point && config.point.id && config.point.label) {
             pointLabels[config.point.id] = config.point.label;
         }
@@ -72,12 +134,59 @@ define(['mage/translate', 'Polkurier_Shipping/js/shipment/workspace/rules'], fun
             },
             {
                 title: $t('Sender'),
+                warning: function () {
+                    if (senderPoint() === 'REQUIRED' && !filled(values.sender_point_id)) {
+                        return $t('This carrier takes the parcels at a point: choose the drop-off point you hand them over at.');
+                    }
+
+                    return values.sender_address_id === 'new' && rules.newSenderLacking(values).length
+                        ? $t('Fill in the sender\'s %1.').replace('%1', rules.newSenderLacking(values).join(', '))
+                        : '';
+                },
                 summary: function () {
-                    return label('sender_address_id', values.sender_address_id || '');
+                    // Handed over at a point, for a carrier that takes parcels at points.
+                    const point = senderPoint() !== 'NONE' && filled(values.sender_point_id)
+                        ? ' · ' + $t('drop-off point %1').replace('%1', values.sender_point_id)
+                        : '';
+
+                    if (values.sender_address_id !== 'new') {
+                        return label('sender_address_id', values.sender_address_id || '') + point;
+                    }
+                    const number = [values.new_sender_house_number, values.new_sender_flat_number].filter(filled).join('/'),
+                        address = [
+                            values.new_sender_company || values.new_sender_person,
+                            [values.new_sender_street, number].filter(filled).join(' '),
+                            [values.new_sender_postcode, values.new_sender_city].filter(filled).join(' ')
+                        ].filter(filled).join(', ');
+
+                    return [
+                        address || $t('A new address'),
+                        kept('keep_new_sender') ? $t('saved to your addresses once placed') : $t('for this shipment only')
+                    ].join(' · ') + point;
                 },
                 fields: [
-                    {name: 'sender_address_id', label: $t('Sender'), type: 'select'}
-                ]
+                    {name: 'sender_address_id', label: $t('Sender'), type: 'select'},
+                    {
+                        name: 'sender_point_id',
+                        label: $t('Drop-off point'),
+                        type: 'text',
+                        map: true,
+                        mapSearch: state.senderPostcode,
+                        visible: function () {
+                            return senderPoint() !== 'NONE';
+                        },
+                        note: $t('Where you hand the parcels over, for a carrier that takes them at points.')
+                    }
+                ].concat(newSenderFields(), [
+                    {name: 'keep_new_sender', label: $t('Save to your addresses for later shipments'), type: 'checkbox', shownFor: typingIn('sender_address_id')},
+                    {
+                        name: 'new_sender_name',
+                        label: $t('Saved as'),
+                        type: 'text',
+                        note: $t('If left empty: the company or the name, and the city. Saved once the shipment is placed.'),
+                        shownFor: keeping('sender_address_id', 'keep_new_sender')
+                    }
+                ])
             },
             {
                 title: $t('Handover'),
@@ -153,8 +262,13 @@ define(['mage/translate', 'Polkurier_Shipping/js/shipment/workspace/rules'], fun
                     return carrier() && carrier().cod;
                 },
                 warning: function () {
-                    return state.codTooHigh()
-                        ? $t('Cash on delivery is more than the %1 left to collect.').replace('%1', money(config.codRemaining))
+                    if (state.codTooHigh()) {
+                        return $t('Cash on delivery is more than the %1 left to collect.').replace('%1', money(config.codRemaining));
+                    }
+
+                    return filled(values.cod_amount) && values.cod_return_type === 'BA' && values.cod_bank_account_id === 'new'
+                        && !filled(values.new_bank_account_number)
+                        ? $t('Enter the number of the bank account the cash on delivery is paid out to.')
                         : '';
                 },
                 summary: function () {
@@ -165,7 +279,10 @@ define(['mage/translate', 'Polkurier_Shipping/js/shipment/workspace/rules'], fun
                     return [
                         money(values.cod_amount),
                         label('cod_type', values.cod_type),
-                        label('cod_bank_account_id', values.cod_bank_account_id),
+                        values.cod_bank_account_id === 'new'
+                            ? [values.new_bank_account_number || $t('A new bank account'),
+                                kept('keep_new_bank_account') ? $t('saved to your bank accounts once placed') : ''].filter(filled).join(', ')
+                            : label('cod_bank_account_id', values.cod_bank_account_id),
                         state.codTooHigh() ? $t('more than the %1 left to collect').replace('%1', money(config.codRemaining)) : ''
                     ].filter(Boolean).join(' · ');
                 },
@@ -175,7 +292,16 @@ define(['mage/translate', 'Polkurier_Shipping/js/shipment/workspace/rules'], fun
                     {name: 'cod_amount', label: $t('Amount to collect'), type: 'number', note: state.codNote},
                     {name: 'cod_type', label: $t('Payout time'), type: 'select'},
                     {name: 'cod_return_type', label: $t('Paid out to'), type: 'select'},
-                    {name: 'cod_bank_account_id', label: $t('Bank account'), type: 'select'}
+                    {name: 'cod_bank_account_id', label: $t('Bank account'), type: 'select'},
+                    {name: 'new_bank_account_number', label: $t('Account number'), type: 'text', shownFor: typingIn('cod_bank_account_id')},
+                    {name: 'keep_new_bank_account', label: $t('Save to your bank accounts for later shipments'), type: 'checkbox', shownFor: typingIn('cod_bank_account_id')},
+                    {
+                        name: 'new_bank_account_name',
+                        label: $t('Saved as'),
+                        type: 'text',
+                        note: $t('If left empty: "Account ending" and its last four digits. Saved once the shipment is placed; Polkurier takes it once you confirm it with the code or your security PIN.'),
+                        shownFor: keeping('cod_bank_account_id', 'keep_new_bank_account')
+                    }
                 ]
             },
             {

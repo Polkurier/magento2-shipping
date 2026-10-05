@@ -20,6 +20,11 @@ interface PackInterface
     public const string WEIGHT = 'weight';
     public const string AMOUNT = 'amount';
     public const string ITEMS = 'items';
+    /**
+     * The name to save a parcel without a template under as a pack template once the shipment is
+     * placed; empty to save nothing.
+     */
+    public const string KEEP_AS = 'keep_as';
 
     /**
      * @return int|null
@@ -110,4 +115,8 @@ interface PackInterface
      * @return $this
      */
     public function setItems(array $items): static;
+
+    public function getKeepAs(): string;
+
+    public function setKeepAs(string $name): static;
 }

@@ -25,15 +25,15 @@ use Polkurier\Shipping\Model\ShippingChoiceStore;
  * differs, and the carrier and pickup point of a Polkurier order that went otherwise, e.g. an
  * earlier part of the order.
  */
-class ShippedWith implements ArgumentInterface
+readonly class ShippedWith implements ArgumentInterface
 {
     public function __construct(
-        private readonly CollectionFactory $collectionFactory,
-        private readonly CarrierNames $carrierNames,
-        private readonly OrderPointStore $pointStore,
-        private readonly SentOrder $sentOrder,
-        private readonly ScreenContext $context,
-        private readonly ShippingChoiceStore $choices,
+        private CollectionFactory $collectionFactory,
+        private CarrierNames $carrierNames,
+        private OrderPointStore $pointStore,
+        private SentOrder $sentOrder,
+        private ScreenContext $context,
+        private ShippingChoiceStore $choices,
     ) {}
 
     /**

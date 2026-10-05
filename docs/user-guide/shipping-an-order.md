@@ -31,7 +31,8 @@ Both ways fill the shipment in from the order and your
 
 - the carrier the customer chose;
 - your default sender address, or the store's address or shipping origin, if you let those be
-  used;
+  used; with none of these, a new sender address to fill in, saved to your addresses once the
+  shipment is placed (see [Typing in a sender, an account or a parcel](#typing-in-a-sender-an-account-or-a-parcel));
 - the recipient from the order's shipping address, with the street split into street, house
   number and flat number;
 - the pickup point the customer chose, if any;
@@ -43,7 +44,8 @@ Both ways fill the shipment in from the order and your
   a template starts with the weight of the order's products, when known;
 - cash on delivery for the order total, if the order was paid with one of your cash on delivery
   payment methods, paid out the way you configured to your default bank account (or, if none is
-  marked as the default, the first one by name). When the order ships in parts, it's only what
+  marked as the default, the first one by name; with no bank account at all, a new one to type
+  in). When the order ships in parts, it's only what
   the order's other Polkurier orders don't collect yet (see
   [Shipping an order in parts](#shipping-an-order-in-parts));
 - insurance and additional services according to your defaults, limited to what the carrier
@@ -92,7 +94,7 @@ This is the way to go when you want Polkurier to behave like any other carrier i
 6. Click **Submit Shipment**. Magento's packaging window opens. Add a package for each parcel,
    put the items in it and enter its weight and size. The weight and size start in kilograms and
    centimetres. As the package type, pick a parcel type (standard, non-standard, long, envelope,
-   half pallet, pallet) and enter the size. To save typing, pick one of your pack templates in the
+   or a pallet by its size, from a quarter pallet to 150 × 150) and enter the size. To save typing, pick one of your pack templates in the
    package's **Pack template** column, before **Type**: it fills in the parcel type and size, and
    the weight by **Parcel weight** (see [Configuration](configuration.md#parcels)), again as you
    add items. A new package starts with your default template already filled in. You can still
@@ -131,6 +133,28 @@ instead of placing a new order.
 
 If Polkurier refuses the shipment, the reason appears in the packaging window and nothing is
 created, so you can close the window, change the options or packages and try again.
+
+## Typing in a sender, an account or a parcel
+
+You don't need anything stored in **Polkurier > Settings** to ship. On both screens:
+
+- the sender can be **A new address**: fill it in where you choose it (Polkurier needs all but the
+  company and the flat number). It's used for this shipment, and with **Save to your addresses for
+  later shipments**, saved to your [addresses](master-data.md#addresses) under the name you give,
+  or the company or name and the city;
+- cash on delivery paid out to a bank account can go to **A new bank account**: type its number
+  in, and tick **Save to your bank accounts for later shipments** to keep it. Polkurier takes a
+  saved bank account once you confirm it with the code or your security PIN (see
+  [Bank accounts](master-data.md#bank-accounts)); this shipment's cash on delivery goes to the
+  number either way;
+- a parcel without a pack template can be saved as one: tick **Save as a pack template for later
+  shipments** in the parcel's window on the Polkurier shipment screen, or **Save as a pack
+  template** under **No template** in Magento's packaging window. Unnamed, it's called after its
+  type and size.
+
+Whatever you ask to save is saved only once Polkurier accepts the shipment, and sent to your
+Polkurier account like anything you add in the settings; a refused shipment saves nothing. The
+first of each becomes the default. A message says what was saved, and what wasn't and why.
 
 ## When you ship with another carrier or point
 
@@ -237,10 +261,13 @@ they let the module pack the items into parcels for you:
 - The aim is as few parcels as possible. If one template takes everything, that's the parcel.
   Otherwise the template that takes the most makes the first parcel, and the rest is packed the
   same way. Parcels whose contents fit one template together are then put together.
-- Only templates of one kind are used. With parcels in the list, it's their kind, so a shipment
-  of boxes isn't put on a pallet. Without any, as for a new shipment, the items decide: the
-  smallest kind (envelopes, then parcels, then pallets) whose templates take every item. When none
-  takes them all, the kind leaving out the fewest goes, parcels if it's a tie.
+- Only templates of one kind are used, so a shipment never mixes parcels, envelopes and pallets.
+  With parcels in the list, it's their kind. Without any, as for a new shipment, it's the kind set
+  in **Parcels go as** on the configuration page (parcels by default), or the first kind the
+  carrier takes when it doesn't take that one. An item too big for every template of the kind
+  gets one of its own size of the same kind: a parcel, an envelope, or the smallest pallet it
+  stands on. So one long item doesn't put the order on a pallet; the prices then show which
+  carriers take that parcel.
 - Room means actual space: an item only goes where there's a gap big enough for it, not wherever
   enough volume is left. A 15 × 10 × 10 cm item doesn't go into a 50 × 40 × 30 cm box that already
   holds a 45 × 35 × 25 cm one, since only 5 cm are free around it. Items are turned whichever way
@@ -249,7 +276,8 @@ they let the module pack the items into parcels for you:
 - An item that fits no template gets a parcel of its own size.
 - A parcel weighs what **Parcel weight** says: what's in it, or its template's weight. A parcel
   with a product that has no weight takes its template's weight, and **Pack automatically** names
-  the products without one.
+  the products without one. A parcel of its own size has no template weight to take, so it's
+  left without a weight, and you're told to enter it.
 - A parcel heavier than its template's **Maximum weight** is pointed out in the shipment
   section, whether it was packed automatically or by hand. By default that's all; with **Pack
   template weight limits** set to keep parcels under them, the packing splits parcels or takes a
@@ -322,7 +350,8 @@ show which carriers can do it: those that can't are tucked away.
 
 ### Sender
 
-The address the parcels go out from, with **Change** to pick another of your sender addresses.
+The address the parcels go out from, with **Change** to pick another of your sender addresses or
+**A new address** (see [Typing in a sender, an account or a parcel](#typing-in-a-sender-an-account-or-a-parcel)).
 Without one chosen, the parcels go out from the store's address or its shipping origin, as **Fall
 back to the store's address** and **Fall back to the shipping origin** allow (see the
 [configuration](configuration.md#sender)). By default that's the shipping origin.
@@ -335,7 +364,10 @@ Next to it, how the parcels get to the carrier:
   again may help.
 - **I drop them off at a point**, for carriers that take parcels that way.
 - **A courier collects them later, with other shipments**: a collective pickup, booked later from
-  the shipments list (see [Managing shipments](managing-shipments.md)).
+  the shipments list (see [Managing shipments](managing-shipments.md)). It's offered when Polkurier
+  says the carrier can collect the parcels that way, which it's asked whenever the carrier, the
+  sender or the parcels change. On Magento's New Shipment
+  page it's offered for every carrier, and Polkurier refuses the label if it can't.
 
 ### Recipient
 

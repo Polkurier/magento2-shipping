@@ -18,15 +18,15 @@ use Polkurier\Shipping\Api\SynchronizationInterface;
 use Polkurier\Shipping\Model\PackTemplateFactory;
 use Polkurier\Shipping\Model\ResourceModel\PackTemplate as PackTemplateResource;
 
-class PackTemplateHandler extends SyncableEntityHandler
+readonly class PackTemplateHandler extends SyncableEntityHandler
 {
     public function __construct(
-        private readonly PackTemplateRepositoryInterface $repository,
-        private readonly PackTemplateFactory $factory,
+        private PackTemplateRepositoryInterface $repository,
+        private PackTemplateFactory $factory,
         SynchronizationInterface $synchronization,
         DateTime $dateTime,
         SyncLock $syncLock,
-        private readonly PackTemplateResource $resource,
+        private PackTemplateResource $resource,
     ) {
         parent::__construct($synchronization, $dateTime, $syncLock);
     }

@@ -95,7 +95,7 @@
                 <filter>text</filter>
             </settings>
         </column>
-        <column name="created_at" component="Magento_Ui/js/grid/columns/date" sortOrder="20">
+        <column name="created_at" class="Magento\Ui\Component\Listing\Columns\Date" component="Magento_Ui/js/grid/columns/date" sortOrder="20">
             <settings>
                 <label translate="true">Created</label>
                 <filter>dateRange</filter>
@@ -119,14 +119,14 @@
                 <dataType>select</dataType>
             </settings>
         </column>
-        <column name="magento_shipment" class="Polkurier\Shipping\Ui\Component\Listing\Column\MagentoShipmentLink" sortOrder="50">
+        <column name="magento_shipment" class="Polkurier\Shipping\Ui\Component\Listing\Column\MagentoShipmentLinkColumn" sortOrder="50">
             <settings>
                 <label translate="true">Magento shipment</label>
                 <bodyTmpl>ui/grid/cells/html</bodyTmpl>
                 <sortable>false</sortable>
             </settings>
         </column>
-        <column name="waybills" class="Polkurier\Shipping\Ui\Component\Listing\Column\Waybills" sortOrder="60">
+        <column name="waybills" class="Polkurier\Shipping\Ui\Component\Listing\Column\WaybillsColumn" sortOrder="60">
             <settings>
                 <label translate="true">Waybills</label>
                 <bodyTmpl>ui/grid/cells/html</bodyTmpl>
@@ -147,7 +147,7 @@
                 <sortable>false</sortable>
             </settings>
         </column>
-        <actionsColumn name="actions" class="Polkurier\Shipping\Ui\Component\Listing\Column\ShipmentActions" sortOrder="90">
+        <actionsColumn name="actions" class="Polkurier\Shipping\Ui\Component\Listing\Column\ShipmentActionsColumn" sortOrder="90">
             <argument name="data" xsi:type="array">
                 <item name="config" xsi:type="array">
                     <item name="onOrderPage" xsi:type="boolean">true</item>

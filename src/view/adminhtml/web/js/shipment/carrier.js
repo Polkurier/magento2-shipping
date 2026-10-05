@@ -49,6 +49,16 @@ define(['Magento_Ui/js/form/element/select'], function (Select) {
         /**
          * @param {String} code
          */
+        /**
+         * @returns {String} the drop-off point of the chosen sender address, '' without one
+         */
+        senderAddressPoint: function () {
+            const data = this.source.get('data') || {},
+                address = (data.senders || {})[String(data.sender_address_id || '')];
+
+            return address && address.point_id ? String(address.point_id) : '';
+        },
+
         publishFeatures: function (code) {
             // Also called while the field is set up, with the carrier the form starts with.
             if (this.pointsByCarrier === undefined) {
@@ -57,6 +67,8 @@ define(['Magento_Ui/js/form/element/select'], function (Select) {
             } else if (code !== this.carrier) {
                 this.swapPoint(this.carrier, code);
                 this.carrier = code;
+                // Points are the carrier's own: the sender's goes back to its address's.
+                this.source.set('data.sender_point_id', this.senderAddressPoint());
             }
             const carriers = this.source.get('data.carriers') || {},
                 carrier = carriers[code] || null,
@@ -66,6 +78,8 @@ define(['Magento_Ui/js/form/element/select'], function (Select) {
                 known: !!carrier,
                 point_allowed: carrier ? carrier.point !== 'NONE' : true,
                 point_required: carrier ? carrier.point === 'REQUIRED' : false,
+                // Whether the parcels are handed over at a point: NONE, OPTIONAL or REQUIRED.
+                sender_point: carrier ? carrier.sender_point || 'NONE' : 'NONE',
                 providers: carrier ? carrier.providers : [],
                 cod: carrier ? carrier.cod : true,
                 insurance: carrier ? carrier.insurance : true,
@@ -80,9 +94,13 @@ define(['Magento_Ui/js/form/element/select'], function (Select) {
                 fields: fields,
                 has_fields: fields.length > 0
             });
-            // Parcels can't be dropped off with a carrier that only collects them.
+            // Parcels can't be dropped off with a carrier that only collects them, and are with one
+            // that takes them only at points.
             if (carrier && !carrier.drop_off && this.source.get('data.pickup_mode') === 'drop_off') {
                 this.source.set('data.pickup_mode', 'courier');
+            }
+            if (carrier && carrier.sender_point === 'REQUIRED' && carrier.drop_off) {
+                this.source.set('data.pickup_mode', 'drop_off');
             }
         }
     });

@@ -16,10 +16,10 @@ use Polkurier\Shipping\Model\Config;
  * It applies both to the account's carrier list and to the carrier settings kept in Magento,
  * since checkout still offers domestic carriers from their settings when the list can't be read.
  */
-class AvailableCarriers
+readonly class AvailableCarriers
 {
     public function __construct(
-        private readonly Config $config,
+        private Config $config,
     ) {}
 
     /**

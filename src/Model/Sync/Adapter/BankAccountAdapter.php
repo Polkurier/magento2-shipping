@@ -22,14 +22,14 @@ use Polkurier\Shipping\Model\Sync\AdapterInterface;
  * which a background synchronization cannot supply. Accounts added in Magento stay local, and are
  * still usable for cash on delivery, which carries the account number rather than an id.
  */
-class BankAccountAdapter implements AdapterInterface
+readonly class BankAccountAdapter implements AdapterInterface
 {
     public function __construct(
-        private readonly ClientPool $clientPool,
-        private readonly BankAccountMapper $mapper,
-        private readonly CollectionFactory $collectionFactory,
-        private readonly BankAccountFactory $bankAccountFactory,
-        private readonly BankAccountRepositoryInterface $repository,
+        private ClientPool $clientPool,
+        private BankAccountMapper $mapper,
+        private CollectionFactory $collectionFactory,
+        private BankAccountFactory $bankAccountFactory,
+        private BankAccountRepositoryInterface $repository,
     ) {}
 
     public function getEntityType(): SyncEntityEnum

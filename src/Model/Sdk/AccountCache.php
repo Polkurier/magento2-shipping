@@ -15,12 +15,12 @@ use Polkurier\Shipping\Model\Carrier\CarrierCatalog;
  * Small answers about the Polkurier account kept for a while, so that opening an admin page
  * doesn't wait for the API each time. Forgotten with the carrier list when the credentials change.
  */
-class AccountCache
+readonly class AccountCache
 {
     public function __construct(
-        private readonly CacheInterface $cache,
-        private readonly Json $json,
-        private readonly AccountCacheKey $cacheKeys,
+        private CacheInterface $cache,
+        private Json $json,
+        private AccountCacheKey $cacheKeys,
     ) {}
 
     /**

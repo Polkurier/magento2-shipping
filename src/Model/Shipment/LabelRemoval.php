@@ -21,12 +21,12 @@ use Polkurier\Shipping\Model\ResourceModel\Shipment\CollectionFactory;
  * items, but without the order's label, packages and waybills, so another Polkurier order can be
  * placed on it, from the shipment's page ("Create Shipping Label") or the shipment screen.
  */
-class LabelRemoval
+readonly class LabelRemoval
 {
     public function __construct(
-        private readonly ShipmentRepositoryInterface $shipmentRepository,
-        private readonly ShipmentTrackRepositoryInterface $trackRepository,
-        private readonly CollectionFactory $shipmentCollectionFactory,
+        private ShipmentRepositoryInterface $shipmentRepository,
+        private ShipmentTrackRepositoryInterface $trackRepository,
+        private CollectionFactory $shipmentCollectionFactory,
     ) {}
 
     /**

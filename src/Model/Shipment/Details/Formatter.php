@@ -17,19 +17,20 @@ use Polkurier\Shipping\Model\Shipment\PlnAmounts;
  * How the shipment details page writes numbers, money, times, sizes and places, in the admin's
  * locale and time zone.
  */
-class Formatter
+readonly class Formatter
 {
     /**
-     * The time zone of the times Polkurier reports: statuses, deliveries, carrier scans.
+     * The time zone of the times Polkurier reports: statuses, deliveries, carrier scans. The
+     * module stores status and delivery times in UTC; the scans are kept as reported.
      */
     public const string POLKURIER_TIME_ZONE = 'Europe/Warsaw';
 
     private const string NONE = '—';
 
     public function __construct(
-        private readonly TimezoneInterface $timezone,
-        private readonly PriceCurrencyInterface $priceCurrency,
-        private readonly ResolverInterface $localeResolver,
+        private TimezoneInterface $timezone,
+        private PriceCurrencyInterface $priceCurrency,
+        private ResolverInterface $localeResolver,
     ) {}
 
     public function number(float $value): string

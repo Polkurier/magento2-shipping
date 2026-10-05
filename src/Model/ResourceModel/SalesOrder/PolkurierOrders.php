@@ -15,7 +15,7 @@ use Polkurier\Shipping\Model\Carrier\Polkurier;
  * The orders placed with one of the Polkurier methods, the only ones the module ships. The
  * module's index on sales_order.shipping_method keeps the prefix match from reading every order.
  */
-class PolkurierOrders
+readonly class PolkurierOrders
 {
     public static function select(AbstractCollection $collection): Select
     {

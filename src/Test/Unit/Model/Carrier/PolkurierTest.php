@@ -92,9 +92,16 @@ class PolkurierTest extends SdkTestCase
         self::assertSame(['INPOST_PACZKOMAT' => 12.99, 'DPD' => 0.0], $this->rates($this->request('PL', 300.0, 2.0)));
     }
 
-    public function testAbroadOnlyCarriersThatShipAbroad(): void
+    public function testCarriersForAbroadGoAbroadOnlyAndTheOthersOnlyAtHome(): void
     {
+        // Polkurier prices neither a domestic carrier abroad nor one for abroad at home.
+        $this->http->willAnswerWith(self::success([
+            ['servicecode' => 'INPOST_PACZKOMAT', 'name' => 'InPost Paczkomat', 'foreign_shipments' => false],
+            ['servicecode' => 'DPD', 'name' => 'DPD Export', 'foreign_shipments' => true],
+        ]));
+
         self::assertSame(['DPD' => 14.99], $this->rates($this->request('DE', 120.0, 2.0)));
+        self::assertSame(['INPOST_PACZKOMAT' => 12.99], $this->rates($this->request('PL', 120.0, 2.0)));
     }
 
     public function testFreeShippingZeroesThePrice(): void
@@ -127,7 +134,7 @@ class PolkurierTest extends SdkTestCase
     public function testCarrierTheAccountNoLongerOffersIsHidden(): void
     {
         $this->http->willAnswerWith(self::success([
-            ['servicecode' => 'DPD', 'name' => 'DPD Classic', 'foreign_shipments' => true],
+            ['servicecode' => 'DPD', 'name' => 'DPD Classic', 'foreign_shipments' => false],
         ]));
 
         self::assertSame(['DPD' => 14.99], $this->rates($this->request('PL', 120.0, 2.0)));

@@ -18,15 +18,15 @@ use Polkurier\Shipping\Api\SynchronizationInterface;
 use Polkurier\Shipping\Model\AddressFactory;
 use Polkurier\Shipping\Model\ResourceModel\Address as AddressResource;
 
-class AddressHandler extends SyncableEntityHandler
+readonly class AddressHandler extends SyncableEntityHandler
 {
     public function __construct(
-        private readonly AddressRepositoryInterface $repository,
-        private readonly AddressFactory $factory,
+        private AddressRepositoryInterface $repository,
+        private AddressFactory $factory,
         SynchronizationInterface $synchronization,
         DateTime $dateTime,
         SyncLock $syncLock,
-        private readonly AddressResource $resource,
+        private AddressResource $resource,
     ) {
         parent::__construct($synchronization, $dateTime, $syncLock);
     }

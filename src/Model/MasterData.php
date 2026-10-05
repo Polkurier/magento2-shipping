@@ -19,12 +19,12 @@ use Polkurier\Shipping\Model\ResourceModel\PackTemplate\CollectionFactory as Pac
  * The address book, bank accounts and pack templates, as the shipment form uses them.
  * Entries deleted in Magento but not yet in Polkurier are left out.
  */
-class MasterData
+readonly class MasterData
 {
     public function __construct(
-        private readonly AddressCollectionFactory $addressCollectionFactory,
-        private readonly BankAccountCollectionFactory $bankAccountCollectionFactory,
-        private readonly PackTemplateCollectionFactory $packTemplateCollectionFactory,
+        private AddressCollectionFactory $addressCollectionFactory,
+        private BankAccountCollectionFactory $bankAccountCollectionFactory,
+        private PackTemplateCollectionFactory $packTemplateCollectionFactory,
     ) {}
 
     /**

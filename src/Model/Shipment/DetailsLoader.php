@@ -22,7 +22,7 @@ use Polkurier\Shipping\Model\Shipment as ShipmentModel;
  * the page only; the status refresh, by the cron or the Refresh button, is what stores it and acts
  * on it, for example by shipping the Magento order.
  */
-class DetailsLoader
+readonly class DetailsLoader
 {
     /**
      * How long the scans of a shipment still on its way are trusted before being read again.
@@ -30,12 +30,12 @@ class DetailsLoader
     public const int TRACKING_LIFETIME_MINUTES = 60;
 
     public function __construct(
-        private readonly Reconciler $reconciler,
-        private readonly OrderSnapshot $snapshot,
-        private readonly ShipmentResource $shipmentResource,
-        private readonly ShipmentGatewayInterface $gateway,
-        private readonly OrderDetails $orderDetails,
-        private readonly DateTime $dateTime,
+        private Reconciler $reconciler,
+        private OrderSnapshot $snapshot,
+        private ShipmentResource $shipmentResource,
+        private ShipmentGatewayInterface $gateway,
+        private OrderDetails $orderDetails,
+        private DateTime $dateTime,
     ) {}
 
     /**

@@ -74,9 +74,28 @@ class Pack extends Action implements HttpPostActionInterface
             'error' => false,
             'packs' => $rows[ShipmentDraftInterface::PACKS],
             'estimated' => true,
-            'message' => $packed['unweighed'] !== []
-                ? (string)\__('These products have no weight, so their parcels take the pack template\'s weight: %1.', \implode(', ', $packed['unweighed']))
-                : '',
+            'message' => $this->describeUnweighed($packed['unweighed'], $packed['unweighed_own']),
         ]);
+    }
+
+    /**
+     * What the parcels' weights leave out: a parcel of a pack template takes the template's weight,
+     * one of its own size has none to take.
+     *
+     * @param string[] $unweighed the products without a weight
+     * @param string[] $own those of them in a parcel of its own size
+     */
+    private function describeUnweighed(array $unweighed, array $own): string
+    {
+        $templated = \array_values(\array_diff($unweighed, $own));
+        $lines = [];
+        if ($templated !== []) {
+            $lines[] = (string)\__('These products have no weight, so their parcels take the pack template\'s weight: %1.', \implode(', ', $templated));
+        }
+        if ($own !== []) {
+            $lines[] = (string)\__('These products have no weight and their parcels have no pack template, so enter those parcels\' weights yourself: %1.', \implode(', ', $own));
+        }
+
+        return \implode(' ', $lines);
     }
 }

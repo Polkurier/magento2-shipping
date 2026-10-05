@@ -27,7 +27,13 @@ alongside the module:
   answer.
 - **With *Log all traffic of***: successful requests of the selected kinds, too.
 
-The request logging is the SDK's own; the module switches it on and points it at this logger.
+The request logging is the SDK's own; the module switches it on and points it at this logger,
+with the settings of the **Logging** group: personal data hidden unless *Log personal data* is on,
+and files in requests and answers left out, or with *Save files* saved in the directory
+`Sdk\LogFilesDirectory` resolves (`var/log/polkurier-files` by default, never under `pub`). The
+`polkurier_clean_log_files` cron job deletes saved files older than *Keep saved files for*, which
+the SDK never does; it only touches files named as the SDK names them. The SDK never logs secrets
+as they are: the module doesn't allow it.
 
 ## Secrets
 

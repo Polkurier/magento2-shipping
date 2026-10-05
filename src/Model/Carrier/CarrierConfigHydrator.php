@@ -20,12 +20,12 @@ use Polkurier\Shipping\Model\Pricing\Tiers;
  * Copies what the merchant entered for a carrier onto its configuration, checked the same way
  * from the carrier's page and from the carriers grid.
  */
-class CarrierConfigHydrator
+readonly class CarrierConfigHydrator
 {
     public function __construct(
-        private readonly CarrierLabelInterfaceFactory $labelFactory,
-        private readonly StoreManagerInterface $storeManager,
-        private readonly CarrierLogo $carrierLogo,
+        private CarrierLabelInterfaceFactory $labelFactory,
+        private StoreManagerInterface $storeManager,
+        private CarrierLogo $carrierLogo,
     ) {}
 
     /**

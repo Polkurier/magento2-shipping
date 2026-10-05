@@ -24,7 +24,7 @@ use Polkurier\Webservice\Exception\WebserviceException;
  *
  * Never includes the request, which carries the API token.
  */
-class ErrorMessages
+readonly class ErrorMessages
 {
     /**
      * Error codes for a Polkurier that is down or busy, rather than refusing the request itself.
@@ -141,9 +141,66 @@ class ErrorMessages
     {
         $parts = [];
         foreach ($errors as $field => $messages) {
-            $parts[] = $field . ' ' . \implode(', ', (array)$messages);
+            $parts[] = $this->fieldLabel((string)$field) . ' ' . \implode(', ', (array)$messages);
         }
 
         return \implode('; ', $parts);
+    }
+
+    /**
+     * A field as the shipment screen calls it, from its wire name, e.g. "recipient.phone" as
+     * "Recipient: Phone" and "packs.0.weight" as "Parcel 1: Weight". A name it doesn't know stays
+     * as it is.
+     */
+    public function fieldLabel(string $field): string
+    {
+        $groups = [
+            'recipient' => \__('Recipient'),
+            'sender' => \__('Sender'),
+            'cover_address' => \__('Sender on the label'),
+            'packs' => \__('Parcel'),
+            'COD' => \__('Cash on delivery'),
+            'pickup' => \__('Collection'),
+        ];
+        $names = [
+            'person' => \__('Name'),
+            'company' => \__('Company'),
+            'street' => \__('Street'),
+            'housenumber' => \__('House number'),
+            'flatnumber' => \__('Flat number'),
+            'postcode' => \__('Postcode'),
+            'city' => \__('City'),
+            'phone' => \__('Phone'),
+            'email' => \__('E-mail'),
+            'point_id' => \__('Point'),
+            'country' => \__('Country'),
+            'length' => \__('Length'),
+            'width' => \__('Width'),
+            'height' => \__('Height'),
+            'weight' => \__('Weight'),
+            'type' => \__('Type'),
+            'amount' => \__('Amount'),
+            'codamount' => \__('Amount'),
+            'codbankaccount' => \__('Bank account'),
+            'pickupdate' => \__('Date'),
+            'pickuptimefrom' => \__('From'),
+            'pickuptimeto' => \__('To'),
+            'description' => \__('Shipment description'),
+            'insurance' => \__('Insurance'),
+            'courier' => \__('Carrier'),
+        ];
+        $parts = \explode('.', $field);
+        $group = $groups[$parts[0]] ?? null;
+        if ($group === null) {
+            return \count($parts) === 1 && isset($names[$field]) ? (string)$names[$field] : $field;
+        }
+        $rest = \array_slice($parts, 1);
+        if ($parts[0] === 'packs' && isset($rest[0]) && \ctype_digit($rest[0])) {
+            // Counted from 1, as on the screen.
+            $group = (string)$group . ' ' . ((int)\array_shift($rest) + 1);
+        }
+        $words = \array_map(static fn(string $part): string => (string)($names[$part] ?? $part), $rest);
+
+        return $words === [] ? (string)$group : (string)\__('%1: %2', (string)$group, \implode(' ', $words));
     }
 }

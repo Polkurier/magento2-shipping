@@ -17,7 +17,7 @@ use Polkurier\Shipping\Api\Data\CarrierConfigInterface;
  * most specific applicable tier wins — the highest subtotal threshold, then the highest weight
  * threshold. A cart below every tier is not priced, so the method is not offered.
  */
-class Tiers implements PriceCalculatorInterface
+readonly class Tiers implements PriceCalculatorInterface
 {
     public const string TIERS = 'tiers';
     public const string SUBTOTAL_FROM = 'subtotal_from';
@@ -25,8 +25,8 @@ class Tiers implements PriceCalculatorInterface
     public const string PRICE = 'price';
 
     public function __construct(
-        private readonly bool $bySubtotal,
-        private readonly bool $byWeight,
+        private bool $bySubtotal,
+        private bool $byWeight,
     ) {}
 
     public function calculate(CarrierConfigInterface $config, RateContext $context): ?float

@@ -12,13 +12,41 @@ define(['mage/translate'], function ($t) {
 
     // What a shipment draft is made of (DraftHydrator), out of everything the form's data holds.
     const DRAFT_FIELDS = [
-        'order_id', 'carrier_code', 'shipment_type', 'description', 'sender_address_id',
+        'order_id', 'carrier_code', 'shipment_type', 'description', 'sender_address_id', 'sender_point_id',
         'recipient_person', 'recipient_company', 'recipient_street', 'recipient_house_number',
         'recipient_flat_number', 'recipient_postcode', 'recipient_city', 'recipient_country',
         'recipient_phone', 'recipient_email', 'recipient_point_id', 'packs', 'cod_amount', 'cod_type',
         'cod_return_type', 'cod_bank_account_id', 'insurance_amount', 'cover_address_id', 'services',
-        'pickup_mode', 'pickup_date', 'pickup_time_from', 'pickup_time_to', 'additional_fields'
+        'pickup_mode', 'pickup_date', 'pickup_time_from', 'pickup_time_to', 'additional_fields',
+        // A sender or bank account typed in rather than chosen, and whether it's kept.
+        'new_sender_person', 'new_sender_company', 'new_sender_street', 'new_sender_house_number',
+        'new_sender_flat_number', 'new_sender_postcode', 'new_sender_city', 'new_sender_country',
+        'new_sender_phone', 'new_sender_email', 'keep_new_sender', 'new_sender_name',
+        'new_bank_account_number', 'keep_new_bank_account', 'new_bank_account_name'
     ];
+
+    /**
+     * @param {Object} data the form's data
+     * @returns {Array<String>} what a sender typed in still lacks, by name
+     */
+    function newSenderLacking(data) {
+        // As Polkurier takes a sender, with how each is named.
+        const required = {
+            new_sender_person: $t('name'),
+            new_sender_street: $t('street'),
+            new_sender_house_number: $t('house number'),
+            new_sender_postcode: $t('postcode'),
+            new_sender_city: $t('city'),
+            new_sender_phone: $t('phone'),
+            new_sender_email: $t('e-mail')
+        };
+
+        return Object.keys(required).filter(function (field) {
+            return !filled(data[field]);
+        }).map(function (field) {
+            return required[field];
+        });
+    }
 
     /**
      * The draft out of the form's data, with each item and parcel down to what it's made of: what
@@ -51,7 +79,8 @@ define(['mage/translate'], function ($t) {
                 height: pack.height,
                 weight: pack.weight,
                 amount: pack.amount,
-                items: (pack.items || []).map(item)
+                items: (pack.items || []).map(item),
+                keep_as: pack.template_id ? '' : pack.keep_as || ''
             };
         });
         if (withItems) {
@@ -126,16 +155,18 @@ define(['mage/translate'], function ($t) {
     }
 
     /**
-     * What a parcel weighs, as the parcel weight setting says: what's in it, or its template's
-     * weight. A parcel with a product that has no weight takes its template's weight either way;
-     * a parcel without a template weighs what's in it (ParcelWeightEnum::weigh).
+     * What a parcel weighs, as the parcel weight setting says: what's in it with its template's
+     * tare, or its template's weight. A parcel with a product that has no weight takes its
+     * template's weight either way; a parcel without a template weighs what's in it
+     * (ParcelWeightEnum::weigh).
      *
      * @param {String} mode 'products' or 'template'
      * @param {Number|null} templateWeight null for a parcel without a template
      * @param {Array<{weight: Number, qty: Number}>} contents a unit's weight and how many
+     * @param {Number|null} [tare] what the template's packaging weighs
      * @returns {Number} 0 when there's nothing to go by
      */
-    function parcelWeight(mode, templateWeight, contents) {
+    function parcelWeight(mode, templateWeight, contents, tare) {
         const held = contents.filter(function (row) {
                 return row.qty > 0;
             }),
@@ -150,7 +181,9 @@ define(['mage/translate'], function ($t) {
             return weight;
         }
 
-        return mode !== 'template' && weighed ? weight : templateWeight;
+        return mode !== 'template' && weighed
+            ? Math.round((weight + Math.max(0, amount(tare))) * 1000) / 1000
+            : templateWeight;
     }
 
     /**
@@ -351,6 +384,7 @@ define(['mage/translate'], function ($t) {
 
     return {
         draft: draft,
+        newSenderLacking: newSenderLacking,
         filled: filled,
         amount: amount,
         money: money,
@@ -412,6 +446,12 @@ define(['mage/translate'], function ($t) {
                 add('recipient', $t('Pickup point %1 is closed or no longer exists: choose another.')
                     .replace('%1', data.recipient_point_id), true, {part: 'point'});
             }
+            if (features.sender_point === 'REQUIRED' && !filled(data.sender_point_id)) {
+                add('sender', $t('This carrier takes the parcels at a point: choose the drop-off point you hand them over at.'));
+            }
+            if (data.sender_address_id === 'new' && newSenderLacking(data).length) {
+                add('sender', $t('Fill in the sender\'s %1.').replace('%1', newSenderLacking(data).join(', ')));
+            }
             if (!filled(data.recipient_phone)) {
                 add('recipient', $t('The recipient needs a phone number.'));
             }
@@ -445,6 +485,11 @@ define(['mage/translate'], function ($t) {
             }
             if (cod > 0 && data.cod_return_type === 'BA' && !filled(data.cod_bank_account_id)) {
                 add('cod', $t('Choose the bank account to pay the cash on delivery out to.'));
+            }
+            if (cod > 0 && data.cod_return_type === 'BA' && data.cod_bank_account_id === 'new'
+                && !filled(data.new_bank_account_number)
+            ) {
+                add('cod', $t('Enter the number of the bank account the cash on delivery is paid out to.'));
             }
             if (cod > 0 && features.insurance_with_cod && amount(data.insurance_amount) <= 0) {
                 add('extras', $t('This carrier insures every shipment with cash on delivery: enter the declared value.'));

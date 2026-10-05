@@ -51,11 +51,11 @@ doesn't configure.
    notice.
 6. **Saving.** Magento saves the shipment and the order in one transaction. Two observers in the
    admin area finish the job:
-   - `Observer\PrepareLabelledShipment` (`sales_order_shipment_save_before`) retitles the tracks
+   - `Observer\PrepareLabelledShipmentObserver` (`sales_order_shipment_save_before`) retitles the tracks
      Magento added with the carrier's admin title (`carriers/polkurier/title`, which customers must
      not see) to the shipping method's name, skips waybills the shipment already tracks, and leaves
      out the label when the shipment is flagged, so no empty document is stored;
-   - `Observer\LinkLabelledShipment` (`sales_order_shipment_save_after`) sets `shipment_id` on the
+   - `Observer\LinkLabelledShipmentObserver` (`sales_order_shipment_save_after`) sets `shipment_id` on the
      Polkurier shipment, in the same transaction. A cancelled Polkurier order the shipment had is
      released first (see [Shipments](shipments.md#the-magento-shipment)), since each Magento
      shipment has one Polkurier order.

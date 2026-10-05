@@ -24,15 +24,15 @@ use Polkurier\Webservice\Request\Address\GetMessage;
 /**
  * Sender addresses of the address book. Recipient entries are left to the Polkurier panel.
  */
-class AddressAdapter implements PushableAdapterInterface
+readonly class AddressAdapter implements PushableAdapterInterface
 {
     public function __construct(
-        private readonly ClientPool $clientPool,
-        private readonly AddressBookMapper $mapper,
-        private readonly CollectionFactory $collectionFactory,
-        private readonly AddressFactory $addressFactory,
-        private readonly AddressRepositoryInterface $repository,
-        private readonly ApiEventDispatcher $events,
+        private ClientPool $clientPool,
+        private AddressBookMapper $mapper,
+        private CollectionFactory $collectionFactory,
+        private AddressFactory $addressFactory,
+        private AddressRepositoryInterface $repository,
+        private ApiEventDispatcher $events,
     ) {}
 
     public function getEntityType(): SyncEntityEnum

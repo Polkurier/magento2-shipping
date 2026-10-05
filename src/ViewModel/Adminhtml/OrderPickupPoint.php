@@ -23,13 +23,13 @@ use Polkurier\Webservice\Exception\Exception as PolkurierException;
  * it already (see PointDescription); the point is changed for a shipment on the shipment screen,
  * not here.
  */
-class OrderPickupPoint implements ArgumentInterface
+readonly class OrderPickupPoint implements ArgumentInterface
 {
     public function __construct(
-        private readonly OrderPointStore $pointStore,
-        private readonly CarrierCatalog $catalog,
-        private readonly CarrierFeatures $features,
-        private readonly PointDescription $pointDescription,
+        private OrderPointStore $pointStore,
+        private CarrierCatalog $catalog,
+        private CarrierFeatures $features,
+        private PointDescription $pointDescription,
     ) {}
 
     public function getPoint(Order $order): ?OrderPointInterface

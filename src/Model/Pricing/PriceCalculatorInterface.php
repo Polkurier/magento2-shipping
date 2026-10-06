@@ -9,6 +9,9 @@ namespace Polkurier\Shipping\Model\Pricing;
 
 use Polkurier\Shipping\Api\Data\CarrierConfigInterface;
 
+/**
+ * Works out a carrier's checkout price by one pricing model; null when it offers none.
+ */
 interface PriceCalculatorInterface
 {
     /**

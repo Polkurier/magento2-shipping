@@ -57,6 +57,7 @@ readonly class PackChanges
      * The type of each parcel, the packs of several alike counted one by one.
      *
      * @param array<int|string, mixed> $packs as sent or as Polkurier reports them
+     *
      * @return string[]
      */
     private static function types(array $packs): array

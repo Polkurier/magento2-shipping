@@ -37,6 +37,19 @@ class ShipmentDocumentFactoryPluginTest extends TestCase
         self::assertNull($next->getIncrementId(), 'The number goes to one shipment only.');
     }
 
+    public function testAShipmentNumberedAlreadyLeavesTheNumberToTheNext(): void
+    {
+        $numbers = new ReservedShipmentNumbers();
+        $numbers->expect(42, '000000077');
+        $plugin = new ShipmentDocumentFactoryPlugin($numbers);
+
+        $numbered = $plugin->afterCreate($this->factory(), $this->shipment()->setIncrementId('000000070'), $this->order(42));
+        $made = $plugin->afterCreate($this->factory(), $this->shipment(), $this->order(42));
+
+        self::assertSame('000000070', $numbered->getIncrementId());
+        self::assertSame('000000077', $made->getIncrementId());
+    }
+
     private function shipment(): Shipment
     {
         return $this->getMockBuilder(Shipment::class)->disableOriginalConstructor()->onlyMethods([])->getMock();

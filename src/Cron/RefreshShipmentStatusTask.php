@@ -10,6 +10,9 @@ namespace Polkurier\Shipping\Cron;
 use Polkurier\Shipping\Model\Config;
 use Polkurier\Shipping\Model\Shipment\StatusRefresher;
 
+/**
+ * Updates the statuses of the shipments not yet delivered, as often as configured.
+ */
 readonly class RefreshShipmentStatusTask
 {
     public function __construct(
@@ -19,8 +22,8 @@ readonly class RefreshShipmentStatusTask
 
     public function execute(): void
     {
-        // As every job asking Polkurier: not before the account is configured.
-        if (!$this->config->hasCredentials()) {
+        // As every job asking Polkurier: switched on, and not before the account is configured.
+        if (!$this->config->isStatusSyncEnabled() || !$this->config->hasCredentials()) {
             return;
         }
         $this->statusRefresher->refreshPending();

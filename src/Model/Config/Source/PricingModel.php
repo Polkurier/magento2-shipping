@@ -7,7 +7,7 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Model\Config\Source;
 
-use Polkurier\Shipping\Model\Pricing\PricingModelEnum;
+use Polkurier\Shipping\Enum\PricingModelEnum;
 
 /**
  * Checkout pricing models.

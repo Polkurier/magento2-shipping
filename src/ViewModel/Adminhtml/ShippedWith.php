@@ -14,9 +14,9 @@ use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Model\Carrier\CarrierNames;
 use Polkurier\Shipping\Model\Carrier\Polkurier;
 use Polkurier\Shipping\Model\OrderPointStore;
-use Polkurier\Shipping\Model\ResourceModel\Shipment\CollectionFactory;
 use Polkurier\Shipping\Model\Shipment\Details\SentOrder;
 use Polkurier\Shipping\Model\Shipment\ScreenContext;
+use Polkurier\Shipping\Model\Shipment\ShipmentFinder;
 use Polkurier\Shipping\Model\ShippingChoiceStore;
 
 /**
@@ -28,7 +28,7 @@ use Polkurier\Shipping\Model\ShippingChoiceStore;
 readonly class ShippedWith implements ArgumentInterface
 {
     public function __construct(
-        private CollectionFactory $collectionFactory,
+        private ShipmentFinder $finder,
         private CarrierNames $carrierNames,
         private OrderPointStore $pointStore,
         private SentOrder $sentOrder,
@@ -43,7 +43,7 @@ readonly class ShippedWith implements ArgumentInterface
      */
     public function forOrder(Order $order): array
     {
-        return $this->describe($order, [ShipmentInterface::ORDER_ID => (string)$order->getEntityId()]);
+        return $this->describe($order, fn(): array => $this->finder->forOrder((int)$order->getEntityId(), [ShipmentInterface::STATE_CREATED]));
     }
 
     /**
@@ -51,10 +51,10 @@ readonly class ShippedWith implements ArgumentInterface
      */
     public function forShipment(Order $order, int $magentoShipmentId): array
     {
-        return $this->describe($order, [
-            ShipmentInterface::ORDER_ID => (string)$order->getEntityId(),
-            ShipmentInterface::SHIPMENT_ID => (string)$magentoShipmentId,
-        ]);
+        return $this->describe($order, fn(): array => \array_values(\array_filter(
+            $this->finder->linkedTo([$magentoShipmentId], [ShipmentInterface::STATE_CREATED]),
+            static fn(ShipmentInterface $shipment): bool => $shipment->getOrderId() === (int)$order->getEntityId(),
+        )));
     }
 
     /**
@@ -69,10 +69,11 @@ readonly class ShippedWith implements ArgumentInterface
     }
 
     /**
-     * @param array<string, mixed> $filters
+     * @param callable(): ShipmentInterface[] $placed the placed ones to describe, oldest first
+     *
      * @return list<array{carrier: string, point: string, point_label: string, changed: bool}>
      */
-    private function describe(Order $order, array $filters): array
+    private function describe(Order $order, callable $placed): array
     {
         $methodCode = Polkurier::methodCodeOf((string)$order->getShippingMethod());
         if ($methodCode === null) {
@@ -80,35 +81,17 @@ readonly class ShippedWith implements ArgumentInterface
         }
 
         return $this->entries(
-            $this->placed($filters),
+            $placed(),
             $methodCode,
             $this->pointStore->getForOrder((int)$order->getEntityId()),
         );
     }
 
     /**
-     * @param array<string, mixed> $filters
-     * @return ShipmentInterface[] placed ones, oldest first
-     */
-    private function placed(array $filters): array
-    {
-        $collection = $this->collectionFactory->create()
-            ->addFieldToFilter(ShipmentInterface::STATE, ShipmentInterface::STATE_CREATED)
-            ->setOrder(ShipmentInterface::ENTITY_ID, 'ASC');
-        foreach ($filters as $field => $value) {
-            $collection->addFieldToFilter($field, $value);
-        }
-
-        /** @var ShipmentInterface[] $items */
-        $items = $collection->getItems();
-
-        return \array_values($items);
-    }
-
-    /**
      * Each carrier and point once.
      *
      * @param ShipmentInterface[] $shipments
+     *
      * @return list<array{carrier: string, point: string, point_label: string, changed: bool}>
      */
     private function entries(array $shipments, string $methodCode, ?OrderPointInterface $chosen): array

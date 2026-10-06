@@ -15,9 +15,9 @@ use Polkurier\Shipping\Model\Carrier\CarrierCatalog;
 use Polkurier\Shipping\Model\Carrier\CarrierFeatures;
 use Polkurier\Shipping\Model\Carrier\Polkurier;
 use Polkurier\Shipping\Model\Config;
-use Polkurier\Shipping\Model\MasterData;
 use Polkurier\Shipping\Model\Mapper\SenderMapper;
 use Polkurier\Shipping\Model\Mapper\StreetParser;
+use Polkurier\Shipping\Model\MasterData;
 use Polkurier\Shipping\Model\OrderPointStore;
 use Polkurier\Shipping\Model\Shipment\Draft\ItemFactory;
 use Polkurier\Shipping\Model\Shipment\Draft\PackFactory;
@@ -73,7 +73,7 @@ readonly class DefaultDraftBuilder
         }
         // Nothing to send from, neither an address nor the store's: one is typed in, and kept.
         if ($senderId === null && $this->masterData->getSenderAddresses() === [] && $this->senderMapper->fromStore($storeId) === null) {
-            $draft->setNewSender(true)->setKeepingNewSender(true)->setNewSenderAddress([AddressInterface::COUNTRY => 'PL']);
+            $draft->setNewSender(true)->setKeepingNewSender(true)->setNewSenderAddress([AddressInterface::COUNTRY => Polkurier::HOME_COUNTRY]);
         }
         $this->setRecipient($draft, $order);
         $draft->setItems($this->createItems($order, $qtys));
@@ -126,8 +126,10 @@ readonly class DefaultDraftBuilder
         )));
         $draft->setCoverAddressId($this->getCoverAddressId($storeId, $carrier === null || \in_array(AdditionalServiceEnum::CoverSenderAddress, $offered, true)));
 
+        // Dropped off where the carrier's default says, or at the sender's drop-off point.
         $draft->setPickupMode(
-            $carrier !== null && $this->features->isDropOffAvailable($carrier) && $this->features->isDropOffDefault($carrier)
+            $carrier !== null && $this->features->isDropOffAvailable($carrier)
+                && ($this->features->isDropOffDefault($carrier) || $draft->getSenderPointId() !== null)
                 ? ShipmentDraftInterface::PICKUP_DROP_OFF
                 : ShipmentDraftInterface::PICKUP_COURIER,
         );
@@ -139,6 +141,7 @@ readonly class DefaultDraftBuilder
      * The items shipped: the quantities given, or everything the order still has to ship.
      *
      * @param array<int, float>|null $qtys
+     *
      * @return Draft\Item[]
      */
     private function createItems(Order $order, ?array $qtys): array
@@ -225,7 +228,7 @@ readonly class DefaultDraftBuilder
         $draft->setRecipientFlatNumber($street['flat_number']);
         $draft->setRecipientPostcode((string)$address->getPostcode());
         $draft->setRecipientCity((string)$address->getCity());
-        $draft->setRecipientCountry((string)($address->getCountryId() ?: 'PL'));
+        $draft->setRecipientCountry((string)($address->getCountryId() ?: Polkurier::HOME_COUNTRY));
         $draft->setRecipientPhone((string)$address->getTelephone());
         $draft->setRecipientEmail((string)($address->getEmail() ?: $order->getCustomerEmail()));
         $draft->setRecipientPointId($this->orderPointStore->getForOrder((int)$order->getEntityId())?->getPointId());
@@ -238,6 +241,7 @@ readonly class DefaultDraftBuilder
      * a parcel nobody sized would only stand in the way.
      *
      * @param \Polkurier\Shipping\Api\Data\ShipmentDraft\ItemInterface[] $items
+     *
      * @return array{0: Draft\Pack[], 1: bool} the parcels, and whether they were packed automatically
      */
     private function createPacks(Order $order, array $items, string $shipmentType): array

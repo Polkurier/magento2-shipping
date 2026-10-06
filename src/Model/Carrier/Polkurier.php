@@ -10,9 +10,9 @@ namespace Polkurier\Shipping\Model\Carrier;
 use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\DataObject;
 use Magento\Quote\Model\Quote\Address\RateRequest;
-use Magento\Sales\Model\Order;
 use Magento\Quote\Model\Quote\Address\RateResult\Error;
 use Magento\Quote\Model\Quote\Address\RateResult\ErrorFactory;
+use Magento\Sales\Model\Order;
 use Magento\Shipping\Model\Carrier\AbstractCarrier;
 use Magento\Shipping\Model\Carrier\CarrierInterface;
 use Magento\Shipping\Model\Rate\Result;
@@ -42,16 +42,27 @@ class Polkurier extends AbstractCarrier implements CarrierInterface
     public const string HOME_COUNTRY = 'PL';
 
     /**
+     * What the carrier's shipping methods start with, before the account carrier's code.
+     */
+    public const string METHOD_PREFIX = self::CODE . '_';
+
+    /**
      * The Polkurier carrier code in a Magento shipping method such as "polkurier_DPD", or null for
      * methods of other carriers.
      */
     public static function methodCodeOf(?string $shippingMethod): ?string
     {
-        $prefix = self::CODE . '_';
-
-        return $shippingMethod !== null && \str_starts_with($shippingMethod, $prefix)
-            ? \substr($shippingMethod, \strlen($prefix))
+        return $shippingMethod !== null && \str_starts_with($shippingMethod, self::METHOD_PREFIX)
+            ? \substr($shippingMethod, \strlen(self::METHOD_PREFIX))
             : null;
+    }
+
+    /**
+     * The shipping method of one of the account's carriers, e.g. polkurier_DPD.
+     */
+    public static function methodOf(string $carrierCode): string
+    {
+        return self::METHOD_PREFIX . $carrierCode;
     }
 
     /**
@@ -92,6 +103,7 @@ class Polkurier extends AbstractCarrier implements CarrierInterface
 
     /**
      * @param RateRequest $request
+     *
      * @return Result|bool
      */
     public function collectRates(RateRequest $request)
@@ -108,6 +120,7 @@ class Polkurier extends AbstractCarrier implements CarrierInterface
      * Countries with the carrier's title, which customers must not see: the row goes without one.
      *
      * @param DataObject $request
+     *
      * @return $this|bool|Error
      */
     public function checkAvailableShipCountries(DataObject $request)
@@ -144,6 +157,7 @@ class Polkurier extends AbstractCarrier implements CarrierInterface
 
     /**
      * @param \Magento\Framework\DataObject $request
+     *
      * @return \Magento\Framework\DataObject
      * @throws \Magento\Framework\Exception\LocalizedException
      */
@@ -184,6 +198,7 @@ class Polkurier extends AbstractCarrier implements CarrierInterface
 
     /**
      * @param string $tracking the waybill number
+     *
      * @return Status
      */
     public function getTrackingInfo($tracking)

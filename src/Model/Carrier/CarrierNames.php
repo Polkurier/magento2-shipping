@@ -20,9 +20,15 @@ readonly class CarrierNames
 
     public function get(string $carrierCode): string
     {
-        $name = $this->carrierConfigs->get($carrierCode)?->getCarrierName();
+        return self::nameOr((string)$this->carrierConfigs->get($carrierCode)?->getCarrierName(), $carrierCode);
+    }
 
-        return $name !== null && $name !== '' ? $name : $carrierCode;
+    /**
+     * A carrier's name, or its code when it has none.
+     */
+    public static function nameOr(string $name, string|int $carrierCode): string
+    {
+        return $name !== '' ? $name : (string)$carrierCode;
     }
 
     /**
@@ -32,7 +38,7 @@ readonly class CarrierNames
     {
         $names = [];
         foreach ($this->carrierConfigs->getAll() as $code => $config) {
-            $names[$code] = $config->getCarrierName() !== '' ? $config->getCarrierName() : $code;
+            $names[$code] = self::nameOr($config->getCarrierName(), $code);
         }
         \asort($names, \SORT_NATURAL | \SORT_FLAG_CASE);
 

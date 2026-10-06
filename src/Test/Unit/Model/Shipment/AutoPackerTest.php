@@ -12,6 +12,8 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Polkurier\Shipping\Api\Data\PackTemplateInterface;
 use Polkurier\Shipping\Api\Data\ShipmentDraft\ItemInterface;
+use Polkurier\Shipping\Enum\ParcelWeightEnum;
+use Polkurier\Shipping\Enum\WeightLimitEnum;
 use Polkurier\Shipping\Model\Config;
 use Polkurier\Shipping\Model\MasterData;
 use Polkurier\Shipping\Model\Shipment\AutoPacker;
@@ -21,8 +23,6 @@ use Polkurier\Shipping\Model\Shipment\Draft\Pack;
 use Polkurier\Shipping\Model\Shipment\Draft\PackFactory;
 use Polkurier\Shipping\Model\Shipment\ItemDimensions;
 use Polkurier\Shipping\Model\Shipment\OrderAmounts;
-use Polkurier\Shipping\Model\Shipment\ParcelWeightEnum;
-use Polkurier\Shipping\Model\Shipment\WeightLimitEnum;
 use Polkurier\Webservice\Enum\Order\ShipmentTypeEnum;
 
 #[CoversClass(AutoPacker::class)]

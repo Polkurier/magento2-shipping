@@ -21,6 +21,7 @@ readonly class LinkButton implements ButtonProviderInterface
     public function __construct(
         private UrlInterface $url,
         private AuthorizationInterface $authorization,
+        private OnClick $onClick,
         private string $label,
         private string $path,
         private string $resource,
@@ -40,7 +41,7 @@ readonly class LinkButton implements ButtonProviderInterface
         return [
             'label' => \__($this->label),
             'class' => $this->class,
-            'on_click' => \sprintf("setLocation('%s')", $this->url->getUrl($this->path)),
+            'on_click' => $this->onClick->location($this->url->getUrl($this->path)),
             'sort_order' => $this->sortOrder,
         ];
     }

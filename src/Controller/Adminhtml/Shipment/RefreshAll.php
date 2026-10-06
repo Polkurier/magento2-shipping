@@ -21,6 +21,8 @@ use Polkurier\Shipping\Model\Shipment\StatusRefresher;
  */
 class RefreshAll extends AbstractShipmentAction implements HttpPostActionInterface
 {
+    public const string ADMIN_RESOURCE = 'Polkurier_Shipping::shipments';
+
     public function __construct(
         Context $context,
         RequestedShipments $requestedShipments,
@@ -34,7 +36,7 @@ class RefreshAll extends AbstractShipmentAction implements HttpPostActionInterfa
     {
         $flash = new Flash();
         if (!$this->config->hasCredentials()) {
-            $flash->error(\__('Connect your Polkurier account in the configuration first.'));
+            $flash->error(Config::credentialsMissing());
         } else {
             ['refreshed' => $refreshed, 'failed' => $failed] = $this->statusRefresher->refreshNow();
             if ($failed === 0) {

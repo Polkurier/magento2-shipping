@@ -8,7 +8,7 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Model;
 
 use Magento\Framework\Event\ManagerInterface;
-use Polkurier\Shipping\Api\ApiEventEnum;
+use Polkurier\Shipping\Enum\ApiEventEnum;
 use Psr\Log\LoggerInterface;
 
 /**

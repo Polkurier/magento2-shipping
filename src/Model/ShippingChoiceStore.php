@@ -30,6 +30,7 @@ readonly class ShippingChoiceStore
 
     /**
      * @param int[] $orderIds
+     *
      * @return array<int, ShippingChoiceInterface> by order id, for the orders that have one
      */
     public function getForOrders(array $orderIds): array

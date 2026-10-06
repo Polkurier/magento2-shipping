@@ -8,9 +8,9 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Model\Shipment;
 
 use Magento\Framework\Exception\LocalizedException;
-use Polkurier\Shipping\Api\ApiEventEnum;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Api\ShipmentRepositoryInterface;
+use Polkurier\Shipping\Enum\ApiEventEnum;
 use Polkurier\Shipping\Model\ApiEventDispatcher;
 use Polkurier\Shipping\Model\Sdk\ShipmentGatewayInterface;
 use Polkurier\Webservice\Request\Order\OrderIdMessage;
@@ -26,6 +26,7 @@ readonly class Cancellation
         private ShipmentGatewayInterface $gateway,
         private ApiEventDispatcher $events,
         private MagentoFollowUp $followUp,
+        private OrderLock $orderLock,
     ) {}
 
     /**
@@ -43,17 +44,17 @@ readonly class Cancellation
         if (!$result->isCancelled()) {
             throw new LocalizedException(\__('Polkurier did not cancel order %1.', $number));
         }
-        $shipment->setState(ShipmentInterface::STATE_CANCELLED)->setIsFinal(true)->setLastError(null);
-        $this->shipmentRepository->save($shipment);
-        $order = $this->followUp->order($shipment->getOrderId());
-        $cleared = $this->followUp->clearShipment($order, $shipment);
-        $this->followUp->remark($shipment->getShipmentId(), \__(
-            'Polkurier order %1 cancelled. Its label and tracking numbers were removed; another Polkurier order can be placed on this shipment.',
-            $number,
-        ));
-        $this->followUp->comment($order, $cleared !== null
-            ? \__('Polkurier order %1 cancelled. Magento shipment #%2 stays, without its label and tracking numbers, for another Polkurier order.', $number, $cleared)
-            : \__('Polkurier order %1 cancelled.', $number));
+        // A refresh that saw the cancellation first has cleared its Magento shipment already.
+        [$shipment, $order] = $this->orderLock->run($shipment->getOrderId(), function () use ($shipmentId): array {
+            $shipment = $this->shipmentRepository->get($shipmentId);
+            if ($shipment->getState() === ShipmentInterface::STATE_CANCELLED) {
+                return [$shipment, $this->followUp->order($shipment->getOrderId())];
+            }
+            $shipment->setState(ShipmentInterface::STATE_CANCELLED)->setIsFinal(true)->setLastError(null);
+            $this->shipmentRepository->save($shipment);
+
+            return [$shipment, $this->followUp->cancelled($shipment, false)];
+        });
         $this->events->dispatch(ApiEventEnum::OrderCancelAfter, $shipment->getStoreId(), [
             'shipment' => $shipment,
             'order' => $order,

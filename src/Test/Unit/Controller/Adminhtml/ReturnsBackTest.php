@@ -40,6 +40,14 @@ class ReturnsBackTest extends TestCase
         self::assertSame(['path', ['sales/order/view', ['order_id' => 42]]], $this->target);
     }
 
+    public function testNotToAStorefrontPage(): void
+    {
+        // With a custom admin URL, Magento's fallback is the storefront's base address.
+        $this->action('https://www.shop.test/')->back('sales/order/view', ['order_id' => 42], []);
+
+        self::assertSame(['path', ['sales/order/view', ['order_id' => 42]]], $this->target);
+    }
+
     public function testNotToAPageTheActionDidAwayWith(): void
     {
         $this->action('http://shop.test/admin/polkurier/shipment/view/id/5/key/abc/')
@@ -67,6 +75,7 @@ class ReturnsBackTest extends TestCase
         $redirect->method('getRefererUrl')->willReturn($referer);
         $url = $this->createStub(UrlInterface::class);
         $url->method('getBaseUrl')->willReturn('http://shop.test/');
+        $url->method('getAreaFrontName')->willReturn('admin');
 
         return new class ($factory, $redirect, $url) {
             use ReturnsBack;
@@ -74,7 +83,7 @@ class ReturnsBackTest extends TestCase
             public function __construct(
                 protected RedirectFactory $resultRedirectFactory,
                 protected RedirectInterface $_redirect,
-                protected UrlInterface $_url,
+                protected UrlInterface $_backendUrl,
             ) {}
 
             /**

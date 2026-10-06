@@ -8,10 +8,11 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Test\Unit\Model\Shipment;
 
 use Magento\Framework\Exception\LocalizedException;
+use Magento\Framework\TestFramework\Unit\Helper\ObjectManager;
 use Magento\Sales\Api\Data\ShipmentItemCreationInterface;
-use Magento\Sales\Api\Data\ShipmentTrackInterface;
 use Magento\Sales\Api\Data\ShipmentItemCreationInterfaceFactory;
 use Magento\Sales\Api\Data\ShipmentTrackCreationInterfaceFactory;
+use Magento\Sales\Api\Data\ShipmentTrackInterface;
 use Magento\Sales\Api\Data\ShipmentTrackInterfaceFactory;
 use Magento\Sales\Api\ShipmentRepositoryInterface;
 use Magento\Sales\Api\ShipmentTrackRepositoryInterface;
@@ -27,7 +28,6 @@ use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Model\Carrier\CarrierConfigs;
 use Polkurier\Shipping\Model\CarrierConfig;
 use Polkurier\Shipping\Model\Config;
-use Magento\Framework\TestFramework\Unit\Helper\ObjectManager;
 use Polkurier\Shipping\Model\ResourceModel\Shipment\Collection;
 use Polkurier\Shipping\Model\ResourceModel\Shipment\CollectionFactory;
 use Polkurier\Shipping\Model\Shipment;
@@ -35,8 +35,9 @@ use Polkurier\Shipping\Model\Shipment\Draft;
 use Polkurier\Shipping\Model\Shipment\Draft\Item;
 use Polkurier\Shipping\Model\Shipment\Draft\Pack;
 use Polkurier\Shipping\Model\Shipment\MagentoShipment;
-use Polkurier\Shipping\Model\Shipment\ReservedShipmentNumbers;
 use Polkurier\Shipping\Model\Shipment\OrderAmounts;
+use Polkurier\Shipping\Model\Shipment\ReservedShipmentNumbers;
+use Polkurier\Shipping\Model\Shipment\ShipmentFinder;
 
 #[CoversClass(MagentoShipment::class)]
 #[AllowMockObjectsWithoutExpectations]
@@ -322,7 +323,7 @@ class MagentoShipmentTest extends TestCase
             $trackFactory,
             $trackRepository,
             $magentoRepository,
-            $collections,
+            new ShipmentFinder($collections),
             $this->createStub(Config::class),
             $this->carrierConfigs(),
             $this->reservedNumbers,

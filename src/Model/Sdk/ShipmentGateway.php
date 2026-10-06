@@ -9,6 +9,7 @@ namespace Polkurier\Shipping\Model\Sdk;
 
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Phrase;
+use Polkurier\Shipping\Exception\PlacementUncertainException;
 use Polkurier\Shipping\Model\ErrorMessages;
 use Polkurier\Webservice\Enum\Http\ApiErrorCodeEnum;
 use Polkurier\Webservice\Exception\ConnectionException;
@@ -100,7 +101,9 @@ readonly class ShipmentGateway implements ShipmentGatewayInterface
 
     /**
      * @template T
+     *
      * @param callable(): T $request
+     *
      * @return T
      * @throws LocalizedException
      */

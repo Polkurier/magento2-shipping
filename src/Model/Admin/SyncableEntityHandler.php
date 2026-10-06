@@ -11,8 +11,9 @@ use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Framework\Stdlib\DateTime\DateTime;
 use Polkurier\Shipping\Api\Data\SyncableInterface;
-use Polkurier\Shipping\Api\SyncEntityEnum;
+use Polkurier\Shipping\Api\Data\SyncResultInterface;
 use Polkurier\Shipping\Api\SynchronizationInterface;
+use Polkurier\Shipping\Enum\SyncEntityEnum;
 use Polkurier\Shipping\Model\Sync\SyncLock;
 use Polkurier\Shipping\Model\Sync\SyncResult;
 
@@ -64,11 +65,12 @@ abstract readonly class SyncableEntityHandler implements EntityHandlerInterface
 
     /**
      * @param array<string, mixed> $data
+     *
      * @throws LocalizedException
      */
-    public function save(SyncableInterface $entity, array $data): SyncResult
+    public function save(SyncableInterface $entity, array $data): SyncResultInterface
     {
-        return $this->exclusively(function () use ($entity, $data): SyncResult {
+        return $this->exclusively(function () use ($entity, $data): SyncResultInterface {
             $this->applyFormData($entity, $data);
             $this->store($entity);
 
@@ -79,9 +81,9 @@ abstract readonly class SyncableEntityHandler implements EntityHandlerInterface
     /**
      * @throws LocalizedException
      */
-    public function delete(SyncableInterface $entity, array $confirmation = []): SyncResult
+    public function delete(SyncableInterface $entity, array $confirmation = []): SyncResultInterface
     {
-        return $this->exclusively(function () use ($entity): SyncResult {
+        return $this->exclusively(function () use ($entity): SyncResultInterface {
             if ($entity->getExtId() === null) {
                 // Never sent to Polkurier: nothing to delete there.
                 $this->remove($entity);

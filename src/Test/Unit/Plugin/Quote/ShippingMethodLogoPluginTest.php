@@ -11,8 +11,8 @@ use Magento\Framework\Api\AttributeValueFactory;
 use Magento\Framework\Api\ExtensionAttributesFactory;
 use Magento\Framework\Filesystem;
 use Magento\MediaStorage\Model\File\UploaderFactory;
-use Magento\Quote\Api\Data\ShippingMethodExtensionInterface;
 use Magento\Quote\Api\Data\ShippingMethodExtensionFactory;
+use Magento\Quote\Api\Data\ShippingMethodExtensionInterface;
 use Magento\Quote\Model\Cart\ShippingMethod;
 use Magento\Quote\Model\Cart\ShippingMethodConverter;
 use Magento\Quote\Model\Quote\Address\Rate;
@@ -25,6 +25,7 @@ use Polkurier\Shipping\Model\Carrier\CarrierConfigs;
 use Polkurier\Shipping\Model\Carrier\CarrierLogo;
 use Polkurier\Shipping\Model\CarrierConfig;
 use Polkurier\Shipping\Plugin\Quote\ShippingMethodLogoPlugin;
+use Psr\Log\NullLogger;
 
 #[CoversClass(ShippingMethodLogoPlugin::class)]
 #[CoversClass(CarrierLogo::class)]
@@ -103,7 +104,7 @@ class ShippingMethodLogoPluginTest extends TestCase
 
     private function logo(): CarrierLogo
     {
-        return new CarrierLogo($this->createStub(UploaderFactory::class), $this->createStub(Filesystem::class), $this->storeManager());
+        return new CarrierLogo($this->createStub(UploaderFactory::class), $this->createStub(Filesystem::class), $this->storeManager(), new NullLogger());
     }
 
     private function storeManager(): StoreManagerInterface

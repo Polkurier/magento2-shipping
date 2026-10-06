@@ -9,6 +9,8 @@ namespace Polkurier\Shipping\Api\Data\ShipmentDraft;
 
 /**
  * An item of the Magento order and how many of it the shipment carries.
+ *
+ * @api
  */
 interface ItemInterface
 {
@@ -22,6 +24,7 @@ interface ItemInterface
 
     /**
      * @param int $orderItemId
+     *
      * @return $this
      */
     public function setOrderItemId(int $orderItemId): static;
@@ -33,6 +36,7 @@ interface ItemInterface
 
     /**
      * @param float $qty
+     *
      * @return $this
      */
     public function setQty(float $qty): static;

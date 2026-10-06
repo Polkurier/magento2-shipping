@@ -33,7 +33,7 @@ define(['jquery', 'mage/translate', 'Polkurier_Shipping/js/request'], function (
                 api_token: $('#' + config.fields.token).val()
             }, {
                 done: function (response) {
-                    show(response.message, Boolean(response.success));
+                    show(response.message, !response.error);
                 },
                 fail: function () {
                     show($t('The check could not be run.'), false);

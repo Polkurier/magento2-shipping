@@ -9,6 +9,8 @@ namespace Polkurier\Shipping\Model\Shipment;
 
 use Magento\Sales\Model\Order;
 use Polkurier\Shipping\Api\Data\PackTemplateInterface;
+use Polkurier\Shipping\Enum\ParcelWeightEnum;
+use Polkurier\Shipping\Enum\WeightLimitEnum;
 use Polkurier\Shipping\Model\Config;
 use Polkurier\Shipping\Model\MasterData;
 use Polkurier\Shipping\Model\Shipment\Draft\ItemFactory;
@@ -59,6 +61,7 @@ readonly class AutoPacker
      *
      * @param array<int, float> $qtys shipped by order item id
      * @param string|null $shipmentType the kind; the website's when none
+     *
      * @return array{packs: Draft\Pack[], unmeasured: string[], unweighed: string[], unweighed_own: string[], templates: bool}
      *     as pack() gives it
      */
@@ -72,6 +75,7 @@ readonly class AutoPacker
     /**
      * @param array<int, float> $qtys shipped by order item id
      * @param string|null $shipmentType only templates of this shipment type, e.g. no pallets for boxes
+     *
      * @return array{packs: Draft\Pack[], unmeasured: string[], unweighed: string[], unweighed_own: string[], templates: bool}
      *     the parcels, or why there are none: the items without dimensions, or no pack template
      *     with a size; the items without a weight, which the parcels' weights leave out; and of
@@ -145,6 +149,7 @@ readonly class AutoPacker
      *
      * @param array<int, array<string, mixed>> $templates smallest first
      * @param array<int, array<string, mixed>> $units biggest first
+     *
      * @return array<int, array{template: array<string, mixed>|null, units: array<int, array<string, mixed>>}>
      */
     private function fill(array $templates, array $units): array
@@ -184,6 +189,7 @@ readonly class AutoPacker
      *
      * @param array<int, array<string, mixed>> $templates smallest first
      * @param array<int, array{template: array<string, mixed>|null, units: array<int, array<string, mixed>>}> $parcels
+     *
      * @return array<int, array{template: array<string, mixed>|null, units: array<int, array<string, mixed>>}>
      */
     private function merge(array $templates, array $parcels): array
@@ -210,6 +216,7 @@ readonly class AutoPacker
 
     /**
      * @param array<int, array<string, mixed>> $units
+     *
      * @return array<int, array<string, mixed>>
      */
     private static function biggestFirst(array $units): array
@@ -225,6 +232,7 @@ readonly class AutoPacker
      *
      * @param array<int, float[]> $spaces
      * @param array<int, array<string, mixed>> $units biggest first
+     *
      * @return array{0: array<int, array<string, mixed>>, 1: array<int, array<string, mixed>>} packed and left
      */
     private static function packMost(array $spaces, array $units, ?float $maxWeight = null): array
@@ -337,6 +345,7 @@ readonly class AutoPacker
      *
      * @param array<int, float[]> $spaces
      * @param array<int, array<string, mixed>> $units biggest first
+     *
      * @return array<int, float[]>|null the empty boxes after, or null when they don't all fit
      */
     private static function packInto(array $spaces, array $units): ?array
@@ -357,6 +366,7 @@ readonly class AutoPacker
      *
      * @param array<int, array<string, mixed>> $templates smallest first
      * @param array<int, array<string, mixed>> $units biggest first
+     *
      * @return array<string, mixed>|null
      */
     private function smallest(array $templates, array $units, bool $byWeight = true): ?array
@@ -381,6 +391,7 @@ readonly class AutoPacker
      *
      * @param array<int, float[]> $spaces the empty boxes, each as its three sides
      * @param float[] $size the unit's sides
+     *
      * @return array<int, float[]>|null the empty boxes after, or null when it fits in none
      */
     private static function place(array $spaces, array $size): ?array
@@ -430,6 +441,7 @@ readonly class AutoPacker
      * The six ways a box can be turned.
      *
      * @param float[] $size
+     *
      * @return array<int, float[]>
      */
     private static function turns(array $size): array
@@ -441,6 +453,7 @@ readonly class AutoPacker
 
     /**
      * @param float[] $size
+     *
      * @return float[] longest first
      */
     private static function sorted(array $size): array

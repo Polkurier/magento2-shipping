@@ -11,6 +11,7 @@ use Magento\Framework\Locale\ResolverInterface;
 use Magento\Framework\Pricing\PriceCurrencyInterface;
 use Magento\Framework\Stdlib\DateTime\TimezoneInterface;
 use Polkurier\Shipping\Model\Carrier\Polkurier;
+use Polkurier\Shipping\Model\Sdk\PolkurierTime;
 use Polkurier\Shipping\Model\Shipment\PlnAmounts;
 
 /**
@@ -19,12 +20,6 @@ use Polkurier\Shipping\Model\Shipment\PlnAmounts;
  */
 readonly class Formatter
 {
-    /**
-     * The time zone of the times Polkurier reports: statuses, deliveries, carrier scans. The
-     * module stores status and delivery times in UTC; the scans are kept as reported.
-     */
-    public const string POLKURIER_TIME_ZONE = 'Europe/Warsaw';
-
     private const string NONE = '—';
 
     public function __construct(
@@ -63,7 +58,7 @@ readonly class Formatter
             return self::NONE;
         }
         try {
-            $time = (new \DateTimeImmutable($value, new \DateTimeZone(self::POLKURIER_TIME_ZONE)))
+            $time = (new \DateTimeImmutable($value, PolkurierTime::zone()))
                 ->setTimezone(new \DateTimeZone('UTC'));
         } catch (\DateMalformedStringException) {
             return $value;
@@ -96,6 +91,7 @@ readonly class Formatter
 
     /**
      * @param array<int, array<int, mixed>|null> $rows [label, value, url?]; null rows are left out
+     *
      * @return array<int, array<string, string>>
      */
     public function rows(array $rows): array

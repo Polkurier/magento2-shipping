@@ -13,9 +13,13 @@
     <type name="Magento\Shipping\Controller\Adminhtml\Order\Shipment\Save">
         <plugin name="polkurier_shipment_save_needs_order" type="Polkurier\Shipping\Plugin\Adminhtml\ShipmentSavePlugin" />
     </type>
-        <!-- Magento shipment page: "Add a Polkurier order" for one made without -->
+    <!-- Magento shipment page: "Add a Polkurier order" for one made without -->
     <type name="Magento\Shipping\Block\Adminhtml\View">
         <plugin name="polkurier_shipment_view_buttons" type="Polkurier\Shipping\Plugin\Adminhtml\ShipmentViewPlugin" />
+    </type>
+    <!-- Magento's orders list: the "Shipping carrier" filter -->
+    <type name="Magento\Sales\Model\ResourceModel\Order\Grid\Collection">
+        <plugin name="polkurier_order_grid_filter" type="Polkurier\Shipping\Plugin\Adminhtml\OrderGridFilterPlugin" />
     </type>
     <!-- Order view: "Ship with Polkurier" right after Magento's "Ship" -->
     <type name="Magento\Backend\Block\Widget\Button\Toolbar">

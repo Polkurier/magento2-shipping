@@ -98,6 +98,18 @@ trait SyncableTrait
         return $this->setData(SyncableInterface::DELETED_AT, $deletedAt);
     }
 
+    public function getCreatedAt(): ?string
+    {
+        $value = $this->getData(SyncableInterface::CREATED_AT);
+
+        return $value === null || $value === '' ? null : (string)$value;
+    }
+
+    public function setCreatedAt(?string $createdAt): static
+    {
+        return $this->setData(SyncableInterface::CREATED_AT, $createdAt);
+    }
+
     public function getUpdatedAt(): ?string
     {
         $value = $this->getData(SyncableInterface::UPDATED_AT);

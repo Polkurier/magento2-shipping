@@ -12,6 +12,9 @@ use Magento\Framework\App\Request\DataPersistorInterface;
 use Polkurier\Shipping\Controller\Adminhtml\MasterData\AbstractSave;
 use Polkurier\Shipping\Model\Admin\AddressHandler;
 
+/**
+ * Saves a sender address from its form.
+ */
 class Save extends AbstractSave
 {
     public const string ADMIN_RESOURCE = 'Polkurier_Shipping::addresses';

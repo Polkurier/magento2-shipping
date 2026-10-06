@@ -28,6 +28,7 @@ readonly class ItemDimensions
 
     /**
      * @param int[] $orderItemIds the items to measure
+     *
      * @return array<int, array{0: float, 1: float, 2: float}> length, width and height in centimetres
      *     by order item id, for the items whose size is known
      */
@@ -91,6 +92,7 @@ readonly class ItemDimensions
      *
      * @param array<int, float> $parts quantity in one bundle by product id
      * @param array<int, array{0: float, 1: float, 2: float}> $sizes by product id
+     *
      * @return array{0: float, 1: float, 2: float}|null null unless every part has a size
      */
     private function stacked(array $parts, array $sizes): ?array

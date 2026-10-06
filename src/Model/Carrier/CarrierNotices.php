@@ -7,9 +7,10 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Model\Carrier;
 
-use Magento\Framework\App\CacheInterface;
 use Magento\Framework\Escaper;
 use Magento\Framework\Serialize\Serializer\Json;
+use Polkurier\Shipping\Enum\CacheTagEnum;
+use Polkurier\Shipping\Model\Cache\Type as PolkurierCache;
 use Polkurier\Shipping\Model\Sdk\AccountCacheKey;
 use Polkurier\Shipping\Model\Sdk\ClientPool;
 use Polkurier\Webservice\Enum\Courier\CourierMessageSeverityEnum;
@@ -19,11 +20,11 @@ use Psr\Log\LoggerInterface;
 
 /**
  * Polkurier's current notices about carriers (delays, suspensions, extra fees), shown on the
- * shipment screen next to the chosen carrier. Kept for a quarter of an hour per account.
+ * shipment screen next to the chosen carrier. Kept for an hour per account.
  */
 readonly class CarrierNotices
 {
-    public const int CACHE_LIFETIME = 900;
+    public const int CACHE_LIFETIME = 3600;
 
     /**
      * Markup kept in a notice's text; everything else is escaped.
@@ -32,7 +33,7 @@ readonly class CarrierNotices
 
     public function __construct(
         private ClientPool $clientPool,
-        private CacheInterface $cache,
+        private PolkurierCache $cache,
         private Escaper $escaper,
         private LoggerInterface $logger,
         private Json $json,
@@ -61,7 +62,7 @@ readonly class CarrierNotices
             $messages = $this->clientPool->system()->getCouriersMessages();
         } catch (PolkurierException $e) {
             // Notices are a courtesy: the screen works without them.
-            $this->logger->warning('Polkurier: carrier notices could not be read: ' . $e->getMessage());
+            $this->logger->warning('Polkurier carrier notices could not be read', ['exception' => $e]);
 
             return [];
         }
@@ -78,7 +79,7 @@ readonly class CarrierNotices
                 'alert' => $message->getType() === CourierMessageTypeEnum::Alert,
             ];
         }
-        $this->cache->save($this->json->serialize($notices), $key, [CarrierCatalog::CACHE_TAG], self::CACHE_LIFETIME);
+        $this->cache->save($this->json->serialize($notices), $key, [CacheTagEnum::Notices->value], self::CACHE_LIFETIME);
 
         return $notices;
     }

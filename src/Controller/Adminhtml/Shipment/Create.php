@@ -9,14 +9,15 @@ namespace Polkurier\Shipping\Controller\Adminhtml\Shipment;
 
 use Magento\Backend\App\Action;
 use Magento\Backend\App\Action\Context;
+use Magento\Backend\Model\View\Result\Page;
 use Magento\Framework\App\Action\HttpGetActionInterface;
+use Magento\Framework\Controller\ResultFactory;
 use Magento\Framework\Controller\ResultInterface;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Stdlib\DateTime\TimezoneInterface;
-use Magento\Framework\View\Result\PageFactory;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
-use Polkurier\Shipping\Model\Shipment\OwnOrders;
 use Polkurier\Shipping\Model\Shipment\NotPlaced;
+use Polkurier\Shipping\Model\Shipment\OwnOrders;
 use Polkurier\Shipping\Model\Shipment\SendAgain;
 
 /**
@@ -28,7 +29,6 @@ class Create extends Action implements HttpGetActionInterface
 
     public function __construct(
         Context $context,
-        private readonly PageFactory $pageFactory,
         private readonly OwnOrders $ownOrders,
         private readonly SendAgain $sendAgain,
         private readonly TimezoneInterface $timezone,
@@ -65,8 +65,8 @@ class Create extends Action implements HttpGetActionInterface
             ));
         }
 
-        $page = $this->pageFactory->create();
-        if (!$page instanceof \Magento\Backend\Model\View\Result\Page) {
+        $page = $this->resultFactory->create(ResultFactory::TYPE_PAGE);
+        if (!$page instanceof Page) {
             throw new \LogicException('The admin area renders backend pages.');
         }
         $page->setActiveMenu('Magento_Sales::sales_order');

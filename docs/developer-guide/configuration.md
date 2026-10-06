@@ -6,7 +6,9 @@
 
 [Developer guide](README.md) › Configuration
 
-`Model\Config` is the only class that reads the module's system configuration. The module works
+`Model\Config` is the only class that reads the module's own settings; the carrier's active flag
+goes through `AbstractCarrier`, as for any carrier, and `Config\Source\ShippingCarrier` lists the
+store's carriers from the `carriers` section. The module works
 with one Polkurier account for the whole installation, so the account's settings (credentials,
 sandbox, timeout, logging, available carriers, synchronization) are global: their getters take no
 store and read the default scope only. The admin shows them at the default scope only, so no
@@ -21,14 +23,16 @@ as a regular delivery method.
 |---|---|---|
 | `active` | `isActive()` | website |
 | `title` | `getTitle()` | store view |
+| `checkout/tier_cart_value` | `getTierCartValue()`: `Enum\CartValueEnum`, `gross` (default) or `net`, see `Pricing\CartValue` | website |
 | `general/customer_id`, `general/api_token` | `getLogin()`, `getToken()`, `hasCredentials()` | global, encrypted |
 | `general/sandbox_mode` | `isSandbox()` | global |
 | `general/api_url` | `getApiUrl()` | global, not shown in the admin |
 | `general/timeout` | `getTimeout()` | global |
-| `general/external_order_id` | `getExternalOrderId()` | global; `shipment` (default) or `order`, see `Shipment\ExternalIds` |
+| `general/external_order_id` | `getExternalOrderId()` | global; `order` (default) or `shipment`, see `Shipment\ExternalIds` |
+| `general/application_id` | `getApplicationIdOverride()` | global; empty (default): made from the encryption key, see `Sdk\ApplicationId`; `Backend\ApplicationId` allows up to 50 of `[A-Za-z0-9._-]` |
+| `general/available_carriers` | `getAvailableCarriers()` | global |
 | `logging/failed_requests`, `logging/methods` | `isLoggingEnabled()`, `getMethodsToLog()` | global |
-| `logging/personal_data`, `logging/files`, `logging/files_directory`, `logging/files_lifetime` | `isPersonalDataLoggingEnabled()`, `isFileLoggingEnabled()`, `getLogFilesDirectory()`, `getLogFilesLifetimeDays()` | global; the directory is resolved by `Sdk\LogFilesDirectory`, and `Sdk\LogFilesCleaner` deletes old files nightly |
-| `shipment_defaults/available_carriers` | `getAvailableCarriers()` | global |
+| `logging/personal_data`, `logging/files`, `logging/files_directory` | `isPersonalDataLoggingEnabled()`, `isFileLoggingEnabled()`, `getLogFilesDirectory()` | global; the directory is resolved by `Sdk\LogFilesDirectory` |
 | `shipment_defaults/default_shipment_type` | `getDefaultShipmentType()` | website |
 | `sender/use_store_information_address`, `sender/use_store_origin_address`, `sender/default_sender_email` | `isUseStoreInformationAddress()`, `isUseStoreOriginAddress()`, `getSenderEmailIdentity()` | website |
 | `shipment_defaults/default_additional_services` | `getDefaultServices()` | website |
@@ -49,6 +53,7 @@ as a regular delivery method.
 | `map/required_point_functions` | `getMapPointFunctions()` | website |
 | `map/url` | `getMapUrl()` | global, not shown in the admin |
 | `sync/enabled`, `sync/status_enabled` | `isSyncEnabled()`, `isStatusSyncEnabled()` | global |
+| `sync/webhook_secret` | `getWebhookSecret()` | global |
 
 Magento's standard carrier settings (`sallowspecific`, `specificcountry`, `showmethod`,
 `specificerrmsg`, `sort_order`) are read by Magento itself.
@@ -58,9 +63,10 @@ Getters that return choices return the SDK's enums (`getDefaultShipmentType()`,
 
 ## Secrets
 
-The customer ID and token use Magento's encrypted backend model and are marked sensitive in
-`etc/di.xml`, so `app:config:dump` never writes them to `app/etc/config.php`. `Config::getLogin()`
-and `getToken()` decrypt them. Nothing else should read those paths.
+The customer ID, the token and the status webhook's secret use Magento's encrypted backend model
+and are marked sensitive in `etc/di.xml`, so `app:config:dump` never writes them to
+`app/etc/config.php`. `Config::getLogin()`, `getToken()` and `getWebhookSecret()` decrypt them.
+Nothing else should read those paths.
 
 You can set them from the command line or in `env.php` like any sensitive setting:
 

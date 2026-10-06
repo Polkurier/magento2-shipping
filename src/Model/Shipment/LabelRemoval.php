@@ -13,8 +13,6 @@ use Magento\Sales\Api\ShipmentTrackRepositoryInterface;
 use Magento\Sales\Model\Order;
 use Magento\Sales\Model\Order\Shipment as MagentoShipmentModel;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
-use Polkurier\Shipping\Model\Carrier\Polkurier;
-use Polkurier\Shipping\Model\ResourceModel\Shipment\CollectionFactory;
 
 /**
  * What a cancelled Polkurier order leaves of its Magento shipment: the shipment stays, with its
@@ -26,7 +24,7 @@ readonly class LabelRemoval
     public function __construct(
         private ShipmentRepositoryInterface $shipmentRepository,
         private ShipmentTrackRepositoryInterface $trackRepository,
-        private CollectionFactory $shipmentCollectionFactory,
+        private ShipmentFinder $finder,
     ) {}
 
     /**
@@ -44,23 +42,15 @@ readonly class LabelRemoval
         if ((int)$magentoShipment->getOrderId() !== (int)$order->getEntityId()) {
             return null;
         }
-        $linked = $this->shipmentCollectionFactory->create()
-            ->addFieldToFilter(ShipmentInterface::SHIPMENT_ID, ['eq' => $magentoShipmentId]);
-        foreach ($linked->getItems() as $polkurier) {
-            /** @var ShipmentInterface $polkurier */
+        foreach ($this->finder->linkedTo([$magentoShipmentId]) as $polkurier) {
             if ((int)$polkurier->getId() !== (int)$cancelled->getId()
-                && \in_array($polkurier->getState(), MagentoShipment::HOLDING_STATES, true)
+                && \in_array($polkurier->getState(), ShipmentInterface::LIVE_STATES, true)
             ) {
                 return null;
             }
         }
 
-        $waybills = $cancelled->getWaybills();
-        foreach ($magentoShipment->getTracks() as $track) {
-            if ($track->getCarrierCode() === Polkurier::CODE && \in_array((string)$track->getTrackNumber(), $waybills, true)) {
-                $this->trackRepository->delete($track);
-            }
-        }
+        PolkurierTracks::remove($this->trackRepository, $magentoShipment, $cancelled->getWaybills());
         // Magento offers "Create Shipping Label" again once there's none.
         if ($magentoShipment instanceof MagentoShipmentModel) {
             $magentoShipment->setData(MagentoShipmentInterface::SHIPPING_LABEL, null);

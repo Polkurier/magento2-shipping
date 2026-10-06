@@ -9,6 +9,9 @@ namespace Polkurier\Shipping\Model\ResourceModel;
 
 use Magento\Framework\Model\ResourceModel\Db\AbstractDb;
 
+/**
+ * The polkurier_bank_account table.
+ */
 class BankAccount extends AbstractDb
 {
     use NamedEntries;

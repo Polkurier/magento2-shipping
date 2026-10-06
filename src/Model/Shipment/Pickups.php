@@ -8,12 +8,12 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Model\Shipment;
 
 use Magento\Framework\Exception\LocalizedException;
-use Polkurier\Shipping\Api\ApiEventEnum;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Api\ShipmentRepositoryInterface;
+use Polkurier\Shipping\Enum\ApiEventEnum;
 use Polkurier\Shipping\Model\ApiEventDispatcher;
+use Polkurier\Shipping\Model\Sdk\PolkurierTime;
 use Polkurier\Shipping\Model\Sdk\ShipmentGatewayInterface;
-use Polkurier\Shipping\Model\Shipment\Details\Formatter;
 use Polkurier\Webservice\Enum\Order\ShipmentTypeEnum;
 use Polkurier\Webservice\Request\Courier\GetPickupTimeMessage;
 use Polkurier\Webservice\Request\Order\MultiPickupAvailabilityRequestMessage;
@@ -63,6 +63,7 @@ readonly class Pickups
      * It answers no as well when it can't tell.
      *
      * @param PackMessage[] $packs
+     *
      * @throws LocalizedException
      */
     public function isCollectiveAvailable(string $carrierCode, string $senderPostcode, string $shipmentType, array $packs): bool
@@ -85,9 +86,40 @@ readonly class Pickups
     }
 
     /**
+     * A collection date and window as typed, in Polish time, as Polkurier offers them whatever
+     * PHP's own zone: a real date, and a window that ends after it starts.
+     *
+     * @return array{date: \DateTimeImmutable, from: \DateTimeImmutable, to: \DateTimeImmutable}
+     * @throws LocalizedException
+     */
+    public static function window(string $date, string $from, string $to): array
+    {
+        $day = self::parse('!Y-m-d', $date);
+        $start = self::parse('!Y-m-d H:i', $date . ' ' . $from);
+        $end = self::parse('!Y-m-d H:i', $date . ' ' . $to);
+        if ($day === null || $start === null || $end === null || $start >= $end) {
+            throw new LocalizedException(\__('Give the collection date as YYYY-MM-DD and the window as HH:MM, ending after it starts.'));
+        }
+
+        return ['date' => $day, 'from' => $start, 'to' => $end];
+    }
+
+    /**
+     * Exactly as the format says: 2026-13-45 or 25:99 isn't rolled over into another date.
+     */
+    private static function parse(string $format, string $value): ?\DateTimeImmutable
+    {
+        $parsed = \DateTimeImmutable::createFromFormat($format, $value, PolkurierTime::zone());
+        $errors = \DateTimeImmutable::getLastErrors();
+
+        return $parsed !== false && ($errors === false || ($errors['warning_count'] === 0 && $errors['error_count'] === 0)) ? $parsed : null;
+    }
+
+    /**
      * Books one collection for shipments placed for a later collective pickup.
      *
      * @param ShipmentInterface[] $shipments
+     *
      * @return array{booked: string[], failed: array<string, string>}
      * @throws LocalizedException
      */
@@ -104,12 +136,11 @@ readonly class Pickups
         }
         // Whether a shipment can be collected so is Polkurier's answer for each one, given with
         // the ones it couldn't book: it depends on the carrier and the parcels, not the account.
-        // Polish time, as Polkurier offers the dates, whatever PHP's own zone.
-        $zone = new \DateTimeZone(Formatter::POLKURIER_TIME_ZONE);
+        $window = self::window($date, $from, $to);
         $request = new MultiPickupRequestMessage(
-            pickupDate: new \DateTimeImmutable($date, $zone),
-            pickupTimeFrom: new \DateTimeImmutable($date . ' ' . $from, $zone),
-            pickupTimeTo: new \DateTimeImmutable($date . ' ' . $to, $zone),
+            pickupDate: $window['date'],
+            pickupTimeFrom: $window['from'],
+            pickupTimeTo: $window['to'],
             orders: \array_map('strval', \array_keys($numbers)),
         );
         $result = $this->gateway->bookMultiPickup($request);

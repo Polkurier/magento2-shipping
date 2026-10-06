@@ -12,9 +12,9 @@ use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Framework\Phrase;
 use Magento\Sales\Api\OrderRepositoryInterface;
 use Magento\Sales\Model\Order;
-use Polkurier\Shipping\Api\ApiEventEnum;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Api\ShipmentRepositoryInterface;
+use Polkurier\Shipping\Enum\ApiEventEnum;
 use Polkurier\Shipping\Model\ApiEventDispatcher;
 use Polkurier\Shipping\Model\Carrier\CarrierNames;
 use Polkurier\Shipping\Model\OrderComments;
@@ -77,7 +77,7 @@ readonly class MagentoFollowUp
             $this->remarkLinked($shipment);
 
             return null;
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             $this->logger->error('Polkurier order placed but the Magento shipment failed', [
                 'order' => $order->getIncrementId(),
                 'exception' => $e,
@@ -102,7 +102,7 @@ readonly class MagentoFollowUp
     {
         try {
             return $this->labelRemoval->clear($order, $shipment);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             $this->logger->error('Polkurier order cancelled but its label could not be removed from the Magento shipment', [
                 'order' => $order->getIncrementId(),
                 'exception' => $e,
@@ -112,11 +112,37 @@ readonly class MagentoFollowUp
         }
     }
 
+    /**
+     * What follows a Polkurier order's cancellation in Magento: its Magento shipment loses the
+     * label and tracking numbers, to take another Polkurier order, and the order and shipment say so.
+     *
+     * @param bool $inPolkurier cancelled in the Polkurier panel rather than here
+     *
+     * @return Order the order it belongs to
+     */
+    public function cancelled(ShipmentInterface $shipment, bool $inPolkurier): Order
+    {
+        $number = (string)$shipment->getPolkurierNumber();
+        $order = $this->order($shipment->getOrderId());
+        $cleared = $this->clearShipment($order, $shipment);
+        $this->remark($shipment->getShipmentId(), $inPolkurier
+            ? \__('Polkurier order %1 was cancelled in Polkurier. Its label and tracking numbers were removed; another Polkurier order can be placed on this shipment.', $number)
+            : \__('Polkurier order %1 cancelled. Its label and tracking numbers were removed; another Polkurier order can be placed on this shipment.', $number));
+        $this->comment($order, match (true) {
+            $inPolkurier && $cleared !== null => \__('Polkurier order %1 was cancelled in Polkurier. Magento shipment #%2 stays, without its label and tracking numbers, for another Polkurier order.', $number, $cleared),
+            $inPolkurier => \__('Polkurier order %1 was cancelled in Polkurier.', $number),
+            $cleared !== null => \__('Polkurier order %1 cancelled. Magento shipment #%2 stays, without its label and tracking numbers, for another Polkurier order.', $number, $cleared),
+            default => \__('Polkurier order %1 cancelled.', $number),
+        });
+
+        return $order;
+    }
+
     public function comment(Order $order, Phrase $comment): void
     {
         try {
             $this->orderComments->add($order, $comment);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             $this->logger->warning('Could not add the Polkurier comment to the order', ['exception' => $e]);
         }
     }
@@ -131,7 +157,7 @@ readonly class MagentoFollowUp
         }
         try {
             $this->shipmentComments->add($magentoShipmentId, $remark);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             $this->logger->warning('Could not add the Polkurier remark to the Magento shipment', ['exception' => $e]);
         }
     }

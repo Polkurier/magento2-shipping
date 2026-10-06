@@ -8,9 +8,9 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Model\Mapper;
 
 use Magento\Framework\App\Config\ScopeConfigInterface;
-use Magento\Framework\Exception\LocalizedException;
 use Magento\Store\Model\ScopeInterface;
 use Polkurier\Shipping\Api\Data\AddressInterface;
+use Polkurier\Shipping\Model\Carrier\Polkurier;
 use Polkurier\Shipping\Model\Config;
 use Polkurier\Webservice\Builder\Order\CoverAddressMessageBuilder;
 use Polkurier\Webservice\Builder\Order\OrderAddressMessageBuilder;
@@ -59,7 +59,7 @@ readonly class SenderMapper
             ->houseNumber($value(AddressInterface::HOUSE_NUMBER))
             ->city($value(AddressInterface::CITY))
             ->postcode($value(AddressInterface::POSTCODE))
-            ->country($value(AddressInterface::COUNTRY) ?: 'PL')
+            ->country($value(AddressInterface::COUNTRY) ?: Polkurier::HOME_COUNTRY)
             ->email($value(AddressInterface::EMAIL))
             ->phone($value(AddressInterface::PHONE));
         if ($value(AddressInterface::COMPANY) !== '') {
@@ -138,7 +138,7 @@ readonly class SenderMapper
             ->houseNumber((string)$street['house_number'])
             ->city($city)
             ->postcode($postcode)
-            ->country($this->value($prefix . '/country_id', $storeId) ?: 'PL')
+            ->country($this->value($prefix . '/country_id', $storeId) ?: Polkurier::HOME_COUNTRY)
             ->email($this->value(\sprintf('trans_email/ident_%s/email', $this->config->getSenderEmailIdentity($storeId)), $storeId))
             ->phone($this->value('general/store_information/phone', $storeId));
         if ($street['flat_number'] !== null) {

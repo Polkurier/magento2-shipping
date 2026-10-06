@@ -10,6 +10,8 @@ namespace Polkurier\Shipping\Api\Data;
 /**
  * The shipping the customer chose, kept when the order's shipping was changed to the carrier and
  * pickup point its Polkurier order went with. The order then shows what was actually sent.
+ *
+ * @api
  */
 interface ShippingChoiceInterface
 {

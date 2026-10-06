@@ -7,6 +7,7 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Model\Shipment;
 
+use Magento\Framework\Stdlib\DateTime as DateFormat;
 use Magento\Framework\Stdlib\DateTime\DateTime;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Webservice\Enum\Order\CodStatusEnum;
@@ -102,6 +103,6 @@ readonly class OrderSnapshot
 
     private static function utc(\DateTimeInterface $time): string
     {
-        return \DateTimeImmutable::createFromInterface($time)->setTimezone(new \DateTimeZone('UTC'))->format('Y-m-d H:i:s');
+        return \DateTimeImmutable::createFromInterface($time)->setTimezone(new \DateTimeZone('UTC'))->format(DateFormat::DATETIME_PHP_FORMAT);
     }
 }

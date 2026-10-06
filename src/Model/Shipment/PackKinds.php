@@ -119,6 +119,7 @@ final readonly class PackKinds
 
     /**
      * @param string[] $packTypes
+     *
      * @return ShipmentTypeEnum[] the shipment types of the parcels, each once: one for a shipment
      *     that can go, none without parcels
      */

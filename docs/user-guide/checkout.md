@@ -36,7 +36,9 @@ What the map shows can be adjusted on the configuration page, under
 
 If the customer picks a carrier or a point that can't collect cash on delivery, your cash on
 delivery payment methods (see **Cash on delivery payment methods** in the
-[configuration](configuration.md#cash-on-delivery)) are hidden for that order.
+[configuration](configuration.md#cash-on-delivery)) are hidden for that order. A point that
+couldn't be checked with Polkurier when it was chosen counts as one that can't collect it. If
+Polkurier can't be reached at the payment step itself, the payment methods are left as they are.
 
 ## Multi-address checkout
 

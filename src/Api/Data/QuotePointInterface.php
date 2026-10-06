@@ -10,6 +10,8 @@ namespace Polkurier\Shipping\Api\Data;
 /**
  * The pickup point chosen in checkout, held on the quote (or one of its addresses, in multi-address
  * checkout) until the order is placed.
+ *
+ * @api
  */
 interface QuotePointInterface
 {
@@ -27,6 +29,7 @@ interface QuotePointInterface
 
     /**
      * @param int $quoteId
+     *
      * @return $this
      */
     public function setQuoteId(int $quoteId): static;
@@ -38,6 +41,7 @@ interface QuotePointInterface
 
     /**
      * @param int $quoteAddressId
+     *
      * @return $this
      */
     public function setQuoteAddressId(int $quoteAddressId): static;
@@ -49,6 +53,7 @@ interface QuotePointInterface
 
     /**
      * @param string $methodCode
+     *
      * @return $this
      */
     public function setMethodCode(string $methodCode): static;
@@ -60,6 +65,7 @@ interface QuotePointInterface
 
     /**
      * @param string $pointId
+     *
      * @return $this
      */
     public function setPointId(string $pointId): static;
@@ -71,6 +77,7 @@ interface QuotePointInterface
 
     /**
      * @param string|null $pointLabel
+     *
      * @return $this
      */
     public function setPointLabel(?string $pointLabel): static;
@@ -82,6 +89,7 @@ interface QuotePointInterface
 
     /**
      * @param bool $pointCod
+     *
      * @return $this
      */
     public function setPointCod(bool $pointCod): static;

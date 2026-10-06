@@ -9,6 +9,8 @@ namespace Polkurier\Shipping\Api\Data;
 
 /**
  * A bank account cash on delivery is paid out to.
+ *
+ * @api
  */
 interface BankAccountInterface extends SyncableInterface
 {
@@ -23,6 +25,7 @@ interface BankAccountInterface extends SyncableInterface
 
     /**
      * @param string $name
+     *
      * @return $this
      */
     public function setName(string $name): static;
@@ -34,6 +37,7 @@ interface BankAccountInterface extends SyncableInterface
 
     /**
      * @param string $number
+     *
      * @return $this
      */
     public function setNumber(string $number): static;
@@ -45,6 +49,7 @@ interface BankAccountInterface extends SyncableInterface
 
     /**
      * @param bool $default
+     *
      * @return $this
      */
     public function setDefault(bool $default): static;

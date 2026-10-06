@@ -10,6 +10,9 @@ namespace Polkurier\Shipping\Model\SearchResults;
 use Magento\Framework\Api\SearchResults;
 use Polkurier\Shipping\Api\Data\BankAccountSearchResultsInterface;
 
+/**
+ * The bank accounts found by search criteria.
+ */
 class BankAccountSearchResults extends SearchResults implements BankAccountSearchResultsInterface
 {
 }

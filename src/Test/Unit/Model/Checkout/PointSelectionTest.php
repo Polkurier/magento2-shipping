@@ -21,6 +21,7 @@ use Polkurier\Shipping\Model\OrderPointStore;
 use Polkurier\Shipping\Model\QuotePoint;
 use Polkurier\Shipping\Model\QuotePointFactory;
 use Polkurier\Webservice\Enum\Courier\PointFunctionEnum;
+use Polkurier\Webservice\Exception\ConnectionException;
 use Polkurier\Webservice\Response\Carrier;
 use Polkurier\Webservice\Response\CourierPoint;
 use Psr\Log\NullLogger;
@@ -30,6 +31,24 @@ use Psr\Log\NullLogger;
 class PointSelectionTest extends TestCase
 {
     private ?QuotePoint $saved = null;
+
+    /**
+     * @var string[] the quote and quote address ids of the points taken away
+     */
+    private array $deleted = [];
+
+    /**
+     * @var string|null the method the point stored for the quote was chosen for
+     */
+    private ?string $stored = null;
+
+    private bool $required = true;
+
+    private bool $allowed = true;
+
+    private bool $carrierOutage = false;
+
+    private bool $pointOutage = false;
 
     public function testAnOpenPointThatHandsOutParcelsIsKept(): void
     {
@@ -59,21 +78,129 @@ class PointSelectionTest extends TestCase
         self::assertNull($this->saved);
     }
 
-    private function selection(CourierPoint $point): PointSelection
+    public function testAnotherCarrierTakesTheAddresssPointAway(): void
+    {
+        $this->selection()->select($this->quote(), 'flatrate', 'flatrate', 'WAW195M', 12);
+
+        self::assertSame(['5/12'], $this->deleted);
+        self::assertNull($this->saved);
+    }
+
+    public function testAMethodThatNeedsAPointRefusesNone(): void
+    {
+        $this->expectExceptionMessage('Choose a pickup point for the selected delivery method.');
+
+        $this->selection()->select($this->quote(), 'polkurier', 'INPOST_PACZKOMAT', '  ');
+    }
+
+    public function testAMethodThatTakesAPointOptionallyGoesWithoutOne(): void
+    {
+        $this->required = false;
+
+        $this->selection()->select($this->quote(), 'polkurier', 'DPD_PICKUP', null);
+
+        self::assertSame(['5/0'], $this->deleted);
+    }
+
+    public function testAMethodWithoutPointsDropsOneSentAnyway(): void
+    {
+        $this->required = false;
+        $this->allowed = false;
+
+        $this->selection()->select($this->quote(), 'polkurier', 'DPD', 'WAW195M');
+
+        self::assertSame(['5/0'], $this->deleted);
+        self::assertNull($this->saved);
+    }
+
+    public function testWhenTheCarriersCantBeReadThePointIsKeptAsTyped(): void
+    {
+        $this->carrierOutage = true;
+
+        $this->selection()->select($this->quote(), 'polkurier', 'INPOST_PACZKOMAT', 'WAW195M');
+
+        self::assertSame('WAW195M', $this->saved?->getPointId());
+        self::assertSame('WAW195M', $this->saved->getPointLabel());
+    }
+
+    public function testWhenThePointCantBeLookedUpItIsKeptWithoutCashOnDelivery(): void
+    {
+        $this->pointOutage = true;
+
+        $this->selection()->select($this->quote(), 'polkurier', 'INPOST_PACZKOMAT', 'WAW195M');
+
+        self::assertSame('WAW195M', $this->saved?->getPointLabel());
+        self::assertFalse($this->saved->isPointCod(), 'Not known to take cash: cash on delivery is hidden for it.');
+    }
+
+    public function testEachAddressOfAMultiAddressCheckoutKeepsItsOwnPoint(): void
+    {
+        $this->selection(new CourierPoint('WAW195M', available: true, functions: [PointFunctionEnum::Collect->value], cod: true))
+            ->select($this->quote(), 'polkurier', 'INPOST_PACZKOMAT', 'WAW195M', 12);
+
+        self::assertSame([5, 12], [$this->saved?->getQuoteId(), $this->saved->getQuoteAddressId()]);
+        self::assertTrue($this->saved->isPointCod());
+    }
+
+    public function testPlacingNeedsAPointForTheMethodChosen(): void
+    {
+        $this->stored = 'INPOST_PACZKOMAT';
+        $this->selection()->requirePoint($this->quote(), 'INPOST_PACZKOMAT');
+
+        $this->stored = 'INPOST_PACZKOMAT_ECONOMY';
+        try {
+            $this->selection()->requirePoint($this->quote(), 'INPOST_PACZKOMAT');
+            self::fail('A point chosen for another method doesn\'t count.');
+        } catch (InputException) {
+        }
+
+        $this->required = false;
+        $this->selection()->requirePoint($this->quote(), 'DPD');
+        $this->required = true;
+        $this->carrierOutage = true;
+        // Let through rather than lost.
+        $this->selection()->requirePoint($this->quote(), 'INPOST_PACZKOMAT');
+        $this->addToAssertionCount(3);
+    }
+
+    private function selection(?CourierPoint $point = null): PointSelection
     {
         $store = $this->createStub(OrderPointStore::class);
-        $store->method('getForQuote')->willReturn(null);
+        $store->method('getForQuote')->willReturnCallback(function (): ?QuotePoint {
+            if ($this->stored === null) {
+                return null;
+            }
+            /** @var QuotePoint $point */
+            $point = (new ObjectManager($this))->getObject(QuotePoint::class);
+
+            return $point->setMethodCode($this->stored);
+        });
         $store->method('saveForQuote')->willReturnCallback(function (QuotePoint $point): void {
             $this->saved = $point;
+        });
+        $store->method('deleteForQuote')->willReturnCallback(function (int $quoteId, int $addressId = 0): void {
+            $this->deleted[] = $quoteId . '/' . $addressId;
         });
         $points = $this->createStub(QuotePointFactory::class);
         $points->method('create')->willReturnCallback(fn(): QuotePoint => (new ObjectManager($this))->getObject(QuotePoint::class));
         $catalog = $this->createStub(CarrierCatalog::class);
-        $catalog->method('getCarrier')->willReturn(new Carrier('INPOST_PACZKOMAT', 'Paczkomat', false));
-        $catalog->method('findPoint')->willReturn($point);
+        $catalog->method('getCarrier')->willReturnCallback(function (string $code): Carrier {
+            if ($this->carrierOutage) {
+                throw new ConnectionException('Timed out');
+            }
+
+            return new Carrier($code, $code, false);
+        });
+        $catalog->method('findPoint')->willReturnCallback(function () use ($point): CourierPoint {
+            if ($this->pointOutage) {
+                throw new ConnectionException('Timed out');
+            }
+
+            return $point ?? new CourierPoint('WAW195M', available: true, functions: [PointFunctionEnum::Collect->value]);
+        });
         $features = $this->createStub(CarrierFeatures::class);
-        $features->method('isRecipientPointRequired')->willReturn(true);
-        $features->method('isRecipientPointAllowed')->willReturn(true);
+        $features->method('isRecipientPointRequired')->willReturnCallback(fn(): bool => $this->required);
+        $features->method('isRecipientPointAllowed')->willReturnCallback(fn(): bool => $this->allowed);
         $features->method('getPointProviders')->willReturn(['INPOST']);
         $config = $this->createStub(Config::class);
         $config->method('getMapPointFunctions')->willReturn([PointFunctionEnum::Collect]);

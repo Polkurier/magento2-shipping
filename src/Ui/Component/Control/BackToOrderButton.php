@@ -11,11 +11,15 @@ use Magento\Framework\App\RequestInterface;
 use Magento\Framework\UrlInterface;
 use Magento\Framework\View\Element\UiComponent\Control\ButtonProviderInterface;
 
+/**
+ * Back to the order's page, from the shipment screen.
+ */
 readonly class BackToOrderButton implements ButtonProviderInterface
 {
     public function __construct(
         private RequestInterface $request,
         private UrlInterface $url,
+        private OnClick $onClick,
     ) {}
 
     /**
@@ -25,8 +29,7 @@ readonly class BackToOrderButton implements ButtonProviderInterface
     {
         return [
             'label' => \__('Back to the order'),
-            'on_click' => \sprintf(
-                "location.href = '%s';",
+            'on_click' => $this->onClick->location(
                 $this->url->getUrl('sales/order/view', ['order_id' => (int)$this->request->getParam('order_id')]),
             ),
             'class' => 'back',

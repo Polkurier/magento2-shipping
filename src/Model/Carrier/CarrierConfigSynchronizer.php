@@ -8,13 +8,17 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Model\Carrier;
 
 use Magento\Backend\Model\UrlInterface;
+use Magento\Framework\Exception\CouldNotSaveException;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Notification\NotifierInterface;
 use Polkurier\Shipping\Api\CarrierConfigRepositoryInterface;
+use Polkurier\Shipping\Api\Data\CarrierConfigInterface;
+use Polkurier\Shipping\Enum\PricingModelEnum;
 use Polkurier\Shipping\Model\CarrierConfigFactory;
 use Polkurier\Shipping\Model\ErrorMessages;
-use Polkurier\Shipping\Model\Pricing\PricingModelEnum;
+use Polkurier\Shipping\Model\ResourceModel\CarrierConfig as CarrierConfigResource;
 use Polkurier\Webservice\Exception\Exception as PolkurierException;
+use Polkurier\Webservice\Response\Carrier;
 
 /**
  * Keeps one settings row per carrier the account offers.
@@ -30,6 +34,7 @@ readonly class CarrierConfigSynchronizer
         private CarrierConfigs $carrierConfigs,
         private CarrierConfigRepositoryInterface $repository,
         private CarrierConfigFactory $configFactory,
+        private CarrierConfigResource $resource,
         private ErrorMessages $errorMessages,
         private NotifierInterface $notifier,
         private UrlInterface $url,
@@ -38,26 +43,52 @@ readonly class CarrierConfigSynchronizer
     /**
      * @return int how many carriers the account offers
      * @throws LocalizedException when Polkurier can't be asked, as said by ErrorMessages
-     * @throws \Magento\Framework\Exception\CouldNotSaveException
+     * @throws CouldNotSaveException
      */
     public function synchronize(): int
     {
-        $this->catalog->clean();
-        $this->carrierConfigs->reset();
         try {
-            $carriers = $this->catalog->getAccountCarriers();
+            $carriers = $this->catalog->refreshAccountCarriers();
         } catch (PolkurierException $e) {
             throw $this->errorMessages->exception($e);
         }
+        $this->carrierConfigs->reset();
         $existing = $this->carrierConfigs->getAll();
         $last = \array_reduce($existing, static fn(int $max, $config): int => \max($max, $config->getSortOrder()), 0);
 
         // The account's carriers change over time: they're told about, except on the first read.
         $added = [];
         $revoked = [];
+        // All rows or none: a failure halfway would leave carriers neither offered nor withdrawn.
+        $connection = $this->resource->getConnection();
+        $connection->beginTransaction();
+        try {
+            $this->apply($carriers, $existing, $last, $added, $revoked);
+            $connection->commit();
+        } catch (\Throwable $e) {
+            $connection->rollBack();
+            throw $e;
+        }
+        $this->carrierConfigs->reset();
+        $this->tell($added, $revoked);
+
+        return \count($carriers);
+    }
+
+    /**
+     * @param array<string, Carrier> $carriers the account's, by code
+     * @param array<string, CarrierConfigInterface> $existing the rows there are, by code
+     * @param int $last the last sort order taken
+     * @param string[] $added the names of carriers new to the account, added to
+     * @param string[] $revoked the names of carriers the account no longer offers, added to
+     *
+     * @throws CouldNotSaveException
+     */
+    private function apply(array $carriers, array $existing, int $last, array &$added, array &$revoked): void
+    {
         foreach ($carriers as $code => $carrier) {
             if ($existing !== [] && !($existing[$code] ?? null)?->isAvailable()) {
-                $added[] = $carrier->getName() !== '' ? $carrier->getName() : (string)$code;
+                $added[] = CarrierNames::nameOr($carrier->getName(), $code);
             }
             $config = $existing[$code] ?? $this->configFactory->create()
                 ->setCarrierCode($code)
@@ -73,13 +104,9 @@ readonly class CarrierConfigSynchronizer
         foreach ($existing as $code => $config) {
             if (!isset($carriers[$code]) && $config->isAvailable()) {
                 $this->repository->save($config->setAvailable(false));
-                $revoked[] = $config->getCarrierName() ?: (string)$code;
+                $revoked[] = CarrierNames::nameOr($config->getCarrierName(), $code);
             }
         }
-        $this->carrierConfigs->reset();
-        $this->tell($added, $revoked);
-
-        return \count($carriers);
     }
 
     /**

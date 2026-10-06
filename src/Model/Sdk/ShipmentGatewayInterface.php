@@ -8,6 +8,7 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Model\Sdk;
 
 use Magento\Framework\Exception\LocalizedException;
+use Polkurier\Shipping\Exception\PlacementUncertainException;
 use Polkurier\Webservice\Request\Courier\GetPickupTimeMessage;
 use Polkurier\Webservice\Request\Order\CreateOrderMessage;
 use Polkurier\Webservice\Request\Order\GetDocumentMessage;

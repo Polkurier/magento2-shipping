@@ -12,10 +12,15 @@ use Magento\Framework\Phrase;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use Polkurier\Shipping\Exception\RecentFailureException;
 use Polkurier\Shipping\Model\ErrorMessages;
 use Polkurier\Webservice\Enum\Http\ResponseStatusEnum;
+use Polkurier\Webservice\Exception\AuthorizationException;
 use Polkurier\Webservice\Exception\ConnectionException;
+use Polkurier\Webservice\Exception\Exception as PolkurierException;
+use Polkurier\Webservice\Exception\InvalidArgumentException;
 use Polkurier\Webservice\Exception\MalformedResponseException;
+use Polkurier\Webservice\Exception\ValidationException;
 use Polkurier\Webservice\Exception\WebserviceException;
 use Polkurier\Webservice\Http\Response\ErrorMessage;
 use Psr\Http\Message\RequestInterface;
@@ -33,6 +38,49 @@ class ErrorMessagesTest extends TestCase
         self::assertSame('Parcel 2: Weight', $messages->fieldLabel('packs.1.weight'));
         self::assertSame('Shipment description', $messages->fieldLabel('description'));
         self::assertSame('something.else', $messages->fieldLabel('something.else'), 'One it doesn\'t know stays as it is.');
+    }
+
+    public function testEachKindOfFailureIsSaidInItsOwnWords(): void
+    {
+        $messages = new ErrorMessages();
+        $response = $this->createStub(ResponseInterface::class);
+        $response->method('getStatusCode')->willReturn(502);
+
+        self::assertSame(
+            'Polkurier would not accept this. Check: Recipient: Phone is required; Parcel 1: Weight too heavy',
+            $messages->describe(new ValidationException(['recipient.phone' => ['is required'], 'packs.0.weight' => ['too heavy']])),
+        );
+        self::assertSame('The request to Polkurier could not be built: No carrier', $messages->describe(new InvalidArgumentException('No carrier')));
+        self::assertStringStartsWith('Polkurier did not accept the API credentials.', $messages->describe($this->refusal(AuthorizationException::class, 'Błędny token')));
+        self::assertStringEndsWith('(Błędny token)', $messages->describe($this->refusal(AuthorizationException::class, 'Błędny token')));
+        self::assertSame(
+            'Polkurier refused: Kod pocztowy jest nieprawidłowy Check: Recipient: Postcode wrong',
+            $messages->describe($this->refusal(WebserviceException::class, 'Kod pocztowy jest nieprawidłowy', ['recipient.postcode' => ['wrong']])),
+        );
+        self::assertSame(
+            'Polkurier could not be reached, or did not answer in time: cURL error 28',
+            $messages->describe(new ConnectionException('Request failed', 0, new \RuntimeException('cURL error 28'))),
+        );
+        self::assertSame(
+            'Polkurier answered with something unexpected (HTTP 502). Try again later; if it persists, contact Polkurier.',
+            $messages->describe(new MalformedResponseException('Not JSON', $response)),
+        );
+        self::assertSame('Polkurier did not answer a moment ago.', $messages->describe(new RecentFailureException('Polkurier did not answer a moment ago.')));
+        self::assertSame('Polkurier error: Something else', $messages->describe(new PolkurierException('Something else')));
+        self::assertSame('Choose a carrier first.', $messages->describe(new LocalizedException(new Phrase('Choose a carrier first.'))));
+    }
+
+    /**
+     * @param class-string<WebserviceException> $class
+     * @param array<string, string[]>|null $fields
+     */
+    private function refusal(string $class, string $reason, ?array $fields = null): WebserviceException
+    {
+        return new $class(
+            new ErrorMessage(ResponseStatusEnum::Error, $reason, 26, null, $fields),
+            $this->createStub(RequestInterface::class),
+            $this->createStub(ResponseInterface::class),
+        );
     }
 
     public function testTheExceptionCarriesTheDescribedMessageAsItIs(): void

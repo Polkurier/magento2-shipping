@@ -8,6 +8,7 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Model\Config\Source;
 
 use Polkurier\Shipping\Model\Carrier\CarrierCatalog;
+use Polkurier\Shipping\Model\Carrier\CarrierNames;
 use Polkurier\Webservice\Exception\Exception as PolkurierException;
 
 /**
@@ -29,7 +30,7 @@ readonly class AccountCarrier extends AbstractOptions
         }
         $options = [];
         foreach ($carriers as $code => $carrier) {
-            $options[$code] = $carrier->getName() !== '' ? $carrier->getName() : $code;
+            $options[$code] = CarrierNames::nameOr($carrier->getName(), $code);
         }
 
         return $options;

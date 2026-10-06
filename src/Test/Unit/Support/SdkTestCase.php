@@ -8,9 +8,9 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Test\Unit\Support;
 
 use PHPUnit\Framework\TestCase;
-use Polkurier\Shipping\Model\Sdk\ClientPool;
 use Polkurier\Shipping\Model\Sdk\AccountConfigProvider;
 use Polkurier\Shipping\Model\Sdk\AccountConfigProviderFactory;
+use Polkurier\Shipping\Model\Sdk\ClientPool;
 use Polkurier\Webservice\Config;
 use Polkurier\Webservice\Http\Request\AuthorizationMessage;
 use Polkurier\Webservice\PolkurierWebservice;

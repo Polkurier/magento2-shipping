@@ -22,6 +22,7 @@ readonly class PickupBackButton implements ButtonProviderInterface
         private RequestInterface $request,
         private UrlInterface $url,
         private DecoderInterface $urlDecoder,
+        private OnClick $onClick,
     ) {}
 
     /**
@@ -35,14 +36,12 @@ readonly class PickupBackButton implements ButtonProviderInterface
 
         return [
             'label' => $orderId ? \__('Back to the order') : \__('Back'),
-            'on_click' => \sprintf(
-                "location.href = '%s';",
-                match (true) {
-                    \str_starts_with($back, (string)$this->url->getBaseUrl()) => $back,
-                    $orderId > 0 => $this->url->getUrl('sales/order/view', ['order_id' => $orderId]),
-                    default => $this->url->getUrl('polkurier/shipment/index'),
-                },
-            ),
+            'on_click' => $this->onClick->location(match (true) {
+                // Only a page of this admin; the parameter is the browser's and is trusted no further.
+                \str_starts_with($back, (string)$this->url->getBaseUrl()) => $back,
+                $orderId > 0 => $this->url->getUrl('sales/order/view', ['order_id' => $orderId]),
+                default => $this->url->getUrl('polkurier/shipment/index'),
+            }),
             'class' => 'back',
             'sort_order' => 10,
         ];

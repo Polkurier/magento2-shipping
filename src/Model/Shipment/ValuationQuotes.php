@@ -21,6 +21,7 @@ readonly class ValuationQuotes
     /**
      * @param array<array-key, mixed> $valuation
      * @param string $carrierCode the draft's carrier, for a quote that doesn't name one
+     *
      * @return array{quotes: array<string, array{net: float, gross: float}>, unrecognised: int}
      */
     public static function fromResponse(array $valuation, string $carrierCode): array
@@ -55,6 +56,7 @@ readonly class ValuationQuotes
 
     /**
      * @param array<array-key, mixed> $entry
+     *
      * @return array{net: float, gross: float}|null
      */
     private static function price(array $entry): ?array

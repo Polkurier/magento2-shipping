@@ -7,7 +7,6 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Ui\Component\Control;
 
-use Magento\Framework\Serialize\Serializer\Json;
 use Magento\Framework\UrlInterface;
 use Magento\Framework\View\Element\UiComponent\Control\ButtonProviderInterface;
 
@@ -20,7 +19,7 @@ readonly class PostButton implements ButtonProviderInterface
 {
     public function __construct(
         private UrlInterface $url,
-        private Json $json,
+        private OnClick $onClick,
         private string $label,
         private string $path,
         private string $class = 'secondary',
@@ -32,13 +31,10 @@ readonly class PostButton implements ButtonProviderInterface
      */
     public function getButtonData(): array
     {
-        // "data" must reach dataPost as an object: it adds the form key to it as a property.
-        $post = $this->json->serialize(['action' => $this->url->getUrl($this->path), 'data' => new \stdClass()]);
-
         return [
             'label' => \__($this->label),
             'class' => $this->class,
-            'on_click' => \sprintf("require(['mage/dataPost'], function (dataPost) { dataPost().postData(%s); }); return false;", $post),
+            'on_click' => $this->onClick->post($this->url->getUrl($this->path)),
             'sort_order' => $this->sortOrder,
         ];
     }

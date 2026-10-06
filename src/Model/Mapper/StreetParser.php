@@ -26,6 +26,7 @@ readonly class StreetParser
 
     /**
      * @param string[] $lines
+     *
      * @return array{street: string, house_number: ?string, flat_number: ?string}
      */
     public function parse(array $lines): array

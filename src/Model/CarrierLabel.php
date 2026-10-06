@@ -10,6 +10,9 @@ namespace Polkurier\Shipping\Model;
 use Magento\Framework\Api\AbstractSimpleObject;
 use Polkurier\Shipping\Api\Data\CarrierLabelInterface;
 
+/**
+ * A carrier's label in one store view.
+ */
 class CarrierLabel extends AbstractSimpleObject implements CarrierLabelInterface
 {
     public function getStoreId(): int

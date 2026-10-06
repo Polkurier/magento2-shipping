@@ -19,8 +19,7 @@ use Magento\Ui\Component\Listing\Columns\Column;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Model\Carrier\Polkurier;
 use Polkurier\Shipping\Model\Config\Source\ShipmentState;
-use Polkurier\Shipping\Model\ResourceModel\Shipment\CollectionFactory;
-use Polkurier\Shipping\Model\Shipment\MagentoShipment;
+use Polkurier\Shipping\Model\Shipment\ShipmentFinder;
 
 /**
  * The Polkurier order of each Magento shipment, linked to its details. Left out for an order
@@ -37,7 +36,7 @@ class PolkurierOrderColumn extends Column
     public function __construct(
         ContextInterface $context,
         UiComponentFactory $uiComponentFactory,
-        private readonly CollectionFactory $collectionFactory,
+        private readonly ShipmentFinder $finder,
         private readonly UrlInterface $url,
         private readonly AuthorizationInterface $authorization,
         private readonly ShipmentState $states,
@@ -77,6 +76,7 @@ class PolkurierOrderColumn extends Column
 
     /**
      * @param array<string, mixed> $dataSource
+     *
      * @return array<string, mixed>
      */
     public function prepareDataSource(array $dataSource): array
@@ -99,6 +99,7 @@ class PolkurierOrderColumn extends Column
 
     /**
      * @param int[] $magentoShipmentIds
+     *
      * @return array<int, string> links by Magento shipment id
      */
     private function getLinks(array $magentoShipmentIds): array
@@ -109,17 +110,14 @@ class PolkurierOrderColumn extends Column
         $states = $this->states->toArray();
         // A Magento shipment keeps every Polkurier order it has had: the one placed shows, or the
         // latest.
-        $collection = $this->collectionFactory->create()
-            ->addFieldToFilter(ShipmentInterface::SHIPMENT_ID, ['in' => $magentoShipmentIds])
-            ->setOrder(ShipmentInterface::ENTITY_ID, 'ASC');
         $links = [];
         $holding = [];
-        foreach ($collection->getItems() as $shipment) {
+        foreach ($this->finder->linkedTo($magentoShipmentIds) as $shipment) {
             $magentoShipmentId = (int)$shipment->getShipmentId();
             if ($holding[$magentoShipmentId] ?? false) {
                 continue;
             }
-            $holding[$magentoShipmentId] = \in_array($shipment->getState(), MagentoShipment::HOLDING_STATES, true);
+            $holding[$magentoShipmentId] = \in_array($shipment->getState(), ShipmentInterface::LIVE_STATES, true);
             $label = $shipment->getPolkurierNumber() ?? '#' . $shipment->getId();
             if ($shipment->getState() !== ShipmentInterface::STATE_CREATED) {
                 $label .= ' (' . ($states[$shipment->getState()] ?? $shipment->getState()) . ')';

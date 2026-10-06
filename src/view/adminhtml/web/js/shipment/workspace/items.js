@@ -70,7 +70,7 @@ define([
             // Including the shipping and handling, or not, is asking for both amounts again.
             if (this.wasIncluded !== null && Boolean(data.shipping_included) !== this.wasIncluded) {
                 this.wasIncluded = Boolean(data.shipping_included);
-            this.followCod(data);
+                this.followCod(data);
                 this.follow(true);
             }
             this.wasIncluded = Boolean(data.shipping_included);

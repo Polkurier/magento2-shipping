@@ -41,7 +41,7 @@ class SerializerProvider implements SerializerProviderInterface
                 0,
                 $this->directoryList->getPath(DirectoryList::CACHE) . '/' . self::CACHE_DIRECTORY,
             ),
-            timezone: new \DateTimeZone('Europe/Warsaw'),
+            timezone: PolkurierTime::zone(),
         ));
 
         return $this->inner->getSerializer();

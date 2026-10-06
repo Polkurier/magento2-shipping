@@ -13,6 +13,11 @@
     .draggable-handle {
         &:extend(.abs-draggable-handle all);
         padding: 0;
+
+        &:focus {
+            box-shadow: @focus__box-shadow;
+            outline: 0;
+        }
     }
 
     // Where the lifted row came from.

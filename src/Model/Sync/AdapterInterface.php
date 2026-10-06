@@ -8,7 +8,7 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Model\Sync;
 
 use Polkurier\Shipping\Api\Data\SyncableInterface;
-use Polkurier\Shipping\Api\SyncEntityEnum;
+use Polkurier\Shipping\Enum\SyncEntityEnum;
 use Polkurier\Webservice\Exception\Exception as PolkurierException;
 
 /**
@@ -51,6 +51,7 @@ interface AdapterInterface
      * whose link failed to be saved in Magento is recognised by it, instead of being sent again.
      *
      * @param SyncableInterface|array<string, mixed> $entry a local entry, or a normalized remote one
+     *
      * @return string|null null when nothing but the id tells entries apart
      */
     public function getNaturalKey(SyncableInterface|array $entry): ?string;

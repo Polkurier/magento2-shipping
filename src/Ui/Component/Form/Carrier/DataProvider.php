@@ -9,22 +9,21 @@ namespace Polkurier\Shipping\Ui\Component\Form\Carrier;
 
 use Magento\Framework\App\Request\DataPersistorInterface;
 use Magento\Framework\App\RequestInterface;
-use Magento\Framework\Api\Filter;
 use Magento\Store\Model\StoreManagerInterface;
-use Polkurier\Shipping\Model\Carrier\CarrierLogo;
-use Magento\Ui\DataProvider\AbstractDataProvider;
 use Polkurier\Shipping\Api\Data\CarrierConfigInterface;
 use Polkurier\Shipping\Api\Data\CarrierLabelInterface;
 use Polkurier\Shipping\Controller\Adminhtml\Carrier\Save;
+use Polkurier\Shipping\Model\Carrier\CarrierLogo;
 use Polkurier\Shipping\Model\Pricing\Fixed;
 use Polkurier\Shipping\Model\Pricing\Tiers;
 use Polkurier\Shipping\Model\ResourceModel\CarrierConfig\Collection;
 use Polkurier\Shipping\Model\ResourceModel\CarrierConfig\CollectionFactory;
+use Polkurier\Shipping\Ui\Component\Form\FormDataProvider;
 
 /**
  * A carrier's checkout settings, with its price_info spread into the form's price and tier rows.
  */
-class DataProvider extends AbstractDataProvider
+class DataProvider extends FormDataProvider
 {
     private Collection $carriers;
 
@@ -49,17 +48,7 @@ class DataProvider extends AbstractDataProvider
         $this->carriers = $this->collection;
     }
 
-    /**
-     * The form narrows by its own request parameter, not through the collection.
-     */
-    public function addFilter(Filter $filter): void
-    {
-    }
-
-    /**
-     * @return array<int, array<string, mixed>>
-     */
-    public function getData(): array
+    protected function load(): array
     {
         $id = (int)$this->request->getParam('id');
         $result = [];

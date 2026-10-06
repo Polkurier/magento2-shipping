@@ -9,18 +9,38 @@ namespace Polkurier\Shipping\Api\Data;
 
 /**
  * A Polkurier order placed for a Magento order.
+ *
+ * @api
  */
 interface ShipmentInterface
 {
-    /** Being sent, or its sending was interrupted before an answer arrived. */
+    /**
+     * Being sent, or its sending was interrupted before an answer arrived.
+     */
     public const string STATE_PENDING = 'pending';
-    /** Placed in Polkurier. */
+
+    /**
+     * Placed in Polkurier.
+     */
     public const string STATE_CREATED = 'created';
-    /** Sent, but no answer arrived: it may or may not exist in Polkurier. Reconcile before retrying. */
+
+    /**
+     * Sent, but no answer arrived: it may or may not exist in Polkurier. Reconcile before retrying.
+     */
     public const string STATE_UNKNOWN = 'unknown';
-    /** Refused, or confirmed absent after reconciliation; safe to send again. */
+
+    /**
+     * Refused, or confirmed absent after reconciliation; safe to send again.
+     */
     public const string STATE_FAILED = 'failed';
+
     public const string STATE_CANCELLED = 'cancelled';
+
+    /**
+     * Polkurier orders that are, or may be, live: an unconfirmed one may exist. They hold on to
+     * their Magento shipment and collect their cash on delivery; a cancelled or refused one doesn't.
+     */
+    public const array LIVE_STATES = [self::STATE_PENDING, self::STATE_CREATED, self::STATE_UNKNOWN];
 
     public const string ENTITY_ID = 'entity_id';
     public const string ORDER_ID = 'order_id';
@@ -60,6 +80,7 @@ interface ShipmentInterface
     public const string RESERVED_SHIPMENT_NUMBER = 'reserved_shipment_number';
     public const string SHIP_PACKAGES = 'ship_packages';
     public const string LAST_ERROR = 'last_error';
+    public const string ATTENTION_NOTIFIED_AT = 'attention_notified_at';
     public const string CREATED_AT = 'created_at';
     public const string UPDATED_AT = 'updated_at';
 
@@ -75,6 +96,7 @@ interface ShipmentInterface
 
     /**
      * @param int $orderId
+     *
      * @return $this
      */
     public function setOrderId(int $orderId): static;
@@ -86,6 +108,7 @@ interface ShipmentInterface
 
     /**
      * @param int|null $storeId
+     *
      * @return $this
      */
     public function setStoreId(?int $storeId): static;
@@ -97,6 +120,7 @@ interface ShipmentInterface
 
     /**
      * @param int|null $shipmentId
+     *
      * @return $this
      */
     public function setShipmentId(?int $shipmentId): static;
@@ -108,6 +132,7 @@ interface ShipmentInterface
 
     /**
      * @param string $state
+     *
      * @return $this
      */
     public function setState(string $state): static;
@@ -119,6 +144,7 @@ interface ShipmentInterface
 
     /**
      * @param string|null $polkurierNumber
+     *
      * @return $this
      */
     public function setPolkurierNumber(?string $polkurierNumber): static;
@@ -130,6 +156,7 @@ interface ShipmentInterface
 
     /**
      * @param string $carrierCode
+     *
      * @return $this
      */
     public function setCarrierCode(string $carrierCode): static;
@@ -141,6 +168,7 @@ interface ShipmentInterface
 
     /**
      * @param string $description
+     *
      * @return $this
      */
     public function setDescription(string $description): static;
@@ -152,6 +180,7 @@ interface ShipmentInterface
 
     /**
      * @param string|null $recipientPostcode
+     *
      * @return $this
      */
     public function setRecipientPostcode(?string $recipientPostcode): static;
@@ -163,6 +192,7 @@ interface ShipmentInterface
 
     /**
      * @param string|null $recipientPhone
+     *
      * @return $this
      */
     public function setRecipientPhone(?string $recipientPhone): static;
@@ -174,6 +204,7 @@ interface ShipmentInterface
 
     /**
      * @param int $packCount
+     *
      * @return $this
      */
     public function setPackCount(int $packCount): static;
@@ -185,6 +216,7 @@ interface ShipmentInterface
 
     /**
      * @param string[] $waybills
+     *
      * @return $this
      */
     public function setWaybills(array $waybills): static;
@@ -196,6 +228,7 @@ interface ShipmentInterface
 
     /**
      * @param string|null $statusCode
+     *
      * @return $this
      */
     public function setStatusCode(?string $statusCode): static;
@@ -207,6 +240,7 @@ interface ShipmentInterface
 
     /**
      * @param string|null $statusLabel
+     *
      * @return $this
      */
     public function setStatusLabel(?string $statusLabel): static;
@@ -218,6 +252,7 @@ interface ShipmentInterface
 
     /**
      * @param string|null $statusDate
+     *
      * @return $this
      */
     public function setStatusDate(?string $statusDate): static;
@@ -229,6 +264,7 @@ interface ShipmentInterface
 
     /**
      * @param string|null $deliveredAt
+     *
      * @return $this
      */
     public function setDeliveredAt(?string $deliveredAt): static;
@@ -240,6 +276,7 @@ interface ShipmentInterface
 
     /**
      * @param string|null $trackingUrl
+     *
      * @return $this
      */
     public function setTrackingUrl(?string $trackingUrl): static;
@@ -251,6 +288,7 @@ interface ShipmentInterface
 
     /**
      * @param float|null $priceNet
+     *
      * @return $this
      */
     public function setPriceNet(?float $priceNet): static;
@@ -262,6 +300,7 @@ interface ShipmentInterface
 
     /**
      * @param float|null $priceGross
+     *
      * @return $this
      */
     public function setPriceGross(?float $priceGross): static;
@@ -273,6 +312,7 @@ interface ShipmentInterface
 
     /**
      * @param float|null $insuranceAmount
+     *
      * @return $this
      */
     public function setInsuranceAmount(?float $insuranceAmount): static;
@@ -284,6 +324,7 @@ interface ShipmentInterface
 
     /**
      * @param float|null $codAmount
+     *
      * @return $this
      */
     public function setCodAmount(?float $codAmount): static;
@@ -295,6 +336,7 @@ interface ShipmentInterface
 
     /**
      * @param string|null $codStatus
+     *
      * @return $this
      */
     public function setCodStatus(?string $codStatus): static;
@@ -306,6 +348,7 @@ interface ShipmentInterface
 
     /**
      * @param bool $multiPickup
+     *
      * @return $this
      */
     public function setMultiPickup(bool $multiPickup): static;
@@ -317,6 +360,7 @@ interface ShipmentInterface
 
     /**
      * @param bool $pickupBooked
+     *
      * @return $this
      */
     public function setPickupBooked(bool $pickupBooked): static;
@@ -330,6 +374,7 @@ interface ShipmentInterface
 
     /**
      * @param bool $final
+     *
      * @return $this
      */
     public function setIsFinal(bool $final): static;
@@ -343,6 +388,7 @@ interface ShipmentInterface
 
     /**
      * @param string|null $statusCheckedAt
+     *
      * @return $this
      */
     public function setStatusCheckedAt(?string $statusCheckedAt): static;
@@ -354,6 +400,7 @@ interface ShipmentInterface
 
     /**
      * @param string|null $request
+     *
      * @return $this
      */
     public function setRequest(?string $request): static;
@@ -368,6 +415,7 @@ interface ShipmentInterface
 
     /**
      * @param array<string, mixed>|null $draft
+     *
      * @return $this
      */
     public function setDraft(?array $draft): static;
@@ -382,6 +430,7 @@ interface ShipmentInterface
 
     /**
      * @param array<string, mixed>|null $details
+     *
      * @return $this
      */
     public function setDetails(?array $details): static;
@@ -393,6 +442,7 @@ interface ShipmentInterface
 
     /**
      * @param string|null $syncedAt
+     *
      * @return $this
      */
     public function setDetailsSyncedAt(?string $syncedAt): static;
@@ -407,6 +457,7 @@ interface ShipmentInterface
 
     /**
      * @param array<int, array<string, string>>|null $tracking
+     *
      * @return $this
      */
     public function setTracking(?array $tracking): static;
@@ -418,6 +469,7 @@ interface ShipmentInterface
 
     /**
      * @param string|null $syncedAt
+     *
      * @return $this
      */
     public function setTrackingSyncedAt(?string $syncedAt): static;
@@ -432,6 +484,7 @@ interface ShipmentInterface
 
     /**
      * @param float[]|null $qtys by order item id
+     *
      * @return $this
      */
     public function setShipItems(?array $qtys): static;
@@ -446,6 +499,7 @@ interface ShipmentInterface
 
     /**
      * @param int|null $shipmentId
+     *
      * @return $this
      */
     public function setTargetShipmentId(?int $shipmentId): static;
@@ -460,6 +514,7 @@ interface ShipmentInterface
 
     /**
      * @param string|null $externalOrderId
+     *
      * @return $this
      */
     public function setExternalOrderId(?string $externalOrderId): static;
@@ -474,6 +529,7 @@ interface ShipmentInterface
 
     /**
      * @param string|null $number
+     *
      * @return $this
      */
     public function setReservedShipmentNumber(?string $number): static;
@@ -488,6 +544,7 @@ interface ShipmentInterface
 
     /**
      * @param mixed[]|null $packages
+     *
      * @return $this
      */
     public function setShipPackages(?array $packages): static;
@@ -499,9 +556,25 @@ interface ShipmentInterface
 
     /**
      * @param string|null $lastError
+     *
      * @return $this
      */
     public function setLastError(?string $lastError): static;
+
+    /**
+     * When the admin was told it needs someone (Model\Admin\AttentionNotifier); a new attempt
+     * clears it.
+     *
+     * @return string|null
+     */
+    public function getAttentionNotifiedAt(): ?string;
+
+    /**
+     * @param string|null $notifiedAt
+     *
+     * @return $this
+     */
+    public function setAttentionNotifiedAt(?string $notifiedAt): static;
 
     /**
      * @return string|null
@@ -510,7 +583,22 @@ interface ShipmentInterface
 
     /**
      * @param string|null $createdAt
+     *
      * @return $this
      */
     public function setCreatedAt(?string $createdAt): static;
+
+    /**
+     * When the row was last changed in Magento.
+     *
+     * @return string|null
+     */
+    public function getUpdatedAt(): ?string;
+
+    /**
+     * @param string|null $updatedAt
+     *
+     * @return $this
+     */
+    public function setUpdatedAt(?string $updatedAt): static;
 }

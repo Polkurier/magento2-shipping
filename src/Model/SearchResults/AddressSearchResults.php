@@ -10,6 +10,9 @@ namespace Polkurier\Shipping\Model\SearchResults;
 use Magento\Framework\Api\SearchResults;
 use Polkurier\Shipping\Api\Data\AddressSearchResultsInterface;
 
+/**
+ * The addresses found by search criteria.
+ */
 class AddressSearchResults extends SearchResults implements AddressSearchResultsInterface
 {
 }

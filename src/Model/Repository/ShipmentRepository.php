@@ -12,15 +12,18 @@ use Magento\Framework\Api\SearchCriteriaInterface;
 use Magento\Framework\Exception\CouldNotDeleteException;
 use Magento\Framework\Exception\CouldNotSaveException;
 use Magento\Framework\Exception\NoSuchEntityException;
-use Polkurier\Shipping\Api\ShipmentRepositoryInterface;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Api\Data\ShipmentSearchResultsInterface;
 use Polkurier\Shipping\Api\Data\ShipmentSearchResultsInterfaceFactory;
-use Polkurier\Shipping\Model\Shipment;
-use Polkurier\Shipping\Model\ShipmentFactory;
+use Polkurier\Shipping\Api\ShipmentRepositoryInterface;
 use Polkurier\Shipping\Model\ResourceModel\Shipment as ResourceModel;
 use Polkurier\Shipping\Model\ResourceModel\Shipment\CollectionFactory;
+use Polkurier\Shipping\Model\Shipment;
+use Polkurier\Shipping\Model\ShipmentFactory;
 
+/**
+ * Reads, lists, saves and deletes Polkurier shipments.
+ */
 readonly class ShipmentRepository implements ShipmentRepositoryInterface
 {
     public function __construct(

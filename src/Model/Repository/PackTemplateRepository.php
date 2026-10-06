@@ -12,15 +12,18 @@ use Magento\Framework\Api\SearchCriteriaInterface;
 use Magento\Framework\Exception\CouldNotDeleteException;
 use Magento\Framework\Exception\CouldNotSaveException;
 use Magento\Framework\Exception\NoSuchEntityException;
-use Polkurier\Shipping\Api\PackTemplateRepositoryInterface;
 use Polkurier\Shipping\Api\Data\PackTemplateInterface;
 use Polkurier\Shipping\Api\Data\PackTemplateSearchResultsInterface;
 use Polkurier\Shipping\Api\Data\PackTemplateSearchResultsInterfaceFactory;
+use Polkurier\Shipping\Api\PackTemplateRepositoryInterface;
 use Polkurier\Shipping\Model\PackTemplate;
 use Polkurier\Shipping\Model\PackTemplateFactory;
 use Polkurier\Shipping\Model\ResourceModel\PackTemplate as ResourceModel;
 use Polkurier\Shipping\Model\ResourceModel\PackTemplate\CollectionFactory;
 
+/**
+ * Reads, lists, saves and deletes pack templates.
+ */
 readonly class PackTemplateRepository implements PackTemplateRepositoryInterface
 {
     public function __construct(

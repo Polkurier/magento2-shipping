@@ -12,6 +12,7 @@ No pickup point chosen,Nie wybrano punktu odbioru
 The pickup point map could not be loaded. Try again later.,Nie udało się wczytać mapy punktów. Spróbuj ponownie później.
 Choose a pickup point for the selected delivery method.,Wybierz punkt odbioru dla wybranej metody dostawy.
 Polkurier,Polkurier
+"Carriers, pickup points and the map token read from Polkurier.","Przewoźnicy, punkty odbioru i token mapy pobrane z Polkuriera."
 Shipments,Przesyłki
 Create shipments,Nadawanie przesyłek
 Cancel shipments,Anulowanie przesyłek
@@ -36,19 +37,15 @@ Polkurier account,Konto Polkurier
 Customer ID,Numer klienta
 API token,Token API
 Sandbox,Sandbox
-Sends requests to the Polkurier sandbox. Contact api@polkurier.pl for sandbox access.,Wysyła zapytania do środowiska testowego Polkuriera. Dostęp do sandboxa: api@polkurier.pl.
 Test connection,Sprawdź połączenie
 Request timeout (seconds),Limit czasu zapytania (sekundy)
 Log all traffic of,Zapisuj cały ruch metod
 Successful requests and answers of these API methods are logged too.,Zapisywane są też udane zapytania i odpowiedzi tych metod API.
 Fall back to the shipping origin,W razie braku użyj adresu wysyłki sklepu
-"When no default sender is set in Polkurier > Settings > Addresses, send from the address in Sales > Shipping Settings > Origin.","Gdy w Polkurier > Ustawienia > Adresy nie ma domyślnego nadawcy, nadawaj z adresu w Sprzedaż > Ustawienia wysyłki > Pochodzenie."
 Sender e-mail with the store's addresses,E-mail nadawcy przy adresach sklepu
 Additional services selected by default,Usługi dodatkowe zaznaczone domyślnie
 Insure for the order total by default,Domyślnie ubezpieczaj na wartość zamówienia
-Carriers that require insurance with cash on delivery are always insured then.,Przesyłki przewoźników wymagających ubezpieczenia przy pobraniu są wtedy zawsze ubezpieczane.
 Cash on delivery payment methods,Metody płatności za pobraniem
-Orders paid with these are shipped with cash on delivery for the order total; they are hidden in checkout when the carrier or the pickup point cannot collect.,"Zamówienia opłacone tymi metodami są wysyłane z pobraniem na wartość zamówienia; w koszyku są ukrywane, gdy przewoźnik lub punkt nie przyjmuje pobrań."
 Cash on delivery payout time,Termin wypłaty pobrania
 Cash on delivery paid out to,Pobranie wypłacane na
 Shipment description,Opis przesyłki
@@ -63,7 +60,7 @@ Show the list of points,Pokaż listę punktów
 Show the search field,Pokaż pole wyszukiwania
 Show only points that,"Pokazuj tylko punkty, które"
 Synchronization,Synchronizacja
-Changes made in Magento are also sent as soon as they are saved.,Zmiany wprowadzone w Magento są też wysyłane od razu po zapisaniu.
+"Carriers daily; addresses, bank accounts and pack templates hourly.","Przewoźnicy raz dziennie; adresy, konta bankowe i szablony paczek co godzinę."
 Address,Adres
 Back,Wstecz
 Label,Nazwa
@@ -131,8 +128,6 @@ Polkurier orders,Zamówienia Polkurier
 "One number per line: the cash of these orders is paid out. Empty: everything available. Prefilled with the shipments whose cash is in the money box, as of their last status update.","Jeden numer w wierszu: wypłacone zostaną pobrania tych zamówień. Puste: wszystko, co dostępne. Wstępnie wypełnione przesyłkami, których pobrania są w skarbonce według ostatniej aktualizacji statusu."
 Payout by,Forma wypłaty
 Fee paid,Opłata pobierana
-Bank account number,Numer konta bankowego
-Confirmation token,Token potwierdzenia
 Confirmation code,Kod potwierdzenia
 Security PIN,PIN bezpieczeństwa
 Only if the money box settings are locked with a PIN.,Tylko jeśli ustawienia skarbonki są zablokowane PIN-em.
@@ -167,16 +162,19 @@ Cost,Koszt
 Update statuses,Aktualizuj statusy
 Book a collective pickup,Zamów odbiór zbiorczy
 Order,Zamówienie
+Collection,Odbiór
 Collective pickup,Odbiór zbiorczy
 Pickup booked,Odbiór zamówiony
 %1 deleted.,Usunięto: %1.
 %1 shipment(s) updated.,Zaktualizowano przesyłek: %1.
 %1: %2,%1: %2
+#%1: %2,#%1: %2
 -- Choose a carrier --,-- Wybierz przewoźnika --
 A Polkurier order for this order is being placed right now. Wait a moment and reload.,Zamówienie Polkurier dla tego zamówienia właśnie jest składane. Poczekaj chwilę i odśwież stronę.
 A courier collects them,Kurier odbiera od nadawcy
 Add at least one price tier.,Dodaj co najmniej jeden próg cenowy.
 An earlier Polkurier order for this order got no answer and may exist. Reconcile it in the Polkurier section of the order first.,Wcześniejsze zamówienie Polkurier dla tego zamówienia nie zostało potwierdzone i może istnieć. Najpierw je uzgodnij w sekcji Polkurier zamówienia.
+"Another request is updating this order's Polkurier shipments. Wait a moment and try again.",Inne żądanie właśnie zmienia przesyłki Polkurier tego zamówienia. Poczekaj chwilę i spróbuj ponownie.
 Awaiting collection,Czeka na pobranie
 Back to the order,Wróć do zamówienia
 Bank transfer,Przelew bankowy
@@ -221,7 +219,7 @@ Fragile,Ostrożnie
 Free,Bezpłatnie
 From the money box,Ze skarbonki
 From the prepaid balance,Z przedpłaty
-Give the collection date as YYYY-MM-DD and the window as HH:MM.,"Podaj datę odbioru jako RRRR-MM-DD, a godziny jako GG:MM."
+"Give the collection date as YYYY-MM-DD and the window as HH:MM, ending after it starts.","Podaj datę odbioru jako RRRR-MM-DD, a godziny jako GG:MM, z końcem po początku."
 I drop them off at a point,Nadaję w punkcie
 In sync,Zsynchronizowane
 In the money box,W skarbonce
@@ -307,6 +305,7 @@ The request to Polkurier could not be built: %1,Nie udało się przygotować zap
 The request was interrupted before an answer arrived.,Zapytanie zostało przerwane przed nadejściem odpowiedzi.
 "The shipment with id ""%1"" does not exist.",Przesyłka o id „%1” nie istnieje.
 This shipment has no Polkurier order to read.,Ta przesyłka nie ma zamówienia Polkurier do odczytania.
+This shipment is still waiting for Polkurier to answer. Try again in a few minutes.,Ta przesyłka wciąż czeka na odpowiedź Polkurier. Spróbuj ponownie za kilka minut.
 Tires,Opony
 Update status,Aktualizuj status
 View order,Pokaż zamówienie
@@ -317,8 +316,6 @@ Within 4 days,W ciągu 4 dni
 Yes,Tak
 not issued yet,jeszcze nie wystawione
 Polkurier did not accept the API credentials. Check the customer ID and API token in Stores > Configuration > Sales > Delivery Methods > Polkurier. (%1),Polkurier nie przyjął danych dostępowych API. Sprawdź numer klienta i token API w Sklepy > Konfiguracja > Sprzedaż > Metody dostawy > Polkurier. (%1)
-"Admin only: customers see just each delivery method's label, never this title.","Tylko w panelu: klienci widzą jedynie nazwę metody dostawy, nigdy ten tytuł."
-One Polkurier account serves every website and store view.,Jedno konto Polkurier obsługuje wszystkie strony i widoki sklepu.
 Print label,Drukuj etykietę
 Account name,Nazwa konta
 Template name,Nazwa szablonu
@@ -353,7 +350,6 @@ Not insured,Bez ubezpieczenia
 Leave empty for none.,"Zostaw puste, jeśli bez ubezpieczenia."
 This carrier offers no additional services.,Ten przewoźnik nie oferuje usług dodatkowych.
 Shipping labels on Magento's shipment page,Etykiety na stronie wysyłki Magento
-"For orders placed with these shipping methods, ""Create Shipping Label"" on Magento's New Shipment page places the order and stores its label with the shipment.",Dla zamówień z tymi metodami dostawy „Create Shipping Label” na stronie nowej wysyłki Magento składa zamówienie i zapisuje jego etykietę przy wysyłce.
 Polkurier shipment screen,Ekran przesyłki Polkurier
 The shipment to create a label for is missing.,Brak przesyłki do utworzenia etykiety.
 You are not allowed to place Polkurier orders.,Nie masz uprawnień do składania zamówień Polkurier.
@@ -391,12 +387,9 @@ Done,Gotowe
 Logo in checkout,Logo w koszyku
 "Shown next to the method name. JPG, PNG, GIF or WebP, about 60 × 30 pixels.","Wyświetlane obok nazwy metody. JPG, PNG, GIF lub WebP, ok. 60 × 30 pikseli."
 Logo,Logo
-"The logo could not be uploaded: %1","Nie udało się przesłać logo: %1"
 The logo could not be uploaded.,Nie udało się przesłać logo.
 Available carriers,Dostępni przewoźnicy
-"The carriers you work with. Only these appear under Polkurier > Settings > Carriers, in checkout and when shipping; the others keep their settings but stay out of sight. Nothing selected: all of the account's carriers. The list comes from the Polkurier account.","Przewoźnicy, z którymi pracujesz. Tylko oni pojawiają się w Polkurier > Ustawienia > Przewoźnicy, w koszyku i przy wysyłce; pozostali zachowują swoje ustawienia, ale są ukryci. Nic nie zaznaczone: wszyscy przewoźnicy z konta. Lista pochodzi z konta Polkurier."
 Fall back to the store's address,W razie braku użyj adresu sklepu
-"When no default sender is set in Polkurier > Settings > Addresses, send from the address in General > Store Information. Comes before the shipping origin.","Gdy w Polkurier > Ustawienia > Adresy nie ma domyślnego nadawcy, nadawaj z adresu w Ogólne > Informacje o sklepie. Ma pierwszeństwo przed adresem wysyłki."
 Province,Województwo
 Save and Continue Edit,Zapisz i kontynuuj edycję
 none,brak
@@ -515,7 +508,6 @@ The items could not be packed.,Nie udało się rozmieścić produktów.
 Add shipping dimensions to these products to pack them automatically: %1.,"Aby rozmieścić produkty automatycznie, podaj wymiary do wysyłki tych produktów: %1."
 Add a pack template with its size to pack the items automatically.,"Aby rozmieścić produkty automatycznie, dodaj szablon paczki z wymiarami."
 Packing margin (cm),Zapas przy pakowaniu (cm)
-"Added to every dimension of every product when items are packed into parcels automatically, in case products turn out a little bigger than their shipping dimensions say.","Dodawany do każdego wymiaru każdego produktu przy automatycznym rozmieszczaniu w paczkach, na wypadek gdyby produkty były nieco większe, niż mówią ich wymiary do wysyłki."
 "Packed automatically. Check the actual parcels' and items' sizes and weights before placing the order.","Spakowano automatycznie. Przed złożeniem zamówienia sprawdź rzeczywiste wymiary i wagę paczek oraz produktów."
 Messages from Polkurier about this carrier,Komunikaty Polkurier o tym przewoźniku
 Shipping method in checkout,Metoda dostawy w koszyku
@@ -535,28 +527,25 @@ Link to a Polkurier order,Powiąż z zamówieniem Polkurier
 Pack template weight limits,Limity wagi szablonów paczek
 Only warn about heavier parcels,Tylko ostrzegaj o cięższych paczkach
 "Keep parcels under them where possible","Utrzymuj paczki poniżej nich, gdy to możliwe"
-"What packing automatically does with the pack templates' Maximum weight. Keeping parcels under it may take more parcels; an item too heavy for every template is still packed, and the parcel pointed out.","Co automatyczne rozmieszczanie robi z „Maksymalną wagą” szablonów paczek. Utrzymywanie paczek poniżej niej może wymagać więcej paczek; produkt za ciężki dla każdego szablonu i tak trafia do paczki, a paczka zostaje wskazana."
 New shipments,Nowe przesyłki
 Labels and Magento shipments,Etykiety i wysyłki Magento
 Everything in this order is shipped already.,Wszystko z tego zamówienia jest już wysłane.
 Pack new shipments automatically,Automatycznie rozmieszczaj produkty nowych przesyłek w paczkach
-"Whether a new shipment starts with its items packed into your pack templates, on the Polkurier shipment screen and in Magento's packaging window. With No, it starts with one parcel of your default pack template, and Pack automatically still packs the items when asked.","Czy nowa przesyłka zaczyna się od produktów spakowanych w Twoje szablony paczek, na ekranie przesyłki Polkurier i w oknie pakowania Magento. Przy „Nie” zaczyna się od jednej paczki domyślnego szablonu, a „Rozmieść automatycznie” nadal rozmieszcza produkty na żądanie."
 "Order #%1 wasn't placed with a Polkurier delivery method, so it isn't shipped with Polkurier.","Zamówienie #%1 nie zostało złożone z metodą dostawy Polkurier, więc nie jest wysyłane przez Polkurier."
 "The carrier list could not be read, so what the carrier supports isn't checked here: %1","Nie udało się odczytać listy przewoźników, więc to, co obsługuje przewoźnik, nie jest tu sprawdzane: %1"
 %1 × %2 × %3 cm,%1 × %2 × %3 cm
 Parcel weight,Waga paczki
 What the products in it weigh,Waga produktów w paczce
 "The pack template's weight","Waga z szablonu paczki"
-"The weight a parcel of a pack template is priced and sent with. A parcel with a product that has no weight takes the template's weight either way, and a parcel without a template weighs what's in it. You can still change the weight of any parcel.","Waga, z jaką paczka z szablonu jest wyceniana i nadawana. Paczka z produktem bez wagi zawsze ma wagę z szablonu, a paczka bez szablonu waży tyle, co jej zawartość. Wagę każdej paczki nadal możesz zmienić."
 "Polkurier order %1 was cancelled in Polkurier.","Zamówienie Polkurier %1 zostało anulowane w Polkurierze."
 Drag to change the order,"Przeciągnij, aby zmienić kolejność"
+Move: Alt+Up or Alt+Down,Przesuń: Alt+strzałka w górę lub Alt+strzałka w dół
 The new order could not be saved.,Nie udało się zapisać nowej kolejności.
 Order of the carriers,Kolejność przewoźników
 None of these carriers exists any more. Reload the list.,Żaden z tych przewoźników już nie istnieje. Odśwież listę.
 "Enable / disable","Włącz / wyłącz"
 "%1 enabled, %2 disabled.","Włączono: %1, wyłączono: %2."
-"Adds a ""Ship with Polkurier"" button to the page of every order placed with one of these delivery methods.",Dodaje przycisk „Wyślij przez Polkurier” na stronie każdego zamówienia złożonego z jedną z tych metod dostawy.
-"Synchronize carriers, addresses, bank accounts and pack templates hourly","Synchronizuj co godzinę przewoźników, adresy, konta bankowe i szablony paczek"
+Synchronize with Polkurier on schedule,Synchronizuj z Polkurierem według harmonogramu
 Log failed requests,Zapisuj nieudane żądania
 Book the pickup,Zamów odbiór
 Collective pickup booked for: %1.,Zamówiono odbiór zbiorczy dla: %1.
@@ -610,10 +599,8 @@ Chosen by the customer,Wybór klienta
 "Shipping changed to what Polkurier order %1 went with: %2. The customer chose: %3.","Dostawę zmieniono na tę, z którą wysłano zamówienie Polkurier %1: %2. Klient wybrał: %3."
 "Shipping back to the customer's choice: %1.","Dostawa przywrócona do wyboru klienta: %1."
 "%1 shipment(s) updated, %2 not: see the Polkurier log.","Zaktualizowano przesyłki: %1, niezaktualizowane: %2 (szczegóły w logu Polkuriera)."
-Connect your Polkurier account in the configuration first.,Najpierw połącz konto Polkurier w konfiguracji.
 Update shipment statuses on schedule,Aktualizuj statusy przesyłek według harmonogramu
 Update shipment statuses,Aktualizuj statusy przesyłek
-"For shipments not yet delivered and settled. More often means more requests to Polkurier.","Dla przesyłek jeszcze niedostarczonych i nierozliczonych. Częściej oznacza więcej zapytań do Polkuriera."
 Every 10 minutes,Co 10 minut
 Every 15 minutes,Co 15 minut
 Every 20 minutes,Co 20 minut
@@ -639,9 +626,6 @@ Discard this shipment?,Odrzucić tę wysyłkę?
 "Polkurier order %1 cancelled. Its label and tracking numbers were removed; another Polkurier order can be placed on this shipment.","Anulowano zamówienie Polkurier %1. Usunięto jego etykietę i numery śledzenia; na tę wysyłkę można złożyć kolejne zamówienie Polkurier."
 "Polkurier order %1 was cancelled in Polkurier. Its label and tracking numbers were removed; another Polkurier order can be placed on this shipment.","Zamówienie Polkurier %1 anulowano w Polkurierze. Usunięto jego etykietę i numery śledzenia; na tę wysyłkę można złożyć kolejne zamówienie Polkurier."
 "Polkurier order %1 delivered (%2).","Zamówienie Polkurier %1 doręczone (%2)."
-Cash on delivery is more than the %1 left to collect.,Pobranie przekracza kwotę %1 pozostałą do pobrania.
-"With cash on delivery, this carrier needs the shipment insured for at least %1.",Przy pobraniu ten przewoźnik wymaga ubezpieczenia przesyłki na co najmniej %1.
-Choose when the courier collects the parcels.,Wybierz termin odbioru paczek przez kuriera.
 The Polkurier shipping label isn't ready,Etykieta Polkurier nie jest gotowa
 "Fix these in ""Polkurier shipping label"" first:","Najpierw popraw w sekcji „Etykieta Polkurier”:"
 "Polkurier: a shipment of order #%1 wasn't placed","Polkurier: wysyłka zamówienia #%1 nie została złożona"
@@ -660,7 +644,6 @@ No price,Brak ceny
 Any time that day,O dowolnej porze tego dnia
 "None: the sender address","Brak: adres nadawcy"
 "Another sender on the label by default","Domyślnie inny adres nadawcy na etykiecie"
-"The address printed on the label as the sender, for carriers that offer it. Only addresses marked ""Can be a cover address"" are listed.","Adres drukowany na etykiecie jako nadawca, u przewoźników, którzy to oferują. Na liście są tylko adresy oznaczone „Może być adresem zwrotnym”."
 "Choose the address to print on the label as the sender.","Wybierz adres, który ma być wydrukowany na etykiecie jako nadawca."
 "sender on the label: %1","adres nadawcy na etykiecie: %1"
 "This carrier does not offer ""%1"".","Ten przewoźnik nie oferuje usługi „%1”."
@@ -747,8 +730,8 @@ The account the money is transferred to.,"Konto, na które trafi przelew."
 Enter the bank account the payout is transferred to.,"Podaj konto bankowe, na które ma trafić wypłata."
 Free payouts left: %1 of %2.,Pozostało darmowych wypłat: %1 z %2.
 Payout fee,Opłata za wypłatę
-%1 PLN gross,%1 zł brutto
-(%1 PLN net),(%1 zł netto)
+%1 gross,%1 brutto
+(%1 net),(%1 netto)
 Working out the fee…,Obliczanie opłaty…
 Updating…,Aktualizowanie…
 Pallet 120 × 100,Paleta 120 × 100
@@ -760,27 +743,20 @@ EURO pallet 120 × 80,Paleta EURO 120 × 80
 Pallet 120 × 120,Paleta 120 × 120
 This carrier takes the parcels at a point: choose the drop-off point you hand them over at.,"Ten przewoźnik przyjmuje paczki w punkcie: wybierz punkt nadania, w którym je oddasz."
 Drop-off point,Punkt nadania
-"None: the courier collects them, or you choose the point when dropping them off",Brak: kurier je odbierze albo wybierzesz punkt przy nadaniu
+"None: you choose the point when dropping them off",Brak: wybierzesz punkt przy nadaniu
 drop-off point %1,punkt nadania %1
 "Where you hand the parcels over, for a carrier that takes them at points.","Gdzie oddajesz paczki, gdy przewoźnik przyjmuje je w punktach."
 Logging,Logi
-"Requests to Polkurier, in var/log/polkurier.log. Your API token, security PINs and confirmation codes are always hidden. The module's own warnings go there whatever these say.","Żądania do Polkurier, w var/log/polkurier.log. Token API, PIN-y bezpieczeństwa i kody potwierdzające są zawsze ukryte. Ostrzeżenia samego modułu trafiają tam niezależnie od tych ustawień."
 Log personal data,Zapisuj dane osobowe
-"Names, addresses, email addresses, phone numbers, tax numbers and bank account numbers are logged as they are. No: they are hidden.","Imiona i nazwiska, adresy, adresy e-mail, numery telefonów, NIP-y i numery kont bankowych są zapisywane bez zmian. Nie: są ukryte."
 Save files,Zapisuj pliki
-"Labels, protocols, invoices and attachments in logged requests and answers are saved, and the log says where. No: the log gives only their size. A label shows the recipient's name and address whatever ""Log personal data"" says.","Etykiety, protokoły, faktury i załączniki z zapisywanych żądań i odpowiedzi są zapisywane jako pliki, a log podaje, gdzie. Nie: log podaje tylko ich rozmiar. Etykieta pokazuje imię, nazwisko i adres odbiorcy niezależnie od ustawienia „Zapisuj dane osobowe”."
 Save files in,Zapisuj pliki w
-"Relative to Magento's root, or absolute, outside the pub directory. Empty: var/log/polkurier-files.","Względem katalogu głównego Magento albo bezwzględnie, poza katalogiem pub. Puste: var/log/polkurier-files."
-Keep saved files for (days),Przechowuj zapisane pliki (dni)
-"Older ones are deleted every night, also once files are no longer saved. 0: kept until you delete them.","Starsze są usuwane co noc, także gdy pliki nie są już zapisywane. 0: zostają, dopóki ich nie usuniesz."
 "Logged files can't be saved in the pub directory: anyone could download them. Choose a directory outside it.","Plików z logów nie można zapisywać w katalogu pub: każdy mógłby je pobrać. Wybierz katalog poza nim."
 Identify orders to Polkurier by,Identyfikuj zamówienia w Polkurier przez
-The Magento shipment's number,Numer przesyłki Magento
-The Magento order's number,Numer zamówienia Magento
-"Sent with each Polkurier order, with this installation's id, %1, so that an order whose answer was lost is found exactly. A new shipment's number is taken before the order is placed: a refused order leaves a gap in shipment numbers.","Wysyłany z każdym zamówieniem Polkurier, wraz z identyfikatorem tej instalacji, %1, by zamówienie, na które nie dotarła odpowiedź, dało się dokładnie odnaleźć. Numer nowej przesyłki jest pobierany przed złożeniem zamówienia: odrzucone zamówienie zostawia lukę w numeracji przesyłek."
+Shipment ID,ID przesyłki
+Order ID,ID zamówienia
 "Left out, as they don't await a collective pickup: %1.","Pominięte, bo nie czekają na zbiorczy odbiór: %1."
 The money box has nothing to pay out yet. No code was sent.,Skarbonka nie ma jeszcze nic do wypłaty. Kodu nie wysłano.
-Available to pay out: %1 PLN.,Do wypłaty: %1 zł.
+Available to pay out: %1.,Do wypłaty: %1.
 "Not in the money box as far as this shop knows: %1. Polkurier leaves out the orders it can't pay out, without saying so.","Według tego sklepu nie ma ich w skarbonce: %1. Polkurier pomija zamówienia, których nie może wypłacić, bez uprzedzenia."
 Point,Punkt
 Length,Długość
@@ -790,4 +766,37 @@ From,Od
 To,Do
 "Polkurier took parcel %1 as %2, not %3, and priced it as that.","Polkurier przyjął paczkę %1 jako: %2, nie: %3, i tak ją wycenił."
 Parcels go as,Przesyłki nadawane jako
-"What a new shipment's parcels are, and what automatic packing packs into, so that a shipment keeps to one kind: the pack templates of the kind, and for an item none of them takes, one of the item's own size. A carrier that doesn't take the kind gets the first it takes.","Rodzaj przesyłek nowej wysyłki, w które pakuje automatyczne pakowanie, tak by wysyłka była jednego rodzaju: szablony paczek tego rodzaju, a dla produktu, którego żaden nie mieści, paczka w jego rozmiarze. Przewoźnik, który nie przyjmuje tego rodzaju, dostaje pierwszy przyjmowany."
+"None of the selected shipments is placed in Polkurier any more. %1","Żadna z wybranych przesyłek nie jest już złożona w Polkurierze. %1"
+"Polkurier order %1 was left out: %2","Pominięto zamówienie Polkurier %1: %2"
+"Polkurier order %1 was left out: it was cancelled in Polkurier.","Pominięto zamówienie Polkurier %1: zostało anulowane w Polkurierze."
+Installation ID,Identyfikator instalacji
+"The installation ID can have up to %1 letters, digits, dots, dashes and underscores.","Identyfikator instalacji może mieć do %1 liter, cyfr, kropek, myślników i podkreślników."
+Shipping carrier,Przewoźnik
+"Leave empty. Change it only on a copy of this shop, such as a staging copy, that uses the same Polkurier account.","Pozostaw puste. Zmień tylko na kopii tego sklepu, np. testowej, która korzysta z tego samego konta Polkurier."
+Admin only. Customers see each carrier's own label.,Tylko w panelu. Klienci widzą nazwę przewoźnika.
+Polkurier's test environment. Ask api@polkurier.pl for access.,Środowisko testowe Polkuriera. Dostęp: api@polkurier.pl.
+The carriers you work with. Nothing selected: all of the account's carriers.,"Przewoźnicy, z którymi pracujesz. Nic nie zaznaczone: wszyscy przewoźnicy z konta."
+The kind of parcels new shipments start with.,"Rodzaj paczek, od którego zaczynają nowe przesyłki."
+"Printed on the label as the sender, for carriers that offer it.","Drukowany na etykiecie jako nadawca, u przewoźników, którzy to oferują."
+Shipments with cash on delivery are insured anyway where the carrier requires it.,"Przesyłki z pobraniem są i tak ubezpieczane, gdy przewoźnik tego wymaga."
+Used when no default sender address is set. Comes before the shipping origin.,"Używany, gdy nie ustawiono domyślnego adresu nadawcy. Ma pierwszeństwo przed adresem wysyłki."
+Used when no default sender address is set.,"Używany, gdy nie ustawiono domyślnego adresu nadawcy."
+The weight parcels made from pack templates are sent with.,"Waga, z jaką nadawane są paczki z szablonów."
+Pack the items into your pack templates when a shipment is started. No: one parcel of the default template.,Rozmieszczaj produkty w szablonach paczek przy rozpoczęciu przesyłki. Nie: jedna paczka domyślnego szablonu.
+Added to each product dimension when packing automatically.,Dodawany do każdego wymiaru produktu przy automatycznym rozmieszczaniu.
+How automatic packing treats the pack templates' maximum weight.,Jak automatyczne rozmieszczanie traktuje maksymalną wagę szablonów paczek.
+Orders paid with these are shipped with cash on delivery.,Zamówienia opłacone tymi metodami są wysyłane z pobraniem.
+"""Create Shipping Label"" on Magento's New Shipment page places the Polkurier order for these methods.",„Create Shipping Label” na stronie nowej wysyłki Magento składa zamówienie Polkurier dla tych metod.
+"Adds a ""Ship with Polkurier"" button to orders placed with these methods.",Dodaje przycisk „Wyślij przez Polkurier” do zamówień z tymi metodami.
+More often means more requests to Polkurier.,Częściej oznacza więcej zapytań do Polkuriera.
+Status webhook secret,Sekret webhooka statusów
+"In the Polkurier panel, add a webhook with the URL %1 and paste its secret here.","W panelu Polkurier dodaj webhook z adresem %1 i wklej tutaj jego sekret."
+"Logs go to var/log/polkurier, one file a month. Tokens, PINs and codes are always hidden.","Logi trafiają do var/log/polkurier, jeden plik na miesiąc. Tokeny, PIN-y i kody są zawsze ukryte."
+"No: names, addresses, phone numbers and bank accounts are hidden in the log.","Nie: imiona, adresy, telefony i konta bankowe są ukryte w logu."
+"Saves labels, protocols and other files from logged requests. No: only their size is logged.","Zapisuje etykiety, protokoły i inne pliki z logowanych zapytań. Nie: logowany jest tylko ich rozmiar."
+Empty: var/log/polkurier/files. Must be outside pub.,Puste: var/log/polkurier/files. Musi być poza pub.
+"A price tier can't have a negative price or threshold.","Próg cenowy nie może mieć ujemnej ceny ani progu."
+Cart value for price tiers,Wartość koszyka dla progów cenowych
+"What price tiers by subtotal compare, after discounts.","Z czym porównywane są progi cenowe według wartości koszyka, po rabatach."
+With tax,Z podatkiem
+Without tax,Bez podatku

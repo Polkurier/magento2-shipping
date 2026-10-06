@@ -25,7 +25,6 @@ define([
         initState: function () {
             this.carrierName = ko.observable('');
             this.contents = ko.observable('');
-            this.shipmentType = ko.observable('');
             this.price = ko.observable(null);
             this.quoting = ko.observable(false);
             this.unpriced = ko.observable(false);
@@ -52,7 +51,6 @@ define([
             // Marked once placing was tried, as everything else missing is.
             this.carrierMissing(!data.carrier_code && this.validated());
             this.contents(data.description || '');
-            this.shipmentType(this.choice('shipment_type', data.shipment_type));
             this.quoting(!!this.source.get('quoting'));
             this.price(quote ? {net: this.money(quote.net), gross: this.money(quote.gross)} : null);
             this.unpriced(!!(quotes && data.carrier_code && !quote));

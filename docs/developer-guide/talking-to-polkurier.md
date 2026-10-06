@@ -39,6 +39,7 @@ public function execute(): void
 | `moneyBox()` | cash on delivery balance and payouts |
 | `orders()` | placing, cancelling, labels, protocols, statuses, collective pickups |
 | `packTemplates()` | pack templates |
+| `system()` | service information, the carriers' current notices, coupon validation |
 | `twoFactorToken()` | sending two-factor codes |
 
 The methods take no store: every store uses the same account. `ClientPool::reset()` drops the
@@ -61,7 +62,7 @@ failure becomes a `LocalizedException` with the reason described.
 Placing an order is the one call where a failure may hide a success. When the request may have
 arrived but no answer came back (a timeout while waiting, a dropped connection), the answer can't
 be read, or Polkurier reports an unexpected failure of the kind that can follow a saved order,
-`placeOrder()` throws `Model\Sdk\PlacementUncertainException` instead, and the shipment is marked
+`placeOrder()` throws `Exception\PlacementUncertainException` instead, and the shipment is marked
 for reconciliation rather than failed. A refusal for a stated reason (the parcel's size, the
 carrier's terms, the account's funds) and a connection that failed before the request went out (no
 host, no connection, no TLS handshake, a timeout while connecting) fail the shipment at once, so it
@@ -70,8 +71,14 @@ delivery) uses the pool and handles the SDK's exceptions as below.
 
 ## Caching
 
-A few things change rarely and are needed often, so they're cached in Magento's cache, for the
-account:
+A few things change rarely and are needed often, so they're cached, for the account, in the
+module's own cache type, `polkurier` (`Model\Cache\Type`, declared in `etc/cache.xml`). It's a
+line of its own under **System > Cache Management**: switched off there, nothing is kept and
+everything is asked of Polkurier each time. Magento leaves a new cache type switched off, so
+`Setup\Patch\Data\EnableCacheTypePatch` switches it on when the module is installed. Each entry
+also carries the tag of its kind, `Enum\CacheTagEnum` (carriers, points, map token,
+notices, account answers, recent failures), and `Type::cleanTags()` removes one kind without the
+others:
 
 - `Model\Carrier\CarrierCatalog`: the account's carriers and what each supports. `getCarriers()`
   narrows them to the *Available carriers* of the configuration, and everything that offers
@@ -91,12 +98,26 @@ account:
 Every entry's key comes from `Model\Sdk\AccountCacheKey`: the account's customer ID and sandbox
 flag, so changing the credentials or switching to the sandbox never serves the old account's
 entries. The carrier list is also keyed by the SDK version, since a list cached by an earlier SDK
-may no longer fit its classes, and it's cleared when the credentials change.
+may no longer fit its classes. Saving the carrier settings (`Observer\CredentialsChangedObserver`)
+cleans every kind that belongs to the account (`CacheTagEnum::ofAccount()`): all but the points,
+which are the same whatever the account. A carrier refresh cleans the carriers, the notices and
+the recent failures.
 
 When the carrier list can't be fetched, the failure is kept for the rest of the request and for
-90 seconds in the cache, and reported as `Model\Sdk\RecentFailureException` without asking again.
+90 seconds in the cache, and reported as `Exception\RecentFailureException` without asking again.
 Checkout asks for the list several times per step, and would otherwise wait out the timeout each
 time.
+
+Pickup points (`CarrierCatalog::findPoint()`) are cached one by one as they're looked up, for a
+day (`POINT_LIFETIME`), since a point hardly ever moves or closes; an id with no point is
+remembered as long. Under their own tag, `CacheTagEnum::Points`, they
+outlast the daily carrier refresh. A point isn't asked for while the carrier
+list failed a moment ago, nor for 90 seconds after a point lookup Polkurier didn't answer
+(`ErrorMessages::isTransient()`); a refusal of one point doesn't hold up the next.
+
+On the storefront every request to Polkurier waits at most 5 seconds, whatever **Request timeout**
+says (`AccountConfigProvider`'s `maxTimeout`, set in `etc/frontend/di.xml`): a customer would
+rather go on without a check than wait. This includes the status webhook's reading of the order.
 
 ## What a carrier supports
 
@@ -119,7 +140,7 @@ by class where the difference matters:
 
 `Model\ErrorMessages::describe()` turns any of them into a message for the admin, including the
 fields a validation error is about. Service methods throw `LocalizedException` with that message,
-so controllers and REST callers only ever see Magento exceptions.
+so controllers and other callers only ever see Magento exceptions.
 
 `ErrorMessages::isTransient()` tells whether asking again, unchanged, may get another answer; the
 shipment screen offers **Try again** for prices and collection dates only then. It looks through

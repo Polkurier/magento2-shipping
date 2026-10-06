@@ -7,13 +7,10 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Model\Shipment;
 
-use Magento\Directory\Helper\Data as DirectoryHelper;
-use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Sales\Model\Order;
-use Magento\Store\Model\ScopeInterface;
 use Polkurier\Shipping\Api\Data\ShipmentDraftInterface;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
-use Polkurier\Shipping\Model\ResourceModel\Shipment\CollectionFactory;
+use Polkurier\Shipping\Model\StoreWeightUnit;
 
 /**
  * The amounts a shipment of an order starts from when the order ships in parts: how much cash on
@@ -21,20 +18,9 @@ use Polkurier\Shipping\Model\ResourceModel\Shipment\CollectionFactory;
  */
 readonly class OrderAmounts
 {
-    /**
-     * Polkurier orders that collect their cash on delivery, or may: an unconfirmed one may exist.
-     */
-    private const array COLLECTING_STATES = [
-        ShipmentInterface::STATE_PENDING,
-        ShipmentInterface::STATE_CREATED,
-        ShipmentInterface::STATE_UNKNOWN,
-    ];
-
-    private const float KG_PER_POUND = 0.45359237;
-
     public function __construct(
-        private CollectionFactory $shipmentCollectionFactory,
-        private ScopeConfigInterface $scopeConfig,
+        private ShipmentFinder $finder,
+        private StoreWeightUnit $weightUnit,
         private PlnAmounts $pln,
     ) {}
 
@@ -70,11 +56,8 @@ readonly class OrderAmounts
      */
     public function getCodCollected(Order $order): float
     {
-        $collection = $this->shipmentCollectionFactory->create()
-            ->addFieldToFilter(ShipmentInterface::ORDER_ID, ['eq' => (int)$order->getEntityId()])
-            ->addFieldToFilter(ShipmentInterface::STATE, ['in' => self::COLLECTING_STATES]);
         $collected = 0.0;
-        foreach ($collection->getItems() as $shipment) {
+        foreach ($this->finder->forOrder((int)$order->getEntityId(), ShipmentInterface::LIVE_STATES) as $shipment) {
             $collected += (float)$shipment->getCodAmount();
         }
 
@@ -87,10 +70,7 @@ readonly class OrderAmounts
      */
     public function isShippingCovered(Order $order): bool
     {
-        $collection = $this->shipmentCollectionFactory->create()
-            ->addFieldToFilter(ShipmentInterface::ORDER_ID, ['eq' => (int)$order->getEntityId()])
-            ->addFieldToFilter(ShipmentInterface::STATE, ['in' => self::COLLECTING_STATES]);
-        foreach ($collection->getItems() as $shipment) {
+        foreach ($this->finder->forOrder((int)$order->getEntityId(), ShipmentInterface::LIVE_STATES) as $shipment) {
             if (!empty($shipment->getDraft()[ShipmentDraftInterface::SHIPPING_INCLUDED])) {
                 return true;
             }
@@ -142,9 +122,7 @@ readonly class OrderAmounts
      */
     public function getItems(Order $order): array
     {
-        $perKg = $this->scopeConfig->getValue(DirectoryHelper::XML_PATH_WEIGHT_UNIT, ScopeInterface::SCOPE_STORE, $order->getStoreId()) === 'lbs'
-            ? self::KG_PER_POUND
-            : 1.0;
+        $perKg = $this->weightUnit->kilogramsPerUnit($order->getStoreId());
         $rate = $this->pln->getRate($order) ?? 0.0;
         $items = [];
         foreach ($order->getAllItems() as $item) {
@@ -193,6 +171,7 @@ readonly class OrderAmounts
      * @param array<int, float>|null $qtys quantities shipped by order item id, or null for
      *     everything the order still has to ship
      * @param bool $withShipping whether part of the order includes the shipping and handling
+     *
      * @return array{products: float, shipping: float, order_total: float, whole: bool, rest: bool, shipping_covered: bool, with_shipping: bool, value: float}
      *     rest: whether it carries all the order still has to ship; shipping_covered: whether
      *     another part includes the shipping and handling already

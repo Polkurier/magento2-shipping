@@ -10,7 +10,7 @@ namespace Polkurier\Shipping\Model\Sync\Adapter;
 use Polkurier\Shipping\Api\BankAccountRepositoryInterface;
 use Polkurier\Shipping\Api\Data\BankAccountInterface;
 use Polkurier\Shipping\Api\Data\SyncableInterface;
-use Polkurier\Shipping\Api\SyncEntityEnum;
+use Polkurier\Shipping\Enum\SyncEntityEnum;
 use Polkurier\Shipping\Model\BankAccountFactory;
 use Polkurier\Shipping\Model\Mapper\BankAccountMapper;
 use Polkurier\Shipping\Model\ResourceModel\BankAccount\CollectionFactory;

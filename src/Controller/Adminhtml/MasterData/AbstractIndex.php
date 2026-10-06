@@ -7,10 +7,13 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Controller\Adminhtml\MasterData;
 
+use Magento\Backend\Model\View\Result\Page;
 use Magento\Framework\App\Action\HttpGetActionInterface;
 use Magento\Framework\Controller\ResultFactory;
-use Magento\Backend\Model\View\Result\Page;
 
+/**
+ * The grid page of a master-data list.
+ */
 abstract class AbstractIndex extends AbstractAction implements HttpGetActionInterface
 {
     public function execute(): Page

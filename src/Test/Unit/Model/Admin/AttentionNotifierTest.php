@@ -17,6 +17,7 @@ use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Polkurier\Shipping\Model\Admin\AttentionNotifier;
+use Polkurier\Shipping\Model\ResourceModel\Shipment as ShipmentResource;
 use Polkurier\Shipping\Model\Shipment\NotPlaced;
 use Polkurier\Shipping\Test\Unit\Support\FixedDateTime;
 
@@ -85,12 +86,14 @@ class AttentionNotifierTest extends TestCase
             if ($table === 'adminnotification_inbox') {
                 self::assertSame(['is_read' => 1, 'is_remove' => 1], $data);
                 $this->log[] = 'withdrawn ' . \implode(',', \current($where));
-
-                return 1;
             }
-            $this->log[] = 'notified ' . \current($where);
 
             return 1;
+        });
+        $shipmentResource = $this->createStub(ShipmentResource::class);
+        $shipmentResource->method('updateColumns')->willReturnCallback(function (int $shipmentId, array $values): void {
+            self::assertSame(['attention_notified_at' => '2026-10-02 10:00:00'], $values);
+            $this->log[] = 'notified ' . $shipmentId;
         });
         $resource = $this->createStub(ResourceConnection::class);
         $resource->method('getConnection')->willReturn($connection);
@@ -111,6 +114,6 @@ class AttentionNotifierTest extends TestCase
         $notPlaced = $this->getMockBuilder(NotPlaced::class)->disableOriginalConstructor()->onlyMethods([])->getMock();
         (new \ReflectionProperty(NotPlaced::class, 'dateTime'))->setValue($notPlaced, $clock);
 
-        return new AttentionNotifier($resource, $notifier, $url, $timezone, $clock, $notPlaced);
+        return new AttentionNotifier($resource, $shipmentResource, $notifier, $url, $timezone, $clock, $notPlaced);
     }
 }

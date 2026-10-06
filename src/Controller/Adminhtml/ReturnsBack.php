@@ -28,8 +28,10 @@ trait ReturnsBack
     {
         $redirect = $this->resultRedirectFactory->create();
         $referer = (string)$this->_redirect->getRefererUrl();
-        // Magento's own fallback, for a missing or outside referer, is the site's base address.
-        $usable = $referer !== '' && \rtrim($referer, '/') !== \rtrim((string)$this->_url->getBaseUrl(), '/');
+        // Only an admin page: Magento's own fallback, for a missing or outside referer, is the site's
+        // base address, which with a custom admin URL is the storefront's.
+        $admin = \rtrim((string)$this->_backendUrl->getBaseUrl(), '/') . '/' . $this->_backendUrl->getAreaFrontName() . '/';
+        $usable = \str_starts_with($referer, $admin);
         foreach ($gone as $path) {
             $usable = $usable && !\str_contains($referer, $path);
         }

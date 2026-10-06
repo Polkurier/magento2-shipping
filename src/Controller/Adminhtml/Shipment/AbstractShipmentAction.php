@@ -68,5 +68,4 @@ abstract class AbstractShipmentAction extends Action
             ? $this->returnBack('sales/order/view', ['order_id' => $orderId], $gone)
             : $this->returnBack('polkurier/shipment/index', [], $gone);
     }
-
 }

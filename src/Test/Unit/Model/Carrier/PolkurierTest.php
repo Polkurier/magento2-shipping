@@ -8,7 +8,6 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Test\Unit\Model\Carrier;
 
 use Magento\Framework\App\Area;
-use Magento\Framework\App\CacheInterface;
 use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\App\State;
 use Magento\Framework\Encryption\EncryptorInterface;
@@ -25,6 +24,7 @@ use Magento\Store\Model\StoreManagerInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
 use Polkurier\Shipping\Api\Data\CarrierConfigInterface;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
+use Polkurier\Shipping\Model\Cache\Type as PolkurierCache;
 use Polkurier\Shipping\Model\Carrier\AvailableCarriers;
 use Polkurier\Shipping\Model\Carrier\CarrierCatalog;
 use Polkurier\Shipping\Model\Carrier\CarrierConfigs;
@@ -34,12 +34,14 @@ use Polkurier\Shipping\Model\Carrier\RateCollector;
 use Polkurier\Shipping\Model\Checkout\MapTokenProvider;
 use Polkurier\Shipping\Model\Config;
 use Polkurier\Shipping\Model\ErrorMessages;
+use Polkurier\Shipping\Model\Pricing\CartValue;
 use Polkurier\Shipping\Model\Pricing\Fixed;
 use Polkurier\Shipping\Model\Pricing\PriceCalculatorPool;
 use Polkurier\Shipping\Model\Pricing\Tiers;
 use Polkurier\Shipping\Model\Sdk\AccountCacheKey;
 use Polkurier\Shipping\Model\Shipment\NativeLabel;
 use Polkurier\Shipping\Model\Shipment\TrackingLookup;
+use Polkurier\Shipping\Model\StoreWeightUnit;
 use Polkurier\Shipping\Test\Unit\Support\SdkTestCase;
 use Polkurier\Webservice\Exception\ConnectionException;
 use Polkurier\Webservice\Testing\RecordingClient;
@@ -240,7 +242,7 @@ class PolkurierTest extends SdkTestCase
             'DPD' => $this->config('DPD', 'Kurier DPD', $this->dpdModel, ['tiers' => $this->dpdTiers]),
         ]);
 
-        $cache = $this->createStub(CacheInterface::class);
+        $cache = $this->createStub(PolkurierCache::class);
         $cache->method('load')->willReturn(false);
         $config = new Config($scopeConfig, $this->createStub(EncryptorInterface::class));
         $catalog = new CarrierCatalog(
@@ -282,10 +284,11 @@ class PolkurierTest extends SdkTestCase
                 'TIER_SUBTOTAL' => new Tiers(true, false),
                 'TIER_WEIGHT' => new Tiers(false, true),
             ]),
-            $scopeConfig,
+            new StoreWeightUnit($scopeConfig),
             new NullLogger(),
             $tokens,
             $appState,
+            new CartValue($config, $scopeConfig),
         );
 
         $statuses = $this->createStub(StatusFactory::class);

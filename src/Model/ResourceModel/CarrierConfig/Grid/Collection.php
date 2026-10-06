@@ -12,9 +12,9 @@ use Magento\Framework\Data\Collection\EntityFactoryInterface as EntityFactory;
 use Magento\Framework\Event\ManagerInterface as EventManager;
 use Magento\Framework\Serialize\Serializer\Json;
 use Magento\Framework\View\Element\UiComponent\DataProvider\SearchResult;
+use Polkurier\Shipping\Enum\PricingModelEnum;
 use Polkurier\Shipping\Model\Carrier\AvailableCarriers;
 use Polkurier\Shipping\Model\Pricing\Fixed;
-use Polkurier\Shipping\Model\Pricing\PricingModelEnum;
 use Psr\Log\LoggerInterface as Logger;
 
 /**
@@ -63,6 +63,7 @@ class Collection extends SearchResult
      *
      * @param mixed $field
      * @param mixed $direction
+     *
      * @return $this
      */
     public function setOrder($field, $direction = self::SORT_ORDER_DESC)

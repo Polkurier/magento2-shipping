@@ -25,8 +25,6 @@ use Polkurier\Shipping\Api\Data\ShipmentDraftInterface;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Model\Config;
 use Polkurier\Shipping\Model\Config\Source\PackType;
-use Polkurier\Shipping\Model\ResourceModel\Shipment\Collection;
-use Polkurier\Shipping\Model\ResourceModel\Shipment\CollectionFactory;
 use Polkurier\Shipping\Model\Shipment\DefaultDraftBuilder;
 use Polkurier\Shipping\Model\Shipment\Documents;
 use Polkurier\Shipping\Model\Shipment\Draft;
@@ -39,6 +37,7 @@ use Polkurier\Shipping\Model\Shipment\DraftHydrator;
 use Polkurier\Shipping\Model\Shipment\MagentoShipment;
 use Polkurier\Shipping\Model\Shipment\NativeLabel;
 use Polkurier\Shipping\Model\Shipment\Placing;
+use Polkurier\Shipping\Model\Shipment\ShipmentFinder;
 use Psr\Log\NullLogger;
 
 #[CoversClass(NativeLabel::class)]
@@ -49,7 +48,10 @@ class NativeLabelTest extends TestCase
 
     private Placing&MockObject $management;
     private Documents&MockObject $documents;
-    private Collection&MockObject $linked;
+    /**
+     * The Polkurier order the Magento shipment already has, if any.
+     */
+    private ?ShipmentInterface $linked = null;
     private ?ShipmentDraftInterface $placed = null;
     /**
      * @var array<string, mixed>|null
@@ -72,11 +74,6 @@ class NativeLabelTest extends TestCase
         );
         $this->documents = $this->createMock(Documents::class);
         $this->documents->method('getLabels')->willReturn(['content' => self::PDF, 'file_name' => 'x.pdf', 'content_type' => 'application/pdf']);
-        $this->linked = $this->createMock(Collection::class);
-        $this->linked->method('addFieldToFilter')->willReturnSelf();
-        $this->linked->method('setOrder')->willReturnSelf();
-        $this->linked->method('setPageSize')->willReturnSelf();
-        $this->linked->method('getFirstItem')->willReturn(new DataObject());
     }
 
     public function testPackagesCannotShipAnItemTwice(): void
@@ -147,11 +144,7 @@ class NativeLabelTest extends TestCase
 
     public function testAShipmentWithAPolkurierOrderGetsItsLabelWithoutPlacingAnother(): void
     {
-        $this->linked = $this->createMock(Collection::class);
-        $this->linked->method('addFieldToFilter')->willReturnSelf();
-        $this->linked->method('setOrder')->willReturnSelf();
-        $this->linked->method('setPageSize')->willReturnSelf();
-        $this->linked->method('getFirstItem')->willReturn($this->polkurierShipment(['WB-9']));
+        $this->linked = $this->polkurierShipment(['WB-9']);
         $this->management->expects(self::never())->method('forMagentoShipment');
 
         $answer = $this->label()->request($this->labelRequest($this->magentoShipment(31), []));
@@ -263,8 +256,8 @@ class NativeLabelTest extends TestCase
             return $default;
         });
 
-        $collections = $this->createStub(CollectionFactory::class);
-        $collections->method('create')->willReturnCallback(fn(): Collection => $this->linked);
+        $finder = $this->createStub(ShipmentFinder::class);
+        $finder->method('latestLinkedTo')->willReturnCallback(fn(): ?ShipmentInterface => $this->linked);
         $tracks = $this->createStub(TrackFactory::class);
         $tracks->method('create')->willReturnCallback(fn(): Track => $this->createStub(Track::class));
 
@@ -279,7 +272,7 @@ class NativeLabelTest extends TestCase
             new DraftHydrator($draftFactory, $packFactory, $this->createStub(ItemFactory::class)),
             $packFactory,
             new PackType(),
-            $collections,
+            $finder,
             $this->documents,
             $this->createStub(MagentoShipment::class),
             $tracks,

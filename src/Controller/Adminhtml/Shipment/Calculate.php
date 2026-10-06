@@ -7,12 +7,10 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Controller\Adminhtml\Shipment;
 
-use Magento\Backend\App\Action;
 use Magento\Backend\App\Action\Context;
-use Magento\Framework\App\Action\HttpPostActionInterface;
-use Magento\Framework\Controller\Result\Json;
 use Magento\Framework\Controller\Result\JsonFactory;
 use Magento\Framework\Exception\LocalizedException;
+use Polkurier\Shipping\Controller\Adminhtml\AbstractJsonAction;
 use Polkurier\Shipping\Model\ErrorMessages;
 use Polkurier\Shipping\Model\Shipment\CostEstimator;
 use Polkurier\Shipping\Model\Shipment\DraftHydrator;
@@ -22,46 +20,41 @@ use Polkurier\Shipping\Model\Shipment\OwnOrders;
  * What Polkurier would charge for the shipment as currently filled in: with the chosen carrier, and
  * with every other carrier that can take it, so the screen can compare them.
  */
-class Calculate extends Action implements HttpPostActionInterface
+class Calculate extends AbstractJsonAction
 {
     public const string ADMIN_RESOURCE = 'Polkurier_Shipping::shipment_create';
 
     public function __construct(
         Context $context,
-        private readonly JsonFactory $jsonFactory,
+        JsonFactory $jsonFactory,
         private readonly CostEstimator $costEstimator,
         private readonly DraftHydrator $hydrator,
         private readonly OwnOrders $ownOrders,
         private readonly ErrorMessages $errorMessages,
     ) {
-        parent::__construct($context);
+        parent::__construct($context, $jsonFactory);
     }
 
-    public function execute(): Json
+    protected function answer(): array
     {
-        $result = $this->jsonFactory->create();
         $data = (array)$this->getRequest()->getParam('data', []);
-        try {
-            $order = $this->ownOrders->get((int)($data['order_id'] ?? 0));
-            $draft = $this->hydrator->fromArray($data);
-            $quotes = $this->costEstimator->quoteAll($draft, (int)$order->getStoreId());
-        } catch (LocalizedException $e) {
-            return $result->setData([
-                'error' => true,
-                'message' => $e->getMessage(),
-                // Offered again only when that may help; a refusal waits for a change to the shipment.
-                'retry' => $this->errorMessages->isTransient($e),
-                'quotes' => (object)[],
-            ]);
-        }
+        $order = $this->ownOrders->get((int)($data['order_id'] ?? 0));
+        $draft = $this->hydrator->fromArray($data);
+        $quotes = $this->costEstimator->quoteAll($draft, (int)$order->getStoreId());
         $cost = $quotes[$draft->getCarrierCode()] ?? null;
 
-        return $result->setData([
+        return [
             'error' => $cost === null,
             'message' => $cost === null ? (string)\__('Service unavailable') : '',
             'net' => $cost['net'] ?? null,
             'gross' => $cost['gross'] ?? null,
             'quotes' => (object)$quotes,
-        ]);
+        ];
+    }
+
+    protected function refused(LocalizedException $e): array
+    {
+        // Offered again only when that may help; a refusal waits for a change to the shipment.
+        return ['retry' => $this->errorMessages->isTransient($e), 'quotes' => (object)[]];
     }
 }

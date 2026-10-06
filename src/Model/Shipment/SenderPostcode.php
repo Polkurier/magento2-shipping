@@ -27,6 +27,7 @@ readonly class SenderPostcode
     /**
      * @param array<string, mixed> $data the shipment as the screen has it: order_id,
      *        sender_address_id, new_sender_postcode
+     *
      * @throws LocalizedException when there's no postcode yet, or the order isn't one to ship
      */
     public function of(array $data): string

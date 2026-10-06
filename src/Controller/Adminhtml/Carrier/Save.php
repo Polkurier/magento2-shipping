@@ -14,6 +14,7 @@ use Magento\Framework\App\Request\DataPersistorInterface;
 use Magento\Framework\Controller\Result\Redirect;
 use Magento\Framework\Exception\LocalizedException;
 use Polkurier\Shipping\Api\CarrierConfigRepositoryInterface;
+use Polkurier\Shipping\Controller\Adminhtml\ReadsPostData;
 use Polkurier\Shipping\Model\Carrier\CarrierConfigHydrator;
 
 /**
@@ -21,6 +22,8 @@ use Polkurier\Shipping\Model\Carrier\CarrierConfigHydrator;
  */
 class Save extends Action implements HttpPostActionInterface
 {
+    use ReadsPostData;
+
     public const string ADMIN_RESOURCE = 'Polkurier_Shipping::carriers';
 
     /**
@@ -56,18 +59,8 @@ class Save extends Action implements HttpPostActionInterface
             return $redirect->setPath('*/*/edit', ['id' => $id]);
         }
 
-        return $this->getRequest()->getParam('back')
+        return $this->isSaveAndContinue()
             ? $redirect->setPath('*/*/edit', ['id' => $id])
             : $redirect->setPath('*/*/index');
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function getPostData(): array
-    {
-        $request = $this->getRequest();
-
-        return $request instanceof \Magento\Framework\App\Request\Http ? (array)$request->getPostValue() : [];
     }
 }

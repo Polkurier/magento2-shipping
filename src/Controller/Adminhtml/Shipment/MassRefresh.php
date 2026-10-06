@@ -21,6 +21,8 @@ use Polkurier\Shipping\Model\Shipment\RequestedShipments;
  */
 class MassRefresh extends AbstractShipmentAction implements HttpPostActionInterface
 {
+    public const string ADMIN_RESOURCE = 'Polkurier_Shipping::shipments';
+
     public function __construct(
         Context $context,
         RequestedShipments $requestedShipments,

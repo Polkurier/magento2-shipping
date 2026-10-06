@@ -214,7 +214,7 @@ define([
         if (config.existingShipment) {
             sendWithLabelRequest();
         } else {
-            $('<style/>').text('.order-totals-actions .field-create { display: none; }').appendTo('head');
+            $('body').addClass('polkurier-label-kept');
             keepLabel();
             new MutationObserver(keepLabel).observe(document.body, {childList: true, subtree: true});
             // Captured on the way down: before the button's own handler opens the packaging window.

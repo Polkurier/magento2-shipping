@@ -48,5 +48,18 @@ pickups (`DocumentsTest`, `PickupsTest`), the admin actions that place, pack and
 masking (`TokenRedactingProcessorTest`). The multi-address checkout's tests are in the bridge
 module, `polkurier/magento2-multishipping`.
 
+Around them: the checkout and order observers (cash on delivery per carrier, point and address,
+point validation and copying, the order's shipping following its Polkurier orders), the scheduled
+jobs, the carrier refresh, the status webhook (`StatusWebhookTest`: signature, matching, refusals),
+cancelling, refreshing and linking by hand (`CancellationTest`, `StatusRefreshTest`,
+`ReconciliationTest`), the grid columns and the admin buttons' scripts (`OnClickTest`), and two
+sweeps over the code itself: `ConfigTest` reads every setting and checks it against the scopes
+the configuration page offers, and `AdminActionsAclTest` checks every admin action declares its
+own ACL resource, one that exists.
+
+A few controller tests cover a group of actions rather than one class, named for what they share:
+`ShipmentActionsTest`, `FollowingShipmentsActionsTest`, `MasterDataActionsTest`,
+`RedirectingActionsTest` and `MasterDataAclTest`.
+
 When you extend the module, the same helpers work for your own tests: build the module's services
 with a `RecordingClient`-backed `ClientPool` and assert on the payload.

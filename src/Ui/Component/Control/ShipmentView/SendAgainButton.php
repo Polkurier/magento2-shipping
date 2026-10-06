@@ -9,10 +9,10 @@ namespace Polkurier\Shipping\Ui\Component\Control\ShipmentView;
 
 use Magento\Framework\App\RequestInterface;
 use Magento\Framework\AuthorizationInterface;
-use Magento\Framework\Serialize\Serializer\Json;
 use Magento\Framework\UrlInterface;
 use Polkurier\Shipping\Api\ShipmentRepositoryInterface;
 use Polkurier\Shipping\Model\Shipment\SendAgain;
+use Polkurier\Shipping\Ui\Component\Control\OnClick;
 
 /**
  * For a shipment that wasn't placed: the shipment screen, starting from it.
@@ -24,10 +24,10 @@ class SendAgainButton extends AbstractButton
         UrlInterface $url,
         AuthorizationInterface $authorization,
         ShipmentRepositoryInterface $shipmentRepository,
-        Json $json,
+        OnClick $onClick,
         private readonly SendAgain $sendAgain,
     ) {
-        parent::__construct($request, $url, $authorization, $shipmentRepository, $json);
+        parent::__construct($request, $url, $authorization, $shipmentRepository, $onClick);
     }
 
     /**
@@ -46,7 +46,7 @@ class SendAgainButton extends AbstractButton
         return [
             'label' => (string)\__('Send again'),
             'class' => 'primary',
-            'on_click' => \sprintf("setLocation('%s');", $this->sendAgain->getUrl((int)$shipment->getId(), $shipment->getOrderId())),
+            'on_click' => $this->onClick->location($this->sendAgain->getUrl((int)$shipment->getId(), $shipment->getOrderId())),
             'sort_order' => 30,
         ];
     }

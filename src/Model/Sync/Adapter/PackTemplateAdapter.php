@@ -7,20 +7,25 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Model\Sync\Adapter;
 
-use Polkurier\Shipping\Api\ApiEventEnum;
-use Polkurier\Shipping\Model\ApiEventDispatcher;
 use Polkurier\Shipping\Api\Data\PackTemplateInterface;
 use Polkurier\Shipping\Api\Data\SyncableInterface;
 use Polkurier\Shipping\Api\PackTemplateRepositoryInterface;
-use Polkurier\Shipping\Api\SyncEntityEnum;
+use Polkurier\Shipping\Enum\ApiEventEnum;
+use Polkurier\Shipping\Enum\SyncEntityEnum;
+use Polkurier\Shipping\Model\ApiEventDispatcher;
 use Polkurier\Shipping\Model\Mapper\PackTemplateMapper;
 use Polkurier\Shipping\Model\PackTemplateFactory;
 use Polkurier\Shipping\Model\ResourceModel\PackTemplate\CollectionFactory;
 use Polkurier\Shipping\Model\Sdk\ClientPool;
 use Polkurier\Shipping\Model\Sync\PushableAdapterInterface;
 
+/**
+ * Pack templates, between Magento and the Polkurier account.
+ */
 readonly class PackTemplateAdapter implements PushableAdapterInterface
 {
+    use MatchedByName;
+
     public function __construct(
         private ClientPool $clientPool,
         private PackTemplateMapper $mapper,
@@ -63,16 +68,6 @@ readonly class PackTemplateAdapter implements PushableAdapterInterface
         /** @var PackTemplateInterface $local */
         $this->mapper->apply($remote, $local);
     }
-
-    public function getNaturalKey(SyncableInterface|array $entry): ?string
-    {
-        /** @var PackTemplateInterface|array<string, mixed> $entry */
-        $value = \is_array($entry) ? (string)($entry['name'] ?? '') : $entry->getName();
-        $key = (string)\mb_strtolower(\trim($value));
-
-        return $key !== '' ? $key : null;
-    }
-
 
     public function push(SyncableInterface $local): array
     {

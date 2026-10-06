@@ -27,12 +27,15 @@ every installation starts clean. Add one only for a change after the first relea
 | `polkurier_pack_template` | pack templates, with their sync state |
 | `polkurier_quote_point` | the pickup point chosen for a quote address |
 | `polkurier_order_point` | the pickup point of an order |
+| `polkurier_order_shipping_choice` | the shipping the customer chose, kept while the order shows the carrier it actually went with |
 | `polkurier_shipment` | Polkurier shipments of Magento orders |
 
-Each table has its own model and resource model, except `polkurier_carrier_label`: the carrier
-config's resource model loads and saves those rows along with the carrier, and its collection
-attaches them after loading. The entities exposed as service contracts also have a repository (see
-[Service contracts and REST](rest-api.md)).
+Each table has its own model and resource model, except two: `polkurier_carrier_label`, whose rows
+the carrier config's resource model loads and saves along with the carrier (its collection
+attaches them after loading), and `polkurier_order_shipping_choice`, which
+`Model\ShippingChoiceStore` reads and writes directly (see
+[The order's shipping](shipments.md#the-orders-shipping)). The entities exposed as service contracts also have a repository (see
+[Service contracts](service-contracts.md)).
 
 ## Carrier settings
 
@@ -45,7 +48,7 @@ attaches them after loading. The entities exposed as service contracts also have
 - `available` says whether the account still offers the carrier. A carrier that disappears from
   the account keeps its row, with `available = 0`, so its settings survive; the carriers grid
   and checkout leave it out.
-- `pricing_model` is one of `Model\Pricing\PricingModelEnum`; `price_info` holds the model's
+- `pricing_model` is one of `Enum\PricingModelEnum`; `price_info` holds the model's
   settings as JSON (a price, or a list of tiers).
 
 ## Synced entities
@@ -75,8 +78,10 @@ accepts cash on delivery.
 
 ## Shipments
 
-`polkurier_shipment` has one row per attempt to place a Polkurier order for a Magento order,
-including failed ones.
+`polkurier_shipment` has one row per Polkurier order of a Magento order, whatever became of it
+(`pending`, `unknown`, `created`, `cancelled`), plus at most one `failed` row per order: the shipment
+that couldn't be placed, which the order's next attempt reuses rather than adding a row (see
+[Placing](shipments.md#placing)). A refusal of the request as it stands leaves no row.
 
 | Column | |
 |---|---|
@@ -92,6 +97,8 @@ including failed ones.
 | `insurance_amount`, `cod_amount`, `cod_status` | insurance and cash on delivery |
 | `multi_pickup`, `pickup_booked` | placed for a collective pickup, and whether it's booked |
 | `is_final`, `status_checked_at` | whether the shipment is finished, and when its status was last checked |
+| `attention_notified_at` | when the admin was told about this shipment needing attention (see `Model\Admin\AttentionNotifier`); cleared by a new attempt |
+| `draft` | the shipment as it was filled in (JSON, see `Model\Shipment\DraftHydrator`): what sending it again starts from |
 | `request` | the serialized request as sent, without credentials |
 | `details`, `details_synced_at` | the local copy of the order as Polkurier reports it (JSON, see `Model\Shipment\OrderDetails`), and when it was read |
 | `ship_items` | the quantities the Magento shipment carries, by order item id (JSON); empty for everything left |

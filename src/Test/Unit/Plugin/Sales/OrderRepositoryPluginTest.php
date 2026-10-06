@@ -16,10 +16,10 @@ use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Polkurier\Shipping\Api\Data\OrderPointInterface;
-use Polkurier\Shipping\Model\OrderPointStore;
-use Polkurier\Shipping\Plugin\Sales\OrderRepositoryPlugin;
 use Polkurier\Shipping\Api\Data\ShippingChoiceInterface;
+use Polkurier\Shipping\Model\OrderPointStore;
 use Polkurier\Shipping\Model\ShippingChoiceStore;
+use Polkurier\Shipping\Plugin\Sales\OrderRepositoryPlugin;
 use Polkurier\Shipping\Test\Unit\Support\OrderExtensionWithPoint;
 
 #[CoversClass(OrderRepositoryPlugin::class)]

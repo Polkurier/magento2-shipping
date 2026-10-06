@@ -31,6 +31,7 @@ readonly class OrderViewPlugin
 
     /**
      * @param mixed $layout
+     *
      * @return array{0: mixed}
      */
     public function beforeSetLayout(View $subject, $layout): array

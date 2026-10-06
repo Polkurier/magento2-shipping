@@ -9,6 +9,8 @@ namespace Polkurier\Shipping\Api\Data\ShipmentDraft;
 
 /**
  * One parcel of a shipment draft.
+ *
+ * @api
  */
 interface PackInterface
 {
@@ -20,6 +22,7 @@ interface PackInterface
     public const string WEIGHT = 'weight';
     public const string AMOUNT = 'amount';
     public const string ITEMS = 'items';
+
     /**
      * The name to save a parcel without a template under as a pack template once the shipment is
      * placed; empty to save nothing.
@@ -33,6 +36,7 @@ interface PackInterface
 
     /**
      * @param int|null $templateId
+     *
      * @return $this
      */
     public function setTemplateId(?int $templateId): static;
@@ -44,6 +48,7 @@ interface PackInterface
 
     /**
      * @param string $packType
+     *
      * @return $this
      */
     public function setPackType(string $packType): static;
@@ -55,6 +60,7 @@ interface PackInterface
 
     /**
      * @param int $length
+     *
      * @return $this
      */
     public function setLength(int $length): static;
@@ -66,6 +72,7 @@ interface PackInterface
 
     /**
      * @param int $width
+     *
      * @return $this
      */
     public function setWidth(int $width): static;
@@ -77,6 +84,7 @@ interface PackInterface
 
     /**
      * @param int $height
+     *
      * @return $this
      */
     public function setHeight(int $height): static;
@@ -88,6 +96,7 @@ interface PackInterface
 
     /**
      * @param float $weight
+     *
      * @return $this
      */
     public function setWeight(float $weight): static;
@@ -99,6 +108,7 @@ interface PackInterface
 
     /**
      * @param int $amount
+     *
      * @return $this
      */
     public function setAmount(int $amount): static;
@@ -112,6 +122,7 @@ interface PackInterface
 
     /**
      * @param \Polkurier\Shipping\Api\Data\ShipmentDraft\ItemInterface[] $items
+     *
      * @return $this
      */
     public function setItems(array $items): static;

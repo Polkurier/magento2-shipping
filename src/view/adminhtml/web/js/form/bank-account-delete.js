@@ -20,9 +20,10 @@ define([
      * @param {String} message
      * @param {String} url
      * @param {Number} id
+     * @param {String} sourceName the form's data source, which says whether a PIN is needed
      */
-    return function (message, url, id) {
-        const source = registry.get('polkurier_bank_account_form.polkurier_bank_account_form_data_source'),
+    return function (message, url, id, sourceName) {
+        const source = registry.get(sourceName),
             post = function (pin) {
                 $.mage.dataPost().postData({
                     action: url,

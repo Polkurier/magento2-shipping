@@ -25,10 +25,6 @@ define(['mage/translate', 'Polkurier_Shipping/js/shipment/workspace/rules'], fun
             closedPoint = config.point && config.point.closed ? config.point.id : '';
 
         /**
-         * @param {String} choice the select whose "new" shows the fields
-         * @returns {Function} whether the field shows in the group's fields
-         */
-        /**
          * @returns {String} whether the carrier takes the parcels at a point: NONE, OPTIONAL or REQUIRED
          */
         function senderPoint() {
@@ -37,6 +33,20 @@ define(['mage/translate', 'Polkurier_Shipping/js/shipment/workspace/rules'], fun
             return c && c.sender_point ? c.sender_point : 'NONE';
         }
 
+        /**
+         * @param {String} mode how the parcels get to the carrier
+         * @returns {Boolean} whether the drop-off point counts
+         */
+        function senderPointUsed(mode) {
+            const c = carrier();
+
+            return rules.senderPointUsed(senderPoint(), c ? c.drop_off : true, mode);
+        }
+
+        /**
+         * @param {String} choice the select whose "new" shows the fields
+         * @returns {Function} whether the field shows in the group's fields
+         */
         function typingIn(choice) {
             return function (form) {
                 return form.find('[name=' + choice + ']').val() === 'new';
@@ -86,6 +96,20 @@ define(['mage/translate', 'Polkurier_Shipping/js/shipment/workspace/rules'], fun
             });
         }
 
+        /**
+         * The bank account only for cash on delivery paid out to one.
+         *
+         * @param {jQuery} form the group's fields, as edited
+         * @returns {Boolean}
+         */
+        function toBankAccount(form) {
+            return form.find('[name=cod_return_type]').val() === 'BA';
+        }
+
+        function bankAccountTypedIn(form) {
+            return toBankAccount(form) && typingIn('cod_bank_account_id')(form);
+        }
+
         if (config.point && config.point.id && config.point.label) {
             pointLabels[config.point.id] = config.point.label;
         }
@@ -108,13 +132,7 @@ define(['mage/translate', 'Polkurier_Shipping/js/shipment/workspace/rules'], fun
             {
                 title: $t('Carrier'),
                 warning: function () {
-                    if (filled(values.carrier_code) && !filled(config.carriersError) && !carrier()) {
-                        return $t('This carrier is no longer available: choose another.');
-                    }
-
-                    return filled(config.carriersError)
-                        ? $t('The carrier list could not be read, so what the carrier supports isn\'t checked here: %1').replace('%1', config.carriersError)
-                        : '';
+                    return state.issues(['carrier_code']);
                 },
                 summary: function () {
                     return label('carrier_code', values.carrier_code) || $t('Not chosen');
@@ -135,22 +153,11 @@ define(['mage/translate', 'Polkurier_Shipping/js/shipment/workspace/rules'], fun
             {
                 title: $t('Sender'),
                 warning: function () {
-                    if (senderPoint() === 'REQUIRED' && !filled(values.sender_point_id)) {
-                        return $t('This carrier takes the parcels at a point: choose the drop-off point you hand them over at.');
-                    }
-
-                    return values.sender_address_id === 'new' && rules.newSenderLacking(values).length
-                        ? $t('Fill in the sender\'s %1.').replace('%1', rules.newSenderLacking(values).join(', '))
-                        : '';
+                    return state.issues(['sender_address_id']);
                 },
                 summary: function () {
-                    // Handed over at a point, for a carrier that takes parcels at points.
-                    const point = senderPoint() !== 'NONE' && filled(values.sender_point_id)
-                        ? ' · ' + $t('drop-off point %1').replace('%1', values.sender_point_id)
-                        : '';
-
                     if (values.sender_address_id !== 'new') {
-                        return label('sender_address_id', values.sender_address_id || '') + point;
+                        return label('sender_address_id', values.sender_address_id || '');
                     }
                     const number = [values.new_sender_house_number, values.new_sender_flat_number].filter(filled).join('/'),
                         address = [
@@ -162,21 +169,10 @@ define(['mage/translate', 'Polkurier_Shipping/js/shipment/workspace/rules'], fun
                     return [
                         address || $t('A new address'),
                         kept('keep_new_sender') ? $t('saved to your addresses once placed') : $t('for this shipment only')
-                    ].join(' · ') + point;
+                    ].join(' · ');
                 },
                 fields: [
-                    {name: 'sender_address_id', label: $t('Sender'), type: 'select'},
-                    {
-                        name: 'sender_point_id',
-                        label: $t('Drop-off point'),
-                        type: 'text',
-                        map: true,
-                        mapSearch: state.senderPostcode,
-                        visible: function () {
-                            return senderPoint() !== 'NONE';
-                        },
-                        note: $t('Where you hand the parcels over, for a carrier that takes them at points.')
-                    }
+                    {name: 'sender_address_id', label: $t('Sender'), type: 'select'}
                 ].concat(newSenderFields(), [
                     {name: 'keep_new_sender', label: $t('Save to your addresses for later shipments'), type: 'checkbox', shownFor: typingIn('sender_address_id')},
                     {
@@ -191,14 +187,7 @@ define(['mage/translate', 'Polkurier_Shipping/js/shipment/workspace/rules'], fun
             {
                 title: $t('Handover'),
                 warning: function () {
-                    const c = carrier();
-
-                    return c && values.pickup_mode === 'courier' && (
-                        (c.pickup_date_required && !filled(values.pickup_date))
-                        || (c.pickup_time_required && !(filled(values.pickup_time_from) && filled(values.pickup_time_to)))
-                    )
-                        ? $t('Choose when the courier collects the parcels.')
-                        : '';
+                    return state.issues(['pickup_mode', 'pickup_date', 'pickup_time_from', 'sender_point_id']);
                 },
                 summary: function () {
                     let text = label('pickup_mode', values.pickup_mode);
@@ -210,6 +199,10 @@ define(['mage/translate', 'Polkurier_Shipping/js/shipment/workspace/rules'], fun
                         }
                     } else if (values.pickup_mode === 'courier' && carrier() && carrier().pickup_date_required) {
                         text += ', ' + $t('collection date required');
+                    }
+                    // Handed over at a point, for a carrier that takes parcels at points.
+                    if (senderPointUsed(values.pickup_mode) && filled(values.sender_point_id)) {
+                        text += ' · ' + $t('drop-off point %1').replace('%1', values.sender_point_id);
                     }
 
                     return text;
@@ -224,7 +217,21 @@ define(['mage/translate', 'Polkurier_Shipping/js/shipment/workspace/rules'], fun
                         }
                     },
                     // The dates and windows Polkurier offers for the carrier.
-                    {name: 'pickup_slot', label: $t('Collection date'), type: 'pickup', visible: pickupDateVisible, shownFor: courierPickup}
+                    {name: 'pickup_slot', label: $t('Collection date'), type: 'pickup', visible: pickupDateVisible, shownFor: courierPickup},
+                    {
+                        name: 'sender_point_id',
+                        label: $t('Drop-off point'),
+                        type: 'text',
+                        map: true,
+                        mapSearch: state.senderPostcode,
+                        visible: function () {
+                            return senderPoint() !== 'NONE';
+                        },
+                        shownFor: function (form) {
+                            return senderPointUsed(form.find('[name=pickup_mode]').val());
+                        },
+                        note: $t('Where you hand the parcels over, for a carrier that takes them at points.')
+                    }
                 ]
             },
             {
@@ -233,13 +240,7 @@ define(['mage/translate', 'Polkurier_Shipping/js/shipment/workspace/rules'], fun
                     return carrier() && carrier().point !== 'NONE';
                 },
                 warning: function () {
-                    if (carrier() && carrier().point === 'REQUIRED' && !filled(values.recipient_point_id)) {
-                        return $t('This carrier delivers to pickup points only: choose one.');
-                    }
-
-                    return filled(values.recipient_point_id) && values.recipient_point_id === closedPoint
-                        ? $t('Pickup point %1 is closed or no longer exists: choose another.').replace('%1', values.recipient_point_id)
-                        : '';
+                    return state.issues(['recipient_point_id']);
                 },
                 summary: function () {
                     const id = values.recipient_point_id;
@@ -262,14 +263,7 @@ define(['mage/translate', 'Polkurier_Shipping/js/shipment/workspace/rules'], fun
                     return carrier() && carrier().cod;
                 },
                 warning: function () {
-                    if (state.codTooHigh()) {
-                        return $t('Cash on delivery is more than the %1 left to collect.').replace('%1', money(config.codRemaining));
-                    }
-
-                    return filled(values.cod_amount) && values.cod_return_type === 'BA' && values.cod_bank_account_id === 'new'
-                        && !filled(values.new_bank_account_number)
-                        ? $t('Enter the number of the bank account the cash on delivery is paid out to.')
-                        : '';
+                    return state.issues(['cod_amount', 'cod_bank_account_id', 'new_bank_account_number']);
                 },
                 summary: function () {
                     if (!filled(values.cod_amount)) {
@@ -279,7 +273,8 @@ define(['mage/translate', 'Polkurier_Shipping/js/shipment/workspace/rules'], fun
                     return [
                         money(values.cod_amount),
                         label('cod_type', values.cod_type),
-                        values.cod_bank_account_id === 'new'
+                        values.cod_return_type !== 'BA' ? label('cod_return_type', values.cod_return_type) : '',
+                        values.cod_return_type !== 'BA' ? '' : values.cod_bank_account_id === 'new'
                             ? [values.new_bank_account_number || $t('A new bank account'),
                                 kept('keep_new_bank_account') ? $t('saved to your bank accounts once placed') : ''].filter(filled).join(', ')
                             : label('cod_bank_account_id', values.cod_bank_account_id),
@@ -292,15 +287,22 @@ define(['mage/translate', 'Polkurier_Shipping/js/shipment/workspace/rules'], fun
                     {name: 'cod_amount', label: $t('Amount to collect'), type: 'number', note: state.codNote},
                     {name: 'cod_type', label: $t('Payout time'), type: 'select'},
                     {name: 'cod_return_type', label: $t('Paid out to'), type: 'select'},
-                    {name: 'cod_bank_account_id', label: $t('Bank account'), type: 'select'},
-                    {name: 'new_bank_account_number', label: $t('Account number'), type: 'text', shownFor: typingIn('cod_bank_account_id')},
-                    {name: 'keep_new_bank_account', label: $t('Save to your bank accounts for later shipments'), type: 'checkbox', shownFor: typingIn('cod_bank_account_id')},
+                    {name: 'cod_bank_account_id', label: $t('Bank account'), type: 'select', shownFor: toBankAccount},
+                    {name: 'new_bank_account_number', label: $t('Account number'), type: 'text', shownFor: bankAccountTypedIn},
+                    {
+                        name: 'keep_new_bank_account',
+                        label: $t('Save to your bank accounts for later shipments'),
+                        type: 'checkbox',
+                        shownFor: bankAccountTypedIn
+                    },
                     {
                         name: 'new_bank_account_name',
                         label: $t('Saved as'),
                         type: 'text',
                         note: $t('If left empty: "Account ending" and its last four digits. Saved once the shipment is placed; Polkurier takes it once you confirm it with the code or your security PIN.'),
-                        shownFor: keeping('cod_bank_account_id', 'keep_new_bank_account')
+                        shownFor: function (form) {
+                            return toBankAccount(form) && keeping('cod_bank_account_id', 'keep_new_bank_account')(form);
+                        }
                     }
                 ]
             },
@@ -310,9 +312,7 @@ define(['mage/translate', 'Polkurier_Shipping/js/shipment/workspace/rules'], fun
                     return carrier() && carrier().insurance;
                 },
                 warning: function () {
-                    return state.insuranceTooLow()
-                        ? $t('With cash on delivery, this carrier needs the shipment insured for at least %1.').replace('%1', money(values.cod_amount))
-                        : '';
+                    return state.issues(['insurance_amount']);
                 },
                 summary: function () {
                     return filled(values.insurance_amount)
@@ -331,11 +331,7 @@ define(['mage/translate', 'Polkurier_Shipping/js/shipment/workspace/rules'], fun
             {
                 title: $t('Additional services'),
                 warning: function () {
-                    return carrier() ? rules.servicesLacking(values, carrier().services).map(function (service) {
-                        return $t('This carrier does not offer "%1".').replace('%1', service === 'COVER_ADDRESS_SENDER'
-                            ? $t('Another sender on the label')
-                            : label('services', service) || service);
-                    }) : [];
+                    return state.issues(['services']);
                 },
                 summary: function () {
                     const parts = [];

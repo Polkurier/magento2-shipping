@@ -16,10 +16,9 @@ use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
-use Polkurier\Shipping\Model\ResourceModel\Shipment\Collection;
-use Polkurier\Shipping\Model\ResourceModel\Shipment\CollectionFactory;
 use Polkurier\Shipping\Model\Shipment;
 use Polkurier\Shipping\Model\Shipment\LabelRemoval;
+use Polkurier\Shipping\Model\Shipment\ShipmentFinder;
 
 #[CoversClass(LabelRemoval::class)]
 #[AllowMockObjectsWithoutExpectations]
@@ -88,13 +87,10 @@ class LabelRemovalTest extends TestCase
 
             return true;
         });
-        $collection = $this->createStub(Collection::class);
-        $collection->method('addFieldToFilter')->willReturnSelf();
-        $collection->method('getItems')->willReturn($linked);
-        $factory = $this->createStub(CollectionFactory::class);
-        $factory->method('create')->willReturn($collection);
+        $finder = $this->createStub(ShipmentFinder::class);
+        $finder->method('linkedTo')->willReturn($linked);
 
-        return new LabelRemoval($shipments, $tracks, $factory);
+        return new LabelRemoval($shipments, $tracks, $finder);
     }
 
     private function polkurier(int $id, string $state): Shipment

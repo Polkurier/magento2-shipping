@@ -60,6 +60,18 @@ class CarrierConfigHydratorTest extends TestCase
         }
     }
 
+    public function testATierWithANegativePriceOrThresholdIsRefused(): void
+    {
+        foreach ([['subtotal_from' => '0', 'price' => '-5'], ['subtotal_from' => '-10', 'price' => '5'], ['weight_from' => '-1', 'price' => '5']] as $tier) {
+            try {
+                $this->hydrator()->hydrate($this->config(), ['pricing_model' => 'TIER_SUBTOTAL_WEIGHT', 'tiers' => [$tier]]);
+                self::fail('A negative tier is refused.');
+            } catch (LocalizedException $e) {
+                self::assertSame('A price tier can\'t have a negative price or threshold.', $e->getMessage());
+            }
+        }
+    }
+
     public function testTheGridCannotSetOnePriceForACarrierPricedInTiers(): void
     {
         $this->expectException(LocalizedException::class);

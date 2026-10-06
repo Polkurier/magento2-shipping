@@ -9,6 +9,8 @@ namespace Polkurier\Shipping\Api\Data;
 
 /**
  * An entry of the Polkurier address book: a sender address, or a cover address for returns.
+ *
+ * @api
  */
 interface AddressInterface extends SyncableInterface
 {
@@ -40,6 +42,7 @@ interface AddressInterface extends SyncableInterface
 
     /**
      * @param string $name
+     *
      * @return $this
      */
     public function setName(string $name): static;
@@ -51,6 +54,7 @@ interface AddressInterface extends SyncableInterface
 
     /**
      * @param string $type
+     *
      * @return $this
      */
     public function setType(string $type): static;
@@ -62,6 +66,7 @@ interface AddressInterface extends SyncableInterface
 
     /**
      * @param string $person
+     *
      * @return $this
      */
     public function setPerson(string $person): static;
@@ -73,6 +78,7 @@ interface AddressInterface extends SyncableInterface
 
     /**
      * @param string|null $company
+     *
      * @return $this
      */
     public function setCompany(?string $company): static;
@@ -84,6 +90,7 @@ interface AddressInterface extends SyncableInterface
 
     /**
      * @param string $street
+     *
      * @return $this
      */
     public function setStreet(string $street): static;
@@ -95,6 +102,7 @@ interface AddressInterface extends SyncableInterface
 
     /**
      * @param string $houseNumber
+     *
      * @return $this
      */
     public function setHouseNumber(string $houseNumber): static;
@@ -106,6 +114,7 @@ interface AddressInterface extends SyncableInterface
 
     /**
      * @param string|null $flatNumber
+     *
      * @return $this
      */
     public function setFlatNumber(?string $flatNumber): static;
@@ -117,6 +126,7 @@ interface AddressInterface extends SyncableInterface
 
     /**
      * @param string $city
+     *
      * @return $this
      */
     public function setCity(string $city): static;
@@ -128,6 +138,7 @@ interface AddressInterface extends SyncableInterface
 
     /**
      * @param string $postcode
+     *
      * @return $this
      */
     public function setPostcode(string $postcode): static;
@@ -139,6 +150,7 @@ interface AddressInterface extends SyncableInterface
 
     /**
      * @param string|null $province
+     *
      * @return $this
      */
     public function setProvince(?string $province): static;
@@ -150,6 +162,7 @@ interface AddressInterface extends SyncableInterface
 
     /**
      * @param string $country
+     *
      * @return $this
      */
     public function setCountry(string $country): static;
@@ -161,6 +174,7 @@ interface AddressInterface extends SyncableInterface
 
     /**
      * @param string|null $pointId
+     *
      * @return $this
      */
     public function setPointId(?string $pointId): static;
@@ -172,6 +186,7 @@ interface AddressInterface extends SyncableInterface
 
     /**
      * @param string $email
+     *
      * @return $this
      */
     public function setEmail(string $email): static;
@@ -183,6 +198,7 @@ interface AddressInterface extends SyncableInterface
 
     /**
      * @param string $phone
+     *
      * @return $this
      */
     public function setPhone(string $phone): static;
@@ -194,6 +210,7 @@ interface AddressInterface extends SyncableInterface
 
     /**
      * @param bool $default
+     *
      * @return $this
      */
     public function setDefault(bool $default): static;
@@ -205,6 +222,7 @@ interface AddressInterface extends SyncableInterface
 
     /**
      * @param bool $cover
+     *
      * @return $this
      */
     public function setCover(bool $cover): static;
@@ -216,6 +234,7 @@ interface AddressInterface extends SyncableInterface
 
     /**
      * @param bool $shared
+     *
      * @return $this
      */
     public function setShared(bool $shared): static;

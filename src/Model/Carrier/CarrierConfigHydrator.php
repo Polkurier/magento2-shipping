@@ -12,8 +12,8 @@ use Magento\Store\Model\StoreManagerInterface;
 use Polkurier\Shipping\Api\Data\CarrierConfigInterface;
 use Polkurier\Shipping\Api\Data\CarrierLabelInterface;
 use Polkurier\Shipping\Api\Data\CarrierLabelInterfaceFactory;
+use Polkurier\Shipping\Enum\PricingModelEnum;
 use Polkurier\Shipping\Model\Pricing\Fixed;
-use Polkurier\Shipping\Model\Pricing\PricingModelEnum;
 use Polkurier\Shipping\Model\Pricing\Tiers;
 
 /**
@@ -32,6 +32,7 @@ readonly class CarrierConfigHydrator
      * Everything the carrier's page posts.
      *
      * @param array<string, mixed> $data
+     *
      * @throws LocalizedException when the prices are missing or invalid
      */
     public function hydrate(CarrierConfigInterface $config, array $data): void
@@ -52,6 +53,7 @@ readonly class CarrierConfigHydrator
      * dragging the rows (CarrierOrder).
      *
      * @param array<string, mixed> $row
+     *
      * @throws LocalizedException
      */
     public function applyRow(CarrierConfigInterface $config, array $row): void
@@ -87,6 +89,7 @@ readonly class CarrierConfigHydrator
 
     /**
      * @param array<mixed> $rows the form's tier rows; deleted and unpriced ones are dropped
+     *
      * @return array<string, array<int, array<string, float>>>
      * @throws LocalizedException
      */
@@ -97,11 +100,15 @@ readonly class CarrierConfigHydrator
             if (!\is_array($row) || !empty($row['delete']) || !\is_numeric(self::number((string)($row[Tiers::PRICE] ?? '')))) {
                 continue;
             }
-            $tiers[] = [
+            $tier = [
                 Tiers::SUBTOTAL_FROM => (float)self::number((string)($row[Tiers::SUBTOTAL_FROM] ?? 0)),
                 Tiers::WEIGHT_FROM => (float)self::number((string)($row[Tiers::WEIGHT_FROM] ?? 0)),
                 Tiers::PRICE => (float)self::number((string)$row[Tiers::PRICE]),
             ];
+            if (\min($tier) < 0) {
+                throw new LocalizedException(\__('A price tier can\'t have a negative price or threshold.'));
+            }
+            $tiers[] = $tier;
         }
         if ($tiers === []) {
             throw new LocalizedException(\__('Add at least one price tier.'));
@@ -135,6 +142,7 @@ readonly class CarrierConfigHydrator
      * dropped, and a store view listed twice keeps its last label.
      *
      * @param array<string, mixed> $data
+     *
      * @return CarrierLabelInterface[]
      */
     private function storeLabels(array $data): array

@@ -17,13 +17,13 @@
         "magento/module-catalog": "^104.0.7",
         "magento/module-checkout": "^100.4.7",
         "magento/module-config": "^101.2.7",
-        "magento/module-customer": "^103.0.7",
         "magento/module-directory": "^100.4.7",
         "magento/module-eav": "^102.1.7",
         "magento/module-media-storage": "^100.4.6",
         "magento/module-payment": "^100.4.7",
         "magento/module-quote": "^101.2.7",
         "magento/module-sales": "^103.0.7",
+        "magento/module-sales-sequence": "^100.4",
         "magento/module-shipping": "^100.4.7",
         "magento/module-store": "^101.1.7",
         "magento/module-ui": "^101.2.7",
@@ -37,7 +37,6 @@
     "suggest": {
         "magento/module-cron": "Runs the synchronization and the shipment status updates on schedule",
         "magento/module-csp": "Allows the pickup point map under a Content Security Policy",
-        "magento/module-webapi": "The module's REST API",
         "polkurier/magento2-multishipping": "Pickup points in Magento's multi-address checkout"
     },
     "autoload": {

@@ -17,7 +17,7 @@ the merchant can edit them on either side.
 | `Model\Sync\AdapterInterface` | what the engine needs to know about one kind: fetch, map, save and delete locally |
 | `Model\Sync\PushableAdapterInterface` | for kinds the engine sends by itself (addresses, pack templates): push, delete remotely |
 | `Model\Sync\Adapter\*` | the adapters for addresses, bank accounts and pack templates |
-| `Api\SyncEntityEnum` | the kinds of entries synchronized: `Address`, `BankAccount`, `PackTemplate`, each with its admin label |
+| `Enum\SyncEntityEnum` | the kinds of entries synchronized: `Address`, `BankAccount`, `PackTemplate`, each with its admin label |
 | `Model\Sync\Synchronization` | runs every adapter, or those of the kinds asked for; implements `Api\SynchronizationInterface` |
 | `Model\Sync\RemoteClockInterface` | when a remote entry last changed |
 | `Model\Admin\*Handler` | save and delete from the admin screens, sending the entry straight away |
@@ -31,8 +31,8 @@ The adapters are registered in `etc/di.xml` as the `adapters` argument of
 Saving or deleting an entry in the admin sends that entry alone, through
 `SynchronizationInterface::push()`: the engine runs as for a full sync, with the remote list read
 for conflicts and natural keys, but only for that entry. Other changes, on either side, wait for
-the hourly run or the *Synchronize with Polkurier* button. It returns the run's `SyncResult`, not a
-line of text: the admin action adds it to its one message, and a mass delete adds up those of all
+the hourly run or the *Synchronize with Polkurier* button. It returns the run's counts
+(`Api\Data\SyncResultInterface`), not a line of text: the admin action adds it to its one message, and a mass delete adds up those of all
 its rows.
 
 ## One at a time
@@ -71,7 +71,8 @@ would otherwise look unchanged.
 A failed push leaves the row in the error state with the reason in `sync_error`; the next run tries
 again. An entry that fails for any reason doesn't stop the others, a kind that can't be synchronized
 doesn't stop the other kinds (its failure is logged and listed after their summaries, and it's an
-error only when every kind asked for failed). `SyncEngine::run()` returns a `SyncResult` counting
+error, `Exception\SynchronizationFailedException`, only when every kind asked for failed; the cron
+task doesn't log that one again, since each kind's failure already is). `SyncEngine::run()` returns a `SyncResult` counting
 what was created, pulled, pushed, deleted, left unchanged, left unconfirmed and what failed.
 
 ## The remote clock
@@ -83,8 +84,9 @@ modification times become available, only this preference needs to change.
 ## When it runs
 
 - Saving or deleting in the admin pushes that entry straight away (`Model\Admin\*Handler`).
-- `Cron\SynchronizeTask` runs the full sync hourly, with the carrier list, when `sync/enabled` is on
-  and the credentials are set.
+- `Cron\SynchronizeTask` runs the full sync hourly, and `Cron\RefreshCarriersTask` refreshes the
+  carrier list daily (`Model\Carrier\CarrierConfigSynchronizer`), when `sync/enabled` is on and the
+  credentials are set. The list read is cached for a day (`CarrierCatalog::CACHE_LIFETIME`).
 - The *Synchronize with Polkurier* button on each settings screen runs it for that kind of entry,
   once the credentials are set.
 - `Api\SynchronizationInterface` lets you run it from your own code, for all kinds or some:

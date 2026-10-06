@@ -10,7 +10,6 @@ namespace Polkurier\Shipping\Model\Shipment;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Stdlib\DateTime\DateTime;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
-use Polkurier\Shipping\Model\ResourceModel\Shipment\CollectionFactory;
 use Polkurier\Shipping\Model\Sdk\ApplicationId;
 use Polkurier\Shipping\Model\Sdk\ShipmentGatewayInterface;
 use Polkurier\Webservice\Request\Order\GetOrdersMessage;
@@ -39,7 +38,7 @@ readonly class Reconciler
 
     public function __construct(
         private ShipmentGatewayInterface $gateway,
-        private CollectionFactory $collectionFactory,
+        private ShipmentFinder $finder,
         private DateTime $dateTime,
         private ApplicationId $applicationId,
     ) {}
@@ -87,6 +86,7 @@ readonly class Reconciler
      * Without the orders another shipment already holds.
      *
      * @param array{sure: Order[], possible: Order[]} $found
+     *
      * @return array{sure: Order[], possible: Order[]}
      */
     private function unclaimed(ShipmentInterface $shipment, array $found): array
@@ -142,16 +142,23 @@ readonly class Reconciler
      */
     public function findByNumber(string $number): Order
     {
-        // Searched by phrase, which matches order numbers too; the exact number is picked below.
-        $list = $this->gateway->findOrders(new GetOrdersMessage(
-            searchPhrase: $number,
-            pageSize: 20,
-            packs: true,
-            items: true,
-        ));
-        foreach ($list->getResult() as $order) {
-            if ($order->getNumber() === $number) {
-                return $order;
+        // Searched by phrase, which matches longer numbers that hold it too; the exact one is
+        // picked, on whichever page it comes.
+        for ($page = 1; $page <= self::MAX_PAGES; $page++) {
+            $list = $this->gateway->findOrders(new GetOrdersMessage(
+                searchPhrase: $number,
+                pageSize: GetOrdersMessage::MAX_PAGE_SIZE,
+                page: $page,
+                packs: true,
+                items: true,
+            ));
+            foreach ($list->getResult() as $order) {
+                if ($order->getNumber() === $number) {
+                    return $order;
+                }
+            }
+            if ($page >= $list->getTotalPages()) {
+                break;
             }
         }
 
@@ -204,6 +211,7 @@ readonly class Reconciler
      * Which of the orders found another shipment already holds, whenever it was placed.
      *
      * @param Order[] $orders
+     *
      * @return array<string, true>
      */
     private function getAdoptedNumbers(int $exceptId, array $orders): array
@@ -211,12 +219,11 @@ readonly class Reconciler
         if ($orders === []) {
             return [];
         }
-        $collection = $this->collectionFactory->create()
-            ->addFieldToFilter(ShipmentInterface::POLKURIER_NUMBER, ['in' => \array_map(static fn(Order $order): string => (string)$order->getNumber(), $orders)])
-            ->addFieldToFilter(ShipmentInterface::ENTITY_ID, ['neq' => $exceptId]);
         $numbers = [];
-        foreach ($collection->getItems() as $item) {
-            $numbers[(string)$item->getPolkurierNumber()] = true;
+        foreach ($this->finder->byNumbers(\array_map(static fn(Order $order): string => (string)$order->getNumber(), $orders)) as $item) {
+            if ((int)$item->getId() !== $exceptId) {
+                $numbers[(string)$item->getPolkurierNumber()] = true;
+            }
         }
 
         return $numbers;

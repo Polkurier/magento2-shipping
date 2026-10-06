@@ -12,8 +12,7 @@ to place or cancel shipments, or keep payouts to a few people.
 
 | Permission | Allows |
 |---|---|
-| **Polkurier** | the Polkurier menu (needed for everything below) |
-| **Orders** | the list of Magento's orders shipped with Polkurier; its actions also need Magento's own permissions |
+| **Polkurier** | the Polkurier menu (needed for everything below); its **Orders** item, Magento's orders list, needs Magento's own **Sales > Operations > Orders** |
 | **Shipments** | see shipments, print labels and protocols, update statuses |
 | &nbsp;&nbsp;**Create shipments** | place shipments (on either page), reconcile unclear ones, create missing Magento shipments, book collective pickups |
 | &nbsp;&nbsp;**Cancel shipments** | cancel shipments in Polkurier |
@@ -29,8 +28,5 @@ because the settings sit among Magento's delivery methods.
 Shipping on Magento's own shipment page needs Magento's usual permission to create shipments
 (**Sales > Operations > Orders > Actions > Ship**) as well as **Create shipments** above. Without
 the latter, Magento can still create plain shipments, but not Polkurier labels.
-
-The REST API uses the same permissions for integrations; see the
-[developer guide](../developer-guide/rest-api.md).
 
 Next: [Troubleshooting](troubleshooting.md)

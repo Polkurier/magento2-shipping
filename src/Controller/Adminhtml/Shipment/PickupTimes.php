@@ -7,12 +7,10 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Controller\Adminhtml\Shipment;
 
-use Magento\Backend\App\Action;
 use Magento\Backend\App\Action\Context;
-use Magento\Framework\App\Action\HttpPostActionInterface;
-use Magento\Framework\Controller\Result\Json;
 use Magento\Framework\Controller\Result\JsonFactory;
 use Magento\Framework\Exception\LocalizedException;
+use Polkurier\Shipping\Controller\Adminhtml\AbstractJsonAction;
 use Polkurier\Shipping\Model\ErrorMessages;
 use Polkurier\Shipping\Model\Shipment\Pickups;
 use Polkurier\Shipping\Model\Shipment\SenderPostcode;
@@ -20,45 +18,39 @@ use Polkurier\Shipping\Model\Shipment\SenderPostcode;
 /**
  * Days and windows the chosen carrier can collect on, from the sender's postcode.
  */
-class PickupTimes extends Action implements HttpPostActionInterface
+class PickupTimes extends AbstractJsonAction
 {
     public const string ADMIN_RESOURCE = 'Polkurier_Shipping::shipment_create';
 
     public function __construct(
         Context $context,
-        private readonly JsonFactory $jsonFactory,
+        JsonFactory $jsonFactory,
         private readonly Pickups $pickups,
         private readonly ErrorMessages $errorMessages,
         private readonly SenderPostcode $senderPostcode,
     ) {
-        parent::__construct($context);
+        parent::__construct($context, $jsonFactory);
     }
 
-    public function execute(): Json
+    protected function answer(): array
     {
-        $result = $this->jsonFactory->create();
         $data = (array)$this->getRequest()->getParam('data', []);
-        try {
-            $senderPostcode = $this->senderPostcode->of($data);
-            if (empty($data['carrier_code'])) {
-                throw new LocalizedException(\__('Choose a carrier first.'));
-            }
-            $days = $this->pickups->getPickupTimes(
-                (string)$data['carrier_code'],
-                $senderPostcode,
-                isset($data['recipient_postcode']) ? (string)$data['recipient_postcode'] : null,
-                (string)($data['shipment_type'] ?? 'box'),
-            );
-        } catch (LocalizedException $e) {
-            return $result->setData([
-                'error' => true,
-                'message' => $e->getMessage(),
-                // Offered again only when that may help; a refusal waits for a change to the shipment.
-                'retry' => $this->errorMessages->isTransient($e),
-                'days' => [],
-            ]);
+        $senderPostcode = $this->senderPostcode->of($data);
+        if (empty($data['carrier_code'])) {
+            throw new LocalizedException(\__('Choose a carrier first.'));
         }
 
-        return $result->setData(['error' => false, 'days' => $days]);
+        return ['days' => $this->pickups->getPickupTimes(
+            (string)$data['carrier_code'],
+            $senderPostcode,
+            isset($data['recipient_postcode']) ? (string)$data['recipient_postcode'] : null,
+            (string)($data['shipment_type'] ?? 'box'),
+        )];
+    }
+
+    protected function refused(LocalizedException $e): array
+    {
+        // Offered again only when that may help; a refusal waits for a change to the shipment.
+        return ['retry' => $this->errorMessages->isTransient($e), 'days' => []];
     }
 }

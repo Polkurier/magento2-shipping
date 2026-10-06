@@ -59,7 +59,7 @@ readonly class DescribePickupPointObserver implements ObserverInterface
         } catch (\Throwable $e) {
             $this->logger->error('Pickup point not added to the shipping description', [
                 'order' => $order->getIncrementId(),
-                'error' => $e->getMessage(),
+                'exception' => $e,
             ]);
         }
     }

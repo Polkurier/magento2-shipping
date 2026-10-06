@@ -26,6 +26,8 @@ use Polkurier\Webservice\Response\Order;
 #[AllowMockObjectsWithoutExpectations]
 class DetailsLoaderTest extends TestCase
 {
+    private const int NOW = 1791280800;
+
     public function testAMissingOrderCopyIsReadForThePageOnly(): void
     {
         $reconciler = $this->createStub(Reconciler::class);
@@ -38,7 +40,7 @@ class DetailsLoaderTest extends TestCase
         $resource->expects(self::never())->method('updateColumns');
         $stored = $this->shipment();
 
-        $loaded = (new DetailsLoader($reconciler, $snapshot, $resource, $this->createStub(ShipmentGatewayInterface::class), new OrderDetails(), new FixedDateTime()))
+        $loaded = (new DetailsLoader($reconciler, $snapshot, $resource, $this->createStub(ShipmentGatewayInterface::class), new OrderDetails(), new FixedDateTime(self::NOW)))
             ->ensure($stored);
 
         self::assertSame([], $loaded['errors']);
@@ -54,6 +56,7 @@ class DetailsLoaderTest extends TestCase
         return $shipment->setId(3)
             ->setState(ShipmentInterface::STATE_CREATED)
             ->setPolkurierNumber('18015-2865')
-            ->setTrackingSyncedAt(\gmdate('Y-m-d H:i:s'));
+            // Scans read just now: only the order is read again.
+            ->setTrackingSyncedAt(\gmdate('Y-m-d H:i:s', self::NOW));
     }
 }

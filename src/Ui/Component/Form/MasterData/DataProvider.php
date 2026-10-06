@@ -10,22 +10,16 @@ namespace Polkurier\Shipping\Ui\Component\Form\MasterData;
 use Magento\Framework\App\Request\DataPersistorInterface;
 use Magento\Framework\App\RequestInterface;
 use Magento\Framework\Model\ResourceModel\Db\Collection\AbstractCollection;
-use Magento\Framework\Api\Filter;
-use Magento\Ui\DataProvider\AbstractDataProvider;
 use Polkurier\Shipping\Api\Data\SyncableInterface;
+use Polkurier\Shipping\Ui\Component\Form\FormDataProvider;
 
 /**
  * Data of the address, bank account and pack template forms. The entry's key is exposed as "id",
  * whatever its column is called; the synchronization state is shown read-only. Fields stored as
  * comma-separated lists (listFields, given per form in di.xml) reach the form as lists.
  */
-class DataProvider extends AbstractDataProvider
+class DataProvider extends FormDataProvider
 {
-    /**
-     * @var array<int|string, array<string, mixed>>|null
-     */
-    private ?array $loadedData = null;
-
     /**
      * @param array<string, mixed> $meta
      * @param array<string, mixed> $data
@@ -47,22 +41,9 @@ class DataProvider extends AbstractDataProvider
         $this->collection = $collection;
     }
 
-    /**
-     * The form narrows by its own request parameter, not through the collection.
-     */
-    public function addFilter(Filter $filter): void
+    protected function load(): array
     {
-    }
-
-    /**
-     * @return array<int|string, array<string, mixed>>
-     */
-    public function getData(): array
-    {
-        if ($this->loadedData !== null) {
-            return $this->loadedData;
-        }
-        $this->loadedData = [];
+        $loaded = [];
         $id = (int)$this->request->getParam('id');
         if ($id) {
             $this->collection->addFieldToFilter($this->collection->getResource()->getIdFieldName(), ['eq' => $id]);
@@ -74,15 +55,15 @@ class DataProvider extends AbstractDataProvider
                         $data[$field] = \array_values(\array_filter(\explode(',', $data[$field])));
                     }
                 }
-                $this->loadedData[$id] = \array_merge($data, ['id' => $id]);
+                $loaded[$id] = \array_merge($data, ['id' => $id]);
             }
         }
         $persisted = $this->dataPersistor->get($this->persistorKey);
         if (\is_array($persisted)) {
-            $this->loadedData[$id ?: ''] = \array_merge($this->loadedData[$id] ?? [], $persisted, ['id' => $id ?: null]);
+            $loaded[$id ?: ''] = \array_merge($loaded[$id] ?? [], $persisted, ['id' => $id ?: null]);
             $this->dataPersistor->clear($this->persistorKey);
         }
 
-        return $this->loadedData;
+        return $loaded;
     }
 }

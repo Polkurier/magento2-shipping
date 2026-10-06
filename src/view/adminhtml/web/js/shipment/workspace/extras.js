@@ -212,6 +212,22 @@ define([
             item.toggle(!!event.target.checked);
 
             return true;
+        },
+
+        /**
+         * A click anywhere on a service's tile flips its switch, but not one on what the tile
+         * holds that does something itself: the switch and its caption, "Change", the address list.
+         *
+         * @param {Object} item
+         * @param {Event} event
+         * @returns {Boolean} true, to leave the click to what it landed on
+         */
+        onTile: function (item, event) {
+            if (!event.target.closest('input, label, button, select, a')) {
+                event.currentTarget.querySelector('.admin__actions-switch-checkbox').click();
+            }
+
+            return true;
         }
     });
 });

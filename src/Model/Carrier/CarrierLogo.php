@@ -15,6 +15,7 @@ use Magento\MediaStorage\Model\File\UploaderFactory;
 use Magento\Store\Model\Store;
 use Magento\Store\Model\StoreManagerInterface;
 use Polkurier\Shipping\Api\Data\CarrierConfigInterface;
+use Psr\Log\LoggerInterface;
 
 /**
  * Carrier logos: uploaded by the merchant, kept in the media directory and shown next to the
@@ -35,6 +36,7 @@ readonly class CarrierLogo
         private UploaderFactory $uploaderFactory,
         private Filesystem $filesystem,
         private StoreManagerInterface $storeManager,
+        private LoggerInterface $logger,
     ) {}
 
     /**
@@ -50,8 +52,12 @@ readonly class CarrierLogo
             $uploader->setFilesDispersion(false);
             $uploader->setAllowCreateFolders(true);
             $result = $uploader->save($this->filesystem->getDirectoryWrite(DirectoryList::MEDIA)->getAbsolutePath(self::DIRECTORY));
+        } catch (LocalizedException $e) {
+            throw $e;
         } catch (\Exception $e) {
-            throw new LocalizedException(\__('The logo could not be uploaded: %1', $e->getMessage()), $e);
+            // The uploader's own messages may name the server's paths.
+            $this->logger->error('Polkurier carrier logo not uploaded', ['exception' => $e]);
+            throw new LocalizedException(\__('The logo could not be uploaded.'), $e);
         }
         if (!\is_array($result) || empty($result['file'])) {
             throw new LocalizedException(\__('The logo could not be uploaded.'));

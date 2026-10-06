@@ -12,6 +12,9 @@ use Magento\Framework\Controller\Result\JsonFactory;
 use Polkurier\Shipping\Controller\Adminhtml\MasterData\AbstractInlineEdit;
 use Polkurier\Shipping\Model\Admin\PackTemplateHandler;
 
+/**
+ * Saves the pack templates edited in place in their grid.
+ */
 class InlineEdit extends AbstractInlineEdit
 {
     public const string ADMIN_RESOURCE = 'Polkurier_Shipping::pack_templates';

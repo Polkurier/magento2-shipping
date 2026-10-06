@@ -41,7 +41,9 @@ readonly class AvailableCarriers
 
     /**
      * @template T
+     *
      * @param array<string, T> $byCode keyed by carrier code
+     *
      * @return array<string, T>
      */
     public function filter(array $byCode): array

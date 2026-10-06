@@ -14,8 +14,9 @@ use Polkurier\Shipping\Api\BankAccountRepositoryInterface;
 use Polkurier\Shipping\Api\Data\AddressInterface;
 use Polkurier\Shipping\Api\Data\ShipmentDraft\PackInterface;
 use Polkurier\Shipping\Api\Data\ShipmentDraftInterface;
+use Polkurier\Shipping\Model\Carrier\Polkurier;
 use Polkurier\Shipping\Model\Config;
-use Polkurier\Shipping\Model\Shipment\Details\Formatter;
+use Polkurier\Shipping\Model\Sdk\PolkurierTime;
 use Polkurier\Shipping\Model\Shipment\PackKinds;
 use Polkurier\Webservice\Builder\Order\CodMessageBuilder;
 use Polkurier\Webservice\Builder\Order\CreateOrderMessageBuilder;
@@ -114,6 +115,7 @@ readonly class CreateOrderMessageMapper
      * address switches it on, and Polkurier refuses it without one.
      *
      * @param string[] $codes
+     *
      * @return AdditionalServiceEnum[]
      */
     public function mapServices(array $codes): array
@@ -155,7 +157,7 @@ readonly class CreateOrderMessageMapper
             ->street($draft->getRecipientStreet())
             ->city($draft->getRecipientCity())
             ->postcode($draft->getRecipientPostcode())
-            ->country($draft->getRecipientCountry() ?: 'PL')
+            ->country($draft->getRecipientCountry() ?: Polkurier::HOME_COUNTRY)
             ->email($draft->getRecipientEmail())
             ->phone($draft->getRecipientPhone());
         if ($draft->getRecipientCompany()) {
@@ -287,7 +289,7 @@ readonly class CreateOrderMessageMapper
             return null;
         }
         // The date and window are Polish time, as Polkurier offers them, whatever PHP's own zone.
-        $zone = new \DateTimeZone(Formatter::POLKURIER_TIME_ZONE);
+        $zone = PolkurierTime::zone();
         $builder = PickupMessageBuilder::create()->pickupDate(new \DateTimeImmutable($draft->getPickupDate(), $zone));
         if ($draft->getPickupTimeFrom()) {
             $builder->pickupTimeFrom(new \DateTimeImmutable($draft->getPickupDate() . ' ' . $draft->getPickupTimeFrom(), $zone));

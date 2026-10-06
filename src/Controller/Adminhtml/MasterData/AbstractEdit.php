@@ -7,12 +7,15 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Controller\Adminhtml\MasterData;
 
+use Magento\Backend\Model\View\Result\Page;
 use Magento\Framework\App\Action\HttpGetActionInterface;
 use Magento\Framework\Controller\ResultFactory;
 use Magento\Framework\Controller\ResultInterface;
 use Magento\Framework\Exception\NoSuchEntityException;
-use Magento\Backend\Model\View\Result\Page;
 
+/**
+ * The form of a new or existing entry of a master-data list.
+ */
 abstract class AbstractEdit extends AbstractAction implements HttpGetActionInterface
 {
     public function execute(): ResultInterface

@@ -13,6 +13,7 @@ use Magento\Framework\App\Action\HttpPostActionInterface;
 use Magento\Framework\App\Request\DataPersistorInterface;
 use Magento\Framework\Controller\Result\Redirect;
 use Magento\Framework\Exception\LocalizedException;
+use Polkurier\Shipping\Controller\Adminhtml\ReadsPostData;
 use Polkurier\Shipping\Model\Mapper\CreateOrderMessageMapper;
 use Polkurier\Shipping\Model\MoneyBox\OrderNumbers;
 use Polkurier\Shipping\Model\MoneyBox\Payouts;
@@ -24,6 +25,8 @@ use Polkurier\Webservice\Enum\MoneyBox\MoneyBoxPayoutTypeEnum;
  */
 class Save extends Action implements HttpPostActionInterface
 {
+    use ReadsPostData;
+
     public const string ADMIN_RESOURCE = 'Polkurier_Shipping::money_box_payout';
 
     /**
@@ -97,15 +100,5 @@ class Save extends Action implements HttpPostActionInterface
             : $choice);
 
         return $number !== '' ? $number : null;
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function getPostData(): array
-    {
-        $request = $this->getRequest();
-
-        return $request instanceof \Magento\Framework\App\Request\Http ? (array)$request->getPostValue() : [];
     }
 }

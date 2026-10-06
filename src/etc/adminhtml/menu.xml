@@ -11,9 +11,10 @@
 
         <add id="Polkurier_Shipping::sales" title="Sales" translate="title" module="Polkurier_Shipping"
              sortOrder="10" parent="Polkurier_Shipping::root" resource="Polkurier_Shipping::sales" />
+        <!-- Magento's orders list, filtered to the orders shipped with Polkurier (sales_order_grid.xml) -->
         <add id="Polkurier_Shipping::orders" title="Orders" translate="title" module="Polkurier_Shipping"
-             sortOrder="5" parent="Polkurier_Shipping::sales" action="polkurier/order/index"
-             resource="Polkurier_Shipping::orders" />
+             sortOrder="5" parent="Polkurier_Shipping::sales" action="sales/order/index/carrier/polkurier"
+             resource="Magento_Sales::sales_order" />
         <add id="Polkurier_Shipping::shipments" title="Shipments" translate="title" module="Polkurier_Shipping"
              sortOrder="10" parent="Polkurier_Shipping::sales" action="polkurier/shipment/index"
              resource="Polkurier_Shipping::shipments" />

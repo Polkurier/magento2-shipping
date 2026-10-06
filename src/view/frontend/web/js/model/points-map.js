@@ -103,7 +103,7 @@ define(['mage/translate', 'Magento_Ui/js/modal/alert'], function ($t, alert) {
                 map.onConfirm(function (point) {
                     onChoose({
                         id: point.id,
-                        label: point.address || [point.street, point.zip, point.city].filter(Boolean).join(' ')
+                        label: point.address || [point.street, [point.zip, point.city].filter(Boolean).join(' ')].filter(Boolean).join(', ')
                     });
                     map.closeMapDialog();
                 });

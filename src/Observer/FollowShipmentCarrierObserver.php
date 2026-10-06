@@ -44,7 +44,7 @@ readonly class FollowShipmentCarrierObserver implements ObserverInterface
             $this->logger->error('The order\'s shipping was not brought in line with its Polkurier order', [
                 'order_id' => $shipment->getOrderId(),
                 'polkurier_number' => $shipment->getPolkurierNumber(),
-                'error' => $e->getMessage(),
+                'exception' => $e,
             ]);
         }
     }

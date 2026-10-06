@@ -13,14 +13,14 @@ use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Polkurier\Shipping\Api\Data\SyncableInterface;
-use Polkurier\Shipping\Api\SyncEntityEnum;
+use Polkurier\Shipping\Enum\SyncEntityEnum;
 use Polkurier\Shipping\Model\ErrorMessages;
 use Polkurier\Shipping\Model\Sync\AdapterInterface;
 use Polkurier\Shipping\Model\Sync\SyncEngine;
 use Polkurier\Shipping\Model\Sync\Synchronization;
 use Polkurier\Shipping\Model\Sync\SyncLock;
-use Psr\Log\NullLogger;
 use Polkurier\Shipping\Model\Sync\SyncResult;
+use Psr\Log\NullLogger;
 
 #[CoversClass(Synchronization::class)]
 #[CoversClass(SyncResult::class)]

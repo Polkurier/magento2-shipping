@@ -18,7 +18,6 @@ use Polkurier\Shipping\Model\Carrier\Polkurier;
 use Polkurier\Shipping\Model\Checkout\PointDescription;
 use Polkurier\Shipping\Model\OrderComments;
 use Polkurier\Shipping\Model\OrderPointStore;
-use Polkurier\Shipping\Model\ResourceModel\Shipment\CollectionFactory;
 use Polkurier\Shipping\Model\Shipment\Details\SentOrder;
 use Polkurier\Shipping\Model\ShippingChoiceStore;
 
@@ -36,7 +35,7 @@ readonly class ActualShipping
 {
     public function __construct(
         private OrderRepositoryInterface $orderRepository,
-        private CollectionFactory $collectionFactory,
+        private ShipmentFinder $finder,
         private ShippingChoiceStore $choices,
         private OrderPointStore $pointStore,
         private SentOrder $sentOrder,
@@ -52,7 +51,7 @@ readonly class ActualShipping
     public function sync(int $orderId): void
     {
         $order = $this->orderRepository->get($orderId);
-        if (!$order instanceof Order || Polkurier::methodCodeOf((string)$order->getShippingMethod()) === null) {
+        if (!$order instanceof Order || !Polkurier::isOrderOf($order)) {
             return;
         }
         $choice = $this->choices->get($orderId);
@@ -89,7 +88,7 @@ readonly class ActualShipping
             $cod = $found && $found->isCod();
         }
         $description = $this->describe($order, $carrier, $point, $label);
-        $this->write($order, Polkurier::CODE . '_' . $carrier, $description);
+        $this->write($order, Polkurier::methodOf($carrier), $description);
         if ($point !== '') {
             $this->pointStore->replaceForOrder($orderId, $carrier, $point, $label, $cod);
         } else {
@@ -155,17 +154,7 @@ readonly class ActualShipping
 
     private function latestPlaced(int $orderId): ?ShipmentInterface
     {
-        $collection = $this->collectionFactory->create()
-            ->addFieldToFilter(ShipmentInterface::ORDER_ID, (string)$orderId)
-            ->addFieldToFilter(ShipmentInterface::STATE, ShipmentInterface::STATE_CREATED)
-            ->setOrder(ShipmentInterface::ENTITY_ID, 'DESC')
-            ->setPageSize(1);
-        foreach ($collection->getItems() as $shipment) {
-            /** @var ShipmentInterface $shipment */
-            return $shipment;
-        }
-
-        return null;
+        return $this->finder->latestForOrder($orderId, [ShipmentInterface::STATE_CREATED]);
     }
 
     /**

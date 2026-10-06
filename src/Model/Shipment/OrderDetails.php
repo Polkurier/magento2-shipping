@@ -7,6 +7,7 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Model\Shipment;
 
+use Magento\Framework\Stdlib\DateTime as DateFormat;
 use Polkurier\Webservice\Response\BaseAddress;
 use Polkurier\Webservice\Response\Order;
 use Polkurier\Webservice\Response\Order\OrderStatusMessage;
@@ -17,8 +18,6 @@ use Polkurier\Webservice\Response\Order\OrderStatusMessage;
  */
 readonly class OrderDetails
 {
-    private const string DATE = 'Y-m-d H:i:s';
-
     /**
      * @return array<string, mixed>
      */
@@ -56,15 +55,15 @@ readonly class OrderDetails
 
         return [
             'number' => $order->getNumber(),
-            'date' => $order->getDate()->format(self::DATE),
+            'date' => $order->getDate()->format(DateFormat::DATETIME_PHP_FORMAT),
             'description' => $order->getDescription(),
             'carrier' => $order->getCourier(),
             'carrier_name' => $order->getCourierName(),
             'shipment_type' => $order->getShipmentType()->value,
             'status' => $order->getStatus(),
             'status_code' => $order->getStatusCode(),
-            'status_date' => $order->getStatusDate()->format(self::DATE),
-            'delivered_date' => $order->getDeliveredDate()?->format(self::DATE),
+            'status_date' => $order->getStatusDate()->format(DateFormat::DATETIME_PHP_FORMAT),
+            'delivered_date' => $order->getDeliveredDate()?->format(DateFormat::DATETIME_PHP_FORMAT),
             'tracking_url' => $order->getTrackingUri(),
             'waybills' => $waybills,
             'sender' => $this->address($order->getSender()),
@@ -113,7 +112,7 @@ readonly class OrderDetails
         foreach ($status->getTracking() as $event) {
             $carrierWording = $event->getTrackingStatus() !== $event->getStatus() ? $event->getTrackingStatus() : '';
             $events[] = [
-                'date' => (string)$event->getStatusDate()?->format(self::DATE),
+                'date' => (string)$event->getStatusDate()?->format(DateFormat::DATETIME_PHP_FORMAT),
                 'status_code' => $event->getStatusCode(),
                 'status' => $event->getStatus(),
                 'location' => $event->getLocation(),

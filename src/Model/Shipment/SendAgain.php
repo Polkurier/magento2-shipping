@@ -13,7 +13,6 @@ use Magento\Framework\UrlInterface;
 use Magento\Sales\Model\Order;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Api\ShipmentRepositoryInterface;
-use Polkurier\Shipping\Model\ResourceModel\Shipment\CollectionFactory;
 
 /**
  * Sending a shipment that wasn't placed again: the shipment screen opens with what was sent then,
@@ -26,7 +25,7 @@ readonly class SendAgain
 
     public function __construct(
         private ShipmentRepositoryInterface $shipmentRepository,
-        private CollectionFactory $collectionFactory,
+        private ShipmentFinder $finder,
         private OwnOrders $ownOrders,
         private MagentoShipment $magentoShipment,
         private UrlInterface $url,
@@ -92,23 +91,13 @@ readonly class SendAgain
      */
     public function findForOrder(Order $order): ?ShipmentInterface
     {
-        $latest = $this->collectionFactory->create()
-            ->addFieldToFilter(ShipmentInterface::ORDER_ID, ['eq' => (int)$order->getEntityId()])
-            ->setOrder(ShipmentInterface::ENTITY_ID, 'DESC')
-            ->setPageSize(1)
-            ->getFirstItem();
+        $latest = $this->finder->latestForOrder((int)$order->getEntityId());
 
-        return $latest instanceof ShipmentInterface && $latest->getId() && $this->isPossible($latest) ? $latest : null;
+        return $latest !== null && $this->isPossible($latest) ? $latest : null;
     }
 
     private function isLatest(int $shipmentId, int $orderId): bool
     {
-        $latest = $this->collectionFactory->create()
-            ->addFieldToFilter(ShipmentInterface::ORDER_ID, ['eq' => $orderId])
-            ->setOrder(ShipmentInterface::ENTITY_ID, 'DESC')
-            ->setPageSize(1)
-            ->getFirstItem();
-
-        return (int)$latest->getId() === $shipmentId;
+        return (int)$this->finder->latestForOrder($orderId)?->getId() === $shipmentId;
     }
 }

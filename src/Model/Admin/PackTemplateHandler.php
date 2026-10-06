@@ -9,15 +9,18 @@ namespace Polkurier\Shipping\Model\Admin;
 
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Stdlib\DateTime\DateTime;
-use Polkurier\Shipping\Model\Sync\SyncLock;
-use Polkurier\Shipping\Api\PackTemplateRepositoryInterface;
 use Polkurier\Shipping\Api\Data\PackTemplateInterface;
 use Polkurier\Shipping\Api\Data\SyncableInterface;
-use Polkurier\Shipping\Api\SyncEntityEnum;
+use Polkurier\Shipping\Api\PackTemplateRepositoryInterface;
 use Polkurier\Shipping\Api\SynchronizationInterface;
+use Polkurier\Shipping\Enum\SyncEntityEnum;
 use Polkurier\Shipping\Model\PackTemplateFactory;
 use Polkurier\Shipping\Model\ResourceModel\PackTemplate as PackTemplateResource;
+use Polkurier\Shipping\Model\Sync\SyncLock;
 
+/**
+ * The pack templates, as the admin creates, edits and deletes them.
+ */
 readonly class PackTemplateHandler extends SyncableEntityHandler
 {
     public function __construct(

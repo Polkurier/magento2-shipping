@@ -8,8 +8,8 @@
         <div class="polkurier-payout-fee" aria-live="polite">
             <span class="polkurier-payout-fee__label" translate="'Payout fee'"></span>
             <!-- ko if: fee() && !error() -->
-            <strong class="polkurier-payout-fee__amount" data-bind="text: $t('%1 PLN gross').replace('%1', fee().gross)"></strong>
-            <span class="polkurier-muted" data-bind="text: $t('(%1 PLN net)').replace('%1', fee().net)"></span>
+            <strong class="polkurier-payout-fee__amount" data-bind="text: $t('%1 gross').replace('%1', fee().gross)"></strong>
+            <span class="polkurier-muted" data-bind="text: $t('(%1 net)').replace('%1', fee().net)"></span>
             <span class="polkurier-muted" text="fee().free"></span>
             <span class="polkurier-muted" if="fee().available" text="fee().available"></span>
             <!-- /ko -->

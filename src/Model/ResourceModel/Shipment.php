@@ -10,6 +10,9 @@ namespace Polkurier\Shipping\Model\ResourceModel;
 use Magento\Framework\Model\ResourceModel\Db\AbstractDb;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 
+/**
+ * The polkurier_shipment table.
+ */
 class Shipment extends AbstractDb
 {
     public const string TABLE_NAME = 'polkurier_shipment';

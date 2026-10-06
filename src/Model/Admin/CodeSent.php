@@ -13,7 +13,7 @@ use Polkurier\Webservice\Response\TwoFactorToken;
  * Says where a confirmation code went and until when it's valid: where, by the name of the method
  * Polkurier sent it by (a partly masked phone number or e-mail address).
  */
-readonly class CodeSent
+final class CodeSent
 {
     public static function message(TwoFactorToken $token): string
     {

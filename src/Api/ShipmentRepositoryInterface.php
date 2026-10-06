@@ -16,11 +16,14 @@ use Polkurier\Shipping\Api\Data\ShipmentSearchResultsInterface;
 
 /**
  * Stores the Polkurier shipment records kept in Magento.
+ *
+ * @api
  */
 interface ShipmentRepositoryInterface
 {
     /**
      * @param int $id
+     *
      * @return \Polkurier\Shipping\Api\Data\ShipmentInterface
      * @throws NoSuchEntityException
      */
@@ -28,12 +31,14 @@ interface ShipmentRepositoryInterface
 
     /**
      * @param \Magento\Framework\Api\SearchCriteriaInterface $searchCriteria
+     *
      * @return \Polkurier\Shipping\Api\Data\ShipmentSearchResultsInterface
      */
     public function getList(SearchCriteriaInterface $searchCriteria): ShipmentSearchResultsInterface;
 
     /**
      * @param \Polkurier\Shipping\Api\Data\ShipmentInterface $entity
+     *
      * @return \Polkurier\Shipping\Api\Data\ShipmentInterface
      * @throws CouldNotSaveException
      */
@@ -41,6 +46,7 @@ interface ShipmentRepositoryInterface
 
     /**
      * @param \Polkurier\Shipping\Api\Data\ShipmentInterface $entity
+     *
      * @return bool
      * @throws CouldNotDeleteException
      */

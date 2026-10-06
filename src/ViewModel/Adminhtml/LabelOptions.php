@@ -98,7 +98,7 @@ class LabelOptions implements ArgumentInterface
     {
         $order = $this->getOrder();
 
-        return $order !== null && Polkurier::methodCodeOf((string)$order->getShippingMethod()) !== null;
+        return $order !== null && Polkurier::isOrderOf($order);
     }
 
     /**
@@ -247,6 +247,7 @@ class LabelOptions implements ArgumentInterface
      * customer chose it by when it can't be looked up, and whether it's closed or gone since.
      *
      * @param array<string, mixed> $values
+     *
      * @return array{id: string, label: string, closed: bool}
      */
     private function describePoint(Order $order, array $values): array

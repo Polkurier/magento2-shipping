@@ -9,14 +9,15 @@ namespace Polkurier\Shipping\Model\Checkout;
 
 use Magento\Framework\Exception\InputException;
 use Magento\Quote\Api\Data\CartInterface;
+use Polkurier\Shipping\Exception\RecentFailureException;
 use Polkurier\Shipping\Model\Carrier\CarrierCatalog;
 use Polkurier\Shipping\Model\Carrier\CarrierFeatures;
 use Polkurier\Shipping\Model\Carrier\Polkurier;
 use Polkurier\Shipping\Model\Config;
 use Polkurier\Shipping\Model\OrderPointStore;
 use Polkurier\Shipping\Model\QuotePointFactory;
-use Polkurier\Webservice\Exception\Exception as PolkurierException;
 use Polkurier\Webservice\Enum\Courier\PointFunctionEnum;
+use Polkurier\Webservice\Exception\Exception as PolkurierException;
 use Polkurier\Webservice\Response\CourierPoint;
 use Psr\Log\LoggerInterface;
 
@@ -41,6 +42,7 @@ readonly class PointSelection
 
     /**
      * @param int $quoteAddressId the shipping address in multi-address checkout, else 0
+     *
      * @throws InputException when the method needs a point and none, or an unknown one, was given
      */
     public function select(CartInterface $quote, string $carrierCode, string $methodCode, ?string $pointId, int $quoteAddressId = 0): void
@@ -84,6 +86,8 @@ readonly class PointSelection
                 // The same as the map shows after choosing: the address, the point's id beside it.
                 $label = $point->getAddress() ?: \trim($point->getStreet() . ' ' . $point->getZip() . ' ' . $point->getCity());
                 $cod = $point->isCod();
+            } catch (RecentFailureException) {
+                // Logged when it failed.
             } catch (PolkurierException $e) {
                 $this->logger->warning('Polkurier pickup point lookup failed', ['exception' => $e]);
             }
@@ -124,6 +128,7 @@ readonly class PointSelection
      * When the carrier list cannot be read, the order is let through rather than lost.
      *
      * @param string $methodCode the method code after "polkurier_"
+     *
      * @throws InputException
      */
     public function requirePoint(CartInterface $quote, string $methodCode, int $quoteAddressId = 0): void

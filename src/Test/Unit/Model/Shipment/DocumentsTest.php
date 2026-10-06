@@ -7,6 +7,7 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Test\Unit\Model\Shipment;
 
+use Magento\Framework\Exception\LocalizedException;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
@@ -14,6 +15,7 @@ use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Model\Config;
 use Polkurier\Shipping\Model\Sdk\ShipmentGatewayInterface;
 use Polkurier\Shipping\Model\Shipment\Documents;
+use Polkurier\Shipping\Model\Shipment\StatusRefresh;
 use Polkurier\Shipping\Test\Unit\Support\FixedDateTime;
 use Polkurier\Webservice\Enum\Order\LabelFileFormatEnum;
 use Polkurier\Webservice\Request\Order\GetDocumentMessage;
@@ -31,6 +33,17 @@ class DocumentsTest extends TestCase
      */
     private array $formatStores = [];
 
+    /**
+     * @var array<int, string|null> the state each shipment, by id, is in at Polkurier: null for
+     *     one Polkurier doesn't know
+     */
+    private array $remoteStates = [];
+
+    /**
+     * @var int[] the shipments read from Polkurier
+     */
+    private array $refreshed = [];
+
     public function testLabelsAreOnePdfOfThePlacedOrdersEachOnce(): void
     {
         $file = $this->documents()->getLabels([
@@ -44,7 +57,44 @@ class DocumentsTest extends TestCase
         self::assertSame(['18015-2865', '18015-2866'], $this->asked?->getOrderNo());
         self::assertNull($this->asked->getFileFormat());
         self::assertSame([1], $this->formatStores, 'The first shipment\'s store says the label format.');
-        self::assertSame(['file_name' => 'polkurier-labels-20260930-100000.pdf', 'content' => '%PDF-1.4', 'content_type' => 'application/pdf'], $file);
+        self::assertSame(['file_name' => 'polkurier-labels-20260930-100000.pdf', 'content' => '%PDF-1.4', 'content_type' => 'application/pdf', 'left_out' => []], $file);
+    }
+
+    public function testSeveralAreReadFromPolkurierAndThoseNoLongerPlacedLeftOut(): void
+    {
+        $this->remoteStates = [1 => ShipmentInterface::STATE_CREATED, 2 => ShipmentInterface::STATE_CANCELLED, 3 => null];
+
+        $file = $this->documents()->getProtocol([
+            $this->shipment('711400-24', 1, id: 1),
+            $this->shipment('711400-25', 1, id: 2),
+            $this->shipment('711400-99', 1, id: 3),
+        ]);
+
+        self::assertSame([1, 2, 3], $this->refreshed);
+        self::assertSame(['711400-24'], $this->asked?->getOrderNo(), 'Polkurier fails a whole protocol over one number it doesn\'t know.');
+        self::assertSame([
+            'Polkurier order 711400-25 was left out: it was cancelled in Polkurier.',
+            'Polkurier order 711400-99 was left out: Polkurier has no order number 711400-99 on this account.',
+        ], $file['left_out']);
+    }
+
+    public function testOneIsAskedForStraightAway(): void
+    {
+        $this->documents()->getLabels([$this->shipment('711400-24', 1, id: 1)]);
+
+        self::assertSame([], $this->refreshed, 'Polkurier says itself when the only one asked for can\'t be printed.');
+    }
+
+    public function testNothingIsAskedForWhenNoneIsPlacedAnyMore(): void
+    {
+        $this->remoteStates = [1 => ShipmentInterface::STATE_CANCELLED, 2 => ShipmentInterface::STATE_CANCELLED];
+        $this->expectExceptionMessage('None of the selected shipments is placed in Polkurier any more. Polkurier order 711400-24 was left out');
+
+        try {
+            $this->documents()->getLabels([$this->shipment('711400-24', 1, id: 1), $this->shipment('711400-25', 1, id: 2)]);
+        } finally {
+            self::assertNull($this->asked);
+        }
     }
 
     public function testAPrinterFormatMakesATextFileUnlessMagentoWantsAPdf(): void
@@ -96,12 +146,24 @@ class DocumentsTest extends TestCase
             return $this->format;
         });
 
-        return new Documents($gateway, $config, new FixedDateTime((int)\strtotime('2026-09-30 10:00:00 UTC')));
+        $refresh = $this->createStub(StatusRefresh::class);
+        $refresh->method('refresh')->willReturnCallback(function (int $id): ShipmentInterface {
+            $this->refreshed[] = $id;
+            $state = \array_key_exists($id, $this->remoteStates) ? $this->remoteStates[$id] : ShipmentInterface::STATE_CREATED;
+            if ($state === null) {
+                throw new LocalizedException(\__('Polkurier has no order number %1 on this account.', '711400-99'));
+            }
+
+            return $this->shipment('711400-' . $id, 1, $state, $id);
+        });
+
+        return new Documents($gateway, $config, new FixedDateTime((int)\strtotime('2026-09-30 10:00:00 UTC')), $refresh);
     }
 
-    private function shipment(?string $number, int $storeId, string $state = ShipmentInterface::STATE_CREATED): ShipmentInterface
+    private function shipment(?string $number, int $storeId, string $state = ShipmentInterface::STATE_CREATED, int $id = 0): ShipmentInterface
     {
         $shipment = $this->createStub(ShipmentInterface::class);
+        $shipment->method('getId')->willReturn($id);
         $shipment->method('getPolkurierNumber')->willReturn($number);
         $shipment->method('getStoreId')->willReturn($storeId);
         $shipment->method('getState')->willReturn($state);

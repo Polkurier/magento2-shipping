@@ -11,6 +11,9 @@ use Magento\Framework\Model\ResourceModel\Db\Collection\AbstractCollection;
 use Polkurier\Shipping\Model\CarrierConfig as Model;
 use Polkurier\Shipping\Model\ResourceModel\CarrierConfig as ResourceModel;
 
+/**
+ * The carriers' settings.
+ */
 class Collection extends AbstractCollection
 {
     /**

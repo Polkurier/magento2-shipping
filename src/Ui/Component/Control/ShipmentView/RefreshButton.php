@@ -7,6 +7,9 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Ui\Component\Control\ShipmentView;
 
+/**
+ * Reads the shipment's status from Polkurier again.
+ */
 class RefreshButton extends AbstractButton
 {
     /**

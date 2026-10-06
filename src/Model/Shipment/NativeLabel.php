@@ -19,15 +19,16 @@ use Magento\Sales\Api\ShipmentRepositoryInterface as MagentoShipmentRepository;
 use Magento\Sales\Model\Order;
 use Magento\Sales\Model\Order\Shipment as MagentoShipmentModel;
 use Magento\Sales\Model\Order\Shipment\TrackFactory;
+use Polkurier\Shipping\Api\Data\AddressInterface;
 use Polkurier\Shipping\Api\Data\ShipmentDraftInterface;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Model\Carrier\Polkurier;
 use Polkurier\Shipping\Model\Config;
 use Polkurier\Shipping\Model\Config\Source\PackType;
-use Polkurier\Shipping\Model\ResourceModel\Shipment\CollectionFactory;
 use Polkurier\Shipping\Model\Shipment\Draft\ItemFactory;
 use Polkurier\Shipping\Model\Shipment\Draft\Pack;
 use Polkurier\Shipping\Model\Shipment\Draft\PackFactory;
+use Polkurier\Shipping\Model\StoreWeightUnit;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -65,7 +66,7 @@ class NativeLabel
 
     /**
      * Draft fields the shipment page may set. Recipient and parcels come from the order and the
-     * packaging popup.
+     * packaging popup. A list: the page gets it as a JSON array.
      */
     public const array OPTION_FIELDS = [
         ShipmentDraftInterface::CARRIER_CODE,
@@ -85,16 +86,16 @@ class NativeLabel
         ShipmentDraftInterface::PICKUP_TIME_FROM,
         ShipmentDraftInterface::PICKUP_TIME_TO,
         // A sender or bank account typed in, and whether it's kept.
-        'new_sender_person',
-        'new_sender_company',
-        'new_sender_street',
-        'new_sender_house_number',
-        'new_sender_flat_number',
-        'new_sender_postcode',
-        'new_sender_city',
-        'new_sender_country',
-        'new_sender_phone',
-        'new_sender_email',
+        ShipmentDraftInterface::NEW_SENDER_FIELDS[AddressInterface::PERSON],
+        ShipmentDraftInterface::NEW_SENDER_FIELDS[AddressInterface::COMPANY],
+        ShipmentDraftInterface::NEW_SENDER_FIELDS[AddressInterface::STREET],
+        ShipmentDraftInterface::NEW_SENDER_FIELDS[AddressInterface::HOUSE_NUMBER],
+        ShipmentDraftInterface::NEW_SENDER_FIELDS[AddressInterface::FLAT_NUMBER],
+        ShipmentDraftInterface::NEW_SENDER_FIELDS[AddressInterface::POSTCODE],
+        ShipmentDraftInterface::NEW_SENDER_FIELDS[AddressInterface::CITY],
+        ShipmentDraftInterface::NEW_SENDER_FIELDS[AddressInterface::COUNTRY],
+        ShipmentDraftInterface::NEW_SENDER_FIELDS[AddressInterface::PHONE],
+        ShipmentDraftInterface::NEW_SENDER_FIELDS[AddressInterface::EMAIL],
         ShipmentDraftInterface::KEEP_NEW_SENDER,
         ShipmentDraftInterface::NEW_SENDER_NAME,
         ShipmentDraftInterface::NEW_BANK_ACCOUNT_NUMBER,
@@ -108,7 +109,6 @@ class NativeLabel
      */
     public const string KEEP_AS_PARAM = 'polkurier_keep_as';
 
-    private const float KG_PER_POUND = 0.45359237;
     private const float CM_PER_INCH = 2.54;
 
     private ?string $unreadyLabel = null;
@@ -124,7 +124,7 @@ class NativeLabel
         private readonly DraftHydrator $hydrator,
         private readonly PackFactory $packFactory,
         private readonly PackType $packTypes,
-        private readonly CollectionFactory $shipmentCollectionFactory,
+        private readonly ShipmentFinder $finder,
         private readonly Documents $documents,
         private readonly MagentoShipment $magentoShipment,
         private readonly TrackFactory $trackFactory,
@@ -222,6 +222,7 @@ class NativeLabel
      *
      * @param array<int|string, mixed> $packages
      * @param array<int, float> $qtys what the shipment carries, by order item id
+     *
      * @throws LocalizedException
      */
     private function assertPackedOnce(array $packages, array $qtys): void
@@ -245,6 +246,7 @@ class NativeLabel
 
     /**
      * @param array<int|string, mixed> $packages
+     *
      * @return Pack[]
      */
     private function toPacks(array $packages): array
@@ -281,7 +283,7 @@ class NativeLabel
 
     private function kilograms(float $weight, string $units): float
     {
-        return \round($units === Weight::POUND ? $weight * self::KG_PER_POUND : $weight, 3);
+        return \round($units === Weight::POUND ? $weight * StoreWeightUnit::KG_PER_POUND : $weight, 3);
     }
 
     private function centimetres(float $length, string $units): int
@@ -339,7 +341,7 @@ class NativeLabel
         } catch (LocalizedException $e) {
             $this->logger->warning('Polkurier label not available for the Magento shipment', [
                 'polkurier_number' => $shipment->getPolkurierNumber(),
-                'error' => $e->getMessage(),
+                'exception' => $e,
             ]);
 
             return null;
@@ -350,14 +352,7 @@ class NativeLabel
 
     private function findLinked(int $magentoShipmentId): ?ShipmentInterface
     {
-        $collection = $this->shipmentCollectionFactory->create()
-            ->addFieldToFilter(ShipmentInterface::SHIPMENT_ID, ['eq' => $magentoShipmentId])
-            ->addFieldToFilter(ShipmentInterface::STATE, ['eq' => ShipmentInterface::STATE_CREATED])
-            ->setOrder(ShipmentInterface::ENTITY_ID, 'DESC')
-            ->setPageSize(1);
-        $shipment = $collection->getFirstItem();
-
-        return $shipment instanceof ShipmentInterface && $shipment->getId() ? $shipment : null;
+        return $this->finder->latestLinkedTo($magentoShipmentId, [ShipmentInterface::STATE_CREATED]);
     }
 
     /**

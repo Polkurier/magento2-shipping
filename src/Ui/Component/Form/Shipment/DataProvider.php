@@ -7,22 +7,20 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Ui\Component\Form\Shipment;
 
-use Magento\Framework\Api\Filter;
 use Magento\Framework\App\RequestInterface;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Pricing\PriceCurrencyInterface;
 use Magento\Framework\UrlInterface;
 use Magento\Sales\Model\Order;
-use Magento\Ui\DataProvider\AbstractDataProvider;
 use Polkurier\Shipping\Api\Data\AddressInterface;
 use Polkurier\Shipping\Api\ShipmentManagementInterface;
+use Polkurier\Shipping\Model\Carrier\CarrierFeatures;
 use Polkurier\Shipping\Model\Carrier\CarrierNotices;
 use Polkurier\Shipping\Model\Config\Source\AdditionalService;
 use Polkurier\Shipping\Model\Config\Source\CodReturnType;
 use Polkurier\Shipping\Model\Config\Source\CodType;
 use Polkurier\Shipping\Model\Config\Source\PackType;
 use Polkurier\Shipping\Model\Config\Source\PickupMode;
-use Polkurier\Shipping\Model\Carrier\CarrierFeatures;
 use Polkurier\Shipping\Model\Config\Source\ShipmentType;
 use Polkurier\Shipping\Model\Mapper\SenderMapper;
 use Polkurier\Shipping\Model\MasterData;
@@ -32,26 +30,22 @@ use Polkurier\Shipping\Model\Shipment\DefaultDraftBuilder;
 use Polkurier\Shipping\Model\Shipment\DraftHydrator;
 use Polkurier\Shipping\Model\Shipment\MagentoShipment;
 use Polkurier\Shipping\Model\Shipment\OrderAmounts;
-use Polkurier\Shipping\Model\Shipment\PlnAmounts;
 use Polkurier\Shipping\Model\Shipment\OwnOrders;
-use Polkurier\Shipping\Model\Shipment\RejectedDraft;
-use Polkurier\Shipping\Model\Shipment\SendAgain;
-use Polkurier\Shipping\Model\Shipment\ScreenContext;
 use Polkurier\Shipping\Model\Shipment\PackKinds;
+use Polkurier\Shipping\Model\Shipment\PlnAmounts;
+use Polkurier\Shipping\Model\Shipment\RejectedDraft;
+use Polkurier\Shipping\Model\Shipment\ScreenContext;
+use Polkurier\Shipping\Model\Shipment\SendAgain;
 use Polkurier\Shipping\Model\Shipment\ShipmentOptions;
+use Polkurier\Shipping\Ui\Component\Form\FormDataProvider;
 use Polkurier\Webservice\Request\Order\OrderAddressMessage;
 
 /**
  * Data of the Polkurier shipment form: the draft for the order, the options it is put together
  * from, and what each carrier supports, for the form's scripts to act on.
  */
-class DataProvider extends AbstractDataProvider
+class DataProvider extends FormDataProvider
 {
-    /**
-     * @var array<int|string, array<string, mixed>>|null
-     */
-    private ?array $loadedData = null;
-
     /**
      * @param array<string, mixed> $meta
      * @param array<string, mixed> $data
@@ -91,24 +85,11 @@ class DataProvider extends AbstractDataProvider
         $this->collection = $collectionFactory->create();
     }
 
-    /**
-     * The form narrows by its own request parameter, not through the collection.
-     */
-    public function addFilter(Filter $filter): void
+    protected function load(): array
     {
-    }
-
-    /**
-     * @return array<int|string, array<string, mixed>>
-     */
-    public function getData(): array
-    {
-        if ($this->loadedData !== null) {
-            return $this->loadedData;
-        }
         $orderId = (int)$this->request->getParam('order_id');
         if (!$orderId) {
-            return $this->loadedData = [];
+            return [];
         }
 
         $order = $this->getOrder($orderId);
@@ -200,7 +181,7 @@ class DataProvider extends AbstractDataProvider
             'addresses' => $this->url->getUrl('polkurier/address/index'),
         ];
 
-        return $this->loadedData = [$orderId => $data];
+        return [$orderId => $data];
     }
 
     /**
@@ -243,6 +224,7 @@ class DataProvider extends AbstractDataProvider
      *
      * @param array<int, mixed> $draftItems rows of order_item_id and qty
      * @param array<int, float>|null $carried what the Magento shipment carries, by order item id
+     *
      * @return array<int, array<string, mixed>>
      */
     private function getItems(Order $order, array $draftItems, ?array $carried = null): array

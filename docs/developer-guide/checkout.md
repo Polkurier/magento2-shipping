@@ -12,7 +12,8 @@
 `AbstractCarrier`. Each Polkurier carrier the merchant switches on becomes one method:
 `polkurier_DPD`, `polkurier_INPOST_PACZKOMAT` and so on. The method code is the carrier code on the
 Polkurier account. `Polkurier::methodCodeOf()` extracts it from a shipping method, or returns null
-for other carriers' methods; `Polkurier::isOrderOf()` tells whether an order was placed with one. The carrier class is a thin adapter: rates come from
+for other carriers' methods; `Polkurier::isOrderOf()` tells whether an order was placed with one, and `Polkurier::methodOf()`
+builds the method code from a carrier code. The carrier class is a thin adapter: rates come from
 `Model\Carrier\RateCollector`, tracking titles from `Model\Shipment\TrackingLookup`, and shipping
 labels from `Model\Shipment\NativeLabel`.
 
@@ -49,9 +50,8 @@ label. The carrier also implements Magento's label hooks, described in
 ## Pricing
 
 Prices are the merchant's own. `Model\Pricing\PriceCalculatorInterface::calculate()` gets the
-carrier's settings and a `RateContext` (subtotal after discounts and without tax, total weight),
-and returns a price or `null` for "not offered". The pool picks a calculator by the carrier's
-pricing model:
+carrier's settings and a `RateContext` (subtotal, total weight), and returns a price or `null`
+for "not offered". The pool picks a calculator by the carrier's pricing model:
 
 | Pricing model | Calculator |
 |---|---|
@@ -62,6 +62,15 @@ pricing model:
 
 The settings are stored as JSON in `price_info`, and their shape depends on the model. With tiers,
 the highest tier the cart reaches wins; a cart that reaches none gets `null`.
+
+The subtotal is `Model\Pricing\CartValue`'s: the cart's value after discounts, with or without
+tax as `checkout/tier_cart_value` says (`Config::getTierCartValue()`, gross by default), in the
+base currency. It's summed from the rate request's items without a parent item, whose rows hold
+their children's totals. Rates are collected after Magento's `tax_subtotal` and `discount`
+collectors and before `tax`, so each row's totals with and without tax and its discount are
+current, but not the tax on the discounted amount: the discount is taken off both values in
+proportion to the price Magento applied it to (`tax/calculation/discount_tax`). A request without
+items falls back to Magento's `package_value_with_discount`.
 
 ## Pickup points
 
@@ -93,10 +102,11 @@ From there:
 1. The payload extender mixin adds `pickup_point_id` to the shipping information's extension
    attributes. The shipping step's validation mixin refuses to continue without a point.
 2. `Plugin\Checkout\ShippingInformationManagementPlugin` passes it to
-   `Model\Checkout\PointSelection`. That class looks the point up with Polkurier, refuses it when
-   it's closed or lacks a function the map is set to require (*Show only points that*), and
-   stores it in `polkurier_quote_point`, or removes it when the customer switches to another
-   method.
+   `Model\Checkout\PointSelection`. That class looks the point up with Polkurier (cached for a day,
+   see [Talking to Polkurier](talking-to-polkurier.md)), refuses it when it's closed or lacks a
+   function the map is set to require (*Show only points that*), and stores it in
+   `polkurier_quote_point`, or removes it when the customer switches to another method. When
+   Polkurier can't be asked, the point is kept as typed.
 3. `Observer\ValidatePickupPointObserver` (`sales_model_service_quote_submit_before`) checks again when
    the order is placed. It's disabled in the admin area, where orders are created without a
    picker; the merchant sets the point when shipping instead.

@@ -16,11 +16,10 @@ use PHPUnit\Framework\TestCase;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Api\ShipmentRepositoryInterface;
 use Polkurier\Shipping\Model\Carrier\CarrierNames;
-use Polkurier\Shipping\Model\ResourceModel\Shipment\Collection;
-use Polkurier\Shipping\Model\ResourceModel\Shipment\CollectionFactory;
 use Polkurier\Shipping\Model\Shipment;
 use Polkurier\Shipping\Model\Shipment\MagentoFollowUp;
 use Polkurier\Shipping\Model\Shipment\NotPlaced;
+use Polkurier\Shipping\Model\Shipment\ShipmentFinder;
 use Polkurier\Shipping\Test\Unit\Support\FixedDateTime;
 
 #[CoversClass(NotPlaced::class)]
@@ -33,17 +32,16 @@ class NotPlacedTest extends TestCase
     private array $log = [];
 
     /**
-     * @var array<string, mixed>
+     * The time before which the expiry looked for shipments not placed.
      */
-    private array $filters = [];
+    private ?string $attemptedBefore = null;
 
     public function testOneLastTriedTwoDaysAgoIsRemovedAndNotedOnItsOrder(): void
     {
         $shipment = $this->shipment(ShipmentInterface::STATE_FAILED, 'Przerwa techniczna.');
 
         self::assertSame(1, $this->notPlaced([$shipment])->expire());
-        self::assertSame(ShipmentInterface::STATE_FAILED, $this->filters[ShipmentInterface::STATE]);
-        self::assertSame(['lt' => '2026-09-30 10:00:00'], $this->filters[ShipmentInterface::CREATED_AT]);
+        self::assertSame('2026-09-30 10:00:00', $this->attemptedBefore);
         self::assertSame([
             'delete 7',
             'comment The DPD shipment that wasn\'t placed was removed, 48 hours after it was last tried. Why it wasn\'t placed: Przerwa techniczna',
@@ -83,15 +81,12 @@ class NotPlacedTest extends TestCase
 
             return true;
         });
-        $collection = $this->createStub(Collection::class);
-        $collection->method('addFieldToFilter')->willReturnCallback(function (string $field, mixed $condition) use ($collection): Collection {
-            $this->filters[$field] = $condition;
+        $finder = $this->createStub(ShipmentFinder::class);
+        $finder->method('failedBefore')->willReturnCallback(function (string $attemptedBefore) use ($due): array {
+            $this->attemptedBefore = $attemptedBefore;
 
-            return $collection;
+            return $due;
         });
-        $collection->method('getItems')->willReturn($due);
-        $factory = $this->createStub(CollectionFactory::class);
-        $factory->method('create')->willReturn($collection);
         $followUp = $this->createStub(MagentoFollowUp::class);
         $followUp->method('order')->willReturn($this->createStub(Order::class));
         $followUp->method('comment')->willReturnCallback(function (Order $order, Phrase $comment): void {
@@ -100,7 +95,7 @@ class NotPlacedTest extends TestCase
         $names = $this->createStub(CarrierNames::class);
         $names->method('get')->willReturn('DPD');
 
-        return new NotPlaced($repository, $factory, $followUp, $names, new FixedDateTime((int)\strtotime('2026-10-02 10:00:00 UTC')));
+        return new NotPlaced($repository, $finder, $followUp, $names, new FixedDateTime((int)\strtotime('2026-10-02 10:00:00 UTC')));
     }
 
     private function shipment(string $state, string $error): Shipment

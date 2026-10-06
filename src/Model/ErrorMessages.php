@@ -9,14 +9,14 @@ namespace Polkurier\Shipping\Model;
 
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Phrase;
-use Polkurier\Shipping\Model\Sdk\RecentFailureException;
+use Polkurier\Shipping\Exception\RecentFailureException;
+use Polkurier\Webservice\Enum\Http\ApiErrorCodeEnum;
 use Polkurier\Webservice\Exception\AuthorizationException;
 use Polkurier\Webservice\Exception\ConnectionException;
 use Polkurier\Webservice\Exception\Exception as PolkurierException;
 use Polkurier\Webservice\Exception\InvalidArgumentException;
 use Polkurier\Webservice\Exception\MalformedResponseException;
 use Polkurier\Webservice\Exception\ValidationException;
-use Polkurier\Webservice\Enum\Http\ApiErrorCodeEnum;
 use Polkurier\Webservice\Exception\WebserviceException;
 
 /**

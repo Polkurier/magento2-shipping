@@ -11,6 +11,9 @@ use Magento\Framework\App\Action\HttpPostActionInterface;
 use Magento\Framework\Controller\Result\Redirect;
 use Magento\Framework\Exception\LocalizedException;
 
+/**
+ * Deletes one entry of a master-data list, saying when Polkurier has yet to delete it too.
+ */
 abstract class AbstractDelete extends AbstractAction implements HttpPostActionInterface
 {
     public function execute(): Redirect
@@ -21,7 +24,7 @@ abstract class AbstractDelete extends AbstractAction implements HttpPostActionIn
             $result = $this->handler->delete($this->handler->get($id));
             // Its edit page is gone with it.
             $gone = ['/edit/id/' . $id . '/'];
-            $result->failed > 0
+            $result->getFailed() > 0
                 ? $this->messageManager->addWarningMessage(\__(
                     'Deleted in Magento, but Polkurier hasn\'t deleted it yet: %1 It\'s tried again with the next synchronization.',
                     $this->reasons($result),

@@ -9,13 +9,16 @@ namespace Polkurier\Shipping\Controller\Adminhtml\Carrier;
 
 use Magento\Backend\App\Action;
 use Magento\Backend\App\Action\Context;
+use Magento\Backend\Model\View\Result\Page;
 use Magento\Framework\App\Action\HttpGetActionInterface;
 use Magento\Framework\Controller\ResultFactory;
 use Magento\Framework\Controller\ResultInterface;
-use Magento\Backend\Model\View\Result\Page;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Polkurier\Shipping\Api\CarrierConfigRepositoryInterface;
 
+/**
+ * The settings form of one carrier.
+ */
 class Edit extends Action implements HttpGetActionInterface
 {
     public const string ADMIN_RESOURCE = 'Polkurier_Shipping::carriers';

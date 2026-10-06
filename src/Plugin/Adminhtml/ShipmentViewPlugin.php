@@ -13,8 +13,8 @@ use Magento\Shipping\Block\Adminhtml\View;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Model\Carrier\Polkurier;
 use Polkurier\Shipping\Model\Config;
-use Polkurier\Shipping\Model\ResourceModel\Shipment\CollectionFactory;
 use Polkurier\Shipping\Model\Shipment\MagentoShipment;
+use Polkurier\Shipping\Model\Shipment\ShipmentFinder;
 
 /**
  * On the page of a Magento shipment of a Polkurier order: "Polkurier order", to its details, when
@@ -34,11 +34,12 @@ readonly class ShipmentViewPlugin
         private AuthorizationInterface $authorization,
         private Config $config,
         private MagentoShipment $magentoShipment,
-        private CollectionFactory $collectionFactory,
+        private ShipmentFinder $finder,
     ) {}
 
     /**
      * @param mixed $layout
+     *
      * @return array{0: mixed}
      */
     public function beforeSetLayout(View $subject, $layout): array
@@ -80,15 +81,6 @@ readonly class ShipmentViewPlugin
      */
     private function linkedTo(int $magentoShipmentId): ?ShipmentInterface
     {
-        $collection = $this->collectionFactory->create()
-            ->addFieldToFilter(ShipmentInterface::SHIPMENT_ID, (string)$magentoShipmentId)
-            ->setOrder(ShipmentInterface::ENTITY_ID, 'DESC')
-            ->setPageSize(1);
-        foreach ($collection->getItems() as $linked) {
-            /** @var ShipmentInterface $linked */
-            return $linked;
-        }
-
-        return null;
+        return $this->finder->latestLinkedTo($magentoShipmentId);
     }
 }

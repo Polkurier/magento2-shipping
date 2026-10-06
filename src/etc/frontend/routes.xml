@@ -10,5 +10,9 @@
         <route id="polkurier_points" frontName="pickup-points">
             <module name="Polkurier_Shipping" />
         </route>
+        <!-- Polkurier's status webhook, given in the Polkurier panel; no shopper sees it -->
+        <route id="polkurier_webhook" frontName="polkurier">
+            <module name="Polkurier_Shipping" />
+        </route>
     </router>
 </config>

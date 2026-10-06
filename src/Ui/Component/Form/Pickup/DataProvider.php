@@ -7,18 +7,17 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Ui\Component\Form\Pickup;
 
-use Magento\Framework\Api\Filter;
 use Magento\Framework\App\RequestInterface;
 use Magento\Framework\Stdlib\DateTime\TimezoneInterface;
-use Magento\Ui\DataProvider\AbstractDataProvider;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Model\Carrier\CarrierNames;
 use Polkurier\Shipping\Model\ResourceModel\Shipment\CollectionFactory;
+use Polkurier\Shipping\Ui\Component\Form\FormDataProvider;
 
 /**
  * The shipments a collective pickup is being booked for.
  */
-class DataProvider extends AbstractDataProvider
+class DataProvider extends FormDataProvider
 {
     /**
      * @param array<string, mixed> $meta
@@ -39,17 +38,7 @@ class DataProvider extends AbstractDataProvider
         $this->collection = $collectionFactory->create();
     }
 
-    /**
-     * The form narrows by its own request parameter, not through the collection.
-     */
-    public function addFilter(Filter $filter): void
-    {
-    }
-
-    /**
-     * @return array<string, array<string, mixed>>
-     */
-    public function getData(): array
+    protected function load(): array
     {
         $ids = \array_filter(\array_map('intval', \explode(',', (string)$this->request->getParam('ids'))));
         $numbers = [];

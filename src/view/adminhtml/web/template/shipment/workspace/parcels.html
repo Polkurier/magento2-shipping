@@ -122,7 +122,7 @@
                     </table>
                 </div>
                 <!-- ko if: editor.canKeep -->
-                <div class="admin__field admin__field-option">
+                <div class="admin__field admin__field-option polkurier-parcel-editor__keep">
                     <input id="polkurier-parcel-keep" type="checkbox" class="admin__control-checkbox" data-bind="checked: editor.keep"/>
                     <label class="admin__field-label" for="polkurier-parcel-keep" translate="'Save as a pack template for later shipments'"></label>
                 </div>
@@ -142,14 +142,14 @@
         <div data-bind="afterRender: initChooser">
             <ul class="polkurier-templates__list">
                 <li class="polkurier-templates__item" tabindex="0" role="button"
-                    data-bind="click: addCustom, event: {keydown: function (d, e) { return onChooserKey(null, e); }}">
+                    data-bind="click: addCustom, event: {keydown: onCustomKey}">
                     <strong translate="'A parcel without a template'"></strong>
                     <span class="polkurier-muted" translate="'Enter its size and weight yourself.'"></span>
                 </li>
                 <!-- ko foreach: templates -->
                 <li class="polkurier-templates__item" tabindex="0" role="button"
-                    data-bind="click: function () { $parent.applyTemplate($data, true); },
-                               event: {keydown: function (d, e) { return $parent.onChooserKey(d, e); }}">
+                    data-bind="click: $parent.applyTemplate.bind($parent),
+                               event: {keydown: $parent.onChooserKey.bind($parent)}">
                     <strong text="name"></strong>
                     <span class="polkurier-muted" data-bind="text: pack_type_label + ' (' + length + ' × ' + width + ' × ' + height + ' cm, ' + weight + ' kg)'"></span>
                 </li>

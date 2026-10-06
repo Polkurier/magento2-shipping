@@ -12,6 +12,7 @@ use Magento\Framework\App\Action\HttpPostActionInterface;
 use Magento\Framework\App\Request\DataPersistorInterface;
 use Magento\Framework\Controller\Result\Redirect;
 use Magento\Framework\Exception\LocalizedException;
+use Polkurier\Shipping\Controller\Adminhtml\ReadsPostData;
 use Polkurier\Shipping\Model\Admin\EntityHandlerInterface;
 use Polkurier\Shipping\Model\Admin\Flash;
 
@@ -21,6 +22,8 @@ use Polkurier\Shipping\Model\Admin\Flash;
  */
 abstract class AbstractSave extends AbstractAction implements HttpPostActionInterface
 {
+    use ReadsPostData;
+
     public function __construct(
         Context $context,
         EntityHandlerInterface $handler,
@@ -41,9 +44,9 @@ abstract class AbstractSave extends AbstractAction implements HttpPostActionInte
             $result = $this->handler->save($entity, $data);
             $entity = $this->handler->get((int)$entity->getId());
             $flash = new Flash();
-            if ($result->failed > 0 || $entity->getSyncError()) {
+            if ($result->getFailed() > 0 || $entity->getSyncError()) {
                 $flash->warning(\__('Saved in Magento, but not in Polkurier: %1', $entity->getSyncError() ?: $this->reasons($result)));
-            } elseif ($result->unconfirmed > 0) {
+            } elseif ($result->getUnconfirmed() > 0) {
                 $flash->notice(\__('Saved in Magento. It goes to Polkurier once you confirm it with the code or your security PIN.'));
             } else {
                 $flash->success(\__('Saved.'));
@@ -60,7 +63,7 @@ abstract class AbstractSave extends AbstractAction implements HttpPostActionInte
             return $redirect->setPath('*/*/edit', $id ? ['id' => $id] : []);
         }
 
-        return $this->getRequest()->getParam('back')
+        return $this->isSaveAndContinue()
             ? $redirect->setPath('*/*/edit', ['id' => $entity->getId()])
             : $redirect->setPath('*/*/index');
     }
@@ -73,15 +76,5 @@ abstract class AbstractSave extends AbstractAction implements HttpPostActionInte
     protected function getTransientFields(): array
     {
         return [];
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function getPostData(): array
-    {
-        $request = $this->getRequest();
-
-        return $request instanceof \Magento\Framework\App\Request\Http ? (array)$request->getPostValue() : [];
     }
 }

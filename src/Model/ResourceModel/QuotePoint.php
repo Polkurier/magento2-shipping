@@ -10,6 +10,9 @@ namespace Polkurier\Shipping\Model\ResourceModel;
 use Magento\Framework\Model\AbstractModel;
 use Magento\Framework\Model\ResourceModel\Db\AbstractDb;
 
+/**
+ * The polkurier_quote_point table: the pickup points chosen in a cart.
+ */
 class QuotePoint extends AbstractDb
 {
     public const string TABLE_NAME = 'polkurier_quote_point';

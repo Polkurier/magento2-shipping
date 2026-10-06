@@ -16,8 +16,8 @@ use PHPUnit\Framework\TestCase;
 use Polkurier\Shipping\Api\Data\PackTemplateInterface;
 use Polkurier\Shipping\Api\Data\SyncableInterface;
 use Polkurier\Shipping\Api\PackTemplateRepositoryInterface;
-use Polkurier\Shipping\Api\SyncEntityEnum;
 use Polkurier\Shipping\Api\SynchronizationInterface;
+use Polkurier\Shipping\Enum\SyncEntityEnum;
 use Polkurier\Shipping\Model\Admin\PackTemplateHandler;
 use Polkurier\Shipping\Model\Admin\SyncableEntityHandler;
 use Polkurier\Shipping\Model\PackTemplate;
@@ -61,7 +61,7 @@ class PackTemplateHandlerTest extends TestCase
         self::assertSame(SyncableInterface::STATE_PENDING, $template->getSyncState());
         self::assertSame('2026-09-30 10:00:00', $template->getUpdatedAt());
         self::assertSame(['lock polkurier_sync', 'save Karton L', 'push pack_template Karton L', 'unlock polkurier_sync'], $this->log);
-        self::assertSame(1, $report->pushed, 'What the push did, for the action to tell.');
+        self::assertSame(1, $report->getPushed(), 'What the push did, for the action to tell.');
     }
 
     public function testANameAnotherTemplateHasIsRefusedBeforeAnythingIsSaved(): void

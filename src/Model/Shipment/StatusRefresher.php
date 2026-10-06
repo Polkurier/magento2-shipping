@@ -7,12 +7,11 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Model\Shipment;
 
+use Magento\Framework\Stdlib\DateTime as DateFormat;
 use Magento\Framework\Stdlib\DateTime\DateTime;
-use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Api\ShipmentManagementInterface;
 use Polkurier\Shipping\Model\Config;
 use Polkurier\Shipping\Model\ResourceModel\Shipment as ShipmentResource;
-use Polkurier\Shipping\Model\ResourceModel\Shipment\CollectionFactory;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -27,7 +26,7 @@ readonly class StatusRefresher
     public const int BATCH_SIZE = 200;
 
     public function __construct(
-        private CollectionFactory $collectionFactory,
+        private ShipmentFinder $finder,
         private ShipmentManagementInterface $management,
         private ShipmentResource $shipmentResource,
         private Config $config,
@@ -36,15 +35,13 @@ readonly class StatusRefresher
     ) {}
 
     /**
-     * The scheduled run: the shipments not checked since the previous one.
+     * The scheduled run: the shipments not checked since the previous one. Whether the scheduled
+     * updates are on is the cron job's to check.
      *
      * @return int how many shipments were refreshed
      */
     public function refreshPending(): int
     {
-        if (!$this->config->isStatusSyncEnabled()) {
-            return 0;
-        }
         // A minute short of the interval, so that a shipment checked by the previous run is due.
         $minAge = \max(1, $this->config->getStatusIntervalMinutes() - 1);
 
@@ -67,22 +64,12 @@ readonly class StatusRefresher
      */
     private function refresh(int $minAgeMinutes): array
     {
-        $collection = $this->collectionFactory->create()
-            ->addFieldToFilter(ShipmentInterface::STATE, ShipmentInterface::STATE_CREATED)
-            ->addFieldToFilter(ShipmentInterface::IS_FINAL, ['eq' => 0])
-            ->setOrder(ShipmentInterface::STATUS_CHECKED_AT, 'ASC')
-            ->setPageSize(self::BATCH_SIZE);
-        if ($minAgeMinutes > 0) {
-            $checkedBefore = \gmdate('Y-m-d H:i:s', $this->dateTime->gmtTimestamp() - $minAgeMinutes * 60);
-            $collection->addFieldToFilter(ShipmentInterface::STATUS_CHECKED_AT, [
-                ['null' => true],
-                ['lt' => $checkedBefore],
-            ]);
-        }
-
+        $checkedBefore = $minAgeMinutes > 0
+            ? \gmdate(DateFormat::DATETIME_PHP_FORMAT, $this->dateTime->gmtTimestamp() - $minAgeMinutes * 60)
+            : null;
         $refreshed = 0;
         $failed = 0;
-        foreach ($collection->getItems() as $shipment) {
+        foreach ($this->finder->dueForStatusCheck($checkedBefore, self::BATCH_SIZE) as $shipment) {
             try {
                 $this->management->refreshStatus((int)$shipment->getId());
                 $refreshed++;
@@ -90,7 +77,7 @@ readonly class StatusRefresher
                 $failed++;
                 $this->logger->warning('Polkurier status refresh failed', [
                     'shipment' => $shipment->getId(),
-                    'error' => $e->getMessage(),
+                    'exception' => $e,
                 ]);
                 // Only the check time: the row loaded here is older than what the check may have saved.
                 $this->shipmentResource->markChecked((int)$shipment->getId(), (string)$this->dateTime->gmtDate());

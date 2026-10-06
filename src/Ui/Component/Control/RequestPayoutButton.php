@@ -9,6 +9,9 @@ namespace Polkurier\Shipping\Ui\Component\Control;
 
 use Magento\Framework\View\Element\UiComponent\Control\ButtonProviderInterface;
 
+/**
+ * Requests the payout filled in on the payout form.
+ */
 readonly class RequestPayoutButton implements ButtonProviderInterface
 {
     /**

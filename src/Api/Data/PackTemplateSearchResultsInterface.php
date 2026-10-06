@@ -9,6 +9,11 @@ namespace Polkurier\Shipping\Api\Data;
 
 use Magento\Framework\Api\SearchResultsInterface;
 
+/**
+ * The pack templates found by search criteria.
+ *
+ * @api
+ */
 interface PackTemplateSearchResultsInterface extends SearchResultsInterface
 {
     /**
@@ -18,6 +23,7 @@ interface PackTemplateSearchResultsInterface extends SearchResultsInterface
 
     /**
      * @param \Polkurier\Shipping\Api\Data\PackTemplateInterface[] $items
+     *
      * @return $this
      */
     public function setItems(array $items);

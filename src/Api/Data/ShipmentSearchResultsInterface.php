@@ -9,6 +9,11 @@ namespace Polkurier\Shipping\Api\Data;
 
 use Magento\Framework\Api\SearchResultsInterface;
 
+/**
+ * The Polkurier shipments found by search criteria.
+ *
+ * @api
+ */
 interface ShipmentSearchResultsInterface extends SearchResultsInterface
 {
     /**
@@ -18,6 +23,7 @@ interface ShipmentSearchResultsInterface extends SearchResultsInterface
 
     /**
      * @param \Polkurier\Shipping\Api\Data\ShipmentInterface[] $items
+     *
      * @return $this
      */
     public function setItems(array $items);

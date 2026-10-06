@@ -9,14 +9,14 @@ namespace Polkurier\Shipping\Model\Shipment;
 
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Sales\Api\Data\ShipmentInterface as MagentoShipmentInterface;
-use Magento\Sales\Model\Order;
-use Magento\Sales\Model\Order\Shipment as MagentoShipmentModel;
 use Magento\Sales\Api\Data\ShipmentItemCreationInterfaceFactory;
 use Magento\Sales\Api\Data\ShipmentTrackCreationInterfaceFactory;
 use Magento\Sales\Api\Data\ShipmentTrackInterfaceFactory;
 use Magento\Sales\Api\ShipmentRepositoryInterface;
 use Magento\Sales\Api\ShipmentTrackRepositoryInterface;
 use Magento\Sales\Api\ShipOrderInterface;
+use Magento\Sales\Model\Order;
+use Magento\Sales\Model\Order\Shipment as MagentoShipmentModel;
 use Polkurier\Shipping\Api\Data\ShipmentDraft\ItemInterface;
 use Polkurier\Shipping\Api\Data\ShipmentDraft\PackInterface;
 use Polkurier\Shipping\Api\Data\ShipmentDraftInterface;
@@ -24,7 +24,6 @@ use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Model\Carrier\CarrierConfigs;
 use Polkurier\Shipping\Model\Carrier\Polkurier;
 use Polkurier\Shipping\Model\Config;
-use Polkurier\Shipping\Model\ResourceModel\Shipment\CollectionFactory;
 
 /**
  * Ships the Magento order that a Polkurier order was placed for, and keeps its tracking numbers
@@ -37,15 +36,6 @@ use Polkurier\Shipping\Model\ResourceModel\Shipment\CollectionFactory;
  */
 readonly class MagentoShipment
 {
-    /**
-     * Polkurier orders that hold on to their Magento shipment; a cancelled one lets it go.
-     */
-    public const array HOLDING_STATES = [
-        ShipmentInterface::STATE_PENDING,
-        ShipmentInterface::STATE_CREATED,
-        ShipmentInterface::STATE_UNKNOWN,
-    ];
-
     public function __construct(
         private ShipOrderInterface $shipOrder,
         private ShipmentItemCreationInterfaceFactory $itemCreationFactory,
@@ -54,7 +44,7 @@ readonly class MagentoShipment
         private ShipmentTrackInterfaceFactory $trackFactory,
         private ShipmentTrackRepositoryInterface $trackRepository,
         private ShipmentRepositoryInterface $shipmentRepository,
-        private CollectionFactory $shipmentCollectionFactory,
+        private ShipmentFinder $finder,
         private Config $config,
         private CarrierConfigs $carrierConfigs,
         private ReservedShipmentNumbers $reservedNumbers,
@@ -111,6 +101,7 @@ readonly class MagentoShipment
      *
      * @param PackInterface[] $packs
      * @param array<int, float> $qtys by order item id; empty for everything left
+     *
      * @return array<int, array<string, mixed>> by package number, from 1
      * @throws LocalizedException
      */
@@ -206,12 +197,9 @@ readonly class MagentoShipment
             return [];
         }
         // Oldest first: what a new Polkurier order replaces is the latest cancelled one.
-        $linked = $this->shipmentCollectionFactory->create()
-            ->addFieldToFilter(ShipmentInterface::SHIPMENT_ID, ['in' => \array_keys($shipments)])
-            ->setOrder(ShipmentInterface::ENTITY_ID, 'ASC');
-        foreach ($linked->getItems() as $polkurier) {
+        foreach ($this->finder->linkedTo(\array_keys($shipments)) as $polkurier) {
             $id = (int)$polkurier->getShipmentId();
-            if (\in_array($polkurier->getState(), self::HOLDING_STATES, true)) {
+            if (\in_array($polkurier->getState(), ShipmentInterface::LIVE_STATES, true)) {
                 unset($shipments[$id]);
             } elseif (isset($shipments[$id])) {
                 $shipments[$id]['replaces'] = $polkurier->getPolkurierNumber();
@@ -279,6 +267,7 @@ readonly class MagentoShipment
      * Checks the quantities chosen for a new Magento shipment against what the order has left.
      *
      * @param ItemInterface[] $items
+     *
      * @return array<int, float> the quantities to ship by order item id; empty for everything left
      * @throws LocalizedException
      */
@@ -320,6 +309,7 @@ readonly class MagentoShipment
      *
      * @param array<int, float> $qtys by order item id; empty for everything left
      * @param array<int, array<string, mixed>> $packages of a new Magento shipment, see getPackages()
+     *
      * @return int the Magento shipment id
      * @throws LocalizedException when there is nothing to ship and no shipment to go on
      */
@@ -391,21 +381,16 @@ readonly class MagentoShipment
      */
     public function release(int $magentoShipmentId): void
     {
-        $linked = $this->shipmentCollectionFactory->create()
-            ->addFieldToFilter(ShipmentInterface::SHIPMENT_ID, ['eq' => $magentoShipmentId])
-            ->addFieldToFilter(ShipmentInterface::STATE, ['nin' => self::HOLDING_STATES]);
         $waybills = [];
-        foreach ($linked->getItems() as $replaced) {
-            $waybills = \array_merge($waybills, $replaced->getWaybills());
+        foreach ($this->finder->linkedTo([$magentoShipmentId]) as $replaced) {
+            if (!\in_array($replaced->getState(), ShipmentInterface::LIVE_STATES, true)) {
+                $waybills = \array_merge($waybills, $replaced->getWaybills());
+            }
         }
         if ($waybills === []) {
             return;
         }
-        foreach ($this->shipmentRepository->get($magentoShipmentId)->getTracks() as $track) {
-            if ($track->getCarrierCode() === Polkurier::CODE && \in_array((string)$track->getTrackNumber(), $waybills, true)) {
-                $this->trackRepository->delete($track);
-            }
-        }
+        PolkurierTracks::remove($this->trackRepository, $this->shipmentRepository->get($magentoShipmentId), $waybills);
     }
 
     /**

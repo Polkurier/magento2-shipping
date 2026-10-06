@@ -8,11 +8,11 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Model\Shipment;
 
 use Magento\Framework\Exception\LocalizedException;
+use Magento\Framework\Stdlib\DateTime as DateFormat;
 use Magento\Framework\Stdlib\DateTime\DateTime;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Api\ShipmentRepositoryInterface;
 use Polkurier\Shipping\Model\Carrier\CarrierNames;
-use Polkurier\Shipping\Model\ResourceModel\Shipment\CollectionFactory;
 
 /**
  * A shipment that wasn't placed, because Polkurier or the connection failed, waits for the
@@ -35,7 +35,7 @@ readonly class NotPlaced
 
     public function __construct(
         private ShipmentRepositoryInterface $shipmentRepository,
-        private CollectionFactory $collectionFactory,
+        private ShipmentFinder $finder,
         private MagentoFollowUp $followUp,
         private CarrierNames $carrierNames,
         private DateTime $dateTime,
@@ -56,7 +56,7 @@ readonly class NotPlaced
     {
         $from = \strtotime($lastTried . ' UTC') ?: $this->dateTime->gmtTimestamp();
 
-        return \gmdate('Y-m-d H:i:s', $from + self::LIFETIME_HOURS * 3600);
+        return \gmdate(DateFormat::DATETIME_PHP_FORMAT, $from + self::LIFETIME_HOURS * 3600);
     }
 
     /**
@@ -83,13 +83,9 @@ readonly class NotPlaced
      */
     public function expire(): int
     {
-        $before = \gmdate('Y-m-d H:i:s', $this->dateTime->gmtTimestamp() - self::LIFETIME_HOURS * 3600);
-        $collection = $this->collectionFactory->create()
-            ->addFieldToFilter(ShipmentInterface::STATE, ShipmentInterface::STATE_FAILED)
-            ->addFieldToFilter(ShipmentInterface::CREATED_AT, ['lt' => $before]);
+        $before = \gmdate(DateFormat::DATETIME_PHP_FORMAT, $this->dateTime->gmtTimestamp() - self::LIFETIME_HOURS * 3600);
         $removed = 0;
-        foreach ($collection->getItems() as $shipment) {
-            /** @var ShipmentInterface $shipment */
+        foreach ($this->finder->failedBefore($before) as $shipment) {
             $this->remove($shipment, \__(
                 'The %1 shipment that wasn\'t placed was removed, %2 hours after it was last tried. Why it wasn\'t placed: %3',
                 $this->carrierNames->get($shipment->getCarrierCode()),

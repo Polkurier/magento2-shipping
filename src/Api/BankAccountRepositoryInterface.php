@@ -16,11 +16,14 @@ use Polkurier\Shipping\Api\Data\BankAccountSearchResultsInterface;
 
 /**
  * Stores the bank account records kept in Magento.
+ *
+ * @api
  */
 interface BankAccountRepositoryInterface
 {
     /**
      * @param int $id
+     *
      * @return \Polkurier\Shipping\Api\Data\BankAccountInterface
      * @throws NoSuchEntityException
      */
@@ -28,12 +31,14 @@ interface BankAccountRepositoryInterface
 
     /**
      * @param \Magento\Framework\Api\SearchCriteriaInterface $searchCriteria
+     *
      * @return \Polkurier\Shipping\Api\Data\BankAccountSearchResultsInterface
      */
     public function getList(SearchCriteriaInterface $searchCriteria): BankAccountSearchResultsInterface;
 
     /**
      * @param \Polkurier\Shipping\Api\Data\BankAccountInterface $entity
+     *
      * @return \Polkurier\Shipping\Api\Data\BankAccountInterface
      * @throws CouldNotSaveException
      */
@@ -41,6 +46,7 @@ interface BankAccountRepositoryInterface
 
     /**
      * @param \Polkurier\Shipping\Api\Data\BankAccountInterface $entity
+     *
      * @return bool
      * @throws CouldNotDeleteException
      */

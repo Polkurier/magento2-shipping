@@ -10,6 +10,7 @@ namespace Polkurier\Shipping\Model\Shipment;
 use Polkurier\Shipping\Api\Data\ShipmentDraft\ItemInterface;
 use Polkurier\Shipping\Api\Data\ShipmentDraft\PackInterface;
 use Polkurier\Shipping\Api\Data\ShipmentDraftInterface;
+use Polkurier\Shipping\Model\Carrier\Polkurier;
 use Polkurier\Shipping\Model\Shipment\Draft\ItemFactory;
 use Polkurier\Shipping\Model\Shipment\Draft\PackFactory;
 
@@ -52,7 +53,7 @@ readonly class DraftHydrator
         $draft->setRecipientFlatNumber(self::nullableString($data, ShipmentDraftInterface::RECIPIENT_FLAT_NUMBER));
         $draft->setRecipientPostcode(self::string($data, ShipmentDraftInterface::RECIPIENT_POSTCODE));
         $draft->setRecipientCity(self::string($data, ShipmentDraftInterface::RECIPIENT_CITY));
-        $draft->setRecipientCountry(self::string($data, ShipmentDraftInterface::RECIPIENT_COUNTRY) ?: 'PL');
+        $draft->setRecipientCountry(self::string($data, ShipmentDraftInterface::RECIPIENT_COUNTRY) ?: Polkurier::HOME_COUNTRY);
         $draft->setRecipientPhone(self::string($data, ShipmentDraftInterface::RECIPIENT_PHONE));
         $draft->setRecipientEmail(self::string($data, ShipmentDraftInterface::RECIPIENT_EMAIL));
         $draft->setRecipientPointId(self::nullableString($data, ShipmentDraftInterface::RECIPIENT_POINT_ID));
@@ -141,6 +142,7 @@ readonly class DraftHydrator
 
     /**
      * @param array<int|string, mixed> $rows of order_item_id and qty
+     *
      * @return ItemInterface[]
      */
     private function items(array $rows): array
@@ -160,6 +162,7 @@ readonly class DraftHydrator
 
     /**
      * @param ItemInterface[] $items
+     *
      * @return array<int, array<string, int|float>>
      */
     private static function itemRows(array $items): array

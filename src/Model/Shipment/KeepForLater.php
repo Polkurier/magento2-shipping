@@ -13,15 +13,16 @@ use Magento\Framework\Message\ManagerInterface;
 use Polkurier\Shipping\Api\Data\AddressInterface;
 use Polkurier\Shipping\Api\Data\ShipmentDraftInterface;
 use Polkurier\Shipping\Api\Data\SyncableInterface;
+use Polkurier\Shipping\Api\Data\SyncResultInterface;
 use Polkurier\Shipping\Model\Admin\AddressHandler;
 use Polkurier\Shipping\Model\Admin\BankAccountHandler;
 use Polkurier\Shipping\Model\Admin\EntityHandlerInterface;
 use Polkurier\Shipping\Model\Admin\PackTemplateHandler;
+use Polkurier\Shipping\Model\Carrier\Polkurier;
 use Polkurier\Shipping\Model\Mapper\CreateOrderMessageMapper;
 use Polkurier\Shipping\Model\ResourceModel\Address\CollectionFactory as AddressCollectionFactory;
 use Polkurier\Shipping\Model\ResourceModel\BankAccount\CollectionFactory as BankAccountCollectionFactory;
 use Polkurier\Shipping\Model\ResourceModel\PackTemplate\CollectionFactory as PackTemplateCollectionFactory;
-use Polkurier\Shipping\Model\Sync\SyncResult;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -53,7 +54,7 @@ readonly class KeepForLater
             $this->save($this->addresses, 'Polkurier_Shipping::addresses', [
                 AddressInterface::NAME => $draft->getNewSenderName() ?: self::addressName($address),
                 AddressInterface::TYPE => AddressInterface::TYPE_SENDER,
-                AddressInterface::COUNTRY => 'PL',
+                AddressInterface::COUNTRY => Polkurier::HOME_COUNTRY,
                 AddressInterface::IS_DEFAULT => $this->isFirst($this->addressCollectionFactory->create()),
                 // Handed over where it was this time, for the next shipment from it.
                 AddressInterface::POINT_ID => $draft->getSenderPointId(),
@@ -108,16 +109,16 @@ readonly class KeepForLater
         $this->tell($entity, $result, $name, $label);
     }
 
-    private function tell(SyncableInterface $entity, SyncResult $result, string $name, string $label): void
+    private function tell(SyncableInterface $entity, SyncResultInterface $result, string $name, string $label): void
     {
-        if ($result->failed > 0 || $entity->getSyncError()) {
+        if ($result->getFailed() > 0 || $entity->getSyncError()) {
             $this->messageManager->addWarningMessage((string)\__(
                 '"%1" was saved to %2 in Magento, but not in Polkurier: %3',
                 $name,
                 $label,
-                $entity->getSyncError() ?: \implode(' ', \array_unique($result->errors)),
+                $entity->getSyncError() ?: \implode(' ', \array_unique($result->getErrors())),
             ));
-        } elseif ($result->unconfirmed > 0) {
+        } elseif ($result->getUnconfirmed() > 0) {
             $this->messageManager->addNoticeMessage((string)\__(
                 '"%1" was saved to %2 in Magento. It goes to Polkurier once you confirm it there with the code or your security PIN.',
                 $name,

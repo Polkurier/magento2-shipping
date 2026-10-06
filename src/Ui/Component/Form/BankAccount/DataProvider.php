@@ -48,12 +48,9 @@ class DataProvider extends MasterDataProvider
         parent::__construct($name, $primaryFieldName, $requestFieldName, $collection, $request, $dataPersistor, $persistorKey, $meta, $data);
     }
 
-    /**
-     * @return array<int|string, array<string, mixed>>
-     */
-    public function getData(): array
+    protected function load(): array
     {
-        $result = parent::getData();
+        $result = parent::load();
         if ($result === []) {
             $result[''] = [];
         }

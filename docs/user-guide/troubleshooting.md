@@ -9,7 +9,7 @@
 ## Getting more information
 
 Turn on **Log failed requests** on the [configuration page](configuration.md#logging), repeat
-what failed, and look at `var/log/polkurier.log`. For more detail, select the kinds of requests
+what failed, and look at this month's `var/log/polkurier/YYYY-MM-error.log`. For more detail, select the kinds of requests
 under **Log all traffic of**. It's safe to send the log to Polkurier support: your API token, PINs
 and confirmation codes are always hidden, and personal data too unless you turned on **Log
 personal data**.
@@ -92,6 +92,12 @@ splits it; use the shipment screen for unusual addresses.
 Magento's cron. Check that `bin/magento cron:run` is scheduled on the server, and that the jobs
 are switched on under **Synchronization** on the configuration page.
 
+**Statuses still wait for the schedule with the webhook set up.** Check that the shop's URL under
+**Status webhook secret** is the one in the Polkurier panel, that it's https and reachable from
+the internet, and that the secret pasted is the one the panel shows for that webhook. A request
+whose signature doesn't match is refused; a shipment that couldn't be updated is logged in
+`var/log/polkurier`.
+
 ## Addresses, bank accounts and templates
 
 **An entry shows "Error".** Polkurier refused the change. The reason is in the **Sync error**
@@ -100,7 +106,8 @@ column; fix the entry and save it again.
 **A bank account stays "Awaiting confirmation".** Open it and save it: enter the confirmation code
 Polkurier sends you, or the security PIN, in the window that opens.
 
-**A change made in the Polkurier panel doesn't show up.** It comes with the next hourly sync. Click
-**Synchronize with Polkurier** to get it now.
+**A change made in the Polkurier panel doesn't show up.** Addresses, bank accounts and pack
+templates come with the next hourly sync, a carrier your account gained or lost with the next
+daily one. Click **Synchronize with Polkurier** to get it now.
 
 Next: [Known limitations](known-limitations.md)

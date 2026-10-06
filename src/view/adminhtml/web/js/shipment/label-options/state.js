@@ -78,22 +78,19 @@ define([
             },
 
             /**
-             * The shipment value with what it comes from, as OrderAmounts::getShipmentWorth gives it.
+             * The shipment value with what it comes from (rules.shipmentWorth), for the quantities on
+             * the page.
              *
-             * @returns {{products: Number, whole: Boolean, rest: Boolean, value: Number}|null} null
-             *     when the page has no quantities to go by; rest: whether it carries all the order
-             *     still has to ship
+             * @returns {Object|null} null when the page has no quantities to go by
              */
             shipmentWorth: function () {
                 const items = config.items || {},
+                    shipped = config.shippedQtys || {},
                     qtys = {};
-                let value = 0,
-                    whole = true,
-                    rest = true;
 
                 // A shipment there is carries what it does; a new one what its form says.
-                Object.keys(config.shippedQtys || {}).forEach(function (id) {
-                    qtys[id] = parseFloat(config.shippedQtys[id]) || 0;
+                Object.keys(shipped).forEach(function (id) {
+                    qtys[id] = parseFloat(shipped[id]) || 0;
                 });
                 $(config.existingShipment ? [] : ITEM_INPUT).each(function () {
                     const match = /^shipment\[items]\[(\d+)]$/.exec(this.name);
@@ -106,31 +103,24 @@ define([
                 if (!Object.keys(qtys).length) {
                     return null;
                 }
-                Object.keys(items).forEach(function (id) {
-                    const qty = qtys[id] || 0;
 
-                    value += items[id].unit * qty;
-                    whole = whole && qty >= items[id].qty;
-                    rest = rest && qty >= items[id].qty_to_ship - 0.0001;
+                // Only the Polkurier shipment screen asks to include the shipping and handling with
+                // a part that doesn't carry the rest.
+                return rules.shipmentWorth({
+                    grand_total: config.grandTotal,
+                    shipping_charged: config.shippingCharged,
+                    shipping_covered: config.shippingCovered,
+                    items: Object.keys(items).map(function (id) {
+                        return {
+                            unit: items[id].unit,
+                            qty: qtys[id] || 0,
+                            qty_ordered: items[id].qty,
+                            // A shipment there is counts among the shipped: what went before it.
+                            qty_shipped: items[id].qty_shipped - (parseFloat(shipped[id]) || 0),
+                            qty_to_ship: items[id].qty_to_ship
+                        };
+                    })
                 });
-
-                value = Math.round(value * 100) / 100;
-                // A part goes without the shipping and handling here, but the part carrying the rest,
-                // which collects it, when no earlier part included it; only the Polkurier shipment
-                // screen asks to include it with another part.
-                const shipping = Number(config.shippingCharged) || 0,
-                    withShipping = whole || (rest && !config.shippingCovered);
-
-                return {
-                    products: value,
-                    shipping: shipping,
-                    whole: whole,
-                    rest: rest,
-                    with_shipping: withShipping,
-                    value: whole || value <= 0
-                        ? Number(config.grandTotal)
-                        : (withShipping ? Math.round((value + shipping) * 100) / 100 : value)
-                };
             },
 
             /**
@@ -192,15 +182,35 @@ define([
             },
 
             /**
-             * Whether the carrier wants the shipment insured for the cash on delivery, and it isn't.
+             * What the shipment screen's rules find wrong with the options, about the fields given:
+             * the page has only some of the screen's fields.
              *
-             * @returns {Boolean}
+             * @param {Array<String>} [fields] the fields to tell about; the page's when left out
+             * @param {Boolean} [blockingOnly]
+             * @returns {Array<String>}
              */
-            insuranceTooLow: function () {
-                const c = state.carrier();
+            issues: function (fields, blockingOnly) {
+                const services = {},
+                    names = fields || config.fields;
 
-                return Boolean(c && c.insurance && c.insurance_with_cod && filled(values.cod_amount)
-                    && !(Number(values.insurance_amount) >= Number(values.cod_amount) - 0.005));
+                (config.options.services || []).forEach(function (option) {
+                    services[option.value] = option.label;
+                });
+
+                return rules.issues($.extend({}, values, {
+                    features: rules.featuresOf(state.carrier()),
+                    carriers: config.carriers,
+                    carriers_error: config.carriersError,
+                    choices: {services: services},
+                    currency: config.currency,
+                    cod_collected: config.codCollected,
+                    cod_remaining: config.codRemaining,
+                    recipient_point_closed: config.point && config.point.closed ? config.point.id : ''
+                }), null).filter(function (issue) {
+                    return names.indexOf(issue.field) !== -1 && (!blockingOnly || issue.blocking);
+                }).map(function (issue) {
+                    return issue.text;
+                });
             },
 
             /**
@@ -210,50 +220,7 @@ define([
              * @returns {String[]}
              */
             problems: function () {
-                const c = state.carrier(),
-                    problems = [];
-
-                if (!filled(values.carrier_code)) {
-                    return [$t('Choose a carrier.')];
-                }
-                // The account's carriers change: the order's may have gone since.
-                if (!c) {
-                    return [$t('This carrier is no longer available: choose another.')];
-                }
-                if (c.sender_point === 'REQUIRED' && !filled(values.sender_point_id)) {
-                    problems.push($t('This carrier takes the parcels at a point: choose the drop-off point you hand them over at.'));
-                }
-                if (values.sender_address_id === 'new' && rules.newSenderLacking(values).length) {
-                    problems.push($t('Fill in the sender\'s %1.').replace('%1', rules.newSenderLacking(values).join(', ')));
-                }
-                if (filled(values.cod_amount) && values.cod_return_type === 'BA' && values.cod_bank_account_id === 'new'
-                    && !filled(values.new_bank_account_number)
-                ) {
-                    problems.push($t('Enter the number of the bank account the cash on delivery is paid out to.'));
-                }
-                if (c.point === 'REQUIRED' && !filled(values.recipient_point_id)) {
-                    problems.push($t('This carrier delivers to pickup points only: choose one.'));
-                }
-                rules.servicesLacking(values, c.services).forEach(function (service) {
-                    problems.push($t('This carrier does not offer "%1".').replace('%1', service === 'COVER_ADDRESS_SENDER'
-                        ? $t('Another sender on the label')
-                        : state.optionLabel('services', service) || service));
-                });
-                if (state.codTooHigh()) {
-                    problems.push($t('Cash on delivery is more than the %1 left to collect.').replace('%1', state.money(config.codRemaining)));
-                }
-                if (state.insuranceTooLow()) {
-                    problems.push($t('With cash on delivery, this carrier needs the shipment insured for at least %1.')
-                        .replace('%1', state.money(values.cod_amount)));
-                }
-                if (values.pickup_mode === 'courier' && (
-                    (c.pickup_date_required && !filled(values.pickup_date))
-                    || (c.pickup_time_required && !(filled(values.pickup_time_from) && filled(values.pickup_time_to)))
-                )) {
-                    problems.push($t('Choose when the courier collects the parcels.'));
-                }
-
-                return problems;
+                return state.issues(null, true);
             },
 
             /**
@@ -292,19 +259,12 @@ define([
              * @param {String} code
              */
             swapPoint: function (previous, code) {
-                if (previous === code) {
-                    return;
-                }
-                if (filled(previous)) {
-                    pointsByCarrier[previous] = values.recipient_point_id || '';
-                }
-                values.recipient_point_id = pointsByCarrier[code] || '';
+                values.recipient_point_id = rules.swapPoint(pointsByCarrier, previous, code, {
+                    id: values.recipient_point_id || '',
+                    label: ''
+                }).id;
             },
 
-            /**
-             * Drops what the chosen carrier does not support, and adds insurance where the carrier
-             * insists on it with cash on delivery.
-             */
             /**
              * @returns {String} the drop-off point of the chosen sender address, '' without one
              */
@@ -326,6 +286,10 @@ define([
                 return address ? address.postcode : '';
             },
 
+            /**
+             * Drops what the chosen carrier does not support, and adds insurance where the carrier
+             * insists on it with cash on delivery.
+             */
             normalize: function () {
                 const c = state.carrier();
 

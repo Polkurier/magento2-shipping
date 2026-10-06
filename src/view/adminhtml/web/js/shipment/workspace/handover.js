@@ -8,6 +8,9 @@
  * are read again whenever the carrier, the sender or the shipment changes, and the first free
  * one is taken until the merchant picks another. A collective pickup is offered unless Polkurier
  * says the carrier can't collect these parcels so, which it's asked whenever they change.
+ *
+ * Dropped off, for a carrier that takes parcels at points, the point is chosen on the map, near
+ * the sender. It starts as the sender address's drop-off point.
  */
 define([
     'ko',
@@ -15,8 +18,9 @@ define([
     'mage/translate',
     './part',
     './rules',
-    'Polkurier_Shipping/js/request'
-], function (ko, _, $t, Part, rules, request) {
+    'Polkurier_Shipping/js/request',
+    'Polkurier_Shipping/js/shipment/points-map'
+], function (ko, _, $t, Part, rules, request, pointsMap) {
     'use strict';
 
     return Part.extend({
@@ -49,6 +53,15 @@ define([
             this.collectiveRequest = request();
             this.scheduleCollective = _.debounce(this.askCollective.bind(this), 600);
             this.scheduleLoad = _.debounce(this.load.bind(this), 400);
+            // The drop-off point: under "dropped off", or on its own with a carrier that takes the
+            // parcels only at points but not as dropped off.
+            this.pointShown = ko.observable(false);
+            this.pointAlone = ko.observable(false);
+            this.pointId = ko.observable('');
+            this.pointLabel = ko.observable('');
+            this.pointRequired = ko.observable(false);
+            this.pointMissing = ko.observable(false);
+            this.canChoosePoint = ko.observable(false);
             this.mode.subscribe(function (mode) {
                 if (mode && mode !== this.get('pickup_mode')) {
                     this.set('pickup_mode', mode);
@@ -90,6 +103,7 @@ define([
                 return;
             }
             this.mode(data.pickup_mode || 'courier');
+            this.refreshPoint(data, features);
             this.showDates(this.mode() === 'courier' && features.pickup_date !== false);
             this.dateMissing(this.validated() && this.showDates() && Boolean(features.pickup_date_required) && !rules.filled(data.pickup_date));
             this.windowMissing(this.validated() && this.showDates() && Boolean(features.pickup_time_required)
@@ -111,6 +125,52 @@ define([
 
         retry: function () {
             this.load();
+        },
+
+        /**
+         * @param {Object} data
+         * @param {Object} features
+         */
+        refreshPoint: function (data, features) {
+            const requirement = features.sender_point || 'NONE';
+
+            this.pointShown(rules.senderPointUsed(requirement, features.drop_off, this.mode()));
+            this.pointAlone(this.pointShown() && this.mode() !== 'drop_off');
+            this.pointRequired(requirement === 'REQUIRED');
+            this.pointId(data.sender_point_id || '');
+            this.pointMissing(this.pointRequired() && this.validated() && !rules.filled(this.pointId()));
+            this.pointLabel(data.sender_point_label_id === this.pointId() ? data.sender_point_label || '' : '');
+            this.canChoosePoint(pointsMap.canOpen(data.map));
+        },
+
+        /**
+         * @returns {String} the sender's postcode, where the map starts
+         */
+        senderPostcode: function () {
+            const data = this.get() || {},
+                address = data.sender_address_id === 'new'
+                    ? {postcode: data.new_sender_postcode}
+                    : rules.filled(data.sender_address_id) ? (data.senders || {})[String(data.sender_address_id)] : data.store_sender;
+
+            return address && rules.filled(address.postcode) ? String(address.postcode).trim() : '';
+        },
+
+        choosePoint: function () {
+            pointsMap.open(this.get('map'), this.features().providers, this.senderPostcode(), function (pointId, point) {
+                this.set('sender_point_id', pointId);
+                this.set('sender_point_label', pointsMap.describe(point));
+                this.set('sender_point_label_id', pointId);
+            }.bind(this));
+        },
+
+        removePoint: function () {
+            this.set('sender_point_id', '');
+        },
+
+        fix: function () {
+            if (this.pointShown() && this.canChoosePoint()) {
+                this.choosePoint();
+            }
         },
 
         /**
@@ -137,7 +197,8 @@ define([
                 data: _.pick(this.get(), 'order_id', 'carrier_code', 'sender_address_id', 'new_sender_postcode', 'shipment_type', 'packs')
             }, {
                 done: function (response) {
-                    this.collective(typeof response.available === 'boolean' ? response.available : null);
+                    // Not known, nor when Polkurier couldn't answer: offered, as it says so when placing.
+                    this.collective(!response.error && typeof response.available === 'boolean' ? response.available : null);
                     this.refresh();
                 }.bind(this),
                 fail: function () {

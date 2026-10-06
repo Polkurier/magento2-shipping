@@ -14,14 +14,14 @@ define([
 ], function ($, $t, pointsMap, request) {
     'use strict';
 
+    // A form there is none of: the fields belong to it, not to the shipment's form around them.
+    const OWN_FORM = 'polkurier-label-options-editor';
+
     /**
      * @param {Object} state see ./state
      * @param {Object} config the page's label options
      * @returns {{edit: Function}}
      */
-    // A form there is none of: the fields belong to it, not to the shipment's form around them.
-    const OWN_FORM = 'polkurier-label-options-editor';
-
     return function (state, config) {
         const values = state.values,
             filled = state.filled,

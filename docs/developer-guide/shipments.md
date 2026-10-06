@@ -7,7 +7,7 @@
 [Developer guide](README.md) › Shipments
 
 `Api\ShipmentManagementInterface`, implemented by `Model\Shipment\ShipmentManagement`, covers a
-shipment's whole life. The admin controllers, the cron jobs and the REST routes all go through it,
+shipment's whole life. The admin controllers and the cron jobs all go through it,
 so whatever you hook into there applies everywhere. It hands each part to a service of its own:
 
 | Service | |
@@ -46,6 +46,11 @@ draft ──create()──► pending ──accepted─────────�
 "Finished" isn't a state: it's the `is_final` flag on a `created` or `cancelled` shipment, and it
 only stops the status refresh.
 
+Shipments are looked up through `Model\Shipment\ShipmentFinder`, which holds every query by order,
+Magento shipment, Polkurier number, waybill, cash on delivery status and state, and the batches
+the cron jobs take. Lists come oldest first; `latest…()` gives the one recorded last. Load one by
+id with `ShipmentRepositoryInterface`; grids and forms keep their own collections.
+
 ## The draft
 
 A shipment starts as a draft (`Api\Data\ShipmentDraftInterface`, `Model\Shipment\Draft`):
@@ -69,8 +74,7 @@ itself doesn't check it.
 
 The module ships only orders placed with a Polkurier method, and leaves every other order to its
 own carrier. `Model\Shipment\OwnOrders::get()` loads the order for anything that starts a new
-shipment (the draft, placing, pricing, packing and collection times, through the admin and the
-REST API) and refuses other carriers' orders. Existing Polkurier orders can still be refreshed,
+shipment (the draft, placing, pricing, packing and collection times) and refuses other carriers' orders. Existing Polkurier orders can still be refreshed,
 reconciled or cancelled.
 
 `Model\Shipment\DefaultDraftBuilder::createFromOrder()` builds the default draft from the order,
@@ -83,11 +87,13 @@ Orders can ship in parts, so the amounts come from `Model\Shipment\OrderAmounts`
 - Cash on delivery is `getCodRemaining()`: the grand total less the `cod_amount` of the order's
   Polkurier shipments in `pending`, `created` or `unknown` (an unconfirmed one may exist). When
   nothing is left, the draft has no cash on delivery.
-- Insurance is `getShipmentValue()`. That's the sum of each shipped item's row total with tax,
-  less its discount, per unit, times the quantity shipped. Items that ship as part of a parent
-  (`isDummy(true)`) and virtual items are left out. When the quantities cover the whole order
-  (ordered less cancelled), or match none of its items, it's the grand total. Where the carrier
-  requires insurance with cash on delivery, it's at least the COD amount.
+- Insurance is set when `shipment_defaults/insure_by_default` is on, or the carrier requires
+  insurance with cash on delivery: for the cash on delivery amount when there is one, otherwise
+  for `getShipmentValue()`, so the parts of an order add up to its total either way. The shipment
+  value is the sum of each shipped item's row total with tax, less its discount, per unit, times
+  the quantity shipped. Items that ship as part of a parent (`isDummy(true)`) and virtual items
+  are left out. When the quantities cover the whole order (ordered less cancelled), or match none
+  of its items, it's the grand total.
 
 `createFromOrder()` takes the quantities as `$qtys` (by order item id). `null` means everything the
 order still has to ship, which is what the shipment screen sends. The native label flow passes the
@@ -110,7 +116,7 @@ what they're given.
 ## Placing
 
 `create()` refuses when an earlier attempt for the same order is `unknown`, or `pending` and
-recent. It checks under a lock per order (`polkurier_place_<order id>`, Magento's lock manager),
+recent. It checks under the order's lock (see [One change at a time](#one-change-at-a-time)),
 held until the new attempt is saved, so two requests at once (a double click, two tabs) can't both
 pass. Otherwise it saves a `polkurier_shipment` row in state `pending`, together with the
 serialized request, before anything is sent, so an interrupted request still leaves a trace. What
@@ -121,12 +127,12 @@ happens next depends on the answer:
 | Accepted | `created` | Polkurier number, waybills, price and tracking link stored; order comment; Magento shipment with tracks; event |
 | Refused as it is | none | nothing of the attempt is kept, and the reason is thrown as a `LocalizedException`: sent again unchanged it would get the same answer (`ErrorMessages::isTransient()` false) |
 | Failed on Polkurier's side | `failed` | the reason and the draft are stored, and the reason thrown: down, busy or an internal error (`isTransient()`), so it can be sent again as it is |
+| No clear answer | `unknown` | an order comment; nothing else until it's reconciled |
 
 A shipment is an object, not a log of attempts: an order's `failed` shipment is the row the order's
 next attempt uses (`Placing::notPlaced()`), whether from **Send again** or not, so there's at most
 one per order. A refused attempt leaves that row as it was; one that fails on Polkurier's side
 again updates its draft and reason.
-| No clear answer | `unknown` | an order comment; nothing else until it's reconciled |
 
 "No clear answer" means a connection error, an unreadable answer, or an error that doesn't say the
 order was refused. In those cases the module can't know whether the shipment exists, and sending it
@@ -181,7 +187,7 @@ price, quantity). They're stored in `polkurier_shipment.ship_packages` and writt
 Magento shipment's `packages`, so **Show Packages** works as for a label from Magento's page. The
 module writes the field as the plain arrays Magento itself stores, since that's what Magento reads,
 although `ShipmentInterface::setPackages()` is typed for package objects. Item weights come from the
-order items, converted to kilograms from the store's weight unit.
+order items, converted to kilograms from the store's weight unit (`Model\StoreWeightUnit`).
 
 `Model\Shipment\AutoPacker` packs a shipment's items into parcels. It uses the products' shipping
 dimensions (`polkurier_length`, `polkurier_width`, `polkurier_height`, decimal centimetres, added by
@@ -226,7 +232,9 @@ Polkurier order was cancelled.
 
 The Polkurier order exists whatever happens there, so a failure is recorded in `last_error`
 rather than thrown. The shipment stays `created` with no `shipment_id`, every status refresh tries
-again, and `shipOrder()` does it on demand.
+again once the attempt is `ShipmentAge::SHIP_AGAIN_AFTER_MINUTES` (5) old, and `shipOrder()` does
+it on demand. A younger one is left alone: the request that placed it may still be making its
+Magento shipment, which the native label flow links only when Magento saves it.
 
 ### The order's shipping
 
@@ -258,7 +266,8 @@ details page without a URL key (made by the cron, outside any session), so that 
 ## Reconciliation
 
 Every order is sent with the shop's own ids: `external_application_id` is the installation's
-(`Sdk\ApplicationId`: `magento2-` and 12 hex digits from the first encryption key),
+(`Sdk\ApplicationId`: `general/application_id` if entered, else `magento2-` and 12 hex digits from
+the first encryption key, which a staging copy sharing the key would share too),
 `external_order_id` the Magento shipment's number or the order's (`general/external_order_id`), and
 `external_order_number` the order's. A new Magento shipment's number is taken from Magento's
 sequence before placing (`Shipment\ExternalIds`), kept as `reserved_shipment_number`, and given to
@@ -267,7 +276,8 @@ the shipment once made: by `NativeLabel` to the shipment Magento is saving, and 
 attempt sent again keeps its number. Polkurier stores the ids as given (up to 50 characters, not
 unique, never checked) and may fail to keep them without saying so.
 
-`reconcile()` asks `Model\Shipment\Reconciler` for orders on the account that match the recorded
+`reconcile()` refuses a `pending` attempt younger than `ShipmentAge::ANSWER_WAIT_MINUTES` (2),
+whose request may still get its answer. Otherwise it asks `Model\Shipment\Reconciler` for orders on the account that match the recorded
 attempt. It first lists the orders with the attempt's ids; failing that, it looks as for an order
 sent without them: the same carrier, placed from the day before to the day after (Polkurier
 filters orders by date only). Either way an order must have the same description, recipient
@@ -283,13 +293,13 @@ postcode, phone and number of parcels, and not be held by another shipment.
 - **Only orders listed without their parcels match**: they may be it, but can't be told apart well
   enough. The shipment stays `unknown` with their numbers in `last_error`, to be linked by hand, and
   is never taken as not placed.
-- **No match**: once the attempt is `Reconciliation::NOT_PLACED_AFTER_MINUTES` (15) old, the
+- **No match**: once the attempt is `ShipmentAge::NOT_PLACED_AFTER_MINUTES` (15) old, the
   shipment becomes `failed`, which makes it safe to send again. Until then it stays `unknown`,
   because the order may not be listed yet.
 
 `Cron\ReconcileShipmentsTask` runs this every 10 minutes through `Model\Shipment\AutoReconciler`, for
 `unknown` and `pending` shipments whose attempt is more than
-`AutoReconciler::PENDING_AFTER_MINUTES` (5) minutes old. A `pending` shipment that old was cut off
+`ShipmentAge::RECONCILE_PENDING_AFTER_MINUTES` (5) minutes old. A `pending` shipment that old was cut off
 mid-request. `adopt()` links a shipment to a Polkurier order number given by the caller, for
 integrations that know it.
 
@@ -313,7 +323,7 @@ on it, is left to `refreshStatus()`, from the cron or **Update status**.
 stored request, which `Details\SentOrder` reads into the same shape) and the scans into the page's
 sections. `Details\Links` finds the Magento order and shipment, `Details\OptionLabels` names the
 codes, and `Details\Formatter` writes the values. Times Polkurier reports are in Polish time
-(`Formatter::POLKURIER_TIME_ZONE`). The status and delivery times are stored in UTC, like every
+(`Model\Sdk\PolkurierTime::ZONE`). The status and delivery times are stored in UTC, like every
 time the module stores, so grids and their filters convert them as Magento's own; the scans are
 kept as reported. All are shown in the admin's time zone, so the times on the page agree.
 
@@ -329,11 +339,25 @@ kept as reported. All are shown in the admin's time zone, so the times on the pa
 `carriers/polkurier/sync/status_schedule` (a cron expression, every 30 minutes by default; the job's
 `config_path` in `etc/crontab.xml`), refreshes `created` shipments of every store that aren't final
 and weren't checked since the previous run (`Config::getStatusIntervalMinutes()`, less a minute),
-least recently checked first, up to `StatusRefresher::BATCH_SIZE` (200) per run, when the status
-sync is on. A shipment that fails to refresh is marked as checked too, so one bad shipment can't
+least recently checked first, up to `StatusRefresher::BATCH_SIZE` (200) per run; the job runs it
+only when the status sync is on. A shipment that fails to refresh is marked as checked too, so one bad shipment can't
 hold up the rest. `refreshNow()`, behind **Update statuses** on the shipments grid
 (`Controller\Adminhtml\Shipment\RefreshAll`), takes the same shipments however recently they were
 checked, also with the status sync off.
+
+Polkurier's status webhook (`Controller\Webhook\Shipment\Update`, at
+`polkurier/webhook/shipment_update`, POST only, no form key) hands each event to
+`Model\Webhook\StatusWebhook::receive()`. The event is form-encoded `type` (CREATED, UPDATED,
+CANCELLED), `data` (the order as `get_orders` gives it) and `hash`, an HMAC-SHA256 of the
+form-encoded `type` and `data` keyed with the secret the panel shows (`sync/webhook_secret`). The signature is checked on the raw body, whose last field is
+`hash`, so PHP's `max_input_vars` never cuts the fields it covers. Of the event only
+`data[number]` is read: the `created` shipment with that Polkurier number, if there is one, goes
+through `refreshStatus()`, which reads the order again. Polkurier sends an event once, without
+retries, in no set order and without a time or nonce, and its staff cancel with UPDATED rather
+than CANCELLED; reading the order again makes a repeated, late or replayed event harmless and
+catches every cancellation. Polkurier counts an event as delivered when the body is exactly `OK`:
+the action answers `OK` once handled, 403 for a missing secret or a bad signature, and 503 when
+the refresh failed (logged; the schedule still follows the shipment).
 
 ## Other operations
 
@@ -346,7 +370,10 @@ checked, also with the status sync off.
   does the same when a refresh finds the order cancelled in the Polkurier panel. The comment on the
   order names the shipment cleared.
 - `Model\Shipment\Documents` fetches labels and handover protocols for one or more shipments, in
-  one document.
+  one document. With more than one, it first runs `StatusRefresh::refresh()` on each and leaves
+  out those no longer placed, returning why under `left_out`: Polkurier drops labels it can't
+  print from a multi-order file without saying so, and fails a whole protocol over one number it
+  doesn't know.
 - `Model\Shipment\Pickups` loads the collection windows for a sender, carrier and date, and books
   collective pickups for shipments placed with `pickup_mode = multi`.
 - `Model\Shipment\CostEstimator` prices a draft before it's placed: `quoteAll()` with every
@@ -355,9 +382,25 @@ checked, also with the status sync off.
   be refused. `Model\Shipment\ValuationQuotes` reads the answer, whose shape the SDK leaves open:
   the list Polkurier sends (`Test/Unit/_files/order_valuation_v2.json` is a recorded one), the
   quotes keyed by carrier the SDK documents, or a single quote. Entries it can't read are logged.
+  Prices come from `order_valuation_v2` only, which builds the order as `create_order` does. The
+  older `order_valuation` prices some parcels differently from what is charged, and below it,
+  offers carriers that then refuse the parcel, and ignores a payout to the money box: don't call
+  it, here or in anything quoting alongside this module.
 - `Model\Shipment\TrackingLookup` finds a shipment by waybill, for Magento's tracking popup.
 
-Next: [Shipping labels in Magento](magento-labels.md)
+## One change at a time
+
+`Model\Shipment\OrderLock` (`polkurier_order_<order id>`, Magento's lock manager, re-entrant
+within a request) lets one request at a time change an order's Polkurier shipments: placing
+(while the attempt is recorded, and again while the accepted order is saved and shipped in
+Magento), `reconcile()`, `adopt()`, `refreshStatus()`, `shipOrder()` and `cancel()`. Without it,
+the scheduled reconciliation and the admin's, or a webhook and the scheduled update, could both
+make a Magento shipment for the same Polkurier order, or both comment on it. Polkurier is asked
+before the lock is taken, and the shipment is read again under it: one settled meanwhile is left
+as it is, or refused when linked by hand. A request that waits more than 10 seconds
+(`TIMEOUT_SECONDS`) for it fails with a message to try again; the cron jobs log it and leave the
+shipment to their next run.
+
 
 ## Entries typed in for a shipment
 
@@ -381,3 +424,5 @@ when cash on delivery has no account to go to, both to be kept.
 A pack template's `tare` (Magento only; not in Polkurier's pack templates, so never synced) is
 added to what a parcel holds when parcels weigh their contents (`ParcelWeightEnum::weigh()`,
 `rules.parcelWeight()`), and taken off the maximum weight the packer fills a template up to.
+
+Next: [Shipping labels in Magento](magento-labels.md)

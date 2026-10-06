@@ -33,7 +33,9 @@ class SyncLock
 
     /**
      * @template T
+     *
      * @param callable(): T $work
+     *
      * @return T
      * @throws LocalizedException when another request keeps the lock for too long
      */

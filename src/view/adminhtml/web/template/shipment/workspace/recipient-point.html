@@ -5,12 +5,12 @@
 <div class="polkurier-section__part polkurier-point-box" if="shown">
     <div class="polkurier-muted" translate="'Pickup point'"></div>
     <!-- ko if: pointId -->
-    <div>
+    <div class="polkurier-point-box__row">
         <strong class="polkurier-code" text="pointId"></strong>
-        <button type="button" class="polkurier-link" click="change">
+        <button type="button" class="action-default polkurier-compact-button" click="change">
             <span translate="'Change'"></span>
         </button>
-        <button type="button" class="polkurier-link" ifnot="required" click="remove">
+        <button type="button" class="action-default polkurier-compact-button" ifnot="required" click="remove">
             <span translate="'Remove'"></span>
         </button>
     </div>

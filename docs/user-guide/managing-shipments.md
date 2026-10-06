@@ -19,17 +19,17 @@
   Polkurier order it was sent with.
 - **Polkurier > Sales > Shipments** lists the shipments of all orders, newest first, with filters,
   the collective pickup and **Update statuses**. Search by keyword finds a shipment by its order
-  number, Polkurier order, waybill, carrier, recipient's postcode or phone, delivery status or the
-  customer's name or e-mail.
+  number, Polkurier order, waybill, carrier, description, recipient's postcode or phone, delivery
+  status, last error or the customer's name or e-mail.
 
 Every Magento shipment goes with one Polkurier order, and the module links them for you: creating
 a shipment with a label on Magento's page places its Polkurier order, and placing a Polkurier order
 from the shipment screen creates its Magento shipment.
 
-**Polkurier > Sales > Orders** is Magento's orders list, with only the orders placed with a Polkurier
-method, so you don't have to filter Magento's list. Its **Actions**
-menu is Magento's: cancel, hold and unhold, and print invoices, packing slips, credit memos, all of
-these at once, or shipping labels.
+**Polkurier > Sales > Orders** opens Magento's orders list (**Sales > Orders**) filtered to the
+orders placed with a Polkurier method. The filter, **Shipping carrier**, is one of the list's own:
+it shows above the list, you clear it as any other, and in **Filters** you can choose any of the
+store's carriers with it, Polkurier or another, when you open the list from Magento's menu.
 
 A shipment that failed on Polkurier's side (Polkurier down, busy or out of reach) is listed as
 **Not placed**, with why and as it was filled in, to be sent again; the shipment screen and the
@@ -153,11 +153,18 @@ use the **Actions** menu:
 
 Shipments that can't take part, for example refused ones, are skipped.
 
+Before printing labels or a protocol for several shipments, the module reads each one from
+Polkurier. Any cancelled in the Polkurier panel in the meantime, or no longer found there, are
+left out of the file, and a warning names them once you're back on the list. Those cancelled are
+updated as **Update statuses** would: their labels and tracking numbers are removed.
+
 ## Delivery status
 
 With **Update shipment statuses on schedule** switched on, the module follows each placed
 shipment until it's finished, as often as **Update shipment statuses** says, and you don't need to
-update anything by hand. **Update statuses** above the shipments list updates every unfinished
+update anything by hand. With the status webhook set up (see
+[Configuration](configuration.md#synchronization)), Polkurier tells the shop about each change as it
+happens, and the shipment is updated straight away. **Update statuses** above the shipments list updates every unfinished
 shipment right away, also with the schedule switched off. A shipment counts
 as finished when it's:
 

@@ -12,6 +12,7 @@ use Magento\Backend\App\Action\Context;
 use Magento\Framework\App\Action\HttpPostActionInterface;
 use Magento\Framework\Controller\Result\Redirect;
 use Magento\Framework\Exception\LocalizedException;
+use Polkurier\Shipping\Controller\Adminhtml\ReturnsBack;
 use Polkurier\Shipping\Model\MoneyBox\Payouts;
 
 /**
@@ -19,6 +20,8 @@ use Polkurier\Shipping\Model\MoneyBox\Payouts;
  */
 class Cancel extends Action implements HttpPostActionInterface
 {
+    use ReturnsBack;
+
     public const string ADMIN_RESOURCE = 'Polkurier_Shipping::money_box_payout';
 
     public function __construct(
@@ -41,6 +44,6 @@ class Cancel extends Action implements HttpPostActionInterface
             $this->messageManager->addErrorMessage($e->getMessage());
         }
 
-        return $this->resultRedirectFactory->create()->setPath('*/*/index');
+        return $this->returnBack('*/*/index');
     }
 }

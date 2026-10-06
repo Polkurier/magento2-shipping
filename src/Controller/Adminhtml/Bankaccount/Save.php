@@ -31,14 +31,15 @@ class Save extends AbstractSave
 
     public function execute(): Redirect
     {
-        if (!$this->getRequest()->getParam('delete')) {
+        $data = $this->getPostData();
+        if (empty($data['delete'])) {
             return parent::execute();
         }
-        $id = (int)$this->getRequest()->getParam('id');
+        $id = (int)($data['id'] ?? 0);
         $redirect = $this->resultRedirectFactory->create();
         try {
             $this->bankAccountHandler->delete($this->bankAccountHandler->get($id), [
-                BankAccountHandler::CONFIRMATION_PIN => (string)$this->getRequest()->getParam(BankAccountHandler::CONFIRMATION_PIN),
+                BankAccountHandler::CONFIRMATION_PIN => (string)($data[BankAccountHandler::CONFIRMATION_PIN] ?? ''),
             ]);
             $this->messageManager->addSuccessMessage(\__('Deleted.'));
         } catch (LocalizedException $e) {

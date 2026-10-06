@@ -44,6 +44,7 @@ class PackChangesTest extends TestCase
     /**
      * @param array<int, array<string, mixed>> $sent
      * @param array<int, array<string, mixed>> $taken
+     *
      * @return string[]
      */
     private function changes(array $sent, array $taken): array

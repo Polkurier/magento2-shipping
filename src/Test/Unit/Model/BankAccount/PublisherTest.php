@@ -13,7 +13,7 @@ use Magento\Framework\TestFramework\Unit\Helper\ObjectManager;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use Polkurier\Shipping\Api\BankAccountRepositoryInterface;
-use Polkurier\Shipping\Api\ApiEventEnum;
+use Polkurier\Shipping\Enum\ApiEventEnum;
 use Polkurier\Shipping\Model\ApiEventDispatcher;
 use Polkurier\Shipping\Model\BankAccount;
 use Polkurier\Shipping\Model\BankAccount\Confirmation;

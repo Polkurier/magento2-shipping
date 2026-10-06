@@ -265,9 +265,6 @@
         <index referenceId="POLKURIER_SHIPMENT_ORDER_ID" indexType="btree">
             <column name="order_id" />
         </index>
-        <index referenceId="POLKURIER_SHIPMENT_STATE" indexType="btree">
-            <column name="state" />
-        </index>
         <index referenceId="POLKURIER_SHIPMENT_STATE_IS_FINAL_STATUS_CHECKED_AT" indexType="btree">
             <column name="state" />
             <column name="is_final" />
@@ -278,6 +275,9 @@
                     referenceColumn="entity_id" onDelete="CASCADE" />
         <constraint xsi:type="foreign" referenceId="POLKURIER_SHIPMENT_SHIPMENT_ID_SALES_SHIPMENT_ENTITY_ID"
                     table="polkurier_shipment" column="shipment_id" referenceTable="sales_shipment"
+                    referenceColumn="entity_id" onDelete="SET NULL" />
+        <constraint xsi:type="foreign" referenceId="POLKURIER_SHIPMENT_TARGET_SHIPMENT_ID_SALES_SHIPMENT_ENTITY_ID"
+                    table="polkurier_shipment" column="target_shipment_id" referenceTable="sales_shipment"
                     referenceColumn="entity_id" onDelete="SET NULL" />
         <constraint xsi:type="foreign" referenceId="POLKURIER_SHIPMENT_STORE_ID_STORE_STORE_ID"
                     table="polkurier_shipment" column="store_id" referenceTable="store"

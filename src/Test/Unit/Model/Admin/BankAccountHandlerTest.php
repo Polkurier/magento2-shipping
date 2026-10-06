@@ -46,7 +46,7 @@ class BankAccountHandlerTest extends TestCase
         self::assertSame('Firmowe', $account->getName());
         self::assertSame(SyncableInterface::STATE_UNCONFIRMED, $account->getSyncState());
         self::assertCount(1, $this->saves);
-        self::assertSame(1, $result->unconfirmed, 'Waiting for the confirmation, as the save tells.');
+        self::assertSame(1, $result->getUnconfirmed(), 'Waiting for the confirmation, as the save tells.');
     }
 
     public function testAConfirmedAccountIsSentWithTheConfirmationButNeverKeepsIt(): void
@@ -60,7 +60,7 @@ class BankAccountHandlerTest extends TestCase
 
         $result = $this->handler($publisher)->save($account, ['name' => 'Firmowe', BankAccountHandler::CONFIRMATION_PIN => '2342']);
 
-        self::assertSame(1, $result->pushed);
+        self::assertSame(1, $result->getPushed());
         foreach (BankAccountHandler::CONFIRMATION_FIELDS as $field) {
             self::assertNull($account->getData($field), $field . ' is used once, never stored.');
             self::assertArrayNotHasKey($field, $this->saves[0]);

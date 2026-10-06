@@ -7,9 +7,9 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Model\Sdk;
 
-use Magento\Framework\App\CacheInterface;
 use Magento\Framework\Serialize\Serializer\Json;
-use Polkurier\Shipping\Model\Carrier\CarrierCatalog;
+use Polkurier\Shipping\Enum\CacheTagEnum;
+use Polkurier\Shipping\Model\Cache\Type as PolkurierCache;
 
 /**
  * Small answers about the Polkurier account kept for a while, so that opening an admin page
@@ -18,7 +18,7 @@ use Polkurier\Shipping\Model\Carrier\CarrierCatalog;
 readonly class AccountCache
 {
     public function __construct(
-        private CacheInterface $cache,
+        private PolkurierCache $cache,
         private Json $json,
         private AccountCacheKey $cacheKeys,
     ) {}
@@ -28,7 +28,9 @@ readonly class AccountCache
      * caches nothing.
      *
      * @template T of scalar|array<mixed>|null
+     *
      * @param callable(): T $load
+     *
      * @return T
      */
     public function remember(string $name, int $lifetime, callable $load): mixed
@@ -43,7 +45,7 @@ readonly class AccountCache
             }
         }
         $value = $load();
-        $this->cache->save((string)$this->json->serialize(['value' => $value]), $key, [CarrierCatalog::CACHE_TAG], $lifetime);
+        $this->cache->save((string)$this->json->serialize(['value' => $value]), $key, [CacheTagEnum::Account->value], $lifetime);
 
         return $value;
     }

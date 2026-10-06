@@ -9,6 +9,8 @@ namespace Polkurier\Shipping\Api\Data;
 
 /**
  * An entity kept both in Magento and in the Polkurier account, and synchronized between them.
+ *
+ * @api
  */
 interface SyncableInterface
 {
@@ -22,12 +24,21 @@ interface SyncableInterface
     public const string CREATED_AT = 'created_at';
     public const string UPDATED_AT = 'updated_at';
 
-    /** Changed in Magento and not yet sent, or never sent. */
+    /**
+     * Changed in Magento and not yet sent, or never sent.
+     */
     public const string STATE_PENDING = 'pending';
-    /** Equal on both sides as of the last synchronization. */
+
+    /**
+     * Equal on both sides as of the last synchronization.
+     */
     public const string STATE_SYNCED = 'synced';
-    /** The last attempt to send it failed; see the sync error. */
+
+    /**
+     * The last attempt to send it failed; see the sync error.
+     */
     public const string STATE_ERROR = 'error';
+
     /**
      * Changed in Magento, but Polkurier only takes the change with the merchant's confirmation
      * (a PIN or two-factor code), which a background synchronization cannot give.
@@ -48,6 +59,7 @@ interface SyncableInterface
 
     /**
      * @param string|null $extId
+     *
      * @return $this
      */
     public function setExtId(?string $extId): static;
@@ -59,6 +71,7 @@ interface SyncableInterface
 
     /**
      * @param string $syncState
+     *
      * @return $this
      */
     public function setSyncState(string $syncState): static;
@@ -70,6 +83,7 @@ interface SyncableInterface
 
     /**
      * @param string|null $syncError
+     *
      * @return $this
      */
     public function setSyncError(?string $syncError): static;
@@ -83,6 +97,7 @@ interface SyncableInterface
 
     /**
      * @param string|null $remoteHash
+     *
      * @return $this
      */
     public function setRemoteHash(?string $remoteHash): static;
@@ -96,6 +111,7 @@ interface SyncableInterface
 
     /**
      * @param string|null $remoteUpdatedAt
+     *
      * @return $this
      */
     public function setRemoteUpdatedAt(?string $remoteUpdatedAt): static;
@@ -107,6 +123,7 @@ interface SyncableInterface
 
     /**
      * @param string|null $syncedAt
+     *
      * @return $this
      */
     public function setSyncedAt(?string $syncedAt): static;
@@ -120,9 +137,24 @@ interface SyncableInterface
 
     /**
      * @param string|null $deletedAt
+     *
      * @return $this
      */
     public function setDeletedAt(?string $deletedAt): static;
+
+    /**
+     * When the entry was first saved in Magento.
+     *
+     * @return string|null
+     */
+    public function getCreatedAt(): ?string;
+
+    /**
+     * @param string|null $createdAt
+     *
+     * @return $this
+     */
+    public function setCreatedAt(?string $createdAt): static;
 
     /**
      * When the entry was last changed in Magento.
@@ -133,6 +165,7 @@ interface SyncableInterface
 
     /**
      * @param string|null $updatedAt
+     *
      * @return $this
      */
     public function setUpdatedAt(?string $updatedAt): static;

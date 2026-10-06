@@ -34,6 +34,7 @@
             <argument name="sensitive" xsi:type="array">
                 <item name="carriers/polkurier/general/customer_id" xsi:type="string">1</item>
                 <item name="carriers/polkurier/general/api_token" xsi:type="string">1</item>
+                <item name="carriers/polkurier/sync/webhook_secret" xsi:type="string">1</item>
             </argument>
         </arguments>
     </type>
@@ -83,8 +84,24 @@
             <argument name="logger" xsi:type="object">Polkurier\Shipping\Logger\Logger</argument>
         </arguments>
     </type>
+    <type name="Polkurier\Shipping\Model\Carrier\CarrierLogo">
+        <arguments>
+            <argument name="logger" xsi:type="object">Polkurier\Shipping\Logger\Logger</argument>
+        </arguments>
+    </type>
+    <type name="Polkurier\Shipping\Model\Shipment\KeepForLater">
+        <arguments>
+            <argument name="logger" xsi:type="object">Polkurier\Shipping\Logger\Logger</argument>
+        </arguments>
+    </type>
+    <type name="Polkurier\Shipping\Observer\RestrictCashOnDeliveryObserver">
+        <arguments>
+            <argument name="logger" xsi:type="object">Polkurier\Shipping\Logger\Logger</argument>
+        </arguments>
+    </type>
     <type name="Polkurier\Shipping\Model\Pricing\PriceCalculatorPool">
         <arguments>
+            <argument name="logger" xsi:type="object">Polkurier\Shipping\Logger\Logger</argument>
             <argument name="calculators" xsi:type="array">
                 <item name="FIXED" xsi:type="object">Polkurier\Shipping\Model\Pricing\Fixed</item>
                 <item name="TIER_SUBTOTAL" xsi:type="object">Polkurier\Shipping\Model\Pricing\SubtotalTiers</item>
@@ -218,6 +235,11 @@
             <argument name="logger" xsi:type="object">Polkurier\Shipping\Logger\Logger</argument>
         </arguments>
     </type>
+    <type name="Polkurier\Shipping\Model\Webhook\StatusWebhook">
+        <arguments>
+            <argument name="logger" xsi:type="object">Polkurier\Shipping\Logger\Logger</argument>
+        </arguments>
+    </type>
     <type name="Polkurier\Shipping\Model\Checkout\MapConfigProvider">
         <arguments>
             <argument name="logger" xsi:type="object">Polkurier\Shipping\Logger\Logger</argument>
@@ -234,6 +256,11 @@
         </arguments>
     </type>
     <type name="Polkurier\Shipping\Cron\SynchronizeTask">
+        <arguments>
+            <argument name="logger" xsi:type="object">Polkurier\Shipping\Logger\Logger</argument>
+        </arguments>
+    </type>
+    <type name="Polkurier\Shipping\Cron\RefreshCarriersTask">
         <arguments>
             <argument name="logger" xsi:type="object">Polkurier\Shipping\Logger\Logger</argument>
         </arguments>
@@ -286,7 +313,6 @@
     <type name="Magento\Framework\View\Element\UiComponent\DataProvider\CollectionFactory">
         <arguments>
             <argument name="collections" xsi:type="array">
-                <item name="polkurier_order_listing_data_source" xsi:type="string">Polkurier\Shipping\Model\ResourceModel\SalesOrder\Grid\Collection</item>
                 <item name="polkurier_shipment_listing_data_source" xsi:type="string">Polkurier\Shipping\Model\ResourceModel\Shipment\Grid\Collection</item>
                 <item name="polkurier_order_view_shipment_listing_data_source" xsi:type="string">Polkurier\Shipping\Model\ResourceModel\Shipment\Grid\Collection</item>
                 <item name="polkurier_magento_shipment_listing_data_source" xsi:type="string">Polkurier\Shipping\Model\ResourceModel\Shipment\Grid\Collection</item>

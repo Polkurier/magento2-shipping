@@ -9,6 +9,8 @@ namespace Polkurier\Shipping\Api\Data;
 
 /**
  * The name a carrier is shown under in one store view, in place of the carrier's default label.
+ *
+ * @api
  */
 interface CarrierLabelInterface
 {
@@ -22,6 +24,7 @@ interface CarrierLabelInterface
 
     /**
      * @param int $storeId
+     *
      * @return $this
      */
     public function setStoreId(int $storeId): static;
@@ -33,6 +36,7 @@ interface CarrierLabelInterface
 
     /**
      * @param string $label
+     *
      * @return $this
      */
     public function setLabel(string $label): static;

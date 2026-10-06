@@ -61,6 +61,7 @@ readonly class MapConfigProvider implements ConfigProviderInterface
      * multi-address one alike.
      *
      * @param QuotePointInterface|null $point the point already chosen, if any
+     *
      * @return array<string, mixed>
      */
     public function getMapConfig(?QuotePointInterface $point): array
@@ -83,7 +84,7 @@ readonly class MapConfigProvider implements ConfigProviderInterface
                     }
                 }
             } catch (PolkurierException $e) {
-                $this->logger->error('Pickup point map unavailable in checkout', ['exception' => $e]);
+                $this->logger->warning('Pickup point map unavailable in checkout', ['exception' => $e]);
                 $methods = [];
             }
             if ($methods !== []) {

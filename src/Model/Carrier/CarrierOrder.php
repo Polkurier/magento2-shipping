@@ -29,6 +29,7 @@ readonly class CarrierOrder
 
     /**
      * @param int[] $configIds the rows the grid showed, in their new order
+     *
      * @throws LocalizedException
      */
     public function arrange(array $configIds): void

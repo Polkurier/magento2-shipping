@@ -3,10 +3,10 @@
  ~ Copyright (c) 2026 Polkurier.pl
  ~ All Rights Reserved
 -->
-<!-- Magento's shipment page: every Polkurier order the shipment has had, the cancelled ones
-     before it included, and what can be done with each -->
 <listing xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Ui:etc/ui_configuration.xsd">
+    <!-- Magento's shipment page: every Polkurier order the shipment has had, the cancelled ones
+         before it included, and what can be done with each -->
     <argument name="data" xsi:type="array">
         <item name="js_config" xsi:type="array">
             <item name="provider" xsi:type="string">polkurier_magento_shipment_listing.polkurier_magento_shipment_listing_data_source</item>
@@ -40,7 +40,7 @@
         <column name="polkurier_number" sortOrder="10">
             <settings>
                 <label translate="true">Polkurier order</label>
-                </settings>
+            </settings>
         </column>
         <column name="created_at" class="Magento\Ui\Component\Listing\Columns\Date" component="Magento_Ui/js/grid/columns/date" sortOrder="20">
             <settings>
@@ -73,7 +73,7 @@
         <column name="status_label" sortOrder="70">
             <settings>
                 <label translate="true">Delivery status</label>
-                </settings>
+            </settings>
         </column>
         <column name="last_error" sortOrder="80">
             <settings>

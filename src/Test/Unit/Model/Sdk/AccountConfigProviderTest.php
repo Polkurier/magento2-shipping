@@ -17,6 +17,7 @@ use Polkurier\Shipping\Model\Config;
 use Polkurier\Shipping\Model\Config\Source\StatusSchedule;
 use Polkurier\Shipping\Model\Sdk\AccountConfigProvider;
 use Polkurier\Shipping\Model\Sdk\LogFilesDirectory;
+use Polkurier\Shipping\Test\Unit\Support\FixedDateTime;
 use Polkurier\Webservice\Enum\Http\ApiMethodEnum;
 
 #[CoversClass(AccountConfigProvider::class)]
@@ -57,7 +58,7 @@ class AccountConfigProviderTest extends TestCase
         self::assertFalse($config->isPersonalDataLoggingEnabled());
         self::assertFalse($config->isFileLoggingEnabled());
         self::assertFalse($config->isSensitiveDataLoggingEnabled(), 'Secrets are never logged.');
-        self::assertSame('/srv/magento/var/log/polkurier-files', $config->getLogFilesDirectory());
+        self::assertSame('/srv/magento/var/log/polkurier/files/2026/10', $config->getLogFilesDirectory(), 'This month\'s.');
     }
 
     public function testLogsPersonalDataAndSavesFilesWhereAllowed(): void
@@ -69,10 +70,10 @@ class AccountConfigProviderTest extends TestCase
 
         self::assertTrue($config->isPersonalDataLoggingEnabled());
         self::assertTrue($config->isFileLoggingEnabled());
-        self::assertSame('/srv/magento/var/polkurier/files', $config->getLogFilesDirectory(), 'Relative to Magento\'s root.');
+        self::assertSame('/srv/magento/var/polkurier/files/2026/10', $config->getLogFilesDirectory(), 'Relative to Magento\'s root.');
 
         $this->values[Config::XML_PATH_LOG_FILES_DIRECTORY] = '/var/log/shop/../polkurier';
-        self::assertSame('/var/log/polkurier', $this->provider()->getConfig()->getLogFilesDirectory());
+        self::assertSame('/var/log/polkurier/2026/10', $this->provider()->getConfig()->getLogFilesDirectory());
     }
 
     public function testTheStatusIntervalIsReadFromEveryScheduleOffered(): void
@@ -92,6 +93,15 @@ class AccountConfigProviderTest extends TestCase
         $this->values[Config::XML_PATH_TIMEOUT] = '';
 
         self::assertSame(30, $this->provider()->getConfig()->getApiTimeout());
+    }
+
+    public function testTheStorefrontWaitsAtMostItsOwnLimit(): void
+    {
+        $this->values[Config::XML_PATH_TIMEOUT] = '30';
+        self::assertSame(5, $this->provider(5)->getConfig()->getApiTimeout());
+
+        $this->values[Config::XML_PATH_TIMEOUT] = '3';
+        self::assertSame(3, $this->provider(5)->getConfig()->getApiTimeout(), 'A shorter setting stands.');
     }
 
     public function testIdentifiesTheIntegrationAndTargetsTheConfiguredEndpoint(): void
@@ -114,12 +124,12 @@ class AccountConfigProviderTest extends TestCase
         self::assertSame('rotated', $provider->getConfig()->getAuthorization()->getToken());
     }
 
-    private function provider(): AccountConfigProvider
+    private function provider(?int $maxTimeout = null): AccountConfigProvider
     {
         $packageInfo = $this->createStub(PackageInfo::class);
         $packageInfo->method('getVersion')->willReturn('1.2.3');
 
-        return new AccountConfigProvider($this->config(), $packageInfo, new LogFilesDirectory(self::directoryList()));
+        return new AccountConfigProvider($this->config(), $packageInfo, new LogFilesDirectory(self::directoryList()), new FixedDateTime((int)\strtotime('2026-10-06 07:00:00 UTC')), $maxTimeout);
     }
 
     private function config(): Config

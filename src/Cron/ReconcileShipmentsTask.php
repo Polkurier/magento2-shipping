@@ -7,8 +7,8 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Cron;
 
-use Polkurier\Shipping\Model\Config;
 use Polkurier\Shipping\Model\Admin\AttentionNotifier;
+use Polkurier\Shipping\Model\Config;
 use Polkurier\Shipping\Model\Shipment\AutoReconciler;
 use Polkurier\Shipping\Model\Shipment\NotPlaced;
 

@@ -21,6 +21,9 @@ use Polkurier\Shipping\Model\AddressFactory;
 use Polkurier\Shipping\Model\ResourceModel\Address as ResourceModel;
 use Polkurier\Shipping\Model\ResourceModel\Address\CollectionFactory;
 
+/**
+ * Reads, lists, saves and deletes addresses.
+ */
 readonly class AddressRepository implements AddressRepositoryInterface
 {
     public function __construct(

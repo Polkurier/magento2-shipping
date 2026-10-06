@@ -11,6 +11,9 @@ use Magento\Framework\Model\ResourceModel\Db\Collection\AbstractCollection;
 use Polkurier\Shipping\Model\Address as Model;
 use Polkurier\Shipping\Model\ResourceModel\Address as ResourceModel;
 
+/**
+ * The sender addresses.
+ */
 class Collection extends AbstractCollection
 {
     /**

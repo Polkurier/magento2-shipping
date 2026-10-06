@@ -7,13 +7,13 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Model\Sync\Adapter;
 
-use Polkurier\Shipping\Api\ApiEventEnum;
-use Polkurier\Shipping\Model\ApiEventDispatcher;
 use Polkurier\Shipping\Api\AddressRepositoryInterface;
 use Polkurier\Shipping\Api\Data\AddressInterface;
 use Polkurier\Shipping\Api\Data\SyncableInterface;
-use Polkurier\Shipping\Api\SyncEntityEnum;
+use Polkurier\Shipping\Enum\ApiEventEnum;
+use Polkurier\Shipping\Enum\SyncEntityEnum;
 use Polkurier\Shipping\Model\AddressFactory;
+use Polkurier\Shipping\Model\ApiEventDispatcher;
 use Polkurier\Shipping\Model\Mapper\AddressBookMapper;
 use Polkurier\Shipping\Model\ResourceModel\Address\CollectionFactory;
 use Polkurier\Shipping\Model\Sdk\ClientPool;
@@ -26,6 +26,8 @@ use Polkurier\Webservice\Request\Address\GetMessage;
  */
 readonly class AddressAdapter implements PushableAdapterInterface
 {
+    use MatchedByName;
+
     public function __construct(
         private ClientPool $clientPool,
         private AddressBookMapper $mapper,
@@ -69,16 +71,6 @@ readonly class AddressAdapter implements PushableAdapterInterface
         /** @var AddressInterface $local */
         $this->mapper->apply($remote, $local);
     }
-
-    public function getNaturalKey(SyncableInterface|array $entry): ?string
-    {
-        /** @var AddressInterface|array<string, mixed> $entry */
-        $value = \is_array($entry) ? (string)($entry['name'] ?? '') : $entry->getName();
-        $key = (string)\mb_strtolower(\trim($value));
-
-        return $key !== '' ? $key : null;
-    }
-
 
     public function push(SyncableInterface $local): array
     {

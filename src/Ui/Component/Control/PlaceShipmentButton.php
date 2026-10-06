@@ -9,6 +9,9 @@ namespace Polkurier\Shipping\Ui\Component\Control;
 
 use Magento\Framework\View\Element\UiComponent\Control\ButtonProviderInterface;
 
+/**
+ * Places the Polkurier order filled in on the shipment screen.
+ */
 readonly class PlaceShipmentButton implements ButtonProviderInterface
 {
     /**

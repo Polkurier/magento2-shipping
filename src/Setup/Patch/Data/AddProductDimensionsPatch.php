@@ -30,6 +30,7 @@ readonly class AddProductDimensionsPatch implements DataPatchInterface, PatchRev
 
     public function apply(): static
     {
+        $this->moduleDataSetup->getConnection()->startSetup();
         $eavSetup = $this->eavSetupFactory->create(['setup' => $this->moduleDataSetup]);
         $labels = [
             ItemDimensions::LENGTH => 'Length (cm)',
@@ -60,6 +61,8 @@ readonly class AddProductDimensionsPatch implements DataPatchInterface, PatchRev
             ]);
             $sortOrder += 10;
         }
+
+        $this->moduleDataSetup->getConnection()->endSetup();
 
         return $this;
     }

@@ -21,7 +21,8 @@ readonly class DocumentDownload
     ) {}
 
     /**
-     * @param array{file_name: string, content: string, content_type: string} $document
+     * @param array{file_name: string, content: string, content_type: string, left_out?: string[]} $document
+     *
      * @throws \Exception
      */
     public function send(array $document): ResponseInterface

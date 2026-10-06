@@ -8,8 +8,8 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Controller\Adminhtml\Shipment;
 
 use Magento\Backend\App\Action\Context;
-use Magento\Framework\App\ActionInterface;
 use Magento\Framework\App\Action\HttpPostActionInterface;
+use Magento\Framework\App\ActionInterface;
 use Magento\Framework\Controller\Result\Redirect;
 use Magento\Framework\Exception\LocalizedException;
 use Polkurier\Shipping\Model\Admin\Flash;
@@ -37,8 +37,10 @@ class Pickup extends AbstractShipmentAction implements HttpPostActionInterface
         $date = (string)$this->getRequest()->getParam('pickup_date');
         $from = (string)$this->getRequest()->getParam('pickup_time_from');
         $to = (string)$this->getRequest()->getParam('pickup_time_to');
-        if (!\preg_match('/^\d{4}-\d{2}-\d{2}$/', $date) || !\preg_match('/^\d{2}:\d{2}$/', $from) || !\preg_match('/^\d{2}:\d{2}$/', $to)) {
-            $this->messageManager->addErrorMessage(\__('Give the collection date as YYYY-MM-DD and the window as HH:MM.'));
+        try {
+            Pickups::window($date, $from, $to);
+        } catch (LocalizedException $e) {
+            $this->messageManager->addErrorMessage($e->getMessage());
 
             // Back to the form, with the shipments chosen.
             return $this->resultRedirectFactory->create()->setPath('*/*/pickupForm', \array_filter([

@@ -28,7 +28,7 @@ For installation and everyday use, see the [user guide](../user-guide/README.md)
 10. [Admin UI](admin-ui.md): screens, controllers, ACL
 11. [Scheduled jobs](cron.md)
 12. [Logging](logging.md)
-13. [Service contracts and REST](rest-api.md)
+13. [Service contracts](service-contracts.md)
 14. [Events](events.md)
 15. [Extending the module](extending.md): the supported extension points
 16. [Tests](tests.md)

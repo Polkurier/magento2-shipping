@@ -36,7 +36,7 @@ class Refresh extends Action implements HttpPostActionInterface
     public function execute(): Redirect
     {
         if (!$this->config->hasCredentials()) {
-            $this->messageManager->addErrorMessage(\__('Configure the Polkurier customer ID and API token first.'));
+            $this->messageManager->addErrorMessage(Config::credentialsMissing());
 
             return $this->returnBack('*/*/index');
         }

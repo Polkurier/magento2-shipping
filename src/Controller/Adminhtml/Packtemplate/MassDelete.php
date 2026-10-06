@@ -14,6 +14,9 @@ use Polkurier\Shipping\Controller\Adminhtml\MasterData\AbstractMassDelete;
 use Polkurier\Shipping\Model\Admin\PackTemplateHandler;
 use Polkurier\Shipping\Model\ResourceModel\PackTemplate\CollectionFactory;
 
+/**
+ * Deletes the pack templates selected in their grid.
+ */
 class MassDelete extends AbstractMassDelete
 {
     public const string ADMIN_RESOURCE = 'Polkurier_Shipping::pack_templates';

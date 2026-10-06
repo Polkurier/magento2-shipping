@@ -11,7 +11,6 @@
                 <resource id="Polkurier_Shipping::root" title="Polkurier" translate="title" sortOrder="1000">
                     <!-- As the menu has them -->
                     <resource id="Polkurier_Shipping::sales" title="Sales" translate="title" sortOrder="10">
-                        <resource id="Polkurier_Shipping::orders" title="Orders" translate="title" sortOrder="5" />
                         <resource id="Polkurier_Shipping::shipments" title="Shipments" translate="title" sortOrder="10">
                             <resource id="Polkurier_Shipping::shipment_create" title="Create shipments" translate="title" sortOrder="10" />
                             <resource id="Polkurier_Shipping::shipment_cancel" title="Cancel shipments" translate="title" sortOrder="20" />

@@ -16,11 +16,14 @@ use Polkurier\Shipping\Api\Data\AddressSearchResultsInterface;
 
 /**
  * Stores the address records kept in Magento.
+ *
+ * @api
  */
 interface AddressRepositoryInterface
 {
     /**
      * @param int $id
+     *
      * @return \Polkurier\Shipping\Api\Data\AddressInterface
      * @throws NoSuchEntityException
      */
@@ -28,12 +31,14 @@ interface AddressRepositoryInterface
 
     /**
      * @param \Magento\Framework\Api\SearchCriteriaInterface $searchCriteria
+     *
      * @return \Polkurier\Shipping\Api\Data\AddressSearchResultsInterface
      */
     public function getList(SearchCriteriaInterface $searchCriteria): AddressSearchResultsInterface;
 
     /**
      * @param \Polkurier\Shipping\Api\Data\AddressInterface $entity
+     *
      * @return \Polkurier\Shipping\Api\Data\AddressInterface
      * @throws CouldNotSaveException
      */
@@ -41,6 +46,7 @@ interface AddressRepositoryInterface
 
     /**
      * @param \Polkurier\Shipping\Api\Data\AddressInterface $entity
+     *
      * @return bool
      * @throws CouldNotDeleteException
      */

@@ -24,7 +24,6 @@ define([
 ], function (Component, registry, $, ko, _, $t, rules, request) {
     'use strict';
 
-
     return Component.extend({
         defaults: {
             template: 'Polkurier_Shipping/shipment/workspace/summary',

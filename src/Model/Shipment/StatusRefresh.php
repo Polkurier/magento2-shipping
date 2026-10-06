@@ -12,6 +12,7 @@ use Magento\Framework\Stdlib\DateTime\DateTime;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Api\ShipmentRepositoryInterface;
 use Polkurier\Shipping\Model\Shipment\Details\Formatter;
+use Polkurier\Webservice\Response\Order;
 
 /**
  * Brings a placed shipment up to date with Polkurier, and catches the Magento side up with it:
@@ -27,6 +28,8 @@ readonly class StatusRefresh
         private MagentoFollowUp $followUp,
         private DateTime $dateTime,
         private Formatter $format,
+        private OrderLock $orderLock,
+        private ShipmentAge $age,
     ) {}
 
     /**
@@ -40,6 +43,20 @@ readonly class StatusRefresh
             throw new LocalizedException(\__('This shipment has no Polkurier order to read.'));
         }
         $remote = $this->reconciler->findByNumber($number);
+
+        // Applied once: a webhook and the scheduled update may refresh it at the same time.
+        return $this->orderLock->run($shipment->getOrderId(), fn(): ShipmentInterface => $this->apply(
+            $this->shipmentRepository->get($shipmentId),
+            $remote,
+        ));
+    }
+
+    /**
+     * @throws LocalizedException
+     */
+    private function apply(ShipmentInterface $shipment, Order $remote): ShipmentInterface
+    {
+        $number = (string)$shipment->getPolkurierNumber();
         $before = $shipment->getWaybills();
         $wasDelivered = $shipment->getDeliveredAt() !== null;
         $wasCancelled = $shipment->getState() === ShipmentInterface::STATE_CANCELLED;
@@ -55,19 +72,13 @@ readonly class StatusRefresh
         }
         if (!$wasCancelled && $shipment->getState() === ShipmentInterface::STATE_CANCELLED) {
             // Cancelled in the Polkurier panel: its Magento shipment is cleared, as when cancelled here.
-            $order = $this->followUp->order($shipment->getOrderId());
-            $cleared = $this->followUp->clearShipment($order, $shipment);
-            $this->followUp->remark($shipment->getShipmentId(), \__(
-                'Polkurier order %1 was cancelled in Polkurier. Its label and tracking numbers were removed; another Polkurier order can be placed on this shipment.',
-                $number,
-            ));
-            $this->followUp->comment($order, $cleared !== null
-                ? \__('Polkurier order %1 was cancelled in Polkurier. Magento shipment #%2 stays, without its label and tracking numbers, for another Polkurier order.', $number, $cleared)
-                : \__('Polkurier order %1 was cancelled in Polkurier.', $number));
+            $this->followUp->cancelled($shipment, true);
 
             return $shipment;
         }
-        if ($shipment->getShipmentId() === null && $shipment->getState() === ShipmentInterface::STATE_CREATED) {
+        if ($shipment->getShipmentId() === null && $shipment->getState() === ShipmentInterface::STATE_CREATED
+            && $this->age->isOlderThan($shipment, ShipmentAge::SHIP_AGAIN_AFTER_MINUTES)
+        ) {
             // Placed, but the Magento shipment failed back then: try again with every refresh.
             $this->followUp->ship($this->followUp->order($shipment->getOrderId()), $shipment);
 
@@ -94,6 +105,15 @@ readonly class StatusRefresh
     public function shipOrder(int $shipmentId): ShipmentInterface
     {
         $shipment = $this->shipmentRepository->get($shipmentId);
+
+        return $this->orderLock->run($shipment->getOrderId(), fn(): ShipmentInterface => $this->ship($this->shipmentRepository->get($shipmentId)));
+    }
+
+    /**
+     * @throws LocalizedException
+     */
+    private function ship(ShipmentInterface $shipment): ShipmentInterface
+    {
         if ($shipment->getState() !== ShipmentInterface::STATE_CREATED) {
             throw new LocalizedException(\__('Only a placed Polkurier order can be shipped in Magento.'));
         }

@@ -9,8 +9,8 @@ namespace Polkurier\Shipping\Model\Admin;
 
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Model\AbstractModel;
+use Magento\Framework\Stdlib\DateTime as DateFormat;
 use Polkurier\Shipping\Api\Data\SyncableInterface;
-use Polkurier\Shipping\Model\Sync\SyncEngine;
 
 /**
  * What every entity handler does alike: copy a form onto an entry, and change entries while no
@@ -26,7 +26,9 @@ trait EditsSyncableEntries
      * older copy of the entry over it.
      *
      * @template T
+     *
      * @param callable(): T $change
+     *
      * @return T
      * @throws LocalizedException
      */
@@ -41,6 +43,7 @@ trait EditsSyncableEntries
      * choices, must be its own.
      *
      * @param array<string, mixed> $data
+     *
      * @throws LocalizedException when another entry has the name
      */
     protected function applyFormData(SyncableInterface $entity, array $data): void
@@ -72,6 +75,6 @@ trait EditsSyncableEntries
 
     protected function now(): string
     {
-        return \gmdate(SyncEngine::DATE_FORMAT, $this->dateTime->gmtTimestamp());
+        return \gmdate(DateFormat::DATETIME_PHP_FORMAT, $this->dateTime->gmtTimestamp());
     }
 }

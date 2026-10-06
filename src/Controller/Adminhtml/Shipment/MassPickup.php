@@ -8,8 +8,8 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Controller\Adminhtml\Shipment;
 
 use Magento\Backend\App\Action\Context;
-use Magento\Framework\App\ActionInterface;
 use Magento\Framework\App\Action\HttpPostActionInterface;
+use Magento\Framework\App\ActionInterface;
 use Magento\Framework\Controller\Result\Redirect;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Url\EncoderInterface;

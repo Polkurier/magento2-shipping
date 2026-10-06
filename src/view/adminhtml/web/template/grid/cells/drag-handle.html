@@ -2,6 +2,7 @@
  ~ Copyright (c) 2026 Polkurier.pl
  ~ All Rights Reserved
 -->
-<div class="draggable-handle"
-     data-bind="attr: {'data-id': $col.getId($row()), title: $t('Drag to change the order')},
+<div class="draggable-handle" tabindex="0" role="button"
+     data-bind="attr: {'data-id': $col.getId($row()), title: $t('Drag to change the order'),
+                       'aria-label': $t('Move: Alt+Up or Alt+Down')},
                 afterRender: $col.initHandle.bind($col)"></div>

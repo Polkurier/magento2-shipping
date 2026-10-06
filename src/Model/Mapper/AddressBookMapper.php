@@ -8,6 +8,7 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Model\Mapper;
 
 use Polkurier\Shipping\Api\Data\AddressInterface;
+use Polkurier\Shipping\Model\Carrier\Polkurier;
 use Polkurier\Webservice\Enum\Address\AddressTypeEnum;
 use Polkurier\Webservice\Request\Address\DeleteMessage;
 use Polkurier\Webservice\Request\Address\SaveMessage;
@@ -37,7 +38,7 @@ readonly class AddressBookMapper
             'city' => $address->getCity(),
             'postcode' => $address->getPostcode(),
             'province' => $address->getProvince() ?: null,
-            'country' => $address->getCountry() ?: 'PL',
+            'country' => $address->getCountry() ?: Polkurier::HOME_COUNTRY,
             'point_id' => $address->getPointId() ?: null,
             'email' => $address->getEmail(),
             'phone' => $address->getPhone(),
@@ -93,7 +94,7 @@ readonly class AddressBookMapper
             company: $address->getCompany() ?: null,
             flatNumber: $address->getFlatNumber() ?: null,
             province: $address->getProvince() ?: null,
-            country: $address->getCountry() ?: 'PL',
+            country: $address->getCountry() ?: Polkurier::HOME_COUNTRY,
             pointId: $address->getPointId() ?: null,
             default: $address->isDefault(),
             coverAddress: $address->isCover(),

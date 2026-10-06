@@ -37,6 +37,7 @@ class CarrierConfig extends AbstractDb
 
     /**
      * @param int[] $configIds
+     *
      * @return array<int, CarrierLabelInterface[]> keyed by config id
      */
     public function loadStoreLabels(array $configIds): array

@@ -7,6 +7,9 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Ui\Component\Control\ShipmentView;
 
+/**
+ * Back to the shipments grid.
+ */
 class BackButton extends AbstractButton
 {
     /**
@@ -16,7 +19,7 @@ class BackButton extends AbstractButton
     {
         return [
             'label' => \__('Back'),
-            'on_click' => \sprintf("setLocation('%s');", $this->url->getUrl('polkurier/shipment/index')),
+            'on_click' => $this->onClick->location($this->url->getUrl('polkurier/shipment/index')),
             'class' => 'back',
             'sort_order' => 10,
         ];

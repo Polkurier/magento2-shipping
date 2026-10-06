@@ -16,11 +16,14 @@ use Polkurier\Shipping\Api\Data\PackTemplateSearchResultsInterface;
 
 /**
  * Stores the pack template records kept in Magento.
+ *
+ * @api
  */
 interface PackTemplateRepositoryInterface
 {
     /**
      * @param int $id
+     *
      * @return \Polkurier\Shipping\Api\Data\PackTemplateInterface
      * @throws NoSuchEntityException
      */
@@ -28,12 +31,14 @@ interface PackTemplateRepositoryInterface
 
     /**
      * @param \Magento\Framework\Api\SearchCriteriaInterface $searchCriteria
+     *
      * @return \Polkurier\Shipping\Api\Data\PackTemplateSearchResultsInterface
      */
     public function getList(SearchCriteriaInterface $searchCriteria): PackTemplateSearchResultsInterface;
 
     /**
      * @param \Polkurier\Shipping\Api\Data\PackTemplateInterface $entity
+     *
      * @return \Polkurier\Shipping\Api\Data\PackTemplateInterface
      * @throws CouldNotSaveException
      */
@@ -41,6 +46,7 @@ interface PackTemplateRepositoryInterface
 
     /**
      * @param \Polkurier\Shipping\Api\Data\PackTemplateInterface $entity
+     *
      * @return bool
      * @throws CouldNotDeleteException
      */

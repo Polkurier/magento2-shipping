@@ -13,7 +13,7 @@ cost is set under **Polkurier > Settings > Carriers**.
 
 Click **Synchronize with Polkurier**. The module fetches the carriers available on your
 account and adds any new ones to the list, switched off. Your account's carriers can change over
-time, so the module also checks every hour while the hourly synchronization is on (see
+time, so the module also checks once a day while the scheduled synchronization is on (see
 [Configuration](configuration.md#synchronization)); click the button when you want a change to
 show at once.
 
@@ -45,8 +45,10 @@ Open a carrier from the list:
 
 The list shows the enabled carriers first, then the others, each in the order checkout offers
 them, so it can't be sorted by its columns. To change the order, drag a carrier by the handle at
-the start of its row to where it should go, among the carriers enabled or not like it; a bar across the list shows where it will land, and the new order is saved as soon as
-you let go. Carriers the list doesn't show keep their places.
+the start of its row to where it should go, among the carriers enabled or not like it; a bar
+across the list shows where it will land, and the new order is saved as soon as you let go. From
+the keyboard, focus the handle and press Alt+Up or Alt+Down to move the carrier one place.
+Carriers the list doesn't show keep their places.
 A carrier new to your account comes last.
 
 The label and **Enabled** can also be changed straight in the list: click a carrier's
@@ -74,8 +76,10 @@ With tiers, the customer gets the price of the highest tier the cart reaches. If
 reach any tier, the carrier isn't offered for that cart at all. That's useful on purpose (a
 pallet carrier only for heavy carts, say), but usually you'll want your lowest tier to start at 0.
 
-The subtotal is taken after discounts and without tax. The weight is the sum of the products'
-weights as set in the catalog.
+The subtotal is the value of the cart after discounts, with tax by default: what the customer sees.
+To compare tiers with the value without tax instead, set **Cart value for price tiers** in the
+configuration (see [Configuration](configuration.md#the-delivery-method)). The weight is the sum
+of the products' weights as set in the catalog.
 
 ### Examples
 

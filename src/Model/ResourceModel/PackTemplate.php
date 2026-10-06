@@ -9,6 +9,9 @@ namespace Polkurier\Shipping\Model\ResourceModel;
 
 use Magento\Framework\Model\ResourceModel\Db\AbstractDb;
 
+/**
+ * The polkurier_pack_template table.
+ */
 class PackTemplate extends AbstractDb
 {
     use NamedEntries;

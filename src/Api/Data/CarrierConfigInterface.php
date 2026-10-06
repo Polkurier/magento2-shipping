@@ -9,6 +9,8 @@ namespace Polkurier\Shipping\Api\Data;
 
 /**
  * The merchant's settings for one Polkurier carrier.
+ *
+ * @api
  */
 interface CarrierConfigInterface
 {
@@ -36,6 +38,7 @@ interface CarrierConfigInterface
 
     /**
      * @param string $carrierCode
+     *
      * @return $this
      */
     public function setCarrierCode(string $carrierCode): static;
@@ -47,6 +50,7 @@ interface CarrierConfigInterface
 
     /**
      * @param string $carrierName
+     *
      * @return $this
      */
     public function setCarrierName(string $carrierName): static;
@@ -58,6 +62,7 @@ interface CarrierConfigInterface
 
     /**
      * @param string|null $customLabel
+     *
      * @return $this
      */
     public function setCustomLabel(?string $customLabel): static;
@@ -71,6 +76,7 @@ interface CarrierConfigInterface
 
     /**
      * @param string|null $logo
+     *
      * @return $this
      */
     public function setLogo(?string $logo): static;
@@ -84,6 +90,7 @@ interface CarrierConfigInterface
 
     /**
      * @param \Polkurier\Shipping\Api\Data\CarrierLabelInterface[] $storeLabels
+     *
      * @return $this
      */
     public function setStoreLabels(array $storeLabels): static;
@@ -93,6 +100,7 @@ interface CarrierConfigInterface
      * the carrier's own name.
      *
      * @param int $storeId
+     *
      * @return string
      */
     public function getLabelForStore(int $storeId): string;
@@ -104,6 +112,7 @@ interface CarrierConfigInterface
 
     /**
      * @param bool $active
+     *
      * @return $this
      */
     public function setActive(bool $active): static;
@@ -115,6 +124,7 @@ interface CarrierConfigInterface
 
     /**
      * @param int $sortOrder
+     *
      * @return $this
      */
     public function setSortOrder(int $sortOrder): static;
@@ -126,6 +136,7 @@ interface CarrierConfigInterface
 
     /**
      * @param string $pricingModel
+     *
      * @return $this
      */
     public function setPricingModel(string $pricingModel): static;
@@ -137,6 +148,7 @@ interface CarrierConfigInterface
 
     /**
      * @param mixed[] $priceInfo
+     *
      * @return $this
      */
     public function setPriceInfo(array $priceInfo): static;
@@ -148,6 +160,7 @@ interface CarrierConfigInterface
 
     /**
      * @param bool $available
+     *
      * @return $this
      */
     public function setAvailable(bool $available): static;

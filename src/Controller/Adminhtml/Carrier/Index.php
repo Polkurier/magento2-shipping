@@ -8,10 +8,13 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Controller\Adminhtml\Carrier;
 
 use Magento\Backend\App\Action;
+use Magento\Backend\Model\View\Result\Page;
 use Magento\Framework\App\Action\HttpGetActionInterface;
 use Magento\Framework\Controller\ResultFactory;
-use Magento\Backend\Model\View\Result\Page;
 
+/**
+ * The carriers grid.
+ */
 class Index extends Action implements HttpGetActionInterface
 {
     public const string ADMIN_RESOURCE = 'Polkurier_Shipping::carriers';

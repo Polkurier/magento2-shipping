@@ -9,10 +9,11 @@ namespace Polkurier\Shipping\Controller\Adminhtml\Shipment;
 
 use Magento\Backend\App\Action;
 use Magento\Backend\App\Action\Context;
+use Magento\Backend\Model\View\Result\Page;
 use Magento\Framework\App\Action\HttpGetActionInterface;
+use Magento\Framework\Controller\ResultFactory;
 use Magento\Framework\Controller\ResultInterface;
 use Magento\Framework\Exception\NoSuchEntityException;
-use Magento\Framework\View\Result\PageFactory;
 use Polkurier\Shipping\Api\ShipmentRepositoryInterface;
 
 /**
@@ -32,7 +33,6 @@ class View extends Action implements HttpGetActionInterface
 
     public function __construct(
         Context $context,
-        private readonly PageFactory $pageFactory,
         private readonly ShipmentRepositoryInterface $shipmentRepository,
     ) {
         parent::__construct($context);
@@ -48,8 +48,8 @@ class View extends Action implements HttpGetActionInterface
             return $this->resultRedirectFactory->create()->setPath('*/*/index');
         }
 
-        $page = $this->pageFactory->create();
-        if (!$page instanceof \Magento\Backend\Model\View\Result\Page) {
+        $page = $this->resultFactory->create(ResultFactory::TYPE_PAGE);
+        if (!$page instanceof Page) {
             throw new \LogicException('The admin area renders backend pages.');
         }
         $page->setActiveMenu('Polkurier_Shipping::shipments');

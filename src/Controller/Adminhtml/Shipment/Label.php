@@ -22,6 +22,8 @@ use Polkurier\Shipping\Model\Shipment\RequestedShipments;
  */
 class Label extends AbstractShipmentAction implements HttpGetActionInterface, HttpPostActionInterface
 {
+    public const string ADMIN_RESOURCE = 'Polkurier_Shipping::shipments';
+
     public function __construct(
         Context $context,
         RequestedShipments $requestedShipments,
@@ -34,7 +36,13 @@ class Label extends AbstractShipmentAction implements HttpGetActionInterface, Ht
     public function execute(): ResponseInterface|ResultInterface
     {
         try {
-            return $this->documentDownload->send($this->documents->getLabels($this->getSelectedShipments()));
+            $document = $this->documents->getLabels($this->getSelectedShipments());
+            // Seen on the next page, as the file is the answer to this one.
+            foreach ($document['left_out'] as $message) {
+                $this->messageManager->addWarningMessage($message);
+            }
+
+            return $this->documentDownload->send($document);
         } catch (LocalizedException $e) {
             $this->messageManager->addErrorMessage($e->getMessage());
         }

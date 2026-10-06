@@ -10,8 +10,9 @@ namespace Polkurier\Shipping\Model\Sync;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Phrase;
 use Polkurier\Shipping\Api\Data\SyncableInterface;
-use Polkurier\Shipping\Api\SyncEntityEnum;
 use Polkurier\Shipping\Api\SynchronizationInterface;
+use Polkurier\Shipping\Enum\SyncEntityEnum;
+use Polkurier\Shipping\Exception\SynchronizationFailedException;
 use Polkurier\Shipping\Model\ErrorMessages;
 use Psr\Log\LoggerInterface;
 
@@ -35,6 +36,7 @@ readonly class Synchronization implements SynchronizationInterface
 
     /**
      * @param SyncEntityEnum[] $entities
+     *
      * @return string[]
      */
     public function synchronize(array $entities = []): array
@@ -65,6 +67,7 @@ readonly class Synchronization implements SynchronizationInterface
 
     /**
      * @param SyncEntityEnum[] $entities
+     *
      * @return string[]
      */
     private function run(array $entities): array
@@ -81,14 +84,14 @@ readonly class Synchronization implements SynchronizationInterface
                 $summary[] = $this->engine->run($adapter)->summary();
             } catch (\Throwable $e) {
                 $line = (string)\__('%1: %2', $kind->label(), $this->errorMessages->describe($e));
-                $this->logger->warning('Polkurier synchronization failed', ['error' => $line]);
+                $this->logger->warning('Polkurier synchronization failed', ['entity' => $kind->value, 'exception' => $e]);
                 $failures[] = $line;
                 $lastFailure = $e instanceof \Exception ? $e : null;
             }
         }
         if ($summary === [] && $failures !== []) {
             // Each line is translated already.
-            throw new LocalizedException(new Phrase(\implode(' ', $failures)), $lastFailure);
+            throw new SynchronizationFailedException(new Phrase(\implode(' ', $failures)), $lastFailure);
         }
 
         return \array_merge($summary, $failures);

@@ -7,11 +7,10 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Controller\Adminhtml\Config;
 
-use Magento\Backend\App\Action;
 use Magento\Backend\App\Action\Context;
-use Magento\Framework\App\Action\HttpPostActionInterface;
-use Magento\Framework\Controller\Result\Json;
 use Magento\Framework\Controller\Result\JsonFactory;
+use Magento\Framework\Exception\LocalizedException;
+use Polkurier\Shipping\Controller\Adminhtml\AbstractJsonAction;
 use Polkurier\Shipping\Model\Config;
 use Polkurier\Shipping\Model\ErrorMessages;
 use Polkurier\Shipping\Model\Sdk\ClientPool;
@@ -21,7 +20,7 @@ use Polkurier\Webservice\Http\Request\AuthorizationMessage;
 /**
  * Checks credentials as typed in the configuration form, before they are saved.
  */
-class TestConnection extends Action implements HttpPostActionInterface
+class TestConnection extends AbstractJsonAction
 {
     public const string ADMIN_RESOURCE = 'Magento_Shipping::carriers';
 
@@ -32,35 +31,29 @@ class TestConnection extends Action implements HttpPostActionInterface
 
     public function __construct(
         Context $context,
-        private readonly JsonFactory $jsonFactory,
+        JsonFactory $jsonFactory,
         private readonly ClientPool $clientPool,
         private readonly Config $config,
         private readonly ErrorMessages $errorMessages,
     ) {
-        parent::__construct($context);
+        parent::__construct($context, $jsonFactory);
     }
 
-    public function execute(): Json
+    protected function answer(): array
     {
         $login = \trim((string)$this->getRequest()->getParam('customer_id'));
         $token = \trim((string)$this->getRequest()->getParam('api_token'));
         $login = $login === '' || $login === self::MASK ? $this->config->getLogin() : $login;
         $token = $token === '' || $token === self::MASK ? $this->config->getToken() : $token;
-
         if ($login === '' || $token === '') {
-            return $this->jsonFactory->create()->setData([
-                'success' => false,
-                'message' => (string)\__('Enter the customer ID and the API token.'),
-            ]);
+            throw new LocalizedException(\__('Enter the customer ID and the API token.'));
         }
-
         try {
             $this->clientPool->utils()->testAuthApi(new AuthorizationMessage(token: $token, login: $login));
-            $result = ['success' => true, 'message' => (string)\__('Polkurier accepted the credentials.')];
         } catch (PolkurierException $e) {
-            $result = ['success' => false, 'message' => $this->errorMessages->describe($e)];
+            throw $this->errorMessages->exception($e);
         }
 
-        return $this->jsonFactory->create()->setData($result);
+        return ['message' => (string)\__('Polkurier accepted the credentials.')];
     }
 }

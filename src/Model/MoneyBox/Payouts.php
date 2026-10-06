@@ -7,9 +7,9 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Model\MoneyBox;
 
-use Polkurier\Shipping\Api\ApiEventEnum;
-use Polkurier\Shipping\Model\ApiEventDispatcher;
 use Magento\Framework\Exception\LocalizedException;
+use Polkurier\Shipping\Enum\ApiEventEnum;
+use Polkurier\Shipping\Model\ApiEventDispatcher;
 use Polkurier\Shipping\Model\ErrorMessages;
 use Polkurier\Shipping\Model\Sdk\ClientPool;
 use Polkurier\Webservice\Enum\MoneyBox\MoneyBoxFeePaymentTypeEnum;
@@ -75,6 +75,7 @@ readonly class Payouts
      * What a payout of the given orders (or of everything available, when none) would cost.
      *
      * @param string[] $orderNumbers
+     *
      * @throws LocalizedException
      */
     public function quote(array $orderNumbers, ?MoneyBoxPayoutTypeEnum $payoutType = null): MoneyBoxFeeMessage
@@ -110,6 +111,7 @@ readonly class Payouts
      * Requests the payout. Moves money.
      *
      * @param string[] $orderNumbers empty pays out everything available
+     *
      * @throws LocalizedException
      */
     public function createPayout(
@@ -157,7 +159,9 @@ readonly class Payouts
 
     /**
      * @template T
+     *
      * @param callable(): T $call
+     *
      * @return T
      * @throws LocalizedException
      */

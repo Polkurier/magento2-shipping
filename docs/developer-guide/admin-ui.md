@@ -12,7 +12,7 @@ Every admin screen is a UI component (`view/adminhtml/ui_component`):
 
 | Screen | Component | Route |
 |---|---|---|
-| Orders | `polkurier_order_listing` | `polkurier/order/index` |
+| Orders | Magento's `sales_order_grid`, with the `shipping_carrier` filter (`Plugin\Adminhtml\OrderGridFilterPlugin`), applied by `js/grid/carrier-filter.js` when opened as `sales/order/index/carrier/polkurier` | `sales/order/index` |
 | Shipments | `polkurier_shipment_listing` | `polkurier/shipment/index` |
 | Shipment screen | `polkurier_shipment_form` | `polkurier/shipment/create` |
 | Shipment details | `polkurier_shipment_view` | `polkurier/shipment/view` |
@@ -57,7 +57,7 @@ refused attempt, what the merchant entered, which `Controller\Adminhtml\Shipment
 `Model\Shipment\RejectedDraft`), plus the order's currency and
 total, what each carrier supports, the sender addresses (`senders`, and `store_sender` for the
 fallback), cover addresses, pack templates, the recipient point's address, Polkurier's carrier
-notices (`Model\Carrier\CarrierNotices`, cached for 15 minutes, with their markup narrowed to a
+notices (`Model\Carrier\CarrierNotices`, cached for an hour, with their markup narrowed to a
 few inline tags), labels for every choice (`data.choices`) and the map configuration. Its
 `getMeta()` injects the select options of the modals' fields by component path, so moving a field
 means updating that path too.
@@ -74,7 +74,7 @@ The client side lives in `view/adminhtml/web/js/shipment/`:
 | `workspace/extras.js` | switches for cash on delivery, insurance, the services any carrier offers for the shipment's type (`rules.servicesFor()`) and the cover address (`COVER_ADDRESS_SENDER`, which isn't sent as a service: the cover address switches it on); a chosen service the carrier doesn't offer is a carrier problem (`rules.servicesLacking()`), and the carrier picker tucks such carriers away. Cash on delivery starts from `cod_remaining`, insurance from `shipment_value` (see [Shipments](shipments.md#the-draft)) |
 | `workspace/address.js` | the sender's or the recipient's address |
 | `workspace/recipient-point.js` | the recipient's pickup point, with the map; marked when `ScreenContext::findRecipientPoint()` found it gone or closed as the screen opened (`recipient_point_closed`), which `rules.js` also reports as blocking |
-| `workspace/handover.js` | how the parcels get to the carrier; reads the collection dates from `Controller\Adminhtml\Shipment\PickupTimes` and takes the first free one |
+| `workspace/handover.js` | how the parcels get to the carrier; reads the collection dates from `Controller\Adminhtml\Shipment\PickupTimes` and takes the first free one; under "dropped off", the drop-off point with the map (`rules.senderPointUsed()`: only dropped-off parcels, or a carrier taking them only at points but not as dropped off, are sent with it, as `Model\Shipment\Placing` does) |
 | `workspace/summary.js` | asks for quotes, shows the price and a cheaper carrier; works out the issues (`workspace/rules.js`) once for the screen and publishes them as the provider's `issues`; on the form's `data.validate` it sets `validated`, and with blocking issues sets `params.invalid`, so the form doesn't submit, and brings the first marked section into view |
 | `workspace/carrier-picker.js` | the carrier list in its modal: extends `carrier.js`, shows every carrier with its quote, cheapest first |
 | `workspace/sender-picker.js` | the sender addresses in their modal |
@@ -137,7 +137,10 @@ packing, the pickup point, payouts, Test connection) post through
 `view/adminhtml/web/js/request.js`. It adds the form key and `isAjax`, so an expired session gets
 Magento's redirect rather than the login page, and each sender (`request()`) hands on only the
 answer to its latest post, so a slow older answer never overwrites a newer one. What a script shows
-while waiting, and for an error, stays with the script.
+while waiting, and for an error, stays with the script. The actions they post to extend
+`Controller\Adminhtml\AbstractJsonAction`: `answer()` returns the data, sent with `error: false`,
+and a `LocalizedException` becomes `{error: true, message}`, with whatever `refused()` adds (such as
+`retry`), so every script reads one answer shape.
 
 The carrier form's logo is a file uploader posting to `Controller\Adminhtml\Carrier\UploadLogo`,
 which stores the file through `Model\Carrier\CarrierLogo` (raster images only; an SVG could carry
@@ -178,8 +181,9 @@ moves itself back to the first place whenever a saved view or column dragging pu
 column of the list sorts (`childDefaults` `sortable` false), and the grid collection ignores
 sorting and always orders by `active` (enabled first), then `sort_order`, then name, so a view
 saved sorted by a column can't show another order. The column's `groupBy` (`active`) keeps a
-dragged row within its block: the gaps it can land in stop at the block's first and last rows. A
-drop reorders the provider's `data.items`, so the grid redraws at once, clears the provider's
+dragged row within its block: the gaps it can land in stop at the block's first and last rows.
+The handle is focusable, and Alt+Up / Alt+Down on it move the row one place within its block,
+the same way as a drop. A drop reorders the provider's `data.items`, so the grid redraws at once, clears the provider's
 cached responses (they'd bring the old order back when a filter is cleared), and posts the shown
 ids in order to `polkurier/carrier/arrange`. `Model\Carrier\CarrierOrder::arrange()` puts those
 carriers in the places they held among all carriers, so the hidden ones keep theirs, and renumbers
@@ -191,13 +195,15 @@ sets `sort_order`.
 with one virtual type per form in `etc/adminhtml/di.xml`. It saves through the form's own `save`
 action with `back=continue`, which the save controllers already honour.
 
-**Magento's orders.** *Orders* is a copy of Magento's `sales_order_grid`, with the collection
-replaced by `Model\ResourceModel\SalesOrder\Grid\Collection`. It narrows Magento's grid table with
-`Model\ResourceModel\SalesOrder\PolkurierOrders::select()`: the orders placed with a `polkurier_*`
-method, found through the index the module adds on `sales_order.shipping_method`. The mass actions are Magento's own controllers; they
-find the listing through the `namespace` parameter and redirect to the data provider's
-`referer_url`, which only the argument-style `dataSource` definition can set, hence the older
-format there.
+**Magento's orders.** *Orders* opens Magento's own `sales_order_grid` at
+`sales/order/index/carrier/polkurier`. `view/adminhtml/ui_component/sales_order_grid.xml` adds the
+`shipping_carrier` filter, its options every carrier in the store's configuration
+(`Model\Config\Source\ShippingCarrier`), enabled or not. `Plugin\Adminhtml\OrderGridFilterPlugin`
+applies it to the grid's collection with `Model\ResourceModel\SalesOrder\CarrierOrders::select()`:
+the orders whose `sales_order.shipping_method` starts with the carrier's code and an underscore,
+found through the index the module adds on that column. `js/grid/carrier-filter.js`, Magento's
+`url-filter-applier` given the carrier by the address's `carrier/<code>` path, applies it once the
+grid's saved state is restored, so it shows and clears as any other filter.
 
 ## ACL
 
@@ -206,8 +212,7 @@ Resources are declared in `etc/acl.xml`:
 | Resource | |
 |---|---|
 | `Polkurier_Shipping::root` | the Polkurier menu |
-| `Polkurier_Shipping::sales` | the Sales menu; holds the next five |
-| `Polkurier_Shipping::orders` | the list of Magento's orders; its mass actions also check Magento's resources |
+| `Polkurier_Shipping::sales` | the Sales menu; holds the next four. Its *Orders* item is Magento's orders list, under `Magento_Sales::sales_order` |
 | `Polkurier_Shipping::shipments` | view shipments, labels, protocols; refresh statuses |
 | `Polkurier_Shipping::shipment_create` | place, reconcile, adopt and ship; collective pickups; labels on Magento's shipment page |
 | `Polkurier_Shipping::shipment_cancel` | cancel shipments |
@@ -257,7 +262,8 @@ Configuration). Its icon is `view/adminhtml/web/images/menu-icon.svg`, applied a
 - Every action leaves one message, whatever it did and however many rows it touched:
   `Model\Admin\Flash` gathers what it has to say and sends it once, at the gravest of its kinds.
   Mass actions and synchronizations add their results up (`SyncResult::add()`) rather than
-  reporting each row; the master data handlers return the `SyncResult` of their push for that.
+  reporting each row; the master data handlers return the `SyncResultInterface` of their push for
+  that.
 - `Plugin\Adminhtml\OrderViewPlugin` handles the **Ship** and **Ship with Polkurier** buttons,
   only while the order can ship. `Plugin\Adminhtml\ShipButtonPositionPlugin`, on the toolbar, puts
   **Ship with Polkurier** right after **Ship**: Magento's order page buttons share one sort order,

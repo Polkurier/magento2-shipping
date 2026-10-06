@@ -7,6 +7,9 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Ui\Component\Control\ShipmentView;
 
+/**
+ * Creates the Magento shipment of a placed Polkurier order that has none.
+ */
 class ShipButton extends AbstractButton
 {
     /**

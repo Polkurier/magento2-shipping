@@ -16,11 +16,14 @@ use Polkurier\Shipping\Api\Data\CarrierConfigSearchResultsInterface;
 
 /**
  * Stores the carrier configuration records kept in Magento.
+ *
+ * @api
  */
 interface CarrierConfigRepositoryInterface
 {
     /**
      * @param int $id
+     *
      * @return \Polkurier\Shipping\Api\Data\CarrierConfigInterface
      * @throws NoSuchEntityException
      */
@@ -28,12 +31,14 @@ interface CarrierConfigRepositoryInterface
 
     /**
      * @param \Magento\Framework\Api\SearchCriteriaInterface $searchCriteria
+     *
      * @return \Polkurier\Shipping\Api\Data\CarrierConfigSearchResultsInterface
      */
     public function getList(SearchCriteriaInterface $searchCriteria): CarrierConfigSearchResultsInterface;
 
     /**
      * @param \Polkurier\Shipping\Api\Data\CarrierConfigInterface $entity
+     *
      * @return \Polkurier\Shipping\Api\Data\CarrierConfigInterface
      * @throws CouldNotSaveException
      */
@@ -41,6 +46,7 @@ interface CarrierConfigRepositoryInterface
 
     /**
      * @param \Polkurier\Shipping\Api\Data\CarrierConfigInterface $entity
+     *
      * @return bool
      * @throws CouldNotDeleteException
      */

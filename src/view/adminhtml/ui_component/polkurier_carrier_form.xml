@@ -159,7 +159,60 @@
                 <dataType>text</dataType>
                 <dataScope>pricing_model</dataScope>
                 <switcherConfig>
-                    <rules><rule name="0"><value>FIXED</value><actions><action name="0"><target>polkurier_carrier_form.polkurier_carrier_form.pricing.price</target><callback>show</callback></action><action name="1"><target>polkurier_carrier_form.polkurier_carrier_form.pricing.tiers</target><callback>hide</callback></action></actions></rule><rule name="1"><value>TIER_SUBTOTAL</value><actions><action name="0"><target>polkurier_carrier_form.polkurier_carrier_form.pricing.tiers</target><callback>show</callback></action><action name="1"><target>polkurier_carrier_form.polkurier_carrier_form.pricing.price</target><callback>hide</callback></action></actions></rule><rule name="2"><value>TIER_WEIGHT</value><actions><action name="0"><target>polkurier_carrier_form.polkurier_carrier_form.pricing.tiers</target><callback>show</callback></action><action name="1"><target>polkurier_carrier_form.polkurier_carrier_form.pricing.price</target><callback>hide</callback></action></actions></rule><rule name="3"><value>TIER_SUBTOTAL_WEIGHT</value><actions><action name="0"><target>polkurier_carrier_form.polkurier_carrier_form.pricing.tiers</target><callback>show</callback></action><action name="1"><target>polkurier_carrier_form.polkurier_carrier_form.pricing.price</target><callback>hide</callback></action></actions></rule></rules>
+                    <rules>
+                        <rule name="0">
+                            <value>FIXED</value>
+                            <actions>
+                                <action name="0">
+                                    <target>polkurier_carrier_form.polkurier_carrier_form.pricing.price</target>
+                                    <callback>show</callback>
+                                </action>
+                                <action name="1">
+                                    <target>polkurier_carrier_form.polkurier_carrier_form.pricing.tiers</target>
+                                    <callback>hide</callback>
+                                </action>
+                            </actions>
+                        </rule>
+                        <rule name="1">
+                            <value>TIER_SUBTOTAL</value>
+                            <actions>
+                                <action name="0">
+                                    <target>polkurier_carrier_form.polkurier_carrier_form.pricing.tiers</target>
+                                    <callback>show</callback>
+                                </action>
+                                <action name="1">
+                                    <target>polkurier_carrier_form.polkurier_carrier_form.pricing.price</target>
+                                    <callback>hide</callback>
+                                </action>
+                            </actions>
+                        </rule>
+                        <rule name="2">
+                            <value>TIER_WEIGHT</value>
+                            <actions>
+                                <action name="0">
+                                    <target>polkurier_carrier_form.polkurier_carrier_form.pricing.tiers</target>
+                                    <callback>show</callback>
+                                </action>
+                                <action name="1">
+                                    <target>polkurier_carrier_form.polkurier_carrier_form.pricing.price</target>
+                                    <callback>hide</callback>
+                                </action>
+                            </actions>
+                        </rule>
+                        <rule name="3">
+                            <value>TIER_SUBTOTAL_WEIGHT</value>
+                            <actions>
+                                <action name="0">
+                                    <target>polkurier_carrier_form.polkurier_carrier_form.pricing.tiers</target>
+                                    <callback>show</callback>
+                                </action>
+                                <action name="1">
+                                    <target>polkurier_carrier_form.polkurier_carrier_form.pricing.price</target>
+                                    <callback>hide</callback>
+                                </action>
+                            </actions>
+                        </rule>
+                    </rules>
                     <enabled>true</enabled>
                 </switcherConfig>
             </settings>

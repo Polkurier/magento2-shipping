@@ -14,6 +14,7 @@ use Magento\Framework\View\Element\UiComponentFactory;
 use Magento\Ui\Component\Listing\Columns\Column;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Model\Shipment\SendAgain;
+use Polkurier\Shipping\Ui\Component\ShipmentConfirmations;
 
 /**
  * What can be done with a Polkurier shipment, depending on its state.
@@ -38,6 +39,7 @@ class ShipmentActionsColumn extends Column
 
     /**
      * @param array<string, mixed> $dataSource
+     *
      * @return array<string, mixed>
      */
     public function prepareDataSource(array $dataSource): array
@@ -82,10 +84,7 @@ class ShipmentActionsColumn extends Column
                             'href' => $this->url->getUrl('polkurier/shipment/cancel', $params),
                             'label' => \__('Cancel'),
                             'post' => true,
-                            'confirm' => [
-                                'title' => \__('Cancel Polkurier order %1?', (string)$item['polkurier_number']),
-                                'message' => \__('The carrier will not collect the parcel. Its Magento shipment stays, without the label and tracking numbers, for another Polkurier order. This cannot be undone.'),
-                            ],
+                            'confirm' => ShipmentConfirmations::cancel((string)$item['polkurier_number']),
                         ];
                     }
                     break;
@@ -103,10 +102,7 @@ class ShipmentActionsColumn extends Column
                             'href' => $this->url->getUrl('polkurier/shipment/discard', $params),
                             'label' => \__('Discard'),
                             'post' => true,
-                            'confirm' => [
-                                'title' => \__('Discard this shipment?'),
-                                'message' => \__('It wasn\'t placed, so nothing is cancelled in Polkurier. What was filled in for it is lost.'),
-                            ],
+                            'confirm' => ShipmentConfirmations::discard(),
                         ];
                     }
                     break;

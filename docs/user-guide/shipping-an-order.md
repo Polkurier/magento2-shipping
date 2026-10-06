@@ -65,7 +65,8 @@ This is the way to go when you want Polkurier to behave like any other carrier i
    - **Shipment description**: what's printed on the label, the order number to start with;
    - **Sender**: the address the parcels are sent from;
    - **Handover**: a courier pickup (optionally on a given day, within a time window), dropping
-     the parcels off yourself, or a courier pickup booked later for several shipments at once;
+     the parcels off yourself (at the drop-off point, for carriers that take parcels at points),
+     or a courier pickup booked later for several shipments at once;
    - **Pickup point**, for carriers that deliver to points;
    - **Cash on delivery**, for carriers that offer it;
    - **Insurance**, for carriers that insure;
@@ -82,11 +83,11 @@ This is the way to go when you want Polkurier to behave like any other carrier i
    belongs to the carrier it was chosen for: it's cleared when you switch, and comes back if you
    switch back.
 4. A line turns red when something the carrier needs is missing: a pickup point for carriers
-   that deliver only to points, or a collection date for carriers that won't send a courier
-   without one. The cash on delivery line also turns red when it collects more than is left to
-   collect on the order, and the insurance line when the carrier needs the shipment insured for
-   at least the cash on delivery. Until they're fixed, the packaging window doesn't open: you're
-   told what to fix instead.
+   that deliver only to points, a collection date or window for carriers that won't send a
+   courier without one, or a declared value for carriers that insure every shipment with cash on
+   delivery. Until they're fixed, the packaging window doesn't open: you're told what to fix
+   instead. The cash on delivery line also turns red when it collects more than is left to
+   collect on the order, as a warning: as on the Polkurier shipment screen, it doesn't stop you.
 5. Choose the quantities to ship, as usual in Magento. The shipment is always created with a
    shipping label, which places its Polkurier order: Magento's **Create Shipping Label** box is
    ticked and kept that way. If Polkurier refuses, nothing is shipped: correct what it names and
@@ -342,9 +343,10 @@ show which carriers can do it: those that can't are tucked away.
   window, where you can change the amount, the payout time, where it's paid out and the bank
   account. With nothing left to collect, the window opens straight away for you to enter the
   amount.
-- Switching **Insurance** on insures the shipment for what it carries (the order total when
-  nothing has been shipped yet), or for the cash on delivery amount if that's higher; **Change**
-  sets another value. With neither known, the window opens straight away.
+- Switching **Insurance** on insures the shipment for the cash on delivery amount when it has
+  one, otherwise for what it carries (the order total when nothing has been shipped yet), so the
+  parts' insurance adds up as their cash on delivery does; **Change** sets another value. With
+  neither known, the window opens straight away.
 - Both are only shown for carriers that offer them, unless the shipment already has them; then a
   note says the carrier doesn't, and **Change** is gone.
 
@@ -362,7 +364,10 @@ Next to it, how the parcels get to the carrier:
   sender address are read on their own, and the first free one is chosen; pick another from the
   lists if you like. If they can't be read, the reason shows, with **Try again** only when asking
   again may help.
-- **I drop them off at a point**, for carriers that take parcels that way.
+- **I drop them off at a point**, for carriers that take parcels that way. For a carrier that
+  takes parcels at points, the drop-off point shows under it, starting as your sender address's
+  drop-off point: **Choose on map** to pick another. It's sent only with parcels dropped off. A
+  new shipment whose sender address has a drop-off point starts as dropped off.
 - **A courier collects them later, with other shipments**: a collective pickup, booked later from
   the shipments list (see [Managing shipments](managing-shipments.md)). It's offered when Polkurier
   says the carrier can collect the parcels that way, which it's asked whenever the carrier, the

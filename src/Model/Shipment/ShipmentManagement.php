@@ -12,7 +12,7 @@ use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Api\ShipmentManagementInterface;
 
 /**
- * The shipment service contract, as the admin and the REST API use it, over the services that
+ * The shipment service contract, as the admin and the cron jobs use it, over the services that
  * each handle one part of a shipment's life.
  */
 readonly class ShipmentManagement implements ShipmentManagementInterface

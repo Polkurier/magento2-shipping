@@ -41,7 +41,7 @@ class Token implements HttpGetActionInterface
             $token = $this->tokenProvider->getToken();
             $expires = $this->tokenProvider->getExpiry();
         } catch (PolkurierException $e) {
-            $this->logger->error('Pickup point map token unavailable', ['error' => $e->getMessage()]);
+            $this->logger->warning('Pickup point map token unavailable', ['exception' => $e]);
             $token = '';
             $expires = 0;
         }

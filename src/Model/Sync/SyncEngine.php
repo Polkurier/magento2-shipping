@@ -7,6 +7,7 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Model\Sync;
 
+use Magento\Framework\Stdlib\DateTime as DateFormat;
 use Magento\Framework\Stdlib\DateTime\DateTime;
 use Polkurier\Shipping\Api\Data\SyncableInterface;
 use Polkurier\Shipping\Model\ErrorMessages;
@@ -25,8 +26,6 @@ use Psr\Log\LoggerInterface;
  */
 readonly class SyncEngine
 {
-    public const string DATE_FORMAT = 'Y-m-d H:i:s';
-
     private const array LOCAL_CHANGE_STATES = [
         SyncableInterface::STATE_PENDING,
         SyncableInterface::STATE_ERROR,
@@ -45,6 +44,7 @@ readonly class SyncEngine
      * is sent, pulled or deleted, as the full run would, and nothing else changes on either side.
      *
      * @param SyncableInterface|null $only one local entry, e.g. just saved in the admin
+     *
      * @throws PolkurierException when the remote list cannot be read; nothing is changed then
      */
     public function run(AdapterInterface $adapter, ?SyncableInterface $only = null): SyncResult
@@ -100,7 +100,7 @@ readonly class SyncEngine
                 $this->logger->warning('Polkurier synchronization failed', [
                     'entity' => $adapter->getEntityType()->value,
                     'remote' => (string)$extId,
-                    'error' => $message,
+                    'exception' => $e,
                 ]);
                 $result->failed++;
                 $result->errors[] = $message;
@@ -115,6 +115,7 @@ readonly class SyncEngine
      *
      * @param array<string, array<string, mixed>> $remote
      * @param SyncableInterface[] $locals
+     *
      * @return array<string, array<int, string|int>> remote ids by key
      */
     private function unclaimedByKey(AdapterInterface $adapter, array $remote, array $locals): array
@@ -247,9 +248,9 @@ readonly class SyncEngine
     private function pulled(AdapterInterface $adapter, SyncableInterface $local, array $remote, \DateTimeImmutable $remoteAt, \DateTimeImmutable $now): void
     {
         $adapter->applyRemote($local, $remote);
-        $stamp = $now->format(self::DATE_FORMAT);
+        $stamp = $now->format(DateFormat::DATETIME_PHP_FORMAT);
         $local->setRemoteHash($this->hash($remote))
-            ->setRemoteUpdatedAt($remoteAt->format(self::DATE_FORMAT))
+            ->setRemoteUpdatedAt($remoteAt->format(DateFormat::DATETIME_PHP_FORMAT))
             ->setSyncedAt($stamp)
             ->setUpdatedAt($stamp)
             ->setSyncState(SyncableInterface::STATE_SYNCED)
@@ -265,7 +266,7 @@ readonly class SyncEngine
      */
     public function pushed(AdapterInterface $adapter, SyncableInterface $local, array $stored, \DateTimeImmutable $now): void
     {
-        $stamp = $now->format(self::DATE_FORMAT);
+        $stamp = $now->format(DateFormat::DATETIME_PHP_FORMAT);
         $local->setExtId(isset($stored['id']) ? (string)$stored['id'] : $local->getExtId())
             ->setRemoteHash($this->hash($stored))
             ->setRemoteUpdatedAt($stamp)
@@ -293,10 +294,19 @@ readonly class SyncEngine
         $this->logger->warning('Polkurier synchronization failed', [
             'entity' => $adapter->getEntityType()->value,
             'id' => $local->getId(),
-            'error' => $message,
+            'exception' => $e,
         ]);
-        $local->setSyncState(SyncableInterface::STATE_ERROR)->setSyncError($message);
-        $adapter->save($local);
+        try {
+            $local->setSyncState(SyncableInterface::STATE_ERROR)->setSyncError($message);
+            $adapter->save($local);
+        } catch (\Throwable $saveFailure) {
+            // Not marked, but the run goes on: the entry is tried again next time all the same.
+            $this->logger->error('Polkurier synchronization error not saved', [
+                'entity' => $adapter->getEntityType()->value,
+                'id' => $local->getId(),
+                'exception' => $saveFailure,
+            ]);
+        }
         $result->failed++;
         $result->errors[] = $message;
     }

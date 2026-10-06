@@ -10,6 +10,7 @@ namespace Polkurier\Shipping\Ui\Component\Listing\Payout;
 use Magento\Framework\Api\Filter;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Message\ManagerInterface;
+use Magento\Framework\Stdlib\DateTime as DateFormat;
 use Magento\Ui\DataProvider\AbstractDataProvider;
 use Polkurier\Shipping\Model\Config;
 use Polkurier\Shipping\Model\MoneyBox\Payouts;
@@ -76,7 +77,7 @@ class DataProvider extends AbstractDataProvider
         foreach ($list->getResult() as $payout) {
             $items[] = [
                 'number' => $payout->getNumber(),
-                'date' => $payout->getDate()?->format('Y-m-d H:i:s'),
+                'date' => $payout->getDate()?->format(DateFormat::DATETIME_PHP_FORMAT),
                 'payout_type' => $payout->getPayoutType(),
                 'bank_account_number' => $payout->getIban(),
                 'amount' => $payout->getAmount(),

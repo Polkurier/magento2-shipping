@@ -19,6 +19,7 @@ use Polkurier\Shipping\Model\ResourceModel\Shipment\Collection;
 use Polkurier\Shipping\Model\ResourceModel\Shipment\CollectionFactory;
 use Polkurier\Shipping\Model\Shipment;
 use Polkurier\Shipping\Model\Shipment\AutoReconciler;
+use Polkurier\Shipping\Model\Shipment\ShipmentFinder;
 use Polkurier\Shipping\Test\Unit\Support\FixedDateTime;
 use Psr\Log\NullLogger;
 
@@ -98,7 +99,7 @@ class AutoReconcilerTest extends TestCase
             $saved[] = $id;
         });
 
-        return new AutoReconciler($factory, $management, $resource, new NullLogger(), new FixedDateTime((int)\strtotime('2026-09-30 10:00:00 UTC')));
+        return new AutoReconciler(new ShipmentFinder($factory), $management, $resource, new NullLogger(), new FixedDateTime((int)\strtotime('2026-09-30 10:00:00 UTC')));
     }
 
     private function shipment(int $id): Shipment

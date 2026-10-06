@@ -30,8 +30,8 @@ use Polkurier\Shipping\Model\Shipment\DraftHydrator;
 use Polkurier\Shipping\Model\Shipment\MagentoShipment;
 use Polkurier\Shipping\Model\Shipment\OwnOrders;
 use Polkurier\Shipping\Model\Shipment\Pickups;
-use Polkurier\Shipping\Model\Shipment\RequestedShipments;
 use Polkurier\Shipping\Model\Shipment\RejectedDraft;
+use Polkurier\Shipping\Model\Shipment\RequestedShipments;
 use Polkurier\Shipping\Test\Unit\Support\AdminActionTestCase;
 use Polkurier\Webservice\Api\Service\UtilsServiceInterface;
 use Polkurier\Webservice\Exception\ConnectionException;
@@ -166,7 +166,7 @@ class ShipmentActionsTest extends AdminActionTestCase
         })->execute();
 
         self::assertSame(['12345', 'saved-token'], [$asked?->getLogin(), $asked?->getToken()]);
-        self::assertSame(['success' => true, 'message' => 'Polkurier accepted the credentials.'], $this->json);
+        self::assertSame(['error' => false, 'message' => 'Polkurier accepted the credentials.'], $this->json);
     }
 
     public function testNothingIsAskedWithoutCredentials(): void
@@ -181,7 +181,7 @@ class ShipmentActionsTest extends AdminActionTestCase
         }, '', '')->execute();
 
         self::assertFalse($called);
-        self::assertSame(['success' => false, 'message' => 'Enter the customer ID and the API token.'], $this->json);
+        self::assertSame(['error' => true, 'message' => 'Enter the customer ID and the API token.'], $this->json);
     }
 
     public function testAFailedCheckSaysWhy(): void
@@ -192,7 +192,7 @@ class ShipmentActionsTest extends AdminActionTestCase
             throw new ConnectionException('Timed out.');
         })->execute();
 
-        self::assertSame(['success' => false, 'message' => 'Polkurier could not be reached, or did not answer in time: Timed out.'], $this->json);
+        self::assertSame(['error' => true, 'message' => 'Polkurier could not be reached, or did not answer in time: Timed out.'], $this->json);
     }
 
     public function testOnlyShipmentsAwaitingACollectivePickupGoToItsForm(): void

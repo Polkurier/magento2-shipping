@@ -357,7 +357,8 @@ class Shipment extends AbstractModel implements ShipmentInterface
 
     public function setDraft(?array $draft): static
     {
-        return $this->setData(self::DRAFT, $draft ? (string)\json_encode($draft, \JSON_UNESCAPED_UNICODE) : null);
+        // Nothing filled in is no draft.
+        return $this->setData(self::DRAFT, $draft ? self::encode($draft) : null);
     }
 
     public function getDetails(): array
@@ -367,7 +368,8 @@ class Shipment extends AbstractModel implements ShipmentInterface
 
     public function setDetails(?array $details): static
     {
-        return $this->setData(self::DETAILS, $details === null ? null : (string)\json_encode($details, \JSON_UNESCAPED_UNICODE));
+        // Empty is read, with nothing to show; null is not read yet.
+        return $this->setData(self::DETAILS, $details === null ? null : self::encode($details));
     }
 
     public function getDetailsSyncedAt(): ?string
@@ -389,7 +391,8 @@ class Shipment extends AbstractModel implements ShipmentInterface
 
     public function setTracking(?array $tracking): static
     {
-        return $this->setData(self::TRACKING, $tracking === null ? null : (string)\json_encode(\array_values($tracking), \JSON_UNESCAPED_UNICODE));
+        // Empty is read, with no events yet; null is not read yet.
+        return $this->setData(self::TRACKING, $tracking === null ? null : self::encode(\array_values($tracking)));
     }
 
     public function getTrackingSyncedAt(): ?string
@@ -416,7 +419,7 @@ class Shipment extends AbstractModel implements ShipmentInterface
 
     public function setShipItems(?array $qtys): static
     {
-        return $this->setData(self::SHIP_ITEMS, $qtys ? (string)\json_encode((object)$qtys) : null);
+        return $this->setData(self::SHIP_ITEMS, $qtys ? self::encode((object)$qtys) : null);
     }
 
     public function getTargetShipmentId(): ?int
@@ -467,7 +470,17 @@ class Shipment extends AbstractModel implements ShipmentInterface
 
     public function setShipPackages(?array $packages): static
     {
-        return $this->setData(self::SHIP_PACKAGES, $packages ? (string)\json_encode((object)$packages, \JSON_UNESCAPED_UNICODE) : null);
+        return $this->setData(self::SHIP_PACKAGES, $packages ? self::encode((object)$packages) : null);
+    }
+
+    /**
+     * @param array<mixed>|object $value an object for keys that are numbers
+     *
+     * @throws \JsonException what can't be stored isn't stored as something else
+     */
+    private static function encode(array|object $value): string
+    {
+        return \json_encode($value, \JSON_UNESCAPED_UNICODE | \JSON_THROW_ON_ERROR);
     }
 
     /**
@@ -495,6 +508,18 @@ class Shipment extends AbstractModel implements ShipmentInterface
         return $this->setData(self::LAST_ERROR, $lastError);
     }
 
+    public function getAttentionNotifiedAt(): ?string
+    {
+        $value = $this->getData(self::ATTENTION_NOTIFIED_AT);
+
+        return $value === null || $value === '' ? null : (string)$value;
+    }
+
+    public function setAttentionNotifiedAt(?string $notifiedAt): static
+    {
+        return $this->setData(self::ATTENTION_NOTIFIED_AT, $notifiedAt);
+    }
+
     public function getCreatedAt(): ?string
     {
         $value = $this->getData(self::CREATED_AT);
@@ -505,5 +530,17 @@ class Shipment extends AbstractModel implements ShipmentInterface
     public function setCreatedAt(?string $createdAt): static
     {
         return $this->setData(self::CREATED_AT, $createdAt);
+    }
+
+    public function getUpdatedAt(): ?string
+    {
+        $value = $this->getData(self::UPDATED_AT);
+
+        return $value === null || $value === '' ? null : (string)$value;
+    }
+
+    public function setUpdatedAt(?string $updatedAt): static
+    {
+        return $this->setData(self::UPDATED_AT, $updatedAt);
     }
 }

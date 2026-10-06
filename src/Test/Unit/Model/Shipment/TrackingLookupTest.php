@@ -17,6 +17,7 @@ use Polkurier\Shipping\Model\Carrier\CarrierConfigs;
 use Polkurier\Shipping\Model\ResourceModel\Shipment\Collection;
 use Polkurier\Shipping\Model\ResourceModel\Shipment\CollectionFactory;
 use Polkurier\Shipping\Model\Shipment;
+use Polkurier\Shipping\Model\Shipment\ShipmentFinder;
 use Polkurier\Shipping\Model\Shipment\TrackingLookup;
 
 #[CoversClass(TrackingLookup::class)]
@@ -90,7 +91,7 @@ class TrackingLookupTest extends TestCase
         $configs = $this->createStub(CarrierConfigs::class);
         $configs->method('get')->willReturn($config);
 
-        return new TrackingLookup($factory ?? $this->createStub(CollectionFactory::class), $configs);
+        return new TrackingLookup(new ShipmentFinder($factory ?? $this->createStub(CollectionFactory::class)), $configs);
     }
 
     private function shipment(): Shipment

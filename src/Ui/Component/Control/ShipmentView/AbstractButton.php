@@ -10,11 +10,11 @@ namespace Polkurier\Shipping\Ui\Component\Control\ShipmentView;
 use Magento\Framework\App\RequestInterface;
 use Magento\Framework\AuthorizationInterface;
 use Magento\Framework\Exception\NoSuchEntityException;
-use Magento\Framework\Serialize\Serializer\Json;
 use Magento\Framework\UrlInterface;
 use Magento\Framework\View\Element\UiComponent\Control\ButtonProviderInterface;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Api\ShipmentRepositoryInterface;
+use Polkurier\Shipping\Ui\Component\Control\OnClick;
 
 /**
  * A button of the shipment details page. It shows only where the shipments list offers the same
@@ -29,7 +29,7 @@ abstract class AbstractButton implements ButtonProviderInterface
         protected readonly UrlInterface $url,
         protected readonly AuthorizationInterface $authorization,
         private readonly ShipmentRepositoryInterface $shipmentRepository,
-        protected readonly Json $json,
+        protected readonly OnClick $onClick,
     ) {}
 
     protected function shipment(): ?ShipmentInterface
@@ -63,7 +63,7 @@ abstract class AbstractButton implements ButtonProviderInterface
         return [
             'label' => $label,
             'class' => $class,
-            'on_click' => \sprintf("setLocation('%s');", $this->actionUrl($action)),
+            'on_click' => $this->onClick->location($this->actionUrl($action)),
             'sort_order' => $sortOrder,
         ];
     }
@@ -75,21 +75,10 @@ abstract class AbstractButton implements ButtonProviderInterface
      */
     protected function post(string $label, string $action, int $sortOrder, ?string $confirmTitle = null, ?string $confirmText = null): array
     {
-        $post = $this->json->serialize(['action' => $this->actionUrl($action), 'data' => new \stdClass()]);
-        $send = \sprintf('dataPost().postData(%s);', $post);
-        $script = $confirmTitle === null
-            ? \sprintf("require(['mage/dataPost'], function (dataPost) { %s });", $send)
-            : \sprintf(
-                "require(['mage/dataPost', 'Magento_Ui/js/modal/confirm'], function (dataPost, confirm) { confirm({title: %s, content: %s, actions: {confirm: function () { %s }}}); });",
-                $this->json->serialize($confirmTitle),
-                $this->json->serialize((string)$confirmText),
-                $send,
-            );
-
         return [
             'label' => $label,
             'class' => 'secondary',
-            'on_click' => $script . ' return false;',
+            'on_click' => $this->onClick->post($this->actionUrl($action), $confirmTitle, $confirmText),
             'sort_order' => $sortOrder,
         ];
     }

@@ -105,17 +105,20 @@ parcel it answers with becomes a package filled in and packed through the popup'
 `newPackage()` and `packItems()`. It runs when the popup opens without packages if
 `packing/pack_new_shipments` is on, and from the popup's **Pack automatically** button. It gets the default draft, the
 carriers with what each supports, and the choices for every select, from the block's JSON config.
-Changing the carrier drops what the new one doesn't support. A line turns red, with what's wrong
-under it, for a missing required point or collection date, cash on delivery above what's left to
-collect, insurance below it where the carrier wants that, or a service the carrier doesn't offer;
-Polkurier's refusal shows in the popup like any other label error. The collection date and window
+Changing the carrier drops what the new one doesn't support. What's wrong is worked out by the
+shipment screen's rules (`workspace/rules.js`: `issues()`, with `featuresOf()` for the carrier,
+`shipmentWorth()` and `swapPoint()`), each issue naming the field it's about: a line shows those of
+its fields, red, and the label is held back by the blocking ones about the fields the page has
+(`fields` in the config), so the two screens check alike and say it in the same words. Polkurier's
+refusal shows in the popup like any other label error. The collection date and window
 are chosen from those `polkurier/shipment/pickupTimes` returns, as on the shipment screen.
 
 The block also passes `codCollected` and `codRemaining` (see `Model\Shipment\OrderAmounts`) and
 `items`: the unit value and quantity of each item that ships. The script watches the page's
-`shipment[items][…]` fields and keeps the insurance at the value of the quantities entered. It uses
-the same rule as the server: the grand total for the whole order. It stops once the insurance is
-changed by hand, and never turns insurance on by itself.
+`shipment[items][…]` fields and keeps the cash on delivery at what the quantities collect
+(`rules.codFor()`) and the insurance at what they're worth (`rules.insuranceFor()`), by the
+server's rules: the grand total for the whole order. Each stops once it's changed by hand, and
+neither is ever turned on by the script.
 
 The pickup point's editor opens the same map as the shipment screen, through
 `view/adminhtml/web/js/shipment/points-map.js`, which loads the map widget once, in an iframe away
@@ -123,7 +126,7 @@ from the admin's Prototype.js (see [Admin UI](admin-ui.md#the-shipment-screen)),
 back the chosen point. The block passes the map token and the order's postcode to start from.
 
 The script also sets the popup's package template to kilograms and centimetres, since Magento
-hardcodes pounds and inches there, and adds a **Pack template…** list to it, so every package the
+hardcodes pounds and inches there, and adds a **Pack template** list to it, so every package the
 popup clones from it has one. Choosing a template (the block passes the pack templates as
 `templates`) sets the package type and size and triggers `change` on each field, as if they were
 typed; nothing is locked, and the request only carries what the fields hold. A package's weight

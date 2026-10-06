@@ -13,10 +13,10 @@ use Magento\Sales\Model\Order\Item;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
-use Polkurier\Shipping\Model\ResourceModel\Shipment\Collection;
-use Polkurier\Shipping\Model\ResourceModel\Shipment\CollectionFactory;
 use Polkurier\Shipping\Model\Shipment\OrderAmounts;
 use Polkurier\Shipping\Model\Shipment\PlnAmounts;
+use Polkurier\Shipping\Model\Shipment\ShipmentFinder;
+use Polkurier\Shipping\Model\StoreWeightUnit;
 
 #[CoversClass(OrderAmounts::class)]
 #[CoversClass(PlnAmounts::class)]
@@ -206,16 +206,13 @@ class OrderAmountsTest extends TestCase
 
             return $shipment;
         }, $codAmounts);
-        $collection = $this->createStub(Collection::class);
-        $collection->method('addFieldToFilter')->willReturnSelf();
-        $collection->method('getItems')->willReturn($shipments);
-        $factory = $this->createStub(CollectionFactory::class);
-        $factory->method('create')->willReturn($collection);
+        $finder = $this->createStub(ShipmentFinder::class);
+        $finder->method('forOrder')->willReturn($shipments);
 
         $scopeConfig = $this->createStub(ScopeConfigInterface::class);
         $scopeConfig->method('getValue')->willReturn($weightUnit);
 
-        return new OrderAmounts($factory, $scopeConfig, new PlnAmounts());
+        return new OrderAmounts($finder, new StoreWeightUnit($scopeConfig), new PlnAmounts());
     }
 
     /**

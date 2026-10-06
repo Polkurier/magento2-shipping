@@ -49,6 +49,19 @@ define(['mage/translate'], function ($t) {
     }
 
     /**
+     * The drop-off point is where the parcels are dropped off: it counts only when they are, or
+     * with a carrier that takes them only at points but not as dropped off.
+     *
+     * @param {String} requirement whether the carrier takes the parcels at a point: NONE, OPTIONAL or REQUIRED
+     * @param {Boolean} dropOff whether the carrier takes parcels dropped off
+     * @param {String} mode how the parcels get to the carrier
+     * @returns {Boolean}
+     */
+    function senderPointUsed(requirement, dropOff, mode) {
+        return (requirement || 'NONE') !== 'NONE' && (mode === 'drop_off' || (requirement === 'REQUIRED' && dropOff === false));
+    }
+
+    /**
      * The draft out of the form's data, with each item and parcel down to what it's made of: what
      * the screen shows besides (the carriers, the choices, the templates…) would be far more than
      * a request may carry.
@@ -382,9 +395,62 @@ define(['mage/translate'], function ($t) {
         return types.length && (taken || []).length && taken.indexOf(types[0]) < 0 ? typeNotTaken(types[0]) : '';
     }
 
+    /**
+     * What a carrier supports, as the forms read it (data.features).
+     *
+     * @param {Object|null} carrier the carrier's entry in the carrier list; null when it isn't known
+     * @returns {Object}
+     */
+    function featuresOf(carrier) {
+        const fields = carrier ? carrier.fields || [] : [];
+
+        return {
+            known: !!carrier,
+            point_allowed: carrier ? carrier.point !== 'NONE' : true,
+            point_required: carrier ? carrier.point === 'REQUIRED' : false,
+            // Whether the parcels are handed over at a point: NONE, OPTIONAL or REQUIRED.
+            sender_point: carrier ? carrier.sender_point || 'NONE' : 'NONE',
+            providers: carrier ? carrier.providers : [],
+            cod: carrier ? carrier.cod : true,
+            insurance: carrier ? carrier.insurance : true,
+            insurance_with_cod: carrier ? carrier.insurance_with_cod : false,
+            services: carrier ? carrier.services : null,
+            drop_off: carrier ? carrier.drop_off : true,
+            pickup_date: carrier ? carrier.pickup_date : true,
+            pickup_date_required: carrier ? carrier.pickup_date_required : false,
+            pickup_time_required: carrier ? carrier.pickup_time_required : false,
+            // Empty when not known: any.
+            shipment_types: carrier ? carrier.shipment_types : [],
+            fields: fields,
+            has_fields: fields.length > 0
+        };
+    }
+
+    /**
+     * A pickup point belongs to the carrier it was chosen for: changing the carrier puts it aside,
+     * and going back to that carrier brings it back.
+     *
+     * @param {Object} aside the points put aside, by carrier code; changed in place
+     * @param {String} previous the carrier chosen so far
+     * @param {String} code the carrier chosen now
+     * @param {{id: String, label: String}} current the point chosen so far
+     * @returns {{id: String, label: String}} the point that goes with the carrier chosen now
+     */
+    function swapPoint(aside, previous, code, current) {
+        if (previous === code) {
+            return current;
+        }
+        if (filled(previous)) {
+            aside[previous] = current;
+        }
+
+        return aside[code] || {id: '', label: ''};
+    }
+
     return {
         draft: draft,
         newSenderLacking: newSenderLacking,
+        senderPointUsed: senderPointUsed,
         filled: filled,
         amount: amount,
         money: money,
@@ -399,11 +465,14 @@ define(['mage/translate'], function ($t) {
         insuranceFor: insuranceFor,
         shipmentTypes: shipmentTypes,
         kindProblem: kindProblem,
+        featuresOf: featuresOf,
+        swapPoint: swapPoint,
 
         /**
          * @param {Object} data the form's data
          * @param {Object|null} quotes prices by carrier code, null until the first quote
-         * @returns {Array<{card: String, text: String, blocking: Boolean, fix: (Object|Boolean|null)}>}
+         * @returns {Array<{card: String, text: String, blocking: Boolean, fix: (Object|Boolean|null), field: String}>}
+         *     field: the form field the issue is about, for a page that has only some of them
          */
         issues: function (data, quotes) {
             const features = data.features || {},
@@ -414,93 +483,96 @@ define(['mage/translate'], function ($t) {
                     return pack && !pack.delete;
                 });
 
-            // fix, when given, says where the problem is fixed, if not where the card's problems
-            // are: {parcel: index}, {part: name} of the section, {modal: name} of the form, or false.
-            function add(card, text, blocking, fix) {
-                issues.push({card: card, text: text, blocking: blocking !== false, fix: fix === undefined ? null : fix});
+            // field is the form field it's about; fix, when given, says where the problem is fixed,
+            // if not where the card's problems are: {parcel: index}, {part: name} of the section,
+            // {modal: name} of the form, or false.
+            function add(field, card, text, blocking, fix) {
+                issues.push({field: field, card: card, text: text, blocking: blocking !== false, fix: fix === undefined ? null : fix});
             }
 
             // Not blocking: Polkurier still checks the shipment when it's placed.
             if (filled(data.carriers_error)) {
-                add('carrier', $t('The carrier list could not be read, so what the carrier supports isn\'t checked here: %1')
+                add('carrier_code', 'carrier', $t('The carrier list could not be read, so what the carrier supports isn\'t checked here: %1')
                     .replace('%1', data.carriers_error), false, false);
             }
             // A carrier that doesn't price the shipment is said under the price itself.
             if (!filled(data.carrier_code)) {
-                add('carrier', $t('Choose a carrier.'));
+                add('carrier_code', 'carrier', $t('Choose a carrier.'));
             }
             // The account's carriers change: the order's may have gone, or been left out of the
             // carriers worked with, since.
             if (filled(data.carrier_code) && !filled(data.carriers_error) && Object.keys(data.carriers || {}).length
                 && !(data.carriers || {})[data.carrier_code]
             ) {
-                add('carrier', $t('This carrier is no longer available: choose another.'), true, {modal: 'carrier_modal'});
+                add('carrier_code', 'carrier', $t('This carrier is no longer available: choose another.'), true, {modal: 'carrier_modal'});
             }
             if (features.point_required && !filled(data.recipient_point_id)) {
-                add('recipient', $t('This carrier delivers to pickup points only: choose one.'), true, {part: 'point'});
+                add('recipient_point_id', 'recipient', $t('This carrier delivers to pickup points only: choose one.'), true, {part: 'point'});
             }
             // Looked up when the screen opened: gone or closed since the order was placed.
             if (filled(data.recipient_point_id) && data.recipient_point_closed === data.recipient_point_id
                 && features.point_allowed !== false
             ) {
-                add('recipient', $t('Pickup point %1 is closed or no longer exists: choose another.')
+                add('recipient_point_id', 'recipient', $t('Pickup point %1 is closed or no longer exists: choose another.')
                     .replace('%1', data.recipient_point_id), true, {part: 'point'});
             }
-            if (features.sender_point === 'REQUIRED' && !filled(data.sender_point_id)) {
-                add('sender', $t('This carrier takes the parcels at a point: choose the drop-off point you hand them over at.'));
+            if (features.sender_point === 'REQUIRED' && senderPointUsed(features.sender_point, features.drop_off, data.pickup_mode)
+                && !filled(data.sender_point_id)
+            ) {
+                add('sender_point_id', 'handover', $t('This carrier takes the parcels at a point: choose the drop-off point you hand them over at.'), true, {part: 'handover'});
             }
             if (data.sender_address_id === 'new' && newSenderLacking(data).length) {
-                add('sender', $t('Fill in the sender\'s %1.').replace('%1', newSenderLacking(data).join(', ')));
+                add('sender_address_id', 'sender', $t('Fill in the sender\'s %1.').replace('%1', newSenderLacking(data).join(', ')));
             }
             if (!filled(data.recipient_phone)) {
-                add('recipient', $t('The recipient needs a phone number.'));
+                add('recipient_phone', 'recipient', $t('The recipient needs a phone number.'));
             }
             if (courier && features.pickup_date_required && !filled(data.pickup_date)) {
-                add('handover', $t('This carrier needs a collection date.'));
+                add('pickup_date', 'handover', $t('This carrier needs a collection date.'));
             }
             if (courier && features.pickup_time_required && !(filled(data.pickup_time_from) && filled(data.pickup_time_to))) {
-                add('handover', $t('This carrier needs a collection time window.'));
+                add('pickup_time_from', 'handover', $t('This carrier needs a collection time window.'));
             }
             if (data.pickup_mode === 'drop_off' && features.drop_off === false) {
-                add('handover', $t('This carrier does not take parcels dropped off at a point.'));
+                add('pickup_mode', 'handover', $t('This carrier does not take parcels dropped off at a point.'));
             }
             if (cod > 0 && features.cod === false) {
-                add('cod', $t('This carrier does not collect cash on delivery.'), true, {modal: 'carrier_modal'});
+                add('cod_amount', 'cod', $t('This carrier does not collect cash on delivery.'), true, {modal: 'carrier_modal'});
             }
             if (amount(data.insurance_amount) > 0 && features.insurance === false) {
-                add('extras', $t('This carrier does not insure shipments.'), true, {modal: 'carrier_modal'});
+                add('insurance_amount', 'extras', $t('This carrier does not insure shipments.'), true, {modal: 'carrier_modal'});
             }
             // Chosen before the carrier: another carrier offers them.
             servicesLacking(data, features.services).forEach(function (service) {
-                add('carrier', $t('This carrier does not offer "%1".').replace('%1', service === 'COVER_ADDRESS_SENDER'
+                add('services', 'carrier', $t('This carrier does not offer "%1".').replace('%1', service === 'COVER_ADDRESS_SENDER'
                     ? $t('Another sender on the label')
                     : ((data.choices || {}).services || {})[service] || service), true, {modal: 'carrier_modal'});
             });
             if (cod > 0 && filled(data.cod_remaining) && cod > amount(data.cod_remaining) + 0.005) {
-                add('cod', amount(data.cod_collected) > 0
+                add('cod_amount', 'cod', amount(data.cod_collected) > 0
                     ? $t('The order\'s other Polkurier orders already collect %1: this one collects more than the %2 left.')
                         .replace('%1', money(data.cod_collected, data.currency))
                         .replace('%2', money(data.cod_remaining, data.currency))
                     : $t('Cash on delivery is more than the order total.'), false);
             }
             if (cod > 0 && data.cod_return_type === 'BA' && !filled(data.cod_bank_account_id)) {
-                add('cod', $t('Choose the bank account to pay the cash on delivery out to.'));
+                add('cod_bank_account_id', 'cod', $t('Choose the bank account to pay the cash on delivery out to.'));
             }
             if (cod > 0 && data.cod_return_type === 'BA' && data.cod_bank_account_id === 'new'
                 && !filled(data.new_bank_account_number)
             ) {
-                add('cod', $t('Enter the number of the bank account the cash on delivery is paid out to.'));
+                add('new_bank_account_number', 'cod', $t('Enter the number of the bank account the cash on delivery is paid out to.'));
             }
             if (cod > 0 && features.insurance_with_cod && amount(data.insurance_amount) <= 0) {
-                add('extras', $t('This carrier insures every shipment with cash on delivery: enter the declared value.'));
+                add('insurance_amount', 'extras', $t('This carrier insures every shipment with cash on delivery: enter the declared value.'));
             }
             (features.fields || []).forEach(function (field) {
                 if (field.required && !filled((data.additional_fields || {})[field.name])) {
-                    add('fields', $t('Fill in "%1".').replace('%1', field.label));
+                    add('additional_fields', 'fields', $t('Fill in "%1".').replace('%1', field.label));
                 }
             });
             if (data.can_ship === false && !data.replacing) {
-                add('items', $t('Everything on the order is shipped, and each of its Magento shipments has its Polkurier order. To send a replacement, cancel the Polkurier order it replaces first.'));
+                add('items', 'items', $t('Everything on the order is shipped, and each of its Magento shipments has its Polkurier order. To send a replacement, cancel the Polkurier order it replaces first.'));
             }
             if (data.can_ship !== false && (data.items || []).length) {
                 const over = (data.items || []).filter(function (item) {
@@ -508,14 +580,14 @@ define(['mage/translate'], function ($t) {
                 });
 
                 over.forEach(function (item) {
-                    add('items', $t('You can ship at most %1 of "%2".')
+                    add('items', 'items', $t('You can ship at most %1 of "%2".')
                         .replace('%1', String(amount(item.qty_to_ship)))
                         .replace('%2', item.name));
                 });
                 if (!over.length && !(data.items || []).some(function (item) {
                     return amount(item.qty) > 0;
                 })) {
-                    add('items', $t('Choose at least one item to ship.'));
+                    add('items', 'items', $t('Choose at least one item to ship.'));
                 }
             }
             if (data.can_ship !== false) {
@@ -524,7 +596,7 @@ define(['mage/translate'], function ($t) {
 
                 Object.keys(totals).forEach(function (id) {
                     if (items[id] && totals[id] > amount(items[id].qty) + 0.0001) {
-                        add('parcels', $t('The parcels hold more of "%1" than the shipment carries.').replace('%1', items[id].name), true, {
+                        add('packs', 'parcels', $t('The parcels hold more of "%1" than the shipment carries.').replace('%1', items[id].name), true, {
                             parcel: packs.findIndex(function (pack) {
                                 return (pack.items || []).some(function (row) {
                                     return String(row.order_item_id) === id && amount(row.qty) > 0;
@@ -541,7 +613,7 @@ define(['mage/translate'], function ($t) {
 
                     // A warning only: the limit is the merchant's own, and the parcel may still go.
                     if (template && amount(template.weight) > 0 && amount(pack.weight) > amount(template.weight) + 0.0005) {
-                        add('parcels', $t('Parcel %1 weighs %2 kg, more than %3 may weigh (%4 kg).')
+                        add('packs', 'parcels', $t('Parcel %1 weighs %2 kg, more than %3 may weigh (%4 kg).')
                             .replace('%1', String(index + 1))
                             .replace('%2', String(amount(pack.weight)))
                             .replace('%3', template.name)
@@ -549,7 +621,7 @@ define(['mage/translate'], function ($t) {
                     }
 
                     if (weight > 0 && amount(pack.weight) > 0 && amount(pack.weight) < weight - 0.0005) {
-                        add('parcels', $t('Parcel %1 weighs less than what it holds (%2 kg).')
+                        add('packs', 'parcels', $t('Parcel %1 weighs less than what it holds (%2 kg).')
                             .replace('%1', String(index + 1))
                             .replace('%2', String(weight)), false, {parcel: index});
                     }
@@ -558,18 +630,18 @@ define(['mage/translate'], function ($t) {
             const types = shipmentTypes(packs, (data.choices || {}).pack_shipment_type);
 
             if (types.length > 1) {
-                add('parcels', kindProblem(types, []));
+                add('packs', 'parcels', kindProblem(types, []));
             } else if (kindProblem(types, features.shipment_types)) {
-                add('carrier', kindProblem(types, features.shipment_types));
+                add('packs', 'carrier', kindProblem(types, features.shipment_types));
             }
             const incomplete = packs.findIndex(function (pack) {
                 return amount(pack.weight) <= 0 || amount(pack.length) <= 0 || amount(pack.width) <= 0 || amount(pack.height) <= 0;
             });
 
             if (!packs.length) {
-                add('parcels', $t('Add a parcel.'));
+                add('packs', 'parcels', $t('Add a parcel.'));
             } else if (incomplete >= 0) {
-                add('parcels', $t('Enter the size and weight of every parcel.'), true, {parcel: incomplete});
+                add('packs', 'parcels', $t('Enter the size and weight of every parcel.'), true, {parcel: incomplete});
             }
 
             return issues;

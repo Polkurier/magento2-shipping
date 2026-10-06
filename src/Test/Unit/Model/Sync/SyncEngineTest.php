@@ -13,7 +13,6 @@ use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Polkurier\Shipping\Api\Data\SyncableInterface;
-use Polkurier\Shipping\Api\SyncEntityEnum;
 use Polkurier\Shipping\Model\ErrorMessages;
 use Polkurier\Shipping\Model\PackTemplate;
 use Polkurier\Shipping\Model\Sync\AdapterInterface;

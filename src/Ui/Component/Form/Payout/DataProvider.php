@@ -10,21 +10,20 @@ namespace Polkurier\Shipping\Ui\Component\Form\Payout;
 use Magento\Framework\App\Request\DataPersistorInterface;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\UrlInterface;
-use Magento\Framework\Api\Filter;
-use Magento\Ui\DataProvider\AbstractDataProvider;
 use Polkurier\Shipping\Controller\Adminhtml\Moneybox\Save;
 use Polkurier\Shipping\Model\Config;
-use Polkurier\Shipping\Model\MasterData;
 use Polkurier\Shipping\Model\Mapper\CreateOrderMessageMapper;
+use Polkurier\Shipping\Model\MasterData;
 use Polkurier\Shipping\Model\MoneyBox\MoneyBoxOrders;
 use Polkurier\Shipping\Model\MoneyBox\Payouts;
 use Polkurier\Shipping\Model\ResourceModel\Shipment\CollectionFactory;
+use Polkurier\Shipping\Ui\Component\Form\FormDataProvider;
 
 /**
  * The payout request form, prefilled with the money box's own payout settings and the shipments
  * whose cash waits in the money box, as far as Magento last heard.
  */
-class DataProvider extends AbstractDataProvider
+class DataProvider extends FormDataProvider
 {
     /**
      * @param array<string, mixed> $meta
@@ -48,17 +47,7 @@ class DataProvider extends AbstractDataProvider
         $this->collection = $collectionFactory->create();
     }
 
-    /**
-     * The form narrows by its own request parameter, not through the collection.
-     */
-    public function addFilter(Filter $filter): void
-    {
-    }
-
-    /**
-     * @return array<string, array<string, mixed>>
-     */
-    public function getData(): array
+    protected function load(): array
     {
         $data = [
             'urls' => [

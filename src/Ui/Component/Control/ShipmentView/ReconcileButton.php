@@ -9,6 +9,9 @@ namespace Polkurier\Shipping\Ui\Component\Control\ShipmentView;
 
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 
+/**
+ * Looks for the Polkurier order of a shipment whose placing is uncertain.
+ */
 class ReconcileButton extends AbstractButton
 {
     /**

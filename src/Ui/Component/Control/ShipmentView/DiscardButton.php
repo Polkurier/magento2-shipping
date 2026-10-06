@@ -8,6 +8,7 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Ui\Component\Control\ShipmentView;
 
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
+use Polkurier\Shipping\Ui\Component\ShipmentConfirmations;
 
 /**
  * For a shipment that wasn't placed: discarded, rather than sent again.
@@ -25,12 +26,8 @@ class DiscardButton extends AbstractButton
             return [];
         }
 
-        return $this->post(
-            (string)\__('Discard'),
-            'discard',
-            25,
-            (string)\__('Discard this shipment?'),
-            (string)\__('It wasn\'t placed, so nothing is cancelled in Polkurier. What was filled in for it is lost.'),
-        );
+        $confirm = ShipmentConfirmations::discard();
+
+        return $this->post((string)\__('Discard'), 'discard', 25, (string)$confirm['title'], (string)$confirm['message']);
     }
 }

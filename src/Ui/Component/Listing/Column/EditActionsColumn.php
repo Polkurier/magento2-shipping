@@ -34,6 +34,7 @@ class EditActionsColumn extends Column
 
     /**
      * @param array<string, mixed> $dataSource
+     *
      * @return array<string, mixed>
      */
     public function prepareDataSource(array $dataSource): array

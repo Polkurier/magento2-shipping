@@ -11,12 +11,12 @@ use Magento\Framework\App\Filesystem\DirectoryList;
 
 /**
  * Where the SDK saves files of logged requests and answers: the directory entered, relative to
- * Magento's root unless absolute, or var/log/polkurier-files. Never one the web server serves:
- * labels show the recipient's name and address.
+ * Magento's root unless absolute, or var/log/polkurier/files, and in it a directory a month, e.g.
+ * 2026/10. Never one the web server serves: labels show the recipient's name and address.
  */
 readonly class LogFilesDirectory
 {
-    public const string DEFAULT = 'polkurier-files';
+    public const string DEFAULT = 'polkurier/files';
 
     public function __construct(
         private DirectoryList $directoryList,
@@ -33,6 +33,14 @@ readonly class LogFilesDirectory
         }
 
         return self::normalize(\str_starts_with($entered, '/') ? $entered : $this->directoryList->getRoot() . '/' . $entered);
+    }
+
+    /**
+     * The month's directory in the one resolved, e.g. ".../files/2026/10".
+     */
+    public function ofMonth(string $directory, int $timestamp): string
+    {
+        return $directory . '/' . \gmdate('Y/m', $timestamp);
     }
 
     /**

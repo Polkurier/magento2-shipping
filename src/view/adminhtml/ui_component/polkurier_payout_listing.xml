@@ -43,56 +43,48 @@
         <column name="number">
             <settings>
                 <label translate="true">Payout</label>
-                <filter>text</filter>
                 <sortable>false</sortable>
             </settings>
         </column>
         <column name="date">
             <settings>
                 <label translate="true">Requested</label>
-                <filter>text</filter>
                 <sortable>false</sortable>
             </settings>
         </column>
         <column name="amount">
             <settings>
                 <label translate="true">Amount</label>
-                <filter>text</filter>
                 <sortable>false</sortable>
             </settings>
         </column>
         <column name="fee">
             <settings>
                 <label translate="true">Fee</label>
-                <filter>text</filter>
                 <sortable>false</sortable>
             </settings>
         </column>
         <column name="paid_amount">
             <settings>
                 <label translate="true">Paid out</label>
-                <filter>text</filter>
                 <sortable>false</sortable>
             </settings>
         </column>
         <column name="bank_account_number">
             <settings>
                 <label translate="true">Account</label>
-                <filter>text</filter>
                 <sortable>false</sortable>
             </settings>
         </column>
         <column name="items_count">
             <settings>
                 <label translate="true">Shipments</label>
-                <filter>text</filter>
                 <sortable>false</sortable>
             </settings>
         </column>
         <column name="status">
             <settings>
                 <label translate="true">Status</label>
-                <filter>text</filter>
                 <sortable>false</sortable>
             </settings>
         </column>

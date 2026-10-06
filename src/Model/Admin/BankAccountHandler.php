@@ -12,12 +12,13 @@ use Magento\Framework\Stdlib\DateTime\DateTime;
 use Polkurier\Shipping\Api\BankAccountRepositoryInterface;
 use Polkurier\Shipping\Api\Data\BankAccountInterface;
 use Polkurier\Shipping\Api\Data\SyncableInterface;
-use Polkurier\Shipping\Api\SyncEntityEnum;
+use Polkurier\Shipping\Api\Data\SyncResultInterface;
 use Polkurier\Shipping\Api\SynchronizationInterface;
-use Polkurier\Shipping\Model\BankAccountFactory;
-use Polkurier\Shipping\Model\ResourceModel\BankAccount as BankAccountResource;
+use Polkurier\Shipping\Enum\SyncEntityEnum;
 use Polkurier\Shipping\Model\BankAccount\Confirmation;
 use Polkurier\Shipping\Model\BankAccount\Publisher;
+use Polkurier\Shipping\Model\BankAccountFactory;
+use Polkurier\Shipping\Model\ResourceModel\BankAccount as BankAccountResource;
 use Polkurier\Shipping\Model\Sync\SyncLock;
 use Polkurier\Shipping\Model\Sync\SyncResult;
 
@@ -56,7 +57,7 @@ readonly class BankAccountHandler implements EntityHandlerInterface
      *
      * @param array<string, mixed> $data
      */
-    public function save(SyncableInterface $entity, array $data): SyncResult
+    public function save(SyncableInterface $entity, array $data): SyncResultInterface
     {
         $confirmation = Confirmation::fromForm($data);
 
@@ -92,7 +93,7 @@ readonly class BankAccountHandler implements EntityHandlerInterface
      *
      * @param array<string, string> $confirmation the PIN under self::CONFIRMATION_PIN, if given
      */
-    public function delete(SyncableInterface $entity, array $confirmation = []): SyncResult
+    public function delete(SyncableInterface $entity, array $confirmation = []): SyncResultInterface
     {
         $pin = \trim((string)($confirmation[self::CONFIRMATION_PIN] ?? '')) ?: null;
 

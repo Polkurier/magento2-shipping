@@ -13,11 +13,17 @@ use Magento\Framework\UrlInterface;
 use Magento\Framework\View\Element\UiComponent\Control\ButtonProviderInterface;
 
 /**
- * Deletes the bank account being edited, in Polkurier and Magento, sending the security PIN
- * typed into the form: the only place a PIN-locked account can be deleted from.
+ * Deletes the bank account being edited, in Polkurier and Magento, with the security PIN asked
+ * for where the account locks bank accounts with one: the only place such an account can be
+ * deleted from.
  */
 readonly class DeleteBankAccountButton implements ButtonProviderInterface
 {
+    /**
+     * The form's data source, which says whether bank accounts are locked with a PIN.
+     */
+    private const string SOURCE = 'polkurier_bank_account_form.polkurier_bank_account_form_data_source';
+
     public function __construct(
         private RequestInterface $request,
         private UrlInterface $url,
@@ -41,10 +47,11 @@ readonly class DeleteBankAccountButton implements ButtonProviderInterface
             'class' => 'delete',
             // Confirmed, or asked for the security PIN where bank accounts are locked with one.
             'on_click' => \sprintf(
-                "require(['Polkurier_Shipping/js/form/bank-account-delete'], function (remove) { remove(%s, %s, %d); }); return false;",
+                "require(['Polkurier_Shipping/js/form/bank-account-delete'], function (remove) { remove(%s, %s, %d, %s); }); return false;",
                 $message,
                 $url,
                 $id,
+                $this->json->serialize(self::SOURCE),
             ),
             'sort_order' => 20,
         ];

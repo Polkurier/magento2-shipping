@@ -11,6 +11,9 @@ use Magento\Framework\Model\ResourceModel\Db\Collection\AbstractCollection;
 use Polkurier\Shipping\Model\OrderPoint as Model;
 use Polkurier\Shipping\Model\ResourceModel\OrderPoint as ResourceModel;
 
+/**
+ * The orders' pickup points.
+ */
 class Collection extends AbstractCollection
 {
     /**

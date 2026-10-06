@@ -27,8 +27,12 @@ readonly class ShipmentDocumentFactoryPlugin
      */
     public function afterCreate(ShipmentDocumentFactory $subject, ShipmentInterface $result, OrderInterface $order, mixed ...$arguments): ShipmentInterface
     {
+        // A shipment numbered already leaves the reserved number for the one it was reserved for.
+        if ($result->getIncrementId()) {
+            return $result;
+        }
         $number = $this->reservedNumbers->take((int)$order->getEntityId());
-        if ($number !== null && !$result->getIncrementId()) {
+        if ($number !== null) {
             $result->setIncrementId($number);
         }
 

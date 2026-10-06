@@ -291,6 +291,17 @@ define([
             return false;
         },
 
+        /**
+         * Enter or Space on "A parcel without a template".
+         *
+         * @param {Object} data
+         * @param {KeyboardEvent} event
+         * @returns {Boolean}
+         */
+        onCustomKey: function (data, event) {
+            return this.onChooserKey(null, event);
+        },
+
         addCustom: function () {
             const weight = rules.amount(this.get('order_weight'));
 
@@ -624,7 +635,8 @@ define([
             this.chooserModal = $(element).modal({
                 type: 'popup',
                 title: $t('Add a parcel'),
-                modalClass: 'polkurier-workspace-modal polkurier-parcel-modal',
+                // As wide as the carriers' modal: the templates are tiles as the carriers are.
+                modalClass: 'polkurier-workspace-modal polkurier-template-modal',
                 buttons: [{
                     text: $t('Cancel'),
                     class: 'action-secondary',

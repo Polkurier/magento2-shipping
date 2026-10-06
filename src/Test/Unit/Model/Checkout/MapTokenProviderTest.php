@@ -7,15 +7,15 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Test\Unit\Model\Checkout;
 
-use Magento\Framework\App\CacheInterface;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
+use Polkurier\Shipping\Exception\RecentFailureException;
+use Polkurier\Shipping\Model\Cache\Type as PolkurierCache;
 use Polkurier\Shipping\Model\Checkout\MapTokenProvider;
-use Polkurier\Shipping\Test\Unit\Support\FixedDateTime;
 use Polkurier\Shipping\Model\Config;
 use Polkurier\Shipping\Model\ErrorMessages;
 use Polkurier\Shipping\Model\Sdk\AccountCacheKey;
-use Polkurier\Shipping\Model\Sdk\RecentFailureException;
+use Polkurier\Shipping\Test\Unit\Support\FixedDateTime;
 use Polkurier\Shipping\Test\Unit\Support\SdkTestCase;
 use Polkurier\Webservice\Testing\RecordingClient;
 
@@ -111,7 +111,7 @@ class MapTokenProviderTest extends SdkTestCase
     {
         $config = $this->createStub(Config::class);
         $config->method('getLogin')->willReturn(self::LOGIN);
-        $cache = $this->createStub(CacheInterface::class);
+        $cache = $this->createStub(PolkurierCache::class);
         $cache->method('load')->willReturnCallback(fn(string $key): string|false => $this->cached[$key] ?? false);
         $cache->method('save')->willReturnCallback(function (string $data, string $key, array $tags, int $lifetime): bool {
             $this->cached[$key] = $data;

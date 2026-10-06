@@ -7,12 +7,12 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Test\Unit\Model\Sdk;
 
-use Magento\Framework\App\CacheInterface;
 use Magento\Framework\Serialize\Serializer\Json;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Polkurier\Shipping\Model\Carrier\CarrierCatalog;
+use Polkurier\Shipping\Enum\CacheTagEnum;
+use Polkurier\Shipping\Model\Cache\Type as PolkurierCache;
 use Polkurier\Shipping\Model\Config;
 use Polkurier\Shipping\Model\Sdk\AccountCache;
 use Polkurier\Shipping\Model\Sdk\AccountCacheKey;
@@ -43,7 +43,7 @@ class AccountCacheTest extends TestCase
         $this->cache()->remember('pin_locked', 900, $load);
 
         self::assertSame(2, $asked, 'Other credentials are another account.');
-        self::assertSame([[CarrierCatalog::CACHE_TAG]], \array_values(\array_unique(\array_column($this->cached, 1), \SORT_REGULAR)));
+        self::assertSame([[CacheTagEnum::Account->value]], \array_values(\array_unique(\array_column($this->cached, 1), \SORT_REGULAR)));
     }
 
     public function testAFailureIsNotCached(): void
@@ -58,7 +58,7 @@ class AccountCacheTest extends TestCase
 
     private function cache(): AccountCache
     {
-        $cache = $this->createStub(CacheInterface::class);
+        $cache = $this->createStub(PolkurierCache::class);
         $cache->method('load')->willReturnCallback(fn(string $key): string|false => $this->cached[$key][0] ?? false);
         $cache->method('save')->willReturnCallback(function (string $data, string $key, array $tags): bool {
             $this->cached[$key] = [$data, $tags];

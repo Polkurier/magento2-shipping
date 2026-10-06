@@ -12,6 +12,7 @@ use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Polkurier\Shipping\Api\Data\PackTemplateInterface;
+use Polkurier\Shipping\Enum\ParcelWeightEnum;
 use Polkurier\Shipping\Model\Carrier\CarrierCatalog;
 use Polkurier\Shipping\Model\Carrier\CarrierFeatures;
 use Polkurier\Shipping\Model\Config;
@@ -27,7 +28,6 @@ use Polkurier\Shipping\Model\Shipment\Draft\Pack;
 use Polkurier\Shipping\Model\Shipment\Draft\PackFactory;
 use Polkurier\Shipping\Model\Shipment\DraftFactory;
 use Polkurier\Shipping\Model\Shipment\OrderAmounts;
-use Polkurier\Shipping\Model\Shipment\ParcelWeightEnum;
 use Psr\Log\NullLogger;
 
 #[CoversClass(DefaultDraftBuilder::class)]

@@ -21,6 +21,9 @@ use Polkurier\Shipping\Model\CarrierConfigFactory;
 use Polkurier\Shipping\Model\ResourceModel\CarrierConfig as ResourceModel;
 use Polkurier\Shipping\Model\ResourceModel\CarrierConfig\CollectionFactory;
 
+/**
+ * Reads, lists, saves and deletes carrier configurations.
+ */
 readonly class CarrierConfigRepository implements CarrierConfigRepositoryInterface
 {
     public function __construct(

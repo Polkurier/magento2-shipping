@@ -15,24 +15,31 @@
                 <showmethod>0</showmethod>
                 <specificerrmsg>This shipping method is not available.</specificerrmsg>
                 <sort_order>10</sort_order>
+                <checkout>
+                    <tier_cart_value>gross</tier_cart_value>
+                </checkout>
                 <general>
                     <sandbox_mode>1</sandbox_mode>
                     <timeout>30</timeout>
-                    <external_order_id>shipment</external_order_id>
+                    <external_order_id>order</external_order_id>
+                    <!-- Empty: made from the encryption key, see Model\Sdk\ApplicationId. -->
+                    <application_id />
                     <!-- Empty: the SDK chooses between production and sandbox. -->
                     <api_url />
                 </general>
                 <logging>
                     <failed_requests>1</failed_requests>
-                    <methods>create_order,cancel_order,create_multi_order_pickup,create_money_box_payout</methods>
+                    <!-- Every method that changes something on the Polkurier account. -->
+                    <methods>create_order,cancel_order,accept_order_individual_pricing,pickup_courier,create_multi_order_pickup,create_money_box_payout,cancel_money_box_payout,save_address,delete_address,save_bank_account,delete_bank_account,save_pack_template,delete_pack_template,save_account_settings,save_payer_address,change_password,change_phone_pin,change_default_courier,change_default_sender_point,accept_regulations,save_phone_number,delete_phone_number,register_account_verification,register_payment,two_factor_token_register,two_factor_token_resend,two_factor_token_verify,two_factor_token_change_transport_method,create_ticket,create_ticket_message,set_ticket_status,set_ticket_read_state,save_contact_form,register_fcm_token,unregister_fcm_token</methods>
                     <personal_data>0</personal_data>
                     <files>0</files>
-                    <!-- Empty: var/log/polkurier-files. -->
+                    <!-- Empty: var/log/polkurier/files. -->
                     <files_directory />
-                    <files_lifetime>7</files_lifetime>
                 </logging>
                 <shipment_defaults>
                     <default_shipment_type>box</default_shipment_type>
+                    <default_additional_services />
+                    <default_cover_address />
                     <insure_by_default>0</insure_by_default>
                     <description_format>%s</description_format>
                 </shipment_defaults>

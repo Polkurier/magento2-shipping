@@ -10,11 +10,10 @@ namespace Polkurier\Shipping\Test\Unit\Controller\Adminhtml;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Framework\Stdlib\DateTime\TimezoneInterface;
-use Magento\Framework\View\Result\PageFactory;
-use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
-use PHPUnit\Framework\Attributes\CoversClass;
 use Magento\Framework\TestFramework\Unit\Helper\ObjectManager;
 use Magento\Ui\Component\MassAction\Filter;
+use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
+use PHPUnit\Framework\Attributes\CoversClass;
 use Polkurier\Shipping\Api\CarrierConfigRepositoryInterface;
 use Polkurier\Shipping\Api\Data\CarrierConfigInterface;
 use Polkurier\Shipping\Controller\Adminhtml\Carrier\Edit;
@@ -25,6 +24,7 @@ use Polkurier\Shipping\Model\CarrierConfig;
 use Polkurier\Shipping\Model\MoneyBox\Payouts;
 use Polkurier\Shipping\Model\ResourceModel\CarrierConfig\Collection;
 use Polkurier\Shipping\Model\ResourceModel\CarrierConfig\CollectionFactory;
+use Polkurier\Shipping\Model\Shipment\NotPlaced;
 use Polkurier\Shipping\Model\Shipment\OwnOrders;
 use Polkurier\Shipping\Model\Shipment\SendAgain;
 use Polkurier\Shipping\Test\Unit\Support\AdminActionTestCase;
@@ -41,10 +41,8 @@ class RedirectingActionsTest extends AdminActionTestCase
         $this->params = ['order_id' => '30'];
         $orders = $this->createStub(OwnOrders::class);
         $orders->method('get')->willThrowException(new LocalizedException(\__('Order #000000052 wasn\'t placed with a Polkurier delivery method, so it isn\'t shipped with Polkurier.')));
-        $pages = $this->createMock(PageFactory::class);
-        $pages->expects(self::never())->method('create');
 
-        (new Create($this->context(), $pages, $orders, $this->createStub(SendAgain::class), $this->createStub(TimezoneInterface::class), $this->createStub(\Polkurier\Shipping\Model\Shipment\NotPlaced::class)))->execute();
+        (new Create($this->context(), $orders, $this->createStub(SendAgain::class), $this->createStub(TimezoneInterface::class), $this->createStub(NotPlaced::class)))->execute();
 
         self::assertSame(['sales/order/view', ['order_id' => 30]], $this->redirect);
         self::assertStringStartsWith('Order #000000052 wasn\'t placed with a Polkurier delivery method', $this->messages['error'][0]);

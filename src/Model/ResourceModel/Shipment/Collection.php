@@ -8,9 +8,12 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Model\ResourceModel\Shipment;
 
 use Magento\Framework\Model\ResourceModel\Db\Collection\AbstractCollection;
-use Polkurier\Shipping\Model\Shipment as Model;
 use Polkurier\Shipping\Model\ResourceModel\Shipment as ResourceModel;
+use Polkurier\Shipping\Model\Shipment as Model;
 
+/**
+ * The Polkurier shipments.
+ */
 class Collection extends AbstractCollection
 {
     /**

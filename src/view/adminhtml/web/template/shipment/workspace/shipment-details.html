@@ -12,7 +12,7 @@
             <!-- ko ifnot: carrierName -->
             <span data-bind="css: {'polkurier-text-error': carrierMissing, 'polkurier-muted': !carrierMissing()}" translate="'No carrier chosen'"></span>
             <!-- /ko -->
-            <button type="button" class="polkurier-link" click="changeCarrier">
+            <button type="button" class="action-default polkurier-compact-button" click="changeCarrier">
                 <span translate="'Change'"></span>
             </button>
             <ul class="polkurier-details__notices" if="carrierNotices().length" data-bind="attr: {'aria-label': $t('Messages from Polkurier about this carrier')}">
@@ -24,28 +24,13 @@
         <dt translate="'Shipment description'"></dt>
         <dd>
             <strong data-bind="text: contents() || '—'"></strong>
-            <span class="polkurier-muted" if="shipmentType" data-bind="text: '(' + shipmentType() + ')'"></span>
-            <button type="button" class="polkurier-link" click="changeContents">
+            <button type="button" class="action-default polkurier-compact-button" click="changeContents">
                 <span translate="'Change'"></span>
             </button>
         </dd>
-        <dt translate="'Price'"></dt>
-        <dd data-bind="css: {'_loading': quoting}">
-            <!-- ko if: price -->
-            <strong data-bind="text: price().net + ' ' + $t('net')"></strong>
-            <span class="polkurier-muted" data-bind="text: '(' + price().gross + ' ' + $t('gross') + ')'"></span>
-            <!-- /ko -->
-            <!-- ko ifnot: price -->
-            <span class="polkurier-muted" text="noPrice()"></span>
-            <!-- /ko -->
-            <div class="polkurier-text-error polkurier-facts__line" if="unpriced">
-                <!-- Bound through $t: an apostrophe would end a translate attribute's string. -->
-                <span data-bind="text: $t('This carrier won\'t take the shipment as it is. Change the parcels or services, or choose another carrier.')"></span>
-            </div>
-        </dd>
         <!-- ko with: worth -->
-        <dt text="productsLabel"></dt>
-        <dd>
+        <dt class="_ruled" text="productsLabel"></dt>
+        <dd class="_ruled">
             <span text="products"></span>
             <span class="polkurier-muted" translate="'with tax, after discounts'"></span>
         </dd>
@@ -73,5 +58,19 @@
         </dd>
         <!-- /ko -->
         <!-- /ko -->
+        <dt class="_ruled polkurier-facts__price" translate="'Price'"></dt>
+        <dd class="_ruled polkurier-facts__price" data-bind="css: {'_loading': quoting}">
+            <!-- ko if: price -->
+            <strong data-bind="text: price().net + ' ' + $t('net')"></strong>
+            <span class="polkurier-muted" data-bind="text: '(' + price().gross + ' ' + $t('gross') + ')'"></span>
+            <!-- /ko -->
+            <!-- ko ifnot: price -->
+            <span class="polkurier-muted" text="noPrice()"></span>
+            <!-- /ko -->
+            <div class="polkurier-text-error polkurier-facts__line" if="unpriced">
+                <!-- Bound through $t: an apostrophe would end a translate attribute's string. -->
+                <span data-bind="text: $t('This carrier won\'t take the shipment as it is. Change the parcels or services, or choose another carrier.')"></span>
+            </div>
+        </dd>
     </dl>
 </div>

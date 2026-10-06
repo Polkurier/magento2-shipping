@@ -24,17 +24,15 @@ class LinkButton extends AbstractButton
         ) {
             return [];
         }
-        $script = \sprintf(
-            "require(['mage/dataPost', 'Magento_Ui/js/modal/prompt'], function (dataPost, prompt) { prompt({title: %s, content: %s, actions: {confirm: function (number) { if (number && number.trim()) { dataPost().postData({action: %s, data: {polkurier_number: number.trim()}}); } }}}); });",
-            $this->json->serialize((string)\__('Link to a Polkurier order')),
-            $this->json->serialize((string)\__('The number of the Polkurier order that is this shipment, as the Polkurier panel shows it.')),
-            $this->json->serialize($this->actionUrl('adopt')),
-        );
-
         return [
             'label' => (string)\__('Link to a Polkurier order'),
             'class' => 'secondary',
-            'on_click' => $script . ' return false;',
+            'on_click' => $this->onClick->prompt(
+                $this->actionUrl('adopt'),
+                (string)\__('Link to a Polkurier order'),
+                (string)\__('The number of the Polkurier order that is this shipment, as the Polkurier panel shows it.'),
+                'polkurier_number',
+            ),
             'sort_order' => 25,
         ];
     }

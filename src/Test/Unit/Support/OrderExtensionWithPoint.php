@@ -27,6 +27,7 @@ interface OrderExtensionWithPoint extends OrderExtensionInterface
 
     /**
      * @param OrderPointInterface|null $polkurierPoint
+     *
      * @return $this
      */
     public function setPolkurierPoint($polkurierPoint);
@@ -38,6 +39,7 @@ interface OrderExtensionWithPoint extends OrderExtensionInterface
 
     /**
      * @param ShippingChoiceInterface|null $polkurierShippingChoice
+     *
      * @return $this
      */
     public function setPolkurierShippingChoice($polkurierShippingChoice);

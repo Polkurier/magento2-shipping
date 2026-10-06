@@ -11,6 +11,9 @@ use Magento\Framework\Model\ResourceModel\Db\Collection\AbstractCollection;
 use Polkurier\Shipping\Model\BankAccount as Model;
 use Polkurier\Shipping\Model\ResourceModel\BankAccount as ResourceModel;
 
+/**
+ * The bank accounts.
+ */
 class Collection extends AbstractCollection
 {
     /**

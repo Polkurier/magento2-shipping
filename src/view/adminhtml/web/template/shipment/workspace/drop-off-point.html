@@ -1,0 +1,27 @@
+<!--
+ ~ Copyright (c) 2026 Polkurier.pl
+ ~ All Rights Reserved
+-->
+<div class="polkurier-point-box polkurier-handover__point">
+    <div class="polkurier-muted" translate="'Drop-off point'"></div>
+    <!-- ko if: pointId -->
+    <div class="polkurier-point-box__row">
+        <strong class="polkurier-code" text="pointId"></strong>
+        <button type="button" class="action-default polkurier-compact-button" if="canChoosePoint" click="choosePoint">
+            <span translate="'Change'"></span>
+        </button>
+        <button type="button" class="action-default polkurier-compact-button" ifnot="pointRequired" click="removePoint">
+            <span translate="'Remove'"></span>
+        </button>
+    </div>
+    <div class="polkurier-muted" if="pointLabel" text="pointLabel"></div>
+    <!-- /ko -->
+    <!-- ko ifnot: pointId -->
+    <div data-bind="css: {'polkurier-text-error': pointMissing, 'polkurier-muted': !pointMissing()}">
+        <span data-bind="text: pointRequired() ? $t('This carrier takes the parcels at a point: choose the drop-off point you hand them over at.') : $t('None: you choose the point when dropping them off')"></span>
+    </div>
+    <button type="button" class="action-secondary" if="canChoosePoint" click="choosePoint">
+        <span translate="'Choose on map'"></span>
+    </button>
+    <!-- /ko -->
+</div>

@@ -13,7 +13,7 @@ use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Polkurier\Shipping\Api\Data\SyncableInterface;
-use Polkurier\Shipping\Api\SyncEntityEnum;
+use Polkurier\Shipping\Enum\SyncEntityEnum;
 use Polkurier\Shipping\Model\Admin\AddressHandler;
 use Polkurier\Shipping\Model\Admin\BankAccountHandler;
 use Polkurier\Shipping\Model\Admin\PackTemplateHandler;
@@ -100,7 +100,9 @@ class KeepForLaterTest extends TestCase
 
     /**
      * @template T of object
+     *
      * @param class-string<T> $class
+     *
      * @return T
      */
     private function handler(string $class, string $key, string $label, SyncEntityEnum $type): object
@@ -125,8 +127,10 @@ class KeepForLaterTest extends TestCase
      * Collections with nothing in them yet.
      *
      * @template T of object
+     *
      * @param class-string<T> $factoryClass
      * @param class-string $collectionClass
+     *
      * @return T
      */
     private function factory(string $factoryClass, string $collectionClass): object

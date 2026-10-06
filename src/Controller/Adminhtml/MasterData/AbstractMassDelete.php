@@ -16,7 +16,11 @@ use Magento\Ui\Component\MassAction\Filter;
 use Polkurier\Shipping\Api\Data\SyncableInterface;
 use Polkurier\Shipping\Model\Admin\EntityHandlerInterface;
 use Polkurier\Shipping\Model\Admin\Flash;
+use Polkurier\Shipping\Model\Sync\SyncResult;
 
+/**
+ * Deletes the entries of a master-data list selected in its grid, saying which were refused.
+ */
 abstract class AbstractMassDelete extends AbstractAction implements HttpPostActionInterface
 {
     public function __construct(
@@ -44,7 +48,7 @@ abstract class AbstractMassDelete extends AbstractAction implements HttpPostActi
             foreach ($this->filter->getCollection($this->createCollection()) as $entity) {
                 try {
                     $result = $this->handler->delete($entity);
-                    $synced = $synced === null ? $result : $synced->add($result);
+                    $synced = ($synced ?? new SyncResult($result->getEntityType()))->add($result);
                     $deleted++;
                 } catch (LocalizedException $e) {
                     $refused[] = $e->getMessage();
@@ -56,10 +60,10 @@ abstract class AbstractMassDelete extends AbstractAction implements HttpPostActi
         if ($deleted > 0 || $refused === []) {
             $flash->success(\__('%1 deleted.', $deleted));
         }
-        if ($synced !== null && $synced->failed > 0) {
+        if ($synced !== null && $synced->getFailed() > 0) {
             $flash->warning(\__(
                 'Polkurier hasn\'t deleted %1 of them yet: %2 They\'re tried again with the next synchronization.',
-                $synced->failed,
+                $synced->getFailed(),
                 $this->reasons($synced),
             ));
         }

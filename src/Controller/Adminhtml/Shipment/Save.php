@@ -14,6 +14,7 @@ use Magento\Framework\Controller\Result\Redirect;
 use Magento\Framework\Exception\LocalizedException;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Api\ShipmentManagementInterface;
+use Polkurier\Shipping\Controller\Adminhtml\ReadsPostData;
 use Polkurier\Shipping\Model\Admin\Flash;
 use Polkurier\Shipping\Model\Shipment\DraftHydrator;
 use Polkurier\Shipping\Model\Shipment\RejectedDraft;
@@ -23,6 +24,8 @@ use Polkurier\Shipping\Model\Shipment\RejectedDraft;
  */
 class Save extends Action implements HttpPostActionInterface
 {
+    use ReadsPostData;
+
     public const string ADMIN_RESOURCE = 'Polkurier_Shipping::shipment_create';
 
     public function __construct(
@@ -68,15 +71,5 @@ class Save extends Action implements HttpPostActionInterface
 
         // To what was placed, whatever came of it.
         return $redirect->setPath('*/*/view', ['id' => $shipment->getId()]);
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    private function getPostData(): array
-    {
-        $request = $this->getRequest();
-
-        return $request instanceof \Magento\Framework\App\Request\Http ? (array)$request->getPostValue() : [];
     }
 }

@@ -8,8 +8,8 @@
 
 Whenever the module changes something on the Polkurier account, it dispatches an event once
 Polkurier has confirmed the change and Magento has recorded it. It happens the same way whether the
-change came from the admin, Magento's label flow, the REST API or a cron job. The events are the
-cases of the backed enum `Api\ApiEventEnum`, whose values are the event names and whose cases
+change came from the admin, Magento's label flow, your own code or a cron job. The events are the
+cases of the backed enum `Enum\ApiEventEnum`, whose values are the event names and whose cases
 document each event's data. `Model\ApiEventDispatcher` dispatches them, and accepts only those
 cases, so the module can't dispatch a name that isn't on the list.
 
@@ -49,7 +49,7 @@ and received.
 
   | `source` | |
   |---|---|
-  | `create` | placed from the shipment screen, the REST API or your own code |
+  | `create` | placed from the shipment screen or your own code |
   | `label` | placed for a label on Magento's shipment page; the Magento shipment is saved right after the event, so `shipment_id` isn't set yet |
   | `reconcile` | an unconfirmed attempt, found on the account later |
   | `adopt` | an unconfirmed attempt, linked by hand to a given order number |
@@ -62,9 +62,9 @@ and received.
   confirmation code or security PIN. No event ever carries the API token, a PIN, a two-factor token
   or a code.
 - The change has already happened on Polkurier's side when your observer runs. An exception from
-  an observer is written to `var/log/polkurier.log` and not passed on. Otherwise a failing
-  observer could make a placed order or a requested payout look failed, and someone might repeat
-  it. If your reaction must not be lost, record it somewhere durable (a message queue, say) rather
+  an observer is written to the module's error log, `var/log/polkurier/YYYY-MM-error.log`, and not
+  passed on. Otherwise a failing observer could make a placed order or a requested payout look
+  failed, and someone might repeat it. If your reaction must not be lost, record it somewhere durable (a message queue, say) rather
   than doing slow work inline.
 
 ## Example

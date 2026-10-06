@@ -57,6 +57,36 @@ class TiersTest extends TestCase
         self::assertSame(10.0, $tiers->calculate($config, new RateContext(300, 12)));
     }
 
+    public function testOfTwoTiersWithTheSameThresholdTheFirstCounts(): void
+    {
+        $config = $this->config('TIER_SUBTOTAL', ['tiers' => [
+            ['subtotal_from' => 100, 'price' => 9.99],
+            ['subtotal_from' => 100, 'price' => 4.99],
+        ]]);
+
+        self::assertSame(9.99, (new Tiers(true, false))->calculate($config, new RateContext(150, 1)));
+    }
+
+    public function testRowsThatArentTiersAreLeftOut(): void
+    {
+        $config = $this->config('TIER_SUBTOTAL', ['tiers' => [
+            'not a row',
+            ['subtotal_from' => 0],
+            ['subtotal_from' => 50, 'price' => 'free'],
+            ['subtotal_from' => 10, 'price' => '12.50'],
+        ]]);
+
+        self::assertSame(12.5, (new Tiers(true, false))->calculate($config, new RateContext(100, 1)));
+        self::assertNull((new Tiers(true, false))->calculate($this->config('TIER_SUBTOTAL', ['tiers' => 'none']), new RateContext(100, 1)));
+    }
+
+    public function testANegativePriceStoredAnywayPricesNothing(): void
+    {
+        $config = $this->config('TIER_SUBTOTAL', ['tiers' => [['subtotal_from' => 0, 'price' => -5]]]);
+
+        self::assertNull((new Tiers(true, false))->calculate($config, new RateContext(100, 1)));
+    }
+
     public function testPoolDispatchesByPricingModelAndRefusesUnknownOnes(): void
     {
         $pool = new PriceCalculatorPool(['FIXED' => new Fixed()]);

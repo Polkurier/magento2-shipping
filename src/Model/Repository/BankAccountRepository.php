@@ -21,6 +21,9 @@ use Polkurier\Shipping\Model\BankAccountFactory;
 use Polkurier\Shipping\Model\ResourceModel\BankAccount as ResourceModel;
 use Polkurier\Shipping\Model\ResourceModel\BankAccount\CollectionFactory;
 
+/**
+ * Reads, lists, saves and deletes bank accounts.
+ */
 readonly class BankAccountRepository implements BankAccountRepositoryInterface
 {
     public function __construct(

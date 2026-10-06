@@ -14,6 +14,9 @@ use Polkurier\Shipping\Controller\Adminhtml\MasterData\AbstractMassDelete;
 use Polkurier\Shipping\Model\Admin\BankAccountHandler;
 use Polkurier\Shipping\Model\ResourceModel\BankAccount\CollectionFactory;
 
+/**
+ * Deletes the bank accounts selected in their grid.
+ */
 class MassDelete extends AbstractMassDelete
 {
     public const string ADMIN_RESOURCE = 'Polkurier_Shipping::bank_accounts';

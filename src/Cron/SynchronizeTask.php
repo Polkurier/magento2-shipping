@@ -8,19 +8,18 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Cron;
 
 use Polkurier\Shipping\Api\SynchronizationInterface;
-use Polkurier\Shipping\Model\Carrier\CarrierConfigSynchronizer;
+use Polkurier\Shipping\Exception\SynchronizationFailedException;
 use Polkurier\Shipping\Model\Config;
 use Psr\Log\LoggerInterface;
 
 /**
- * Hourly synchronization of the address book, bank accounts, pack templates and the carrier list,
- * once the Polkurier credentials are set.
+ * Hourly synchronization of the address book, bank accounts and pack templates, once the
+ * Polkurier credentials are set. The carriers have a daily job of their own (RefreshCarriersTask).
  */
 readonly class SynchronizeTask
 {
     public function __construct(
         private SynchronizationInterface $synchronization,
-        private CarrierConfigSynchronizer $carrierConfigSynchronizer,
         private Config $config,
         private LoggerInterface $logger,
     ) {}
@@ -30,18 +29,15 @@ readonly class SynchronizeTask
         if (!$this->config->isSyncEnabled() || !$this->config->hasCredentials()) {
             return;
         }
-        // Each on its own, and logged rather than thrown: the next run tries again.
-        try {
-            $this->carrierConfigSynchronizer->synchronize();
-        } catch (\Throwable $e) {
-            $this->logger->warning('Polkurier carrier list refresh failed', ['error' => $e->getMessage()]);
-        }
+        // Logged rather than thrown: the next run tries again.
         try {
             foreach ($this->synchronization->synchronize() as $line) {
                 $this->logger->info('Polkurier synchronization: ' . $line);
             }
+        } catch (SynchronizationFailedException) {
+            // Each entity's failure is logged already.
         } catch (\Throwable $e) {
-            $this->logger->warning('Polkurier synchronization failed', ['error' => $e->getMessage()]);
+            $this->logger->warning('Polkurier synchronization failed', ['exception' => $e]);
         }
     }
 }

@@ -7,9 +7,7 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Model\Carrier;
 
-use Magento\Directory\Helper\Data as DirectoryHelper;
 use Magento\Framework\App\Area;
-use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\App\State;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Quote\Model\Quote\Address\RateRequest;
@@ -17,12 +15,13 @@ use Magento\Quote\Model\Quote\Address\RateResult\Method;
 use Magento\Quote\Model\Quote\Address\RateResult\MethodFactory;
 use Magento\Shipping\Model\Rate\Result;
 use Magento\Shipping\Model\Rate\ResultFactory;
-use Magento\Store\Model\ScopeInterface;
 use Polkurier\Shipping\Api\Data\CarrierConfigInterface;
+use Polkurier\Shipping\Exception\RecentFailureException;
 use Polkurier\Shipping\Model\Checkout\MapTokenProvider;
+use Polkurier\Shipping\Model\Pricing\CartValue;
 use Polkurier\Shipping\Model\Pricing\PriceCalculatorInterface;
 use Polkurier\Shipping\Model\Pricing\RateContext;
-use Polkurier\Shipping\Model\Sdk\RecentFailureException;
+use Polkurier\Shipping\Model\StoreWeightUnit;
 use Polkurier\Webservice\Exception\Exception as PolkurierException;
 use Polkurier\Webservice\Response\Carrier;
 use Psr\Log\LoggerInterface;
@@ -40,8 +39,6 @@ use Psr\Log\LoggerInterface;
  */
 readonly class RateCollector
 {
-    private const float KG_PER_POUND = 0.45359237;
-
     public function __construct(
         private ResultFactory $rateResultFactory,
         private MethodFactory $rateMethodFactory,
@@ -49,10 +46,11 @@ readonly class RateCollector
         private CarrierCatalog $catalog,
         private CarrierFeatures $features,
         private PriceCalculatorInterface $priceCalculator,
-        private ScopeConfigInterface $scopeConfig,
+        private StoreWeightUnit $weightUnit,
         private LoggerInterface $logger,
         private MapTokenProvider $mapTokenProvider,
         private State $appState,
+        private CartValue $cartValue,
     ) {}
 
     /**
@@ -70,8 +68,8 @@ readonly class RateCollector
         $foreign = $request->getDestCountryId() && $request->getDestCountryId() !== Polkurier::HOME_COUNTRY;
         // The subtotal is in the base currency, as the prices are; weight tiers are in kilograms.
         $context = new RateContext(
-            subtotal: (float)$request->getPackageValueWithDiscount(),
-            weight: (float)$request->getPackageWeight() * $this->kilogramsPerUnit($storeId),
+            subtotal: $this->cartValue->of($request),
+            weight: (float)$request->getPackageWeight() * $this->weightUnit->kilogramsPerUnit($storeId),
         );
 
         $result = $this->rateResultFactory->create();
@@ -135,17 +133,10 @@ readonly class RateCollector
         } catch (RecentFailureException) {
             return false;
         } catch (PolkurierException $e) {
-            $this->logger->error('Polkurier points map unavailable: pickup point methods left out of the rates', ['exception' => $e]);
+            $this->logger->warning('Polkurier points map unavailable: pickup point methods left out of the rates', ['exception' => $e]);
 
             return false;
         }
-    }
-
-    private function kilogramsPerUnit(int $storeId): float
-    {
-        return $this->scopeConfig->getValue(DirectoryHelper::XML_PATH_WEIGHT_UNIT, ScopeInterface::SCOPE_STORE, $storeId) === 'lbs'
-            ? self::KG_PER_POUND
-            : 1.0;
     }
 
     /**
@@ -157,7 +148,7 @@ readonly class RateCollector
         try {
             return $this->catalog->getCarriers();
         } catch (PolkurierException $e) {
-            $this->logger->error('Polkurier carrier list unavailable for rates', ['exception' => $e]);
+            $this->logger->warning('Polkurier carrier list unavailable for rates', ['exception' => $e]);
 
             return null;
         }

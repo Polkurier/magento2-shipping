@@ -45,6 +45,7 @@ readonly class TokenRedactingProcessor
 
     /**
      * @param LogRecord|array<string, mixed> $record
+     *
      * @return LogRecord|array<string, mixed> the same kind of record
      */
     public function __invoke(LogRecord|array $record): LogRecord|array
@@ -61,6 +62,7 @@ readonly class TokenRedactingProcessor
 
     /**
      * @param array<mixed> $values
+     *
      * @return array<mixed>
      */
     private static function redactArray(array $values): array
@@ -86,12 +88,12 @@ readonly class TokenRedactingProcessor
 
     public static function redact(string $text): string
     {
-        $fields = \implode('|', \array_map(static fn(string $field): string => \preg_quote($field, '/'), self::SECRET_FIELDS));
+        // Built once: it's applied to every logged request and answer.
+        static $pattern = null;
+        $pattern ??= '/("(?:'
+            . \implode('|', \array_map(static fn(string $field): string => \preg_quote($field, '/'), self::SECRET_FIELDS))
+            . ')"\s*:\s*)("(?:[^"\\\\]|\\\\.)*"|\d+)/i';
 
-        return (string)\preg_replace(
-            '/("(?:' . $fields . ')"\s*:\s*)("(?:[^"\\\\]|\\\\.)*"|\d+)/i',
-            '$1"' . self::MASK . '"',
-            $text,
-        );
+        return (string)\preg_replace($pattern, '$1"' . self::MASK . '"', $text);
     }
 }

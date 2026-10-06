@@ -11,7 +11,7 @@ use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Stdlib\DateTime\DateTime;
 use Polkurier\Shipping\Api\BankAccountRepositoryInterface;
 use Polkurier\Shipping\Api\Data\BankAccountInterface;
-use Polkurier\Shipping\Api\ApiEventEnum;
+use Polkurier\Shipping\Enum\ApiEventEnum;
 use Polkurier\Shipping\Model\ApiEventDispatcher;
 use Polkurier\Shipping\Model\ErrorMessages;
 use Polkurier\Shipping\Model\Mapper\BankAccountMapper;

@@ -8,11 +8,12 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Test\Unit\Model\Shipment;
 
 use Magento\Framework\App\Config\ScopeConfigInterface;
+use Magento\Framework\DB\Sequence\SequenceInterface;
 use Magento\Framework\Encryption\EncryptorInterface;
 use Magento\Framework\Exception\LocalizedException;
-use Magento\Framework\Phrase;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Framework\Lock\LockManagerInterface;
+use Magento\Framework\Phrase;
 use Magento\Framework\TestFramework\Unit\Helper\ObjectManager;
 use Magento\Sales\Api\Data\ShipmentInterface as MagentoShipmentInterface;
 use Magento\Sales\Api\OrderRepositoryInterface;
@@ -20,17 +21,17 @@ use Magento\Sales\Api\OrderStatusHistoryRepositoryInterface;
 use Magento\Sales\Api\ShipmentRepositoryInterface as MagentoShipmentRepository;
 use Magento\Sales\Model\Order;
 use Magento\SalesSequence\Model\Manager as SequenceManager;
-use Magento\Framework\DB\Sequence\SequenceInterface;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use Polkurier\Shipping\Api\AddressRepositoryInterface;
-use Polkurier\Shipping\Api\ApiEventEnum;
 use Polkurier\Shipping\Api\BankAccountRepositoryInterface;
 use Polkurier\Shipping\Api\Data\ShipmentDraftInterface;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Api\ShipmentRepositoryInterface;
+use Polkurier\Shipping\Enum\ApiEventEnum;
+use Polkurier\Shipping\Enum\ExternalOrderIdEnum;
 use Polkurier\Shipping\Model\ApiEventDispatcher;
 use Polkurier\Shipping\Model\Carrier\CarrierCatalog;
 use Polkurier\Shipping\Model\Carrier\CarrierFeatures;
@@ -41,45 +42,46 @@ use Polkurier\Shipping\Model\Mapper\CreateOrderMessageMapper;
 use Polkurier\Shipping\Model\Mapper\SenderMapper;
 use Polkurier\Shipping\Model\Mapper\StreetParser;
 use Polkurier\Shipping\Model\OrderComments;
-use Polkurier\Shipping\Model\ShipmentComments;
 use Polkurier\Shipping\Model\ResourceModel\Shipment\Collection;
 use Polkurier\Shipping\Model\ResourceModel\Shipment\CollectionFactory;
+use Polkurier\Shipping\Model\Sdk\ApplicationId;
 use Polkurier\Shipping\Model\Sdk\ShipmentGateway;
+use Polkurier\Shipping\Model\Sdk\Validator;
 use Polkurier\Shipping\Model\Shipment;
-use Polkurier\Shipping\Model\ShipmentFactory;
 use Polkurier\Shipping\Model\Shipment\Cancellation;
 use Polkurier\Shipping\Model\Shipment\DefaultDraftBuilder;
+use Polkurier\Shipping\Model\Shipment\Details\Formatter;
 use Polkurier\Shipping\Model\Shipment\Draft;
-use Polkurier\Shipping\Model\Shipment\DraftFactory;
-use Polkurier\Shipping\Model\Sdk\ApplicationId;
-use Polkurier\Shipping\Model\Sdk\Validator;
-use Polkurier\Shipping\Model\Shipment\DraftHydrator;
-use Polkurier\Shipping\Model\Shipment\ExternalIds;
-use Polkurier\Shipping\Model\Shipment\ExternalOrderIdEnum;
 use Polkurier\Shipping\Model\Shipment\Draft\Item;
 use Polkurier\Shipping\Model\Shipment\Draft\ItemFactory;
 use Polkurier\Shipping\Model\Shipment\Draft\Pack;
 use Polkurier\Shipping\Model\Shipment\Draft\PackFactory;
+use Polkurier\Shipping\Model\Shipment\DraftFactory;
+use Polkurier\Shipping\Model\Shipment\DraftHydrator;
+use Polkurier\Shipping\Model\Shipment\ExternalIds;
+use Polkurier\Shipping\Model\Shipment\KeepForLater;
+use Polkurier\Shipping\Model\Shipment\LabelRemoval;
 use Polkurier\Shipping\Model\Shipment\MagentoFollowUp;
 use Polkurier\Shipping\Model\Shipment\MagentoShipment;
-use Polkurier\Shipping\Model\Shipment\LabelRemoval;
 use Polkurier\Shipping\Model\Shipment\OrderDetails;
+use Polkurier\Shipping\Model\Shipment\OrderLock;
 use Polkurier\Shipping\Model\Shipment\OrderSnapshot;
 use Polkurier\Shipping\Model\Shipment\OwnOrders;
-use Polkurier\Shipping\Model\Shipment\KeepForLater;
 use Polkurier\Shipping\Model\Shipment\Placing;
 use Polkurier\Shipping\Model\Shipment\Reconciler;
 use Polkurier\Shipping\Model\Shipment\Reconciliation;
 use Polkurier\Shipping\Model\Shipment\ShipmentAge;
+use Polkurier\Shipping\Model\Shipment\ShipmentFinder;
 use Polkurier\Shipping\Model\Shipment\ShipmentManagement;
-use Polkurier\Shipping\Model\Shipment\Details\Formatter;
 use Polkurier\Shipping\Model\Shipment\StatusRefresh;
+use Polkurier\Shipping\Model\ShipmentComments;
+use Polkurier\Shipping\Model\ShipmentFactory;
 use Polkurier\Shipping\Test\Unit\Support\FixedDateTime;
 use Polkurier\Shipping\Test\Unit\Support\RecordingEventManager;
 use Polkurier\Shipping\Test\Unit\Support\SdkTestCase;
+use Polkurier\Webservice\Enum\Courier\PointRequirementEnum;
 use Polkurier\Webservice\Response\Carrier;
 use Polkurier\Webservice\Response\Carrier\AdditionalData;
-use Polkurier\Webservice\Enum\Courier\PointRequirementEnum;
 use Polkurier\Webservice\Response\Carrier\AdditionalData\PointsMap;
 use Polkurier\Webservice\Response\Order\CreatedOrderMessage;
 use Polkurier\Webservice\Serializer\SerializerProvider;
@@ -212,10 +214,17 @@ class ShipmentManagementTest extends SdkTestCase
             'is_paid' => true,
             'url_tracktrace' => 'https://track.example/WB-111',
         ]));
-        $this->magentoShipment->expects(self::once())->method('ship')->willReturn(55);
+        $this->magentoShipment->expects(self::once())->method('ship')->willReturnCallback(function (): int {
+            $this->lockLog[] = 'ship';
+
+            return 55;
+        });
         $this->order->expects(self::atLeastOnce())->method('addCommentToStatusHistory');
 
         $shipment = $this->management()->create(self::ORDER_ID, $this->draft());
+
+        // Recorded under the order's lock, sent without it, then saved as placed and shipped under it.
+        self::assertSame(['lock polkurier_order_42', 'unlock polkurier_order_42', 'lock polkurier_order_42', 'ship', 'unlock polkurier_order_42'], $this->lockLog);
 
         self::assertSame(ShipmentInterface::STATE_CREATED, $shipment->getState());
         self::assertSame('18015-1001', $shipment->getPolkurierNumber());
@@ -427,6 +436,19 @@ class ShipmentManagementTest extends SdkTestCase
         $this->senderPoint = PointRequirementEnum::None;
 
         $this->placing()->forMagentoShipment(self::ORDER_ID, $this->draft()->setSenderPointId('U16880214'));
+
+        self::assertArrayNotHasKey('point_id', \array_filter($this->http->lastPayload()['data']['sender'], static fn($v) => $v !== null && $v !== ''));
+    }
+
+    public function testADropOffPointGoesOnlyWithParcelsDroppedOff(): void
+    {
+        $this->http->willAnswerWith(self::success(['order_number' => 'POL0007', 'label' => ['WB-777'], 'price_net' => 10.0, 'price_gross' => 12.3]));
+        $this->senderPoint = PointRequirementEnum::Optional;
+
+        $this->placing()->forMagentoShipment(
+            self::ORDER_ID,
+            $this->draft()->setSenderPointId('U16880214')->setPickupMode(ShipmentDraftInterface::PICKUP_COURIER),
+        );
 
         self::assertArrayNotHasKey('point_id', \array_filter($this->http->lastPayload()['data']['sender'], static fn($v) => $v !== null && $v !== ''));
     }
@@ -698,7 +720,7 @@ class ShipmentManagementTest extends SdkTestCase
             $this->management()->create(self::ORDER_ID, $this->draft());
             self::fail('Only one request places an order at a time.');
         } catch (LocalizedException $e) {
-            self::assertStringContainsString('being placed right now', $e->getMessage());
+            self::assertStringContainsString('Another request is updating', $e->getMessage());
         }
         self::assertSame(0, $this->http->requestCount());
         self::assertSame([], $this->saved);
@@ -730,7 +752,7 @@ class ShipmentManagementTest extends SdkTestCase
         } catch (LocalizedException) {
         }
 
-        self::assertSame(\array_merge(...\array_fill(0, 2, ['lock polkurier_place_42', 'unlock polkurier_place_42'])), $this->lockLog);
+        self::assertSame(\array_merge(...\array_fill(0, 2, ['lock polkurier_order_42', 'unlock polkurier_order_42'])), $this->lockLog);
     }
 
     public function testCancellingLeavesTheMagentoShipmentForAnotherPolkurierOrder(): void
@@ -1028,6 +1050,7 @@ class ShipmentManagementTest extends SdkTestCase
 
     /**
      * @param array<int, array<string, mixed>> $orders
+     *
      * @return array<string, mixed>
      */
     private function orderList(array $orders): array
@@ -1112,9 +1135,10 @@ class ShipmentManagementTest extends SdkTestCase
         $gateway = new ShipmentGateway($this->clientPool($this->http), new ErrorMessages());
         $clock = new FixedDateTime($this->now);
         $events = new ApiEventDispatcher($this->events, new NullLogger());
-        $reconciler = new Reconciler($gateway, $this->collectionFactory(), $clock, $this->applicationId());
+        $reconciler = new Reconciler($gateway, new ShipmentFinder($this->collectionFactory()), $clock, $this->applicationId());
         $snapshot = new OrderSnapshot(new OrderDetails(), $clock);
         $age = new ShipmentAge($clock);
+        $orderLock = new OrderLock($this->locks);
         $orders = new OwnOrders($orderRepository);
         $followUp = new MagentoFollowUp(
             $orderRepository,
@@ -1133,12 +1157,12 @@ class ShipmentManagementTest extends SdkTestCase
                 $orders,
                 $this->repository(),
                 $shipmentFactory,
-                $this->collectionFactory(),
+                new ShipmentFinder($this->collectionFactory()),
                 $this->mapper(),
                 $gateway,
                 $this->magentoShipment,
                 new SerializerProvider(),
-                $this->locks,
+                $orderLock,
                 $events,
                 $age,
                 $followUp,
@@ -1152,9 +1176,9 @@ class ShipmentManagementTest extends SdkTestCase
                 $this->externalIds(),
                 new Validator(),
             ),
-            'reconciliation' => new Reconciliation($this->repository(), $reconciler, $snapshot, $age, $followUp, $clock),
-            'refresh' => new StatusRefresh($this->repository(), $reconciler, $snapshot, $this->magentoShipment, $followUp, $clock, $this->createStub(Formatter::class)),
-            'cancellation' => new Cancellation($this->repository(), $gateway, $events, $followUp),
+            'reconciliation' => new Reconciliation($this->repository(), $reconciler, $snapshot, $age, $followUp, $clock, $orderLock),
+            'refresh' => new StatusRefresh($this->repository(), $reconciler, $snapshot, $this->magentoShipment, $followUp, $clock, $this->createStub(Formatter::class), $orderLock, $age),
+            'cancellation' => new Cancellation($this->repository(), $gateway, $events, $followUp, $orderLock),
             'orders' => $orders,
         ];
     }

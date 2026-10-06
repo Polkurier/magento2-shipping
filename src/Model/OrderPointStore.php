@@ -38,6 +38,7 @@ readonly class OrderPointStore
      * The points of several orders, in one query.
      *
      * @param int[] $orderIds
+     *
      * @return array<int, OrderPointInterface> by order id, for the orders that have one
      */
     public function getForOrders(array $orderIds): array

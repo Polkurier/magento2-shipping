@@ -7,6 +7,9 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Ui\Component\Control\ShipmentView;
 
+/**
+ * Prints the shipment's handover protocol.
+ */
 class ProtocolButton extends AbstractButton
 {
     /**

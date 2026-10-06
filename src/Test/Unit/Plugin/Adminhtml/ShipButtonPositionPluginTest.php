@@ -44,6 +44,7 @@ class ShipButtonPositionPluginTest extends TestCase
      * Buttons as Magento adds them to the order page, all with one sort order: in the order given.
      *
      * @param string[] $ids
+     *
      * @return string[] in the order the toolbar lays them out
      */
     private function laidOut(array $ids): array

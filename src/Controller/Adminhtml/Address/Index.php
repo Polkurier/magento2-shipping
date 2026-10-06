@@ -8,10 +8,12 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Controller\Adminhtml\Address;
 
 use Magento\Backend\App\Action\Context;
-
 use Polkurier\Shipping\Controller\Adminhtml\MasterData\AbstractIndex;
 use Polkurier\Shipping\Model\Admin\AddressHandler;
 
+/**
+ * The sender addresses grid.
+ */
 class Index extends AbstractIndex
 {
     public const string ADMIN_RESOURCE = 'Polkurier_Shipping::addresses';

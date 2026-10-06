@@ -12,35 +12,49 @@ namespace Polkurier\Shipping\Api\Data;
  *
  * A cash-on-delivery amount of zero or null means no collection; an insurance amount of zero or
  * null means none. The sender address id refers to the local address book; null means the store
- * origin address. Pickup dates are Y-m-d, times H:i, in the store's local time.
+ * origin address. Pickup dates are Y-m-d, times H:i, in Polish time, as Polkurier offers them.
+ *
+ * @api
  */
 interface ShipmentDraftInterface
 {
-    /** A courier collects the parcels from the sender, on the date and in the window given. */
+    /**
+     * A courier collects the parcels from the sender, on the date and in the window given.
+     */
     public const string PICKUP_COURIER = 'courier';
-    /** The sender takes the parcels to a point or branch; no collection is ordered. */
+
+    /**
+     * The sender takes the parcels to a point or branch; no collection is ordered.
+     */
     public const string PICKUP_DROP_OFF = 'drop_off';
-    /** No collection is ordered now; one collection is booked later for several shipments. */
+
+    /**
+     * No collection is ordered now; one collection is booked later for several shipments.
+     */
     public const string PICKUP_MULTI = 'multi';
 
     public const string CARRIER_CODE = 'carrier_code';
     public const string SHIPMENT_TYPE = 'shipment_type';
     public const string DESCRIPTION = 'description';
     public const string SENDER_ADDRESS_ID = 'sender_address_id';
+
     /**
      * The point the parcels are handed over at, for carriers that take them at points; it starts
      * as the sender address's drop-off point.
      */
     public const string SENDER_POINT_ID = 'sender_point_id';
+
     /**
      * The choice of a sender address or bank account typed in for this shipment rather than one
      * of those stored, as the screens send it in place of an id.
      */
     public const string NEW = 'new';
+
     /**
      * Whether the sender is the one typed in for this shipment (NEW_SENDER_FIELDS).
      */
     public const string NEW_SENDER = 'new_sender';
+
     /**
      * The sender typed in, field by field, by the address field each one is.
      */
@@ -56,11 +70,13 @@ interface ShipmentDraftInterface
         AddressInterface::PHONE => 'new_sender_phone',
         AddressInterface::EMAIL => 'new_sender_email',
     ];
+
     /**
      * Whether the sender typed in is saved to the addresses, under NEW_SENDER_NAME, once the
      * shipment is placed.
      */
     public const string KEEP_NEW_SENDER = 'keep_new_sender';
+
     public const string NEW_SENDER_NAME = 'new_sender_name';
     public const string RECIPIENT_PERSON = 'recipient_person';
     public const string RECIPIENT_COMPANY = 'recipient_company';
@@ -75,28 +91,35 @@ interface ShipmentDraftInterface
     public const string RECIPIENT_POINT_ID = 'recipient_point_id';
     public const string PACKS = 'packs';
     public const string ITEMS = 'items';
+
     /**
      * Set on a draft whose parcels were packed automatically, which the screen asks to check.
      */
     public const string PACKS_ESTIMATED = 'packs_estimated';
+
     /**
      * Whether cash on delivery and insurance cover the shipping and handling charged.
      */
     public const string SHIPPING_INCLUDED = 'shipping_included';
+
     public const string COD_AMOUNT = 'cod_amount';
     public const string COD_TYPE = 'cod_type';
     public const string COD_RETURN_TYPE = 'cod_return_type';
     public const string COD_BANK_ACCOUNT_ID = 'cod_bank_account_id';
+
     /**
      * Whether cash on delivery is paid out to the account number typed in for this shipment.
      */
     public const string NEW_BANK_ACCOUNT = 'new_bank_account';
+
     public const string NEW_BANK_ACCOUNT_NUMBER = 'new_bank_account_number';
+
     /**
      * Whether that account is saved to the bank accounts, under NEW_BANK_ACCOUNT_NAME, once the
      * shipment is placed.
      */
     public const string KEEP_NEW_BANK_ACCOUNT = 'keep_new_bank_account';
+
     public const string NEW_BANK_ACCOUNT_NAME = 'new_bank_account_name';
     public const string INSURANCE_AMOUNT = 'insurance_amount';
     public const string COVER_ADDRESS_ID = 'cover_address_id';
@@ -115,6 +138,7 @@ interface ShipmentDraftInterface
 
     /**
      * @param string $carrierCode
+     *
      * @return $this
      */
     public function setCarrierCode(string $carrierCode): static;
@@ -129,6 +153,7 @@ interface ShipmentDraftInterface
 
     /**
      * @param string $shipmentType
+     *
      * @return $this
      */
     public function setShipmentType(string $shipmentType): static;
@@ -140,6 +165,7 @@ interface ShipmentDraftInterface
 
     /**
      * @param string|null $description
+     *
      * @return $this
      */
     public function setDescription(?string $description): static;
@@ -151,6 +177,7 @@ interface ShipmentDraftInterface
 
     /**
      * @param int|null $senderAddressId
+     *
      * @return $this
      */
     public function setSenderAddressId(?int $senderAddressId): static;
@@ -162,6 +189,7 @@ interface ShipmentDraftInterface
 
     /**
      * @param string $recipientPerson
+     *
      * @return $this
      */
     public function setRecipientPerson(string $recipientPerson): static;
@@ -173,6 +201,7 @@ interface ShipmentDraftInterface
 
     /**
      * @param string|null $recipientCompany
+     *
      * @return $this
      */
     public function setRecipientCompany(?string $recipientCompany): static;
@@ -184,6 +213,7 @@ interface ShipmentDraftInterface
 
     /**
      * @param string $recipientStreet
+     *
      * @return $this
      */
     public function setRecipientStreet(string $recipientStreet): static;
@@ -195,6 +225,7 @@ interface ShipmentDraftInterface
 
     /**
      * @param string|null $recipientHouseNumber
+     *
      * @return $this
      */
     public function setRecipientHouseNumber(?string $recipientHouseNumber): static;
@@ -206,6 +237,7 @@ interface ShipmentDraftInterface
 
     /**
      * @param string|null $recipientFlatNumber
+     *
      * @return $this
      */
     public function setRecipientFlatNumber(?string $recipientFlatNumber): static;
@@ -217,6 +249,7 @@ interface ShipmentDraftInterface
 
     /**
      * @param string $recipientPostcode
+     *
      * @return $this
      */
     public function setRecipientPostcode(string $recipientPostcode): static;
@@ -228,6 +261,7 @@ interface ShipmentDraftInterface
 
     /**
      * @param string $recipientCity
+     *
      * @return $this
      */
     public function setRecipientCity(string $recipientCity): static;
@@ -239,6 +273,7 @@ interface ShipmentDraftInterface
 
     /**
      * @param string $recipientCountry
+     *
      * @return $this
      */
     public function setRecipientCountry(string $recipientCountry): static;
@@ -250,6 +285,7 @@ interface ShipmentDraftInterface
 
     /**
      * @param string $recipientPhone
+     *
      * @return $this
      */
     public function setRecipientPhone(string $recipientPhone): static;
@@ -261,6 +297,7 @@ interface ShipmentDraftInterface
 
     /**
      * @param string $recipientEmail
+     *
      * @return $this
      */
     public function setRecipientEmail(string $recipientEmail): static;
@@ -272,6 +309,7 @@ interface ShipmentDraftInterface
 
     /**
      * @param string|null $recipientPointId
+     *
      * @return $this
      */
     public function setRecipientPointId(?string $recipientPointId): static;
@@ -283,6 +321,7 @@ interface ShipmentDraftInterface
 
     /**
      * @param \Polkurier\Shipping\Api\Data\ShipmentDraft\PackInterface[] $packs
+     *
      * @return $this
      */
     public function setPacks(array $packs): static;
@@ -297,6 +336,7 @@ interface ShipmentDraftInterface
 
     /**
      * @param \Polkurier\Shipping\Api\Data\ShipmentDraft\ItemInterface[] $items
+     *
      * @return $this
      */
     public function setItems(array $items): static;
@@ -310,6 +350,7 @@ interface ShipmentDraftInterface
 
     /**
      * @param bool $estimated
+     *
      * @return $this
      */
     public function setPacksEstimated(bool $estimated): static;
@@ -324,6 +365,7 @@ interface ShipmentDraftInterface
 
     /**
      * @param bool $included
+     *
      * @return $this
      */
     public function setShippingIncluded(bool $included): static;
@@ -335,6 +377,7 @@ interface ShipmentDraftInterface
 
     /**
      * @param float|null $codAmount
+     *
      * @return $this
      */
     public function setCodAmount(?float $codAmount): static;
@@ -346,6 +389,7 @@ interface ShipmentDraftInterface
 
     /**
      * @param string|null $codType
+     *
      * @return $this
      */
     public function setCodType(?string $codType): static;
@@ -357,6 +401,7 @@ interface ShipmentDraftInterface
 
     /**
      * @param string|null $codReturnType
+     *
      * @return $this
      */
     public function setCodReturnType(?string $codReturnType): static;
@@ -368,16 +413,33 @@ interface ShipmentDraftInterface
 
     /**
      * @param int|null $codBankAccountId
+     *
      * @return $this
      */
     public function setCodBankAccountId(?int $codBankAccountId): static;
 
+    /**
+     * @return string|null
+     */
     public function getSenderPointId(): ?string;
 
+    /**
+     * @param string|null $pointId
+     *
+     * @return $this
+     */
     public function setSenderPointId(?string $pointId): static;
 
+    /**
+     * @return bool
+     */
     public function isNewSender(): bool;
 
+    /**
+     * @param bool $newSender
+     *
+     * @return $this
+     */
     public function setNewSender(bool $newSender): static;
 
     /**
@@ -387,32 +449,81 @@ interface ShipmentDraftInterface
 
     /**
      * @param array<string, string> $address by address field
+     *
      * @return $this
      */
     public function setNewSenderAddress(array $address): static;
 
+    /**
+     * @return bool
+     */
     public function isKeepingNewSender(): bool;
 
+    /**
+     * @param bool $keep
+     *
+     * @return $this
+     */
     public function setKeepingNewSender(bool $keep): static;
 
+    /**
+     * @return string
+     */
     public function getNewSenderName(): string;
 
+    /**
+     * @param string $name
+     *
+     * @return $this
+     */
     public function setNewSenderName(string $name): static;
 
+    /**
+     * @return bool
+     */
     public function isNewBankAccount(): bool;
 
+    /**
+     * @param bool $newBankAccount
+     *
+     * @return $this
+     */
     public function setNewBankAccount(bool $newBankAccount): static;
 
+    /**
+     * @return string
+     */
     public function getNewBankAccountNumber(): string;
 
+    /**
+     * @param string $number
+     *
+     * @return $this
+     */
     public function setNewBankAccountNumber(string $number): static;
 
+    /**
+     * @return bool
+     */
     public function isKeepingNewBankAccount(): bool;
 
+    /**
+     * @param bool $keep
+     *
+     * @return $this
+     */
     public function setKeepingNewBankAccount(bool $keep): static;
 
+    /**
+     * @return string
+     */
     public function getNewBankAccountName(): string;
 
+    /**
+     * @param string $name
+     *
+     * @return $this
+     */
     public function setNewBankAccountName(string $name): static;
 
     /**
@@ -422,6 +533,7 @@ interface ShipmentDraftInterface
 
     /**
      * @param float|null $insuranceAmount
+     *
      * @return $this
      */
     public function setInsuranceAmount(?float $insuranceAmount): static;
@@ -433,6 +545,7 @@ interface ShipmentDraftInterface
 
     /**
      * @param int|null $coverAddressId
+     *
      * @return $this
      */
     public function setCoverAddressId(?int $coverAddressId): static;
@@ -444,6 +557,7 @@ interface ShipmentDraftInterface
 
     /**
      * @param string[] $services
+     *
      * @return $this
      */
     public function setServices(array $services): static;
@@ -455,6 +569,7 @@ interface ShipmentDraftInterface
 
     /**
      * @param string $pickupMode
+     *
      * @return $this
      */
     public function setPickupMode(string $pickupMode): static;
@@ -466,6 +581,7 @@ interface ShipmentDraftInterface
 
     /**
      * @param string|null $pickupDate
+     *
      * @return $this
      */
     public function setPickupDate(?string $pickupDate): static;
@@ -477,6 +593,7 @@ interface ShipmentDraftInterface
 
     /**
      * @param string|null $pickupTimeFrom
+     *
      * @return $this
      */
     public function setPickupTimeFrom(?string $pickupTimeFrom): static;
@@ -488,6 +605,7 @@ interface ShipmentDraftInterface
 
     /**
      * @param string|null $pickupTimeTo
+     *
      * @return $this
      */
     public function setPickupTimeTo(?string $pickupTimeTo): static;
@@ -499,6 +617,7 @@ interface ShipmentDraftInterface
 
     /**
      * @param string[] $additionalFields
+     *
      * @return $this
      */
     public function setAdditionalFields(array $additionalFields): static;
@@ -513,6 +632,7 @@ interface ShipmentDraftInterface
 
     /**
      * @param int|null $targetShipmentId
+     *
      * @return $this
      */
     public function setTargetShipmentId(?int $targetShipmentId): static;

@@ -12,8 +12,9 @@ define([
     'ko',
     'underscore',
     'mage/translate',
-    'Polkurier_Shipping/js/request'
-], function (Component, ko, _, $t, request) {
+    'Polkurier_Shipping/js/request',
+    'Polkurier_Shipping/js/shipment/workspace/rules'
+], function (Component, ko, _, $t, request, rules) {
     'use strict';
 
     return Component.extend({
@@ -54,13 +55,13 @@ define([
                             .replace('%1', response.unknown.join(', '))
                         : '');
                     this.fee(response.error ? null : {
-                        gross: Number(response.fee).toFixed(2),
-                        net: Number(response.fee_net).toFixed(2),
+                        gross: rules.money(response.fee),
+                        net: rules.money(response.fee_net),
                         free: $t('Free payouts left: %1 of %2.')
                             .replace('%1', response.free_left)
                             .replace('%2', response.free_total),
                         available: typeof response.available === 'number'
-                            ? $t('Available to pay out: %1 PLN.').replace('%1', Number(response.available).toFixed(2))
+                            ? $t('Available to pay out: %1.').replace('%1', rules.money(response.available))
                             : ''
                     });
                 }.bind(this),

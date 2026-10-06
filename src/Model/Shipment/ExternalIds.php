@@ -7,10 +7,13 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Model\Shipment;
 
+use Magento\Framework\Exception\LocalizedException;
+use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Sales\Api\ShipmentRepositoryInterface as MagentoShipmentRepository;
 use Magento\Sales\Model\Order;
 use Magento\SalesSequence\Model\Manager as SequenceManager;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
+use Polkurier\Shipping\Enum\ExternalOrderIdEnum;
 use Polkurier\Shipping\Model\Config;
 use Polkurier\Shipping\Model\Sdk\ApplicationId;
 
@@ -40,8 +43,10 @@ readonly class ExternalIds
     /**
      * @param ShipmentInterface|null $attempt the order's earlier attempt that is sent again, if any
      * @param int|null $magentoShipmentId the existing Magento shipment it goes on, if any
+     *
      * @return array{id: string, reserved: string|null} what is sent, and the number taken for a
      *         Magento shipment still to be created
+     * @throws LocalizedException when the Magento shipment it goes on is gone
      */
     public function forAttempt(Order $order, ?ShipmentInterface $attempt, ?int $magentoShipmentId): array
     {
@@ -49,7 +54,11 @@ readonly class ExternalIds
             return ['id' => (string)$order->getIncrementId(), 'reserved' => null];
         }
         if ($magentoShipmentId !== null) {
-            return ['id' => (string)$this->magentoShipments->get($magentoShipmentId)->getIncrementId(), 'reserved' => null];
+            try {
+                return ['id' => (string)$this->magentoShipments->get($magentoShipmentId)->getIncrementId(), 'reserved' => null];
+            } catch (NoSuchEntityException $e) {
+                throw new LocalizedException(\__('The shipment to create a label for is missing.'), $e);
+            }
         }
         $reserved = $attempt?->getReservedShipmentNumber()
             ?? (string)$this->sequenceManager->getSequence('shipment', (int)$order->getStoreId())->getNextValue();

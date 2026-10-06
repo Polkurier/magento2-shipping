@@ -7,8 +7,7 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Model\MoneyBox;
 
-use Polkurier\Shipping\Api\Data\ShipmentInterface;
-use Polkurier\Shipping\Model\ResourceModel\Shipment\CollectionFactory;
+use Polkurier\Shipping\Model\Shipment\ShipmentFinder;
 use Polkurier\Webservice\Enum\Order\CodStatusEnum;
 
 /**
@@ -19,7 +18,7 @@ use Polkurier\Webservice\Enum\Order\CodStatusEnum;
 readonly class MoneyBoxOrders
 {
     public function __construct(
-        private CollectionFactory $collectionFactory,
+        private ShipmentFinder $finder,
     ) {}
 
     /**
@@ -28,9 +27,7 @@ readonly class MoneyBoxOrders
     public function numbers(): array
     {
         $numbers = [];
-        foreach ($this->collectionFactory->create()
-            ->addFieldToFilter(ShipmentInterface::COD_STATUS, CodStatusEnum::MoneyBox->value)
-            ->getItems() as $shipment) {
+        foreach ($this->finder->withCodStatus(CodStatusEnum::MoneyBox->value) as $shipment) {
             $numbers[] = (string)$shipment->getPolkurierNumber();
         }
 
@@ -41,6 +38,7 @@ readonly class MoneyBoxOrders
      * Those of the numbers not known here as in the money box.
      *
      * @param string[] $numbers
+     *
      * @return string[]
      */
     public function unknown(array $numbers): array

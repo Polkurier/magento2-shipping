@@ -11,6 +11,9 @@
  * once and posts the ids of the rows shown, in order, to sortUrl, where they're fitted in among
  * the rows not shown.
  *
+ * From the keyboard, Alt+Up and Alt+Down on a focused handle move its row one place, and the
+ * handle keeps the focus.
+ *
  * With groupBy set, the grid shows each value of that field as a block of rows, and a row can be
  * moved only within its own block.
  */
@@ -102,7 +105,39 @@ define([
          * @param {HTMLElement} handle
          */
         initHandle: function (handle) {
-            $(handle).off(EVENTS).on('mousedown' + EVENTS, this.lift.bind(this));
+            $(handle).off(EVENTS)
+                .on('mousedown' + EVENTS, this.lift.bind(this))
+                .on('keydown' + EVENTS, this.step.bind(this));
+        },
+
+        /**
+         * Alt+Up or Alt+Down moves the row one place, within its block.
+         *
+         * @param {KeyboardEvent} event
+         */
+        step: function (event) {
+            const by = {ArrowUp: -1, ArrowDown: 1}[event.key],
+                row = $(event.currentTarget).closest('tr'),
+                rows = row.parent().children('tr.data-row'),
+                from = rows.index(row),
+                to = from + (by || 0),
+                id = this.rowId.bind(this),
+                ids = rows.map(function () {
+                    return id(this);
+                }).get();
+
+            if (!event.altKey || !by || this.drag || to < 0 || to >= rows.length
+                || this.group(rows.eq(to)) !== this.group(row)) {
+                return;
+            }
+            event.preventDefault();
+            ids.splice(to, 0, ids.splice(from, 1)[0]);
+            this.arrange(ids);
+            // The grid shows the new order in the rows it has, so the handle to keep the focus on
+            // is the one now in the row's new place.
+            _.defer(function () {
+                rows.parent().children('tr.data-row').eq(to).find('.draggable-handle').trigger('focus');
+            });
         },
 
         /**

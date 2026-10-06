@@ -22,6 +22,7 @@ readonly class RequestedShipments
 {
     public function __construct(
         private ShipmentRepositoryInterface $shipmentRepository,
+        private ShipmentFinder $finder,
         private CollectionFactory $collectionFactory,
         private Filter $filter,
     ) {}
@@ -47,16 +48,19 @@ readonly class RequestedShipments
         // order's shipments only, whatever else the selection says.
         $orderId = (int)$request->getParam('order_id');
         if ($ids !== []) {
-            $collection = $this->collectionFactory->create()
-                ->addFieldToFilter(ShipmentInterface::ENTITY_ID, ['in' => $ids]);
-        } elseif ($request->getParam('id')) {
+            return \array_values(\array_filter(
+                $this->finder->byIds($ids),
+                static fn(ShipmentInterface $shipment): bool => !$orderId || $shipment->getOrderId() === $orderId,
+            ));
+        }
+        if ($request->getParam('id')) {
             $shipment = $this->getOne($request);
 
             return $orderId && $shipment->getOrderId() !== $orderId ? [] : [$shipment];
-        } else {
-            $collection = $this->collectionFactory->create();
-            $this->filter->getCollection($collection);
         }
+        // A grid selection: the grid's own filters apply.
+        $collection = $this->collectionFactory->create();
+        $this->filter->getCollection($collection);
         if ($orderId) {
             $collection->addFieldToFilter(ShipmentInterface::ORDER_ID, (string)$orderId);
         }

@@ -7,12 +7,9 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Controller\Adminhtml\Moneybox;
 
-use Magento\Backend\App\Action;
 use Magento\Backend\App\Action\Context;
-use Magento\Framework\App\Action\HttpPostActionInterface;
-use Magento\Framework\Controller\Result\Json;
 use Magento\Framework\Controller\Result\JsonFactory;
-use Magento\Framework\Exception\LocalizedException;
+use Polkurier\Shipping\Controller\Adminhtml\AbstractJsonAction;
 use Polkurier\Shipping\Model\MoneyBox\MoneyBoxOrders;
 use Polkurier\Shipping\Model\MoneyBox\OrderNumbers;
 use Polkurier\Shipping\Model\MoneyBox\Payouts;
@@ -21,34 +18,26 @@ use Polkurier\Webservice\Enum\MoneyBox\MoneyBoxPayoutTypeEnum;
 /**
  * What a payout as filled in would cost. Moves nothing.
  */
-class Quote extends Action implements HttpPostActionInterface
+class Quote extends AbstractJsonAction
 {
     public const string ADMIN_RESOURCE = 'Polkurier_Shipping::money_box_payout';
 
     public function __construct(
         Context $context,
-        private readonly JsonFactory $jsonFactory,
+        JsonFactory $jsonFactory,
         private readonly Payouts $payouts,
         private readonly MoneyBoxOrders $moneyBoxOrders,
     ) {
-        parent::__construct($context);
+        parent::__construct($context, $jsonFactory);
     }
 
-    public function execute(): Json
+    protected function answer(): array
     {
         $data = (array)$this->getRequest()->getParam('data', []);
         $numbers = OrderNumbers::parse((string)($data['orders'] ?? ''));
-        try {
-            $fee = $this->payouts->quote(
-                $numbers,
-                MoneyBoxPayoutTypeEnum::tryFrom((string)($data['payout_type'] ?? '')),
-            );
-        } catch (LocalizedException $e) {
-            return $this->jsonFactory->create()->setData(['error' => true, 'message' => $e->getMessage()]);
-        }
+        $fee = $this->payouts->quote($numbers, MoneyBoxPayoutTypeEnum::tryFrom((string)($data['payout_type'] ?? '')));
 
-        return $this->jsonFactory->create()->setData([
-            'error' => false,
+        return [
             'available' => $this->payouts->getAvailableBalance(),
             // Polkurier leaves out what it can't pay out without saying so.
             'unknown' => $this->moneyBoxOrders->unknown($numbers),
@@ -63,6 +52,6 @@ class Quote extends Action implements HttpPostActionInterface
                 $fee->getFreePayoutsLeft(),
                 $fee->getFreePayoutsTotal(),
             ),
-        ]);
+        ];
     }
 }

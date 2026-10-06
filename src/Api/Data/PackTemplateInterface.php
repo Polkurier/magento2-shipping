@@ -9,6 +9,8 @@ namespace Polkurier\Shipping\Api\Data;
 
 /**
  * A saved parcel: dimensions, weight and optionally default services.
+ *
+ * @api
  */
 interface PackTemplateInterface extends SyncableInterface
 {
@@ -19,11 +21,13 @@ interface PackTemplateInterface extends SyncableInterface
     public const string WIDTH = 'width';
     public const string HEIGHT = 'height';
     public const string WEIGHT = 'weight';
+
     /**
      * What the packaging itself weighs, added to what's in a parcel weighed by its contents. Kept
      * in Magento only: Polkurier's pack templates have no such thing.
      */
     public const string TARE = 'tare';
+
     public const string COD_AMOUNT = 'cod_amount';
     public const string INSURANCE_AMOUNT = 'insurance_amount';
     public const string CARRIER_CODE = 'carrier_code';
@@ -37,6 +41,7 @@ interface PackTemplateInterface extends SyncableInterface
 
     /**
      * @param string $name
+     *
      * @return $this
      */
     public function setName(string $name): static;
@@ -48,6 +53,7 @@ interface PackTemplateInterface extends SyncableInterface
 
     /**
      * @param string|null $description
+     *
      * @return $this
      */
     public function setDescription(?string $description): static;
@@ -66,6 +72,7 @@ interface PackTemplateInterface extends SyncableInterface
 
     /**
      * @param string $packType
+     *
      * @return $this
      */
     public function setPackType(string $packType): static;
@@ -77,6 +84,7 @@ interface PackTemplateInterface extends SyncableInterface
 
     /**
      * @param int $length
+     *
      * @return $this
      */
     public function setLength(int $length): static;
@@ -88,6 +96,7 @@ interface PackTemplateInterface extends SyncableInterface
 
     /**
      * @param int $width
+     *
      * @return $this
      */
     public function setWidth(int $width): static;
@@ -99,6 +108,7 @@ interface PackTemplateInterface extends SyncableInterface
 
     /**
      * @param int $height
+     *
      * @return $this
      */
     public function setHeight(int $height): static;
@@ -112,6 +122,7 @@ interface PackTemplateInterface extends SyncableInterface
 
     /**
      * @param float $weight
+     *
      * @return $this
      */
     public function setWeight(float $weight): static;
@@ -125,6 +136,7 @@ interface PackTemplateInterface extends SyncableInterface
 
     /**
      * @param float|null $tare
+     *
      * @return $this
      */
     public function setTare(?float $tare): static;
@@ -136,6 +148,7 @@ interface PackTemplateInterface extends SyncableInterface
 
     /**
      * @param float $codAmount
+     *
      * @return $this
      */
     public function setCodAmount(float $codAmount): static;
@@ -147,6 +160,7 @@ interface PackTemplateInterface extends SyncableInterface
 
     /**
      * @param float $insuranceAmount
+     *
      * @return $this
      */
     public function setInsuranceAmount(float $insuranceAmount): static;
@@ -158,6 +172,7 @@ interface PackTemplateInterface extends SyncableInterface
 
     /**
      * @param string|null $carrierCode
+     *
      * @return $this
      */
     public function setCarrierCode(?string $carrierCode): static;
@@ -169,6 +184,7 @@ interface PackTemplateInterface extends SyncableInterface
 
     /**
      * @param string[] $services
+     *
      * @return $this
      */
     public function setServices(array $services): static;
@@ -180,6 +196,7 @@ interface PackTemplateInterface extends SyncableInterface
 
     /**
      * @param bool $default
+     *
      * @return $this
      */
     public function setDefault(bool $default): static;

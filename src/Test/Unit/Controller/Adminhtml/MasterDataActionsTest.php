@@ -8,21 +8,21 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Test\Unit\Controller\Adminhtml;
 
 use Magento\Framework\App\Request\DataPersistorInterface;
-use Magento\Framework\Data\Collection\AbstractDb;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\TestFramework\Unit\Helper\ObjectManager;
 use Magento\Ui\Component\MassAction\Filter;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use Polkurier\Shipping\Api\Data\SyncableInterface;
-use Polkurier\Shipping\Api\SyncEntityEnum;
 use Polkurier\Shipping\Controller\Adminhtml\Bankaccount\InlineEdit;
 use Polkurier\Shipping\Controller\Adminhtml\Bankaccount\Save;
 use Polkurier\Shipping\Controller\Adminhtml\MasterData\AbstractInlineEdit;
 use Polkurier\Shipping\Controller\Adminhtml\MasterData\AbstractMassDelete;
 use Polkurier\Shipping\Controller\Adminhtml\MasterData\AbstractSave;
 use Polkurier\Shipping\Controller\Adminhtml\Packtemplate\MassDelete;
+use Polkurier\Shipping\Enum\SyncEntityEnum;
 use Polkurier\Shipping\Model\Admin\BankAccountHandler;
+use Polkurier\Shipping\Model\Admin\FormActions;
 use Polkurier\Shipping\Model\Admin\PackTemplateHandler;
 use Polkurier\Shipping\Model\BankAccount;
 use Polkurier\Shipping\Model\PackTemplate;
@@ -59,7 +59,7 @@ class MasterDataActionsTest extends AdminActionTestCase
     public function testAnAccountPolkurierRefusedIsSavedWithAWarning(): void
     {
         $this->post = ['id' => '3', 'name' => 'Firmowe'];
-        $this->params = ['back' => 'edit'];
+        $this->params = [FormActions::BACK_PARAM => FormActions::SAVE_AND_CONTINUE];
 
         $this->save($this->bankAccounts($this->account(3)->setSyncError('Błędny PIN')))->execute();
 
@@ -82,7 +82,8 @@ class MasterDataActionsTest extends AdminActionTestCase
 
     public function testTheFormsDeleteIsConfirmedWithThePinTypedThere(): void
     {
-        $this->params = ['delete' => '1', 'id' => '3', BankAccountHandler::CONFIRMATION_PIN => '2342'];
+        // Posted by the form's Delete button, never carried in the address bar.
+        $this->post = ['delete' => '1', 'id' => '3', BankAccountHandler::CONFIRMATION_PIN => '2342'];
         $handler = $this->bankAccounts($this->account(3));
         $handler->expects(self::once())->method('delete')
             ->with(self::anything(), [BankAccountHandler::CONFIRMATION_PIN => '2342'])

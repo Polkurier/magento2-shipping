@@ -9,6 +9,9 @@ namespace Polkurier\Shipping\Model\ResourceModel;
 
 use Magento\Framework\Model\ResourceModel\Db\AbstractDb;
 
+/**
+ * The polkurier_order_point table: an order's pickup points.
+ */
 class OrderPoint extends AbstractDb
 {
     public const string TABLE_NAME = 'polkurier_order_point';

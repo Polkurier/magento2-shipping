@@ -11,8 +11,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Model\MoneyBox\MoneyBoxOrders;
-use Polkurier\Shipping\Model\ResourceModel\Shipment\Collection;
-use Polkurier\Shipping\Model\ResourceModel\Shipment\CollectionFactory;
+use Polkurier\Shipping\Model\Shipment\ShipmentFinder;
 
 #[CoversClass(MoneyBoxOrders::class)]
 class MoneyBoxOrdersTest extends TestCase
@@ -37,12 +36,9 @@ class MoneyBoxOrdersTest extends TestCase
 
             return $shipment;
         }, $inMoneyBox);
-        $collection = $this->createStub(Collection::class);
-        $collection->method('addFieldToFilter')->willReturnSelf();
-        $collection->method('getItems')->willReturn($items);
-        $factory = $this->createStub(CollectionFactory::class);
-        $factory->method('create')->willReturn($collection);
+        $finder = $this->createStub(ShipmentFinder::class);
+        $finder->method('withCodStatus')->willReturn($items);
 
-        return new MoneyBoxOrders($factory);
+        return new MoneyBoxOrders($finder);
     }
 }

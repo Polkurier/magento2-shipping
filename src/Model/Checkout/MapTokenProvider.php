@@ -7,13 +7,13 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Model\Checkout;
 
-use Magento\Framework\App\CacheInterface;
 use Magento\Framework\Stdlib\DateTime\DateTime;
-use Polkurier\Shipping\Model\Carrier\CarrierCatalog;
+use Polkurier\Shipping\Enum\CacheTagEnum;
+use Polkurier\Shipping\Exception\RecentFailureException;
+use Polkurier\Shipping\Model\Cache\Type as PolkurierCache;
 use Polkurier\Shipping\Model\ErrorMessages;
 use Polkurier\Shipping\Model\Sdk\AccountCacheKey;
 use Polkurier\Shipping\Model\Sdk\ClientPool;
-use Polkurier\Shipping\Model\Sdk\RecentFailureException;
 use Polkurier\Webservice\Exception\Exception as PolkurierException;
 
 /**
@@ -53,7 +53,7 @@ class MapTokenProvider
 
     public function __construct(
         private readonly ClientPool $clientPool,
-        private readonly CacheInterface $cache,
+        private readonly PolkurierCache $cache,
         private readonly ErrorMessages $errorMessages,
         private readonly AccountCacheKey $cacheKeys,
         private readonly DateTime $dateTime,
@@ -85,7 +85,7 @@ class MapTokenProvider
         try {
             $token = $this->clientPool->geo()->getMapToken()->getToken();
         } catch (PolkurierException $e) {
-            $this->cache->save($this->errorMessages->describe($e), $key . self::FAILURE_SUFFIX, [CarrierCatalog::CACHE_TAG], self::FAILURE_LIFETIME);
+            $this->cache->save($this->errorMessages->describe($e), $key . self::FAILURE_SUFFIX, [CacheTagEnum::MapToken->value, CacheTagEnum::Failures->value], self::FAILURE_LIFETIME);
 
             throw $this->answers[$key] = $e;
         }
@@ -93,7 +93,7 @@ class MapTokenProvider
         $this->cache->save(
             $token !== '' ? $this->issuedAt[$key] . '|' . $token : self::NO_TOKEN,
             $token !== '' ? $key : $key . self::FAILURE_SUFFIX,
-            [CarrierCatalog::CACHE_TAG],
+            [CacheTagEnum::MapToken->value],
             $token !== '' ? self::CACHE_LIFETIME : self::FAILURE_LIFETIME,
         );
 

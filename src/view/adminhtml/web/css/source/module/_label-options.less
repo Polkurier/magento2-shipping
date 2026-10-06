@@ -34,7 +34,8 @@
 }
 
 .polkurier-label-options__edit {
-    padding: .3rem .9rem;
+    // The text sits high in its line: a little less below it.
+    padding: .3rem .9rem .2rem;
     font-size: 1.2rem;
 }
 
@@ -90,4 +91,9 @@
 
 .polkurier-packaging-note {
     margin-bottom: 1.5rem;
+}
+
+/* Magento's "Create Shipping Label" checkbox, on a page whose shipment always gets its label */
+.polkurier-label-kept .order-totals-actions .field-create {
+    display: none;
 }

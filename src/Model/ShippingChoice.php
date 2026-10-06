@@ -10,6 +10,9 @@ namespace Polkurier\Shipping\Model;
 use Magento\Framework\DataObject;
 use Polkurier\Shipping\Api\Data\ShippingChoiceInterface;
 
+/**
+ * What the customer chose for an order at checkout: the shipping method and the pickup point.
+ */
 class ShippingChoice extends DataObject implements ShippingChoiceInterface
 {
     public function getOrderId(): int

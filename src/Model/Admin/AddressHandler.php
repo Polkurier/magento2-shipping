@@ -9,15 +9,18 @@ namespace Polkurier\Shipping\Model\Admin;
 
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Stdlib\DateTime\DateTime;
-use Polkurier\Shipping\Model\Sync\SyncLock;
 use Polkurier\Shipping\Api\AddressRepositoryInterface;
 use Polkurier\Shipping\Api\Data\AddressInterface;
 use Polkurier\Shipping\Api\Data\SyncableInterface;
-use Polkurier\Shipping\Api\SyncEntityEnum;
 use Polkurier\Shipping\Api\SynchronizationInterface;
+use Polkurier\Shipping\Enum\SyncEntityEnum;
 use Polkurier\Shipping\Model\AddressFactory;
 use Polkurier\Shipping\Model\ResourceModel\Address as AddressResource;
+use Polkurier\Shipping\Model\Sync\SyncLock;
 
+/**
+ * The sender addresses, as the admin creates, edits and deletes them.
+ */
 readonly class AddressHandler extends SyncableEntityHandler
 {
     public function __construct(

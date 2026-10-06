@@ -11,6 +11,9 @@ use Magento\Framework\Model\ResourceModel\Db\Collection\AbstractCollection;
 use Polkurier\Shipping\Model\PackTemplate as Model;
 use Polkurier\Shipping\Model\ResourceModel\PackTemplate as ResourceModel;
 
+/**
+ * The pack templates.
+ */
 class Collection extends AbstractCollection
 {
     /**

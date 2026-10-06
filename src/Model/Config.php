@@ -9,10 +9,12 @@ namespace Polkurier\Shipping\Model;
 
 use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\Encryption\EncryptorInterface;
+use Magento\Framework\Phrase;
 use Magento\Store\Model\ScopeInterface;
-use Polkurier\Shipping\Model\Shipment\ExternalOrderIdEnum;
-use Polkurier\Shipping\Model\Shipment\ParcelWeightEnum;
-use Polkurier\Shipping\Model\Shipment\WeightLimitEnum;
+use Polkurier\Shipping\Enum\CartValueEnum;
+use Polkurier\Shipping\Enum\ExternalOrderIdEnum;
+use Polkurier\Shipping\Enum\ParcelWeightEnum;
+use Polkurier\Shipping\Enum\WeightLimitEnum;
 use Polkurier\Webservice\Enum\Courier\PointFunctionEnum;
 use Polkurier\Webservice\Enum\Http\ApiMethodEnum;
 use Polkurier\Webservice\Enum\Order\AdditionalServiceEnum;
@@ -20,7 +22,6 @@ use Polkurier\Webservice\Enum\Order\CodReturnTypeEnum;
 use Polkurier\Webservice\Enum\Order\CodTypeEnum;
 use Polkurier\Webservice\Enum\Order\LabelFileFormatEnum;
 use Polkurier\Webservice\Enum\Order\ShipmentTypeEnum;
-
 
 /**
  * The module's system configuration.
@@ -35,6 +36,7 @@ readonly class Config
 {
     public const string XML_PATH_ACTIVE = 'carriers/polkurier/active';
     public const string XML_PATH_TITLE = 'carriers/polkurier/title';
+    public const string XML_PATH_TIER_CART_VALUE = 'carriers/polkurier/checkout/tier_cart_value';
     public const string XML_PATH_LOGIN = 'carriers/polkurier/general/customer_id';
     public const string XML_PATH_TOKEN = 'carriers/polkurier/general/api_token';
     public const string XML_PATH_SANDBOX = 'carriers/polkurier/general/sandbox_mode';
@@ -42,13 +44,13 @@ readonly class Config
     public const string XML_PATH_MAP_URL = 'carriers/polkurier/map/url';
     public const string XML_PATH_TIMEOUT = 'carriers/polkurier/general/timeout';
     public const string XML_PATH_EXTERNAL_ORDER_ID = 'carriers/polkurier/general/external_order_id';
+    public const string XML_PATH_APPLICATION_ID = 'carriers/polkurier/general/application_id';
     public const string XML_PATH_LOGGING = 'carriers/polkurier/logging/failed_requests';
     public const string XML_PATH_LOG_METHODS = 'carriers/polkurier/logging/methods';
     public const string XML_PATH_LOG_PERSONAL_DATA = 'carriers/polkurier/logging/personal_data';
     public const string XML_PATH_LOG_FILES = 'carriers/polkurier/logging/files';
     public const string XML_PATH_LOG_FILES_DIRECTORY = 'carriers/polkurier/logging/files_directory';
-    public const string XML_PATH_LOG_FILES_LIFETIME = 'carriers/polkurier/logging/files_lifetime';
-    public const string XML_PATH_AVAILABLE_CARRIERS = 'carriers/polkurier/shipment_defaults/available_carriers';
+    public const string XML_PATH_AVAILABLE_CARRIERS = 'carriers/polkurier/general/available_carriers';
     public const string XML_PATH_USE_STORE_INFORMATION_ADDRESS = 'carriers/polkurier/sender/use_store_information_address';
     public const string XML_PATH_USE_ORIGIN_ADDRESS = 'carriers/polkurier/sender/use_store_origin_address';
     public const string XML_PATH_SENDER_EMAIL = 'carriers/polkurier/sender/default_sender_email';
@@ -77,6 +79,7 @@ readonly class Config
     public const string XML_PATH_SYNC_ENABLED = 'carriers/polkurier/sync/enabled';
     public const string XML_PATH_STATUS_SYNC_ENABLED = 'carriers/polkurier/sync/status_enabled';
     public const string XML_PATH_STATUS_SCHEDULE = 'carriers/polkurier/sync/status_schedule';
+    public const string XML_PATH_WEBHOOK_SECRET = 'carriers/polkurier/sync/webhook_secret';
 
     public const string MAP_URL = 'https://maps.polkurier.pl';
     public const string SANDBOX_MAP_URL = 'https://maps-sandbox.polkurier.pl';
@@ -100,6 +103,14 @@ readonly class Config
         return (string)$this->value(self::XML_PATH_TITLE, $storeId);
     }
 
+    /**
+     * The cart value price tiers by subtotal are compared against.
+     */
+    public function getTierCartValue(?int $storeId = null): CartValueEnum
+    {
+        return CartValueEnum::tryFrom((string)$this->value(self::XML_PATH_TIER_CART_VALUE, $storeId)) ?? CartValueEnum::Gross;
+    }
+
     public function getLogin(): string
     {
         return $this->globalDecrypt(self::XML_PATH_LOGIN);
@@ -113,6 +124,14 @@ readonly class Config
     public function hasCredentials(): bool
     {
         return $this->getLogin() !== '' && $this->getToken() !== '';
+    }
+
+    /**
+     * What an action asking Polkurier says without the credentials.
+     */
+    public static function credentialsMissing(): Phrase
+    {
+        return \__('Configure the Polkurier customer ID and API token first.');
     }
 
     public function isSandbox(): bool
@@ -143,7 +162,15 @@ readonly class Config
      */
     public function getExternalOrderId(): ExternalOrderIdEnum
     {
-        return ExternalOrderIdEnum::tryFrom((string)$this->globalValue(self::XML_PATH_EXTERNAL_ORDER_ID)) ?? ExternalOrderIdEnum::Shipment;
+        return ExternalOrderIdEnum::tryFrom((string)$this->globalValue(self::XML_PATH_EXTERNAL_ORDER_ID)) ?? ExternalOrderIdEnum::Order;
+    }
+
+    /**
+     * The installation id entered in place of the one made from the encryption key; empty for that one.
+     */
+    public function getApplicationIdOverride(): string
+    {
+        return \trim((string)$this->globalValue(self::XML_PATH_APPLICATION_ID));
     }
 
     public function isLoggingEnabled(): bool
@@ -181,14 +208,6 @@ readonly class Config
     }
 
     /**
-     * How many days files saved for the log are kept; 0 for as long as someone keeps them.
-     */
-    public function getLogFilesLifetimeDays(): int
-    {
-        return \max(0, (int)$this->globalValue(self::XML_PATH_LOG_FILES_LIFETIME));
-    }
-
-    /**
      * The carriers the merchant works with; the others are left out of every list. Empty: all of
      * the account's carriers.
      *
@@ -196,7 +215,7 @@ readonly class Config
      */
     public function getAvailableCarriers(): array
     {
-        return \array_values(\array_filter(\array_map('trim', \explode(',', (string)$this->globalValue(self::XML_PATH_AVAILABLE_CARRIERS)))));
+        return $this->globalList(self::XML_PATH_AVAILABLE_CARRIERS);
     }
 
     /**
@@ -399,6 +418,15 @@ readonly class Config
     }
 
     /**
+     * The secret the Polkurier panel shows for the status webhook, which signs its events; empty
+     * while the webhook isn't set up.
+     */
+    public function getWebhookSecret(): string
+    {
+        return $this->globalDecrypt(self::XML_PATH_WEBHOOK_SECRET);
+    }
+
+    /**
      * How many minutes apart the scheduled status updates run, read from their cron schedule:
      * every 15 minutes is 15, every hour 60.
      */
@@ -464,5 +492,4 @@ readonly class Config
             static fn(string $item): bool => $item !== '',
         ));
     }
-
 }

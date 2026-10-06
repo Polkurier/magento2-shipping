@@ -10,6 +10,8 @@ namespace Polkurier\Shipping\Api\Data;
 /**
  * The order's pickup point: the one the customer chose in checkout, or the one its Polkurier
  * order went with when that changed (the customer's is then kept, see ShippingChoiceInterface).
+ *
+ * @api
  */
 interface OrderPointInterface
 {
@@ -26,6 +28,7 @@ interface OrderPointInterface
 
     /**
      * @param int $orderId
+     *
      * @return $this
      */
     public function setOrderId(int $orderId): static;
@@ -37,6 +40,7 @@ interface OrderPointInterface
 
     /**
      * @param string $methodCode
+     *
      * @return $this
      */
     public function setMethodCode(string $methodCode): static;
@@ -48,6 +52,7 @@ interface OrderPointInterface
 
     /**
      * @param string $pointId
+     *
      * @return $this
      */
     public function setPointId(string $pointId): static;
@@ -59,6 +64,7 @@ interface OrderPointInterface
 
     /**
      * @param string|null $pointLabel
+     *
      * @return $this
      */
     public function setPointLabel(?string $pointLabel): static;
@@ -70,6 +76,7 @@ interface OrderPointInterface
 
     /**
      * @param bool $pointCod
+     *
      * @return $this
      */
     public function setPointCod(bool $pointCod): static;

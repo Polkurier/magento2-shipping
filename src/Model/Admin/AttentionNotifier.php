@@ -10,6 +10,7 @@ namespace Polkurier\Shipping\Model\Admin;
 use Magento\Backend\Model\UrlInterface;
 use Magento\Framework\App\ResourceConnection;
 use Magento\Framework\Notification\NotifierInterface;
+use Magento\Framework\Stdlib\DateTime as DateFormat;
 use Magento\Framework\Stdlib\DateTime\DateTime;
 use Magento\Framework\Stdlib\DateTime\TimezoneInterface;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
@@ -26,8 +27,6 @@ use Polkurier\Shipping\Model\Shipment\NotPlaced;
  */
 readonly class AttentionNotifier
 {
-    public const string NOTIFIED_AT = 'attention_notified_at';
-
     /**
      * How long the automatic checks get before an unsettled shipment is reported.
      */
@@ -38,6 +37,7 @@ readonly class AttentionNotifier
 
     public function __construct(
         private ResourceConnection $resource,
+        private ShipmentResource $shipmentResource,
         private NotifierInterface $notifier,
         private UrlInterface $url,
         private TimezoneInterface $timezone,
@@ -51,8 +51,8 @@ readonly class AttentionNotifier
     public function notify(): int
     {
         $now = $this->dateTime->gmtTimestamp();
-        $noticeBefore = \gmdate('Y-m-d H:i:s', $now - NotPlaced::NOTICE_AFTER_HOURS * 3600);
-        $settleBefore = \gmdate('Y-m-d H:i:s', $now - self::SETTLE_HOURS * 3600);
+        $noticeBefore = \gmdate(DateFormat::DATETIME_PHP_FORMAT, $now - NotPlaced::NOTICE_AFTER_HOURS * 3600);
+        $settleBefore = \gmdate(DateFormat::DATETIME_PHP_FORMAT, $now - self::SETTLE_HOURS * 3600);
         $connection = $this->resource->getConnection('sales');
         $table = $this->resource->getTableName(ShipmentResource::TABLE_NAME, 'sales');
         $this->withdrawSettled($noticeBefore, $settleBefore);
@@ -63,7 +63,7 @@ readonly class AttentionNotifier
                 'sales_order.entity_id = shipment.order_id',
                 ['increment_id'],
             )
-            ->where('shipment.' . self::NOTIFIED_AT . ' IS NULL')
+            ->where('shipment.' . ShipmentInterface::ATTENTION_NOTIFIED_AT . ' IS NULL')
             ->where($this->needsSomeone($noticeBefore, $settleBefore));
         $notified = 0;
         foreach ($connection->fetchAll($select) as $row) {
@@ -73,7 +73,9 @@ readonly class AttentionNotifier
                 // Followed outside the session it was made in; the page opens without a key.
                 '_nosecret' => true,
             ]));
-            $connection->update($table, [self::NOTIFIED_AT => \gmdate('Y-m-d H:i:s', $now)], ['entity_id = ?' => (int)$row['entity_id']]);
+            $this->shipmentResource->updateColumns((int)$row['entity_id'], [
+                ShipmentInterface::ATTENTION_NOTIFIED_AT => \gmdate(DateFormat::DATETIME_PHP_FORMAT, $now),
+            ]);
             $notified++;
         }
 
@@ -109,7 +111,7 @@ readonly class AttentionNotifier
         foreach ($inbox->fetchPairs($inbox->select()
             ->from($inboxTable, ['notification_id', 'url'])
             ->where('is_remove = 0')
-            ->where('title LIKE ?', 'Polkurier: %')
+            // By the page it links to: the title is in the admin's language when it was added.
             ->where('url LIKE ?', '%/' . self::VIEW_PATH . '/id/%')) as $notificationId => $url
         ) {
             if (\preg_match('#/' . \preg_quote(self::VIEW_PATH, '#') . '/id/(\d+)/?$#', (string)$url, $m)) {
@@ -123,7 +125,7 @@ readonly class AttentionNotifier
         $stillNeeded = \array_map('intval', $connection->fetchCol($connection->select()
             ->from(['shipment' => $this->resource->getTableName(ShipmentResource::TABLE_NAME, 'sales')], ['entity_id'])
             ->where('shipment.entity_id IN (?)', \array_values(\array_unique($shown)))
-            ->where('shipment.' . self::NOTIFIED_AT . ' IS NOT NULL')
+            ->where('shipment.' . ShipmentInterface::ATTENTION_NOTIFIED_AT . ' IS NOT NULL')
             ->where($this->needsSomeone($noticeBefore, $settleBefore))));
         $settled = \array_keys(\array_diff($shown, $stillNeeded));
         if ($settled !== []) {
@@ -133,6 +135,7 @@ readonly class AttentionNotifier
 
     /**
      * @param array<string, mixed> $row
+     *
      * @return array{0: string, 1: string} the title and the description
      */
     private function describe(array $row): array

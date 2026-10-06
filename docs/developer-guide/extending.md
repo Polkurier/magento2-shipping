@@ -60,7 +60,7 @@ of `Model\Pricing\PriceCalculatorPool`:
 ```
 
 Your class implements `Model\Pricing\PriceCalculatorInterface` and returns a price, or `null` to
-leave the carrier out. The list of pricing models itself (`Model\Pricing\PricingModelEnum`) is
+leave the carrier out. The list of pricing models itself (`Enum\PricingModelEnum`) is
 closed, because the carrier form is built from it. To adjust every price, for example to add a
 surcharge, put a plugin on `PriceCalculatorPool::calculate()`.
 

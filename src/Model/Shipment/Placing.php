@@ -8,21 +8,18 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Model\Shipment;
 
 use Magento\Framework\Exception\LocalizedException;
-use Magento\Framework\Lock\LockManagerInterface;
 use Magento\Sales\Model\Order;
-use Polkurier\Shipping\Api\ApiEventEnum;
 use Polkurier\Shipping\Api\Data\ShipmentDraftInterface;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Api\ShipmentRepositoryInterface;
-use Polkurier\Shipping\Model\Admin\AttentionNotifier;
+use Polkurier\Shipping\Enum\ApiEventEnum;
+use Polkurier\Shipping\Exception\PlacementUncertainException;
 use Polkurier\Shipping\Model\ApiEventDispatcher;
 use Polkurier\Shipping\Model\Carrier\CarrierCatalog;
 use Polkurier\Shipping\Model\Carrier\CarrierFeatures;
 use Polkurier\Shipping\Model\Carrier\CarrierNames;
 use Polkurier\Shipping\Model\ErrorMessages;
 use Polkurier\Shipping\Model\Mapper\CreateOrderMessageMapper;
-use Polkurier\Shipping\Model\ResourceModel\Shipment\CollectionFactory;
-use Polkurier\Shipping\Model\Sdk\PlacementUncertainException;
 use Polkurier\Shipping\Model\Sdk\ShipmentGatewayInterface;
 use Polkurier\Shipping\Model\Sdk\Validator;
 use Polkurier\Shipping\Model\Shipment;
@@ -42,27 +39,16 @@ use Psr\Log\LoggerInterface;
  */
 readonly class Placing
 {
-    /**
-     * A shipment still "pending" after this long was interrupted mid-request; its outcome is unknown.
-     */
-    public const int PENDING_TIMEOUT_SECONDS = 120;
-
-    /**
-     * Held per order from the check for unresolved attempts until the new one is recorded.
-     */
-    private const string LOCK_PREFIX = 'polkurier_place_';
-    private const int LOCK_TIMEOUT_SECONDS = 10;
-
     public function __construct(
         private OwnOrders $ownOrders,
         private ShipmentRepositoryInterface $shipmentRepository,
         private ShipmentFactory $shipmentFactory,
-        private CollectionFactory $shipmentCollectionFactory,
+        private ShipmentFinder $finder,
         private CreateOrderMessageMapper $messageMapper,
         private ShipmentGatewayInterface $gateway,
         private MagentoShipment $magentoShipment,
         private SerializerProviderInterface $serializerProvider,
-        private LockManagerInterface $lockManager,
+        private OrderLock $orderLock,
         private ApiEventDispatcher $events,
         private ShipmentAge $age,
         private MagentoFollowUp $followUp,
@@ -93,6 +79,7 @@ readonly class Placing
      * cancelled. The order is not shipped here.
      *
      * @param int|null $magentoShipmentId the Magento shipment it's for, null for one being created
+     *
      * @throws LocalizedException when Polkurier refused the order, or did not confirm it
      */
     public function forMagentoShipment(int $orderId, ShipmentDraftInterface $draft, ?int $magentoShipmentId = null): ShipmentInterface
@@ -141,8 +128,9 @@ readonly class Placing
 
     /**
      * The point the parcels are handed over at goes only to a carrier that takes them at points,
-     * and one that takes them only there gets one: Polkurier itself doesn't check, and the
-     * carrier would refuse the shipment later. A carrier list that can't be read leaves it as it is.
+     * and only when they're dropped off there, or the carrier takes them only at points but not
+     * as dropped off; one that takes them only at points gets one, or would refuse the shipment
+     * later. A carrier list that can't be read leaves it as it is.
      *
      * @throws LocalizedException
      */
@@ -157,7 +145,11 @@ readonly class Placing
             return;
         }
         $requirement = $this->features->getSenderPointRequirement($carrier);
-        if ($requirement === PointRequirementEnum::None) {
+        $used = $requirement !== PointRequirementEnum::None && (
+            $draft->getPickupMode() === ShipmentDraftInterface::PICKUP_DROP_OFF
+            || ($requirement === PointRequirementEnum::Required && !$this->features->isDropOffAvailable($carrier))
+        );
+        if (!$used) {
             $draft->setSenderPointId(null);
         } elseif ($requirement === PointRequirementEnum::Required && $draft->getSenderPointId() === null) {
             throw new LocalizedException(\__('This carrier takes the parcels at a point: choose the drop-off point you hand them over at.'));
@@ -169,10 +161,8 @@ readonly class Placing
         $order = $this->ownOrders->get($orderId);
         // Until the pending row below is saved, a second request for the same order (a double
         // click, another tab) would find nothing unresolved and place the order again.
-        $lock = self::LOCK_PREFIX . $orderId;
-        if (!$this->lockManager->lock($lock, self::LOCK_TIMEOUT_SECONDS)) {
-            throw new LocalizedException(\__('A Polkurier order for this order is being placed right now. Wait a moment and reload.'));
-        }
+        // Held from the check for unresolved attempts until the new one is recorded.
+        $this->orderLock->lock($orderId);
         try {
             $this->assertNothingUnresolved($orderId);
             // Checked before anything is placed: the Magento shipment is made after Polkurier accepts.
@@ -239,16 +229,16 @@ readonly class Placing
                 ->setDraft($this->hydrator->toArray($draft))
                 ->setLastError(null)
                 // A new attempt: whatever the admin was told about the earlier one is past.
-                ->setData(AttentionNotifier::NOTIFIED_AT, null);
+                ->setAttentionNotifiedAt(null);
             if ($previous !== null) {
                 // Its age is this attempt's: an interrupted one is told apart by it.
-                $shipment->setData('created_at', \gmdate('Y-m-d H:i:s'));
+                $shipment->setCreatedAt($this->age->now());
             }
             // Recorded before the request goes out, so an interrupted request still leaves a trace,
             // and the next request for the order finds it.
             $this->shipmentRepository->save($shipment);
         } finally {
-            $this->lockManager->unlock($lock);
+            $this->orderLock->unlock($orderId);
         }
 
         try {
@@ -275,17 +265,20 @@ readonly class Placing
             throw $e;
         }
 
-        $this->applyCreated($created, $shipment);
-        $this->shipmentRepository->save($shipment);
-        $this->followUp->comment($order, \__(
-            'Polkurier order %1 placed with %2. Waybills: %3.',
-            $shipment->getPolkurierNumber(),
-            $this->carrierNames->get($shipment->getCarrierCode()),
-            \implode(', ', $shipment->getWaybills()) ?: (string)\__('not issued yet'),
-        ));
-        if ($shipInMagento) {
-            $this->followUp->ship($order, $shipment);
-        }
+        // Once saved as placed, a refresh or the admin may ship it in Magento too: not before this does.
+        $this->orderLock->run($orderId, function () use ($created, $shipment, $order, $shipInMagento): void {
+            $this->applyCreated($created, $shipment);
+            $this->shipmentRepository->save($shipment);
+            $this->followUp->comment($order, \__(
+                'Polkurier order %1 placed with %2. Waybills: %3.',
+                $shipment->getPolkurierNumber(),
+                $this->carrierNames->get($shipment->getCarrierCode()),
+                \implode(', ', $shipment->getWaybills()) ?: (string)\__('not issued yet'),
+            ));
+            if ($shipInMagento) {
+                $this->followUp->ship($order, $shipment);
+            }
+        });
         $this->events->dispatch(ApiEventEnum::OrderCreateAfter, $storeId, [
             'shipment' => $shipment,
             'order' => $order,
@@ -306,7 +299,7 @@ readonly class Placing
     {
         $this->logger->warning('Polkurier create_order outcome unknown', [
             'order' => $order->getIncrementId(),
-            'error' => $e->getMessage(),
+            'exception' => $e,
         ]);
         $shipment->setState(ShipmentInterface::STATE_UNKNOWN)
             ->setLastError($e->getMessage());
@@ -320,38 +313,26 @@ readonly class Placing
     }
 
     /**
-     * Refuses a new attempt while an earlier one for the same order may have succeeded unseen.
-     *
-     * @throws LocalizedException
-     */
-    /**
      * The order's latest shipment that wasn't placed.
      */
     private function notPlaced(int $orderId): ?Shipment
     {
-        $collection = $this->shipmentCollectionFactory->create()
-            ->addFieldToFilter(ShipmentInterface::ORDER_ID, ['eq' => $orderId])
-            ->addFieldToFilter(ShipmentInterface::STATE, ['eq' => ShipmentInterface::STATE_FAILED])
-            ->setOrder(ShipmentInterface::ENTITY_ID, 'DESC')
-            ->setPageSize(1);
-        foreach ($collection->getItems() as $shipment) {
-            return $shipment instanceof Shipment ? $shipment : null;
-        }
+        $shipment = $this->finder->latestForOrder($orderId, [ShipmentInterface::STATE_FAILED]);
 
-        return null;
+        return $shipment instanceof Shipment ? $shipment : null;
     }
 
+    /**
+     * Refuses a new attempt while an earlier one for the same order may have succeeded unseen.
+     *
+     * @throws LocalizedException
+     */
     private function assertNothingUnresolved(int $orderId): void
     {
-        $collection = $this->shipmentCollectionFactory->create()
-            ->addFieldToFilter(ShipmentInterface::ORDER_ID, ['eq' => $orderId])
-            ->addFieldToFilter(ShipmentInterface::STATE, [
-                'in' => [ShipmentInterface::STATE_UNKNOWN, ShipmentInterface::STATE_PENDING],
-            ]);
-        foreach ($collection->getItems() as $earlier) {
+        foreach ($this->finder->forOrder($orderId, [ShipmentInterface::STATE_UNKNOWN, ShipmentInterface::STATE_PENDING]) as $earlier) {
             if ($earlier->getState() === ShipmentInterface::STATE_PENDING
                 && $earlier->getCreatedAt() !== null
-                && !$this->age->isOlderThan($earlier, \intdiv(self::PENDING_TIMEOUT_SECONDS, 60))
+                && !$this->age->isOlderThan($earlier, ShipmentAge::ANSWER_WAIT_MINUTES)
             ) {
                 throw new LocalizedException(\__('A Polkurier order for this order is being placed right now. Wait a moment and reload.'));
             }

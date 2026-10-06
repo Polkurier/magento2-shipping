@@ -360,6 +360,7 @@ class CreateOrderMessageMapperTest extends TestCase
 
     /**
      * @param array<string, mixed> $values
+     *
      * @return array<string, mixed>
      */
     private function sorted(array $values): array

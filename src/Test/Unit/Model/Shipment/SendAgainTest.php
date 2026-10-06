@@ -7,7 +7,6 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Test\Unit\Model\Shipment;
 
-use Magento\Framework\DataObject;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\UrlInterface;
 use Magento\Sales\Model\Order;
@@ -16,11 +15,10 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Api\ShipmentRepositoryInterface;
-use Polkurier\Shipping\Model\ResourceModel\Shipment\Collection;
-use Polkurier\Shipping\Model\ResourceModel\Shipment\CollectionFactory;
 use Polkurier\Shipping\Model\Shipment\MagentoShipment;
 use Polkurier\Shipping\Model\Shipment\OwnOrders;
 use Polkurier\Shipping\Model\Shipment\SendAgain;
+use Polkurier\Shipping\Model\Shipment\ShipmentFinder;
 
 #[CoversClass(SendAgain::class)]
 #[AllowMockObjectsWithoutExpectations]
@@ -68,13 +66,10 @@ class SendAgainTest extends TestCase
      */
     private function sendAgain(int $latest, bool $canShip, array $free = [], ?OwnOrders $orders = null): SendAgain
     {
-        $collection = $this->createStub(Collection::class);
-        $collection->method('addFieldToFilter')->willReturnSelf();
-        $collection->method('setOrder')->willReturnSelf();
-        $collection->method('setPageSize')->willReturnSelf();
-        $collection->method('getFirstItem')->willReturn(new DataObject(['id' => $latest]));
-        $collections = $this->createStub(CollectionFactory::class);
-        $collections->method('create')->willReturn($collection);
+        $latestShipment = $this->createStub(ShipmentInterface::class);
+        $latestShipment->method('getId')->willReturn($latest);
+        $finder = $this->createStub(ShipmentFinder::class);
+        $finder->method('latestForOrder')->willReturn($latestShipment);
 
         $order = $this->createStub(Order::class);
         $order->method('canShip')->willReturn($canShip);
@@ -87,7 +82,7 @@ class SendAgainTest extends TestCase
 
         return new SendAgain(
             $this->createStub(ShipmentRepositoryInterface::class),
-            $collections,
+            $finder,
             $orders,
             $magentoShipment,
             $this->createStub(UrlInterface::class),

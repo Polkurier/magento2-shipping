@@ -9,7 +9,7 @@ namespace Polkurier\Shipping\Test\Unit\Api;
 
 use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\TestCase;
-use Polkurier\Shipping\Api\ApiEventEnum;
+use Polkurier\Shipping\Enum\ApiEventEnum;
 
 /**
  * Other modules observe these names in their events.xml, so changing one breaks them silently.

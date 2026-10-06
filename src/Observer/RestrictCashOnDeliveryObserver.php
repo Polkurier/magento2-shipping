@@ -18,6 +18,7 @@ use Polkurier\Shipping\Model\Carrier\Polkurier;
 use Polkurier\Shipping\Model\Config;
 use Polkurier\Shipping\Model\OrderPointStore;
 use Polkurier\Webservice\Exception\Exception as PolkurierException;
+use Psr\Log\LoggerInterface;
 
 /**
  * Hides cash-on-delivery payment when the chosen Polkurier carrier, or the chosen pickup point,
@@ -32,6 +33,7 @@ readonly class RestrictCashOnDeliveryObserver implements ObserverInterface
         private CarrierCatalog $catalog,
         private CarrierFeatures $features,
         private OrderPointStore $pointStore,
+        private LoggerInterface $logger,
     ) {}
 
     public function execute(Observer $observer): void
@@ -88,7 +90,9 @@ readonly class RestrictCashOnDeliveryObserver implements ObserverInterface
     {
         try {
             $carrier = $this->catalog->getCarrier($carrierCode);
-        } catch (PolkurierException) {
+        } catch (PolkurierException $e) {
+            $this->logger->warning('Polkurier carrier list unavailable for cash on delivery', ['exception' => $e]);
+
             return true;
         }
         $point = $this->pointStore->getForQuote((int)$quote->getId(), $quoteAddressId);

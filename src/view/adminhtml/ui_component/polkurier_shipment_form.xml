@@ -151,7 +151,6 @@
                         </item>
                     </argument>
                 </container>
-                <container name="sender_point" component="Polkurier_Shipping/js/shipment/workspace/sender-point" sortOrder="15"></container>
                 <container name="handover" component="Polkurier_Shipping/js/shipment/workspace/handover" sortOrder="20"></container>
             </container>
             <container name="recipient_section" component="Polkurier_Shipping/js/shipment/workspace/section" sortOrder="40">
@@ -453,7 +452,7 @@
         <fieldset name="recipient" sortOrder="20">
             <settings>
                 <label translate="true">Recipient</label>
-                </settings>
+            </settings>
             <field name="recipient_person" formElement="input" sortOrder="10">
                 <settings>
                     <label translate="true">Name</label>
@@ -605,6 +604,39 @@
                     <label translate="true">Paid out to</label>
                     <dataType>text</dataType>
                     <dataScope>cod_return_type</dataScope>
+                    <!-- The bank account only for cash on delivery paid out to one. -->
+                    <switcherConfig>
+                        <enabled>true</enabled>
+                        <rules>
+                            <rule name="0">
+                                <value>BA</value>
+                                <actions>
+                                    <action name="0">
+                                        <target>${ $.parentName }.cod_bank_account_id</target>
+                                        <callback>show</callback>
+                                    </action>
+                                </actions>
+                            </rule>
+                            <rule name="1">
+                                <value>MB</value>
+                                <actions>
+                                    <action name="0">
+                                        <target>${ $.parentName }.cod_bank_account_id</target>
+                                        <callback>hide</callback>
+                                    </action>
+                                </actions>
+                            </rule>
+                            <rule name="2">
+                                <value>PO</value>
+                                <actions>
+                                    <action name="0">
+                                        <target>${ $.parentName }.cod_bank_account_id</target>
+                                        <callback>hide</callback>
+                                    </action>
+                                </actions>
+                            </rule>
+                        </rules>
+                    </switcherConfig>
                 </settings>
                 <formElements>
                     <select>

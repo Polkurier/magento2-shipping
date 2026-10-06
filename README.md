@@ -15,8 +15,8 @@ Ship your Magento orders with [Polkurier](https://www.polkurier.pl).
 - Print labels and protocols, book courier pickups and follow deliveries.
 - Keep track of cash on delivery and request payouts.
 - Keep sender addresses, bank accounts and pack templates in step with your Polkurier account.
-- Works with the multi-address checkout through `polkurier/magento2-multishipping`; REST API and
-  events for integrations.
+- Works with the multi-address checkout through `polkurier/magento2-multishipping`; service
+  contracts and events for integrations.
 
 ```bash
 composer require polkurier/magento2-shipping

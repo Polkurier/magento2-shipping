@@ -37,6 +37,7 @@ readonly class DetailsView
 
     /**
      * @param string[] $errors why part of it could not be read just now
+     *
      * @return array<string, mixed>
      */
     public function build(ShipmentInterface $shipment, array $errors = []): array
@@ -96,6 +97,7 @@ readonly class DetailsView
 
     /**
      * @param array<string, mixed> $details
+     *
      * @return array<int, array<string, string>>
      */
     private function orderRows(ShipmentInterface $shipment, array $details): array
@@ -119,6 +121,7 @@ readonly class DetailsView
 
     /**
      * @param array<string, mixed> $details
+     *
      * @return array<int, array<string, string>>
      */
     private function deliveryRows(ShipmentInterface $shipment, array $details): array
@@ -141,6 +144,7 @@ readonly class DetailsView
 
     /**
      * @param array<string, mixed>|null $address
+     *
      * @return array<int, array<string, string>>
      */
     private function addressRows(?array $address): array
@@ -162,6 +166,7 @@ readonly class DetailsView
 
     /**
      * @param array<string, mixed> $details
+     *
      * @return array<int, array<string, string>>
      */
     private function serviceRows(array $details): array
@@ -191,6 +196,7 @@ readonly class DetailsView
 
     /**
      * @param array<string, mixed> $details
+     *
      * @return array<int, array<string, string>>
      */
     private function pickupRows(ShipmentInterface $shipment, array $details): array
@@ -216,6 +222,7 @@ readonly class DetailsView
     /**
      * @param array<string, mixed> $details
      * @param array<int, array<string, mixed>> $products
+     *
      * @return array<string, mixed>
      */
     private function packsTable(array $details, ShipmentInterface $shipment, array $products): array
@@ -266,6 +273,7 @@ readonly class DetailsView
      * What the Polkurier order shipped of the order, as it was sent.
      *
      * @param array<int, array<string, mixed>> $products
+     *
      * @return array<string, mixed>
      */
     private function itemsTable(ShipmentInterface $shipment, array $products): array
@@ -324,6 +332,7 @@ readonly class DetailsView
 
     /**
      * @param array<string, mixed> $details
+     *
      * @return array<string, mixed>
      */
     private function costTable(array $details): array

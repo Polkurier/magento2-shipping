@@ -27,6 +27,7 @@ use Polkurier\Shipping\Model\Shipment\ActualShipping;
 use Polkurier\Shipping\Model\Shipment\Details\SentOrder;
 use Polkurier\Shipping\Model\Shipment\MagentoShipment;
 use Polkurier\Shipping\Model\Shipment\ScreenContext;
+use Polkurier\Shipping\Model\Shipment\ShipmentFinder;
 use Polkurier\Shipping\Model\ShippingChoice;
 use Polkurier\Shipping\Model\ShippingChoiceStore;
 use Polkurier\Webservice\Response\CourierPoint;
@@ -165,7 +166,7 @@ class ActualShippingTest extends TestCase
 
         return new ActualShipping(
             $orders,
-            $collections,
+            new ShipmentFinder($collections),
             $choices,
             $points,
             $sentOrder,

@@ -29,6 +29,12 @@
             </div>
         </div>
         <!-- /ko -->
+        <!-- ko if: value === 'drop_off' && $parent.pointShown() -->
+        <!-- ko template: {name: 'Polkurier_Shipping/shipment/workspace/drop-off-point', data: $parent} --><!-- /ko -->
+        <!-- /ko -->
     </div>
+    <!-- /ko -->
+    <!-- ko if: pointAlone -->
+    <!-- ko template: {name: 'Polkurier_Shipping/shipment/workspace/drop-off-point', data: $data} --><!-- /ko -->
     <!-- /ko -->
 </div>

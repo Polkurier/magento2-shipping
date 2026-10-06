@@ -10,6 +10,9 @@ namespace Polkurier\Shipping\Model\SearchResults;
 use Magento\Framework\Api\SearchResults;
 use Polkurier\Shipping\Api\Data\ShipmentSearchResultsInterface;
 
+/**
+ * The Polkurier shipments found by search criteria.
+ */
 class ShipmentSearchResults extends SearchResults implements ShipmentSearchResultsInterface
 {
 }

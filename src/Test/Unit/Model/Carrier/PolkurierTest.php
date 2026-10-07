@@ -12,6 +12,7 @@ use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\App\State;
 use Magento\Framework\Encryption\EncryptorInterface;
 use Magento\Framework\Pricing\PriceCurrencyInterface;
+use Magento\Framework\Serialize\Serializer\Json;
 use Magento\Quote\Model\Quote\Address\RateRequest;
 use Magento\Quote\Model\Quote\Address\RateResult\ErrorFactory;
 use Magento\Quote\Model\Quote\Address\RateResult\Method;
@@ -25,23 +26,24 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use Polkurier\Shipping\Api\Data\CarrierConfigInterface;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Model\Cache\Type as PolkurierCache;
-use Polkurier\Shipping\Model\Carrier\AvailableCarriers;
+use Polkurier\Shipping\Model\Carrier\AvailableCarrierFilter;
 use Polkurier\Shipping\Model\Carrier\CarrierCatalog;
-use Polkurier\Shipping\Model\Carrier\CarrierConfigs;
-use Polkurier\Shipping\Model\Carrier\CarrierFeatures;
+use Polkurier\Shipping\Model\Carrier\CarrierFeatureResolver;
 use Polkurier\Shipping\Model\Carrier\Polkurier;
+use Polkurier\Shipping\Model\Carrier\Pricing\FixedPriceCalculator;
+use Polkurier\Shipping\Model\Carrier\Pricing\PriceCalculatorPool;
+use Polkurier\Shipping\Model\Carrier\Pricing\TieredPriceCalculator;
 use Polkurier\Shipping\Model\Carrier\RateCollector;
-use Polkurier\Shipping\Model\Checkout\MapTokenProvider;
-use Polkurier\Shipping\Model\Config;
-use Polkurier\Shipping\Model\ErrorMessages;
-use Polkurier\Shipping\Model\Pricing\CartValue;
-use Polkurier\Shipping\Model\Pricing\Fixed;
-use Polkurier\Shipping\Model\Pricing\PriceCalculatorPool;
-use Polkurier\Shipping\Model\Pricing\Tiers;
-use Polkurier\Shipping\Model\Sdk\AccountCacheKey;
-use Polkurier\Shipping\Model\Shipment\NativeLabel;
-use Polkurier\Shipping\Model\Shipment\TrackingLookup;
-use Polkurier\Shipping\Model\StoreWeightUnit;
+use Polkurier\Shipping\Model\Carrier\WeightUnitConverter;
+use Polkurier\Shipping\Model\CarrierConfig\CarrierConfigProvider;
+use Polkurier\Shipping\Model\Config\ConfigProvider;
+use Polkurier\Shipping\Model\Config\Source\PackType;
+use Polkurier\Shipping\Model\PickupPoint\MapTokenProvider;
+use Polkurier\Shipping\Model\Sdk\AccountCache;
+use Polkurier\Shipping\Model\Sdk\ErrorMessageResolver;
+use Polkurier\Shipping\Model\Shipment\Native\NativeLabelService;
+use Polkurier\Shipping\Model\Shipment\ShipmentFinder;
+use Polkurier\Shipping\Test\Unit\Support\MagentoMeasures;
 use Polkurier\Shipping\Test\Unit\Support\SdkTestCase;
 use Polkurier\Webservice\Exception\ConnectionException;
 use Polkurier\Webservice\Testing\RecordingClient;
@@ -50,7 +52,7 @@ use Psr\Log\NullLogger;
 #[CoversClass(Polkurier::class)]
 #[CoversClass(RateCollector::class)]
 #[CoversClass(CarrierCatalog::class)]
-#[CoversClass(CarrierFeatures::class)]
+#[CoversClass(CarrierFeatureResolver::class)]
 class PolkurierTest extends SdkTestCase
 {
     private RecordingClient $http;
@@ -58,7 +60,13 @@ class PolkurierTest extends SdkTestCase
     private string $weightUnit = 'kgs';
     private string $dpdModel = 'TIER_SUBTOTAL';
     private string $area = 'frontend';
-    private ?TrackingLookup $tracking = null;
+
+    /**
+     * Shipments by waybill.
+     *
+     * @var array<string, ShipmentInterface>
+     */
+    private array $waybills = [];
 
     /**
      * The map token Polkurier gives, or its failure.
@@ -72,11 +80,6 @@ class PolkurierTest extends SdkTestCase
         ['subtotal_from' => 0, 'price' => 14.99],
         ['subtotal_from' => 250, 'price' => 0],
     ];
-
-    protected function setUp(): void
-    {
-        $this->http = new RecordingClient(self::fixture('available_carriers.json'));
-    }
 
     public function testOffersTheMerchantsCarriersAtTheMerchantsPrices(): void
     {
@@ -130,7 +133,10 @@ class PolkurierTest extends SdkTestCase
         $this->dpdModel = 'TIER_WEIGHT';
 
         // 10 lb are 4.5 kg: still the first tier.
-        self::assertSame(['INPOST_PACZKOMAT' => 12.99, 'DPD' => 14.99], $this->rates($this->request('PL', 120.0, 10.0)));
+        self::assertSame(
+            ['INPOST_PACZKOMAT' => 12.99, 'DPD' => 14.99],
+            $this->rates($this->request('PL', 120.0, 10.0)),
+        );
     }
 
     public function testCarrierTheAccountNoLongerOffersIsHidden(): void
@@ -171,9 +177,9 @@ class PolkurierTest extends SdkTestCase
     {
         $shipment = $this->createStub(ShipmentInterface::class);
         $shipment->method('getTrackingUrl')->willReturn('https://track.example/WB-1');
-        $this->tracking = $this->createStub(TrackingLookup::class);
-        $this->tracking->method('findByWaybill')->willReturnCallback(static fn(string $waybill): ?ShipmentInterface => $waybill === 'WB-1' ? $shipment : null);
-        $this->tracking->method('getMethodLabel')->willReturn('Kurier DPD');
+        $shipment->method('getCarrierCode')->willReturn('DPD');
+        $shipment->method('getStoreId')->willReturn(1);
+        $this->waybills = ['WB-1' => $shipment];
 
         $known = $this->carrier()->getTrackingInfo('WB-1');
         $unknown = $this->carrier()->getTrackingInfo('WB-9');
@@ -184,7 +190,11 @@ class PolkurierTest extends SdkTestCase
             $known->getData('tracking'),
             $known->getData('url'),
         ]);
-        self::assertSame(['', ''], [$unknown->getData('carrier_title'), $unknown->getData('url')], 'Nothing names Polkurier to the customer.');
+        self::assertSame(
+            ['', ''],
+            [$unknown->getData('carrier_title'), $unknown->getData('url')],
+            'Nothing names Polkurier to the customer.',
+        );
     }
 
     public function testInactiveCarrierOffersNothing(): void
@@ -193,6 +203,11 @@ class PolkurierTest extends SdkTestCase
 
         self::assertFalse($this->carrier()->collectRates($this->request('PL', 120.0, 2.0)));
         self::assertSame(0, $this->http->requestCount());
+    }
+
+    protected function setUp(): void
+    {
+        $this->http = new RecordingClient(self::fixture('available_carriers.json'));
     }
 
     /**
@@ -226,7 +241,8 @@ class PolkurierTest extends SdkTestCase
     private function carrier(): Polkurier
     {
         $scopeConfig = $this->createStub(ScopeConfigInterface::class);
-        $scopeConfig->method('isSetFlag')->willReturnCallback(fn(string $path): bool => $path === 'carriers/polkurier/active' && $this->active);
+        $scopeConfig->method('isSetFlag')
+            ->willReturnCallback(fn(string $path): bool => $path === 'carriers/polkurier/active' && $this->active);
         $scopeConfig->method('getValue')->willReturnCallback(
             fn(string $path): mixed => match ($path) {
                 'carriers/polkurier/active' => $this->active ? '1' : '0',
@@ -236,21 +252,23 @@ class PolkurierTest extends SdkTestCase
             },
         );
 
-        $configs = $this->createStub(CarrierConfigs::class);
+        $configs = $this->createStub(CarrierConfigProvider::class);
         $configs->method('getActive')->willReturn([
             'INPOST_PACZKOMAT' => $this->config('INPOST_PACZKOMAT', 'Paczkomat', 'FIXED', ['price' => 12.99]),
             'DPD' => $this->config('DPD', 'Kurier DPD', $this->dpdModel, ['tiers' => $this->dpdTiers]),
         ]);
+        $configs->method('getLabel')
+            ->willReturnCallback(static fn(string $code): ?string => $code === 'DPD' ? 'Kurier DPD' : null);
 
         $cache = $this->createStub(PolkurierCache::class);
         $cache->method('load')->willReturn(false);
-        $config = new Config($scopeConfig, $this->createStub(EncryptorInterface::class));
+        $config = new ConfigProvider($scopeConfig, $this->createStub(EncryptorInterface::class));
         $catalog = new CarrierCatalog(
             $this->clientPool($this->http),
             $cache,
-            new ErrorMessages(),
-            new AvailableCarriers($config),
-            new AccountCacheKey($config),
+            new ErrorMessageResolver(),
+            new AvailableCarrierFilter($config),
+            new AccountCache($this->createStub(PolkurierCache::class), new Json(), $config),
         );
 
         $resultFactory = $this->createStub(ResultFactory::class);
@@ -278,18 +296,23 @@ class PolkurierTest extends SdkTestCase
             $methodFactory,
             $configs,
             $catalog,
-            new CarrierFeatures(),
+            new CarrierFeatureResolver(),
             new PriceCalculatorPool([
-                'FIXED' => new Fixed(),
-                'TIER_SUBTOTAL' => new Tiers(true, false),
-                'TIER_WEIGHT' => new Tiers(false, true),
+                'FIXED' => new FixedPriceCalculator(),
+                'TIER_SUBTOTAL' => new TieredPriceCalculator(true, false),
+                'TIER_WEIGHT' => new TieredPriceCalculator(false, true),
             ]),
-            new StoreWeightUnit($scopeConfig),
+            new WeightUnitConverter($scopeConfig, MagentoMeasures::carrierHelper()),
             new NullLogger(),
             $tokens,
             $appState,
-            new CartValue($config, $scopeConfig),
+            $config,
+            $scopeConfig,
         );
+
+        $finder = $this->createStub(ShipmentFinder::class);
+        $finder->method('latestByWaybill')
+            ->willReturnCallback(fn(string $waybill): ?ShipmentInterface => $this->waybills[$waybill] ?? null);
 
         $statuses = $this->createStub(StatusFactory::class);
         $statuses->method('create')->willReturnCallback(static fn(): Status => new Status());
@@ -300,9 +323,11 @@ class PolkurierTest extends SdkTestCase
             new NullLogger(),
             $rateCollector,
             $statuses,
-            $this->tracking ?? $this->createStub(TrackingLookup::class),
+            $finder,
+            $configs,
             $this->createStub(StoreManagerInterface::class),
-            $this->createStub(NativeLabel::class),
+            $this->createStub(NativeLabelService::class),
+            new PackType(),
         );
     }
 

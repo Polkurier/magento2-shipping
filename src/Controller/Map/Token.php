@@ -10,7 +10,7 @@ namespace Polkurier\Shipping\Controller\Map;
 use Magento\Framework\App\Action\HttpGetActionInterface;
 use Magento\Framework\Controller\Result\Json;
 use Magento\Framework\Controller\Result\JsonFactory;
-use Polkurier\Shipping\Model\Checkout\MapTokenProvider;
+use Polkurier\Shipping\Model\PickupPoint\MapTokenProvider;
 use Polkurier\Webservice\Exception\Exception as PolkurierException;
 use Psr\Log\LoggerInterface;
 

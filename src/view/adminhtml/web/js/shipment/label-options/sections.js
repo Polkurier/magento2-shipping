@@ -88,7 +88,12 @@ define(['mage/translate', 'Polkurier_Shipping/js/shipment/workspace/rules'], fun
                 {name: 'new_sender_flat_number', label: $t('Flat number'), type: 'text'},
                 {name: 'new_sender_postcode', label: $t('Postcode'), type: 'text'},
                 {name: 'new_sender_city', label: $t('City'), type: 'text'},
-                {name: 'new_sender_country', label: $t('Country'), type: 'text', note: $t('Its two-letter code; PL if left empty.')},
+                {
+                    name: 'new_sender_country',
+                    label: $t('Country'),
+                    type: 'text',
+                    note: $t('Its two-letter code; PL if left empty.')
+                },
                 {name: 'new_sender_phone', label: $t('Phone'), type: 'tel'},
                 {name: 'new_sender_email', label: $t('E-mail'), type: 'email'}
             ].map(function (field) {
@@ -147,7 +152,13 @@ define(['mage/translate', 'Polkurier_Shipping/js/shipment/workspace/rules'], fun
                     return filled(values.description) ? values.description : $t('None');
                 },
                 fields: [
-                    {name: 'description', label: $t('Description'), type: 'text', maxlength: 30, note: $t('Printed on the label; up to 30 characters. It starts as the order number, as the shipment description format in the configuration says.')}
+                    {
+                        name: 'description',
+                        label: $t('Description'),
+                        type: 'text',
+                        maxlength: 30,
+                        note: $t('Printed on the label; up to 30 characters. It starts as the order number, as the shipment description format in the configuration says.')
+                    }
                 ]
             },
             {
@@ -159,7 +170,9 @@ define(['mage/translate', 'Polkurier_Shipping/js/shipment/workspace/rules'], fun
                     if (values.sender_address_id !== 'new') {
                         return label('sender_address_id', values.sender_address_id || '');
                     }
-                    const number = [values.new_sender_house_number, values.new_sender_flat_number].filter(filled).join('/'),
+                    const number = [values.new_sender_house_number, values.new_sender_flat_number]
+                            .filter(filled)
+                            .join('/'),
                         address = [
                             values.new_sender_company || values.new_sender_person,
                             [values.new_sender_street, number].filter(filled).join(' '),
@@ -168,13 +181,20 @@ define(['mage/translate', 'Polkurier_Shipping/js/shipment/workspace/rules'], fun
 
                     return [
                         address || $t('A new address'),
-                        kept('keep_new_sender') ? $t('saved to your addresses once placed') : $t('for this shipment only')
+                        kept('keep_new_sender')
+                            ? $t('saved to your addresses once placed')
+                            : $t('for this shipment only')
                     ].join(' · ');
                 },
                 fields: [
                     {name: 'sender_address_id', label: $t('Sender'), type: 'select'}
                 ].concat(newSenderFields(), [
-                    {name: 'keep_new_sender', label: $t('Save to your addresses for later shipments'), type: 'checkbox', shownFor: typingIn('sender_address_id')},
+                    {
+                        name: 'keep_new_sender',
+                        label: $t('Save to your addresses for later shipments'),
+                        type: 'checkbox',
+                        shownFor: typingIn('sender_address_id')
+                    },
                     {
                         name: 'new_sender_name',
                         label: $t('Saved as'),
@@ -217,7 +237,13 @@ define(['mage/translate', 'Polkurier_Shipping/js/shipment/workspace/rules'], fun
                         }
                     },
                     // The dates and windows Polkurier offers for the carrier.
-                    {name: 'pickup_slot', label: $t('Collection date'), type: 'pickup', visible: pickupDateVisible, shownFor: courierPickup},
+                    {
+                        name: 'pickup_slot',
+                        label: $t('Collection date'),
+                        type: 'pickup',
+                        visible: pickupDateVisible,
+                        shownFor: courierPickup
+                    },
                     {
                         name: 'sender_point_id',
                         label: $t('Drop-off point'),
@@ -275,10 +301,14 @@ define(['mage/translate', 'Polkurier_Shipping/js/shipment/workspace/rules'], fun
                         label('cod_type', values.cod_type),
                         values.cod_return_type !== 'BA' ? label('cod_return_type', values.cod_return_type) : '',
                         values.cod_return_type !== 'BA' ? '' : values.cod_bank_account_id === 'new'
-                            ? [values.new_bank_account_number || $t('A new bank account'),
-                                kept('keep_new_bank_account') ? $t('saved to your bank accounts once placed') : ''].filter(filled).join(', ')
+                            ? [
+                                values.new_bank_account_number || $t('A new bank account'),
+                                kept('keep_new_bank_account') ? $t('saved to your bank accounts once placed') : ''
+                            ].filter(filled).join(', ')
                             : label('cod_bank_account_id', values.cod_bank_account_id),
-                        state.codTooHigh() ? $t('more than the %1 left to collect').replace('%1', money(config.codRemaining)) : ''
+                        state.codTooHigh()
+                            ? $t('more than the %1 left to collect').replace('%1', money(config.codRemaining))
+                            : ''
                     ].filter(Boolean).join(' · ');
                 },
                 // Asked for again after the cash on delivery changes: insurance may have to follow.
@@ -288,7 +318,12 @@ define(['mage/translate', 'Polkurier_Shipping/js/shipment/workspace/rules'], fun
                     {name: 'cod_type', label: $t('Payout time'), type: 'select'},
                     {name: 'cod_return_type', label: $t('Paid out to'), type: 'select'},
                     {name: 'cod_bank_account_id', label: $t('Bank account'), type: 'select', shownFor: toBankAccount},
-                    {name: 'new_bank_account_number', label: $t('Account number'), type: 'text', shownFor: bankAccountTypedIn},
+                    {
+                        name: 'new_bank_account_number',
+                        label: $t('Account number'),
+                        type: 'text',
+                        shownFor: bankAccountTypedIn
+                    },
                     {
                         name: 'keep_new_bank_account',
                         label: $t('Save to your bank accounts for later shipments'),
@@ -340,7 +375,10 @@ define(['mage/translate', 'Polkurier_Shipping/js/shipment/workspace/rules'], fun
                         parts.push(label('services', service));
                     });
                     if (filled(values.cover_address_id)) {
-                        parts.push($t('sender on the label: %1').replace('%1', label('cover_address_id', values.cover_address_id)));
+                        parts.push(
+                            $t('sender on the label: %1')
+                                .replace('%1', label('cover_address_id', values.cover_address_id))
+                        );
                     }
 
                     return parts.length ? parts.join(' · ') : $t('None');
@@ -361,7 +399,8 @@ define(['mage/translate', 'Polkurier_Shipping/js/shipment/workspace/rules'], fun
                         label: $t('Another sender on the label'),
                         type: 'select',
                         visible: function () {
-                            return state.anyCarrierOffers('COVER_ADDRESS_SENDER') && (config.options.cover_address_id || []).length > 1;
+                            return state.anyCarrierOffers('COVER_ADDRESS_SENDER')
+                                && (config.options.cover_address_id || []).length > 1;
                         }
                     }
                 ]

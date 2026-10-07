@@ -10,10 +10,10 @@ namespace Polkurier\Shipping\Test\Unit\Cron;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Polkurier\Shipping\Cron\ReconcileShipmentsTask;
-use Polkurier\Shipping\Model\Admin\AttentionNotifier;
-use Polkurier\Shipping\Model\Config;
-use Polkurier\Shipping\Model\Shipment\AutoReconciler;
-use Polkurier\Shipping\Model\Shipment\NotPlaced;
+use Polkurier\Shipping\Model\Config\ConfigProvider;
+use Polkurier\Shipping\Model\Shipment\AttentionNotifier;
+use Polkurier\Shipping\Model\Shipment\Placement\FailedShipmentManager;
+use Polkurier\Shipping\Model\Shipment\Status\ReconciliationService;
 
 #[CoversClass(ReconcileShipmentsTask::class)]
 class ReconcileShipmentsTaskTest extends TestCase
@@ -50,8 +50,8 @@ class ReconcileShipmentsTaskTest extends TestCase
 
     private function task(bool $credentials, ?\Throwable $failure = null): ReconcileShipmentsTask
     {
-        $reconciler = $this->createStub(AutoReconciler::class);
-        $reconciler->method('run')->willReturnCallback(function () use ($failure): int {
+        $reconciler = $this->createStub(ReconciliationService::class);
+        $reconciler->method('reconcilePending')->willReturnCallback(function () use ($failure): int {
             $this->ran[] = 'reconcile';
             if ($failure !== null) {
                 throw $failure;
@@ -59,21 +59,21 @@ class ReconcileShipmentsTaskTest extends TestCase
 
             return 0;
         });
-        $config = $this->createStub(Config::class);
+        $config = $this->createStub(ConfigProvider::class);
         $config->method('hasCredentials')->willReturn($credentials);
-        $notPlaced = $this->createStub(NotPlaced::class);
-        $notPlaced->method('expire')->willReturnCallback(function (): int {
+        $failedShipmentManager = $this->createStub(FailedShipmentManager::class);
+        $failedShipmentManager->method('expire')->willReturnCallback(function (): int {
             $this->ran[] = 'expire';
 
             return 0;
         });
-        $attention = $this->createStub(AttentionNotifier::class);
-        $attention->method('notify')->willReturnCallback(function (): int {
+        $attentionNotifier = $this->createStub(AttentionNotifier::class);
+        $attentionNotifier->method('notify')->willReturnCallback(function (): int {
             $this->ran[] = 'notify';
 
             return 0;
         });
 
-        return new ReconcileShipmentsTask($reconciler, $config, $notPlaced, $attention);
+        return new ReconcileShipmentsTask($reconciler, $config, $failedShipmentManager, $attentionNotifier);
     }
 }

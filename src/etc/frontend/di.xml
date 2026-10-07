@@ -8,7 +8,7 @@
     <type name="Magento\Checkout\Model\CompositeConfigProvider">
         <arguments>
             <argument name="configProviders" xsi:type="array">
-                <item name="polkurier_map" xsi:type="object">Polkurier\Shipping\Model\Checkout\MapConfigProvider</item>
+                <item name="polkurier_map" xsi:type="object">Polkurier\Shipping\Model\PickupPoint\MapConfigProvider</item>
             </argument>
         </arguments>
     </type>

@@ -38,12 +38,12 @@ test configuration and doesn't affect the results.
 ## What's covered
 
 The parts where a mistake costs money or data have the most tests: placing, reconciliation and
-duplicates (`ShipmentManagementTest`, `AutoReconcilerTest`), when a shipment counts as finished
-(`OrderSnapshotTest`), the status refresh (`StatusRefresherTest`), Magento's label flow
-(`NativeLabelTest`, `PrepareLabelledShipmentTest`), the sync engine and bank account confirmation
+duplicates (`ShipmentManagementTest`, `ReconciliationServiceBatchTest`), when a shipment counts as finished
+(`RemoteOrderApplierTest`), the status refresh (`StatusRefreshServiceBatchTest`), Magento's label flow
+(`NativeLabelServiceTest`, `PrepareLabelledShipmentTest`), the sync engine and bank account confirmation
 (`SyncEngineTest`, `PublisherTest`, `BankAccountHandlerTest`), labels, protocols and collective
-pickups (`DocumentsTest`, `PickupsTest`), the admin actions that place, pack and save
-(`ShipmentActionsTest`, `MasterDataActionsTest`, `RedirectingActionsTest`), payload mapping (`CreateOrderMessageMapperTest`,
+pickups (`DocumentServiceTest`, `PickupServiceTest`), the admin actions that place, pack and save
+(`ShipmentActionsTest`, `SyncableEntityActionsTest`, `RedirectingActionsTest`), payload mapping (`CreateOrderMessageMapperTest`,
 `AddressBookMapperTest`, `StreetParserTest`), pricing (`TiersTest`, `PolkurierTest`) and secret
 masking (`TokenRedactingProcessorTest`). The multi-address checkout's tests are in the bridge
 module, `polkurier/magento2-multishipping`.
@@ -51,15 +51,15 @@ module, `polkurier/magento2-multishipping`.
 Around them: the checkout and order observers (cash on delivery per carrier, point and address,
 point validation and copying, the order's shipping following its Polkurier orders), the scheduled
 jobs, the carrier refresh, the status webhook (`StatusWebhookTest`: signature, matching, refusals),
-cancelling, refreshing and linking by hand (`CancellationTest`, `StatusRefreshTest`,
-`ReconciliationTest`), the grid columns and the admin buttons' scripts (`OnClickTest`), and two
+cancelling, refreshing and linking by hand (`CancellationServiceTest`, `StatusRefreshServiceTest`,
+`ReconciliationServiceTest`), the grid columns and the admin buttons' scripts (`OnClickTest`), and two
 sweeps over the code itself: `ConfigTest` reads every setting and checks it against the scopes
 the configuration page offers, and `AdminActionsAclTest` checks every admin action declares its
 own ACL resource, one that exists.
 
 A few controller tests cover a group of actions rather than one class, named for what they share:
-`ShipmentActionsTest`, `FollowingShipmentsActionsTest`, `MasterDataActionsTest`,
-`RedirectingActionsTest` and `MasterDataAclTest`.
+`ShipmentActionsTest`, `FollowingShipmentsActionsTest`, `SyncableEntityActionsTest`,
+`RedirectingActionsTest` and `SyncableEntityAclTest`.
 
 When you extend the module, the same helpers work for your own tests: build the module's services
-with a `RecordingClient`-backed `ClientPool` and assert on the payload.
+with a `RecordingClient`-backed `PolkurierClient` and assert on the payload.

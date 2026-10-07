@@ -8,6 +8,7 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Model\ResourceModel\CarrierConfig;
 
 use Magento\Framework\Model\ResourceModel\Db\Collection\AbstractCollection;
+use Polkurier\Shipping\Api\Data\CarrierConfigInterface;
 use Polkurier\Shipping\Model\CarrierConfig as Model;
 use Polkurier\Shipping\Model\ResourceModel\CarrierConfig as ResourceModel;
 
@@ -19,7 +20,18 @@ class Collection extends AbstractCollection
     /**
      * @var string
      */
-    protected $_idFieldName = 'config_id';
+    protected $_idFieldName = CarrierConfigInterface::FIELD_CONFIG_ID;
+
+    /**
+     * @return Model[]
+     */
+    public function getItems(): array
+    {
+        /** @var Model[] $items */
+        $items = parent::getItems();
+
+        return $items;
+    }
 
     protected function _construct(): void
     {
@@ -42,16 +54,5 @@ class Collection extends AbstractCollection
         }
 
         return $this;
-    }
-
-    /**
-     * @return Model[]
-     */
-    public function getItems(): array
-    {
-        /** @var Model[] $items */
-        $items = parent::getItems();
-
-        return $items;
     }
 }

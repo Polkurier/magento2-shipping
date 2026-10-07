@@ -8,8 +8,9 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Controller\Adminhtml\Address;
 
 use Magento\Backend\App\Action\Context;
-use Polkurier\Shipping\Controller\Adminhtml\MasterData\AbstractEdit;
-use Polkurier\Shipping\Model\Admin\AddressHandler;
+use Polkurier\Shipping\Controller\Adminhtml\AbstractEdit;
+use Polkurier\Shipping\Model\Address\AddressHandler;
+use Polkurier\Shipping\Model\Admin\FlashMessageCollectorFactory;
 
 /**
  * The form of a new or existing sender address.
@@ -18,8 +19,11 @@ class Edit extends AbstractEdit
 {
     public const string ADMIN_RESOURCE = 'Polkurier_Shipping::addresses';
 
-    public function __construct(Context $context, AddressHandler $handler)
-    {
-        parent::__construct($context, $handler);
+    public function __construct(
+        Context $context,
+        AddressHandler $handler,
+        FlashMessageCollectorFactory $flashMessageCollectorFactory,
+    ) {
+        parent::__construct($context, $handler, $flashMessageCollectorFactory);
     }
 }

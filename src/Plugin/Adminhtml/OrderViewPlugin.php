@@ -10,7 +10,7 @@ namespace Polkurier\Shipping\Plugin\Adminhtml;
 use Magento\Framework\AuthorizationInterface;
 use Magento\Sales\Block\Adminhtml\Order\View;
 use Polkurier\Shipping\Model\Carrier\Polkurier;
-use Polkurier\Shipping\Model\Config;
+use Polkurier\Shipping\Model\Config\ConfigProvider;
 
 /**
  * Opens the Polkurier shipment screen from the page of an order placed with a Polkurier method,
@@ -26,7 +26,7 @@ readonly class OrderViewPlugin
 {
     public function __construct(
         private AuthorizationInterface $authorization,
-        private Config $config,
+        private ConfigProvider $configProvider,
     ) {}
 
     /**
@@ -50,17 +50,17 @@ readonly class OrderViewPlugin
             return [$layout];
         }
         $storeId = (int)$order->getStoreId();
-        if (!$this->config->isShipmentScreenEnabled($storeId)) {
+        if (!$this->configProvider->isShipmentScreenEnabled($storeId)) {
             return [$layout];
         }
         $url = $subject->getUrl('polkurier/shipment/create', ['order_id' => $order->getId()]);
 
-        if (!$this->config->isNativeLabelsEnabled($storeId)) {
+        if (!$this->configProvider->isNativeLabelsEnabled($storeId)) {
             $subject->updateButton('order_ship', 'onclick', \sprintf("setLocation('%s')", $url));
         } else {
             // Placed next to Magento's "Ship" by ShipButtonPositionPlugin.
             $subject->addButton(ShipButtonPositionPlugin::BUTTON, [
-                'label' => \__('Ship with Polkurier'),
+                'label' => __('Ship with Polkurier'),
                 'onclick' => \sprintf("setLocation('%s')", $url),
                 'class' => 'ship',
             ]);

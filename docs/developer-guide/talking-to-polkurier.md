@@ -17,15 +17,15 @@ The module works with one Polkurier account for the whole installation, and an S
 its configuration once, when it's constructed. Injecting a service directly into a class would
 build it with whatever credentials were saved at the time, and keep them after they change.
 
-`Model\Sdk\ClientPool` solves this. It builds one SDK client for the account when it's first
+`Model\Sdk\PolkurierClient` solves this. It builds one SDK client for the account when it's first
 needed, keeps it for the request, and hands out its services:
 
 ```php
-public function __construct(private readonly ClientPool $clientPool) {}
+public function __construct(private readonly PolkurierClient $client) {}
 
 public function execute(): void
 {
-    $carriers = $this->clientPool->courier()->availableCarriers();
+    $carriers = $this->client->courier()->availableCarriers();
 }
 ```
 
@@ -42,11 +42,11 @@ public function execute(): void
 | `system()` | service information, the carriers' current notices, coupon validation |
 | `twoFactorToken()` | sending two-factor codes |
 
-The methods take no store: every store uses the same account. `ClientPool::reset()` drops the
+The methods take no store: every store uses the same account. `PolkurierClient::reset()` drops the
 cached client, so the next call builds it again; `Observer\CredentialsChangedObserver` calls it when the
 configuration is saved.
 
-The pool builds the SDK through Magento's generated factories. Its configuration comes from
+The client builds the SDK through Magento's generated factories. Its configuration comes from
 `Model\Sdk\AccountConfigProvider`, the SDK's `ConfigProviderInterface`, which reads the account
 settings from the default scope. The serializer and validator are preferences in `etc/di.xml`
 (`Model\Sdk\SerializerProvider`, `Model\Sdk\Validator`).
@@ -54,10 +54,10 @@ settings from the default scope. The serializer and validator are preferences in
 ## The shipment gateway
 
 The shipment side of the module (placing, cancelling, reconciling, statuses, labels and protocols,
-prices, collection times and collective pickups) doesn't use the pool directly. It goes through
-`Model\Sdk\ShipmentGatewayInterface` (implemented by `Model\Sdk\ShipmentGateway`), which sends
-the SDK's request message and returns its answer, but lets no SDK exception through: a refusal or
-failure becomes a `LocalizedException` with the reason described.
+prices, collection times and collective pickups) doesn't use the client directly. It goes through
+`Model\Sdk\ShipmentGateway`, which sends the SDK's request message and returns its answer, but
+lets no SDK exception through: a refusal or failure becomes a `LocalizedException` with the reason
+described.
 
 Placing an order is the one call where a failure may hide a success. When the request may have
 arrived but no answer came back (a timeout while waiting, a dropped connection), the answer can't
@@ -67,7 +67,7 @@ for reconciliation rather than failed. A refusal for a stated reason (the parcel
 carrier's terms, the account's funds) and a connection that failed before the request went out (no
 host, no connection, no TLS handshake, a timeout while connecting) fail the shipment at once, so it
 can be corrected and sent again. The rest of the module (checkout, synchronization, cash on
-delivery) uses the pool and handles the SDK's exceptions as below.
+delivery) uses the client and handles the SDK's exceptions as below.
 
 ## Caching
 
@@ -84,13 +84,13 @@ others:
   narrows them to the *Available carriers* of the configuration, and everything that offers
   carriers uses it; only the refresh of the carrier settings and the *Available carriers* field
   itself use `getAccountCarriers()`, the whole list. The rule itself (nothing selected means all)
-  is `Model\Carrier\AvailableCarriers`, which also narrows `CarrierConfigs::getActive()` and the
+  is `Model\Carrier\AvailableCarrierFilter`, which also narrows `CarrierConfigProvider::getActive()` and the
   admin's carriers list: checkout offers domestic carriers from their settings when the list
   can't be read, so the settings need it too;
-- `Model\Checkout\MapTokenProvider`: the token the pickup point map needs, kept a little less
+- `Model\PickupPoint\MapTokenProvider`: the token the pickup point map needs, kept a little less
   long than it's valid. A failed or empty answer is kept for 90 seconds, since checkout asks for
   the token with every rate estimate.
-- `Model\Carrier\CarrierNotices`: the carriers' notices shown on the shipment screen.
+- `Model\Carrier\CarrierNoticeProvider`: the carriers' notices shown on the shipment screen.
 - `Model\Sdk\AccountCache`: small answers about the account asked for when an admin page opens,
   such as whether bank account changes need the PIN (15 minutes). The money box settings on the
   payout form are always read live, since they fill in where the money goes.
@@ -113,7 +113,7 @@ day (`POINT_LIFETIME`), since a point hardly ever moves or closes; an id with no
 remembered as long. Under their own tag, `CacheTagEnum::Points`, they
 outlast the daily carrier refresh. A point isn't asked for while the carrier
 list failed a moment ago, nor for 90 seconds after a point lookup Polkurier didn't answer
-(`ErrorMessages::isTransient()`); a refusal of one point doesn't hold up the next.
+(`ErrorMessageResolver::isTransient()`); a refusal of one point doesn't hold up the next.
 
 On the storefront every request to Polkurier waits at most 5 seconds, whatever **Request timeout**
 says (`AccountConfigProvider`'s `maxTimeout`, set in `etc/frontend/di.xml`): a customer would
@@ -121,7 +121,7 @@ rather go on without a check than wait. This includes the status webhook's readi
 
 ## What a carrier supports
 
-`Model\Carrier\CarrierFeatures` answers every "can this carrier…" question from the carrier list:
+`Model\Carrier\CarrierFeatureResolver` answers every "can this carrier…" question from the carrier list:
 pickup points (none, optional, required) and which point providers the map should show, cash on
 delivery, insurance and whether it's required with cash on delivery, shipment types, collection
 dates and times, drop-off, additional services and carrier-specific fields. Use it rather than
@@ -138,11 +138,11 @@ by class where the difference matters:
   shipment gateway sorts them out;
 - everything else is caught as the base class.
 
-`Model\ErrorMessages::describe()` turns any of them into a message for the admin, including the
+`Model\Sdk\ErrorMessageResolver::describe()` turns any of them into a message for the admin, including the
 fields a validation error is about. Service methods throw `LocalizedException` with that message,
 so controllers and other callers only ever see Magento exceptions.
 
-`ErrorMessages::isTransient()` tells whether asking again, unchanged, may get another answer; the
+`ErrorMessageResolver::isTransient()` tells whether asking again, unchanged, may get another answer; the
 shipment screen offers **Try again** for prices and collection dates only then. It looks through
 the `LocalizedException` to the SDK failure. A failed connection or unreadable answer qualifies, and
 so do the codes for a Polkurier that is down or busy (`UNKNOWN_ERROR`, `MAINTENANCE_MODE`,

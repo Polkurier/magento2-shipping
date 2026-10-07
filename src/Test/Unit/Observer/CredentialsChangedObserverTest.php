@@ -13,7 +13,7 @@ use PHPUnit\Framework\TestCase;
 use Polkurier\Shipping\Enum\CacheTagEnum;
 use Polkurier\Shipping\Model\Cache\Type as PolkurierCache;
 use Polkurier\Shipping\Model\Carrier\CarrierCatalog;
-use Polkurier\Shipping\Model\Sdk\ClientPool;
+use Polkurier\Shipping\Model\Sdk\PolkurierClient;
 use Polkurier\Shipping\Observer\CredentialsChangedObserver;
 
 #[CoversClass(CredentialsChangedObserver::class)]
@@ -22,7 +22,7 @@ class CredentialsChangedObserverTest extends TestCase
     public function testEverythingCachedForTheAccountGoesButThePoints(): void
     {
         self::assertNotContains(CacheTagEnum::Points, CacheTagEnum::ofAccount());
-        $clients = $this->createMock(ClientPool::class);
+        $clients = $this->createMock(PolkurierClient::class);
         $clients->expects(self::once())->method('reset');
         $catalog = $this->createMock(CarrierCatalog::class);
         $catalog->expects(self::once())->method('clean');

@@ -31,6 +31,10 @@ final readonly class Confirmation
     {
         $value = static fn(string $key): ?string => \trim((string)($data[$key] ?? '')) ?: null;
 
-        return new self($value('confirmation_pin'), $value('two_factor_token'), $value('two_factor_code'));
+        return new self(
+            $value(BankAccountHandler::FIELD_CONFIRMATION_PIN),
+            $value('two_factor_token'),
+            $value('two_factor_code'),
+        );
     }
 }

@@ -11,8 +11,9 @@ use Magento\Framework\Event\Observer;
 use Magento\Framework\Event\ObserverInterface;
 use Magento\Quote\Model\Quote;
 use Magento\Sales\Model\Order;
+use Polkurier\Shipping\Api\OrderPointRepositoryInterface;
+use Polkurier\Shipping\Api\QuotePointRepositoryInterface;
 use Polkurier\Shipping\Model\Carrier\Polkurier;
-use Polkurier\Shipping\Model\OrderPointStore;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -26,7 +27,8 @@ use Psr\Log\LoggerInterface;
 readonly class CopyPickupPointToOrderObserver implements ObserverInterface
 {
     public function __construct(
-        private OrderPointStore $pointStore,
+        private OrderPointRepositoryInterface $orderPointRepository,
+        private QuotePointRepositoryInterface $quotePointRepository,
         private LoggerInterface $logger,
     ) {}
 
@@ -37,12 +39,12 @@ readonly class CopyPickupPointToOrderObserver implements ObserverInterface
         /** @var Order $order */
         $order = $observer->getEvent()->getData('order');
         try {
-            $point = $this->pointStore->getForQuote((int)$quote->getId());
+            $point = $this->quotePointRepository->getForQuote((int)$quote->getId());
             if ($point === null || !$order->getEntityId()) {
                 return;
             }
             if ((string)$order->getShippingMethod() === Polkurier::methodOf($point->getMethodCode())) {
-                $this->pointStore->copyToOrder($point, (int)$order->getEntityId());
+                $this->orderPointRepository->copyFromQuote($point, (int)$order->getEntityId());
             }
         } catch (\Throwable $e) {
             $this->logger->error('Pickup point not copied to the order', [

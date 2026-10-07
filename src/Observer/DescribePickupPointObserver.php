@@ -12,9 +12,9 @@ use Magento\Framework\Event\ObserverInterface;
 use Magento\Quote\Model\Quote;
 use Magento\Quote\Model\Quote\Address;
 use Magento\Sales\Model\Order;
+use Polkurier\Shipping\Api\QuotePointRepositoryInterface;
 use Polkurier\Shipping\Model\Carrier\Polkurier;
-use Polkurier\Shipping\Model\Checkout\PointDescription;
-use Polkurier\Shipping\Model\OrderPointStore;
+use Polkurier\Shipping\Model\PickupPoint\PointDescriptionBuilder;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -29,8 +29,8 @@ use Psr\Log\LoggerInterface;
 readonly class DescribePickupPointObserver implements ObserverInterface
 {
     public function __construct(
-        private OrderPointStore $pointStore,
-        private PointDescription $pointDescription,
+        private QuotePointRepositoryInterface $quotePointRepository,
+        private PointDescriptionBuilder $pointDescriptionBuilder,
         private LoggerInterface $logger,
     ) {}
 
@@ -47,11 +47,14 @@ readonly class DescribePickupPointObserver implements ObserverInterface
             return;
         }
         try {
-            $point = $this->pointStore->getForQuote((int)$quote->getId(), $address instanceof Address ? (int)$address->getId() : 0);
+            $point = $this->quotePointRepository->getForQuote(
+                (int)$quote->getId(),
+                $address instanceof Address ? (int)$address->getId() : 0,
+            );
             if ($point === null || $point->getMethodCode() !== $methodCode) {
                 return;
             }
-            $order->setShippingDescription($this->pointDescription->describe(
+            $order->setShippingDescription($this->pointDescriptionBuilder->describe(
                 (string)$order->getShippingDescription(),
                 $point->getPointId(),
                 $point->getPointLabel(),

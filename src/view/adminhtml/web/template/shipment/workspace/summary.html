@@ -10,7 +10,8 @@
         <span class="polkurier-muted" data-bind="text: price().gross + ' ' + $t('gross')"></span>
         <!-- /ko -->
         <!-- ko ifnot: price -->
-        <span data-bind="css: {'polkurier-text-error': failed() && !quoting(), 'polkurier-muted': !failed() || quoting()},
+        <span data-bind="css: {'polkurier-text-error': failed() && !quoting(),
+                               'polkurier-muted': !failed() || quoting()},
                          text: quoting() ? $t('Updating prices…') : (message() || $t('No price yet'))"></span>
         <button type="button" class="polkurier-link" if="retryable() && !quoting()" click="retry">
             <span translate="'Try again'"></span>

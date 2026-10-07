@@ -7,8 +7,8 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Cron;
 
-use Polkurier\Shipping\Model\Carrier\CarrierConfigSynchronizer;
-use Polkurier\Shipping\Model\Config;
+use Polkurier\Shipping\Model\CarrierConfig\CarrierConfigSynchronizer;
+use Polkurier\Shipping\Model\Config\ConfigProvider;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -19,14 +19,14 @@ readonly class RefreshCarriersTask
 {
     public function __construct(
         private CarrierConfigSynchronizer $carrierConfigSynchronizer,
-        private Config $config,
+        private ConfigProvider $configProvider,
         private LoggerInterface $logger,
     ) {}
 
     public function execute(): void
     {
         // As every job asking Polkurier: switched on, and not before the account is configured.
-        if (!$this->config->isSyncEnabled() || !$this->config->hasCredentials()) {
+        if (!$this->configProvider->isSyncEnabled() || !$this->configProvider->hasCredentials()) {
             return;
         }
         // Logged rather than thrown: the next run tries again.

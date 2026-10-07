@@ -10,11 +10,11 @@ namespace Polkurier\Shipping\ViewModel\Adminhtml;
 use Magento\Framework\View\Element\Block\ArgumentInterface;
 use Magento\Sales\Model\Order;
 use Polkurier\Shipping\Api\Data\OrderPointInterface;
+use Polkurier\Shipping\Api\OrderPointRepositoryInterface;
 use Polkurier\Shipping\Model\Carrier\CarrierCatalog;
-use Polkurier\Shipping\Model\Carrier\CarrierFeatures;
+use Polkurier\Shipping\Model\Carrier\CarrierFeatureResolver;
 use Polkurier\Shipping\Model\Carrier\Polkurier;
-use Polkurier\Shipping\Model\Checkout\PointDescription;
-use Polkurier\Shipping\Model\OrderPointStore;
+use Polkurier\Shipping\Model\PickupPoint\PointDescriptionBuilder;
 use Polkurier\Webservice\Exception\Exception as PolkurierException;
 
 /**
@@ -26,18 +26,18 @@ use Polkurier\Webservice\Exception\Exception as PolkurierException;
 readonly class OrderPickupPoint implements ArgumentInterface
 {
     public function __construct(
-        private OrderPointStore $pointStore,
+        private OrderPointRepositoryInterface $orderPointRepository,
         private CarrierCatalog $catalog,
-        private CarrierFeatures $features,
-        private PointDescription $pointDescription,
+        private CarrierFeatureResolver $carrierFeatureResolver,
+        private PointDescriptionBuilder $pointDescriptionBuilder,
     ) {}
 
     public function getPoint(Order $order): ?OrderPointInterface
     {
         $methodCode = Polkurier::methodCodeOf((string)$order->getShippingMethod());
-        $point = $methodCode === null ? null : $this->pointStore->getForOrder((int)$order->getEntityId());
+        $point = $methodCode === null ? null : $this->orderPointRepository->getForOrder((int)$order->getEntityId());
         if ($methodCode === null || $point === null || $point->getPointId() === ''
-            || $this->pointDescription->names((string)$order->getShippingDescription(), $point->getPointId())
+            || $this->pointDescriptionBuilder->names((string)$order->getShippingDescription(), $point->getPointId())
         ) {
             return null;
         }
@@ -48,6 +48,6 @@ readonly class OrderPickupPoint implements ArgumentInterface
             return $point;
         }
 
-        return $carrier !== null && $this->features->isRecipientPointRequired($carrier) ? $point : null;
+        return $carrier !== null && $this->carrierFeatureResolver->isRecipientPointRequired($carrier) ? $point : null;
     }
 }

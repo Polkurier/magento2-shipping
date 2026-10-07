@@ -20,10 +20,10 @@ holds up none of Magento's other jobs:
 Each job checks its switch and the credentials itself, and does its work through a model you can
 call yourself, whatever the switches say:
 
-- `Model\Shipment\StatusRefresher::refreshPending()`: see [Following a shipment](shipments.md#following-a-shipment);
-- `Model\Shipment\AutoReconciler::run()`: see [Reconciliation](shipments.md#reconciliation);
-- `Api\SynchronizationInterface`: see [Synchronization](synchronization.md);
-- `Model\Carrier\CarrierConfigSynchronizer::synchronize()`: see [Synchronization](synchronization.md#when-it-runs).
+- `Model\Shipment\Status\StatusRefreshService::refreshPending()`: see [Following a shipment](shipments.md#following-a-shipment);
+- `Model\Shipment\Status\ReconciliationService::reconcilePending()`: see [Reconciliation](shipments.md#reconciliation);
+- `Model\Sync\Synchronization::synchronize()`: see [Synchronization](synchronization.md);
+- `Model\CarrierConfig\CarrierConfigSynchronizer::synchronize()`: see [Synchronization](synchronization.md#when-it-runs).
 
 A failure for one shipment is logged and doesn't stop the rest of the run. A failed
 synchronization is logged, and the next run tries again.

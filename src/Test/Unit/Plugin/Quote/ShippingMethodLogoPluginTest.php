@@ -21,14 +21,14 @@ use Magento\Store\Model\StoreManagerInterface;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Polkurier\Shipping\Model\Carrier\CarrierConfigs;
-use Polkurier\Shipping\Model\Carrier\CarrierLogo;
+use Polkurier\Shipping\Model\Carrier\CarrierLogoStorage;
 use Polkurier\Shipping\Model\CarrierConfig;
+use Polkurier\Shipping\Model\CarrierConfig\CarrierConfigProvider;
 use Polkurier\Shipping\Plugin\Quote\ShippingMethodLogoPlugin;
 use Psr\Log\NullLogger;
 
 #[CoversClass(ShippingMethodLogoPlugin::class)]
-#[CoversClass(CarrierLogo::class)]
+#[CoversClass(CarrierLogoStorage::class)]
 #[AllowMockObjectsWithoutExpectations]
 class ShippingMethodLogoPluginTest extends TestCase
 {
@@ -37,10 +37,16 @@ class ShippingMethodLogoPluginTest extends TestCase
         $method = $this->method('polkurier', 'DPD');
 
         $this->plugin('shipping/carrier_logos/dpd.png')->afterModelToDataObject(
-            $this->createStub(ShippingMethodConverter::class), $method, $this->rate(), 'PLN',
+            $this->createStub(ShippingMethodConverter::class),
+            $method,
+            $this->rate(),
+            'PLN',
         );
 
-        self::assertSame('https://shop.example/media/shipping/carrier_logos/dpd.png', $method->getExtensionAttributes()?->getMethodLogo());
+        self::assertSame(
+            'https://shop.example/media/shipping/carrier_logos/dpd.png',
+            $method->getExtensionAttributes()?->getMethodLogo(),
+        );
     }
 
     public function testMethodsWithoutALogoAndOtherCarriersAreLeftAlone(): void
@@ -48,8 +54,18 @@ class ShippingMethodLogoPluginTest extends TestCase
         $withoutLogo = $this->method('polkurier', 'DPD');
         $other = $this->method('flatrate', 'flatrate');
 
-        $this->plugin(null)->afterModelToDataObject($this->createStub(ShippingMethodConverter::class), $withoutLogo, $this->rate(), 'PLN');
-        $this->plugin('shipping/carrier_logos/dpd.png')->afterModelToDataObject($this->createStub(ShippingMethodConverter::class), $other, $this->rate(), 'PLN');
+        $this->plugin(null)->afterModelToDataObject(
+            $this->createStub(ShippingMethodConverter::class),
+            $withoutLogo,
+            $this->rate(),
+            'PLN',
+        );
+        $this->plugin('shipping/carrier_logos/dpd.png')->afterModelToDataObject(
+            $this->createStub(ShippingMethodConverter::class),
+            $other,
+            $this->rate(),
+            'PLN',
+        );
 
         self::assertNull($withoutLogo->getExtensionAttributes()?->getMethodLogo());
         self::assertNull($other->getExtensionAttributes()?->getMethodLogo());
@@ -67,8 +83,12 @@ class ShippingMethodLogoPluginTest extends TestCase
 
     private function plugin(?string $file): ShippingMethodLogoPlugin
     {
-        $config = (new CarrierConfig($this->createStub(\Magento\Framework\Model\Context::class), $this->createStub(\Magento\Framework\Registry::class), $this->createStub(\Polkurier\Shipping\Model\ResourceModel\CarrierConfig::class)))->setLogo($file);
-        $configs = $this->createStub(CarrierConfigs::class);
+        $config = (new CarrierConfig(
+            $this->createStub(\Magento\Framework\Model\Context::class),
+            $this->createStub(\Magento\Framework\Registry::class),
+            $this->createStub(\Polkurier\Shipping\Model\ResourceModel\CarrierConfig::class),
+        ))->setLogo($file);
+        $configs = $this->createStub(CarrierConfigProvider::class);
         $configs->method('get')->willReturn($config);
         $extensions = $this->createStub(ShippingMethodExtensionFactory::class);
         $extensions->method('create')->willReturnCallback(fn() => $this->extension());
@@ -102,9 +122,14 @@ class ShippingMethodLogoPluginTest extends TestCase
         };
     }
 
-    private function logo(): CarrierLogo
+    private function logo(): CarrierLogoStorage
     {
-        return new CarrierLogo($this->createStub(UploaderFactory::class), $this->createStub(Filesystem::class), $this->storeManager(), new NullLogger());
+        return new CarrierLogoStorage(
+            $this->createStub(UploaderFactory::class),
+            $this->createStub(Filesystem::class),
+            $this->storeManager(),
+            new NullLogger(),
+        );
     }
 
     private function storeManager(): StoreManagerInterface

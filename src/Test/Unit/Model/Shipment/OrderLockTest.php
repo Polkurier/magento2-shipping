@@ -40,7 +40,12 @@ class OrderLockTest extends TestCase
 
         $lock->run(42, fn(): bool => $lock->run(43, static fn(): bool => true));
 
-        self::assertSame(['lock polkurier_order_42', 'lock polkurier_order_43', 'unlock polkurier_order_43', 'unlock polkurier_order_42'], $this->log);
+        self::assertSame([
+            'lock polkurier_order_42',
+            'lock polkurier_order_43',
+            'unlock polkurier_order_43',
+            'unlock polkurier_order_42',
+        ], $this->log);
     }
 
     public function testAnotherRequestHoldingItIsReported(): void
@@ -49,7 +54,10 @@ class OrderLockTest extends TestCase
             $this->lock(taken: true)->run(42, static fn(): bool => true);
             self::fail('The work waits for the other request.');
         } catch (LocalizedException $e) {
-            self::assertSame("Another request is updating this order's Polkurier shipments. Wait a moment and try again.", $e->getMessage());
+            self::assertSame(
+                "Another request is updating this order's Polkurier shipments. Wait a moment and try again.",
+                $e->getMessage(),
+            );
         }
         self::assertSame(['lock polkurier_order_42'], $this->log);
     }
@@ -73,7 +81,10 @@ class OrderLockTest extends TestCase
         $this->fail = false;
         $lock->run(42, $work);
 
-        self::assertSame(\array_merge(...\array_fill(0, 2, ['lock polkurier_order_42', 'unlock polkurier_order_42'])), $this->log);
+        self::assertSame(
+            \array_merge(...\array_fill(0, 2, ['lock polkurier_order_42', 'unlock polkurier_order_42'])),
+            $this->log,
+        );
     }
 
     public function testUnlockingALockNotHeldDoesNothing(): void
@@ -81,6 +92,24 @@ class OrderLockTest extends TestCase
         $this->lock()->unlock(42);
 
         self::assertSame([], $this->log);
+    }
+
+    public function testLocksStillHeldWhenTheRequestEndsAreLetGo(): void
+    {
+        $lock = $this->lock();
+        $lock->lock(42);
+        $lock->lock(42);
+        $lock->lock(43);
+
+        $lock->_resetState();
+        $lock->unlock(42);
+
+        self::assertSame([
+            'lock polkurier_order_42',
+            'lock polkurier_order_43',
+            'unlock polkurier_order_42',
+            'unlock polkurier_order_43',
+        ], $this->log);
     }
 
     private function lock(bool $taken = false): OrderLock

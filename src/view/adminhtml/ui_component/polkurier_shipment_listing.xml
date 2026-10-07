@@ -12,7 +12,8 @@
     </argument>
     <settings>
         <buttons>
-            <button name="refresh_statuses" class="Polkurier\Shipping\Ui\Component\Control\RefreshStatusesButton"/>
+            <button name="refresh_statuses"
+                    class="Polkurier\Shipping\Ui\Component\Listing\Shipment\RefreshStatusesButtonVirtual"/>
         </buttons>
         <spinner>polkurier_shipment_listing_columns</spinner>
         <deps>
@@ -27,7 +28,8 @@
             <updateUrl path="mui/index/render"/>
         </settings>
         <aclResource>Polkurier_Shipping::shipments</aclResource>
-        <dataProvider class="Polkurier\Shipping\Ui\Component\DataProvider\GridDataProvider" name="polkurier_shipment_listing_data_source">
+        <dataProvider class="Polkurier\Shipping\Ui\Component\DataProvider\GridDataProviderVirtual"
+                      name="polkurier_shipment_listing_data_source">
             <settings>
                 <requestFieldName>id</requestFieldName>
                 <primaryFieldName>entity_id</primaryFieldName>
@@ -98,7 +100,8 @@
                 <filter>text</filter>
             </settings>
         </column>
-        <column name="created_at" class="Magento\Ui\Component\Listing\Columns\Date" component="Magento_Ui/js/grid/columns/date">
+        <column name="created_at" class="Magento\Ui\Component\Listing\Columns\Date"
+                component="Magento_Ui/js/grid/columns/date">
             <settings>
                 <label translate="true">Created</label>
                 <filter>dateRange</filter>
@@ -122,7 +125,7 @@
                 <dataType>select</dataType>
             </settings>
         </column>
-        <column name="waybills" class="Polkurier\Shipping\Ui\Component\Listing\Column\WaybillsColumn">
+        <column name="waybills" class="Polkurier\Shipping\Ui\Component\Listing\Shipment\WaybillsColumn">
             <settings>
                 <label translate="true">Waybills</label>
                 <bodyTmpl>ui/grid/cells/html</bodyTmpl>
@@ -135,7 +138,8 @@
                 <filter>text</filter>
             </settings>
         </column>
-        <column name="status_date" class="Magento\Ui\Component\Listing\Columns\Date" component="Magento_Ui/js/grid/columns/date">
+        <column name="status_date" class="Magento\Ui\Component\Listing\Columns\Date"
+                component="Magento_Ui/js/grid/columns/date">
             <settings>
                 <label translate="true">Status date</label>
                 <filter>dateRange</filter>
@@ -185,7 +189,7 @@
                 <visible>false</visible>
             </settings>
         </column>
-        <actionsColumn name="actions" class="Polkurier\Shipping\Ui\Component\Listing\Column\ShipmentActionsColumn">
+        <actionsColumn name="actions" class="Polkurier\Shipping\Ui\Component\Listing\Shipment\ActionsColumn">
             <settings>
                 <indexField>entity_id</indexField>
                 <label translate="true">Actions</label>

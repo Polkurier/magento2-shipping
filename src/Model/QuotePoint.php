@@ -15,70 +15,72 @@ use Polkurier\Shipping\Api\Data\QuotePointInterface;
  */
 class QuotePoint extends AbstractModel implements QuotePointInterface
 {
-    protected function _construct(): void
-    {
-        $this->_init(ResourceModel\QuotePoint::class);
-    }
-
     public function getQuoteId(): int
     {
-        return (int)$this->getData(self::QUOTE_ID);
+        return (int)$this->getData(self::FIELD_QUOTE_ID);
     }
 
     public function setQuoteId(int $quoteId): static
     {
-        return $this->setData(self::QUOTE_ID, $quoteId);
+        return $this->setData(self::FIELD_QUOTE_ID, $quoteId);
     }
 
     public function getQuoteAddressId(): int
     {
-        return (int)$this->getData(self::QUOTE_ADDRESS_ID);
+        return (int)$this->getData(self::FIELD_QUOTE_ADDRESS_ID);
     }
 
     public function setQuoteAddressId(int $quoteAddressId): static
     {
-        return $this->setData(self::QUOTE_ADDRESS_ID, $quoteAddressId);
+        return $this->setData(self::FIELD_QUOTE_ADDRESS_ID, $quoteAddressId);
     }
 
     public function getMethodCode(): string
     {
-        return (string)$this->getData(self::METHOD_CODE);
+        return (string)$this->getData(self::FIELD_METHOD_CODE);
     }
 
     public function setMethodCode(string $methodCode): static
     {
-        return $this->setData(self::METHOD_CODE, $methodCode);
+        return $this->setData(self::FIELD_METHOD_CODE, $methodCode);
     }
 
     public function getPointId(): string
     {
-        return (string)$this->getData(self::POINT_ID);
+        return (string)$this->getData(self::FIELD_POINT_ID);
     }
 
     public function setPointId(string $pointId): static
     {
-        return $this->setData(self::POINT_ID, $pointId);
+        return $this->setData(self::FIELD_POINT_ID, $pointId);
     }
 
     public function getPointLabel(): ?string
     {
-        $value = $this->getData(self::POINT_LABEL);
+        $value = $this->getData(self::FIELD_POINT_LABEL);
 
         return $value === null || $value === '' ? null : (string)$value;
     }
 
     public function setPointLabel(?string $pointLabel): static
     {
-        return $this->setData(self::POINT_LABEL, $pointLabel);
+        return $this->setData(self::FIELD_POINT_LABEL, $pointLabel);
     }
 
-    public function isPointCod(): bool
+    public function getPointCod(): ?bool
     {
-        return (bool)$this->getData(self::POINT_COD);
+        $value = $this->getData(self::FIELD_POINT_COD);
+
+        return $value === null || $value === '' ? null : (bool)$value;
     }
 
-    public function setPointCod(bool $pointCod): static
+    public function setPointCod(?bool $pointCod): static
     {
-        return $this->setData(self::POINT_COD, (int)$pointCod);
+        return $this->setData(self::FIELD_POINT_COD, $pointCod === null ? null : (int)$pointCod);
+    }
+
+    protected function _construct(): void
+    {
+        $this->_init(ResourceModel\QuotePoint::class);
     }
 }

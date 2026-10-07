@@ -8,8 +8,9 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Controller\Adminhtml\Address;
 
 use Magento\Backend\App\Action\Context;
-use Polkurier\Shipping\Controller\Adminhtml\MasterData\AbstractIndex;
-use Polkurier\Shipping\Model\Admin\AddressHandler;
+use Polkurier\Shipping\Controller\Adminhtml\AbstractIndex;
+use Polkurier\Shipping\Model\Address\AddressHandler;
+use Polkurier\Shipping\Model\Admin\FlashMessageCollectorFactory;
 
 /**
  * The sender addresses grid.
@@ -18,8 +19,11 @@ class Index extends AbstractIndex
 {
     public const string ADMIN_RESOURCE = 'Polkurier_Shipping::addresses';
 
-    public function __construct(Context $context, AddressHandler $handler)
-    {
-        parent::__construct($context, $handler);
+    public function __construct(
+        Context $context,
+        AddressHandler $handler,
+        FlashMessageCollectorFactory $flashMessageCollectorFactory,
+    ) {
+        parent::__construct($context, $handler, $flashMessageCollectorFactory);
     }
 }

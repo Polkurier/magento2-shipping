@@ -1,0 +1,556 @@
+<?php
+/**
+ * Copyright (c) 2026 Polkurier.pl
+ * All Rights Reserved
+ */
+declare(strict_types=1);
+
+namespace Polkurier\Shipping\ViewModel\Adminhtml;
+
+use Magento\Framework\Exception\NoSuchEntityException;
+use Magento\Framework\UrlInterface;
+use Magento\Framework\View\Element\Block\ArgumentInterface;
+use Magento\Sales\Api\ShipmentRepositoryInterface as MagentoShipmentRepository;
+use Magento\Sales\Model\Order;
+use Polkurier\Shipping\Api\Data\ShipmentDraft\ItemInterface;
+use Polkurier\Shipping\Api\Data\ShipmentDraft\PackInterface;
+use Polkurier\Shipping\Api\Data\ShipmentDraftInterface;
+use Polkurier\Shipping\Api\Data\ShipmentInterface;
+use Polkurier\Shipping\Model\Carrier\CarrierNameProvider;
+use Polkurier\Shipping\Model\Config\Source\PackType;
+use Polkurier\Shipping\Model\Shipment\Details\Formatter;
+use Polkurier\Shipping\Model\Shipment\Details\OptionLabelProvider;
+use Polkurier\Shipping\Model\Shipment\Details\SentOrderReader;
+use Polkurier\Shipping\Model\Shipment\OrderLoader;
+use Polkurier\Shipping\Model\Shipment\Placement\ParcelTypeMapper;
+use Polkurier\Shipping\Model\Shipment\Valuation\OrderAmountCalculator;
+
+/**
+ * The shipment details page as sections of labelled rows and tables, ready to show: the local
+ * record, the local copy of the Polkurier order (or, until Polkurier has been read, the order as
+ * it was sent) and the carrier's scans.
+ */
+readonly class ShipmentDetails implements ArgumentInterface
+{
+    public function __construct(
+        private OptionLabelProvider $optionLabelProvider,
+        private Formatter $format,
+        private SentOrderReader $sentOrderReader,
+        private CarrierNameProvider $carrierNameProvider,
+        private OrderLoader $orderLoader,
+        private OrderAmountCalculator $amountCalculator,
+        private PackType $packTypes,
+        private MagentoShipmentRepository $magentoShipmentRepository,
+        private UrlInterface $url,
+    ) {}
+
+    /**
+     * @param string[] $errors why part of it could not be read just now
+     *
+     * @return array<string, mixed>
+     */
+    public function build(ShipmentInterface $shipment, array $errors = []): array
+    {
+        $details = $shipment->getDetails();
+        $fromPolkurier = $details !== [];
+        if (!$fromPolkurier) {
+            $details = $this->sentOrderReader->read((string)$shipment->getRequest());
+        }
+
+        $sections = [
+            [
+                'title' => (string)__('Shipment'),
+                'items' => [
+                    ['title' => (string)__('Polkurier order'), 'rows' => $this->orderRows($shipment, $details)],
+                    ['title' => (string)__('Delivery'), 'rows' => $this->deliveryRows($shipment, $details)],
+                ],
+            ],
+            [
+                'title' => (string)__('Addresses'),
+                'items' => \array_values(\array_filter([
+                    ['title' => (string)__('Sender'), 'rows' => $this->addressRows($details['sender'] ?? null)],
+                    ['title' => (string)__('Recipient'), 'rows' => $this->addressRows($details['recipient'] ?? null)],
+                    empty($details['cover_address']) ? null
+                        : [
+                            'title' => (string)__('Sender on the label'),
+                            'rows' => $this->addressRows($details['cover_address']),
+                        ],
+                ])),
+            ],
+            [
+                'title' => (string)__('Services and handover'),
+                'items' => [
+                    ['title' => (string)__('Services'), 'rows' => $this->serviceRows($details)],
+                    [
+                        'title' => (string)__('Handover to the carrier'),
+                        'rows' => $this->pickupRows($shipment, $details),
+                    ],
+                ],
+            ],
+        ];
+
+        $products = $this->products($shipment);
+        $tables = [$this->itemsTable($shipment, $products), $this->packsTable($details, $shipment, $products)];
+        if (!empty($details['items'])) {
+            $tables[] = $this->costTable($details);
+        }
+        $tables[] = $this->trackingTable($shipment);
+
+        return [
+            'title' => (string)__('Shipment details %1', $shipment->getPolkurierNumber() ?: '#' . $shipment->getId()),
+            'notes' => \array_values(\array_filter([
+                $fromPolkurier
+                    ? null
+                    : (string)__('Polkurier has not been read for this order yet: shown as it was sent.'),
+                $shipment->getLastError() ? (string)__('Last error: %1', $shipment->getLastError()) : null,
+                ...$this->describePackChanges($shipment),
+            ])),
+            'errors' => \array_values($errors),
+            'synced' => $this->syncedLine($shipment),
+            'sections' => $sections,
+            'tables' => $tables,
+        ];
+    }
+
+    /**
+     * Parcels Polkurier took as another type than they were sent as, from the order as it
+     * reports it: it changes a type without saying so, e.g. a standard parcel over a carrier's
+     * weight to a non-standard one, and prices it as that. Without Polkurier's copy of the order,
+     * there's nothing to tell.
+     *
+     * @return string[] one sentence per parcel taken as another type
+     */
+    public function describePackChanges(ShipmentInterface $shipment): array
+    {
+        $details = $shipment->getDetails();
+        if (empty($details['packs'])) {
+            return [];
+        }
+        $sent = self::types((array)($this->sentOrderReader->read((string)$shipment->getRequest())['packs'] ?? []));
+        $taken = self::types((array)$details['packs']);
+        if ($sent === [] || \count($sent) !== \count($taken)) {
+            return [];
+        }
+        $names = $this->packTypes->toArray();
+        $changes = [];
+        foreach ($sent as $index => $type) {
+            if ($taken[$index] !== $type) {
+                $changes[] = (string)__(
+                    'Polkurier took parcel %1 as %2, not %3, and priced it as that.',
+                    $index + 1,
+                    $names[$taken[$index]] ?? $taken[$index],
+                    $names[$type] ?? $type,
+                );
+            }
+        }
+
+        return $changes;
+    }
+
+    /**
+     * @param array<string, mixed> $details
+     *
+     * @return array<int, array<string, string>>
+     */
+    private function orderRows(ShipmentInterface $shipment, array $details): array
+    {
+        $order = $this->orderLink($shipment->getOrderId());
+        $magentoShipment = $this->magentoShipmentLink($shipment->getShipmentId());
+
+        return $this->format->rows([
+            [__('Number'), $shipment->getPolkurierNumber() ?: '—'],
+            [__('State'), $this->optionLabelProvider->state($shipment->getState())],
+            [__('Carrier'), empty($details['carrier_name'])
+                ? $this->carrierNameProvider->get($shipment->getCarrierCode())
+                : (string)$details['carrier_name']],
+            [__('Shipment type'), $this->optionLabelProvider->shipmentType($details['shipment_type'] ?? null)],
+            [__('Shipment description'), $details['description'] ?? $shipment->getDescription()],
+            [__('Placed'), $this->format->storedTime($shipment->getCreatedAt())],
+            [__('Magento order'), $order['label'] ?? '#' . $shipment->getOrderId(), $order['url'] ?? null],
+            [
+                __('Magento shipment'),
+                $magentoShipment['label'] ?? (string)__('none yet'),
+                $magentoShipment['url'] ?? null,
+            ],
+        ]);
+    }
+
+    /**
+     * @param array<string, mixed> $details
+     *
+     * @return array<int, array<string, string>>
+     */
+    private function deliveryRows(ShipmentInterface $shipment, array $details): array
+    {
+        $url = (string)($details['tracking_url'] ?? $shipment->getTrackingUrl() ?? '');
+        $rows = [
+            [__('Status'), $shipment->getStatusLabel() ?: '—'],
+            [__('Status date'), $this->format->storedTime($shipment->getStatusDate())],
+            [__('Delivered'), $this->format->storedTime($shipment->getDeliveredAt())],
+        ];
+        foreach ($shipment->getWaybills() as $waybill) {
+            $rows[] = [__('Waybill'), $waybill, $url !== '' ? $url : null];
+        }
+        if ($shipment->getWaybills() === []) {
+            $rows[] = [__('Waybill'), (string)__('not issued yet')];
+        }
+
+        return $this->format->rows($rows);
+    }
+
+    /**
+     * @param array<string, mixed>|null $address
+     *
+     * @return array<int, array<string, string>>
+     */
+    private function addressRows(?array $address): array
+    {
+        if ($address === null) {
+            return $this->format->rows([[__('Address'), '—']]);
+        }
+        $point = (string)($address['point_id'] ?? '');
+
+        return $this->format->rows([
+            [__('Name'), \trim(\implode(', ', \array_filter([$address['company'] ?? '', $address['person'] ?? ''])))],
+            [__('Street'), (string)($address['street'] ?? '')],
+            [
+                __('City'),
+                $this->format->place(
+                    (string)($address['postcode'] ?? ''),
+                    (string)($address['city'] ?? ''),
+                    $address['country'] ?? null,
+                ),
+            ],
+            [__('Phone'), (string)($address['phone'] ?? '')],
+            [__('E-mail'), (string)($address['email'] ?? '')],
+            $point === '' ? null : [
+                __('Pickup point'),
+                \trim($point . (!empty($address['point_label']) ? ' — ' . $address['point_label'] : '')),
+            ],
+        ]);
+    }
+
+    /**
+     * @param array<string, mixed> $details
+     *
+     * @return array<int, array<string, string>>
+     */
+    private function serviceRows(array $details): array
+    {
+        $cod = $details['cod'] ?? null;
+        $rows = [];
+        if (\is_array($cod) && (float)($cod['amount'] ?? 0) > 0) {
+            $rows[] = [__('Cash on delivery'), $this->format->money((float)$cod['amount'])];
+            $rows[] = [__('Payout time'), $this->optionLabelProvider->codType($cod['type'] ?? null)];
+            $rows[] = [
+                __('Paid out to'),
+                \trim(
+                    $this->optionLabelProvider->codReturnType($cod['return_type'] ?? null)
+                    . (!empty($cod['bank_account']) ? ': ' . $cod['bank_account'] : ''),
+                ),
+            ];
+            if (!empty($cod['status'])) {
+                $rows[] = [__('COD status'), $this->optionLabelProvider->codStatus($cod['status'])];
+            }
+        } else {
+            $rows[] = [__('Cash on delivery'), (string)__('none')];
+        }
+        $insurance = (float)($details['insurance'] ?? 0);
+        $rows[] = [__('Insurance'), $insurance > 0 ? $this->format->money($insurance) : (string)__('none')];
+        $services = (array)($details['services'] ?? []);
+        $rows[] = [__('Additional services'), $services === [] ? (string)__('none') : \implode(', ', $services)];
+        foreach ((array)($details['additional_fields'] ?? []) as $name => $value) {
+            $rows[] = [(string)$name, (string)$value];
+        }
+
+        return $this->format->rows($rows);
+    }
+
+    /**
+     * @param array<string, mixed> $details
+     *
+     * @return array<int, array<string, string>>
+     */
+    private function pickupRows(ShipmentInterface $shipment, array $details): array
+    {
+        $pickup = \is_array($details['pickup'] ?? null) ? $details['pickup'] : [];
+        if (!empty($pickup['multi_pickup']) || $shipment->isMultiPickup()) {
+            $mode = (string)__('Collected later, together with other shipments');
+        } elseif (!empty($pickup['no_courier_order'])) {
+            $mode = (string)__('Dropped off at a point');
+        } else {
+            $mode = (string)__('A courier collects them');
+        }
+        $window = \trim(($pickup['time_from'] ?? '') . '–' . ($pickup['time_to'] ?? ''), '–');
+
+        return $this->format->rows([
+            [__('Handover'), $mode],
+            empty($pickup['date']) ? null : [
+                __('Collection date'),
+                \trim($pickup['date'] . ($window !== '' ? ', ' . $window : '')),
+            ],
+            empty($pickup['pickup_number']) ? null : [__('Pickup number'), (string)$pickup['pickup_number']],
+            $shipment->isMultiPickup() ? [
+                __('Collective pickup booked'),
+                $shipment->isPickupBooked() ? (string)__('Yes') : (string)__('No'),
+            ] : null,
+        ]);
+    }
+
+    /**
+     * @param array<string, mixed> $details
+     * @param array<int, array<string, mixed>> $products
+     *
+     * @return array<string, mixed>
+     */
+    private function packsTable(array $details, ShipmentInterface $shipment, array $products): array
+    {
+        $rows = [];
+        $packs = \array_values((array)($details['packs'] ?? []));
+        // What each parcel holds, as it was sent: parcel by parcel, while they still match up.
+        $sent = \array_values((array)($shipment->getDraft()[ShipmentDraftInterface::FIELD_PACKS] ?? []));
+        $contents = \count($sent) === \count($packs) ? $sent : [];
+        foreach ($packs as $index => $pack) {
+            $rows[] = [
+                // An envelope is one by the shipment type alone.
+                $this->optionLabelProvider->packType(
+                    ParcelTypeMapper::fromPolkurier($details['shipment_type'] ?? null, $pack['type'] ?? null),
+                ),
+                $this->format->size($pack['length'] ?? null, $pack['width'] ?? null, $pack['height'] ?? null),
+                $this->format->weight((float)($pack['weight'] ?? 0)),
+                (string)($pack['amount'] ?? 1),
+                isset($pack['price_gross']) ? $this->format->money((float)$pack['price_gross']) : '—',
+                $this->describeContents((array)($contents[$index][PackInterface::FIELD_ITEMS] ?? []), $products),
+            ];
+        }
+
+        return [
+            'title' => (string)__('Parcels'),
+            'columns' => [
+                (string)__('Type'),
+                (string)__('Size'),
+                (string)__('Weight'),
+                (string)__('Quantity'),
+                (string)__('Price (gross)'),
+                (string)__('Contents'),
+            ],
+            'rows' => $rows,
+            'empty' => (string)__('No parcels.'),
+        ];
+    }
+
+    /**
+     * The order's items, by order item id, for naming what was shipped; none when the order can't
+     * be read.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    private function products(ShipmentInterface $shipment): array
+    {
+        $order = $this->orderLoader->find($shipment->getOrderId());
+
+        return $order !== null ? $this->amountCalculator->getItems($order) : [];
+    }
+
+    /**
+     * What the Polkurier order shipped of the order, as it was sent.
+     *
+     * @param array<int, array<string, mixed>> $products
+     *
+     * @return array<string, mixed>
+     */
+    private function itemsTable(ShipmentInterface $shipment, array $products): array
+    {
+        $qtys = [];
+        foreach ((array)($shipment->getDraft()[ShipmentDraftInterface::FIELD_ITEMS] ?? []) as $row) {
+            $id = (int)($row[ItemInterface::FIELD_ORDER_ITEM_ID] ?? 0);
+            if ($id && (float)($row[ItemInterface::FIELD_QTY] ?? 0) > 0) {
+                $qtys[$id] = ($qtys[$id] ?? 0.0) + (float)$row[ItemInterface::FIELD_QTY];
+            }
+        }
+        if ($qtys === []) {
+            $qtys = $shipment->getShipItems();
+        }
+        $rows = [];
+        foreach ($qtys as $id => $qty) {
+            $rows[] = [
+                (string)($products[$id]['name'] ?? __('Order item #%1', $id)),
+                (string)($products[$id]['sku'] ?? '—'),
+                self::quantity((float)$qty),
+            ];
+        }
+
+        return [
+            'title' => (string)__('Items shipped'),
+            'columns' => [(string)__('Product'), (string)__('SKU'), (string)__('Quantity')],
+            'rows' => $rows,
+            'empty' => (string)__('Which items it shipped isn\'t known.'),
+        ];
+    }
+
+    /**
+     * An item a line: "2 × Mug".
+     *
+     * @param array<int, mixed> $rows the parcel's items: order_item_id and qty
+     * @param array<int, array<string, mixed>> $products
+     */
+    private function describeContents(array $rows, array $products): string
+    {
+        $lines = [];
+        foreach ($rows as $row) {
+            $id = \is_array($row) ? (int)($row[ItemInterface::FIELD_ORDER_ITEM_ID] ?? 0) : 0;
+            $qty = \is_array($row) ? (float)($row[ItemInterface::FIELD_QTY] ?? 0) : 0.0;
+            if ($id && $qty > 0) {
+                $lines[] = self::quantity($qty) . ' × '
+                    . ($products[$id]['name'] ?? (string)__('Order item #%1', $id));
+            }
+        }
+
+        return $lines !== [] ? \implode("\n", $lines) : '—';
+    }
+
+    private static function quantity(float $qty): string
+    {
+        return \rtrim(\rtrim(\number_format($qty, 4, '.', ''), '0'), '.');
+    }
+
+    /**
+     * @param array<string, mixed> $details
+     *
+     * @return array<string, mixed>
+     */
+    private function costTable(array $details): array
+    {
+        $rows = [];
+        foreach ((array)$details['items'] as $item) {
+            $rows[] = [
+                (string)($item['description'] ?? ''),
+                (string)($item['amount'] ?? 1),
+                $this->format->money((float)($item['value_net'] ?? 0)),
+                $this->format->money((float)($item['value_gross'] ?? 0)),
+            ];
+        }
+        $foot = [
+            (string)__('Total'),
+            '',
+            $this->format->money((float)($details['price_net'] ?? 0)),
+            $this->format->money((float)($details['price_gross'] ?? 0)),
+        ];
+        $notes = [];
+        if ((float)($details['rebate_gross'] ?? 0) > 0) {
+            $notes[] = (string)__('Rebate: %1', $this->format->money((float)$details['rebate_gross']));
+        }
+        if (isset($details['is_paid'])) {
+            $notes[] = $details['is_paid']
+                ? (string)__('Paid')
+                : (string)__('Unpaid: %1', $this->format->money((float)($details['unpaid_amount'] ?? 0)));
+        }
+        if (!empty($details['has_invoice'])) {
+            $notes[] = (string)__('Invoiced');
+        }
+
+        return [
+            'title' => (string)__('Cost'),
+            'columns' => [(string)__('Item'), (string)__('Quantity'), (string)__('Net'), (string)__('Gross')],
+            'rows' => $rows,
+            'foot' => $foot,
+            'note' => \implode(' · ', $notes),
+            'empty' => '',
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function trackingTable(ShipmentInterface $shipment): array
+    {
+        $rows = [];
+        foreach ($shipment->getTracking() as $event) {
+            $rows[] = [
+                $this->format->polkurierTime($event['date'] ?? null),
+                (string)($event['status'] ?? ''),
+                (string)($event['description'] ?? ''),
+                (string)($event['location'] ?? ''),
+            ];
+        }
+
+        return [
+            'title' => (string)__('Status history'),
+            'columns' => [
+                (string)__('Date'),
+                (string)__('Status'),
+                (string)__('Description'),
+                (string)__('Location'),
+            ],
+            'rows' => $rows,
+            'empty' => $shipment->getPolkurierNumber() === null
+                ? (string)__('There is no Polkurier order to follow.')
+                : (string)__('The carrier has not reported any scans yet.'),
+        ];
+    }
+
+    private function syncedLine(ShipmentInterface $shipment): string
+    {
+        if ($shipment->getDetailsSyncedAt() === null) {
+            return '';
+        }
+
+        return (string)__('Read from Polkurier %1.', $this->format->storedTime($shipment->getDetailsSyncedAt()));
+    }
+
+    /**
+     * The type of each parcel, the packs of several alike counted one by one.
+     *
+     * @param array<int|string, mixed> $packs as sent or as Polkurier reports them
+     *
+     * @return string[]
+     */
+    private static function types(array $packs): array
+    {
+        $types = [];
+        foreach ($packs as $pack) {
+            if (!\is_array($pack)) {
+                continue;
+            }
+            $type = \strtoupper(\trim((string)($pack['type'] ?? '')));
+            for ($i = 0; $i < \max(1, (int)($pack['amount'] ?? 1)); $i++) {
+                $types[] = $type;
+            }
+        }
+
+        return $types;
+    }
+
+    /**
+     * @return array{label: string, url: string}|null null when the order is gone
+     */
+    private function orderLink(int $orderId): ?array
+    {
+        $order = $this->orderLoader->find($orderId);
+
+        return $order === null ? null : [
+            'label' => '#' . $order->getIncrementId(),
+            'url' => $this->url->getUrl('sales/order/view', ['order_id' => $orderId]),
+        ];
+    }
+
+    /**
+     * @return array{label: string, url: string}|null null when there is none (yet)
+     */
+    private function magentoShipmentLink(?int $shipmentId): ?array
+    {
+        if ($shipmentId === null) {
+            return null;
+        }
+        try {
+            $shipment = $this->magentoShipmentRepository->get($shipmentId);
+        } catch (NoSuchEntityException) {
+            return null;
+        }
+
+        return [
+            'label' => '#' . $shipment->getIncrementId(),
+            'url' => $this->url->getUrl('sales/shipment/view', ['shipment_id' => $shipmentId]),
+        ];
+    }
+}

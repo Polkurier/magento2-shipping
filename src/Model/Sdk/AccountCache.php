@@ -10,17 +10,20 @@ namespace Polkurier\Shipping\Model\Sdk;
 use Magento\Framework\Serialize\Serializer\Json;
 use Polkurier\Shipping\Enum\CacheTagEnum;
 use Polkurier\Shipping\Model\Cache\Type as PolkurierCache;
+use Polkurier\Shipping\Model\Config\ConfigProvider;
 
 /**
- * Small answers about the Polkurier account kept for a while, so that opening an admin page
- * doesn't wait for the API each time. Forgotten with the carrier list when the credentials change.
+ * What is cached for the Polkurier account: small answers kept for a while, so that opening an
+ * admin page doesn't wait for the API each time, and the keys of everything else cached for the
+ * account, which hold the account they're for, so the entries of another account are never
+ * read. Forgotten with the carrier list when the credentials change.
  */
 readonly class AccountCache
 {
     public function __construct(
         private PolkurierCache $cache,
         private Json $json,
-        private AccountCacheKey $cacheKeys,
+        private ConfigProvider $configProvider,
     ) {}
 
     /**
@@ -35,7 +38,7 @@ readonly class AccountCache
      */
     public function remember(string $name, int $lifetime, callable $load): mixed
     {
-        $key = $this->cacheKeys->get($name);
+        $key = $this->key($name);
         $cached = $this->cache->load($key);
         if (\is_string($cached) && $cached !== '') {
             try {
@@ -45,8 +48,26 @@ readonly class AccountCache
             }
         }
         $value = $load();
-        $this->cache->save((string)$this->json->serialize(['value' => $value]), $key, [CacheTagEnum::Account->value], $lifetime);
+        $this->cache->save(
+            (string)$this->json->serialize(['value' => $value]),
+            $key,
+            [CacheTagEnum::Account->value],
+            $lifetime,
+        );
 
         return $value;
+    }
+
+    /**
+     * The cache key of an entry for the current account.
+     *
+     * @param string $name what is kept, e.g. "carriers"
+     * @param string ...$variant anything else the entry depends on, such as the SDK's version
+     */
+    public function key(string $name, string ...$variant): string
+    {
+        $account = $this->configProvider->getLogin() . '|' . (int)$this->configProvider->isSandbox();
+
+        return 'polkurier_' . $name . '_' . \sha1(\implode('|', [$account, ...$variant]));
     }
 }

@@ -51,4 +51,21 @@ interface AddressRepositoryInterface
      * @throws CouldNotDeleteException
      */
     public function delete(AddressInterface $entity): bool;
+
+    /**
+     * The sender addresses, without those deleted here and not synchronized yet: the default
+     * first, then by name.
+     *
+     * @param bool $coverOnly only those that can be printed on the label as the sender
+     *
+     * @return \Polkurier\Shipping\Api\Data\AddressInterface[]
+     */
+    public function getSenderAddresses(bool $coverOnly = false): array;
+
+    /**
+     * The sender address marked as the default, if one is.
+     *
+     * @return \Polkurier\Shipping\Api\Data\AddressInterface|null
+     */
+    public function getDefaultSenderAddress(): ?AddressInterface;
 }

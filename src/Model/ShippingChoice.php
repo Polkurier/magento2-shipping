@@ -17,42 +17,44 @@ class ShippingChoice extends DataObject implements ShippingChoiceInterface
 {
     public function getOrderId(): int
     {
-        return (int)$this->getData(self::ORDER_ID);
+        return (int)$this->getData(self::FIELD_ORDER_ID);
     }
 
     public function getShippingMethod(): ?string
     {
-        return $this->nullable(self::SHIPPING_METHOD);
+        return $this->nullable(self::FIELD_SHIPPING_METHOD);
     }
 
     public function getShippingDescription(): ?string
     {
-        return $this->nullable(self::SHIPPING_DESCRIPTION);
+        return $this->nullable(self::FIELD_SHIPPING_DESCRIPTION);
     }
 
     public function getPointMethodCode(): ?string
     {
-        return $this->nullable(self::POINT_METHOD_CODE);
+        return $this->nullable(self::FIELD_POINT_METHOD_CODE);
     }
 
     public function getPointId(): ?string
     {
-        return $this->nullable(self::POINT_ID);
+        return $this->nullable(self::FIELD_POINT_ID);
     }
 
     public function getPointLabel(): ?string
     {
-        return $this->nullable(self::POINT_LABEL);
+        return $this->nullable(self::FIELD_POINT_LABEL);
     }
 
-    public function isPointCod(): bool
+    public function getPointCod(): ?bool
     {
-        return (bool)$this->getData(self::POINT_COD);
+        $value = $this->getData(self::FIELD_POINT_COD);
+
+        return $value === null || $value === '' ? null : (bool)$value;
     }
 
     public function getCreatedAt(): ?string
     {
-        return $this->nullable(self::CREATED_AT);
+        return $this->nullable(self::FIELD_CREATED_AT);
     }
 
     private function nullable(string $key): ?string

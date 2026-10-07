@@ -10,12 +10,14 @@
             <strong text="carrierName"></strong>
             <!-- /ko -->
             <!-- ko ifnot: carrierName -->
-            <span data-bind="css: {'polkurier-text-error': carrierMissing, 'polkurier-muted': !carrierMissing()}" translate="'No carrier chosen'"></span>
+            <span data-bind="css: {'polkurier-text-error': carrierMissing, 'polkurier-muted': !carrierMissing()}"
+                  translate="'No carrier chosen'"></span>
             <!-- /ko -->
             <button type="button" class="action-default polkurier-compact-button" click="changeCarrier">
                 <span translate="'Change'"></span>
             </button>
-            <ul class="polkurier-details__notices" if="carrierNotices().length" data-bind="attr: {'aria-label': $t('Messages from Polkurier about this carrier')}">
+            <ul class="polkurier-details__notices" if="carrierNotices().length"
+                data-bind="attr: {'aria-label': $t('Messages from Polkurier about this carrier')}">
                 <!-- ko foreach: carrierNotices -->
                 <li class="polkurier-section__warning" data-bind="html: html"></li>
                 <!-- /ko -->

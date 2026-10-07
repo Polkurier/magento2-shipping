@@ -8,6 +8,7 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Model\ResourceModel;
 
 use Magento\Framework\Model\ResourceModel\Db\AbstractDb;
+use Polkurier\Shipping\Api\Data\OrderPointInterface;
 
 /**
  * The polkurier_order_point table: an order's pickup points.
@@ -25,6 +26,6 @@ class OrderPoint extends AbstractDb
 
     protected function _construct(): void
     {
-        $this->_init(self::TABLE_NAME, 'order_id');
+        $this->_init(self::TABLE_NAME, OrderPointInterface::FIELD_ORDER_ID);
     }
 }

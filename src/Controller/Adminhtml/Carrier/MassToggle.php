@@ -15,7 +15,7 @@ use Magento\Framework\Exception\LocalizedException;
 use Magento\Ui\Component\MassAction\Filter;
 use Polkurier\Shipping\Api\CarrierConfigRepositoryInterface;
 use Polkurier\Shipping\Api\Data\CarrierConfigInterface;
-use Polkurier\Shipping\Controller\Adminhtml\ReturnsBack;
+use Polkurier\Shipping\Controller\Adminhtml\ReturnsBackTrait;
 use Polkurier\Shipping\Model\ResourceModel\CarrierConfig\CollectionFactory;
 
 /**
@@ -23,7 +23,7 @@ use Polkurier\Shipping\Model\ResourceModel\CarrierConfig\CollectionFactory;
  */
 class MassToggle extends Action implements HttpPostActionInterface
 {
-    use ReturnsBack;
+    use ReturnsBackTrait;
 
     public const string ADMIN_RESOURCE = 'Polkurier_Shipping::carriers';
 
@@ -46,7 +46,7 @@ class MassToggle extends Action implements HttpPostActionInterface
                 $this->repository->save($config->setActive(!$config->isActive()));
                 $config->isActive() ? $enabled++ : $disabled++;
             }
-            $this->messageManager->addSuccessMessage(\__('%1 enabled, %2 disabled.', $enabled, $disabled));
+            $this->messageManager->addSuccessMessage(__('%1 enabled, %2 disabled.', $enabled, $disabled));
         } catch (LocalizedException $e) {
             $this->messageManager->addErrorMessage($e->getMessage());
         }

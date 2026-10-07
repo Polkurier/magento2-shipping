@@ -15,11 +15,11 @@ namespace Polkurier\Shipping\Api\Data;
  */
 interface OrderPointInterface
 {
-    public const string ORDER_ID = 'order_id';
-    public const string METHOD_CODE = 'method_code';
-    public const string POINT_ID = 'point_id';
-    public const string POINT_LABEL = 'point_label';
-    public const string POINT_COD = 'point_cod';
+    public const string FIELD_ORDER_ID = 'order_id';
+    public const string FIELD_METHOD_CODE = 'method_code';
+    public const string FIELD_POINT_ID = 'point_id';
+    public const string FIELD_POINT_LABEL = 'point_label';
+    public const string FIELD_POINT_COD = 'point_cod';
 
     /**
      * @return int
@@ -70,14 +70,17 @@ interface OrderPointInterface
     public function setPointLabel(?string $pointLabel): static;
 
     /**
-     * @return bool
+     * Whether the point accepts cash on delivery; null when that isn't known, as when Polkurier
+     * couldn't be asked: then it's taken to.
+     *
+     * @return bool|null
      */
-    public function isPointCod(): bool;
+    public function getPointCod(): ?bool;
 
     /**
-     * @param bool $pointCod
+     * @param bool|null $pointCod null when not known
      *
      * @return $this
      */
-    public function setPointCod(bool $pointCod): static;
+    public function setPointCod(?bool $pointCod): static;
 }

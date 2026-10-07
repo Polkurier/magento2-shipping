@@ -15,7 +15,7 @@ use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Model\Context;
 use Magento\Framework\Model\ResourceModel\AbstractResource;
 use Magento\Framework\Registry;
-use Polkurier\Shipping\Model\Sdk\LogFilesDirectory as Directory;
+use Polkurier\Shipping\Model\Sdk\LogFilesDirectoryResolver as Directory;
 
 /**
  * Refuses a directory for logged files that the web server serves.
@@ -46,7 +46,10 @@ class LogFilesDirectory extends Value
         $entered = \trim((string)$this->getValue());
         $this->setValue($entered);
         if ($this->directory->isPublic($this->directory->resolve($entered))) {
-            throw new LocalizedException(\__('Logged files can\'t be saved in the pub directory: anyone could download them. Choose a directory outside it.'));
+            throw new LocalizedException(__(
+                'Logged files can\'t be saved in the pub directory: anyone could download them. '
+                . 'Choose a directory outside it.',
+            ));
         }
         parent::beforeSave();
 

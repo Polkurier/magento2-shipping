@@ -10,12 +10,12 @@ namespace Polkurier\Shipping\Controller\Adminhtml\Config;
 use Magento\Backend\App\Action\Context;
 use Magento\Framework\Controller\Result\JsonFactory;
 use Magento\Framework\Exception\LocalizedException;
+use Polkurier\Shipping\Api\PolkurierClientInterface;
 use Polkurier\Shipping\Controller\Adminhtml\AbstractJsonAction;
-use Polkurier\Shipping\Model\Config;
-use Polkurier\Shipping\Model\ErrorMessages;
-use Polkurier\Shipping\Model\Sdk\ClientPool;
+use Polkurier\Shipping\Model\Config\ConfigProvider;
+use Polkurier\Shipping\Model\Sdk\ErrorMessageResolver;
 use Polkurier\Webservice\Exception\Exception as PolkurierException;
-use Polkurier\Webservice\Http\Request\AuthorizationMessage;
+use Polkurier\Webservice\Http\Request\AuthorizationMessageFactory;
 
 /**
  * Checks credentials as typed in the configuration form, before they are saved.
@@ -32,9 +32,10 @@ class TestConnection extends AbstractJsonAction
     public function __construct(
         Context $context,
         JsonFactory $jsonFactory,
-        private readonly ClientPool $clientPool,
-        private readonly Config $config,
-        private readonly ErrorMessages $errorMessages,
+        private readonly PolkurierClientInterface $client,
+        private readonly ConfigProvider $configProvider,
+        private readonly ErrorMessageResolver $errorMessageResolver,
+        private readonly AuthorizationMessageFactory $authorizationMessageFactory,
     ) {
         parent::__construct($context, $jsonFactory);
     }
@@ -43,17 +44,19 @@ class TestConnection extends AbstractJsonAction
     {
         $login = \trim((string)$this->getRequest()->getParam('customer_id'));
         $token = \trim((string)$this->getRequest()->getParam('api_token'));
-        $login = $login === '' || $login === self::MASK ? $this->config->getLogin() : $login;
-        $token = $token === '' || $token === self::MASK ? $this->config->getToken() : $token;
+        $login = $login === '' || $login === self::MASK ? $this->configProvider->getLogin() : $login;
+        $token = $token === '' || $token === self::MASK ? $this->configProvider->getToken() : $token;
         if ($login === '' || $token === '') {
-            throw new LocalizedException(\__('Enter the customer ID and the API token.'));
+            throw new LocalizedException(__('Enter the customer ID and the API token.'));
         }
         try {
-            $this->clientPool->utils()->testAuthApi(new AuthorizationMessage(token: $token, login: $login));
+            $this->client->utils()->testAuthApi(
+                $this->authorizationMessageFactory->create(['token' => $token, 'login' => $login]),
+            );
         } catch (PolkurierException $e) {
-            throw $this->errorMessages->exception($e);
+            throw $this->errorMessageResolver->exception($e);
         }
 
-        return ['message' => (string)\__('Polkurier accepted the credentials.')];
+        return ['message' => (string)__('Polkurier accepted the credentials.')];
     }
 }

@@ -12,9 +12,9 @@ use Magento\Framework\App\Action\HttpPostActionInterface;
 use Magento\Framework\App\ActionInterface;
 use Magento\Framework\Controller\Result\Redirect;
 use Magento\Framework\Exception\LocalizedException;
-use Polkurier\Shipping\Model\Admin\Flash;
-use Polkurier\Shipping\Model\Shipment\Pickups;
-use Polkurier\Shipping\Model\Shipment\RequestedShipments;
+use Polkurier\Shipping\Model\Admin\FlashMessageCollector;
+use Polkurier\Shipping\Model\Admin\FlashMessageCollectorFactory;
+use Polkurier\Shipping\Model\Shipment\PickupService;
 
 /**
  * Books one courier collection for the selected shipments that await a collective pickup.
@@ -27,7 +27,8 @@ class Pickup extends AbstractShipmentAction implements HttpPostActionInterface
     public function __construct(
         Context $context,
         RequestedShipments $requestedShipments,
-        private readonly Pickups $pickups,
+        private readonly PickupService $pickupService,
+        private readonly FlashMessageCollectorFactory $flashMessageCollectorFactory,
     ) {
         parent::__construct($context, $requestedShipments);
     }
@@ -38,7 +39,7 @@ class Pickup extends AbstractShipmentAction implements HttpPostActionInterface
         $from = (string)$this->getRequest()->getParam('pickup_time_from');
         $to = (string)$this->getRequest()->getParam('pickup_time_to');
         try {
-            Pickups::window($date, $from, $to);
+            PickupService::window($date, $from, $to);
         } catch (LocalizedException $e) {
             $this->messageManager->addErrorMessage($e->getMessage());
 
@@ -46,21 +47,22 @@ class Pickup extends AbstractShipmentAction implements HttpPostActionInterface
             return $this->resultRedirectFactory->create()->setPath('*/*/pickupForm', \array_filter([
                 'ids' => (string)$this->getRequest()->getParam('ids'),
                 'order_id' => (int)$this->getRequest()->getParam('order_id') ?: null,
-                ActionInterface::PARAM_NAME_URL_ENCODED => (string)$this->getRequest()->getParam(ActionInterface::PARAM_NAME_URL_ENCODED) ?: null,
+                ActionInterface::PARAM_NAME_URL_ENCODED
+                    => (string)$this->getRequest()->getParam(ActionInterface::PARAM_NAME_URL_ENCODED) ?: null,
             ]));
         }
-        $flash = new Flash();
+        $flash = $this->flashMessageCollectorFactory->create();
         try {
-            $result = $this->pickups->bookCollective($this->getSelectedShipments(), $date, $from, $to);
+            $result = $this->pickupService->bookCollective($this->getSelectedShipments(), $date, $from, $to);
             if ($result['booked'] !== []) {
-                $flash->success(\__('Collective pickup booked for: %1.', \implode(', ', $result['booked'])));
+                $flash->success(__('Collective pickup booked for: %1.', \implode(', ', $result['booked'])));
             }
             if ($result['failed'] !== []) {
                 $reasons = [];
                 foreach ($result['failed'] as $number => $reason) {
-                    $reasons[] = (string)\__('%1: %2', $number, $reason);
+                    $reasons[] = $number . ': ' . $reason;
                 }
-                $notBooked = \__('Not booked for %1', \implode('; ', $reasons));
+                $notBooked = __('Not booked for %1', \implode('; ', $reasons));
                 $result['booked'] !== [] ? $flash->warning($notBooked) : $flash->error($notBooked);
             }
         } catch (LocalizedException $e) {

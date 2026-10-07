@@ -25,8 +25,8 @@ enum CartValueEnum: string
     public function label(): string
     {
         return match ($this) {
-            self::Gross => (string)\__('With tax'),
-            self::Net => (string)\__('Without tax'),
+            self::Gross => (string)__('With tax'),
+            self::Net => (string)__('Without tax'),
         };
     }
 }

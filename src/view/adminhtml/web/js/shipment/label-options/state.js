@@ -225,8 +225,8 @@ define([
 
             /**
              * What stands in the way of the packages going: parcels of more than one kind, a kind
-             * the carrier doesn't take, or services for pallets with other packages. Magento's packaging window has them, so it's checked
-             * when the label is asked for.
+             * the carrier doesn't take, or services for pallets with other packages. Magento's packaging
+             * window has them, so it's checked when the label is asked for.
              *
              * @param {Array<String>} containers the parcel type of each package
              * @returns {Array<String>}
@@ -243,9 +243,12 @@ define([
                     problems = problem ? [problem] : [];
 
                 if (pallet.length && types.length === 1 && types[0] !== 'palette') {
-                    problems.push($t('These services are for pallets only: %1.').replace('%1', pallet.map(function (service) {
-                        return state.optionLabel('services', service) || service;
-                    }).join(', ')));
+                    problems.push(
+                        $t('These services are for pallets only: %1.')
+                            .replace('%1', pallet.map(function (service) {
+                                return state.optionLabel('services', service) || service;
+                            }).join(', '))
+                    );
                 }
 
                 return problems;

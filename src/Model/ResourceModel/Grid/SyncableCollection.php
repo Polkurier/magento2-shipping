@@ -22,7 +22,7 @@ class SyncableCollection extends SearchResult
     protected function _initSelect()
     {
         parent::_initSelect();
-        $this->getSelect()->where('main_table.' . SyncableInterface::DELETED_AT . ' IS NULL');
+        $this->getSelect()->where('main_table.' . SyncableInterface::FIELD_DELETED_AT . ' IS NULL');
 
         return $this;
     }

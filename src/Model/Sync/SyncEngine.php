@@ -10,7 +10,7 @@ namespace Polkurier\Shipping\Model\Sync;
 use Magento\Framework\Stdlib\DateTime as DateFormat;
 use Magento\Framework\Stdlib\DateTime\DateTime;
 use Polkurier\Shipping\Api\Data\SyncableInterface;
-use Polkurier\Shipping\Model\ErrorMessages;
+use Polkurier\Shipping\Model\Sdk\ErrorMessageResolver;
 use Polkurier\Webservice\Exception\Exception as PolkurierException;
 use Psr\Log\LoggerInterface;
 
@@ -20,9 +20,10 @@ use Psr\Log\LoggerInterface;
  * For each pair, a side counts as changed when it differs from how the pair was left by the last
  * synchronization: locally when edited or deleted since, remotely when its fingerprint moved. A
  * change on one side only is copied to the other. When both changed, the later change wins, by
- * the local updated_at and the {@see RemoteClockInterface}. An entry deleted remotely is deleted
- * locally, unless it was edited locally since the last synchronization, in which case it is sent
- * again. New remote entries are created locally; new local ones are sent.
+ * the local updated_at and when the remote change was first seen (remoteChangedAt()). An entry
+ * deleted remotely is deleted locally, unless it was edited locally since the last
+ * synchronization, in which case it is sent again. New remote entries are created locally; new
+ * local ones are sent.
  */
 readonly class SyncEngine
 {
@@ -33,10 +34,10 @@ readonly class SyncEngine
     ];
 
     public function __construct(
-        private RemoteClockInterface $clock,
-        private ErrorMessages $errorMessages,
+        private ErrorMessageResolver $errorMessageResolver,
         private DateTime $dateTime,
         private LoggerInterface $logger,
+        private SyncResultFactory $syncResultFactory,
     ) {}
 
     /**
@@ -49,7 +50,7 @@ readonly class SyncEngine
      */
     public function run(AdapterInterface $adapter, ?SyncableInterface $only = null): SyncResult
     {
-        $result = new SyncResult($adapter->getEntityType());
+        $result = $this->syncResultFactory->create(['entityType' => $adapter->getEntityType()]);
         $now = new \DateTimeImmutable('@' . $this->dateTime->gmtTimestamp());
         $remote = $adapter->fetchRemote();
         $locals = $adapter->fetchLocal();
@@ -93,10 +94,16 @@ readonly class SyncEngine
         foreach ($remote as $extId => $entry) {
             try {
                 $local = $adapter->createLocal();
-                $this->pulled($adapter, $local, $entry, $this->clock->getModifiedAt($entry, $this->hash($entry), $local, $now), $now);
+                $this->pulled(
+                    $adapter,
+                    $local,
+                    $entry,
+                    $this->remoteChangedAt($this->hash($entry), $local, $now),
+                    $now,
+                );
                 $result->created++;
             } catch (\Throwable $e) {
-                $message = $this->errorMessages->describe($e);
+                $message = $this->errorMessageResolver->describe($e);
                 $this->logger->warning('Polkurier synchronization failed', [
                     'entity' => $adapter->getEntityType()->value,
                     'remote' => (string)$extId,
@@ -108,6 +115,52 @@ readonly class SyncEngine
         }
 
         return $result;
+    }
+
+    /**
+     * @param array<string, mixed> $remote
+     */
+    public function hash(array $remote): string
+    {
+        \ksort($remote);
+
+        return \sha1((string)\json_encode($remote, \JSON_UNESCAPED_UNICODE | \JSON_PRESERVE_ZERO_FRACTION));
+    }
+
+    /**
+     * Records an entry as sent: also for pushes the adapter cannot make by itself, such as a bank
+     * account saved with the merchant's confirmation.
+     *
+     * @param array<string, mixed> $stored the entry as Polkurier stored it, normalized
+     */
+    public function pushed(
+        AdapterInterface $adapter,
+        SyncableInterface $local,
+        array $stored,
+        \DateTimeImmutable $now,
+    ): void {
+        $stamp = $now->format(DateFormat::DATETIME_PHP_FORMAT);
+        $extId = $stored[SyncableInterface::FIELD_EXT_ID] ?? null;
+        $local->setExtId($extId !== null ? (string)$extId : $local->getExtId())
+            ->setRemoteHash($this->hash($stored))
+            ->setRemoteUpdatedAt($stamp)
+            ->setSyncedAt($stamp)
+            ->setUpdatedAt($stamp)
+            ->setSyncState(SyncableInterface::STATE_SYNCED)
+            ->setSyncError(null);
+        try {
+            $adapter->save($local);
+        } catch (\Throwable $e) {
+            // Polkurier has it now. Unless the entry is still saved with its link as failed, the next run
+            // links it by its natural key; the log says which it is.
+            $this->logger->error('Polkurier entry sent but saving it as synced failed', [
+                'entity' => $adapter->getEntityType()->value,
+                'id' => $local->getId(),
+                'remote' => $local->getExtId(),
+            ]);
+
+            throw $e;
+        }
     }
 
     /**
@@ -137,18 +190,12 @@ readonly class SyncEngine
         return $byKey;
     }
 
-    /**
-     * @param array<string, mixed> $remote
-     */
-    public function hash(array $remote): string
-    {
-        \ksort($remote);
-
-        return \sha1((string)\json_encode($remote, \JSON_UNESCAPED_UNICODE | \JSON_PRESERVE_ZERO_FRACTION));
-    }
-
-    private function handleUnlinked(AdapterInterface $adapter, SyncableInterface $local, \DateTimeImmutable $now, SyncResult $result): void
-    {
+    private function handleUnlinked(
+        AdapterInterface $adapter,
+        SyncableInterface $local,
+        \DateTimeImmutable $now,
+        SyncResult $result,
+    ): void {
         if ($local->getDeletedAt() !== null) {
             $adapter->delete($local);
             $result->deleted++;
@@ -164,8 +211,12 @@ readonly class SyncEngine
         $result->pushed++;
     }
 
-    private function handleRemoteDeleted(AdapterInterface $adapter, SyncableInterface $local, \DateTimeImmutable $now, SyncResult $result): void
-    {
+    private function handleRemoteDeleted(
+        AdapterInterface $adapter,
+        SyncableInterface $local,
+        \DateTimeImmutable $now,
+        SyncResult $result,
+    ): void {
         if ($local->getDeletedAt() === null && $this->isLocallyChanged($local)) {
             $local->setExtId(null);
             if ($adapter instanceof PushableAdapterInterface) {
@@ -184,15 +235,22 @@ readonly class SyncEngine
     /**
      * @param array<string, mixed> $remote
      */
-    private function handlePair(AdapterInterface $adapter, SyncableInterface $local, array $remote, \DateTimeImmutable $now, SyncResult $result): void
-    {
+    private function handlePair(
+        AdapterInterface $adapter,
+        SyncableInterface $local,
+        array $remote,
+        \DateTimeImmutable $now,
+        SyncResult $result,
+    ): void {
         $hash = $this->hash($remote);
         $remoteChanged = $hash !== $local->getRemoteHash();
         $localChanged = $this->isLocallyChanged($local);
-        $remoteAt = $this->clock->getModifiedAt($remote, $hash, $local, $now);
+        $remoteAt = $this->remoteChangedAt($hash, $local, $now);
 
         if ($local->getDeletedAt() !== null) {
-            if ($remoteChanged && $remoteAt > new \DateTimeImmutable($local->getDeletedAt())) {
+            if ($remoteChanged
+                && $remoteAt > new \DateTimeImmutable($local->getDeletedAt(), new \DateTimeZone('UTC'))
+            ) {
                 $local->setDeletedAt(null);
                 $this->pulled($adapter, $local, $remote, $remoteAt, $now);
                 $result->pulled++;
@@ -245,8 +303,13 @@ readonly class SyncEngine
     /**
      * @param array<string, mixed> $remote
      */
-    private function pulled(AdapterInterface $adapter, SyncableInterface $local, array $remote, \DateTimeImmutable $remoteAt, \DateTimeImmutable $now): void
-    {
+    private function pulled(
+        AdapterInterface $adapter,
+        SyncableInterface $local,
+        array $remote,
+        \DateTimeImmutable $remoteAt,
+        \DateTimeImmutable $now,
+    ): void {
         $adapter->applyRemote($local, $remote);
         $stamp = $now->format(DateFormat::DATETIME_PHP_FORMAT);
         $local->setRemoteHash($this->hash($remote))
@@ -258,39 +321,13 @@ readonly class SyncEngine
         $adapter->save($local);
     }
 
-    /**
-     * Records an entry as sent: also for pushes the adapter cannot make by itself, such as a bank
-     * account saved with the merchant's confirmation.
-     *
-     * @param array<string, mixed> $stored the entry as Polkurier stored it, normalized
-     */
-    public function pushed(AdapterInterface $adapter, SyncableInterface $local, array $stored, \DateTimeImmutable $now): void
-    {
-        $stamp = $now->format(DateFormat::DATETIME_PHP_FORMAT);
-        $local->setExtId(isset($stored['id']) ? (string)$stored['id'] : $local->getExtId())
-            ->setRemoteHash($this->hash($stored))
-            ->setRemoteUpdatedAt($stamp)
-            ->setSyncedAt($stamp)
-            ->setUpdatedAt($stamp)
-            ->setSyncState(SyncableInterface::STATE_SYNCED)
-            ->setSyncError(null);
-        try {
-            $adapter->save($local);
-        } catch (\Throwable $e) {
-            // Polkurier has it now: the next run links it by its natural key, and the log says which it is.
-            $this->logger->error('Polkurier entry sent but its link not saved', [
-                'entity' => $adapter->getEntityType()->value,
-                'id' => $local->getId(),
-                'remote' => $local->getExtId(),
-            ]);
-
-            throw $e;
-        }
-    }
-
-    private function markError(AdapterInterface $adapter, SyncableInterface $local, \Throwable $e, SyncResult $result): void
-    {
-        $message = $this->errorMessages->describe($e);
+    private function markError(
+        AdapterInterface $adapter,
+        SyncableInterface $local,
+        \Throwable $e,
+        SyncResult $result,
+    ): void {
+        $message = $this->errorMessageResolver->describe($e);
         $this->logger->warning('Polkurier synchronization failed', [
             'entity' => $adapter->getEntityType()->value,
             'id' => $local->getId(),
@@ -323,11 +360,35 @@ readonly class SyncEngine
             return true;
         }
 
-        return $this->localChangedAt($local) > new \DateTimeImmutable($local->getSyncedAt());
+        return $this->localChangedAt($local) > new \DateTimeImmutable($local->getSyncedAt(), new \DateTimeZone('UTC'));
     }
 
     private function localChangedAt(SyncableInterface $local): \DateTimeImmutable
     {
-        return new \DateTimeImmutable($local->getDeletedAt() ?? $local->getUpdatedAt() ?? '@0');
+        return new \DateTimeImmutable(
+            $local->getDeletedAt() ?? $local->getUpdatedAt() ?? '@0',
+            new \DateTimeZone('UTC'),
+        );
+    }
+
+    /**
+     * When the remote entry last changed. The API doesn't report it, so a change is dated to the
+     * synchronization that first sees the entry different, and otherwise to the time last recorded
+     * for it. When both sides changed between two synchronizations, the remote change thus counts
+     * as the later one; local edits are sent as soon as they are saved, which keeps that rare.
+     */
+    private function remoteChangedAt(
+        string $remoteHash,
+        SyncableInterface $local,
+        \DateTimeImmutable $now,
+    ): \DateTimeImmutable {
+        if ($local->getRemoteHash() !== $remoteHash) {
+            return $now;
+        }
+        $known = $local->getRemoteUpdatedAt() ?? $local->getSyncedAt();
+
+        return $known !== null
+            ? new \DateTimeImmutable($known, new \DateTimeZone('UTC'))
+            : new \DateTimeImmutable('@0');
     }
 }

@@ -19,23 +19,6 @@ class HandlerTest extends TestCase
 {
     private string $root;
 
-    protected function setUp(): void
-    {
-        $this->root = \sys_get_temp_dir() . '/polkurier-log-' . \bin2hex(\random_bytes(4)) . '/';
-    }
-
-    protected function tearDown(): void
-    {
-        foreach (\glob($this->root . Handler::DIRECTORY . '/*') ?: [] as $file) {
-            \unlink($file);
-        }
-        foreach ([Handler::DIRECTORY, 'var/log', 'var', ''] as $directory) {
-            if (\is_dir($this->root . $directory)) {
-                \rmdir($this->root . $directory);
-            }
-        }
-    }
-
     public function testRequestsAndErrorsGoToTheFilesOfTheirMonth(): void
     {
         $handler = new Handler(new File(), $this->root);
@@ -51,6 +34,23 @@ class HandlerTest extends TestCase
         self::assertSame(['last of September'], $this->messages('2026-09-access.log'));
         self::assertSame(['first of October', 'later in October'], $this->messages('2026-10-access.log'));
         self::assertSame(['refused in October', 'unknown value in October'], $this->messages('2026-10-error.log'));
+    }
+
+    protected function setUp(): void
+    {
+        $this->root = \sys_get_temp_dir() . '/polkurier-log-' . \bin2hex(\random_bytes(4)) . '/';
+    }
+
+    protected function tearDown(): void
+    {
+        foreach (\glob($this->root . Handler::DIRECTORY . '/*') ?: [] as $file) {
+            \unlink($file);
+        }
+        foreach ([Handler::DIRECTORY, 'var/log', 'var', ''] as $directory) {
+            if (\is_dir($this->root . $directory)) {
+                \rmdir($this->root . $directory);
+            }
+        }
     }
 
     /**
@@ -69,7 +69,11 @@ class HandlerTest extends TestCase
      */
     private function messages(string $file): array
     {
-        \preg_match_all('/polkurier\.\w+: (.+?) \[\]/', (string)\file_get_contents($this->root . Handler::DIRECTORY . '/' . $file), $found);
+        \preg_match_all(
+            '/polkurier\.\w+: (.+?) \[\]/',
+            (string)\file_get_contents($this->root . Handler::DIRECTORY . '/' . $file),
+            $found,
+        );
 
         return $found[1];
     }

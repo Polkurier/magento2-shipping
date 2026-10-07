@@ -11,9 +11,9 @@ use Magento\Quote\Api\Data\ShippingMethodExtensionFactory;
 use Magento\Quote\Api\Data\ShippingMethodInterface;
 use Magento\Quote\Model\Cart\ShippingMethodConverter;
 use Magento\Store\Model\StoreManagerInterface;
-use Polkurier\Shipping\Model\Carrier\CarrierConfigs;
-use Polkurier\Shipping\Model\Carrier\CarrierLogo;
+use Polkurier\Shipping\Model\Carrier\CarrierLogoStorage;
 use Polkurier\Shipping\Model\Carrier\Polkurier;
+use Polkurier\Shipping\Model\CarrierConfig\CarrierConfigProvider;
 
 /**
  * Adds the carrier's logo to each of the module's shipping methods, as the "method_logo"
@@ -23,8 +23,8 @@ readonly class ShippingMethodLogoPlugin
 {
     public function __construct(
         private ShippingMethodExtensionFactory $extensionFactory,
-        private CarrierConfigs $carrierConfigs,
-        private CarrierLogo $carrierLogo,
+        private CarrierConfigProvider $carrierConfigProvider,
+        private CarrierLogoStorage $carrierLogoStorage,
         private StoreManagerInterface $storeManager,
     ) {}
 
@@ -42,8 +42,8 @@ readonly class ShippingMethodLogoPlugin
             return $result;
         }
         $store = $rateModel->getAddress()?->getQuote()?->getStore() ?? $this->storeManager->getStore();
-        $config = $this->carrierConfigs->get((string)$result->getMethodCode());
-        $logo = $config !== null ? $this->carrierLogo->getUrlFor($config, (int)$store->getId()) : null;
+        $config = $this->carrierConfigProvider->get((string)$result->getMethodCode());
+        $logo = $config !== null ? $this->carrierLogoStorage->getUrlFor($config, (int)$store->getId()) : null;
         if ($logo === null) {
             return $result;
         }

@@ -36,8 +36,15 @@ class ShipButtonPositionPluginTest extends TestCase
 
     public function testOtherButtonsKeepTheirOrder(): void
     {
-        self::assertSame(['order_reorder', 'something_else', 'polkurier_ship'], $this->laidOut(['order_reorder', 'something_else', 'polkurier_ship']));
-        self::assertSame(['order_ship', 'order_reorder'], $this->laidOut(['order_ship', 'order_reorder']), 'Not on the page: nothing changes.');
+        self::assertSame(
+            ['order_reorder', 'something_else', 'polkurier_ship'],
+            $this->laidOut(['order_reorder', 'something_else', 'polkurier_ship']),
+        );
+        self::assertSame(
+            ['order_ship', 'order_reorder'],
+            $this->laidOut(['order_ship', 'order_reorder']),
+            'Not on the page: nothing changes.',
+        );
     }
 
     /**
@@ -56,7 +63,11 @@ class ShipButtonPositionPluginTest extends TestCase
         $list = $this->createStub(ButtonList::class);
         $list->method('getItems')->willReturn([0 => $items]);
 
-        (new ShipButtonPositionPlugin())->beforePushButtons($this->createStub(Toolbar::class), $this->createStub(AbstractBlock::class), $list);
+        (new ShipButtonPositionPlugin())->beforePushButtons(
+            $this->createStub(Toolbar::class),
+            $this->createStub(AbstractBlock::class),
+            $list,
+        );
         // Stable, as PHP's sorting is: equal sort orders keep the order the buttons were added in.
         \uasort($items, static fn(Item $a, Item $b): int => (int)$a->getSortOrder() <=> (int)$b->getSortOrder());
 

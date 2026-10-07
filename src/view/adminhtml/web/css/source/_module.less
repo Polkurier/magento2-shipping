@@ -7,9 +7,9 @@
 //  into its own styles.
 
 //  Shades of the theme's colours that it has no variables for
-@polkurier__selected-background: #f4f8ec; // a tint of @color-green-apple
-@polkurier__unavailable-background: #fff7f2; // a tint of @color-phoenix
-@polkurier__cheapest-text: #3d6611; // a darker @color-green-apple
+@polkurier__selected-background: tint(@color-green-apple, 92%);
+@polkurier__unavailable-background: tint(@color-phoenix, 95%);
+@polkurier__cheapest-text: darken(@color-green-apple, 15%);
 
 @import 'module/_menu.less';
 @import 'module/_shipment-form.less';

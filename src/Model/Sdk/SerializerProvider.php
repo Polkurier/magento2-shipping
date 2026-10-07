@@ -9,10 +9,10 @@ namespace Polkurier\Shipping\Model\Sdk;
 
 use Magento\Framework\App\Filesystem\DirectoryList;
 use Magento\Framework\Filesystem\DirectoryList as Directories;
-use Polkurier\Webservice\Serializer\SerializerConfig;
-use Polkurier\Webservice\Serializer\SerializerProvider as SdkSerializerProvider;
+use Polkurier\Webservice\Serializer\SerializerConfigFactory;
+use Polkurier\Webservice\Serializer\SerializerProviderFactory as SdkSerializerProviderFactory;
 use Polkurier\Webservice\Serializer\SerializerProviderInterface;
-use Symfony\Component\Cache\Adapter\PhpFilesAdapter;
+use Symfony\Component\Cache\Adapter\PhpFilesAdapterFactory;
 use Symfony\Component\Serializer\Normalizer\DenormalizerInterface;
 use Symfony\Component\Serializer\SerializerInterface;
 
@@ -31,18 +31,23 @@ class SerializerProvider implements SerializerProviderInterface
 
     public function __construct(
         private readonly Directories $directoryList,
+        private readonly SdkSerializerProviderFactory $sdkSerializerProviderFactory,
+        private readonly SerializerConfigFactory $serializerConfigFactory,
+        private readonly PhpFilesAdapterFactory $phpFilesAdapterFactory,
     ) {}
 
     public function getSerializer(): SerializerInterface&DenormalizerInterface
     {
-        $this->inner ??= new SdkSerializerProvider(new SerializerConfig(
-            metadataCache: new PhpFilesAdapter(
-                self::CACHE_DIRECTORY,
-                0,
-                $this->directoryList->getPath(DirectoryList::CACHE) . '/' . self::CACHE_DIRECTORY,
-            ),
-            timezone: PolkurierTime::zone(),
-        ));
+        $this->inner ??= $this->sdkSerializerProviderFactory->create([
+            'config' => $this->serializerConfigFactory->create([
+                'metadataCache' => $this->phpFilesAdapterFactory->create([
+                    'namespace' => self::CACHE_DIRECTORY,
+                    'defaultLifetime' => 0,
+                    'directory' => $this->directoryList->getPath(DirectoryList::CACHE) . '/' . self::CACHE_DIRECTORY,
+                ]),
+                'timezone' => PolkurierTimeZone::zone(),
+            ]),
+        ]);
 
         return $this->inner->getSerializer();
     }

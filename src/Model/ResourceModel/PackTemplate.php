@@ -14,7 +14,7 @@ use Magento\Framework\Model\ResourceModel\Db\AbstractDb;
  */
 class PackTemplate extends AbstractDb
 {
-    use NamedEntries;
+    use NamedEntriesTrait;
 
     public const string TABLE_NAME = 'polkurier_pack_template';
 

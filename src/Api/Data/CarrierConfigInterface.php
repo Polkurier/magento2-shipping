@@ -14,17 +14,17 @@ namespace Polkurier\Shipping\Api\Data;
  */
 interface CarrierConfigInterface
 {
-    public const string CONFIG_ID = 'config_id';
-    public const string CARRIER_CODE = 'carrier_code';
-    public const string CARRIER_NAME = 'carrier_name';
-    public const string CUSTOM_LABEL = 'custom_label';
-    public const string LOGO = 'logo';
-    public const string ACTIVE = 'active';
-    public const string SORT_ORDER = 'sort_order';
-    public const string PRICING_MODEL = 'pricing_model';
-    public const string PRICE_INFO = 'price_info';
-    public const string AVAILABLE = 'available';
-    public const string STORE_LABELS = 'store_labels';
+    public const string FIELD_CONFIG_ID = 'config_id';
+    public const string FIELD_CARRIER_CODE = 'carrier_code';
+    public const string FIELD_CARRIER_NAME = 'carrier_name';
+    public const string FIELD_CUSTOM_LABEL = 'custom_label';
+    public const string FIELD_LOGO = 'logo';
+    public const string FIELD_ACTIVE = 'active';
+    public const string FIELD_SORT_ORDER = 'sort_order';
+    public const string FIELD_PRICING_MODEL = 'pricing_model';
+    public const string FIELD_PRICE_INFO = 'price_info';
+    public const string FIELD_AVAILABLE = 'available';
+    public const string FIELD_STORE_LABELS = 'store_labels';
 
     /**
      * @return int|null

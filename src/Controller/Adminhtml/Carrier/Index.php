@@ -33,7 +33,7 @@ class Index extends Action implements HttpGetActionInterface
             throw new \LogicException('The admin area renders backend pages.');
         }
         $page->setActiveMenu('Polkurier_Shipping::carriers');
-        $page->getConfig()->getTitle()->prepend((string)\__('Carriers'));
+        $page->getConfig()->getTitle()->prepend((string)__('Carriers'));
 
         return $page;
     }

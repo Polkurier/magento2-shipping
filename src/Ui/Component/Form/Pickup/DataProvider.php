@@ -10,7 +10,7 @@ namespace Polkurier\Shipping\Ui\Component\Form\Pickup;
 use Magento\Framework\App\RequestInterface;
 use Magento\Framework\Stdlib\DateTime\TimezoneInterface;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
-use Polkurier\Shipping\Model\Carrier\CarrierNames;
+use Polkurier\Shipping\Model\Carrier\CarrierNameProvider;
 use Polkurier\Shipping\Model\ResourceModel\Shipment\CollectionFactory;
 use Polkurier\Shipping\Ui\Component\Form\FormDataProvider;
 
@@ -30,7 +30,7 @@ class DataProvider extends FormDataProvider
         CollectionFactory $collectionFactory,
         private readonly RequestInterface $request,
         private readonly TimezoneInterface $timezone,
-        private readonly CarrierNames $carrierNames,
+        private readonly CarrierNameProvider $carrierNameProvider,
         array $meta = [],
         array $data = [],
     ) {
@@ -42,8 +42,15 @@ class DataProvider extends FormDataProvider
     {
         $ids = \array_filter(\array_map('intval', \explode(',', (string)$this->request->getParam('ids'))));
         $numbers = [];
-        foreach ($this->collection->addFieldToFilter(ShipmentInterface::ENTITY_ID, ['in' => $ids ?: [0]])->getItems() as $shipment) {
-            $numbers[] = \sprintf('%s (%s)', (string)$shipment->getPolkurierNumber(), $this->carrierNames->get($shipment->getCarrierCode()));
+        $shipments = $this->collection
+            ->addFieldToFilter(ShipmentInterface::FIELD_ENTITY_ID, ['in' => $ids ?: [0]])
+            ->getItems();
+        foreach ($shipments as $shipment) {
+            $numbers[] = \sprintf(
+                '%s (%s)',
+                (string)$shipment->getPolkurierNumber(),
+                $this->carrierNameProvider->get($shipment->getCarrierCode()),
+            );
         }
 
         return [(string)$this->request->getParam('ids') => [
@@ -54,7 +61,9 @@ class DataProvider extends FormDataProvider
             'uenc' => (string)$this->request->getParam('uenc'),
             'shipments' => \implode(', ', $numbers),
             // The next working day where the store is, not where the server's clock is.
-            'pickup_date' => \DateTimeImmutable::createFromMutable($this->timezone->date())->modify('+1 weekday')->format('Y-m-d'),
+            'pickup_date' => \DateTimeImmutable::createFromMutable($this->timezone->date())
+                ->modify('+1 weekday')
+                ->format('Y-m-d'),
             'pickup_time_from' => '10:00',
             'pickup_time_to' => '16:00',
         ]];

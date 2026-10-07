@@ -12,7 +12,7 @@
     </argument>
     <settings>
         <buttons>
-            <button name="refresh" class="Polkurier\Shipping\Ui\Component\Control\RefreshCarriersButton"/>
+            <button name="refresh" class="Polkurier\Shipping\Ui\Component\Listing\Carrier\RefreshButtonVirtual"/>
         </buttons>
         <spinner>polkurier_carrier_listing_columns</spinner>
         <deps>
@@ -27,7 +27,8 @@
             <updateUrl path="mui/index/render"/>
         </settings>
         <aclResource>Polkurier_Shipping::carriers</aclResource>
-        <dataProvider class="Magento\Framework\View\Element\UiComponent\DataProvider\DataProvider" name="polkurier_carrier_listing_data_source">
+        <dataProvider class="Magento\Framework\View\Element\UiComponent\DataProvider\DataProvider"
+                      name="polkurier_carrier_listing_data_source">
             <settings>
                 <requestFieldName>id</requestFieldName>
                 <primaryFieldName>config_id</primaryFieldName>
@@ -115,7 +116,8 @@
                 </editor>
             </settings>
         </column>
-        <column name="logo" class="Polkurier\Shipping\Ui\Component\Listing\Column\CarrierLogoColumn" component="Magento_Ui/js/grid/columns/thumbnail">
+        <column name="logo" class="Polkurier\Shipping\Ui\Component\Listing\Carrier\LogoColumn"
+                component="Magento_Ui/js/grid/columns/thumbnail">
             <settings>
                 <label translate="true">Logo</label>
                 <hasPreview>1</hasPreview>

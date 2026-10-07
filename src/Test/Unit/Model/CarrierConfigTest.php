@@ -12,7 +12,7 @@ use Magento\Framework\Registry;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Polkurier\Shipping\Model\CarrierConfig;
-use Polkurier\Shipping\Model\CarrierLabel;
+use Polkurier\Shipping\Model\CarrierConfig\CarrierLabel;
 use Polkurier\Shipping\Model\ResourceModel\CarrierConfig as CarrierConfigResource;
 
 #[CoversClass(CarrierConfig::class)]

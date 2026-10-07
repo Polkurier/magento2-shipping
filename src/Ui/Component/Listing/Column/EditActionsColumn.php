@@ -42,7 +42,7 @@ class EditActionsColumn extends Column
         $index = (string)$this->getData('config/indexField');
         $editPath = (string)$this->getData('config/editUrlPath');
         $deletePath = (string)$this->getData('config/deleteUrlPath');
-        $deleteMessage = (string)($this->getData('config/deleteMessage') ?: \__('Delete this entry?'));
+        $deleteMessage = (string)($this->getData('config/deleteMessage') ?: __('Delete this entry?'));
 
         if (!isset($dataSource['data']['items'])) {
             return $dataSource;
@@ -51,14 +51,14 @@ class EditActionsColumn extends Column
             $id = (int)$item[$index];
             $item[$this->getData('name')] = ['edit' => [
                 'href' => $this->url->getUrl($editPath, ['id' => $id]),
-                'label' => \__('Edit'),
+                'label' => __('Edit'),
             ]];
             if ($deletePath !== '') {
                 $item[$this->getData('name')]['delete'] = [
                     'href' => $this->url->getUrl($deletePath, ['id' => $id]),
-                    'label' => \__('Delete'),
+                    'label' => __('Delete'),
                     'post' => true,
-                    'confirm' => ['title' => \__('Delete'), 'message' => $deleteMessage],
+                    'confirm' => ['title' => __('Delete'), 'message' => $deleteMessage],
                 ];
             }
         }

@@ -15,7 +15,7 @@ use Polkurier\Shipping\Api\Data\OrderPointInterface;
  */
 class OrderPoint extends AbstractModel implements OrderPointInterface
 {
-    public const string ID_FIELD = 'order_id';
+    public const string ID_FIELD = self::FIELD_ORDER_ID;
 
     /**
      * @var string
@@ -27,68 +27,68 @@ class OrderPoint extends AbstractModel implements OrderPointInterface
      */
     protected $_eventObject = 'orderPoint';
 
-    protected function _construct(): void
-    {
-        $this->_init(ResourceModel\OrderPoint::class);
-    }
-
     public function getOrderId(): int
     {
-        $value = $this->getData(self::ORDER_ID);
+        $value = $this->getData(self::FIELD_ORDER_ID);
 
         return (int)$value;
     }
 
     public function setOrderId(int $orderId): static
     {
-        return $this->setData(self::ORDER_ID, $orderId);
+        return $this->setData(self::FIELD_ORDER_ID, $orderId);
     }
 
     public function getMethodCode(): string
     {
-        $value = $this->getData(self::METHOD_CODE);
+        $value = $this->getData(self::FIELD_METHOD_CODE);
 
         return (string)$value;
     }
 
     public function setMethodCode(string $methodCode): static
     {
-        return $this->setData(self::METHOD_CODE, $methodCode);
+        return $this->setData(self::FIELD_METHOD_CODE, $methodCode);
     }
 
     public function getPointId(): string
     {
-        $value = $this->getData(self::POINT_ID);
+        $value = $this->getData(self::FIELD_POINT_ID);
 
         return (string)$value;
     }
 
     public function setPointId(string $pointId): static
     {
-        return $this->setData(self::POINT_ID, $pointId);
+        return $this->setData(self::FIELD_POINT_ID, $pointId);
     }
 
     public function getPointLabel(): ?string
     {
-        $value = $this->getData(self::POINT_LABEL);
+        $value = $this->getData(self::FIELD_POINT_LABEL);
 
         return $value === null || $value === '' ? null : (string)$value;
     }
 
     public function setPointLabel(?string $pointLabel): static
     {
-        return $this->setData(self::POINT_LABEL, $pointLabel);
+        return $this->setData(self::FIELD_POINT_LABEL, $pointLabel);
     }
 
-    public function isPointCod(): bool
+    public function getPointCod(): ?bool
     {
-        $value = $this->getData(self::POINT_COD);
+        $value = $this->getData(self::FIELD_POINT_COD);
 
-        return (bool)$value;
+        return $value === null || $value === '' ? null : (bool)$value;
     }
 
-    public function setPointCod(bool $pointCod): static
+    public function setPointCod(?bool $pointCod): static
     {
-        return $this->setData(self::POINT_COD, (int)$pointCod);
+        return $this->setData(self::FIELD_POINT_COD, $pointCod === null ? null : (int)$pointCod);
+    }
+
+    protected function _construct(): void
+    {
+        $this->_init(ResourceModel\OrderPoint::class);
     }
 }

@@ -17,9 +17,9 @@ readonly class ShipmentType extends AbstractOptions
     public function toArray(): array
     {
         return [
-            ShipmentTypeEnum::Box->value => (string)\__('Parcel'),
-            ShipmentTypeEnum::Envelope->value => (string)\__('Envelope'),
-            ShipmentTypeEnum::Palette->value => (string)\__('Pallet'),
+            ShipmentTypeEnum::Box->value => (string)__('Parcel'),
+            ShipmentTypeEnum::Envelope->value => (string)__('Envelope'),
+            ShipmentTypeEnum::Palette->value => (string)__('Pallet'),
         ];
     }
 }

@@ -11,10 +11,10 @@ use Magento\Backend\App\Action\Context;
 use Magento\Framework\Controller\Result\JsonFactory;
 use Magento\Framework\Exception\LocalizedException;
 use Polkurier\Shipping\Controller\Adminhtml\AbstractJsonAction;
-use Polkurier\Shipping\Model\ErrorMessages;
-use Polkurier\Shipping\Model\Shipment\CostEstimator;
-use Polkurier\Shipping\Model\Shipment\DraftHydrator;
-use Polkurier\Shipping\Model\Shipment\OwnOrders;
+use Polkurier\Shipping\Model\Sdk\ErrorMessageResolver;
+use Polkurier\Shipping\Model\Shipment\Draft\DraftHydrator;
+use Polkurier\Shipping\Model\Shipment\OrderLoader;
+use Polkurier\Shipping\Model\Shipment\Valuation\CostEstimator;
 
 /**
  * What Polkurier would charge for the shipment as currently filled in: with the chosen carrier, and
@@ -29,8 +29,8 @@ class Calculate extends AbstractJsonAction
         JsonFactory $jsonFactory,
         private readonly CostEstimator $costEstimator,
         private readonly DraftHydrator $hydrator,
-        private readonly OwnOrders $ownOrders,
-        private readonly ErrorMessages $errorMessages,
+        private readonly OrderLoader $orderLoader,
+        private readonly ErrorMessageResolver $errorMessageResolver,
     ) {
         parent::__construct($context, $jsonFactory);
     }
@@ -38,14 +38,14 @@ class Calculate extends AbstractJsonAction
     protected function answer(): array
     {
         $data = (array)$this->getRequest()->getParam('data', []);
-        $order = $this->ownOrders->get((int)($data['order_id'] ?? 0));
+        $order = $this->orderLoader->getForPolkurier((int)($data['order_id'] ?? 0));
         $draft = $this->hydrator->fromArray($data);
         $quotes = $this->costEstimator->quoteAll($draft, (int)$order->getStoreId());
         $cost = $quotes[$draft->getCarrierCode()] ?? null;
 
         return [
             'error' => $cost === null,
-            'message' => $cost === null ? (string)\__('Service unavailable') : '',
+            'message' => $cost === null ? (string)__('Service unavailable') : '',
             'net' => $cost['net'] ?? null,
             'gross' => $cost['gross'] ?? null,
             'quotes' => (object)$quotes,
@@ -55,6 +55,6 @@ class Calculate extends AbstractJsonAction
     protected function refused(LocalizedException $e): array
     {
         // Offered again only when that may help; a refusal waits for a change to the shipment.
-        return ['retry' => $this->errorMessages->isTransient($e), 'quotes' => (object)[]];
+        return ['retry' => $this->errorMessageResolver->isTransient($e), 'quotes' => (object)[]];
     }
 }

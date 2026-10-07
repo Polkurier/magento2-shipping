@@ -15,14 +15,14 @@ namespace Polkurier\Shipping\Api\Data;
  */
 interface ShippingChoiceInterface
 {
-    public const string ORDER_ID = 'order_id';
-    public const string SHIPPING_METHOD = 'shipping_method';
-    public const string SHIPPING_DESCRIPTION = 'shipping_description';
-    public const string POINT_METHOD_CODE = 'point_method_code';
-    public const string POINT_ID = 'point_id';
-    public const string POINT_LABEL = 'point_label';
-    public const string POINT_COD = 'point_cod';
-    public const string CREATED_AT = 'created_at';
+    public const string FIELD_ORDER_ID = 'order_id';
+    public const string FIELD_SHIPPING_METHOD = 'shipping_method';
+    public const string FIELD_SHIPPING_DESCRIPTION = 'shipping_description';
+    public const string FIELD_POINT_METHOD_CODE = 'point_method_code';
+    public const string FIELD_POINT_ID = 'point_id';
+    public const string FIELD_POINT_LABEL = 'point_label';
+    public const string FIELD_POINT_COD = 'point_cod';
+    public const string FIELD_CREATED_AT = 'created_at';
 
     /**
      * @return int
@@ -57,9 +57,12 @@ interface ShippingChoiceInterface
     public function getPointLabel(): ?string;
 
     /**
-     * @return bool
+     * Whether the point accepts cash on delivery; null when that isn't known, as when Polkurier
+     * couldn't be asked: then it's taken to.
+     *
+     * @return bool|null
      */
-    public function isPointCod(): bool;
+    public function getPointCod(): ?bool;
 
     /**
      * @return string|null when the order's shipping was first changed, UTC

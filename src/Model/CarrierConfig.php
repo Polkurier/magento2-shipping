@@ -16,7 +16,7 @@ use Polkurier\Shipping\Api\Data\CarrierLabelInterface;
  */
 class CarrierConfig extends AbstractModel implements CarrierConfigInterface
 {
-    public const string ID_FIELD = 'config_id';
+    public const string ID_FIELD = self::FIELD_CONFIG_ID;
 
     /**
      * @var string
@@ -28,57 +28,52 @@ class CarrierConfig extends AbstractModel implements CarrierConfigInterface
      */
     protected $_eventObject = 'carrierConfig';
 
-    protected function _construct(): void
-    {
-        $this->_init(ResourceModel\CarrierConfig::class);
-    }
-
     public function getCarrierCode(): string
     {
-        $value = $this->getData(self::CARRIER_CODE);
+        $value = $this->getData(self::FIELD_CARRIER_CODE);
 
         return (string)$value;
     }
 
     public function setCarrierCode(string $carrierCode): static
     {
-        return $this->setData(self::CARRIER_CODE, $carrierCode);
+        return $this->setData(self::FIELD_CARRIER_CODE, $carrierCode);
     }
 
     public function getCarrierName(): string
     {
-        $value = $this->getData(self::CARRIER_NAME);
+        $value = $this->getData(self::FIELD_CARRIER_NAME);
 
         return (string)$value;
     }
 
     public function setCarrierName(string $carrierName): static
     {
-        return $this->setData(self::CARRIER_NAME, $carrierName);
+        return $this->setData(self::FIELD_CARRIER_NAME, $carrierName);
     }
 
     public function getCustomLabel(): ?string
     {
-        $value = $this->getData(self::CUSTOM_LABEL);
+        $value = $this->getData(self::FIELD_CUSTOM_LABEL);
 
         return $value === null || $value === '' ? null : (string)$value;
     }
 
     public function setCustomLabel(?string $customLabel): static
     {
-        return $this->setData(self::CUSTOM_LABEL, $customLabel);
+        return $this->setData(self::FIELD_CUSTOM_LABEL, $customLabel);
     }
 
     public function getLogo(): ?string
     {
-        $value = $this->getData(self::LOGO);
+        $value = $this->getData(self::FIELD_LOGO);
 
         return $value === null || $value === '' ? null : (string)$value;
     }
 
     public function setLogo(?string $logo): static
     {
-        return $this->setData(self::LOGO, $logo);
+        return $this->setData(self::FIELD_LOGO, $logo);
     }
 
     /**
@@ -86,7 +81,7 @@ class CarrierConfig extends AbstractModel implements CarrierConfigInterface
      */
     public function getStoreLabels(): array
     {
-        $value = $this->getData(self::STORE_LABELS);
+        $value = $this->getData(self::FIELD_STORE_LABELS);
 
         return \is_array($value) ? \array_values($value) : [];
     }
@@ -96,7 +91,7 @@ class CarrierConfig extends AbstractModel implements CarrierConfigInterface
      */
     public function setStoreLabels(array $storeLabels): static
     {
-        return $this->setData(self::STORE_LABELS, $storeLabels);
+        return $this->setData(self::FIELD_STORE_LABELS, $storeLabels);
     }
 
     public function getLabelForStore(int $storeId): string
@@ -112,43 +107,43 @@ class CarrierConfig extends AbstractModel implements CarrierConfigInterface
 
     public function isActive(): bool
     {
-        $value = $this->getData(self::ACTIVE);
+        $value = $this->getData(self::FIELD_ACTIVE);
 
         return (bool)$value;
     }
 
     public function setActive(bool $active): static
     {
-        return $this->setData(self::ACTIVE, (int)$active);
+        return $this->setData(self::FIELD_ACTIVE, (int)$active);
     }
 
     public function getSortOrder(): int
     {
-        $value = $this->getData(self::SORT_ORDER);
+        $value = $this->getData(self::FIELD_SORT_ORDER);
 
         return (int)$value;
     }
 
     public function setSortOrder(int $sortOrder): static
     {
-        return $this->setData(self::SORT_ORDER, $sortOrder);
+        return $this->setData(self::FIELD_SORT_ORDER, $sortOrder);
     }
 
     public function getPricingModel(): string
     {
-        $value = $this->getData(self::PRICING_MODEL);
+        $value = $this->getData(self::FIELD_PRICING_MODEL);
 
         return (string)$value;
     }
 
     public function setPricingModel(string $pricingModel): static
     {
-        return $this->setData(self::PRICING_MODEL, $pricingModel);
+        return $this->setData(self::FIELD_PRICING_MODEL, $pricingModel);
     }
 
     public function getPriceInfo(): array
     {
-        $value = $this->getData(self::PRICE_INFO);
+        $value = $this->getData(self::FIELD_PRICE_INFO);
         if (\is_array($value)) {
             return $value;
         }
@@ -159,18 +154,23 @@ class CarrierConfig extends AbstractModel implements CarrierConfigInterface
 
     public function setPriceInfo(array $priceInfo): static
     {
-        return $this->setData(self::PRICE_INFO, \json_encode($priceInfo, \JSON_THROW_ON_ERROR));
+        return $this->setData(self::FIELD_PRICE_INFO, \json_encode($priceInfo, \JSON_THROW_ON_ERROR));
     }
 
     public function isAvailable(): bool
     {
-        $value = $this->getData(self::AVAILABLE);
+        $value = $this->getData(self::FIELD_AVAILABLE);
 
         return (bool)$value;
     }
 
     public function setAvailable(bool $available): static
     {
-        return $this->setData(self::AVAILABLE, (int)$available);
+        return $this->setData(self::FIELD_AVAILABLE, (int)$available);
+    }
+
+    protected function _construct(): void
+    {
+        $this->_init(ResourceModel\CarrierConfig::class);
     }
 }

@@ -12,9 +12,10 @@ use Magento\Framework\Data\Collection\EntityFactoryInterface as EntityFactory;
 use Magento\Framework\Event\ManagerInterface as EventManager;
 use Magento\Framework\Serialize\Serializer\Json;
 use Magento\Framework\View\Element\UiComponent\DataProvider\SearchResult;
+use Polkurier\Shipping\Api\Data\CarrierConfigInterface;
 use Polkurier\Shipping\Enum\PricingModelEnum;
-use Polkurier\Shipping\Model\Carrier\AvailableCarriers;
-use Polkurier\Shipping\Model\Pricing\Fixed;
+use Polkurier\Shipping\Model\Carrier\AvailableCarrierFilter;
+use Polkurier\Shipping\Model\Carrier\Pricing\FixedPriceCalculator;
 use Psr\Log\LoggerInterface as Logger;
 
 /**
@@ -31,30 +32,23 @@ class Collection extends SearchResult
         Logger $logger,
         FetchStrategy $fetchStrategy,
         EventManager $eventManager,
-        private readonly AvailableCarriers $availableCarriers,
+        private readonly AvailableCarrierFilter $availableCarrierFilter,
         private readonly Json $json,
         $mainTable = 'polkurier_carrier_config',
         $resourceModel = \Polkurier\Shipping\Model\ResourceModel\CarrierConfig::class,
         $identifierName = null,
         $connectionName = null,
     ) {
-        parent::__construct($entityFactory, $logger, $fetchStrategy, $eventManager, $mainTable, $resourceModel, $identifierName, $connectionName);
-    }
-
-    /**
-     * @return $this
-     */
-    protected function _initSelect()
-    {
-        parent::_initSelect();
-        $this->getSelect()->where('main_table.available = ?', 1);
-        $available = $this->availableCarriers->getCodes();
-        if ($available !== null) {
-            $this->getSelect()->where('main_table.carrier_code IN (?)', $available);
-        }
-        $this->getSelect()->order(['main_table.active DESC', 'main_table.sort_order ASC', 'main_table.carrier_name ASC']);
-
-        return $this;
+        parent::__construct(
+            $entityFactory,
+            $logger,
+            $fetchStrategy,
+            $eventManager,
+            $mainTable,
+            $resourceModel,
+            $identifierName,
+            $connectionName,
+        );
     }
 
     /**
@@ -72,6 +66,26 @@ class Collection extends SearchResult
     }
 
     /**
+     * @return $this
+     */
+    protected function _initSelect()
+    {
+        parent::_initSelect();
+        $this->getSelect()->where('main_table.available = ?', 1);
+        $available = $this->availableCarrierFilter->getCodes();
+        if ($available !== null) {
+            $this->getSelect()->where('main_table.carrier_code IN (?)', $available);
+        }
+        $this->getSelect()->order([
+            'main_table.active DESC',
+            'main_table.sort_order ASC',
+            'main_table.carrier_name ASC',
+        ]);
+
+        return $this;
+    }
+
+    /**
      * Shows a fixed price as a column of its own, for editing in the list.
      *
      * @return $this
@@ -81,14 +95,18 @@ class Collection extends SearchResult
         parent::_afterLoad();
         foreach ($this->getItems() as $item) {
             try {
-                $info = $this->json->unserialize((string)$item->getData('price_info'));
+                $info = $this->json->unserialize((string)$item->getData(CarrierConfigInterface::FIELD_PRICE_INFO));
             } catch (\InvalidArgumentException) {
                 // Prices the carrier's page can't read either: the grid shows none rather than fail.
                 $info = null;
             }
-            $item->setData('price', $item->getData('pricing_model') === PricingModelEnum::Fixed->value && \is_array($info)
-                ? ($info[Fixed::PRICE] ?? null)
-                : null);
+            $fixed = $item->getData(CarrierConfigInterface::FIELD_PRICING_MODEL) === PricingModelEnum::Fixed->value;
+            $item->setData(
+                FixedPriceCalculator::FIELD_PRICE,
+                $fixed && \is_array($info)
+                    ? ($info[FixedPriceCalculator::FIELD_PRICE] ?? null)
+                    : null,
+            );
         }
 
         return $this;

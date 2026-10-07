@@ -29,7 +29,8 @@
             <updateUrl path="mui/index/render"/>
         </settings>
         <aclResource>Polkurier_Shipping::shipments</aclResource>
-        <dataProvider class="Polkurier\Shipping\Ui\Component\DataProvider\GridDataProvider" name="polkurier_magento_shipment_listing_data_source">
+        <dataProvider class="Polkurier\Shipping\Ui\Component\DataProvider\GridDataProviderVirtual"
+                      name="polkurier_magento_shipment_listing_data_source">
             <settings>
                 <requestFieldName>id</requestFieldName>
                 <primaryFieldName>entity_id</primaryFieldName>
@@ -42,7 +43,8 @@
                 <label translate="true">Polkurier order</label>
             </settings>
         </column>
-        <column name="created_at" class="Magento\Ui\Component\Listing\Columns\Date" component="Magento_Ui/js/grid/columns/date" sortOrder="20">
+        <column name="created_at" class="Magento\Ui\Component\Listing\Columns\Date"
+                component="Magento_Ui/js/grid/columns/date" sortOrder="20">
             <settings>
                 <label translate="true">Created</label>
                 <dataType>date</dataType>
@@ -63,7 +65,7 @@
                 <dataType>select</dataType>
             </settings>
         </column>
-        <column name="waybills" class="Polkurier\Shipping\Ui\Component\Listing\Column\WaybillsColumn" sortOrder="60">
+        <column name="waybills" class="Polkurier\Shipping\Ui\Component\Listing\Shipment\WaybillsColumn" sortOrder="60">
             <settings>
                 <label translate="true">Waybills</label>
                 <bodyTmpl>ui/grid/cells/html</bodyTmpl>
@@ -81,7 +83,8 @@
                 <sortable>false</sortable>
             </settings>
         </column>
-        <actionsColumn name="actions" class="Polkurier\Shipping\Ui\Component\Listing\Column\ShipmentActionsColumn" sortOrder="90">
+        <actionsColumn name="actions" class="Polkurier\Shipping\Ui\Component\Listing\Shipment\ActionsColumn"
+                       sortOrder="90">
             <argument name="data" xsi:type="array">
                 <item name="config" xsi:type="array">
                     <item name="onOrderPage" xsi:type="boolean">true</item>

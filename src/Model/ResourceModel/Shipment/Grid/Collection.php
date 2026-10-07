@@ -9,6 +9,7 @@ namespace Polkurier\Shipping\Model\ResourceModel\Shipment\Grid;
 
 use Magento\Framework\Data\Collection as DataCollection;
 use Magento\Framework\View\Element\UiComponent\DataProvider\SearchResult;
+use Polkurier\Shipping\Api\Data\ShipmentInterface;
 
 /**
  * Polkurier shipments for the admin grids, with the order number they belong to. Newest first
@@ -24,12 +25,12 @@ class Collection extends SearchResult
             'sales_order.entity_id = main_table.order_id',
             ['increment_id' => 'sales_order.increment_id'],
         );
-        $this->addFilterToMap('entity_id', 'main_table.entity_id');
-        $this->addFilterToMap('order_id', 'main_table.order_id');
-        $this->addFilterToMap('shipment_id', 'main_table.shipment_id');
-        $this->addFilterToMap('created_at', 'main_table.created_at');
-        $this->addFilterToMap('state', 'main_table.state');
-        $this->addFilterToMap('store_id', 'main_table.store_id');
+        $this->addFilterToMap(ShipmentInterface::FIELD_ENTITY_ID, 'main_table.entity_id');
+        $this->addFilterToMap(ShipmentInterface::FIELD_ORDER_ID, 'main_table.order_id');
+        $this->addFilterToMap(ShipmentInterface::FIELD_SHIPMENT_ID, 'main_table.shipment_id');
+        $this->addFilterToMap(ShipmentInterface::FIELD_CREATED_AT, 'main_table.created_at');
+        $this->addFilterToMap(ShipmentInterface::FIELD_STATE, 'main_table.state');
+        $this->addFilterToMap(ShipmentInterface::FIELD_STORE_ID, 'main_table.store_id');
         $this->addFilterToMap('increment_id', 'sales_order.increment_id');
 
         return $this;

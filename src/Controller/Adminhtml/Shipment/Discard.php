@@ -11,8 +11,7 @@ use Magento\Backend\App\Action\Context;
 use Magento\Framework\App\Action\HttpPostActionInterface;
 use Magento\Framework\Controller\Result\Redirect;
 use Magento\Framework\Exception\LocalizedException;
-use Polkurier\Shipping\Model\Shipment\NotPlaced;
-use Polkurier\Shipping\Model\Shipment\RequestedShipments;
+use Polkurier\Shipping\Model\Shipment\Placement\FailedShipmentManager;
 
 /**
  * Discards a shipment that wasn't placed, rather than sending it again.
@@ -24,7 +23,7 @@ class Discard extends AbstractShipmentAction implements HttpPostActionInterface
     public function __construct(
         Context $context,
         RequestedShipments $requestedShipments,
-        private readonly NotPlaced $notPlaced,
+        private readonly FailedShipmentManager $failedShipmentManager,
     ) {
         parent::__construct($context, $requestedShipments);
     }
@@ -36,8 +35,8 @@ class Discard extends AbstractShipmentAction implements HttpPostActionInterface
             return $this->back();
         }
         try {
-            $this->notPlaced->discard((int)$shipment->getId());
-            $this->messageManager->addSuccessMessage(\__('The shipment that wasn\'t placed was discarded.'));
+            $this->failedShipmentManager->discard((int)$shipment->getId());
+            $this->messageManager->addSuccessMessage(__('The shipment that wasn\'t placed was discarded.'));
         } catch (LocalizedException $e) {
             $this->messageManager->addErrorMessage($e->getMessage());
         }

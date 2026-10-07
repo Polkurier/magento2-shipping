@@ -16,7 +16,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Model\Shipment;
-use Polkurier\Shipping\Model\Shipment\ActualShipping;
+use Polkurier\Shipping\Model\Shipment\Native\ActualShippingUpdater;
 use Polkurier\Shipping\Observer\FollowShipmentCarrierObserver;
 use Psr\Log\LoggerInterface;
 
@@ -41,7 +41,11 @@ class FollowShipmentCarrierObserverTest extends TestCase
     {
         return [
             'placed' => [ShipmentInterface::STATE_PENDING, ShipmentInterface::STATE_CREATED, true],
-            'found after an unanswered request' => [ShipmentInterface::STATE_UNKNOWN, ShipmentInterface::STATE_CREATED, true],
+            'found after an unanswered request' => [
+                ShipmentInterface::STATE_UNKNOWN,
+                ShipmentInterface::STATE_CREATED,
+                true,
+            ],
             'cancelled' => [ShipmentInterface::STATE_CREATED, ShipmentInterface::STATE_CANCELLED, true],
             'refused' => [ShipmentInterface::STATE_PENDING, ShipmentInterface::STATE_FAILED, false],
             'saved again as it was' => [ShipmentInterface::STATE_CREATED, ShipmentInterface::STATE_CREATED, false],
@@ -50,8 +54,11 @@ class FollowShipmentCarrierObserverTest extends TestCase
     }
 
     #[DataProvider('changes')]
-    public function testTheOrdersShippingFollowsOnlyWhenAPolkurierOrderStartsOrStopsCounting(?string $was, string $is, bool $follows): void
-    {
+    public function testTheOrdersShippingFollowsOnlyWhenAPolkurierOrderStartsOrStopsCounting(
+        ?string $was,
+        string $is,
+        bool $follows,
+    ): void {
         $this->observer()->execute($this->event($was, $is));
 
         self::assertSame($follows ? [29] : [], $this->synced);
@@ -59,7 +66,8 @@ class FollowShipmentCarrierObserverTest extends TestCase
 
     public function testAFailureIsLoggedWithItsException(): void
     {
-        $this->observer(new \RuntimeException('Deadlock'))->execute($this->event(ShipmentInterface::STATE_PENDING, ShipmentInterface::STATE_CREATED));
+        $this->observer(new \RuntimeException('Deadlock'))
+            ->execute($this->event(ShipmentInterface::STATE_PENDING, ShipmentInterface::STATE_CREATED));
 
         self::assertCount(1, $this->errors);
         self::assertInstanceOf(\RuntimeException::class, $this->errors[0][1]['exception']);
@@ -72,7 +80,7 @@ class FollowShipmentCarrierObserverTest extends TestCase
         $shipment->setOrderId(29);
         if ($was !== null) {
             $shipment->setState($was);
-            $shipment->setOrigData(ShipmentInterface::STATE, $was);
+            $shipment->setOrigData(ShipmentInterface::FIELD_STATE, $was);
         }
         $shipment->setState($is);
 
@@ -81,7 +89,7 @@ class FollowShipmentCarrierObserverTest extends TestCase
 
     private function observer(?\Throwable $failure = null): FollowShipmentCarrierObserver
     {
-        $shipping = $this->createStub(ActualShipping::class);
+        $shipping = $this->createStub(ActualShippingUpdater::class);
         $shipping->method('sync')->willReturnCallback(function (int $orderId) use ($failure): void {
             if ($failure !== null) {
                 throw $failure;

@@ -34,6 +34,9 @@ class Type extends TagScope
      */
     public function cleanTags(CacheTagEnum ...$tags): bool
     {
-        return $this->clean(\Zend_Cache::CLEANING_MODE_MATCHING_ANY_TAG, \array_map(static fn(CacheTagEnum $tag): string => $tag->value, $tags));
+        return $this->clean(
+            \Zend_Cache::CLEANING_MODE_MATCHING_ANY_TAG,
+            \array_map(static fn(CacheTagEnum $tag): string => $tag->value, $tags),
+        );
     }
 }

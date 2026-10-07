@@ -13,17 +13,20 @@ use Magento\Framework\TestFramework\Unit\Helper\ObjectManager;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use Polkurier\Shipping\Api\BankAccountRepositoryInterface;
+use Polkurier\Shipping\Api\Data\BankAccountInterface;
 use Polkurier\Shipping\Enum\ApiEventEnum;
-use Polkurier\Shipping\Model\ApiEventDispatcher;
 use Polkurier\Shipping\Model\BankAccount;
+use Polkurier\Shipping\Model\BankAccount\BankAccountMapper;
+use Polkurier\Shipping\Model\BankAccount\BankAccountSyncAdapter;
 use Polkurier\Shipping\Model\BankAccount\Confirmation;
 use Polkurier\Shipping\Model\BankAccount\Publisher;
-use Polkurier\Shipping\Model\ErrorMessages;
-use Polkurier\Shipping\Model\Mapper\BankAccountMapper;
-use Polkurier\Shipping\Model\Sync\Adapter\BankAccountAdapter;
+use Polkurier\Shipping\Model\Sdk\ApiEventDispatcher;
+use Polkurier\Shipping\Model\Sdk\ErrorMessageResolver;
 use Polkurier\Shipping\Model\Sync\SyncEngine;
+use Polkurier\Shipping\Test\Unit\Support\NewingObjectManager;
 use Polkurier\Shipping\Test\Unit\Support\RecordingEventManager;
 use Polkurier\Shipping\Test\Unit\Support\SdkTestCase;
+use Polkurier\Webservice\Builder\BankAccount\SaveMessageBuilderFactory;
 use Polkurier\Webservice\Testing\RecordingClient;
 use Psr\Log\NullLogger;
 
@@ -36,19 +39,21 @@ class PublisherTest extends SdkTestCase
     private const string IBAN = 'PL61109010140000071219812874';
 
     private RecordingEventManager $events;
+
     /** @var array<int, array<string, mixed>> */
     private array $pushed = [];
+
     /** @var BankAccount[] */
     private array $deleted = [];
 
-    protected function setUp(): void
-    {
-        $this->events = new RecordingEventManager();
-    }
-
     public function testSavingWithACodeSendsTheTokenAndCodeAndRecordsTheAccountAsInSync(): void
     {
-        $http = new RecordingClient(self::success(['id' => 'b1', 'name' => 'Main', 'number' => self::IBAN, 'default' => true]));
+        $http = new RecordingClient(self::success([
+            'id' => 'b1',
+            'name' => 'Main',
+            'number' => self::IBAN,
+            'default' => true,
+        ]));
         $account = $this->account();
 
         $this->publisher($http)->save($account, new Confirmation(twoFactorToken: 'tok', twoFactorCode: '123456'));
@@ -59,7 +64,11 @@ class PublisherTest extends SdkTestCase
         self::assertSame('tok', $payload['data']['two_factor_token']);
         self::assertSame('123456', $payload['data']['two_factor_code']);
         self::assertArrayNotHasKey('access_pin', $payload['data']);
-        self::assertSame('b1', $this->pushed[0]['id'], 'Recorded as sent, with the id Polkurier gave it.');
+        self::assertSame(
+            'b1',
+            $this->pushed[0][BankAccountInterface::FIELD_EXT_ID],
+            'Recorded as sent, with the id Polkurier gave it.',
+        );
 
         $events = $this->events->of(ApiEventEnum::BankAccountSaveAfter);
         self::assertCount(1, $events);
@@ -69,9 +78,17 @@ class PublisherTest extends SdkTestCase
 
     public function testWithAPinOnlyThePinIsSent(): void
     {
-        $http = new RecordingClient(self::success(['id' => 'b1', 'name' => 'Main', 'number' => self::IBAN, 'default' => true]));
+        $http = new RecordingClient(self::success([
+            'id' => 'b1',
+            'name' => 'Main',
+            'number' => self::IBAN,
+            'default' => true,
+        ]));
 
-        $this->publisher($http)->save($this->account(), new Confirmation(pin: '9999', twoFactorToken: 'tok', twoFactorCode: '1'));
+        $this->publisher($http)->save(
+            $this->account(),
+            new Confirmation(pin: '9999', twoFactorToken: 'tok', twoFactorCode: '1'),
+        );
 
         $data = $http->lastPayload()['data'];
         self::assertSame('9999', $data['access_pin']);
@@ -80,10 +97,17 @@ class PublisherTest extends SdkTestCase
 
     public function testARefusalLeavesTheAccountUnsentAndReportsWhy(): void
     {
-        $http = new RecordingClient((string)\json_encode(['status' => 'error', 'response' => 'Nieprawidłowy kod', 'error_code' => 'TWO_FACTOR_INVALID_CODE']));
+        $http = new RecordingClient((string)\json_encode([
+            'status' => 'error',
+            'response' => 'Nieprawidłowy kod',
+            'error_code' => 'TWO_FACTOR_INVALID_CODE',
+        ]));
 
         try {
-            $this->publisher($http)->save($this->account(), new Confirmation(twoFactorToken: 'tok', twoFactorCode: '000000'));
+            $this->publisher($http)->save(
+                $this->account(),
+                new Confirmation(twoFactorToken: 'tok', twoFactorCode: '000000'),
+            );
             self::fail('Expected the refusal to be reported.');
         } catch (LocalizedException $e) {
             self::assertStringContainsString('Nieprawidłowy kod', $e->getMessage());
@@ -105,6 +129,11 @@ class PublisherTest extends SdkTestCase
         self::assertCount(1, $this->events->of(ApiEventEnum::BankAccountDeleteAfter));
     }
 
+    protected function setUp(): void
+    {
+        $this->events = new RecordingEventManager();
+    }
+
     private function publisher(RecordingClient $http): Publisher
     {
         $engine = $this->createStub(SyncEngine::class);
@@ -122,12 +151,12 @@ class PublisherTest extends SdkTestCase
 
         return new Publisher(
             $this->clientPool($http),
-            new BankAccountMapper(),
-            $this->createStub(BankAccountAdapter::class),
+            new BankAccountMapper(NewingObjectManager::factory(SaveMessageBuilderFactory::class)),
+            $this->createStub(BankAccountSyncAdapter::class),
             $engine,
             $repository,
             new ApiEventDispatcher($this->events, new NullLogger()),
-            new ErrorMessages(),
+            new ErrorMessageResolver(),
             $dateTime,
         );
     }

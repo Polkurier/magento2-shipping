@@ -10,6 +10,7 @@ namespace Polkurier\Shipping\Model\Shipment;
 use Magento\Framework\DataObject;
 use Polkurier\Shipping\Api\Data\ShipmentDraft\PackInterface;
 use Polkurier\Shipping\Api\Data\ShipmentDraftInterface;
+use Polkurier\Shipping\Model\Shipment\Placement\ParcelTypeMapper;
 
 /**
  * What a merchant asks Polkurier to ship; see the interface.
@@ -18,303 +19,303 @@ class Draft extends DataObject implements ShipmentDraftInterface
 {
     public function getCarrierCode(): string
     {
-        $value = $this->getData(self::CARRIER_CODE);
+        $value = $this->getData(self::FIELD_CARRIER_CODE);
 
         return (string)$value;
     }
 
     public function setCarrierCode(string $carrierCode): static
     {
-        return $this->setData(self::CARRIER_CODE, $carrierCode);
+        return $this->setData(self::FIELD_CARRIER_CODE, $carrierCode);
     }
 
     /**
-     * What its parcels are (PackKinds); the type set is for a shipment with no parcels yet, or
+     * What its parcels are (ParcelTypeMapper); the type set is for a shipment with no parcels yet, or
      * parcels of more than one kind, which can't go.
      */
     public function getShipmentType(): string
     {
-        $types = PackKinds::shipmentTypesOf(\array_map(
+        $types = ParcelTypeMapper::shipmentTypesOf(\array_map(
             static fn(PackInterface $pack): string => $pack->getPackType(),
             $this->getPacks(),
         ));
 
-        return \count($types) === 1 ? $types[0]->value : (string)$this->getData(self::SHIPMENT_TYPE);
+        return \count($types) === 1 ? $types[0]->value : (string)$this->getData(self::FIELD_SHIPMENT_TYPE);
     }
 
     public function setShipmentType(string $shipmentType): static
     {
-        return $this->setData(self::SHIPMENT_TYPE, $shipmentType);
+        return $this->setData(self::FIELD_SHIPMENT_TYPE, $shipmentType);
     }
 
     public function getDescription(): ?string
     {
-        $value = $this->getData(self::DESCRIPTION);
+        $value = $this->getData(self::FIELD_DESCRIPTION);
 
         return $value === null || $value === '' ? null : (string)$value;
     }
 
     public function setDescription(?string $description): static
     {
-        return $this->setData(self::DESCRIPTION, $description);
+        return $this->setData(self::FIELD_DESCRIPTION, $description);
     }
 
     public function getSenderAddressId(): ?int
     {
-        $value = $this->getData(self::SENDER_ADDRESS_ID);
+        $value = $this->getData(self::FIELD_SENDER_ADDRESS_ID);
 
         return $value === null || $value === '' ? null : (int)$value;
     }
 
     public function setSenderAddressId(?int $senderAddressId): static
     {
-        return $this->setData(self::SENDER_ADDRESS_ID, $senderAddressId);
+        return $this->setData(self::FIELD_SENDER_ADDRESS_ID, $senderAddressId);
     }
 
     public function getRecipientPerson(): string
     {
-        $value = $this->getData(self::RECIPIENT_PERSON);
+        $value = $this->getData(self::FIELD_RECIPIENT_PERSON);
 
         return (string)$value;
     }
 
     public function setRecipientPerson(string $recipientPerson): static
     {
-        return $this->setData(self::RECIPIENT_PERSON, $recipientPerson);
+        return $this->setData(self::FIELD_RECIPIENT_PERSON, $recipientPerson);
     }
 
     public function getRecipientCompany(): ?string
     {
-        $value = $this->getData(self::RECIPIENT_COMPANY);
+        $value = $this->getData(self::FIELD_RECIPIENT_COMPANY);
 
         return $value === null || $value === '' ? null : (string)$value;
     }
 
     public function setRecipientCompany(?string $recipientCompany): static
     {
-        return $this->setData(self::RECIPIENT_COMPANY, $recipientCompany);
+        return $this->setData(self::FIELD_RECIPIENT_COMPANY, $recipientCompany);
     }
 
     public function getRecipientStreet(): string
     {
-        $value = $this->getData(self::RECIPIENT_STREET);
+        $value = $this->getData(self::FIELD_RECIPIENT_STREET);
 
         return (string)$value;
     }
 
     public function setRecipientStreet(string $recipientStreet): static
     {
-        return $this->setData(self::RECIPIENT_STREET, $recipientStreet);
+        return $this->setData(self::FIELD_RECIPIENT_STREET, $recipientStreet);
     }
 
     public function getRecipientHouseNumber(): ?string
     {
-        $value = $this->getData(self::RECIPIENT_HOUSE_NUMBER);
+        $value = $this->getData(self::FIELD_RECIPIENT_HOUSE_NUMBER);
 
         return $value === null || $value === '' ? null : (string)$value;
     }
 
     public function setRecipientHouseNumber(?string $recipientHouseNumber): static
     {
-        return $this->setData(self::RECIPIENT_HOUSE_NUMBER, $recipientHouseNumber);
+        return $this->setData(self::FIELD_RECIPIENT_HOUSE_NUMBER, $recipientHouseNumber);
     }
 
     public function getRecipientFlatNumber(): ?string
     {
-        $value = $this->getData(self::RECIPIENT_FLAT_NUMBER);
+        $value = $this->getData(self::FIELD_RECIPIENT_FLAT_NUMBER);
 
         return $value === null || $value === '' ? null : (string)$value;
     }
 
     public function setRecipientFlatNumber(?string $recipientFlatNumber): static
     {
-        return $this->setData(self::RECIPIENT_FLAT_NUMBER, $recipientFlatNumber);
+        return $this->setData(self::FIELD_RECIPIENT_FLAT_NUMBER, $recipientFlatNumber);
     }
 
     public function getRecipientPostcode(): string
     {
-        $value = $this->getData(self::RECIPIENT_POSTCODE);
+        $value = $this->getData(self::FIELD_RECIPIENT_POSTCODE);
 
         return (string)$value;
     }
 
     public function setRecipientPostcode(string $recipientPostcode): static
     {
-        return $this->setData(self::RECIPIENT_POSTCODE, $recipientPostcode);
+        return $this->setData(self::FIELD_RECIPIENT_POSTCODE, $recipientPostcode);
     }
 
     public function getRecipientCity(): string
     {
-        $value = $this->getData(self::RECIPIENT_CITY);
+        $value = $this->getData(self::FIELD_RECIPIENT_CITY);
 
         return (string)$value;
     }
 
     public function setRecipientCity(string $recipientCity): static
     {
-        return $this->setData(self::RECIPIENT_CITY, $recipientCity);
+        return $this->setData(self::FIELD_RECIPIENT_CITY, $recipientCity);
     }
 
     public function getRecipientCountry(): string
     {
-        $value = $this->getData(self::RECIPIENT_COUNTRY);
+        $value = $this->getData(self::FIELD_RECIPIENT_COUNTRY);
 
         return (string)$value;
     }
 
     public function setRecipientCountry(string $recipientCountry): static
     {
-        return $this->setData(self::RECIPIENT_COUNTRY, $recipientCountry);
+        return $this->setData(self::FIELD_RECIPIENT_COUNTRY, $recipientCountry);
     }
 
     public function getRecipientPhone(): string
     {
-        $value = $this->getData(self::RECIPIENT_PHONE);
+        $value = $this->getData(self::FIELD_RECIPIENT_PHONE);
 
         return (string)$value;
     }
 
     public function setRecipientPhone(string $recipientPhone): static
     {
-        return $this->setData(self::RECIPIENT_PHONE, $recipientPhone);
+        return $this->setData(self::FIELD_RECIPIENT_PHONE, $recipientPhone);
     }
 
     public function getRecipientEmail(): string
     {
-        $value = $this->getData(self::RECIPIENT_EMAIL);
+        $value = $this->getData(self::FIELD_RECIPIENT_EMAIL);
 
         return (string)$value;
     }
 
     public function setRecipientEmail(string $recipientEmail): static
     {
-        return $this->setData(self::RECIPIENT_EMAIL, $recipientEmail);
+        return $this->setData(self::FIELD_RECIPIENT_EMAIL, $recipientEmail);
     }
 
     public function getRecipientPointId(): ?string
     {
-        $value = $this->getData(self::RECIPIENT_POINT_ID);
+        $value = $this->getData(self::FIELD_RECIPIENT_POINT_ID);
 
         return $value === null || $value === '' ? null : (string)$value;
     }
 
     public function setRecipientPointId(?string $recipientPointId): static
     {
-        return $this->setData(self::RECIPIENT_POINT_ID, $recipientPointId);
+        return $this->setData(self::FIELD_RECIPIENT_POINT_ID, $recipientPointId);
     }
 
     public function getPacks(): array
     {
-        $value = $this->getData(self::PACKS);
+        $value = $this->getData(self::FIELD_PACKS);
 
         return \is_array($value) ? $value : [];
     }
 
     public function setPacks(array $packs): static
     {
-        return $this->setData(self::PACKS, $packs);
+        return $this->setData(self::FIELD_PACKS, $packs);
     }
 
     public function getItems(): array
     {
-        $value = $this->getData(self::ITEMS);
+        $value = $this->getData(self::FIELD_ITEMS);
 
         return \is_array($value) ? $value : [];
     }
 
     public function setItems(array $items): static
     {
-        return $this->setData(self::ITEMS, $items);
+        return $this->setData(self::FIELD_ITEMS, $items);
     }
 
     public function isPacksEstimated(): bool
     {
-        return (bool)$this->getData(self::PACKS_ESTIMATED);
+        return (bool)$this->getData(self::FIELD_PACKS_ESTIMATED);
     }
 
     public function setPacksEstimated(bool $estimated): static
     {
-        return $this->setData(self::PACKS_ESTIMATED, $estimated);
+        return $this->setData(self::FIELD_PACKS_ESTIMATED, $estimated);
     }
 
     public function isShippingIncluded(): bool
     {
-        return (bool)$this->getData(self::SHIPPING_INCLUDED);
+        return (bool)$this->getData(self::FIELD_SHIPPING_INCLUDED);
     }
 
     public function setShippingIncluded(bool $included): static
     {
-        return $this->setData(self::SHIPPING_INCLUDED, $included);
+        return $this->setData(self::FIELD_SHIPPING_INCLUDED, $included);
     }
 
     public function getCodAmount(): ?float
     {
-        $value = $this->getData(self::COD_AMOUNT);
+        $value = $this->getData(self::FIELD_COD_AMOUNT);
 
         return $value === null || $value === '' ? null : (float)$value;
     }
 
     public function setCodAmount(?float $codAmount): static
     {
-        return $this->setData(self::COD_AMOUNT, $codAmount);
+        return $this->setData(self::FIELD_COD_AMOUNT, $codAmount);
     }
 
     public function getCodType(): ?string
     {
-        $value = $this->getData(self::COD_TYPE);
+        $value = $this->getData(self::FIELD_COD_TYPE);
 
         return $value === null || $value === '' ? null : (string)$value;
     }
 
     public function setCodType(?string $codType): static
     {
-        return $this->setData(self::COD_TYPE, $codType);
+        return $this->setData(self::FIELD_COD_TYPE, $codType);
     }
 
     public function getCodReturnType(): ?string
     {
-        $value = $this->getData(self::COD_RETURN_TYPE);
+        $value = $this->getData(self::FIELD_COD_RETURN_TYPE);
 
         return $value === null || $value === '' ? null : (string)$value;
     }
 
     public function setCodReturnType(?string $codReturnType): static
     {
-        return $this->setData(self::COD_RETURN_TYPE, $codReturnType);
+        return $this->setData(self::FIELD_COD_RETURN_TYPE, $codReturnType);
     }
 
     public function getCodBankAccountId(): ?int
     {
-        $value = $this->getData(self::COD_BANK_ACCOUNT_ID);
+        $value = $this->getData(self::FIELD_COD_BANK_ACCOUNT_ID);
 
         return $value === null || $value === '' ? null : (int)$value;
     }
 
     public function setCodBankAccountId(?int $codBankAccountId): static
     {
-        return $this->setData(self::COD_BANK_ACCOUNT_ID, $codBankAccountId);
+        return $this->setData(self::FIELD_COD_BANK_ACCOUNT_ID, $codBankAccountId);
     }
 
     public function getSenderPointId(): ?string
     {
-        $value = \trim((string)$this->getData(self::SENDER_POINT_ID));
+        $value = \trim((string)$this->getData(self::FIELD_SENDER_POINT_ID));
 
         return $value === '' ? null : $value;
     }
 
     public function setSenderPointId(?string $pointId): static
     {
-        return $this->setData(self::SENDER_POINT_ID, $pointId);
+        return $this->setData(self::FIELD_SENDER_POINT_ID, $pointId);
     }
 
     public function isNewSender(): bool
     {
-        return (bool)$this->getData(self::NEW_SENDER);
+        return (bool)$this->getData(self::FIELD_NEW_SENDER);
     }
 
     public function setNewSender(bool $newSender): static
     {
-        return $this->setData(self::NEW_SENDER, $newSender);
+        return $this->setData(self::FIELD_NEW_SENDER, $newSender);
     }
 
     public function getNewSenderAddress(): array
@@ -338,169 +339,169 @@ class Draft extends DataObject implements ShipmentDraftInterface
 
     public function isKeepingNewSender(): bool
     {
-        return (bool)$this->getData(self::KEEP_NEW_SENDER);
+        return (bool)$this->getData(self::FIELD_KEEP_NEW_SENDER);
     }
 
     public function setKeepingNewSender(bool $keep): static
     {
-        return $this->setData(self::KEEP_NEW_SENDER, $keep);
+        return $this->setData(self::FIELD_KEEP_NEW_SENDER, $keep);
     }
 
     public function getNewSenderName(): string
     {
-        return \trim((string)$this->getData(self::NEW_SENDER_NAME));
+        return \trim((string)$this->getData(self::FIELD_NEW_SENDER_NAME));
     }
 
     public function setNewSenderName(string $name): static
     {
-        return $this->setData(self::NEW_SENDER_NAME, $name);
+        return $this->setData(self::FIELD_NEW_SENDER_NAME, $name);
     }
 
     public function isNewBankAccount(): bool
     {
-        return (bool)$this->getData(self::NEW_BANK_ACCOUNT);
+        return (bool)$this->getData(self::FIELD_NEW_BANK_ACCOUNT);
     }
 
     public function setNewBankAccount(bool $newBankAccount): static
     {
-        return $this->setData(self::NEW_BANK_ACCOUNT, $newBankAccount);
+        return $this->setData(self::FIELD_NEW_BANK_ACCOUNT, $newBankAccount);
     }
 
     public function getNewBankAccountNumber(): string
     {
-        return \trim((string)$this->getData(self::NEW_BANK_ACCOUNT_NUMBER));
+        return \trim((string)$this->getData(self::FIELD_NEW_BANK_ACCOUNT_NUMBER));
     }
 
     public function setNewBankAccountNumber(string $number): static
     {
-        return $this->setData(self::NEW_BANK_ACCOUNT_NUMBER, $number);
+        return $this->setData(self::FIELD_NEW_BANK_ACCOUNT_NUMBER, $number);
     }
 
     public function isKeepingNewBankAccount(): bool
     {
-        return (bool)$this->getData(self::KEEP_NEW_BANK_ACCOUNT);
+        return (bool)$this->getData(self::FIELD_KEEP_NEW_BANK_ACCOUNT);
     }
 
     public function setKeepingNewBankAccount(bool $keep): static
     {
-        return $this->setData(self::KEEP_NEW_BANK_ACCOUNT, $keep);
+        return $this->setData(self::FIELD_KEEP_NEW_BANK_ACCOUNT, $keep);
     }
 
     public function getNewBankAccountName(): string
     {
-        return \trim((string)$this->getData(self::NEW_BANK_ACCOUNT_NAME));
+        return \trim((string)$this->getData(self::FIELD_NEW_BANK_ACCOUNT_NAME));
     }
 
     public function setNewBankAccountName(string $name): static
     {
-        return $this->setData(self::NEW_BANK_ACCOUNT_NAME, $name);
+        return $this->setData(self::FIELD_NEW_BANK_ACCOUNT_NAME, $name);
     }
 
     public function getInsuranceAmount(): ?float
     {
-        $value = $this->getData(self::INSURANCE_AMOUNT);
+        $value = $this->getData(self::FIELD_INSURANCE_AMOUNT);
 
         return $value === null || $value === '' ? null : (float)$value;
     }
 
     public function setInsuranceAmount(?float $insuranceAmount): static
     {
-        return $this->setData(self::INSURANCE_AMOUNT, $insuranceAmount);
+        return $this->setData(self::FIELD_INSURANCE_AMOUNT, $insuranceAmount);
     }
 
     public function getCoverAddressId(): ?int
     {
-        $value = $this->getData(self::COVER_ADDRESS_ID);
+        $value = $this->getData(self::FIELD_COVER_ADDRESS_ID);
 
         return $value === null || $value === '' ? null : (int)$value;
     }
 
     public function setCoverAddressId(?int $coverAddressId): static
     {
-        return $this->setData(self::COVER_ADDRESS_ID, $coverAddressId);
+        return $this->setData(self::FIELD_COVER_ADDRESS_ID, $coverAddressId);
     }
 
     public function getServices(): array
     {
-        $value = $this->getData(self::SERVICES);
+        $value = $this->getData(self::FIELD_SERVICES);
 
         return \is_array($value) ? $value : [];
     }
 
     public function setServices(array $services): static
     {
-        return $this->setData(self::SERVICES, $services);
+        return $this->setData(self::FIELD_SERVICES, $services);
     }
 
     public function getPickupMode(): string
     {
-        $value = $this->getData(self::PICKUP_MODE);
+        $value = $this->getData(self::FIELD_PICKUP_MODE);
 
         return (string)$value;
     }
 
     public function setPickupMode(string $pickupMode): static
     {
-        return $this->setData(self::PICKUP_MODE, $pickupMode);
+        return $this->setData(self::FIELD_PICKUP_MODE, $pickupMode);
     }
 
     public function getPickupDate(): ?string
     {
-        $value = $this->getData(self::PICKUP_DATE);
+        $value = $this->getData(self::FIELD_PICKUP_DATE);
 
         return $value === null || $value === '' ? null : (string)$value;
     }
 
     public function setPickupDate(?string $pickupDate): static
     {
-        return $this->setData(self::PICKUP_DATE, $pickupDate);
+        return $this->setData(self::FIELD_PICKUP_DATE, $pickupDate);
     }
 
     public function getPickupTimeFrom(): ?string
     {
-        $value = $this->getData(self::PICKUP_TIME_FROM);
+        $value = $this->getData(self::FIELD_PICKUP_TIME_FROM);
 
         return $value === null || $value === '' ? null : (string)$value;
     }
 
     public function setPickupTimeFrom(?string $pickupTimeFrom): static
     {
-        return $this->setData(self::PICKUP_TIME_FROM, $pickupTimeFrom);
+        return $this->setData(self::FIELD_PICKUP_TIME_FROM, $pickupTimeFrom);
     }
 
     public function getPickupTimeTo(): ?string
     {
-        $value = $this->getData(self::PICKUP_TIME_TO);
+        $value = $this->getData(self::FIELD_PICKUP_TIME_TO);
 
         return $value === null || $value === '' ? null : (string)$value;
     }
 
     public function setPickupTimeTo(?string $pickupTimeTo): static
     {
-        return $this->setData(self::PICKUP_TIME_TO, $pickupTimeTo);
+        return $this->setData(self::FIELD_PICKUP_TIME_TO, $pickupTimeTo);
     }
 
     public function getAdditionalFields(): array
     {
-        $value = $this->getData(self::ADDITIONAL_FIELDS);
+        $value = $this->getData(self::FIELD_ADDITIONAL_FIELDS);
 
         return \is_array($value) ? $value : [];
     }
 
     public function setAdditionalFields(array $additionalFields): static
     {
-        return $this->setData(self::ADDITIONAL_FIELDS, $additionalFields);
+        return $this->setData(self::FIELD_ADDITIONAL_FIELDS, $additionalFields);
     }
 
     public function getTargetShipmentId(): ?int
     {
-        $value = $this->getData(self::TARGET_SHIPMENT_ID);
+        $value = $this->getData(self::FIELD_TARGET_SHIPMENT_ID);
 
         return $value === null || $value === '' ? null : (int)$value;
     }
 
     public function setTargetShipmentId(?int $targetShipmentId): static
     {
-        return $this->setData(self::TARGET_SHIPMENT_ID, $targetShipmentId);
+        return $this->setData(self::FIELD_TARGET_SHIPMENT_ID, $targetShipmentId);
     }
 }

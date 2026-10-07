@@ -10,9 +10,11 @@ namespace Polkurier\Shipping\Controller\Adminhtml\Address;
 use Magento\Backend\App\Action\Context;
 use Magento\Framework\Data\Collection\AbstractDb;
 use Magento\Ui\Component\MassAction\Filter;
-use Polkurier\Shipping\Controller\Adminhtml\MasterData\AbstractMassDelete;
-use Polkurier\Shipping\Model\Admin\AddressHandler;
+use Polkurier\Shipping\Controller\Adminhtml\AbstractMassDelete;
+use Polkurier\Shipping\Model\Address\AddressHandler;
+use Polkurier\Shipping\Model\Admin\FlashMessageCollectorFactory;
 use Polkurier\Shipping\Model\ResourceModel\Address\CollectionFactory;
+use Polkurier\Shipping\Model\Sync\SyncResultFactory;
 
 /**
  * Deletes the sender addresses selected in their grid.
@@ -26,8 +28,10 @@ class MassDelete extends AbstractMassDelete
         AddressHandler $handler,
         Filter $filter,
         private readonly CollectionFactory $collectionFactory,
+        FlashMessageCollectorFactory $flashMessageCollectorFactory,
+        SyncResultFactory $syncResultFactory,
     ) {
-        parent::__construct($context, $handler, $filter);
+        parent::__construct($context, $handler, $filter, $flashMessageCollectorFactory, $syncResultFactory);
     }
 
     protected function createCollection(): AbstractDb

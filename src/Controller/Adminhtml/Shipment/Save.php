@@ -12,19 +12,26 @@ use Magento\Backend\App\Action\Context;
 use Magento\Framework\App\Action\HttpPostActionInterface;
 use Magento\Framework\Controller\Result\Redirect;
 use Magento\Framework\Exception\LocalizedException;
+use Polkurier\Shipping\Api\Data\ShipmentDraftInterface;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Api\ShipmentManagementInterface;
-use Polkurier\Shipping\Controller\Adminhtml\ReadsPostData;
-use Polkurier\Shipping\Model\Admin\Flash;
-use Polkurier\Shipping\Model\Shipment\DraftHydrator;
-use Polkurier\Shipping\Model\Shipment\RejectedDraft;
+use Polkurier\Shipping\Controller\Adminhtml\Address\Save as AddressSave;
+use Polkurier\Shipping\Controller\Adminhtml\Bankaccount\Save as BankAccountSave;
+use Polkurier\Shipping\Controller\Adminhtml\Packtemplate\Save as PackTemplateSave;
+use Polkurier\Shipping\Controller\Adminhtml\ReadsPostDataTrait;
+use Polkurier\Shipping\Model\Admin\FlashMessageCollector;
+use Polkurier\Shipping\Model\Admin\FlashMessageCollectorFactory;
+use Polkurier\Shipping\Model\Shipment\Draft\DraftHydrator;
+use Polkurier\Shipping\Model\Shipment\Placement\ManualEntrySaver;
+use Polkurier\Shipping\Model\Shipment\Placement\RejectedDraftStorage;
 
 /**
- * Places the Polkurier order from the shipment form.
+ * Places the Polkurier order from the shipment form. What was typed in to be kept among the
+ * addresses, bank accounts or pack templates is kept only where the admin may change them.
  */
 class Save extends Action implements HttpPostActionInterface
 {
-    use ReadsPostData;
+    use ReadsPostDataTrait;
 
     public const string ADMIN_RESOURCE = 'Polkurier_Shipping::shipment_create';
 
@@ -32,7 +39,9 @@ class Save extends Action implements HttpPostActionInterface
         Context $context,
         private readonly ShipmentManagementInterface $management,
         private readonly DraftHydrator $hydrator,
-        private readonly RejectedDraft $rejectedDraft,
+        private readonly RejectedDraftStorage $rejectedDraftStorage,
+        private readonly ManualEntrySaver $manualEntrySaver,
+        private readonly FlashMessageCollectorFactory $flashMessageCollectorFactory,
     ) {
         parent::__construct($context);
     }
@@ -44,32 +53,83 @@ class Save extends Action implements HttpPostActionInterface
         $redirect = $this->resultRedirectFactory->create();
 
         try {
-            $shipment = $this->management->create($orderId, $this->hydrator->fromArray($data));
+            $shipment = $this->management->create(
+                $orderId,
+                $this->keepingOnlyAllowed($this->hydrator->fromArray($data)),
+            );
         } catch (LocalizedException $e) {
             $this->messageManager->addErrorMessage($e->getMessage());
-            $this->rejectedDraft->keep($data);
+            $this->rejectedDraftStorage->keep($data);
 
             return $redirect->setPath('*/*/create', ['order_id' => $orderId]);
         }
 
         if ($shipment->getState() === ShipmentInterface::STATE_UNKNOWN) {
-            $this->messageManager->addWarningMessage(\__(
-                'Polkurier did not confirm the order, so it may or may not have been placed. It will not be sent again until it is reconciled: use "Reconcile" in the Polkurier section of the order. (%1)',
+            $this->messageManager->addWarningMessage(__(
+                'Polkurier did not confirm the order, so it may or may not have been placed. '
+                . 'It will not be sent again until it is reconciled: '
+                . 'use "Reconcile" in the Polkurier section of the order. (%1)',
                 (string)$shipment->getLastError(),
             ));
         } else {
             // Placed, with what went wrong after, if anything (the Magento shipment, say), in one message.
-            (new Flash())
-                ->success(\__(
+            $this->flashMessageCollectorFactory->create()
+                ->success(__(
                     'Polkurier order %1 placed. Waybills: %2.',
                     $shipment->getPolkurierNumber(),
-                    \implode(', ', $shipment->getWaybills()) ?: (string)\__('not issued yet'),
+                    \implode(', ', $shipment->getWaybills()) ?: (string)__('not issued yet'),
                 ))
                 ->warning((string)$shipment->getLastError())
                 ->send($this->messageManager);
         }
 
+        // What became of the entries typed in to be kept, once it's placed.
+        $this->manualEntrySaver->takeOutcome()->send($this->messageManager);
+
         // To what was placed, whatever came of it.
         return $redirect->setPath('*/*/view', ['id' => $shipment->getId()]);
+    }
+
+    /**
+     * The draft without asking to keep what the admin may not change, which is said instead.
+     */
+    private function keepingOnlyAllowed(ShipmentDraftInterface $draft): ShipmentDraftInterface
+    {
+        if ($draft->isNewSender()
+            && $draft->isKeepingNewSender()
+            && !$this->_authorization->isAllowed(AddressSave::ADMIN_RESOURCE)
+        ) {
+            $draft->setKeepingNewSender(false);
+            $this->notAllowed(
+                $draft->getNewSenderName() ?: ManualEntrySaver::addressName($draft->getNewSenderAddress()),
+                __('Addresses'),
+            );
+        }
+        if ($draft->isNewBankAccount()
+            && $draft->isKeepingNewBankAccount()
+            && !$this->_authorization->isAllowed(BankAccountSave::ADMIN_RESOURCE)
+        ) {
+            $draft->setKeepingNewBankAccount(false);
+            $this->notAllowed(ManualEntrySaver::bankAccountName($draft), __('Bank accounts'));
+        }
+        if (!$this->_authorization->isAllowed(PackTemplateSave::ADMIN_RESOURCE)) {
+            foreach ($draft->getPacks() as $pack) {
+                if ($pack->getKeepAs() !== '' && $pack->getTemplateId() === null) {
+                    $this->notAllowed($pack->getKeepAs(), __('Pack templates'));
+                    $pack->setKeepAs('');
+                }
+            }
+        }
+
+        return $draft;
+    }
+
+    private function notAllowed(string $name, \Stringable $label): void
+    {
+        $this->messageManager->addWarningMessage(__(
+            '"%1" wasn\'t saved to %2: you aren\'t allowed to change them.',
+            $name,
+            \mb_strtolower((string)$label),
+        ));
     }
 }

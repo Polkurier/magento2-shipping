@@ -24,8 +24,9 @@
                 <class>back</class>
                 <label translate="true">Back</label>
             </button>
-            <button name="delete" class="Polkurier\Shipping\Ui\Component\Control\DeleteAddressButton"/>
-            <button name="save_and_continue" class="Polkurier\Shipping\Ui\Component\Control\SaveAndContinueAddress"/>
+            <button name="delete" class="Polkurier\Shipping\Ui\Component\Form\Address\DeleteButtonVirtual"/>
+            <button name="save_and_continue"
+                    class="Polkurier\Shipping\Ui\Component\Form\Address\SaveAndContinueButtonVirtual"/>
             <button name="save" class="Polkurier\Shipping\Ui\Component\Control\SaveButton"/>
         </buttons>
     </settings>
@@ -38,7 +39,8 @@
         <settings>
             <submitUrl path="*/*/save"/>
         </settings>
-        <dataProvider class="Polkurier\Shipping\Ui\Component\Form\MasterData\AddressDataProvider" name="polkurier_address_form_data_source">
+        <dataProvider class="Polkurier\Shipping\Ui\Component\Form\Address\DataProviderVirtual"
+                      name="polkurier_address_form_data_source">
             <settings>
                 <requestFieldName>id</requestFieldName>
                 <primaryFieldName>id</primaryFieldName>
@@ -153,7 +155,10 @@
                 <label translate="true">E-mail</label>
                 <dataType>text</dataType>
                 <dataScope>email</dataScope>
-                <validation><rule name="validate-email" xsi:type="boolean">true</rule><rule name="required-entry" xsi:type="boolean">true</rule></validation>
+                <validation>
+                    <rule name="validate-email" xsi:type="boolean">true</rule>
+                    <rule name="required-entry" xsi:type="boolean">true</rule>
+                </validation>
             </settings>
         </field>
         <field name="point_id" formElement="input">

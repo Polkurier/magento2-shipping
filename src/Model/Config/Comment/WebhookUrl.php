@@ -34,7 +34,7 @@ readonly class WebhookUrl implements CommentInterface
         $store = $this->storeManager->getDefaultStoreView();
         $base = $store instanceof Store ? $store->getBaseUrl(UrlInterface::URL_TYPE_LINK, true) : '';
 
-        return (string)\__(
+        return (string)__(
             'In the Polkurier panel, add a webhook with the URL %1 and paste its secret here.',
             '<code>' . $this->escaper->escapeHtml($base . WebhookAction::PATH) . '</code>',
         );

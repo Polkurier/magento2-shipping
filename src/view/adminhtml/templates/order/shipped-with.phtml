@@ -7,7 +7,7 @@ declare(strict_types=1);
 
 /** @var \Magento\Backend\Block\Template $block */
 /** @var \Magento\Framework\Escaper $escaper */
-/** @var \Polkurier\Shipping\ViewModel\Adminhtml\ShippedWith $viewModel */
+/** @var \Polkurier\Shipping\ViewModel\Adminhtml\ActualShipping $viewModel */
 $viewModel = $block->getData('view_model');
 $order = $block->getData('order');
 if (!$order instanceof \Magento\Sales\Model\Order) {

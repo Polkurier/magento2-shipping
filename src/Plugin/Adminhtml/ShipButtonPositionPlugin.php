@@ -29,7 +29,14 @@ readonly class ShipButtonPositionPlugin
      * The buttons "Ship" comes after on the order page, nearest first: the button follows the first
      * one there is, or comes last.
      */
-    private const array ANCHORS = ['order_ship', 'order_invoice', 'order_unhold', 'order_hold', 'send_notification', 'order_cancel'];
+    private const array ANCHORS = [
+        'order_ship',
+        'order_invoice',
+        'order_unhold',
+        'order_hold',
+        'send_notification',
+        'order_cancel',
+    ];
 
     /**
      * Leaves the arguments as they are.

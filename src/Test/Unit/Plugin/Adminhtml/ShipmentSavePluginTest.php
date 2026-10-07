@@ -17,8 +17,9 @@ use Magento\Shipping\Controller\Adminhtml\Order\Shipment\Save;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Polkurier\Shipping\Model\Config;
-use Polkurier\Shipping\Model\Shipment\NativeLabel;
+use Polkurier\Shipping\Model\Config\ConfigProvider;
+use Polkurier\Shipping\Model\Shipment\Native\NativeLabelService;
+use Polkurier\Shipping\Model\Shipment\OrderLoader;
 use Polkurier\Shipping\Plugin\Adminhtml\ShipmentSavePlugin;
 
 #[CoversClass(ShipmentSavePlugin::class)]
@@ -39,7 +40,10 @@ class ShipmentSavePluginTest extends TestCase
     {
         self::assertNotSame('saved', $this->save([], 'polkurier_inpost_paczkomat'));
         self::assertSame(['adminhtml/order_shipment/new', ['order_id' => 9]], $this->redirect);
-        self::assertStringStartsWith('Order #000000009 ships with a Polkurier order, so its shipment is created with a shipping label', $this->errors[0]);
+        self::assertStringStartsWith(
+            'Order #000000009 ships with a Polkurier order, so its shipment is created with a shipping label',
+            $this->errors[0],
+        );
     }
 
     public function testWithMagentosLabelsOffItPointsToTheShipmentScreen(): void
@@ -75,7 +79,7 @@ class ShipmentSavePluginTest extends TestCase
         $orders = $this->createStub(OrderRepositoryInterface::class);
         $orders->method('get')->willReturn($order);
 
-        $config = $this->createStub(Config::class);
+        $config = $this->createStub(ConfigProvider::class);
         $config->method('isNativeLabelsEnabled')->willReturn($labels);
         $config->method('isShipmentScreenEnabled')->willReturn($screen);
 
@@ -94,7 +98,13 @@ class ShipmentSavePluginTest extends TestCase
         $redirects = $this->createStub(RedirectFactory::class);
         $redirects->method('create')->willReturn($redirect);
 
-        return (new ShipmentSavePlugin($orders, $config, $messages, $redirects, $this->createStub(NativeLabel::class)))
+        return (new ShipmentSavePlugin(
+            new OrderLoader($orders),
+            $config,
+            $messages,
+            $redirects,
+            $this->createStub(NativeLabelService::class),
+        ))
             ->aroundExecute($controller, static fn(): string => 'saved');
     }
 }

@@ -17,7 +17,11 @@ define(['ko'], function (ko) {
     });
 
     if (config.selected && selected[config.selected.method]) {
-        selected[config.selected.method]({id: config.selected.id, label: config.selected.label});
+        selected[config.selected.method]({
+            id: config.selected.id,
+            label: config.selected.label,
+            cod: config.selected.cod
+        });
     }
 
     return {
@@ -49,6 +53,14 @@ define(['ko'], function (ko) {
 
         /**
          * @param {String} methodCode
+         * @returns {Boolean} whether the method's carrier collects cash on delivery
+         */
+        collectsCod: function (methodCode) {
+            return this.hasMap(methodCode) && !!methods[methodCode].cod;
+        },
+
+        /**
+         * @param {String} methodCode
          * @returns {String[]}
          */
         getProviders: function (methodCode) {
@@ -57,7 +69,7 @@ define(['ko'], function (ko) {
 
         /**
          * @param {String} methodCode
-         * @returns {{id: String, label: String}|null}
+         * @returns {{id: String, label: String, cod: ?Boolean}|null}
          */
         get: function (methodCode) {
             return selected[methodCode] ? selected[methodCode]() : null;
@@ -65,7 +77,7 @@ define(['ko'], function (ko) {
 
         /**
          * @param {String} methodCode
-         * @param {{id: String, label: String}} point
+         * @param {{id: String, label: String, cod: ?Boolean}} point
          */
         set: function (methodCode, point) {
             if (selected[methodCode]) {

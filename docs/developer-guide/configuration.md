@@ -6,7 +6,7 @@
 
 [Developer guide](README.md) › Configuration
 
-`Model\Config` is the only class that reads the module's own settings; the carrier's active flag
+`Model\Config\ConfigProvider` is the only class that reads the module's own settings; the carrier's active flag
 goes through `AbstractCarrier`, as for any carrier, and `Config\Source\ShippingCarrier` lists the
 store's carriers from the `carriers` section. The module works
 with one Polkurier account for the whole installation, so the account's settings (credentials,
@@ -23,16 +23,16 @@ as a regular delivery method.
 |---|---|---|
 | `active` | `isActive()` | website |
 | `title` | `getTitle()` | store view |
-| `checkout/tier_cart_value` | `getTierCartValue()`: `Enum\CartValueEnum`, `gross` (default) or `net`, see `Pricing\CartValue` | website |
+| `checkout/tier_cart_value` | `getTierCartValue()`: `Enum\CartValueEnum`, `gross` (default) or `net`, see `RateCollector::cartValueOf()` | website |
 | `general/customer_id`, `general/api_token` | `getLogin()`, `getToken()`, `hasCredentials()` | global, encrypted |
 | `general/sandbox_mode` | `isSandbox()` | global |
 | `general/api_url` | `getApiUrl()` | global, not shown in the admin |
 | `general/timeout` | `getTimeout()` | global |
-| `general/external_order_id` | `getExternalOrderId()` | global; `order` (default) or `shipment`, see `Shipment\ExternalIds` |
-| `general/application_id` | `getApplicationIdOverride()` | global; empty (default): made from the encryption key, see `Sdk\ApplicationId`; `Backend\ApplicationId` allows up to 50 of `[A-Za-z0-9._-]` |
+| `general/external_order_id` | `getExternalOrderId()` | global; `order` (default) or `shipment`, see `Placement\ExternalIdService` |
+| `general/application_id` | `getApplicationIdOverride()` | global; empty (default): made from the encryption key, see `Sdk\ApplicationIdProvider`; `Backend\ApplicationId` allows up to 50 of `[A-Za-z0-9._-]` |
 | `general/available_carriers` | `getAvailableCarriers()` | global |
 | `logging/failed_requests`, `logging/methods` | `isLoggingEnabled()`, `getMethodsToLog()` | global |
-| `logging/personal_data`, `logging/files`, `logging/files_directory` | `isPersonalDataLoggingEnabled()`, `isFileLoggingEnabled()`, `getLogFilesDirectory()` | global; the directory is resolved by `Sdk\LogFilesDirectory` |
+| `logging/personal_data`, `logging/files`, `logging/files_directory` | `isPersonalDataLoggingEnabled()`, `isFileLoggingEnabled()`, `getLogFilesDirectory()` | global; the directory is resolved by `Sdk\LogFilesDirectoryResolver` |
 | `shipment_defaults/default_shipment_type` | `getDefaultShipmentType()` | website |
 | `sender/use_store_information_address`, `sender/use_store_origin_address`, `sender/default_sender_email` | `isUseStoreInformationAddress()`, `isUseStoreOriginAddress()`, `getSenderEmailIdentity()` | website |
 | `shipment_defaults/default_additional_services` | `getDefaultServices()` | website |
@@ -65,7 +65,7 @@ Getters that return choices return the SDK's enums (`getDefaultShipmentType()`,
 
 The customer ID, the token and the status webhook's secret use Magento's encrypted backend model
 and are marked sensitive in `etc/di.xml`, so `app:config:dump` never writes them to
-`app/etc/config.php`. `Config::getLogin()`, `getToken()` and `getWebhookSecret()` decrypt them.
+`app/etc/config.php`. `ConfigProvider::getLogin()`, `getToken()` and `getWebhookSecret()` decrypt them.
 Nothing else should read those paths.
 
 You can set them from the command line or in `env.php` like any sensitive setting:
@@ -85,10 +85,10 @@ The map host is whitelisted for scripts, styles, frames and connections in `etc/
 ## Where each part of the configuration is used
 
 - Account settings: `Model\Sdk\AccountConfigProvider`, for the SDK client.
-- Shipment defaults: `Model\Shipment\DefaultDraftBuilder`.
+- Shipment defaults: `Model\Shipment\Draft\DefaultDraftBuilder`.
 - `native_labels`: the carrier's `isShippingLabelsAvailable()`, the New Shipment page block and
   the order page buttons. `shipment_screen`: the order page buttons.
-- Map settings: `Model\Checkout\MapConfigProvider`.
+- Map settings: `Model\PickupPoint\MapConfigProvider`.
 - Sync switches: the cron jobs.
 
 Next: [Database](database.md)

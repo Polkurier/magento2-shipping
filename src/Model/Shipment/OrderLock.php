@@ -9,6 +9,7 @@ namespace Polkurier\Shipping\Model\Shipment;
 
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Lock\LockManagerInterface;
+use Magento\Framework\ObjectManager\ResetAfterRequestInterface;
 
 /**
  * One change at a time to an order's Polkurier shipments: placing, reconciling, linking by hand,
@@ -19,10 +20,11 @@ use Magento\Framework\Lock\LockManagerInterface;
  *
  * Re-entrant within a request, per order.
  */
-class OrderLock
+class OrderLock implements ResetAfterRequestInterface
 {
-    private const string PREFIX = 'polkurier_order_';
     public const int TIMEOUT_SECONDS = 10;
+
+    private const string PREFIX = 'polkurier_order_';
 
     /**
      * How many times each order's lock is held here.
@@ -63,7 +65,9 @@ class OrderLock
     {
         $held = $this->held[$orderId] ?? 0;
         if ($held === 0 && !$this->lockManager->lock(self::PREFIX . $orderId, self::TIMEOUT_SECONDS)) {
-            throw new LocalizedException(\__("Another request is updating this order's Polkurier shipments. Wait a moment and try again."));
+            throw new LocalizedException(__(
+                "Another request is updating this order's Polkurier shipments. Wait a moment and try again.",
+            ));
         }
         $this->held[$orderId] = $held + 1;
     }
@@ -77,5 +81,16 @@ class OrderLock
             unset($this->held[$orderId]);
             $this->lockManager->unlock(self::PREFIX . $orderId);
         }
+    }
+
+    /**
+     * Locks still held when the request ends, as after a fatal error, are let go.
+     */
+    public function _resetState(): void
+    {
+        foreach (\array_keys($this->held) as $orderId) {
+            $this->lockManager->unlock(self::PREFIX . $orderId);
+        }
+        $this->held = [];
     }
 }

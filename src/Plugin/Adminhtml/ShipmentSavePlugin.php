@@ -8,14 +8,13 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Plugin\Adminhtml;
 
 use Magento\Backend\Model\View\Result\RedirectFactory;
-use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Framework\Message\ManagerInterface;
-use Magento\Sales\Api\OrderRepositoryInterface;
 use Magento\Sales\Model\Order;
 use Magento\Shipping\Controller\Adminhtml\Order\Shipment\Save;
 use Polkurier\Shipping\Model\Carrier\Polkurier;
-use Polkurier\Shipping\Model\Config;
-use Polkurier\Shipping\Model\Shipment\NativeLabel;
+use Polkurier\Shipping\Model\Config\ConfigProvider;
+use Polkurier\Shipping\Model\Shipment\Native\NativeLabelService;
+use Polkurier\Shipping\Model\Shipment\OrderLoader;
 
 /**
  * A shipment of an order placed with a Polkurier method isn't saved on Magento's shipment page
@@ -32,11 +31,11 @@ use Polkurier\Shipping\Model\Shipment\NativeLabel;
 readonly class ShipmentSavePlugin
 {
     public function __construct(
-        private OrderRepositoryInterface $orderRepository,
-        private Config $config,
+        private OrderLoader $orderLoader,
+        private ConfigProvider $configProvider,
         private ManagerInterface $messageManager,
         private RedirectFactory $redirectFactory,
-        private NativeLabel $nativeLabel,
+        private NativeLabelService $nativeLabelService,
     ) {}
 
     public function aroundExecute(Save $subject, callable $proceed): mixed
@@ -53,23 +52,21 @@ readonly class ShipmentSavePlugin
         if ($orderId <= 0) {
             return $proceed();
         }
-        try {
-            $order = $this->orderRepository->get($orderId);
-        } catch (NoSuchEntityException) {
-            return $proceed();
-        }
-        if (!$order instanceof Order || !Polkurier::isOrderOf($order)) {
+        $order = $this->orderLoader->findForPolkurier($orderId);
+        if ($order === null) {
             return $proceed();
         }
         $storeId = (int)$order->getStoreId();
-        if ($this->config->isNativeLabelsEnabled($storeId)) {
-            $this->messageManager->addErrorMessage(\__(
-                'Order #%1 ships with a Polkurier order, so its shipment is created with a shipping label: that places the Polkurier order. Nothing was shipped.',
+        if ($this->configProvider->isNativeLabelsEnabled($storeId)) {
+            $this->messageManager->addErrorMessage(__(
+                'Order #%1 ships with a Polkurier order, so its shipment is created with a shipping label: '
+                . 'that places the Polkurier order. Nothing was shipped.',
                 $order->getIncrementId(),
             ));
-        } elseif ($this->config->isShipmentScreenEnabled($storeId)) {
-            $this->messageManager->addErrorMessage(\__(
-                'Order #%1 ships with a Polkurier order: use Ship on the order page, which opens the Polkurier shipment screen. Nothing was shipped.',
+        } elseif ($this->configProvider->isShipmentScreenEnabled($storeId)) {
+            $this->messageManager->addErrorMessage(__(
+                'Order #%1 ships with a Polkurier order: '
+                . 'use Ship on the order page, which opens the Polkurier shipment screen. Nothing was shipped.',
                 $order->getIncrementId(),
             ));
         } else {
@@ -85,18 +82,19 @@ readonly class ShipmentSavePlugin
      */
     private function tellUnreadyLabel(): void
     {
-        $number = $this->nativeLabel->takeUnreadyLabel();
+        $number = $this->nativeLabelService->takeUnreadyLabel();
         if ($number === null) {
             return;
         }
-        $created = (string)\__('The shipment has been created.');
+        $created = (string)__('The shipment has been created.');
         foreach ($this->messageManager->getMessages(true)->getItems() as $message) {
             if (!\str_starts_with((string)$message->getText(), $created)) {
                 $this->messageManager->addMessage($message);
             }
         }
-        $this->messageManager->addNoticeMessage(\__(
-            'The shipment has been created with Polkurier order %1, but its label isn\'t ready yet. Print it later from the order\'s Polkurier tab.',
+        $this->messageManager->addNoticeMessage(__(
+            'The shipment has been created with Polkurier order %1, but its label isn\'t ready yet. '
+            . 'Print it later from the order\'s Polkurier tab.',
             $number,
         ));
     }

@@ -19,8 +19,8 @@
             <dep>polkurier_shipment_form.polkurier_shipment_form_data_source</dep>
         </deps>
         <buttons>
-            <button name="back" class="Polkurier\Shipping\Ui\Component\Control\BackToOrderButton"/>
-            <button name="save" class="Polkurier\Shipping\Ui\Component\Control\PlaceShipmentButton"/>
+            <button name="back" class="Polkurier\Shipping\Ui\Component\Form\Shipment\BackToOrderButton"/>
+            <button name="save" class="Polkurier\Shipping\Ui\Component\Form\Shipment\PlaceButton"/>
         </buttons>
     </settings>
     <dataSource name="polkurier_shipment_form_data_source">
@@ -33,7 +33,8 @@
             <submitUrl path="polkurier/shipment/save"/>
         </settings>
         <aclResource>Polkurier_Shipping::shipment_create</aclResource>
-        <dataProvider class="Polkurier\Shipping\Ui\Component\Form\Shipment\DataProvider" name="polkurier_shipment_form_data_source">
+        <dataProvider class="Polkurier\Shipping\Ui\Component\Form\Shipment\DataProvider"
+                      name="polkurier_shipment_form_data_source">
             <settings>
                 <requestFieldName>order_id</requestFieldName>
                 <primaryFieldName>order_id</primaryFieldName>
@@ -54,7 +55,8 @@
                     <item name="additionalClasses" xsi:type="string">polkurier-workspace__main</item>
                 </item>
             </argument>
-            <container name="shipment_section" component="Polkurier_Shipping/js/shipment/workspace/section" sortOrder="10">
+            <container name="shipment_section" component="Polkurier_Shipping/js/shipment/workspace/section"
+                       sortOrder="10">
                 <argument name="data" xsi:type="array">
                     <item name="config" xsi:type="array">
                         <item name="label" xsi:type="string" translate="true">Shipment</item>
@@ -70,7 +72,8 @@
                         </item>
                     </item>
                 </argument>
-                <container name="details" component="Polkurier_Shipping/js/shipment/workspace/shipment-details" sortOrder="10">
+                <container name="details" component="Polkurier_Shipping/js/shipment/workspace/shipment-details"
+                           sortOrder="10">
                     <argument name="data" xsi:type="array">
                         <item name="config" xsi:type="array">
                             <item name="carrierModal" xsi:type="string">carrier_modal</item>
@@ -78,7 +81,8 @@
                         </item>
                     </argument>
                 </container>
-                <container name="additional_fields" component="Polkurier_Shipping/js/shipment/additional-fields" sortOrder="30">
+                <container name="additional_fields" component="Polkurier_Shipping/js/shipment/additional-fields"
+                           sortOrder="30">
                     <argument name="data" xsi:type="array">
                         <item name="config" xsi:type="array">
                             <item name="template" xsi:type="string">Polkurier_Shipping/shipment/additional-fields</item>
@@ -98,9 +102,11 @@
                         </item>
                     </item>
                 </argument>
-                <container name="items" component="Polkurier_Shipping/js/shipment/workspace/items" sortOrder="10"></container>
+                <container name="items" component="Polkurier_Shipping/js/shipment/workspace/items"
+                           sortOrder="10"></container>
             </container>
-            <container name="extras_section" component="Polkurier_Shipping/js/shipment/workspace/section" sortOrder="20">
+            <container name="extras_section" component="Polkurier_Shipping/js/shipment/workspace/section"
+                       sortOrder="20">
                 <argument name="data" xsi:type="array">
                     <item name="config" xsi:type="array">
                         <item name="label" xsi:type="string" translate="true">Additional services</item>
@@ -126,7 +132,8 @@
                     </argument>
                 </container>
             </container>
-            <container name="sender_section" component="Polkurier_Shipping/js/shipment/workspace/section" sortOrder="30">
+            <container name="sender_section" component="Polkurier_Shipping/js/shipment/workspace/section"
+                       sortOrder="30">
                 <argument name="data" xsi:type="array">
                     <item name="config" xsi:type="array">
                         <item name="label" xsi:type="string" translate="true">Sender</item>
@@ -151,9 +158,11 @@
                         </item>
                     </argument>
                 </container>
-                <container name="handover" component="Polkurier_Shipping/js/shipment/workspace/handover" sortOrder="20"></container>
+                <container name="handover" component="Polkurier_Shipping/js/shipment/workspace/handover"
+                           sortOrder="20"></container>
             </container>
-            <container name="recipient_section" component="Polkurier_Shipping/js/shipment/workspace/section" sortOrder="40">
+            <container name="recipient_section" component="Polkurier_Shipping/js/shipment/workspace/section"
+                       sortOrder="40">
                 <argument name="data" xsi:type="array">
                     <item name="config" xsi:type="array">
                         <item name="label" xsi:type="string" translate="true">Recipient</item>
@@ -177,7 +186,8 @@
                         </item>
                     </argument>
                 </container>
-                <container name="point" component="Polkurier_Shipping/js/shipment/workspace/recipient-point" sortOrder="20">
+                <container name="point" component="Polkurier_Shipping/js/shipment/workspace/recipient-point"
+                           sortOrder="20">
                     <argument name="data" xsi:type="array">
                         <item name="config" xsi:type="array">
                             <item name="recipientModal" xsi:type="string">recipient_modal</item>
@@ -193,7 +203,8 @@
                     <item name="additionalClasses" xsi:type="string">polkurier-workspace__side</item>
                 </item>
             </argument>
-            <container name="parcels_section" component="Polkurier_Shipping/js/shipment/workspace/section" sortOrder="10">
+            <container name="parcels_section" component="Polkurier_Shipping/js/shipment/workspace/section"
+                       sortOrder="10">
                 <argument name="data" xsi:type="array">
                     <item name="config" xsi:type="array">
                         <item name="label" xsi:type="string" translate="true">Parcels</item>
@@ -208,7 +219,8 @@
                         </item>
                     </item>
                 </argument>
-                <container name="parcels" component="Polkurier_Shipping/js/shipment/workspace/parcels" sortOrder="10"></container>
+                <container name="parcels" component="Polkurier_Shipping/js/shipment/workspace/parcels"
+                           sortOrder="10"></container>
             </container>
             <container name="summary" component="Polkurier_Shipping/js/shipment/workspace/summary" sortOrder="20">
                 <argument name="data" xsi:type="array">
@@ -247,7 +259,8 @@
             <settings>
                 <label translate="true">Carrier</label>
             </settings>
-            <field name="carrier_code" formElement="select" component="Polkurier_Shipping/js/shipment/workspace/carrier-picker" sortOrder="10">
+            <field name="carrier_code" formElement="select"
+                   component="Polkurier_Shipping/js/shipment/workspace/carrier-picker" sortOrder="10">
                 <argument name="data" xsi:type="array">
                     <item name="config" xsi:type="array">
                         <item name="modal" xsi:type="string">${ $.ns }.${ $.ns }.carrier_modal</item>
@@ -337,7 +350,8 @@
             <settings>
                 <label translate="true">Sender address</label>
             </settings>
-            <field name="sender_address_id" formElement="select" component="Polkurier_Shipping/js/shipment/workspace/sender-picker" sortOrder="10">
+            <field name="sender_address_id" formElement="select"
+                   component="Polkurier_Shipping/js/shipment/workspace/sender-picker" sortOrder="10">
                 <argument name="data" xsi:type="array">
                     <item name="config" xsi:type="array">
                         <item name="modal" xsi:type="string">${ $.ns }.${ $.ns }.sender_modal</item>
@@ -533,10 +547,14 @@
                     <label translate="true">E-mail</label>
                     <dataType>text</dataType>
                     <dataScope>recipient_email</dataScope>
-                    <validation><rule name="validate-email" xsi:type="boolean">true</rule><rule name="required-entry" xsi:type="boolean">true</rule></validation>
+                    <validation>
+                        <rule name="validate-email" xsi:type="boolean">true</rule>
+                        <rule name="required-entry" xsi:type="boolean">true</rule>
+                    </validation>
                 </settings>
             </field>
-            <field name="recipient_point_id" formElement="input" component="Polkurier_Shipping/js/shipment/point" sortOrder="110">
+            <field name="recipient_point_id" formElement="input" component="Polkurier_Shipping/js/shipment/point"
+                   sortOrder="110">
                 <settings>
                     <label translate="true">Pickup point</label>
                     <dataType>text</dataType>
@@ -581,7 +599,10 @@
                     <label translate="true">Amount to collect</label>
                     <dataType>number</dataType>
                     <dataScope>cod_amount</dataScope>
-                    <validation><rule name="validate-number" xsi:type="boolean">true</rule><rule name="validate-zero-or-greater" xsi:type="boolean">true</rule></validation>
+                    <validation>
+                        <rule name="validate-number" xsi:type="boolean">true</rule>
+                        <rule name="validate-zero-or-greater" xsi:type="boolean">true</rule>
+                    </validation>
                     <notice translate="true">0 or empty: no cash on delivery.</notice>
                 </settings>
             </field>
@@ -661,7 +682,8 @@
                 </formElements>
             </field>
             <!-- An account typed in for the shipment, kept for later if asked -->
-            <container name="new_bank_account" component="Polkurier_Shipping/js/shipment/workspace/new-entry" sortOrder="50">
+            <container name="new_bank_account" component="Polkurier_Shipping/js/shipment/workspace/new-entry"
+                       sortOrder="50">
                 <argument name="data" xsi:type="array">
                     <item name="config" xsi:type="array">
                         <item name="choiceField" xsi:type="string">cod_bank_account_id</item>
@@ -718,7 +740,10 @@
                     <label translate="true">Declared value</label>
                     <dataType>number</dataType>
                     <dataScope>insurance_amount</dataScope>
-                    <validation><rule name="validate-number" xsi:type="boolean">true</rule><rule name="validate-zero-or-greater" xsi:type="boolean">true</rule></validation>
+                    <validation>
+                        <rule name="validate-number" xsi:type="boolean">true</rule>
+                        <rule name="validate-zero-or-greater" xsi:type="boolean">true</rule>
+                    </validation>
                     <notice translate="true">0 or empty: no insurance.</notice>
                 </settings>
             </field>

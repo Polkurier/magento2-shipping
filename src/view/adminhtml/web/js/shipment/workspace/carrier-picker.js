@@ -64,7 +64,9 @@ define([
                 const carrier = carriers[option.value] || {},
                     // The chosen services it doesn't offer: it can't take the shipment as it is.
                     lacking = rules.servicesLacking(data, carrier.services).map(function (service) {
-                        return service === 'COVER_ADDRESS_SENDER' ? $t('Another sender on the label') : serviceLabels[service] || service;
+                        return service === 'COVER_ADDRESS_SENDER'
+                            ? $t('Another sender on the label')
+                            : serviceLabels[service] || service;
                     }),
                     quote = quotes && !lacking.length ? quotes[option.value] || null : null;
 

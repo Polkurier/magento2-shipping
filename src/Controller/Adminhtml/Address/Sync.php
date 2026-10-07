@@ -8,9 +8,10 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Controller\Adminhtml\Address;
 
 use Magento\Backend\App\Action\Context;
-use Polkurier\Shipping\Controller\Adminhtml\MasterData\AbstractSync;
-use Polkurier\Shipping\Model\Admin\AddressHandler;
-use Polkurier\Shipping\Model\Config;
+use Polkurier\Shipping\Controller\Adminhtml\AbstractSync;
+use Polkurier\Shipping\Model\Address\AddressHandler;
+use Polkurier\Shipping\Model\Admin\FlashMessageCollectorFactory;
+use Polkurier\Shipping\Model\Config\ConfigProvider;
 
 /**
  * Synchronizes the sender addresses with the Polkurier account now.
@@ -19,8 +20,12 @@ class Sync extends AbstractSync
 {
     public const string ADMIN_RESOURCE = 'Polkurier_Shipping::addresses';
 
-    public function __construct(Context $context, AddressHandler $handler, Config $config)
-    {
-        parent::__construct($context, $handler, $config);
+    public function __construct(
+        Context $context,
+        AddressHandler $handler,
+        ConfigProvider $config,
+        FlashMessageCollectorFactory $flashMessageCollectorFactory,
+    ) {
+        parent::__construct($context, $handler, $config, $flashMessageCollectorFactory);
     }
 }

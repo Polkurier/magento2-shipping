@@ -167,6 +167,7 @@ Collective pickup,Odbiór zbiorczy
 Pickup booked,Odbiór zamówiony
 %1 deleted.,Usunięto: %1.
 %1 shipment(s) updated.,Zaktualizowano przesyłek: %1.
+%1,%1
 %1: %2,%1: %2
 #%1: %2,#%1: %2
 -- Choose a carrier --,-- Wybierz przewoźnika --
@@ -187,7 +188,6 @@ Cancel Polkurier order %1?,Anulować zamówienie Polkurier %1?
 Cancel payout %1?,Anulować wypłatę %1?
 Cancelled,Anulowane
 Carrier settings,Ustawienia przewoźnika
-Check: %1,Sprawdź: %1
 Choose a carrier first.,Najpierw wybierz przewoźnika.
 Choose the bank account the cash on delivery is paid out to.,"Wybierz konto bankowe, na które ma być wypłacone pobranie."
 Code sent to %1; valid until %2.,Kod wysłano na %1; ważny do %2.
@@ -270,6 +270,7 @@ Polkurier order %1 placed. Waybills: %2.,Złożono zamówienie Polkurier %1. Lis
 Polkurier order %1: %2.,Zamówienie Polkurier %1: %2.
 "Polkurier order for %1: Polkurier did not confirm it, and it may or may not have been placed. Reconcile it before sending again.",Zamówienie Polkurier u %1: Polkurier go nie potwierdził i mogło zostać złożone albo nie. Uzgodnij je przed ponownym wysłaniem.
 Polkurier refused: %1,Polkurier odmówił: %1
+Polkurier refused: %1 Check: %2,Polkurier odmówił: %1 Sprawdź: %2
 Polkurier shipments,Przesyłki Polkurier
 Polkurier would not accept this. Check: %1,Polkurier tego nie przyjmie. Sprawdź: %1
 Postal order,Przekaz pocztowy
@@ -298,7 +299,6 @@ The chosen address no longer exists.,Wybrany adres już nie istnieje.
 The chosen bank account no longer exists.,Wybrane konto bankowe już nie istnieje.
 The chosen pickup point is not available. Choose another one.,Wybrany punkt odbioru jest niedostępny. Wybierz inny.
 The money stays in the money box.,Pieniądze pozostaną w skarbonce.
-The order cannot be shipped with Polkurier.,Tego zamówienia nie można wysłać przez Polkurier.
 The order no longer exists.,Zamówienie już nie istnieje.
 "The pack template with id ""%1"" does not exist.",Szablon paczki o id „%1” nie istnieje.
 The request to Polkurier could not be built: %1,Nie udało się przygotować zapytania do Polkuriera: %1
@@ -512,6 +512,7 @@ Packing margin (cm),Zapas przy pakowaniu (cm)
 Messages from Polkurier about this carrier,Komunikaty Polkurier o tym przewoźniku
 Shipping method in checkout,Metoda dostawy w koszyku
 A synchronization with Polkurier is already running. Try again in a moment.,Synchronizacja z Polkurierem już trwa. Spróbuj ponownie za chwilę.
+Synchronization with Polkurier failed. %1,Synchronizacja z Polkurierem nie powiodła się. %1
 "#%1: Saved in Magento. It goes to Polkurier once you confirm it: open it and save it with the code or your security PIN.","#%1: Zapisano w Magento. Trafi do Polkuriera po potwierdzeniu: otwórz je i zapisz z kodem lub PIN-em bezpieczeństwa."
 Try again,Spróbuj ponownie
 The Polkurier order could not be read.,Nie udało się odczytać zamówienia Polkurier.
@@ -800,3 +801,5 @@ Cart value for price tiers,Wartość koszyka dla progów cenowych
 "What price tiers by subtotal compare, after discounts.","Z czym porównywane są progi cenowe według wartości koszyka, po rabatach."
 With tax,Z podatkiem
 Without tax,Bez podatku
+"The pickup point you chose doesn't accept cash on delivery. To pay on delivery, choose another pickup point.","Wybrany punkt odbioru nie przyjmuje płatności za pobraniem. Aby zapłacić przy odbiorze, wybierz inny punkt odbioru."
+Shipping labels on Magento's shipment page are turned off for this store.,Etykiety wysyłkowe na stronie przesyłki Magento są wyłączone dla tego sklepu.

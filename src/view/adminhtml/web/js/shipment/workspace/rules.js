@@ -58,7 +58,8 @@ define(['mage/translate'], function ($t) {
      * @returns {Boolean}
      */
     function senderPointUsed(requirement, dropOff, mode) {
-        return (requirement || 'NONE') !== 'NONE' && (mode === 'drop_off' || (requirement === 'REQUIRED' && dropOff === false));
+        return (requirement || 'NONE') !== 'NONE'
+            && (mode === 'drop_off' || (requirement === 'REQUIRED' && dropOff === false));
     }
 
     /**
@@ -220,7 +221,7 @@ define(['mage/translate'], function ($t) {
     }
 
     /**
-     * What the chosen quantities are worth, by the server's rule (OrderAmounts::getShipmentWorth):
+     * What the chosen quantities are worth, by the server's rule (OrderAmountCalculator::getShipmentWorth):
      * the order total for the whole order, or when the products have no price; otherwise the
      * products, and the shipping and handling too when it's included (data.shipping_included).
      *
@@ -265,7 +266,9 @@ define(['mage/translate'], function ($t) {
             rest: rest,
             shipping_covered: covered,
             with_shipping: withShipping,
-            value: whole || products <= 0 ? total : (withShipping ? Math.round((products + shipping) * 100) / 100 : products),
+            value: whole || products <= 0
+                ? total
+                : (withShipping ? Math.round((products + shipping) * 100) / 100 : products),
             chosen: chosen
         };
     }
@@ -338,7 +341,7 @@ define(['mage/translate'], function ($t) {
     }
 
     /**
-     * What cash on delivery collects, as OrderAmounts::getCodFor works it out: the order in full,
+     * What cash on delivery collects, as OrderAmountCalculator::getCodFor works it out: the order in full,
      * so everything left to collect for the whole order or the part carrying the rest, or when the
      * products have no price; otherwise the products, and the shipping and handling too when it's
      * included, never more than is left.
@@ -352,7 +355,10 @@ define(['mage/translate'], function ($t) {
             return remaining;
         }
 
-        return Math.min(remaining, Math.round((worth.products + (worth.with_shipping ? worth.shipping : 0)) * 100) / 100);
+        return Math.min(
+            remaining,
+            Math.round((worth.products + (worth.with_shipping ? worth.shipping : 0)) * 100) / 100
+        );
     }
 
     /**
@@ -487,13 +493,25 @@ define(['mage/translate'], function ($t) {
             // if not where the card's problems are: {parcel: index}, {part: name} of the section,
             // {modal: name} of the form, or false.
             function add(field, card, text, blocking, fix) {
-                issues.push({field: field, card: card, text: text, blocking: blocking !== false, fix: fix === undefined ? null : fix});
+                issues.push({
+                    field: field,
+                    card: card,
+                    text: text,
+                    blocking: blocking !== false,
+                    fix: fix === undefined ? null : fix
+                });
             }
 
             // Not blocking: Polkurier still checks the shipment when it's placed.
             if (filled(data.carriers_error)) {
-                add('carrier_code', 'carrier', $t('The carrier list could not be read, so what the carrier supports isn\'t checked here: %1')
-                    .replace('%1', data.carriers_error), false, false);
+                add(
+                    'carrier_code',
+                    'carrier',
+                    $t('The carrier list could not be read, so what the carrier supports isn\'t checked here: %1')
+                        .replace('%1', data.carriers_error),
+                    false,
+                    false
+                );
             }
             // A carrier that doesn't price the shipment is said under the price itself.
             if (!filled(data.carrier_code)) {
@@ -504,25 +522,54 @@ define(['mage/translate'], function ($t) {
             if (filled(data.carrier_code) && !filled(data.carriers_error) && Object.keys(data.carriers || {}).length
                 && !(data.carriers || {})[data.carrier_code]
             ) {
-                add('carrier_code', 'carrier', $t('This carrier is no longer available: choose another.'), true, {modal: 'carrier_modal'});
+                add(
+                    'carrier_code',
+                    'carrier',
+                    $t('This carrier is no longer available: choose another.'),
+                    true,
+                    {modal: 'carrier_modal'}
+                );
             }
             if (features.point_required && !filled(data.recipient_point_id)) {
-                add('recipient_point_id', 'recipient', $t('This carrier delivers to pickup points only: choose one.'), true, {part: 'point'});
+                add(
+                    'recipient_point_id',
+                    'recipient',
+                    $t('This carrier delivers to pickup points only: choose one.'),
+                    true,
+                    {part: 'point'}
+                );
             }
             // Looked up when the screen opened: gone or closed since the order was placed.
             if (filled(data.recipient_point_id) && data.recipient_point_closed === data.recipient_point_id
                 && features.point_allowed !== false
             ) {
-                add('recipient_point_id', 'recipient', $t('Pickup point %1 is closed or no longer exists: choose another.')
-                    .replace('%1', data.recipient_point_id), true, {part: 'point'});
+                add(
+                    'recipient_point_id',
+                    'recipient',
+                    $t('Pickup point %1 is closed or no longer exists: choose another.')
+                        .replace('%1', data.recipient_point_id),
+                    true,
+                    {part: 'point'}
+                );
             }
-            if (features.sender_point === 'REQUIRED' && senderPointUsed(features.sender_point, features.drop_off, data.pickup_mode)
+            if (features.sender_point === 'REQUIRED'
+                && senderPointUsed(features.sender_point, features.drop_off, data.pickup_mode)
                 && !filled(data.sender_point_id)
             ) {
-                add('sender_point_id', 'handover', $t('This carrier takes the parcels at a point: choose the drop-off point you hand them over at.'), true, {part: 'handover'});
+                add(
+                    'sender_point_id',
+                    'handover',
+                    $t('This carrier takes the parcels at a point: choose the drop-off point you hand them over at.'),
+                    true,
+                    {part: 'handover'}
+                );
             }
             if (data.sender_address_id === 'new' && newSenderLacking(data).length) {
-                add('sender_address_id', 'sender', $t('Fill in the sender\'s %1.').replace('%1', newSenderLacking(data).join(', ')));
+                add(
+                    'sender_address_id',
+                    'sender',
+                    $t('Fill in the sender\'s %1.').replace('%1', newSenderLacking(data).join(', '))
+                );
             }
             if (!filled(data.recipient_phone)) {
                 add('recipient_phone', 'recipient', $t('The recipient needs a phone number.'));
@@ -530,23 +577,43 @@ define(['mage/translate'], function ($t) {
             if (courier && features.pickup_date_required && !filled(data.pickup_date)) {
                 add('pickup_date', 'handover', $t('This carrier needs a collection date.'));
             }
-            if (courier && features.pickup_time_required && !(filled(data.pickup_time_from) && filled(data.pickup_time_to))) {
+            if (courier && features.pickup_time_required
+                && !(filled(data.pickup_time_from) && filled(data.pickup_time_to))
+            ) {
                 add('pickup_time_from', 'handover', $t('This carrier needs a collection time window.'));
             }
             if (data.pickup_mode === 'drop_off' && features.drop_off === false) {
                 add('pickup_mode', 'handover', $t('This carrier does not take parcels dropped off at a point.'));
             }
             if (cod > 0 && features.cod === false) {
-                add('cod_amount', 'cod', $t('This carrier does not collect cash on delivery.'), true, {modal: 'carrier_modal'});
+                add(
+                    'cod_amount',
+                    'cod',
+                    $t('This carrier does not collect cash on delivery.'),
+                    true,
+                    {modal: 'carrier_modal'}
+                );
             }
             if (amount(data.insurance_amount) > 0 && features.insurance === false) {
-                add('insurance_amount', 'extras', $t('This carrier does not insure shipments.'), true, {modal: 'carrier_modal'});
+                add(
+                    'insurance_amount',
+                    'extras',
+                    $t('This carrier does not insure shipments.'),
+                    true,
+                    {modal: 'carrier_modal'}
+                );
             }
             // Chosen before the carrier: another carrier offers them.
             servicesLacking(data, features.services).forEach(function (service) {
-                add('services', 'carrier', $t('This carrier does not offer "%1".').replace('%1', service === 'COVER_ADDRESS_SENDER'
-                    ? $t('Another sender on the label')
-                    : ((data.choices || {}).services || {})[service] || service), true, {modal: 'carrier_modal'});
+                add(
+                    'services',
+                    'carrier',
+                    $t('This carrier does not offer "%1".').replace('%1', service === 'COVER_ADDRESS_SENDER'
+                        ? $t('Another sender on the label')
+                        : ((data.choices || {}).services || {})[service] || service),
+                    true,
+                    {modal: 'carrier_modal'}
+                );
             });
             if (cod > 0 && filled(data.cod_remaining) && cod > amount(data.cod_remaining) + 0.005) {
                 add('cod_amount', 'cod', amount(data.cod_collected) > 0
@@ -561,10 +628,18 @@ define(['mage/translate'], function ($t) {
             if (cod > 0 && data.cod_return_type === 'BA' && data.cod_bank_account_id === 'new'
                 && !filled(data.new_bank_account_number)
             ) {
-                add('new_bank_account_number', 'cod', $t('Enter the number of the bank account the cash on delivery is paid out to.'));
+                add(
+                    'new_bank_account_number',
+                    'cod',
+                    $t('Enter the number of the bank account the cash on delivery is paid out to.')
+                );
             }
             if (cod > 0 && features.insurance_with_cod && amount(data.insurance_amount) <= 0) {
-                add('insurance_amount', 'extras', $t('This carrier insures every shipment with cash on delivery: enter the declared value.'));
+                add(
+                    'insurance_amount',
+                    'extras',
+                    $t('This carrier insures every shipment with cash on delivery: enter the declared value.')
+                );
             }
             (features.fields || []).forEach(function (field) {
                 if (field.required && !filled((data.additional_fields || {})[field.name])) {
@@ -596,13 +671,20 @@ define(['mage/translate'], function ($t) {
 
                 Object.keys(totals).forEach(function (id) {
                     if (items[id] && totals[id] > amount(items[id].qty) + 0.0001) {
-                        add('packs', 'parcels', $t('The parcels hold more of "%1" than the shipment carries.').replace('%1', items[id].name), true, {
-                            parcel: packs.findIndex(function (pack) {
-                                return (pack.items || []).some(function (row) {
-                                    return String(row.order_item_id) === id && amount(row.qty) > 0;
-                                });
-                            })
-                        });
+                        add(
+                            'packs',
+                            'parcels',
+                            $t('The parcels hold more of "%1" than the shipment carries.')
+                                .replace('%1', items[id].name),
+                            true,
+                            {
+                                parcel: packs.findIndex(function (pack) {
+                                    return (pack.items || []).some(function (row) {
+                                        return String(row.order_item_id) === id && amount(row.qty) > 0;
+                                    });
+                                })
+                            }
+                        );
                     }
                 });
                 packs.forEach(function (pack, index) {
@@ -612,7 +694,9 @@ define(['mage/translate'], function ($t) {
                         });
 
                     // A warning only: the limit is the merchant's own, and the parcel may still go.
-                    if (template && amount(template.weight) > 0 && amount(pack.weight) > amount(template.weight) + 0.0005) {
+                    if (template && amount(template.weight) > 0
+                        && amount(pack.weight) > amount(template.weight) + 0.0005
+                    ) {
                         add('packs', 'parcels', $t('Parcel %1 weighs %2 kg, more than %3 may weigh (%4 kg).')
                             .replace('%1', String(index + 1))
                             .replace('%2', String(amount(pack.weight)))
@@ -635,7 +719,8 @@ define(['mage/translate'], function ($t) {
                 add('packs', 'carrier', kindProblem(types, features.shipment_types));
             }
             const incomplete = packs.findIndex(function (pack) {
-                return amount(pack.weight) <= 0 || amount(pack.length) <= 0 || amount(pack.width) <= 0 || amount(pack.height) <= 0;
+                return amount(pack.weight) <= 0 || amount(pack.length) <= 0
+                    || amount(pack.width) <= 0 || amount(pack.height) <= 0;
             });
 
             if (!packs.length) {

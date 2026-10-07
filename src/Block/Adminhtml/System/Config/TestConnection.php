@@ -33,7 +33,7 @@ class TestConnection extends Field
 
     public function getButtonLabel(): string
     {
-        return (string)\__('Test connection');
+        return (string)__('Test connection');
     }
 
     public function getTestUrl(): string
@@ -57,7 +57,10 @@ class TestConnection extends Field
     {
         // The button's own id ends in its field name; the others share the rest.
         $id = (string)$element->getHtmlId();
-        $this->setData('field_prefix', \str_ends_with($id, 'test_connection') ? \substr($id, 0, -\strlen('test_connection')) : '');
+        $this->setData(
+            'field_prefix',
+            \str_ends_with($id, 'test_connection') ? \substr($id, 0, -\strlen('test_connection')) : '',
+        );
 
         return $this->_toHtml();
     }

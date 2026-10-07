@@ -18,8 +18,8 @@
             <dep>polkurier_shipment_pickup_form.polkurier_shipment_pickup_form_data_source</dep>
         </deps>
         <buttons>
-            <button name="back" class="Polkurier\Shipping\Ui\Component\Control\PickupBackButton"/>
-            <button name="save" class="Polkurier\Shipping\Ui\Component\Control\BookPickupButton"/>
+            <button name="back" class="Polkurier\Shipping\Ui\Component\Form\Pickup\BackButton"/>
+            <button name="save" class="Polkurier\Shipping\Ui\Component\Form\Pickup\BookButtonVirtual"/>
         </buttons>
     </settings>
     <dataSource name="polkurier_shipment_pickup_form_data_source">
@@ -31,7 +31,8 @@
         <settings>
             <submitUrl path="*/*/pickup"/>
         </settings>
-        <dataProvider class="Polkurier\Shipping\Ui\Component\Form\Pickup\DataProvider" name="polkurier_shipment_pickup_form_data_source">
+        <dataProvider class="Polkurier\Shipping\Ui\Component\Form\Pickup\DataProvider"
+                      name="polkurier_shipment_pickup_form_data_source">
             <settings>
                 <requestFieldName>ids</requestFieldName>
                 <primaryFieldName>ids</primaryFieldName>

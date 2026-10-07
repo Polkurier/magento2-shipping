@@ -17,7 +17,7 @@
                 <class>primary</class>
                 <label translate="true">Add address</label>
             </button>
-            <button name="sync" class="Polkurier\Shipping\Ui\Component\Control\SyncAddressesButton"/>
+            <button name="sync" class="Polkurier\Shipping\Ui\Component\Listing\Address\SyncButtonVirtual"/>
         </buttons>
         <spinner>polkurier_address_listing_columns</spinner>
         <deps>
@@ -32,7 +32,8 @@
             <updateUrl path="mui/index/render"/>
         </settings>
         <aclResource>Polkurier_Shipping::addresses</aclResource>
-        <dataProvider class="Polkurier\Shipping\Ui\Component\DataProvider\GridDataProvider" name="polkurier_address_listing_data_source">
+        <dataProvider class="Polkurier\Shipping\Ui\Component\DataProvider\GridDataProviderVirtual"
+                      name="polkurier_address_listing_data_source">
             <settings>
                 <requestFieldName>id</requestFieldName>
                 <primaryFieldName>address_id</primaryFieldName>
@@ -236,7 +237,8 @@
                 <visible>false</visible>
             </settings>
         </column>
-        <column name="synced_at" class="Magento\Ui\Component\Listing\Columns\Date" component="Magento_Ui/js/grid/columns/date">
+        <column name="synced_at" class="Magento\Ui\Component\Listing\Columns\Date"
+                component="Magento_Ui/js/grid/columns/date">
             <settings>
                 <label translate="true">Last synchronized</label>
                 <filter>dateRange</filter>

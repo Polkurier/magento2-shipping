@@ -89,7 +89,8 @@ define([
                 // Part of the order, priced: whether it carries the shipping and handling is asked.
                 // Not for the part carrying the rest, which includes it as it collects it, nor once
                 // another part includes it.
-                canIncludeShipping: !replacing && !worth.whole && !worth.rest && !worth.shipping_covered && worth.products > 0,
+                canIncludeShipping: !replacing && !worth.whole && !worth.rest
+                    && !worth.shipping_covered && worth.products > 0,
                 basis: worth.whole
                     ? $t('the order total, as all of the order ships')
                     : (worth.products > 0

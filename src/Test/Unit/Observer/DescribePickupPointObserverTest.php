@@ -17,13 +17,13 @@ use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Polkurier\Shipping\Api\Data\QuotePointInterface;
-use Polkurier\Shipping\Model\Checkout\PointDescription;
-use Polkurier\Shipping\Model\OrderPointStore;
+use Polkurier\Shipping\Api\QuotePointRepositoryInterface;
+use Polkurier\Shipping\Model\PickupPoint\PointDescriptionBuilder;
 use Polkurier\Shipping\Observer\DescribePickupPointObserver;
 use Psr\Log\LoggerInterface;
 
 #[CoversClass(DescribePickupPointObserver::class)]
-#[CoversClass(PointDescription::class)]
+#[CoversClass(PointDescriptionBuilder::class)]
 #[AllowMockObjectsWithoutExpectations]
 class DescribePickupPointObserverTest extends TestCase
 {
@@ -36,9 +36,13 @@ class DescribePickupPointObserverTest extends TestCase
     {
         $order = $this->order('polkurier_INPOST_PACZKOMAT');
 
-        $this->observer($this->point('INPOST_PACZKOMAT', 'WAW01A', 'ul. Prosta 1, 00-001 Warszawa'))->execute($this->event($order));
+        $this->observer($this->point('INPOST_PACZKOMAT', 'WAW01A', 'ul. Prosta 1, 00-001 Warszawa'))
+            ->execute($this->event($order));
 
-        self::assertSame('Paczkomat InPost, pickup point WAW01A (ul. Prosta 1, 00-001 Warszawa)', $order->getShippingDescription());
+        self::assertSame(
+            'Paczkomat InPost, pickup point WAW01A (ul. Prosta 1, 00-001 Warszawa)',
+            $order->getShippingDescription(),
+        );
         self::assertSame([0], $this->askedFor);
     }
 
@@ -61,26 +65,34 @@ class DescribePickupPointObserverTest extends TestCase
         $flatRate = $this->order('flatrate_flatrate');
         $this->observer($this->point('INPOST_PACZKOMAT', 'WAW01A', null))->execute($this->event($flatRate));
 
-        self::assertSame(['Paczkomat InPost', 'Paczkomat InPost'], [$locker->getShippingDescription(), $flatRate->getShippingDescription()]);
+        self::assertSame(
+            ['Paczkomat InPost', 'Paczkomat InPost'],
+            [$locker->getShippingDescription(), $flatRate->getShippingDescription()],
+        );
     }
 
     public function testAnAddressTooLongForTheColumnIsLeftOutButNotThePoint(): void
     {
-        $text = (new PointDescription())->describe('Paczkomat InPost', 'WAW01A', \str_repeat('x', 300));
+        $text = (new PointDescriptionBuilder())->describe('Paczkomat InPost', 'WAW01A', \str_repeat('x', 300));
 
         self::assertSame('Paczkomat InPost, pickup point WAW01A', $text);
     }
 
     private function observer(QuotePointInterface $point): DescribePickupPointObserver
     {
-        $store = $this->createStub(OrderPointStore::class);
-        $store->method('getForQuote')->willReturnCallback(function (int $quoteId, int $addressId) use ($point): QuotePointInterface {
-            $this->askedFor[] = $addressId;
+        $store = $this->createStub(QuotePointRepositoryInterface::class);
+        $store->method('getForQuote')
+            ->willReturnCallback(function (int $quoteId, int $addressId) use ($point): QuotePointInterface {
+                $this->askedFor[] = $addressId;
 
-            return $point;
-        });
+                return $point;
+            });
 
-        return new DescribePickupPointObserver($store, new PointDescription(), $this->createStub(LoggerInterface::class));
+        return new DescribePickupPointObserver(
+            $store,
+            new PointDescriptionBuilder(),
+            $this->createStub(LoggerInterface::class),
+        );
     }
 
     private function point(string $method, string $id, ?string $label): QuotePointInterface

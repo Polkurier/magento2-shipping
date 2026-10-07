@@ -30,11 +30,6 @@ class CarrierConfig extends AbstractDb
         parent::__construct($context, $connectionName);
     }
 
-    protected function _construct(): void
-    {
-        $this->_init(self::TABLE_NAME, 'config_id');
-    }
-
     /**
      * @param int[] $configIds
      *
@@ -50,13 +45,13 @@ class CarrierConfig extends AbstractDb
             $connection->select()
                 ->from($this->getTable(self::LABEL_TABLE_NAME))
                 ->where('config_id IN (?)', $configIds)
-                ->order('store_id'),
+                ->order(CarrierLabelInterface::FIELD_STORE_ID),
         );
         $labels = [];
         foreach ($rows as $row) {
-            $labels[(int)$row['config_id']][] = $this->labelFactory->create()
-                ->setStoreId((int)$row['store_id'])
-                ->setLabel((string)$row['label']);
+            $labels[(int)$row[CarrierConfigInterface::FIELD_CONFIG_ID]][] = $this->labelFactory->create()
+                ->setStoreId((int)$row[CarrierLabelInterface::FIELD_STORE_ID])
+                ->setLabel((string)$row[CarrierLabelInterface::FIELD_LABEL]);
         }
 
         return $labels;
@@ -70,14 +65,22 @@ class CarrierConfig extends AbstractDb
      */
     public function attachStoreLabels(AbstractModel $object, array $labels): void
     {
-        $object->setData(CarrierConfigInterface::STORE_LABELS, $labels);
-        $object->setOrigData(CarrierConfigInterface::STORE_LABELS, $labels);
+        $object->setData(CarrierConfigInterface::FIELD_STORE_LABELS, $labels);
+        $object->setOrigData(CarrierConfigInterface::FIELD_STORE_LABELS, $labels);
+    }
+
+    protected function _construct(): void
+    {
+        $this->_init(self::TABLE_NAME, CarrierConfigInterface::FIELD_CONFIG_ID);
     }
 
     protected function _afterLoad(AbstractModel $object): static
     {
         if ($object->getId()) {
-            $this->attachStoreLabels($object, $this->loadStoreLabels([(int)$object->getId()])[(int)$object->getId()] ?? []);
+            $this->attachStoreLabels(
+                $object,
+                $this->loadStoreLabels([(int)$object->getId()])[(int)$object->getId()] ?? [],
+            );
         }
 
         return parent::_afterLoad($object);
@@ -89,19 +92,19 @@ class CarrierConfig extends AbstractDb
      */
     protected function _afterSave(AbstractModel $object): static
     {
-        if ($object->hasData(CarrierConfigInterface::STORE_LABELS)
-            && $object->dataHasChangedFor(CarrierConfigInterface::STORE_LABELS)
+        if ($object->hasData(CarrierConfigInterface::FIELD_STORE_LABELS)
+            && $object->dataHasChangedFor(CarrierConfigInterface::FIELD_STORE_LABELS)
         ) {
             $connection = $this->getConnection();
             $table = $this->getTable(self::LABEL_TABLE_NAME);
             $configId = (int)$object->getId();
             $rows = [];
-            foreach ((array)$object->getData(CarrierConfigInterface::STORE_LABELS) as $label) {
+            foreach ((array)$object->getData(CarrierConfigInterface::FIELD_STORE_LABELS) as $label) {
                 if ($label instanceof CarrierLabelInterface && \trim($label->getLabel()) !== '') {
                     $rows[$label->getStoreId()] = [
-                        'config_id' => $configId,
-                        'store_id' => $label->getStoreId(),
-                        'label' => \trim($label->getLabel()),
+                        CarrierConfigInterface::FIELD_CONFIG_ID => $configId,
+                        CarrierLabelInterface::FIELD_STORE_ID => $label->getStoreId(),
+                        CarrierLabelInterface::FIELD_LABEL => \trim($label->getLabel()),
                     ];
                 }
             }
@@ -109,7 +112,10 @@ class CarrierConfig extends AbstractDb
             if ($rows !== []) {
                 $connection->insertMultiple($table, \array_values($rows));
             }
-            $object->setOrigData(CarrierConfigInterface::STORE_LABELS, $object->getData(CarrierConfigInterface::STORE_LABELS));
+            $object->setOrigData(
+                CarrierConfigInterface::FIELD_STORE_LABELS,
+                $object->getData(CarrierConfigInterface::FIELD_STORE_LABELS),
+            );
         }
 
         return parent::_afterSave($object);

@@ -31,12 +31,21 @@ class Handler extends Base
 
     public function __construct(DriverInterface $filesystem, ?string $filePath = null)
     {
-        $this->fileName = self::DIRECTORY . '/' . self::fileName(new \DateTimeImmutable('now', new \DateTimeZone('UTC')), false);
+        $this->fileName = self::DIRECTORY . '/'
+            . self::fileName(new \DateTimeImmutable('now', new \DateTimeZone('UTC')), false);
         parent::__construct($filesystem, $filePath);
         $this->directory = \dirname((string)$this->url);
         // Each record picks its file just before it's written. A processor rather than
         // write(), whose record is an array in Monolog 2 (Magento 2.4.7) and an object in Monolog 3.
         $this->pushProcessor($this->pickFile(...));
+    }
+
+    /**
+     * The file a record goes to, e.g. "2026-10-access.log", or "2026-10-error.log" from a warning up.
+     */
+    public static function fileName(\DateTimeInterface $at, bool $error): string
+    {
+        return $at->format('Y-m') . ($error ? '-error.log' : '-access.log');
     }
 
     /**
@@ -58,13 +67,5 @@ class Handler extends Base
         }
 
         return $record;
-    }
-
-    /**
-     * The file a record goes to, e.g. "2026-10-access.log", or "2026-10-error.log" from a warning up.
-     */
-    public static function fileName(\DateTimeInterface $at, bool $error): string
-    {
-        return $at->format('Y-m') . ($error ? '-error.log' : '-access.log');
     }
 }

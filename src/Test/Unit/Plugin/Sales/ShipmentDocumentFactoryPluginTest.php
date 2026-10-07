@@ -13,18 +13,18 @@ use Magento\Sales\Model\Order\ShipmentDocumentFactory;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Polkurier\Shipping\Model\Shipment\ReservedShipmentNumbers;
+use Polkurier\Shipping\Model\Shipment\Native\ReservedNumberRegistry;
 use Polkurier\Shipping\Plugin\Sales\ShipmentDocumentFactoryPlugin;
 
 #[CoversClass(ShipmentDocumentFactoryPlugin::class)]
-#[CoversClass(ReservedShipmentNumbers::class)]
+#[CoversClass(ReservedNumberRegistry::class)]
 // Real shipments, but for their constructor: only their number is looked at.
 #[AllowMockObjectsWithoutExpectations]
 class ShipmentDocumentFactoryPluginTest extends TestCase
 {
     public function testTheShipmentMadeForTheOrderTakesTheNumberExpected(): void
     {
-        $numbers = new ReservedShipmentNumbers();
+        $numbers = new ReservedNumberRegistry();
         $numbers->expect(42, '000000077');
         $plugin = new ShipmentDocumentFactoryPlugin($numbers);
 
@@ -39,11 +39,15 @@ class ShipmentDocumentFactoryPluginTest extends TestCase
 
     public function testAShipmentNumberedAlreadyLeavesTheNumberToTheNext(): void
     {
-        $numbers = new ReservedShipmentNumbers();
+        $numbers = new ReservedNumberRegistry();
         $numbers->expect(42, '000000077');
         $plugin = new ShipmentDocumentFactoryPlugin($numbers);
 
-        $numbered = $plugin->afterCreate($this->factory(), $this->shipment()->setIncrementId('000000070'), $this->order(42));
+        $numbered = $plugin->afterCreate(
+            $this->factory(),
+            $this->shipment()->setIncrementId('000000070'),
+            $this->order(42),
+        );
         $made = $plugin->afterCreate($this->factory(), $this->shipment(), $this->order(42));
 
         self::assertSame('000000070', $numbered->getIncrementId());

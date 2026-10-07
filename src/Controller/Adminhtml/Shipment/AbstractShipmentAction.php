@@ -12,8 +12,7 @@ use Magento\Backend\App\Action\Context;
 use Magento\Framework\Controller\Result\Redirect;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
-use Polkurier\Shipping\Controller\Adminhtml\ReturnsBack;
-use Polkurier\Shipping\Model\Shipment\RequestedShipments;
+use Polkurier\Shipping\Controller\Adminhtml\ReturnsBackTrait;
 
 /**
  * Shared plumbing of the actions on existing Polkurier shipments: reaching the shipments a request
@@ -21,7 +20,7 @@ use Polkurier\Shipping\Model\Shipment\RequestedShipments;
  */
 abstract class AbstractShipmentAction extends Action
 {
-    use ReturnsBack;
+    use ReturnsBackTrait;
 
     public const string ADMIN_RESOURCE = 'Polkurier_Shipping::shipments';
 

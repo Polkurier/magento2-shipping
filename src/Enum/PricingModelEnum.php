@@ -35,10 +35,10 @@ enum PricingModelEnum: string
     public function label(): string
     {
         return match ($this) {
-            self::Fixed => (string)\__('Fixed price'),
-            self::TierSubtotal => (string)\__('By cart subtotal'),
-            self::TierWeight => (string)\__('By cart weight'),
-            self::TierSubtotalWeight => (string)\__('By cart subtotal and weight'),
+            self::Fixed => (string)__('Fixed price'),
+            self::TierSubtotal => (string)__('By cart subtotal'),
+            self::TierWeight => (string)__('By cart weight'),
+            self::TierSubtotalWeight => (string)__('By cart subtotal and weight'),
         };
     }
 }

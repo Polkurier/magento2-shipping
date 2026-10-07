@@ -9,6 +9,7 @@ namespace Polkurier\Shipping\Model\Sync;
 
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Lock\LockManagerInterface;
+use Magento\Framework\ObjectManager\ResetAfterRequestInterface;
 
 /**
  * One writer at a time for the synchronized entries: the hourly synchronization and saving in the
@@ -17,7 +18,7 @@ use Magento\Framework\Lock\LockManagerInterface;
  *
  * Re-entrant within a request: saving in the admin holds it while it synchronizes.
  */
-class SyncLock
+class SyncLock implements ResetAfterRequestInterface
 {
     public const string NAME = 'polkurier_sync';
     public const int TIMEOUT_SECONDS = 20;
@@ -42,15 +43,29 @@ class SyncLock
     public function run(callable $work): mixed
     {
         if ($this->held === 0 && !$this->lockManager->lock(self::NAME, self::TIMEOUT_SECONDS)) {
-            throw new LocalizedException(\__('A synchronization with Polkurier is already running. Try again in a moment.'));
+            throw new LocalizedException(__(
+                'A synchronization with Polkurier is already running. Try again in a moment.',
+            ));
         }
         $this->held++;
         try {
             return $work();
         } finally {
-            if (--$this->held === 0) {
+            // Let go already if the request was reset meanwhile (_resetState()).
+            if ($this->held > 0 && --$this->held === 0) {
                 $this->lockManager->unlock(self::NAME);
             }
         }
+    }
+
+    /**
+     * The lock, if still held when the request ends, as after a fatal error, is let go.
+     */
+    public function _resetState(): void
+    {
+        if ($this->held > 0) {
+            $this->lockManager->unlock(self::NAME);
+        }
+        $this->held = 0;
     }
 }

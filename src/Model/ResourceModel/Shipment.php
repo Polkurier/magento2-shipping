@@ -17,11 +17,6 @@ class Shipment extends AbstractDb
 {
     public const string TABLE_NAME = 'polkurier_shipment';
 
-    protected function _construct(): void
-    {
-        $this->_init(self::TABLE_NAME, 'entity_id');
-    }
-
     /**
      * Records when a shipment was last checked, and nothing else: whatever the check managed to
      * save before failing stays as it is.
@@ -30,7 +25,7 @@ class Shipment extends AbstractDb
      */
     public function markChecked(int $shipmentId, string $checkedAt): void
     {
-        $this->updateColumns($shipmentId, [ShipmentInterface::STATUS_CHECKED_AT => $checkedAt]);
+        $this->updateColumns($shipmentId, [ShipmentInterface::FIELD_STATUS_CHECKED_AT => $checkedAt]);
     }
 
     /**
@@ -41,6 +36,15 @@ class Shipment extends AbstractDb
      */
     public function updateColumns(int $shipmentId, array $values): void
     {
-        $this->getConnection()->update($this->getMainTable(), $values, [$this->getIdFieldName() . ' = ?' => $shipmentId]);
+        $this->getConnection()->update(
+            $this->getMainTable(),
+            $values,
+            [$this->getIdFieldName() . ' = ?' => $shipmentId],
+        );
+    }
+
+    protected function _construct(): void
+    {
+        $this->_init(self::TABLE_NAME, ShipmentInterface::FIELD_ENTITY_ID);
     }
 }

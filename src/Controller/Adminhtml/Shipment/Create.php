@@ -14,11 +14,9 @@ use Magento\Framework\App\Action\HttpGetActionInterface;
 use Magento\Framework\Controller\ResultFactory;
 use Magento\Framework\Controller\ResultInterface;
 use Magento\Framework\Exception\LocalizedException;
-use Magento\Framework\Stdlib\DateTime\TimezoneInterface;
-use Polkurier\Shipping\Api\Data\ShipmentInterface;
-use Polkurier\Shipping\Model\Shipment\NotPlaced;
-use Polkurier\Shipping\Model\Shipment\OwnOrders;
-use Polkurier\Shipping\Model\Shipment\SendAgain;
+use Polkurier\Shipping\Model\Shipment\OrderLoader;
+use Polkurier\Shipping\Model\Shipment\Placement\FailedShipmentManager;
+use Polkurier\Shipping\Model\Shipment\Screen\RetriableShipmentFinder;
 
 /**
  * The Polkurier shipment form for one order.
@@ -29,10 +27,9 @@ class Create extends Action implements HttpGetActionInterface
 
     public function __construct(
         Context $context,
-        private readonly OwnOrders $ownOrders,
-        private readonly SendAgain $sendAgain,
-        private readonly TimezoneInterface $timezone,
-        private readonly NotPlaced $notPlaced,
+        private readonly OrderLoader $orderLoader,
+        private readonly RetriableShipmentFinder $retriableShipmentFinder,
+        private readonly FailedShipmentManager $failedShipmentManager,
     ) {
         parent::__construct($context);
     }
@@ -41,27 +38,34 @@ class Create extends Action implements HttpGetActionInterface
     {
         $orderId = (int)$this->getRequest()->getParam('order_id');
         try {
-            $order = $this->ownOrders->get($orderId);
+            $order = $this->orderLoader->getForPolkurier($orderId);
         } catch (LocalizedException $e) {
             $this->messageManager->addErrorMessage($e->getMessage());
 
             return $this->resultRedirectFactory->create()->setPath('sales/order/view', ['order_id' => $orderId]);
         }
 
-        $retried = $this->sendAgain->find($order, $this->getRequest()->getParam(SendAgain::PARAM));
+        $retried = $this->retriableShipmentFinder->find(
+            $order,
+            $this->getRequest()->getParam(RetriableShipmentFinder::PARAM),
+        );
         if ($retried !== null) {
-            $this->messageManager->addNoticeMessage(\__(
-                'Starting from the shipment that wasn\'t placed on %1, as it was filled in then. Why it wasn\'t placed: %2',
-                $this->formatDate($retried),
+            $this->messageManager->addNoticeMessage(__(
+                'Starting from the shipment that wasn\'t placed on %1, as it was filled in then. '
+                . 'Why it wasn\'t placed: %2',
+                $this->failedShipmentManager->describe($retried)['tried'],
                 (string)$retried->getLastError(),
             ));
-        } elseif (($failed = $this->sendAgain->findForOrder($order)) !== null) {
+        } elseif (($failed = $this->retriableShipmentFinder->findForOrder($order)) !== null) {
+            $described = $this->failedShipmentManager->describe($failed);
             // Placing another replaces it: said before, so it isn't lost unnoticed.
-            $this->messageManager->addNoticeMessage(\__(
-                'A shipment of this order wasn\'t placed on %1: %2. Placing now places it, as filled in here; "Send again" in the order\'s Polkurier tab starts from what was filled in then. Unless placed or discarded, it\'s removed on %3.',
-                $this->formatDate($failed),
-                \rtrim((string)$failed->getLastError(), '. '),
-                $this->formatUtc($this->notPlaced->expiresAt($failed)),
+            $this->messageManager->addNoticeMessage(__(
+                'A shipment of this order wasn\'t placed on %1: %2. Placing now places it, as filled in here; '
+                . '"Send again" in the order\'s Polkurier tab starts from what was filled in then. '
+                . 'Unless placed or discarded, it\'s removed on %3.',
+                $described['tried'],
+                $described['reason'],
+                $described['removed'],
             ));
         }
 
@@ -70,22 +74,8 @@ class Create extends Action implements HttpGetActionInterface
             throw new \LogicException('The admin area renders backend pages.');
         }
         $page->setActiveMenu('Magento_Sales::sales_order');
-        $page->getConfig()->getTitle()->prepend((string)\__('Ship order #%1 with Polkurier', $order->getIncrementId()));
+        $page->getConfig()->getTitle()->prepend((string)__('Ship order #%1 with Polkurier', $order->getIncrementId()));
 
         return $page;
-    }
-
-    private function formatDate(ShipmentInterface $shipment): string
-    {
-        return $this->formatUtc((string)$shipment->getCreatedAt());
-    }
-
-    private function formatUtc(string $utc): string
-    {
-        return $this->timezone->formatDateTime(
-            new \DateTimeImmutable($utc, new \DateTimeZone('UTC')),
-            \IntlDateFormatter::MEDIUM,
-            \IntlDateFormatter::SHORT,
-        );
     }
 }

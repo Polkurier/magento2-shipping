@@ -12,7 +12,6 @@ use Magento\Framework\App\Action\HttpPostActionInterface;
 use Magento\Framework\Controller\Result\Redirect;
 use Magento\Framework\Exception\LocalizedException;
 use Polkurier\Shipping\Api\ShipmentManagementInterface;
-use Polkurier\Shipping\Model\Shipment\RequestedShipments;
 
 /**
  * Cancels one Polkurier order.
@@ -35,7 +34,9 @@ class Cancel extends AbstractShipmentAction implements HttpPostActionInterface
         if ($shipment !== null) {
             try {
                 $shipment = $this->management->cancel((int)$shipment->getId());
-                $this->messageManager->addSuccessMessage(\__('Polkurier order %1 cancelled.', $shipment->getPolkurierNumber()));
+                $this->messageManager->addSuccessMessage(
+                    __('Polkurier order %1 cancelled.', $shipment->getPolkurierNumber()),
+                );
             } catch (LocalizedException $e) {
                 $this->messageManager->addErrorMessage($e->getMessage());
             }

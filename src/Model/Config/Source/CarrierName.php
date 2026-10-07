@@ -7,7 +7,7 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Model\Config\Source;
 
-use Polkurier\Shipping\Model\Carrier\CarrierNames;
+use Polkurier\Shipping\Model\Carrier\CarrierNameProvider;
 
 /**
  * Carriers by name, for grids and forms that keep a carrier code: the code stays the value.
@@ -15,11 +15,11 @@ use Polkurier\Shipping\Model\Carrier\CarrierNames;
 readonly class CarrierName extends AbstractOptions
 {
     public function __construct(
-        private CarrierNames $carrierNames,
+        private CarrierNameProvider $carrierNameProvider,
     ) {}
 
     public function toArray(): array
     {
-        return $this->carrierNames->getAll();
+        return $this->carrierNameProvider->getAll();
     }
 }

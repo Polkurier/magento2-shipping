@@ -19,8 +19,16 @@ class ShippingCarrierTest extends TestCase
     {
         $config = $this->createStub(ScopeConfigInterface::class);
         $config->method('getValue')->willReturn([
-            'polkurier' => ['model' => 'Polkurier\Shipping\Model\Carrier\Polkurier', 'title' => 'Polkurier', 'active' => '1'],
-            'flatrate' => ['model' => 'Magento\OfflineShipping\Model\Carrier\Flatrate', 'title' => 'Flat Rate', 'active' => '0'],
+            'polkurier' => [
+                'model' => 'Polkurier\Shipping\Model\Carrier\Polkurier',
+                'title' => 'Polkurier',
+                'active' => '1',
+            ],
+            'flatrate' => [
+                'model' => 'Magento\OfflineShipping\Model\Carrier\Flatrate',
+                'title' => 'Flat Rate',
+                'active' => '0',
+            ],
             'untitled' => ['model' => 'Some\Carrier'],
             'leftover' => ['title' => 'A setting without a carrier'],
         ]);

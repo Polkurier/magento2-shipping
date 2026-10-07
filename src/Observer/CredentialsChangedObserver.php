@@ -12,7 +12,7 @@ use Magento\Framework\Event\ObserverInterface;
 use Polkurier\Shipping\Enum\CacheTagEnum;
 use Polkurier\Shipping\Model\Cache\Type as PolkurierCache;
 use Polkurier\Shipping\Model\Carrier\CarrierCatalog;
-use Polkurier\Shipping\Model\Sdk\ClientPool;
+use Polkurier\Shipping\Model\Sdk\PolkurierClient;
 
 /**
  * After the carrier configuration is saved, forgets the clients built from the previous
@@ -23,14 +23,14 @@ use Polkurier\Shipping\Model\Sdk\ClientPool;
 readonly class CredentialsChangedObserver implements ObserverInterface
 {
     public function __construct(
-        private ClientPool $clientPool,
+        private PolkurierClient $client,
         private CarrierCatalog $catalog,
         private PolkurierCache $cache,
     ) {}
 
     public function execute(Observer $observer): void
     {
-        $this->clientPool->reset();
+        $this->client->reset();
         $this->catalog->clean();
         $this->cache->cleanTags(...CacheTagEnum::ofAccount());
     }

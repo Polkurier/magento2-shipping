@@ -10,21 +10,24 @@
              Shipping & Handling Information; placed there by Plugin\Adminhtml\ShippingInfoPlugin,
              since Magento's template renders no children. -->
         <referenceBlock name="order_shipping_view">
-            <block class="Magento\Backend\Block\Template" name="polkurier_order_point" template="Polkurier_Shipping::order/pickup-point.phtml">
+            <block class="Magento\Backend\Block\Template" name="polkurier_order_point"
+                   template="Polkurier_Shipping::order/pickup-point.phtml">
                 <arguments>
                     <argument name="view_model" xsi:type="object">Polkurier\Shipping\ViewModel\Adminhtml\OrderPickupPoint</argument>
                 </arguments>
             </block>
-            <block class="Magento\Backend\Block\Template" name="polkurier_shipped_with" template="Polkurier_Shipping::order/shipped-with.phtml">
+            <block class="Magento\Backend\Block\Template" name="polkurier_shipped_with"
+                   template="Polkurier_Shipping::order/shipped-with.phtml">
                 <arguments>
-                    <argument name="view_model" xsi:type="object">Polkurier\Shipping\ViewModel\Adminhtml\ShippedWith</argument>
+                    <argument name="view_model" xsi:type="object">Polkurier\Shipping\ViewModel\Adminhtml\ActualShipping</argument>
                 </arguments>
             </block>
         </referenceBlock>
         <!-- A tab with every Polkurier shipment of the order, right after Shipments: also those that
              weren't placed, which have no Magento shipment -->
         <referenceBlock name="sales_order_tabs">
-            <block class="Polkurier\Shipping\Block\Adminhtml\Order\View\Tab\PolkurierShipments" name="polkurier_order_shipments.grid.container">
+            <block class="Polkurier\Shipping\Block\Adminhtml\Order\View\Tab\PolkurierShipments"
+                   name="polkurier_order_shipments.grid.container">
                 <uiComponent name="polkurier_order_view_shipment_listing"/>
             </block>
             <action method="addTabAfter">

@@ -7,18 +7,19 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Test\Unit\Model\Carrier;
 
+use Magento\Framework\Serialize\Serializer\Json;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Polkurier\Shipping\Enum\CacheTagEnum;
 use Polkurier\Shipping\Exception\RecentFailureException;
 use Polkurier\Shipping\Model\Cache\Type as PolkurierCache;
-use Polkurier\Shipping\Model\Carrier\AvailableCarriers;
+use Polkurier\Shipping\Model\Carrier\AvailableCarrierFilter;
 use Polkurier\Shipping\Model\Carrier\CarrierCatalog;
-use Polkurier\Shipping\Model\Config;
-use Polkurier\Shipping\Model\ErrorMessages;
-use Polkurier\Shipping\Model\Sdk\AccountCacheKey;
-use Polkurier\Shipping\Model\Sdk\ClientPool;
+use Polkurier\Shipping\Model\Config\ConfigProvider;
+use Polkurier\Shipping\Model\Sdk\AccountCache;
+use Polkurier\Shipping\Model\Sdk\ErrorMessageResolver;
+use Polkurier\Shipping\Model\Sdk\PolkurierClient;
 use Polkurier\Webservice\Api\Service\CourierServiceInterface;
 use Polkurier\Webservice\Enum\Http\ResponseStatusEnum;
 use Polkurier\Webservice\Exception\ConnectionException;
@@ -218,7 +219,10 @@ class CarrierCatalogTest extends TestCase
             $this->catalog()->getAccountCarriers();
             self::fail('The failure is reported again.');
         } catch (RecentFailureException $e) {
-            self::assertSame('Polkurier could not be reached, or did not answer in time: Timed out.', (new ErrorMessages())->describe($e));
+            self::assertSame(
+                'Polkurier could not be reached, or did not answer in time: Timed out.',
+                (new ErrorMessageResolver())->describe($e),
+            );
         }
         self::assertSame(1, $this->requests, 'The next request is told without waiting for the API.');
         self::assertSame([CarrierCatalog::FAILURE_LIFETIME], \array_values($this->lifetimes));
@@ -258,7 +262,11 @@ class CarrierCatalogTest extends TestCase
         } catch (ConnectionException) {
         }
 
-        self::assertSame(['DPD'], \array_keys($this->catalog()->getAccountCarriers()), 'Read from the cache, still there.');
+        self::assertSame(
+            ['DPD'],
+            \array_keys($this->catalog()->getAccountCarriers()),
+            'Read from the cache, still there.',
+        );
         self::assertSame(2, $this->requests);
     }
 
@@ -281,20 +289,21 @@ class CarrierCatalogTest extends TestCase
 
             return \str_starts_with($id, 'NOPE') ? null : new CourierPoint($id, available: true);
         });
-        $clientPool = $this->createStub(ClientPool::class);
+        $clientPool = $this->createStub(PolkurierClient::class);
         $clientPool->method('courier')->willReturn($courier);
-        $config = $this->createStub(Config::class);
+        $config = $this->createStub(ConfigProvider::class);
         $config->method('getLogin')->willReturn('12345');
 
         $cache = $this->createStub(PolkurierCache::class);
         $cache->method('load')->willReturnCallback(fn(string $key): string|false => $this->cached[$key] ?? false);
-        $cache->method('save')->willReturnCallback(function (string $data, string $key, array $tags, int $lifetime): bool {
-            $this->cached[$key] = $data;
-            $this->lifetimes[$key] = $lifetime;
-            $this->tags[$key] = $tags;
+        $cache->method('save')
+            ->willReturnCallback(function (string $data, string $key, array $tags, int $lifetime): bool {
+                $this->cached[$key] = $data;
+                $this->lifetimes[$key] = $lifetime;
+                $this->tags[$key] = $tags;
 
-            return true;
-        });
+                return true;
+            });
         $cache->method('cleanTags')->willReturnCallback(function (CacheTagEnum ...$kinds): bool {
             $tags = \array_map(static fn(CacheTagEnum $tag): string => $tag->value, $kinds);
             foreach (\array_keys($this->cached) as $key) {
@@ -311,6 +320,12 @@ class CarrierCatalogTest extends TestCase
             return true;
         });
 
-        return new CarrierCatalog($clientPool, $cache, new ErrorMessages(), new AvailableCarriers($config), new AccountCacheKey($config));
+        return new CarrierCatalog(
+            $clientPool,
+            $cache,
+            new ErrorMessageResolver(),
+            new AvailableCarrierFilter($config),
+            new AccountCache($this->createStub(PolkurierCache::class), new Json(), $config),
+        );
     }
 }

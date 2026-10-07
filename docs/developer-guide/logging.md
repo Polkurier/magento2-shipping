@@ -7,13 +7,13 @@
 [Developer guide](README.md) › Logging
 
 The module logs to `var/log/polkurier`, Apache style, through a virtual Monolog logger,
-`Polkurier\Shipping\Logger\Logger`, declared in `etc/di.xml`. Inject it by name if your code works
+`Polkurier\Shipping\Logger\LoggerVirtual`, declared in `etc/di.xml`. Inject it by name if your code works
 alongside the module:
 
 ```xml
 <type name="Vendor\Module\Model\Something">
     <arguments>
-        <argument name="logger" xsi:type="object">Polkurier\Shipping\Logger\Logger</argument>
+        <argument name="logger" xsi:type="object">Polkurier\Shipping\Logger\LoggerVirtual</argument>
     </arguments>
 </type>
 ```
@@ -43,7 +43,7 @@ the context as `exception`, where Magento's formatter prints it with its trace.
 The request logging is the SDK's own; the module switches it on and points it at this logger,
 with the settings of the **Logging** group: personal data hidden unless *Log personal data* is on,
 and files in requests and answers left out, or with *Save files* saved in the directory
-`Sdk\LogFilesDirectory` resolves (`var/log/polkurier/files` by default, never under `pub`), in the
+`Sdk\LogFilesDirectoryResolver` resolves (`var/log/polkurier/files` by default, never under `pub`), in the
 current month's directory within it (`2026/10`), which `Sdk\AccountConfigProvider` passes to the
 SDK. Neither the module nor the SDK deletes saved files: that's left to the shop. The SDK never
 logs secrets as they are: the module doesn't allow it.

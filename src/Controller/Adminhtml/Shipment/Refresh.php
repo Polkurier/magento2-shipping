@@ -12,9 +12,9 @@ use Magento\Framework\App\Action\HttpPostActionInterface;
 use Magento\Framework\Controller\Result\Redirect;
 use Magento\Framework\Exception\LocalizedException;
 use Polkurier\Shipping\Api\ShipmentManagementInterface;
-use Polkurier\Shipping\Model\Admin\Flash;
-use Polkurier\Shipping\Model\Shipment\DetailsLoader;
-use Polkurier\Shipping\Model\Shipment\RequestedShipments;
+use Polkurier\Shipping\Model\Admin\FlashMessageCollector;
+use Polkurier\Shipping\Model\Admin\FlashMessageCollectorFactory;
+use Polkurier\Shipping\Model\Shipment\Details\DetailsLoader;
 
 /**
  * Reads the current state of one Polkurier order, with the carrier's scans, and keeps the local
@@ -29,6 +29,7 @@ class Refresh extends AbstractShipmentAction implements HttpPostActionInterface
         RequestedShipments $requestedShipments,
         private readonly ShipmentManagementInterface $management,
         private readonly DetailsLoader $detailsLoader,
+        private readonly FlashMessageCollectorFactory $flashMessageCollectorFactory,
     ) {
         parent::__construct($context, $requestedShipments);
     }
@@ -44,7 +45,9 @@ class Refresh extends AbstractShipmentAction implements HttpPostActionInterface
 
                 return $this->back();
             }
-            $flash = (new Flash())->success(\__('Polkurier order %1: %2.', $shipment->getPolkurierNumber(), (string)$shipment->getStatusLabel()));
+            $flash = $this->flashMessageCollectorFactory->create()->success(
+                __('Polkurier order %1: %2.', $shipment->getPolkurierNumber(), (string)$shipment->getStatusLabel()),
+            );
             try {
                 $this->detailsLoader->refreshTracking($shipment);
             } catch (LocalizedException $e) {

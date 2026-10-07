@@ -48,17 +48,18 @@ class FakeSyncAdapter implements AdapterInterface
     public function applyRemote(SyncableInterface $local, array $remote): void
     {
         \assert($local instanceof PackTemplate);
-        $local->setExtId((string)$remote['id'])->setName((string)$remote['name']);
+        $local->setExtId((string)$remote[SyncableInterface::FIELD_EXT_ID])
+            ->setName((string)$remote[SyncableInterface::FIELD_NAME]);
     }
 
     public function getNaturalKey(SyncableInterface|array $entry): ?string
     {
         if (!\is_array($entry)) {
             \assert($entry instanceof PackTemplate);
-            $entry = ['name' => $entry->getName()];
+            $entry = [SyncableInterface::FIELD_NAME => $entry->getName()];
         }
 
-        return (string)$entry['name'] ?: null;
+        return (string)$entry[SyncableInterface::FIELD_NAME] ?: null;
     }
 
     public function save(SyncableInterface $local): void

@@ -1,0 +1,256 @@
+<?php
+/**
+ * Copyright (c) 2026 Polkurier.pl
+ * All Rights Reserved
+ */
+declare(strict_types=1);
+
+namespace Polkurier\Shipping\Model\Shipment\Status;
+
+use Magento\Framework\Exception\LocalizedException;
+use Magento\Framework\Stdlib\DateTime as DateFormat;
+use Magento\Framework\Stdlib\DateTime\DateTime;
+use Polkurier\Shipping\Api\Data\ShipmentInterface;
+use Polkurier\Shipping\Api\ShipmentRepositoryInterface;
+use Polkurier\Shipping\Model\ResourceModel\Shipment as ShipmentResource;
+use Polkurier\Shipping\Model\Shipment\Native\NativeFollowUpService;
+use Polkurier\Shipping\Model\Shipment\OrderLoader;
+use Polkurier\Shipping\Model\Shipment\OrderLock;
+use Polkurier\Shipping\Model\Shipment\ShipmentAgeChecker;
+use Polkurier\Shipping\Model\Shipment\ShipmentFinder;
+use Polkurier\Webservice\Enum\Order\OrderStatusCodeEnum;
+use Polkurier\Webservice\Response\Order;
+use Psr\Log\LoggerInterface;
+
+/**
+ * Settles attempts whose outcome is unknown: finds the Polkurier order they placed, if any, or
+ * links the one the merchant names. What counts as a match is RemoteOrderMatcher's.
+ *
+ * The scheduled run (reconcilePending()) takes shipments whose outcome is unknown, and pending ones
+ * old enough that their request must have been interrupted, least recently checked first, like
+ * the status refresh: found orders are adopted, and orders still missing after a while are marked
+ * as not placed.
+ */
+readonly class ReconciliationService
+{
+    public const int BATCH_SIZE = 50;
+    public const int RECHECK_AFTER_MINUTES = 5;
+
+    public function __construct(
+        private ShipmentRepositoryInterface $shipmentRepository,
+        private RemoteOrderMatcher $remoteOrderMatcher,
+        private RemoteOrderApplier $remoteOrderApplier,
+        private ShipmentAgeChecker $shipmentAgeChecker,
+        private NativeFollowUpService $followUp,
+        private OrderLoader $orderLoader,
+        private DateTime $dateTime,
+        private OrderLock $orderLock,
+        private ShipmentFinder $finder,
+        private ShipmentResource $shipmentResource,
+        private LoggerInterface $logger,
+    ) {}
+
+    /**
+     * The scheduled run, without anyone having to ask.
+     *
+     * @return int how many shipments were settled: adopted, or found not to have been placed
+     */
+    public function reconcilePending(): int
+    {
+        $now = $this->dateTime->gmtTimestamp();
+        $shipments = $this->finder->dueForReconciliation(
+            \gmdate(DateFormat::DATETIME_PHP_FORMAT, $now - ShipmentAgeChecker::RECONCILE_PENDING_AFTER_MINUTES * 60),
+            \gmdate(DateFormat::DATETIME_PHP_FORMAT, $now - self::RECHECK_AFTER_MINUTES * 60),
+            self::BATCH_SIZE,
+        );
+
+        $settled = 0;
+        foreach ($shipments as $shipment) {
+            try {
+                if ($this->reconcile((int)$shipment->getId())->getState() !== ShipmentInterface::STATE_UNKNOWN) {
+                    $settled++;
+                }
+            } catch (\Throwable $e) {
+                $this->logger->warning('Polkurier reconciliation failed', [
+                    'shipment' => $shipment->getId(),
+                    'exception' => $e,
+                ]);
+                // Only the check time: the row loaded here is older than what the check may have saved.
+                $this->shipmentResource->markChecked((int)$shipment->getId(), (string)$this->dateTime->gmtDate());
+            }
+        }
+
+        return $settled;
+    }
+
+    /**
+     * @throws LocalizedException
+     */
+    public function reconcile(int $shipmentId): ShipmentInterface
+    {
+        $shipment = $this->shipmentRepository->get($shipmentId);
+        if (!\in_array($shipment->getState(), [ShipmentInterface::STATE_UNKNOWN, ShipmentInterface::STATE_PENDING], true)) {
+            throw new LocalizedException(__('Only a shipment whose outcome is unknown can be reconciled.'));
+        }
+        if ($shipment->getState() === ShipmentInterface::STATE_PENDING
+            && !$this->shipmentAgeChecker->isOlderThan($shipment, ShipmentAgeChecker::ANSWER_WAIT_MINUTES)
+        ) {
+            // Its request may still be waiting for the answer, and would ship it as well.
+            throw new LocalizedException(__(
+                'This shipment is still waiting for Polkurier to answer. Try again in a few minutes.',
+            ));
+        }
+
+        ['sure' => $candidates, 'possible' => $possible] = $this->remoteOrderMatcher->findCandidates($shipment);
+
+        // Settled once: the scheduled reconciliation and the admin's may run at the same time.
+        return $this->orderLock->run($shipment->getOrderId(), function () use (
+            $shipmentId,
+            $candidates,
+            $possible,
+        ): ShipmentInterface {
+            $shipment = $this->shipmentRepository->get($shipmentId);
+            if (!\in_array($shipment->getState(), [ShipmentInterface::STATE_UNKNOWN, ShipmentInterface::STATE_PENDING], true)) {
+                return $shipment;
+            }
+
+            return $this->settle($shipment, $candidates, $possible);
+        });
+    }
+
+    /**
+     * Links a shipment whose outcome is unknown to a Polkurier order the merchant identified.
+     *
+     * @throws LocalizedException
+     */
+    public function adopt(int $shipmentId, string $polkurierNumber): ShipmentInterface
+    {
+        $shipment = $this->shipmentRepository->get($shipmentId);
+        if ($shipment->getState() !== ShipmentInterface::STATE_UNKNOWN) {
+            throw new LocalizedException(__('Only a shipment whose outcome is unknown can be linked by hand.'));
+        }
+        $remote = $this->remoteOrderMatcher->findByNumber(\trim($polkurierNumber));
+
+        return $this->orderLock->run($shipment->getOrderId(), function () use (
+            $shipmentId,
+            $remote,
+        ): ShipmentInterface {
+            $shipment = $this->shipmentRepository->get($shipmentId);
+            if ($shipment->getState() !== ShipmentInterface::STATE_UNKNOWN) {
+                throw new LocalizedException(__('Only a shipment whose outcome is unknown can be linked by hand.'));
+            }
+
+            return $this->link($shipment, $remote);
+        });
+    }
+
+    /**
+     * @param Order[] $candidates orders that match in every respect
+     * @param Order[] $possible orders that match but come without their parcels
+     */
+    private function settle(ShipmentInterface $shipment, array $candidates, array $possible): ShipmentInterface
+    {
+        $order = $this->orderLoader->get($shipment->getOrderId());
+        $shipment->setStatusCheckedAt((string)$this->dateTime->gmtDate());
+        if ($candidates === [] && $possible !== []) {
+            // It may well exist: never marked as not placed, and only linked by hand.
+            $shipment->setState(ShipmentInterface::STATE_UNKNOWN)->setLastError((string)__(
+                'Polkurier has %1, which may be this order but is listed without its parcels. '
+                . 'If it is, link it by hand.',
+                \implode(', ', \array_map(
+                    static fn($candidate): string => (string)$candidate->getNumber(),
+                    $possible,
+                )),
+            ));
+            $this->shipmentRepository->save($shipment);
+
+            return $shipment;
+        }
+        if ($candidates === []) {
+            if ($this->shipmentAgeChecker->isOlderThan($shipment, ShipmentAgeChecker::NOT_PLACED_AFTER_MINUTES)) {
+                $shipment->setState(ShipmentInterface::STATE_FAILED)
+                    ->setLastError((string)__(
+                        'Not found in Polkurier: the order was not placed. It is safe to send it again.',
+                    ));
+            } else {
+                $shipment->setState(ShipmentInterface::STATE_UNKNOWN)
+                    ->setLastError((string)__('Not found in Polkurier yet. It is checked again automatically.'));
+            }
+            $this->shipmentRepository->save($shipment);
+
+            return $shipment;
+        }
+
+        // Several matches mean the order went through more than once: keep the first one still
+        // live, and report the other live ones. Cancelled ones need nothing more.
+        \usort(
+            $candidates,
+            static fn(Order $a, Order $b): int => [self::isCancelled($a), $a->getDate()]
+                <=> [self::isCancelled($b), $b->getDate()],
+        );
+        $adopted = \array_shift($candidates);
+        $duplicates = \array_map(
+            static fn(Order $candidate): string => (string)$candidate->getNumber(),
+            \array_filter($candidates, static fn(Order $candidate): bool => !self::isCancelled($candidate)),
+        );
+        // Placed, or cancelled since in the Polkurier panel: as the order says.
+        $this->remoteOrderApplier->apply($adopted, $shipment);
+        $duplicatesNote = $duplicates === [] ? null : __(
+            'Polkurier also has %1 for this order, probably duplicates. '
+            . 'Check them in the Polkurier panel and cancel the ones not needed.',
+            \implode(', ', $duplicates),
+        );
+        $shipment->setLastError($duplicatesNote !== null ? (string)$duplicatesNote : null);
+        $this->shipmentRepository->save($shipment);
+        if ($shipment->getState() === ShipmentInterface::STATE_CANCELLED) {
+            $this->followUp->comment($order, __(
+                'Polkurier order %1 was found after an unconfirmed request, already cancelled in Polkurier. '
+                . 'The order can be shipped again.',
+                $shipment->getPolkurierNumber(),
+            ));
+
+            return $shipment;
+        }
+        $this->followUp->comment($order, __(
+            'Polkurier order %1 found and linked after an unconfirmed request.',
+            $shipment->getPolkurierNumber(),
+        ));
+        if ($duplicatesNote !== null) {
+            $this->followUp->comment($order, $duplicatesNote);
+        }
+        $this->followUp->ship($order, $shipment);
+        $this->followUp->linked($shipment, $order, 'reconcile');
+
+        return $shipment;
+    }
+
+    private function link(ShipmentInterface $shipment, Order $remote): ShipmentInterface
+    {
+        $this->remoteOrderApplier->apply($remote, $shipment);
+        $shipment->setLastError(null);
+        $this->shipmentRepository->save($shipment);
+        $order = $this->orderLoader->get($shipment->getOrderId());
+        if ($shipment->getState() === ShipmentInterface::STATE_CANCELLED) {
+            $this->followUp->comment($order, __(
+                'Polkurier order %1 linked by hand after an unconfirmed request, already cancelled in Polkurier. '
+                . 'The order can be shipped again.',
+                $shipment->getPolkurierNumber(),
+            ));
+
+            return $shipment;
+        }
+        $this->followUp->comment($order, __(
+            'Polkurier order %1 linked by hand after an unconfirmed request.',
+            $shipment->getPolkurierNumber(),
+        ));
+        $this->followUp->ship($order, $shipment);
+        $this->followUp->linked($shipment, $order, 'adopt');
+
+        return $shipment;
+    }
+
+    private static function isCancelled(Order $order): bool
+    {
+        return $order->getStatusCode() === OrderStatusCodeEnum::Canceled->value;
+    }
+}

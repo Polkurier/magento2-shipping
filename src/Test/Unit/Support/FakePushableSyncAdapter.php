@@ -21,7 +21,10 @@ class FakePushableSyncAdapter extends FakeSyncAdapter implements PushableAdapter
         \assert($local instanceof PackTemplate);
         ($this->state)('log', 'push:' . $local->getName());
 
-        return ['id' => $local->getExtId() ?? 'new-' . $local->getId(), 'name' => $local->getName()];
+        return [
+            SyncableInterface::FIELD_EXT_ID => $local->getExtId() ?? 'new-' . $local->getId(),
+            SyncableInterface::FIELD_NAME => $local->getName(),
+        ];
     }
 
     public function deleteRemote(SyncableInterface $local): void

@@ -91,7 +91,9 @@ define([
 
             this.watchCollective(data);
             _.each(labels, function (label, value) {
-                if ((value !== 'drop_off' || features.drop_off !== false) && (value !== 'multi' || this.collective() !== false)) {
+                if ((value !== 'drop_off' || features.drop_off !== false)
+                    && (value !== 'multi' || this.collective() !== false)
+                ) {
                     modes.push({value: value, label: label, id: 'polkurier-handover-' + value});
                 }
             }, this);
@@ -105,11 +107,19 @@ define([
             this.mode(data.pickup_mode || 'courier');
             this.refreshPoint(data, features);
             this.showDates(this.mode() === 'courier' && features.pickup_date !== false);
-            this.dateMissing(this.validated() && this.showDates() && Boolean(features.pickup_date_required) && !rules.filled(data.pickup_date));
+            this.dateMissing(this.validated() && this.showDates() && Boolean(features.pickup_date_required)
+                && !rules.filled(data.pickup_date));
             this.windowMissing(this.validated() && this.showDates() && Boolean(features.pickup_time_required)
                 && !(rules.filled(data.pickup_time_from) && rules.filled(data.pickup_time_to)));
             if (this.showDates()) {
-                const key = JSON.stringify(_.pick(data, 'carrier_code', 'sender_address_id', 'new_sender_postcode', 'shipment_type', 'recipient_postcode'));
+                const key = JSON.stringify(_.pick(
+                    data,
+                    'carrier_code',
+                    'sender_address_id',
+                    'new_sender_postcode',
+                    'shipment_type',
+                    'recipient_postcode'
+                ));
 
                 if (key !== this.datesKey) {
                     this.datesKey = key;
@@ -150,17 +160,24 @@ define([
             const data = this.get() || {},
                 address = data.sender_address_id === 'new'
                     ? {postcode: data.new_sender_postcode}
-                    : rules.filled(data.sender_address_id) ? (data.senders || {})[String(data.sender_address_id)] : data.store_sender;
+                    : rules.filled(data.sender_address_id)
+                        ? (data.senders || {})[String(data.sender_address_id)]
+                        : data.store_sender;
 
             return address && rules.filled(address.postcode) ? String(address.postcode).trim() : '';
         },
 
         choosePoint: function () {
-            pointsMap.open(this.get('map'), this.features().providers, this.senderPostcode(), function (pointId, point) {
-                this.set('sender_point_id', pointId);
-                this.set('sender_point_label', pointsMap.describe(point));
-                this.set('sender_point_label_id', pointId);
-            }.bind(this));
+            pointsMap.open(
+                this.get('map'),
+                this.features().providers,
+                this.senderPostcode(),
+                function (pointId, point) {
+                    this.set('sender_point_id', pointId);
+                    this.set('sender_point_label', pointsMap.describe(point));
+                    this.set('sender_point_label_id', pointId);
+                }.bind(this)
+            );
         },
 
         removePoint: function () {
@@ -194,11 +211,21 @@ define([
 
         askCollective: function () {
             this.collectiveRequest.post(this.get('urls.collective_pickup'), {
-                data: _.pick(this.get(), 'order_id', 'carrier_code', 'sender_address_id', 'new_sender_postcode', 'shipment_type', 'packs')
+                data: _.pick(
+                    this.get(),
+                    'order_id',
+                    'carrier_code',
+                    'sender_address_id',
+                    'new_sender_postcode',
+                    'shipment_type',
+                    'packs'
+                )
             }, {
                 done: function (response) {
                     // Not known, nor when Polkurier couldn't answer: offered, as it says so when placing.
-                    this.collective(!response.error && typeof response.available === 'boolean' ? response.available : null);
+                    this.collective(
+                        !response.error && typeof response.available === 'boolean' ? response.available : null
+                    );
                     this.refresh();
                 }.bind(this),
                 fail: function () {
@@ -224,13 +251,25 @@ define([
             this.loading(true);
             this.message('');
             this.dates.post(this.get('urls.pickup_times'), {
-                data: _.pick(this.get(), 'order_id', 'carrier_code', 'sender_address_id', 'new_sender_postcode', 'shipment_type', 'recipient_postcode')
+                data: _.pick(
+                    this.get(),
+                    'order_id',
+                    'carrier_code',
+                    'sender_address_id',
+                    'new_sender_postcode',
+                    'shipment_type',
+                    'recipient_postcode'
+                )
             }, {
                 done: function (response) {
                     this.days((response.days || []).map(function (day) {
                         return {value: day.date, label: day.date, windows: day.windows || []};
                     }));
-                    this.message(response.error ? response.message : (this.days().length ? '' : $t('No collection dates available.')));
+                    this.message(
+                        response.error
+                            ? response.message
+                            : (this.days().length ? '' : $t('No collection dates available.'))
+                    );
                     this.failed(Boolean(response.error));
                     this.retryable(Boolean(response.error && response.retry));
                     this.chooseDate();

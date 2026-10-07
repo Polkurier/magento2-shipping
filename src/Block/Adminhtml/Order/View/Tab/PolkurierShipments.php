@@ -36,12 +36,12 @@ class PolkurierShipments extends ListText implements TabInterface
 
     public function getTabLabel(): string
     {
-        return (string)\__('Polkurier');
+        return (string)__('Polkurier');
     }
 
     public function getTabTitle(): string
     {
-        return (string)\__('Polkurier shipments of the order');
+        return (string)__('Polkurier shipments of the order');
     }
 
     public function canShowTab(): bool

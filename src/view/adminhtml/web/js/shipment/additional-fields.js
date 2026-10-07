@@ -45,7 +45,13 @@ define(['uiComponent', 'ko'], function (Component, ko) {
                     this.source.set('data.additional_fields.' + field.name, newValue);
                 }, this);
 
-                return {name: field.name, label: field.label, description: field.description, required: field.required, value: value};
+                return {
+                    name: field.name,
+                    label: field.label,
+                    description: field.description,
+                    required: field.required,
+                    value: value
+                };
             }, this));
         }
     });

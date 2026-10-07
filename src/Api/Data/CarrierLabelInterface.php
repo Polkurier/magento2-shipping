@@ -14,8 +14,8 @@ namespace Polkurier\Shipping\Api\Data;
  */
 interface CarrierLabelInterface
 {
-    public const string STORE_ID = 'store_id';
-    public const string LABEL = 'label';
+    public const string FIELD_STORE_ID = 'store_id';
+    public const string FIELD_LABEL = 'label';
 
     /**
      * @return int

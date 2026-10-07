@@ -14,7 +14,7 @@ use Magento\Framework\App\Request\InvalidRequestException;
 use Magento\Framework\App\RequestInterface;
 use Magento\Framework\Controller\Result\Raw;
 use Magento\Framework\Controller\Result\RawFactory;
-use Polkurier\Shipping\Model\Webhook\StatusWebhook;
+use Polkurier\Shipping\Model\Shipment\Status\StatusWebhookHandler;
 
 /**
  * Polkurier's status webhook: the URL to give in the Polkurier panel. Polkurier takes an event as
@@ -33,19 +33,19 @@ class Update implements HttpPostActionInterface, CsrfAwareActionInterface
     public function __construct(
         private readonly Http $request,
         private readonly RawFactory $rawFactory,
-        private readonly StatusWebhook $webhook,
+        private readonly StatusWebhookHandler $statusWebhookHandler,
     ) {}
 
     public function execute(): Raw
     {
-        $outcome = $this->webhook->receive((string)$this->request->getContent());
+        $outcome = $this->statusWebhookHandler->receive((string)$this->request->getContent());
         $result = $this->rawFactory->create();
         $result->setHeader('Content-Type', 'text/plain', true);
         $result->setHeader('Cache-Control', 'no-store', true);
 
         return match ($outcome) {
-            StatusWebhook::RECEIVED => $result->setContents('OK'),
-            StatusWebhook::REFUSED => $result->setHttpResponseCode(403)->setContents('Forbidden'),
+            StatusWebhookHandler::RECEIVED => $result->setContents('OK'),
+            StatusWebhookHandler::REFUSED => $result->setHttpResponseCode(403)->setContents('Forbidden'),
             default => $result->setHttpResponseCode(503)->setContents('Not updated'),
         };
     }

@@ -51,4 +51,21 @@ interface BankAccountRepositoryInterface
      * @throws CouldNotDeleteException
      */
     public function delete(BankAccountInterface $entity): bool;
+
+    /**
+     * The bank accounts, without those deleted here and not synchronized yet: the default first,
+     * then by name.
+     *
+     * @return \Polkurier\Shipping\Api\Data\BankAccountInterface[]
+     */
+    public function getAvailable(): array;
+
+    /**
+     * The account cash on delivery is paid out to unless the merchant picks another: the default
+     * one, or else the first by name, since a shipment with cash on delivery needs an account.
+     * Unlike the other defaults, it's null only when there is no account at all.
+     *
+     * @return \Polkurier\Shipping\Api\Data\BankAccountInterface|null
+     */
+    public function getPreferred(): ?BankAccountInterface;
 }

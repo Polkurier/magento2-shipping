@@ -34,11 +34,17 @@ What the map shows can be adjusted on the configuration page, under
 
 ## Cash on delivery
 
-If the customer picks a carrier or a point that can't collect cash on delivery, your cash on
-delivery payment methods (see **Cash on delivery payment methods** in the
-[configuration](configuration.md#cash-on-delivery)) are hidden for that order. A point that
-couldn't be checked with Polkurier when it was chosen counts as one that can't collect it. If
-Polkurier can't be reached at the payment step itself, the payment methods are left as they are.
+If the customer picks a carrier that can't collect cash on delivery, your cash on delivery payment
+methods (see **Cash on delivery payment methods** in the
+[configuration](configuration.md#cash-on-delivery)) are hidden for that order.
+
+If the carrier can collect it but the pickup point chosen doesn't accept it, the methods are
+hidden too, and a note after the payment methods says that the point doesn't accept cash on
+delivery and that another point lets the customer pay on delivery.
+
+A point that couldn't be checked with Polkurier when it was chosen counts as one that accepts cash
+on delivery. If Polkurier can't be reached at the payment step itself, the payment methods are
+left as they are.
 
 ## Multi-address checkout
 

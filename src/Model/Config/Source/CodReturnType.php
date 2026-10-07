@@ -17,9 +17,9 @@ readonly class CodReturnType extends AbstractOptions
     public function toArray(): array
     {
         return [
-            CodReturnTypeEnum::BankAccount->value => (string)\__('Bank account'),
-            CodReturnTypeEnum::MoneyBox->value => (string)\__('Polkurier money box'),
-            CodReturnTypeEnum::PostOffice->value => (string)\__('Postal order'),
+            CodReturnTypeEnum::BankAccount->value => (string)__('Bank account'),
+            CodReturnTypeEnum::MoneyBox->value => (string)__('Polkurier money box'),
+            CodReturnTypeEnum::PostOffice->value => (string)__('Postal order'),
         ];
     }
 }

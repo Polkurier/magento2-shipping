@@ -14,20 +14,20 @@ namespace Polkurier\Shipping\Api\Data\ShipmentDraft;
  */
 interface PackInterface
 {
-    public const string TEMPLATE_ID = 'template_id';
-    public const string PACK_TYPE = 'pack_type';
-    public const string LENGTH = 'length';
-    public const string WIDTH = 'width';
-    public const string HEIGHT = 'height';
-    public const string WEIGHT = 'weight';
-    public const string AMOUNT = 'amount';
-    public const string ITEMS = 'items';
+    public const string FIELD_TEMPLATE_ID = 'template_id';
+    public const string FIELD_PACK_TYPE = 'pack_type';
+    public const string FIELD_LENGTH = 'length';
+    public const string FIELD_WIDTH = 'width';
+    public const string FIELD_HEIGHT = 'height';
+    public const string FIELD_WEIGHT = 'weight';
+    public const string FIELD_AMOUNT = 'amount';
+    public const string FIELD_ITEMS = 'items';
 
     /**
      * The name to save a parcel without a template under as a pack template once the shipment is
      * placed; empty to save nothing.
      */
-    public const string KEEP_AS = 'keep_as';
+    public const string FIELD_KEEP_AS = 'keep_as';
 
     /**
      * @return int|null

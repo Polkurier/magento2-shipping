@@ -13,8 +13,8 @@ use Magento\Framework\Controller\Result\Redirect;
 use Magento\Framework\Exception\LocalizedException;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Api\ShipmentManagementInterface;
-use Polkurier\Shipping\Model\Admin\Flash;
-use Polkurier\Shipping\Model\Shipment\RequestedShipments;
+use Polkurier\Shipping\Model\Admin\FlashMessageCollector;
+use Polkurier\Shipping\Model\Admin\FlashMessageCollectorFactory;
 
 /**
  * Reads the current state of the selected placed Polkurier orders.
@@ -27,6 +27,7 @@ class MassRefresh extends AbstractShipmentAction implements HttpPostActionInterf
         Context $context,
         RequestedShipments $requestedShipments,
         private readonly ShipmentManagementInterface $management,
+        private readonly FlashMessageCollectorFactory $flashMessageCollectorFactory,
     ) {
         parent::__construct($context, $requestedShipments);
     }
@@ -35,7 +36,7 @@ class MassRefresh extends AbstractShipmentAction implements HttpPostActionInterf
     {
         $refreshed = 0;
         $failed = [];
-        $flash = new Flash();
+        $flash = $this->flashMessageCollectorFactory->create();
         try {
             foreach ($this->getSelectedShipments() as $shipment) {
                 if ($shipment->getState() !== ShipmentInterface::STATE_CREATED) {
@@ -45,15 +46,15 @@ class MassRefresh extends AbstractShipmentAction implements HttpPostActionInterf
                     $this->management->refreshStatus((int)$shipment->getId());
                     $refreshed++;
                 } catch (LocalizedException $e) {
-                    $failed[] = (string)\__('%1: %2', $shipment->getPolkurierNumber(), $e->getMessage());
+                    $failed[] = $shipment->getPolkurierNumber() . ': ' . $e->getMessage();
                 }
             }
         } catch (LocalizedException $e) {
             $flash->error($e->getMessage());
         }
-        $flash->success(\__('%1 shipment(s) updated.', $refreshed));
+        $flash->success(__('%1 shipment(s) updated.', $refreshed));
         if ($failed !== []) {
-            $notUpdated = \__('Not updated: %1', \implode('; ', $failed));
+            $notUpdated = __('Not updated: %1', \implode('; ', $failed));
             $refreshed > 0 ? $flash->warning($notUpdated) : $flash->error($notUpdated);
         }
         $flash->send($this->messageManager);

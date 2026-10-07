@@ -12,31 +12,33 @@ use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Pricing\PriceCurrencyInterface;
 use Magento\Framework\UrlInterface;
 use Magento\Sales\Model\Order;
+use Polkurier\Shipping\Api\AddressRepositoryInterface;
 use Polkurier\Shipping\Api\Data\AddressInterface;
+use Polkurier\Shipping\Api\Data\ShipmentDraft\ItemInterface;
+use Polkurier\Shipping\Api\Data\ShipmentDraft\PackInterface;
+use Polkurier\Shipping\Api\Data\ShipmentDraftInterface;
 use Polkurier\Shipping\Api\ShipmentManagementInterface;
-use Polkurier\Shipping\Model\Carrier\CarrierFeatures;
-use Polkurier\Shipping\Model\Carrier\CarrierNotices;
+use Polkurier\Shipping\Model\Carrier\CarrierNoticeProvider;
+use Polkurier\Shipping\Model\Carrier\Polkurier;
+use Polkurier\Shipping\Model\Config\ConfigProvider;
 use Polkurier\Shipping\Model\Config\Source\AdditionalService;
 use Polkurier\Shipping\Model\Config\Source\CodReturnType;
 use Polkurier\Shipping\Model\Config\Source\CodType;
 use Polkurier\Shipping\Model\Config\Source\PackType;
 use Polkurier\Shipping\Model\Config\Source\PickupMode;
 use Polkurier\Shipping\Model\Config\Source\ShipmentType;
-use Polkurier\Shipping\Model\Mapper\SenderMapper;
-use Polkurier\Shipping\Model\MasterData;
-use Polkurier\Shipping\Model\OrderPointStore;
 use Polkurier\Shipping\Model\ResourceModel\Shipment\CollectionFactory;
-use Polkurier\Shipping\Model\Shipment\DefaultDraftBuilder;
-use Polkurier\Shipping\Model\Shipment\DraftHydrator;
-use Polkurier\Shipping\Model\Shipment\MagentoShipment;
-use Polkurier\Shipping\Model\Shipment\OrderAmounts;
-use Polkurier\Shipping\Model\Shipment\OwnOrders;
-use Polkurier\Shipping\Model\Shipment\PackKinds;
-use Polkurier\Shipping\Model\Shipment\PlnAmounts;
-use Polkurier\Shipping\Model\Shipment\RejectedDraft;
-use Polkurier\Shipping\Model\Shipment\ScreenContext;
-use Polkurier\Shipping\Model\Shipment\SendAgain;
-use Polkurier\Shipping\Model\Shipment\ShipmentOptions;
+use Polkurier\Shipping\Model\Shipment\Draft\DefaultDraftBuilder;
+use Polkurier\Shipping\Model\Shipment\Draft\DraftHydrator;
+use Polkurier\Shipping\Model\Shipment\Native\NativeShipmentService;
+use Polkurier\Shipping\Model\Shipment\OrderLoader;
+use Polkurier\Shipping\Model\Shipment\Placement\ParcelTypeMapper;
+use Polkurier\Shipping\Model\Shipment\Placement\RejectedDraftStorage;
+use Polkurier\Shipping\Model\Shipment\Placement\SenderMapper;
+use Polkurier\Shipping\Model\Shipment\Screen\RetriableShipmentFinder;
+use Polkurier\Shipping\Model\Shipment\Screen\ScreenDataProvider;
+use Polkurier\Shipping\Model\Shipment\Screen\ShipmentOptionsProvider;
+use Polkurier\Shipping\Model\Shipment\Valuation\OrderAmountCalculator;
 use Polkurier\Shipping\Ui\Component\Form\FormDataProvider;
 use Polkurier\Webservice\Request\Order\OrderAddressMessage;
 
@@ -56,12 +58,12 @@ class DataProvider extends FormDataProvider
         string $requestFieldName,
         CollectionFactory $collectionFactory,
         private readonly RequestInterface $request,
-        private readonly OwnOrders $ownOrders,
+        private readonly OrderLoader $orderLoader,
         private readonly ShipmentManagementInterface $management,
         private readonly DraftHydrator $hydrator,
-        private readonly RejectedDraft $rejectedDraft,
-        private readonly MasterData $masterData,
-        private readonly ShipmentOptions $options,
+        private readonly RejectedDraftStorage $rejectedDraftStorage,
+        private readonly AddressRepositoryInterface $addressRepository,
+        private readonly ShipmentOptionsProvider $shipmentOptions,
         private readonly UrlInterface $url,
         private readonly ShipmentType $shipmentTypes,
         private readonly CodType $codTypes,
@@ -69,119 +71,20 @@ class DataProvider extends FormDataProvider
         private readonly AdditionalService $services,
         private readonly PickupMode $pickupModes,
         private readonly SenderMapper $senderMapper,
-        private readonly OrderPointStore $pointStore,
-        private readonly CarrierNotices $carrierNotices,
-        private readonly OrderAmounts $amounts,
+        private readonly CarrierNoticeProvider $carrierNoticeProvider,
+        private readonly OrderAmountCalculator $amountCalculator,
         private readonly PriceCurrencyInterface $priceCurrency,
-        private readonly MagentoShipment $magentoShipment,
-        private readonly ScreenContext $context,
+        private readonly NativeShipmentService $nativeShipmentService,
+        private readonly ScreenDataProvider $screenData,
         private readonly PackType $packTypes,
-        private readonly SendAgain $sendAgain,
+        private readonly RetriableShipmentFinder $retriableShipmentFinder,
         private readonly DefaultDraftBuilder $draftBuilder,
+        private readonly ConfigProvider $configProvider,
         array $meta = [],
         array $data = [],
     ) {
         parent::__construct($name, $primaryFieldName, $requestFieldName, $meta, $data);
         $this->collection = $collectionFactory->create();
-    }
-
-    protected function load(): array
-    {
-        $orderId = (int)$this->request->getParam('order_id');
-        if (!$orderId) {
-            return [];
-        }
-
-        $order = $this->getOrder($orderId);
-        $storeId = (int)$order->getStoreId();
-        // Opened from a Magento shipment whose Polkurier order was cancelled: another goes on it,
-        // with its items.
-        $targetId = (int)$this->request->getParam('shipment_id') ?: null;
-        if ($targetId !== null && !isset($this->magentoShipment->getFreeShipments($order)[$targetId])) {
-            $targetId = null;
-        }
-        try {
-            $data = $this->hydrator->toArray($targetId !== null
-                ? $this->draftBuilder->createFromOrder($order, $this->magentoShipment->getShipmentQuantities($order, $targetId))
-                : $this->management->getDefaultDraft($orderId));
-        } catch (LocalizedException) {
-            $data = [];
-        }
-        // Sending again a shipment that wasn't placed: from what was sent then. What was just
-        // refused on this screen comes back over it.
-        $data = \array_merge(
-            $data,
-            $this->sendAgain->find($order, $this->request->getParam(SendAgain::PARAM))?->getDraft() ?? [],
-            $this->rejectedDraft->take($orderId) ?? [],
-        );
-
-        $data['order_id'] = $orderId;
-        $data['order_increment_id'] = $order->getIncrementId();
-        $data['store_id'] = $storeId;
-        // Polkurier's amounts, prices, cash on delivery and insurance alike, are in złoty.
-        $data['currency'] = PlnAmounts::CURRENCY;
-        $amounts = $this->context->getAmounts($order);
-        $data['grand_total'] = $amounts['grand_total'];
-        $data['shipping_charged'] = $amounts['shipping_charged'];
-        // What the products weigh, to start a parcel entered by hand from.
-        $data['order_weight'] = \round((float)$order->getWeight(), 3);
-        $targetId ??= isset($data['target_shipment_id']) ? (int)$data['target_shipment_id'] : null;
-        $data['target_shipment_id'] = $targetId;
-        // Items to choose only for a new Magento shipment of what's left.
-        $data['can_ship'] = $targetId === null && $order->canShip();
-        // A chosen Magento shipment, or with nothing left to ship, the latest without a Polkurier
-        // order: the Polkurier order goes on it, in place of the one it replaces, with its items.
-        $data['replacing'] = $data['can_ship'] ? null : $this->getReplaced($order, $targetId);
-        $data['items'] = $this->getItems(
-            $order,
-            (array)($data['items'] ?? []),
-            $data['replacing'] !== null ? $data['replacing']['qtys'] : null,
-        );
-        $data['shipment_value'] = $data['replacing'] !== null
-            ? $data['replacing']['shipment_value']
-            : $this->amounts->getShipmentValue($order, \array_column($data['items'], 'qty', 'order_item_id'), (bool)($data['shipping_included'] ?? false));
-        $data['cod_collected'] = $amounts['cod_collected'];
-        $data['cod_remaining'] = $amounts['cod_remaining'];
-        // Another part includes the shipping and handling already.
-        $data['shipping_covered'] = $amounts['shipping_covered'];
-        // The items listed leave out those shipped in full: the screen can't tell from them alone.
-        $data['partly_shipped'] = \array_sum(\array_map(
-            static fn(array $item): float => $item['qty_shipped'],
-            $this->amounts->getItems($order),
-        )) > 0;
-        $data['carriers'] = $this->options->getCarrierFeatures();
-        // Offered for pallet shipments only.
-        $data['pallet_services'] = \array_map(static fn($service): string => $service->value, CarrierFeatures::PALLET_SERVICES);
-        $data['carriers_error'] = $this->options->getCarriersError();
-        $data['map'] = $this->context->getMap();
-        // The point as Polkurier has it now: its address today, or, when it's gone or closed since
-        // the order was placed, a problem to fix before placing.
-        $pointId = (string)($data['recipient_point_id'] ?? '');
-        $point = $this->context->findRecipientPoint((string)($data['carrier_code'] ?? ''), $pointId);
-        $data['recipient_point_label'] = $point ? $point->getAddress() : $this->getPointLabel($orderId, $pointId);
-        $data['recipient_point_label_id'] = $pointId;
-        $data['recipient_point_closed'] = $point === false ? $pointId : '';
-        $data['senders'] = (object)$this->getSenders();
-        $data['store_sender'] = $this->describeStoreSender($storeId);
-        // Only those that can be printed as the sender.
-        $data['cover_addresses'] = $this->options->getSenderOptions(true);
-        $data['templates'] = $this->context->getTemplates();
-        // What a shipment is until it has parcels: as the website's parcels go, as a new one
-        // starts (DefaultDraftBuilder), for automatic packing.
-        $data['default_shipment_type'] = $this->context->getDefaultShipmentType($storeId);
-        $data['parcel_weight'] = $this->context->getParcelWeight($storeId);
-        $data['carrier_notices'] = $this->carrierNotices->getNotices();
-        $data['choices'] = $this->getChoices();
-        $data['urls'] = [
-            'calculate' => $this->url->getUrl('polkurier/shipment/calculate'),
-            'pickup_times' => $this->url->getUrl('polkurier/shipment/pickupTimes'),
-            'collective_pickup' => $this->url->getUrl('polkurier/shipment/collectivePickup'),
-            'pack' => $this->url->getUrl('polkurier/shipment/pack'),
-            'pack_templates' => $this->url->getUrl('polkurier/packtemplate/index'),
-            'addresses' => $this->url->getUrl('polkurier/address/index'),
-        ];
-
-        return [$orderId => $data];
     }
 
     /**
@@ -194,27 +97,160 @@ class DataProvider extends FormDataProvider
         if (!$orderId) {
             return $meta;
         }
-        $order = $this->getOrder($orderId);
+        $order = $this->orderLoader->getForPolkurier($orderId);
 
-        $senders = $this->options->getSenderChoices((int)$order->getStoreId());
+        $senders = $this->shipmentOptions->getSenderChoices((int)$order->getStoreId());
         $carriers = \array_merge(
-            [['value' => '', 'label' => (string)\__('-- Choose a carrier --')]],
-            $this->options->getCarrierOptions(),
+            [['value' => '', 'label' => (string)__('-- Choose a carrier --')]],
+            $this->shipmentOptions->getCarrierOptions(),
         );
 
-        // Paths follow the form's modals.
-        $meta['carrier_modal']['children']['carrier']['children']['carrier_code']['arguments']['data']['config']['options'] = $carriers;
-        $meta['sender_modal']['children']['sender']['children']['sender_address_id']['arguments']['data']['config']['options'] = $senders;
-        $meta['cod_modal']['children']['cod']['children']['cod_bank_account_id']['arguments']['data']['config']['options']
-            = $this->options->getBankAccountChoices();
-        $meta['cod_modal']['children']['cod']['children']['cod_amount']['arguments']['data']['config']['notice']
-            = $this->getCodNotice($order);
-        if (!$this->amounts->isPriced($order)) {
-            $meta['insurance_modal']['children']['insurance']['children']['insurance_amount']['arguments']['data']['config']['notice']
-                = $this->getCurrencyNotice($order);
+        self::setFieldConfig($meta, 'carrier', ShipmentDraftInterface::FIELD_CARRIER_CODE, 'options', $carriers);
+        self::setFieldConfig($meta, 'sender', ShipmentDraftInterface::FIELD_SENDER_ADDRESS_ID, 'options', $senders);
+        self::setFieldConfig(
+            $meta,
+            'cod',
+            ShipmentDraftInterface::FIELD_COD_BANK_ACCOUNT_ID,
+            'options',
+            $this->shipmentOptions->getBankAccountChoices(),
+        );
+        self::setFieldConfig(
+            $meta,
+            'cod',
+            ShipmentDraftInterface::FIELD_COD_AMOUNT,
+            'notice',
+            $this->getCodNotice($order),
+        );
+        if (!$this->amountCalculator->isPriced($order)) {
+            self::setFieldConfig(
+                $meta,
+                'insurance',
+                ShipmentDraftInterface::FIELD_INSURANCE_AMOUNT,
+                'notice',
+                $this->getCurrencyNotice($order),
+            );
         }
 
         return $meta;
+    }
+
+    protected function load(): array
+    {
+        $orderId = (int)$this->request->getParam('order_id');
+        if (!$orderId) {
+            return [];
+        }
+
+        $order = $this->orderLoader->getForPolkurier($orderId);
+        $storeId = (int)$order->getStoreId();
+        // Opened from a Magento shipment whose Polkurier order was cancelled: another goes on it,
+        // with its items.
+        $targetId = (int)$this->request->getParam('shipment_id') ?: null;
+        if ($targetId !== null && !isset($this->nativeShipmentService->getFreeShipments($order)[$targetId])) {
+            $targetId = null;
+        }
+        try {
+            $data = $this->hydrator->toArray($targetId !== null
+                ? $this->draftBuilder->createFromOrder(
+                    $order,
+                    $this->nativeShipmentService->getShipmentQuantities($order, $targetId),
+                )
+                : $this->management->getDefaultDraft($orderId));
+        } catch (LocalizedException) {
+            $data = [];
+        }
+        // Sending again a shipment that wasn't placed: from what was sent then. What was just
+        // refused on this screen comes back over it.
+        $data = \array_merge(
+            $data,
+            $this->retriableShipmentFinder
+                ->find($order, $this->request->getParam(RetriableShipmentFinder::PARAM))
+                ?->getDraft() ?? [],
+            $this->rejectedDraftStorage->take($orderId) ?? [],
+        );
+
+        $data['order_id'] = $orderId;
+        $data['order_increment_id'] = $order->getIncrementId();
+        $data['store_id'] = $storeId;
+        // Polkurier's amounts, prices, cash on delivery and insurance alike, are in złoty.
+        $data['currency'] = OrderAmountCalculator::CURRENCY;
+        $amounts = $this->screenData->getAmounts($order);
+        $data['grand_total'] = $amounts['grand_total'];
+        $data['shipping_charged'] = $amounts['shipping_charged'];
+        // What the products weigh, to start a parcel entered by hand from.
+        $data['order_weight'] = \round((float)$order->getWeight(), 3);
+        $targetId ??= isset($data[ShipmentDraftInterface::FIELD_TARGET_SHIPMENT_ID])
+            ? (int)$data[ShipmentDraftInterface::FIELD_TARGET_SHIPMENT_ID]
+            : null;
+        $data[ShipmentDraftInterface::FIELD_TARGET_SHIPMENT_ID] = $targetId;
+        // Items to choose only for a new Magento shipment of what's left.
+        $data['can_ship'] = $targetId === null && $order->canShip();
+        // A chosen Magento shipment, or with nothing left to ship, the latest without a Polkurier
+        // order: the Polkurier order goes on it, in place of the one it replaces, with its items.
+        $data['replacing'] = $data['can_ship'] ? null : $this->getReplaced($order, $targetId);
+        $data[ShipmentDraftInterface::FIELD_ITEMS] = $this->getItems(
+            $order,
+            (array)($data[ShipmentDraftInterface::FIELD_ITEMS] ?? []),
+            $data['replacing'] !== null ? $data['replacing']['qtys'] : null,
+        );
+        $data['shipment_value'] = $data['replacing'] !== null
+            ? $data['replacing']['shipment_value']
+            : $this->amountCalculator->getShipmentValue(
+                $order,
+                \array_column(
+                    $data[ShipmentDraftInterface::FIELD_ITEMS],
+                    ItemInterface::FIELD_QTY,
+                    ItemInterface::FIELD_ORDER_ITEM_ID,
+                ),
+                (bool)($data[ShipmentDraftInterface::FIELD_SHIPPING_INCLUDED] ?? false),
+            );
+        $data['cod_collected'] = $amounts['cod_collected'];
+        $data['cod_remaining'] = $amounts['cod_remaining'];
+        // Another part includes the shipping and handling already.
+        $data['shipping_covered'] = $amounts['shipping_covered'];
+        // The items listed leave out those shipped in full: the screen can't tell from them alone.
+        $data['partly_shipped'] = \array_sum(\array_map(
+            static fn(array $item): float => $item['qty_shipped'],
+            $this->amountCalculator->getItems($order),
+        )) > 0;
+        $data['carriers'] = $this->shipmentOptions->getCarrierFeatures();
+        // Offered for pallet shipments only.
+        $data['pallet_services'] = $this->screenData->getPalletServices();
+        $data['carriers_error'] = $this->shipmentOptions->getCarriersError();
+        $data['map'] = $this->screenData->getMap() + ['tokenUrl' => $this->url->getUrl('polkurier/shipment/mapToken')];
+        // The point as Polkurier has it now: its address today, or, when it's gone or closed since
+        // the order was placed, a problem to fix before placing.
+        $point = $this->screenData->describeRecipientPoint(
+            $orderId,
+            (string)($data[ShipmentDraftInterface::FIELD_CARRIER_CODE] ?? ''),
+            (string)($data[ShipmentDraftInterface::FIELD_RECIPIENT_POINT_ID] ?? ''),
+        );
+        $data['recipient_point_label'] = $point['label'];
+        $data['recipient_point_label_id'] = $point['id'];
+        $data['recipient_point_closed'] = $point['closed'] ? $point['id'] : '';
+        $data['senders'] = (object)$this->getSenders();
+        $data['store_sender'] = $this->describeStoreSender($storeId);
+        // Only those that can be printed as the sender.
+        $data['cover_addresses'] = $this->shipmentOptions->getSenderOptions(true);
+        $data['templates'] = $this->screenData->getTemplates();
+        // What a shipment is until it has parcels: as the website's parcels go, as a new one
+        // starts (DefaultDraftBuilder), for automatic packing.
+        $data['default_shipment_type'] = $this->configProvider->getDefaultShipmentType($storeId)->value;
+        $data['parcel_weight'] = $this->configProvider->getParcelWeight($storeId)->value;
+        $data['carrier_notices'] = $this->carrierNoticeProvider->getNotices();
+        $data['choices'] = $this->getChoices();
+        // An address abroad is shown with its country.
+        $data['home_country'] = Polkurier::HOME_COUNTRY;
+        $data['urls'] = [
+            'calculate' => $this->url->getUrl('polkurier/shipment/calculate'),
+            'pickup_times' => $this->url->getUrl('polkurier/shipment/pickupTimes'),
+            'collective_pickup' => $this->url->getUrl('polkurier/shipment/collectivePickup'),
+            'pack' => $this->url->getUrl('polkurier/shipment/pack'),
+            'pack_templates' => $this->url->getUrl('polkurier/packtemplate/index'),
+            'addresses' => $this->url->getUrl('polkurier/address/index'),
+        ];
+
+        return [$orderId => $data];
     }
 
     /**
@@ -231,25 +267,29 @@ class DataProvider extends FormDataProvider
     {
         if ($carried !== null) {
             $draftItems = \array_map(
-                static fn(int $id, float $qty): array => ['order_item_id' => $id, 'qty' => $qty],
+                static fn(int $id, float $qty): array => [
+                    ItemInterface::FIELD_ORDER_ITEM_ID => $id,
+                    ItemInterface::FIELD_QTY => $qty,
+                ],
                 \array_keys($carried),
                 $carried,
             );
         }
         $chosen = [];
         foreach ($draftItems as $row) {
-            if (\is_array($row) && isset($row['order_item_id'])) {
-                $chosen[(int)$row['order_item_id']] = (float)\str_replace(',', '.', (string)($row['qty'] ?? 0));
+            if (\is_array($row) && isset($row[ItemInterface::FIELD_ORDER_ITEM_ID])) {
+                $chosen[(int)$row[ItemInterface::FIELD_ORDER_ITEM_ID]]
+                    = (float)\str_replace(',', '.', (string)($row[ItemInterface::FIELD_QTY] ?? 0));
             }
         }
         $items = [];
-        foreach ($this->amounts->getItems($order) as $id => $item) {
+        foreach ($this->amountCalculator->getItems($order) as $id => $item) {
             if ($carried !== null ? !isset($carried[$id]) : $item['qty_to_ship'] <= 0) {
                 continue;
             }
             $items[] = [
-                'order_item_id' => $id,
-                'qty' => $chosen === [] ? $item['qty_to_ship'] : ($chosen[$id] ?? 0.0),
+                ItemInterface::FIELD_ORDER_ITEM_ID => $id,
+                ItemInterface::FIELD_QTY => $chosen === [] ? $item['qty_to_ship'] : ($chosen[$id] ?? 0.0),
                 'name' => $item['name'],
                 'sku' => $item['sku'],
                 'unit' => $item['unit'],
@@ -272,24 +312,16 @@ class DataProvider extends FormDataProvider
      */
     private function getReplaced(Order $order, ?int $targetId): ?array
     {
-        $free = $this->magentoShipment->getFreeShipments($order);
+        $free = $this->nativeShipmentService->getFreeShipments($order);
         $id = $targetId ?? ($free === [] ? null : \max(\array_keys($free)));
         if ($id === null || !isset($free[$id])) {
             return null;
         }
-        $qtys = $this->magentoShipment->getShipmentQuantities($order, $id);
+        $qtys = $this->nativeShipmentService->getShipmentQuantities($order, $id);
 
-        $worth = $this->amounts->getShipmentWorth($order, $qtys);
+        $worth = $this->amountCalculator->getShipmentWorth($order, $qtys);
 
         return $free[$id] + ['shipment_value' => $worth['value'], 'worth' => $worth, 'qtys' => $qtys];
-    }
-
-    /**
-     * @throws LocalizedException when the order is gone or wasn't placed with a Polkurier method
-     */
-    private function getOrder(int $orderId): Order
-    {
-        return $this->ownOrders->get($orderId);
     }
 
     /**
@@ -297,18 +329,25 @@ class DataProvider extends FormDataProvider
      */
     private function getCodNotice(Order $order): string
     {
-        if (!$this->amounts->isPriced($order)) {
+        if (!$this->amountCalculator->isPriced($order)) {
             return $this->getCurrencyNotice($order);
         }
-        $collected = $this->amounts->getCodCollected($order);
+        $collected = $this->amountCalculator->getCodCollected($order);
         if ($collected <= 0) {
-            return (string)\__('0 or empty: no cash on delivery.');
+            return (string)__('0 or empty: no cash on delivery.');
         }
 
-        return (string)\__(
-            '0 or empty: no cash on delivery. Order total: %1, of which the order\'s other Polkurier orders collect %2.',
-            $this->priceCurrency->format($this->amounts->getGrandTotal($order), false, 2, null, PlnAmounts::CURRENCY),
-            $this->priceCurrency->format($collected, false, 2, null, PlnAmounts::CURRENCY),
+        return (string)__(
+            '0 or empty: no cash on delivery. Order total: '
+            . '%1, of which the order\'s other Polkurier orders collect %2.',
+            $this->priceCurrency->format(
+                $this->amountCalculator->getGrandTotal($order),
+                false,
+                2,
+                null,
+                OrderAmountCalculator::CURRENCY,
+            ),
+            $this->priceCurrency->format($collected, false, 2, null, OrderAmountCalculator::CURRENCY),
         );
     }
 
@@ -317,7 +356,7 @@ class DataProvider extends FormDataProvider
      */
     private function getCurrencyNotice(Order $order): string
     {
-        return (string)\__(
+        return (string)__(
             'The order is in %1, which can\'t be converted to złoty here: enter the amount in złoty yourself.',
             (string)$order->getOrderCurrencyCode(),
         );
@@ -331,7 +370,7 @@ class DataProvider extends FormDataProvider
     private function getSenders(): array
     {
         $senders = [];
-        foreach ($this->masterData->getSenderAddresses() as $address) {
+        foreach ($this->addressRepository->getSenderAddresses() as $address) {
             $senders[(string)$address->getId()] = $this->describeAddress($address);
         }
 
@@ -377,11 +416,15 @@ class DataProvider extends FormDataProvider
     private function describeMessage(OrderAddressMessage $address): array
     {
         return [
-            'label' => (string)\__('The store\'s address'),
+            'label' => (string)__('The store\'s address'),
             'company' => (string)$address->getCompany(),
             'postcode' => $address->getPostcode(),
             'person' => $address->getPerson() === $address->getCompany() ? '' : $address->getPerson(),
-            'street' => $this->street($address->getStreet(), (string)$address->getHouseNumber(), $address->getFlatNumber()),
+            'street' => $this->street(
+                $address->getStreet(),
+                (string)$address->getHouseNumber(),
+                $address->getFlatNumber(),
+            ),
             'city' => \trim($address->getPostcode() . ' ' . $address->getCity()),
             'country' => $address->getCountry(),
             'phone' => $address->getPhone(),
@@ -393,16 +436,6 @@ class DataProvider extends FormDataProvider
     private function street(string $street, string $houseNumber, ?string $flatNumber): string
     {
         return \trim($street . ' ' . $houseNumber . ($flatNumber ? '/' . $flatNumber : ''));
-    }
-
-    /**
-     * The address of the order's pickup point, when the draft still uses it.
-     */
-    private function getPointLabel(int $orderId, string $pointId): string
-    {
-        $point = $pointId === '' ? null : $this->pointStore->getForOrder($orderId);
-
-        return $point !== null && $point->getPointId() === $pointId ? (string)$point->getPointLabel() : '';
     }
 
     /**
@@ -422,16 +455,35 @@ class DataProvider extends FormDataProvider
         };
 
         return [
-            'carrier_code' => $labels($this->options->getCarrierOptions()),
-            'shipment_type' => (object)$this->shipmentTypes->toArray(),
-            'pack_type' => (object)$this->packTypes->toArray(),
+            ShipmentDraftInterface::FIELD_CARRIER_CODE => $labels($this->shipmentOptions->getCarrierOptions()),
+            ShipmentDraftInterface::FIELD_SHIPMENT_TYPE => (object)$this->shipmentTypes->toArray(),
+            PackInterface::FIELD_PACK_TYPE => (object)$this->packTypes->toArray(),
             // What each parcel type makes the shipment.
-            'pack_shipment_type' => (object)PackKinds::map(),
-            'cod_type' => (object)$this->codTypes->toArray(),
-            'cod_return_type' => (object)$this->codReturnTypes->toArray(),
-            'cod_bank_account_id' => $labels($this->options->getBankAccountChoices()),
-            'services' => (object)$this->services->toArray(),
-            'pickup_mode' => (object)$this->pickupModes->toArray(),
+            'pack_shipment_type' => (object)ParcelTypeMapper::map(),
+            ShipmentDraftInterface::FIELD_COD_TYPE => (object)$this->codTypes->toArray(),
+            ShipmentDraftInterface::FIELD_COD_RETURN_TYPE => (object)$this->codReturnTypes->toArray(),
+            ShipmentDraftInterface::FIELD_COD_BANK_ACCOUNT_ID => $labels(
+                $this->shipmentOptions->getBankAccountChoices(),
+            ),
+            ShipmentDraftInterface::FIELD_SERVICES => (object)$this->services->toArray(),
+            ShipmentDraftInterface::FIELD_PICKUP_MODE => (object)$this->pickupModes->toArray(),
         ];
+    }
+
+    /**
+     * Sets a config value of a field in one of the form's modals, whose paths follow the form:
+     * <fieldset>_modal, <fieldset>, <field>.
+     *
+     * @param array<string, mixed> $meta
+     */
+    private static function setFieldConfig(
+        array &$meta,
+        string $fieldset,
+        string $field,
+        string $key,
+        mixed $value,
+    ): void {
+        $meta[$fieldset . '_modal']['children'][$fieldset]['children'][$field]['arguments']['data']['config'][$key]
+            = $value;
     }
 }

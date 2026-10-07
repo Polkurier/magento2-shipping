@@ -10,10 +10,10 @@ namespace Polkurier\Shipping\Controller\Adminhtml\Shipment;
 use Magento\Backend\App\Action\Context;
 use Magento\Framework\App\Action\HttpPostActionInterface;
 use Magento\Framework\Controller\Result\Redirect;
-use Polkurier\Shipping\Model\Admin\Flash;
-use Polkurier\Shipping\Model\Config;
-use Polkurier\Shipping\Model\Shipment\RequestedShipments;
-use Polkurier\Shipping\Model\Shipment\StatusRefresher;
+use Polkurier\Shipping\Model\Admin\FlashMessageCollector;
+use Polkurier\Shipping\Model\Admin\FlashMessageCollectorFactory;
+use Polkurier\Shipping\Model\Config\ConfigProvider;
+use Polkurier\Shipping\Model\Shipment\Status\StatusRefreshService;
 
 /**
  * "Update statuses" on the shipments grid: what the scheduled update does, now, for the shipments
@@ -26,23 +26,24 @@ class RefreshAll extends AbstractShipmentAction implements HttpPostActionInterfa
     public function __construct(
         Context $context,
         RequestedShipments $requestedShipments,
-        private readonly StatusRefresher $statusRefresher,
-        private readonly Config $config,
+        private readonly StatusRefreshService $statusRefreshService,
+        private readonly ConfigProvider $configProvider,
+        private readonly FlashMessageCollectorFactory $flashMessageCollectorFactory,
     ) {
         parent::__construct($context, $requestedShipments);
     }
 
     public function execute(): Redirect
     {
-        $flash = new Flash();
-        if (!$this->config->hasCredentials()) {
-            $flash->error(Config::credentialsMissing());
+        $flash = $this->flashMessageCollectorFactory->create();
+        if (!$this->configProvider->hasCredentials()) {
+            $flash->error(ConfigProvider::credentialsMissing());
         } else {
-            ['refreshed' => $refreshed, 'failed' => $failed] = $this->statusRefresher->refreshNow();
+            ['refreshed' => $refreshed, 'failed' => $failed] = $this->statusRefreshService->refreshNow();
             if ($failed === 0) {
-                $flash->success(\__('%1 shipment(s) updated.', $refreshed));
+                $flash->success(__('%1 shipment(s) updated.', $refreshed));
             } else {
-                $message = \__('%1 shipment(s) updated, %2 not: see the Polkurier log.', $refreshed, $failed);
+                $message = __('%1 shipment(s) updated, %2 not: see the Polkurier log.', $refreshed, $failed);
                 $refreshed > 0 ? $flash->warning($message) : $flash->error($message);
             }
         }

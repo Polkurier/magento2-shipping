@@ -17,11 +17,6 @@ class QuotePoint extends AbstractDb
 {
     public const string TABLE_NAME = 'polkurier_quote_point';
 
-    protected function _construct(): void
-    {
-        $this->_init(self::TABLE_NAME, 'entity_id');
-    }
-
     /**
      * Loads the point chosen for one shipping address of a quote; 0 is the regular checkout's.
      */
@@ -37,5 +32,10 @@ class QuotePoint extends AbstractDb
         if ($id !== false) {
             $this->load($point, (int)$id);
         }
+    }
+
+    protected function _construct(): void
+    {
+        $this->_init(self::TABLE_NAME, 'entity_id');
     }
 }

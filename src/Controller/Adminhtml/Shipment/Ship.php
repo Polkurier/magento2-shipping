@@ -12,7 +12,6 @@ use Magento\Framework\App\Action\HttpPostActionInterface;
 use Magento\Framework\Controller\Result\Redirect;
 use Magento\Framework\Exception\LocalizedException;
 use Polkurier\Shipping\Api\ShipmentManagementInterface;
-use Polkurier\Shipping\Model\Shipment\RequestedShipments;
 
 /**
  * Creates the Magento shipment of a placed Polkurier order when that failed at placing.
@@ -35,7 +34,9 @@ class Ship extends AbstractShipmentAction implements HttpPostActionInterface
         if ($shipment !== null) {
             try {
                 $shipment = $this->management->shipOrder((int)$shipment->getId());
-                $this->messageManager->addSuccessMessage(\__('The order is shipped with Polkurier order %1.', (string)$shipment->getPolkurierNumber()));
+                $this->messageManager->addSuccessMessage(
+                    __('The order is shipped with Polkurier order %1.', (string)$shipment->getPolkurierNumber()),
+                );
             } catch (LocalizedException $e) {
                 $this->messageManager->addErrorMessage($e->getMessage());
             }

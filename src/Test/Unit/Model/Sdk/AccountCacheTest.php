@@ -13,9 +13,8 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Polkurier\Shipping\Enum\CacheTagEnum;
 use Polkurier\Shipping\Model\Cache\Type as PolkurierCache;
-use Polkurier\Shipping\Model\Config;
+use Polkurier\Shipping\Model\Config\ConfigProvider;
 use Polkurier\Shipping\Model\Sdk\AccountCache;
-use Polkurier\Shipping\Model\Sdk\AccountCacheKey;
 
 #[CoversClass(AccountCache::class)]
 #[AllowMockObjectsWithoutExpectations]
@@ -27,6 +26,7 @@ class AccountCacheTest extends TestCase
     private array $cached = [];
 
     private string $login = '12345';
+    private bool $sandbox = false;
 
     public function testTheAnswerIsAskedForOncePerAccount(): void
     {
@@ -43,7 +43,10 @@ class AccountCacheTest extends TestCase
         $this->cache()->remember('pin_locked', 900, $load);
 
         self::assertSame(2, $asked, 'Other credentials are another account.');
-        self::assertSame([[CacheTagEnum::Account->value]], \array_values(\array_unique(\array_column($this->cached, 1), \SORT_REGULAR)));
+        self::assertSame(
+            [[CacheTagEnum::Account->value]],
+            \array_values(\array_unique(\array_column($this->cached, 1), \SORT_REGULAR)),
+        );
     }
 
     public function testAFailureIsNotCached(): void
@@ -56,6 +59,26 @@ class AccountCacheTest extends TestCase
         self::assertSame([], $this->cached);
     }
 
+    public function testTheKeyFollowsTheAccountAndWhatElseTheEntryDependsOn(): void
+    {
+        $keys = $this->cache();
+
+        // The shape the caches used before, so their entries stay valid.
+        self::assertSame('polkurier_map_token_' . \sha1('12345|0'), $keys->key('map_token'));
+        self::assertSame('polkurier_carriers_' . \sha1('12345|0|2.0.0@abc'), $keys->key('carriers', '2.0.0@abc'));
+    }
+
+    public function testAnotherAccountOrTheSandboxNeverSeesTheEntry(): void
+    {
+        $production = $this->cache()->key('map_token');
+        $this->sandbox = true;
+        $sandbox = $this->cache()->key('map_token');
+        $this->login = '67890';
+        $other = $this->cache()->key('map_token');
+
+        self::assertCount(3, \array_unique([$production, $sandbox, $other]));
+    }
+
     private function cache(): AccountCache
     {
         $cache = $this->createStub(PolkurierCache::class);
@@ -65,9 +88,10 @@ class AccountCacheTest extends TestCase
 
             return true;
         });
-        $config = $this->createStub(Config::class);
+        $config = $this->createStub(ConfigProvider::class);
         $config->method('getLogin')->willReturnCallback(fn(): string => $this->login);
+        $config->method('isSandbox')->willReturnCallback(fn(): bool => $this->sandbox);
 
-        return new AccountCache($cache, new Json(), new AccountCacheKey($config));
+        return new AccountCache($cache, new Json(), $config);
     }
 }

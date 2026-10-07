@@ -10,12 +10,12 @@ namespace Polkurier\Shipping\Ui\Component\Form\Payout;
 use Magento\Framework\App\Request\DataPersistorInterface;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\UrlInterface;
-use Polkurier\Shipping\Controller\Adminhtml\Moneybox\Save;
-use Polkurier\Shipping\Model\Config;
-use Polkurier\Shipping\Model\Mapper\CreateOrderMessageMapper;
-use Polkurier\Shipping\Model\MasterData;
-use Polkurier\Shipping\Model\MoneyBox\MoneyBoxOrders;
-use Polkurier\Shipping\Model\MoneyBox\Payouts;
+use Polkurier\Shipping\Api\BankAccountRepositoryInterface;
+use Polkurier\Shipping\Enum\FormMemoryEnum;
+use Polkurier\Shipping\Model\BankAccount\BankAccountMapper;
+use Polkurier\Shipping\Model\Config\ConfigProvider;
+use Polkurier\Shipping\Model\Payout\MoneyBoxOrderFinder;
+use Polkurier\Shipping\Model\Payout\PayoutManager;
 use Polkurier\Shipping\Model\ResourceModel\Shipment\CollectionFactory;
 use Polkurier\Shipping\Ui\Component\Form\FormDataProvider;
 
@@ -34,48 +34,17 @@ class DataProvider extends FormDataProvider
         string $primaryFieldName,
         string $requestFieldName,
         CollectionFactory $collectionFactory,
-        private readonly Payouts $payouts,
-        private readonly Config $config,
+        private readonly PayoutManager $payoutManager,
+        private readonly ConfigProvider $configProvider,
         private readonly UrlInterface $url,
         private readonly DataPersistorInterface $dataPersistor,
-        private readonly MasterData $masterData,
-        private readonly MoneyBoxOrders $moneyBoxOrders,
+        private readonly BankAccountRepositoryInterface $bankAccountRepository,
+        private readonly MoneyBoxOrderFinder $moneyBoxOrderFinder,
         array $meta = [],
         array $data = [],
     ) {
         parent::__construct($name, $primaryFieldName, $requestFieldName, $meta, $data);
         $this->collection = $collectionFactory->create();
-    }
-
-    protected function load(): array
-    {
-        $data = [
-            'urls' => [
-                'quote' => $this->url->getUrl('polkurier/moneybox/quote'),
-                'send_code' => $this->url->getUrl('polkurier/moneybox/sendCode'),
-            ],
-        ];
-        if ($this->config->hasCredentials()) {
-            try {
-                $config = $this->payouts->getConfig();
-                $data['payout_type'] = $config->getPayoutType()->value;
-                $data['fee_payment_type'] = $config->getFeePayment()->value;
-                $data['bank_account_number'] = CreateOrderMessageMapper::accountNumber((string)$config->getIban());
-            } catch (LocalizedException) {
-                // The form still opens; Polkurier reports the problem again on submit.
-            }
-            $data['orders'] = \implode("\n", $this->moneyBoxOrders->numbers());
-        }
-        $data['bank_account_choice'] = $this->accountChoice((string)($data['bank_account_number'] ?? ''));
-        // What was chosen, when requesting the payout failed.
-        $persisted = $this->dataPersistor->get(Save::PERSISTOR_KEY);
-        if (\is_array($persisted)) {
-            $data = \array_merge($data, $persisted);
-        }
-        $this->dataPersistor->clear(Save::PERSISTOR_KEY);
-
-        // The form has no entity: it looks its data up by an absent parameter.
-        return ['' => $data];
     }
 
     /**
@@ -84,9 +53,44 @@ class DataProvider extends FormDataProvider
     public function getMeta(): array
     {
         $meta = parent::getMeta();
-        $meta['payout']['children']['bank_account_choice']['arguments']['data']['config']['options'] = $this->accountOptions();
+        $meta['payout']['children']['bank_account_choice']['arguments']['data']['config']['options']
+            = $this->accountOptions();
+        // The number field is for the choice of another account.
+        $meta['payout']['children']['bank_account_number']['arguments']['data']['config']['shownWhen']['bank_account_choice']
+            = PayoutManager::ANOTHER_ACCOUNT;
 
         return $meta;
+    }
+
+    protected function load(): array
+    {
+        $data = [
+            'urls' => [
+                'quote' => $this->url->getUrl('polkurier/payout/quote'),
+                'send_code' => $this->url->getUrl('polkurier/payout/sendCode'),
+            ],
+        ];
+        if ($this->configProvider->hasCredentials()) {
+            try {
+                $config = $this->payoutManager->getConfig();
+                $data['payout_type'] = $config->getPayoutType()->value;
+                $data['fee_payment_type'] = $config->getFeePayment()->value;
+                $data['bank_account_number'] = BankAccountMapper::normalizeNumber((string)$config->getIban());
+            } catch (LocalizedException) {
+                // The form still opens; Polkurier reports the problem again on submit.
+            }
+            $data['orders'] = \implode("\n", $this->moneyBoxOrderFinder->numbers());
+        }
+        $data['bank_account_choice'] = $this->accountChoice((string)($data['bank_account_number'] ?? ''));
+        // What was chosen, when requesting the payout failed.
+        $persisted = $this->dataPersistor->get(FormMemoryEnum::Payout->value);
+        if (\is_array($persisted)) {
+            $data = \array_merge($data, $persisted);
+        }
+        $this->dataPersistor->clear(FormMemoryEnum::Payout->value);
+
+        // The form has no entity: it looks its data up by an absent parameter.
+        return ['' => $data];
     }
 
     /**
@@ -97,11 +101,11 @@ class DataProvider extends FormDataProvider
     private function accountOptions(): array
     {
         $options = [];
-        foreach ($this->masterData->getBankAccounts() as $account) {
-            $number = CreateOrderMessageMapper::accountNumber($account->getNumber());
+        foreach ($this->bankAccountRepository->getAvailable() as $account) {
+            $number = BankAccountMapper::normalizeNumber($account->getNumber());
             $options[$number] ??= ['value' => $number, 'label' => $account->getName() . ' — ' . $account->getNumber()];
         }
-        $options[] = ['value' => Save::ANOTHER_ACCOUNT, 'label' => (string)\__('Another account number')];
+        $options[] = ['value' => PayoutManager::ANOTHER_ACCOUNT, 'label' => (string)__('Another account number')];
 
         return \array_values($options);
     }
@@ -112,17 +116,17 @@ class DataProvider extends FormDataProvider
      */
     private function accountChoice(string $number): string
     {
-        $accounts = $this->masterData->getBankAccounts();
+        $accounts = $this->bankAccountRepository->getAvailable();
         foreach ($accounts as $account) {
             if (self::sameAccount($account->getNumber(), $number)) {
-                return CreateOrderMessageMapper::accountNumber($account->getNumber());
+                return BankAccountMapper::normalizeNumber($account->getNumber());
             }
         }
         if ($number === '' && $accounts !== []) {
-            return CreateOrderMessageMapper::accountNumber($accounts[0]->getNumber());
+            return BankAccountMapper::normalizeNumber($accounts[0]->getNumber());
         }
 
-        return Save::ANOTHER_ACCOUNT;
+        return PayoutManager::ANOTHER_ACCOUNT;
     }
 
     /**
@@ -130,7 +134,11 @@ class DataProvider extends FormDataProvider
      */
     private static function sameAccount(string $one, string $other): bool
     {
-        $digits = static fn(string $number): string => (string)\preg_replace('/^PL/i', '', CreateOrderMessageMapper::accountNumber($number));
+        $digits = static fn(string $number): string => (string)\preg_replace(
+            '/^PL/i',
+            '',
+            BankAccountMapper::normalizeNumber($number),
+        );
 
         return $digits($one) !== '' && $digits($one) === $digits($other);
     }

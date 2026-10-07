@@ -11,9 +11,9 @@ use Magento\Framework\App\RequestInterface;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Polkurier\Shipping\Api\ShipmentRepositoryInterface;
 use Polkurier\Shipping\Model\ResourceModel\Shipment\CollectionFactory;
-use Polkurier\Shipping\Model\Shipment\DetailsLoader;
-use Polkurier\Shipping\Model\Shipment\DetailsView;
+use Polkurier\Shipping\Model\Shipment\Details\DetailsLoader;
 use Polkurier\Shipping\Ui\Component\Form\FormDataProvider;
+use Polkurier\Shipping\ViewModel\Adminhtml\ShipmentDetails;
 
 /**
  * The shipment details page: fills in the local copy of the Polkurier order if it's missing,
@@ -33,7 +33,7 @@ class DataProvider extends FormDataProvider
         private readonly RequestInterface $request,
         private readonly ShipmentRepositoryInterface $shipmentRepository,
         private readonly DetailsLoader $loader,
-        private readonly DetailsView $view,
+        private readonly ShipmentDetails $shipmentDetails,
         array $meta = [],
         array $data = [],
     ) {
@@ -51,6 +51,6 @@ class DataProvider extends FormDataProvider
         }
         $loaded = $this->loader->ensure($shipment);
 
-        return [$id => ['view' => $this->view->build($loaded['shipment'], $loaded['errors'])]];
+        return [$id => ['view' => $this->shipmentDetails->build($loaded['shipment'], $loaded['errors'])]];
     }
 }

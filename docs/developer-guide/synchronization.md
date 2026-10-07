@@ -16,24 +16,22 @@ the merchant can edit them on either side.
 | `Model\Sync\SyncEngine` | brings both sides level for one kind of entity |
 | `Model\Sync\AdapterInterface` | what the engine needs to know about one kind: fetch, map, save and delete locally |
 | `Model\Sync\PushableAdapterInterface` | for kinds the engine sends by itself (addresses, pack templates): push, delete remotely |
-| `Model\Sync\Adapter\*` | the adapters for addresses, bank accounts and pack templates |
+| `Model\<Entity>\<Entity>SyncAdapter` | the adapters for addresses, bank accounts and pack templates |
 | `Enum\SyncEntityEnum` | the kinds of entries synchronized: `Address`, `BankAccount`, `PackTemplate`, each with its admin label |
-| `Model\Sync\Synchronization` | runs every adapter, or those of the kinds asked for; implements `Api\SynchronizationInterface` |
-| `Model\Sync\RemoteClockInterface` | when a remote entry last changed |
-| `Model\Admin\*Handler` | save and delete from the admin screens, sending the entry straight away |
+| `Model\Sync\Synchronization` | runs every adapter, or those of the kinds asked for |
+| `Model\<Entity>\<Entity>Handler` | save and delete from the admin screens, sending the entry straight away |
 
-The adapters are registered in `etc/di.xml` as the `adapters` argument of
-`Model\Sync\Synchronization`, one per kind; each says which kind it handles through
-`getEntityType()`.
+`Model\Sync\Synchronization` takes the three adapters in its constructor, one per kind; each says
+which kind it handles through `getEntityType()`.
 
 ## One entry from the admin
 
 Saving or deleting an entry in the admin sends that entry alone, through
-`SynchronizationInterface::push()`: the engine runs as for a full sync, with the remote list read
-for conflicts and natural keys, but only for that entry. Other changes, on either side, wait for
-the hourly run or the *Synchronize with Polkurier* button. It returns the run's counts
-(`Api\Data\SyncResultInterface`), not a line of text: the admin action adds it to its one message, and a mass delete adds up those of all
-its rows.
+`Synchronization::push()`: the engine runs as for a full sync, with the remote list read for
+conflicts and natural keys, but only for that entry. Other changes, on either side, wait for the
+hourly run or the *Synchronize with Polkurier* button. It returns the run's counts
+(`Model\Sync\SyncResult`), not a line of text: the admin action adds it to its one message, and a
+mass delete adds up those of all its rows.
 
 ## One at a time
 
@@ -56,8 +54,8 @@ would otherwise look unchanged.
 
 - Only the local side changed: push.
 - Only the remote side changed: pull.
-- Both changed: the later change wins. Local rows have `updated_at`; the remote side's time comes
-  from `RemoteClockInterface`.
+- Both changed: the later change wins. Local rows have `updated_at`; Polkurier doesn't report
+  when its entries changed, so a remote change is dated to the sync that first sees it.
 - Deleted locally: rows are soft-deleted first (`deleted_at`), so the delete can be pushed, then
   removed.
 - Deleted remotely: the local row is removed, unless it changed locally since the last sync, in
@@ -75,21 +73,15 @@ error, `Exception\SynchronizationFailedException`, only when every kind asked fo
 task doesn't log that one again, since each kind's failure already is). `SyncEngine::run()` returns a `SyncResult` counting
 what was created, pulled, pushed, deleted, left unchanged, left unconfirmed and what failed.
 
-## The remote clock
-
-Polkurier doesn't report modification times for these entries yet. The current implementation,
-`Model\Sync\DetectedChangeClock`, dates a remote change to the sync that first sees it. When real
-modification times become available, only this preference needs to change.
-
 ## When it runs
 
-- Saving or deleting in the admin pushes that entry straight away (`Model\Admin\*Handler`).
+- Saving or deleting in the admin pushes that entry straight away (`Model\<Entity>\<Entity>Handler`).
 - `Cron\SynchronizeTask` runs the full sync hourly, and `Cron\RefreshCarriersTask` refreshes the
-  carrier list daily (`Model\Carrier\CarrierConfigSynchronizer`), when `sync/enabled` is on and the
+  carrier list daily (`Model\CarrierConfig\CarrierConfigSynchronizer`), when `sync/enabled` is on and the
   credentials are set. The list read is cached for a day (`CarrierCatalog::CACHE_LIFETIME`).
 - The *Synchronize with Polkurier* button on each settings screen runs it for that kind of entry,
   once the credentials are set.
-- `Api\SynchronizationInterface` lets you run it from your own code, for all kinds or some:
+- `Model\Sync\Synchronization` runs it from code, for all kinds or some:
 
   ```php
   $this->synchronization->synchronize([SyncEntityEnum::Address, SyncEntityEnum::PackTemplate]);
@@ -103,21 +95,21 @@ sync can't supply either, so:
 
 - the bank account adapter isn't a `PushableAdapterInterface`, so the engine leaves local changes and
   deletions in `STATE_UNCONFIRMED` instead of pushing them;
-- `Model\Admin\BankAccountHandler` sends them from the form, through
+- `Model\BankAccount\BankAccountHandler` sends them from the form, through
   `Model\BankAccount\Publisher`, with the confirmation the merchant entered
   (`Model\BankAccount\Confirmation`), then records the result with `SyncEngine::pushed()`;
 - `Publisher::isPinLocked()` tells the form which kind of confirmation to ask for, and
   `Publisher::requestCode()` sends the code.
 
 The form asks for the confirmation as it's saved: its data provider
-(`view/adminhtml/web/js/form/bank-account-provider.js`, over `form/confirmed-provider.js`) has the
+(`view/adminhtml/web/js/form/confirmed-provider.js`, set up in the form's XML) has the
 code sent (`polkurier/bankaccount/sendCode`) and asks for it in a modal, or asks for the PIN where
 bank accounts are locked, then submits the form with it; cancelled, nothing is posted. Deleting asks
 for the PIN the same way (`form/bank-account-delete.js`). The payout form works alike
-(`form/payout-provider.js`, `polkurier/moneybox/sendCode`), with the PIN optional beside the code.
+(`polkurier/payout/sendCode`), with the PIN optional beside the code.
 
 The PIN, two-factor token and code are never stored, logged, kept in the form's persisted data
-(`Controller\Adminhtml\MasterData\AbstractSave::getTransientFields()`) or put into events.
+(`Controller\Adminhtml\AbstractSave::getTransientFields()`) or put into events.
 
 Pulling bank accounts works as for the others.
 

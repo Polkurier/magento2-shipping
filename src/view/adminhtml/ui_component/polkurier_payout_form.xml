@@ -23,19 +23,28 @@
                 <class>back</class>
                 <label translate="true">Back</label>
             </button>
-            <button name="save" class="Polkurier\Shipping\Ui\Component\Control\RequestPayoutButton"/>
+            <button name="save" class="Polkurier\Shipping\Ui\Component\Form\Payout\RequestButton"/>
         </buttons>
     </settings>
     <dataSource name="polkurier_payout_form_data_source">
         <argument name="data" xsi:type="array">
             <item name="js_config" xsi:type="array">
-                <item name="component" xsi:type="string">Polkurier_Shipping/js/form/payout-provider</item>
+                <item name="component" xsi:type="string">Polkurier_Shipping/js/form/confirmed-provider</item>
+                <!-- Requested once confirmed with the code Polkurier sends then, and the security PIN
+                     where the money box settings are locked with one -->
+                <item name="confirmation" xsi:type="array">
+                    <item name="pinField" xsi:type="string">security_pin</item>
+                    <item name="optionalPin" xsi:type="boolean">true</item>
+                    <item name="optionalPinNote" xsi:type="string" translate="true">Only if the money box settings are locked with a PIN.</item>
+                    <item name="title" xsi:type="string" translate="true">Confirm the payout</item>
+                </item>
             </item>
         </argument>
         <settings>
             <submitUrl path="*/*/save"/>
         </settings>
-        <dataProvider class="Polkurier\Shipping\Ui\Component\Form\Payout\DataProvider" name="polkurier_payout_form_data_source">
+        <dataProvider class="Polkurier\Shipping\Ui\Component\Form\Payout\DataProvider"
+                      name="polkurier_payout_form_data_source">
             <settings>
                 <requestFieldName>id</requestFieldName>
                 <primaryFieldName>id</primaryFieldName>
@@ -57,7 +66,7 @@
                 </item>
             </argument>
         </container>
-        <container name="fee" component="Polkurier_Shipping/js/moneybox/fee"/>
+        <container name="fee" component="Polkurier_Shipping/js/payout/fee"/>
         <field name="orders" formElement="textarea">
             <settings>
                 <additionalClasses>
@@ -99,7 +108,8 @@
                 </select>
             </formElements>
         </field>
-        <field name="bank_account_choice" formElement="select" component="Polkurier_Shipping/js/form/element/shown-when-select">
+        <field name="bank_account_choice" formElement="select"
+               component="Polkurier_Shipping/js/form/element/shown-when-select">
             <argument name="data" xsi:type="array">
                 <item name="config" xsi:type="array">
                     <item name="shownWhen" xsi:type="array">
@@ -122,12 +132,13 @@
                 </select>
             </formElements>
         </field>
-        <field name="bank_account_number" formElement="input" component="Polkurier_Shipping/js/form/element/shown-when-input">
+        <field name="bank_account_number" formElement="input"
+               component="Polkurier_Shipping/js/form/element/shown-when-input">
             <argument name="data" xsi:type="array">
                 <item name="config" xsi:type="array">
                     <item name="shownWhen" xsi:type="array">
                         <item name="payout_type" xsi:type="string">ACCOUNT</item>
-                        <item name="bank_account_choice" xsi:type="string">new</item>
+                        <!-- bank_account_choice: Payouts::ANOTHER_ACCOUNT, set by the data provider -->
                     </item>
                 </item>
             </argument>

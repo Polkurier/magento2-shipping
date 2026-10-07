@@ -42,47 +42,47 @@ interface ShipmentInterface
      */
     public const array LIVE_STATES = [self::STATE_PENDING, self::STATE_CREATED, self::STATE_UNKNOWN];
 
-    public const string ENTITY_ID = 'entity_id';
-    public const string ORDER_ID = 'order_id';
-    public const string STORE_ID = 'store_id';
-    public const string SHIPMENT_ID = 'shipment_id';
-    public const string STATE = 'state';
-    public const string POLKURIER_NUMBER = 'polkurier_number';
-    public const string CARRIER_CODE = 'carrier_code';
-    public const string DESCRIPTION = 'description';
-    public const string RECIPIENT_POSTCODE = 'recipient_postcode';
-    public const string RECIPIENT_PHONE = 'recipient_phone';
-    public const string PACK_COUNT = 'pack_count';
-    public const string WAYBILLS = 'waybills';
-    public const string STATUS_CODE = 'status_code';
-    public const string STATUS_LABEL = 'status_label';
-    public const string STATUS_DATE = 'status_date';
-    public const string DELIVERED_AT = 'delivered_at';
-    public const string TRACKING_URL = 'tracking_url';
-    public const string PRICE_NET = 'price_net';
-    public const string PRICE_GROSS = 'price_gross';
-    public const string INSURANCE_AMOUNT = 'insurance_amount';
-    public const string COD_AMOUNT = 'cod_amount';
-    public const string COD_STATUS = 'cod_status';
-    public const string MULTI_PICKUP = 'multi_pickup';
-    public const string PICKUP_BOOKED = 'pickup_booked';
-    public const string IS_FINAL = 'is_final';
-    public const string STATUS_CHECKED_AT = 'status_checked_at';
-    public const string REQUEST = 'request';
-    public const string DRAFT = 'draft';
-    public const string DETAILS = 'details';
-    public const string DETAILS_SYNCED_AT = 'details_synced_at';
-    public const string TRACKING = 'tracking';
-    public const string TRACKING_SYNCED_AT = 'tracking_synced_at';
-    public const string SHIP_ITEMS = 'ship_items';
-    public const string TARGET_SHIPMENT_ID = 'target_shipment_id';
-    public const string EXTERNAL_ORDER_ID = 'external_order_id';
-    public const string RESERVED_SHIPMENT_NUMBER = 'reserved_shipment_number';
-    public const string SHIP_PACKAGES = 'ship_packages';
-    public const string LAST_ERROR = 'last_error';
-    public const string ATTENTION_NOTIFIED_AT = 'attention_notified_at';
-    public const string CREATED_AT = 'created_at';
-    public const string UPDATED_AT = 'updated_at';
+    public const string FIELD_ENTITY_ID = 'entity_id';
+    public const string FIELD_ORDER_ID = 'order_id';
+    public const string FIELD_STORE_ID = 'store_id';
+    public const string FIELD_SHIPMENT_ID = 'shipment_id';
+    public const string FIELD_STATE = 'state';
+    public const string FIELD_POLKURIER_NUMBER = 'polkurier_number';
+    public const string FIELD_CARRIER_CODE = 'carrier_code';
+    public const string FIELD_DESCRIPTION = 'description';
+    public const string FIELD_RECIPIENT_POSTCODE = 'recipient_postcode';
+    public const string FIELD_RECIPIENT_PHONE = 'recipient_phone';
+    public const string FIELD_PACK_COUNT = 'pack_count';
+    public const string FIELD_WAYBILLS = 'waybills';
+    public const string FIELD_STATUS_CODE = 'status_code';
+    public const string FIELD_STATUS_LABEL = 'status_label';
+    public const string FIELD_STATUS_DATE = 'status_date';
+    public const string FIELD_DELIVERED_AT = 'delivered_at';
+    public const string FIELD_TRACKING_URL = 'tracking_url';
+    public const string FIELD_PRICE_NET = 'price_net';
+    public const string FIELD_PRICE_GROSS = 'price_gross';
+    public const string FIELD_INSURANCE_AMOUNT = 'insurance_amount';
+    public const string FIELD_COD_AMOUNT = 'cod_amount';
+    public const string FIELD_COD_STATUS = 'cod_status';
+    public const string FIELD_MULTI_PICKUP = 'multi_pickup';
+    public const string FIELD_PICKUP_BOOKED = 'pickup_booked';
+    public const string FIELD_IS_FINAL = 'is_final';
+    public const string FIELD_STATUS_CHECKED_AT = 'status_checked_at';
+    public const string FIELD_REQUEST = 'request';
+    public const string FIELD_DRAFT = 'draft';
+    public const string FIELD_DETAILS = 'details';
+    public const string FIELD_DETAILS_SYNCED_AT = 'details_synced_at';
+    public const string FIELD_TRACKING = 'tracking';
+    public const string FIELD_TRACKING_SYNCED_AT = 'tracking_synced_at';
+    public const string FIELD_SHIP_ITEMS = 'ship_items';
+    public const string FIELD_TARGET_SHIPMENT_ID = 'target_shipment_id';
+    public const string FIELD_EXTERNAL_ORDER_ID = 'external_order_id';
+    public const string FIELD_RESERVED_SHIPMENT_NUMBER = 'reserved_shipment_number';
+    public const string FIELD_SHIP_PACKAGES = 'ship_packages';
+    public const string FIELD_LAST_ERROR = 'last_error';
+    public const string FIELD_ATTENTION_NOTIFIED_AT = 'attention_notified_at';
+    public const string FIELD_CREATED_AT = 'created_at';
+    public const string FIELD_UPDATED_AT = 'updated_at';
 
     /**
      * @return int|null
@@ -422,7 +422,7 @@ interface ShipmentInterface
 
     /**
      * The local copy of the order as Polkurier last reported it, or an empty array before it has
-     * been read. See {@see \Polkurier\Shipping\Model\Shipment\OrderDetails} for its shape.
+     * been read. See {@see \Polkurier\Shipping\Model\Shipment\Status\RemoteOrderApplier::fromOrder()} for its shape.
      *
      * @return array<string, mixed>
      */
@@ -562,7 +562,7 @@ interface ShipmentInterface
     public function setLastError(?string $lastError): static;
 
     /**
-     * When the admin was told it needs someone (Model\Admin\AttentionNotifier); a new attempt
+     * When the admin was told it needs someone (Model\Shipment\AttentionNotifier); a new attempt
      * clears it.
      *
      * @return string|null

@@ -17,35 +17,22 @@ interface AddressInterface extends SyncableInterface
     public const string TYPE_SENDER = 'SENDER';
     public const string TYPE_RECIPIENT = 'RECIPIENT';
 
-    public const string NAME = 'name';
-    public const string TYPE = 'type';
-    public const string PERSON = 'person';
-    public const string COMPANY = 'company';
-    public const string STREET = 'street';
-    public const string HOUSE_NUMBER = 'house_number';
-    public const string FLAT_NUMBER = 'flat_number';
-    public const string CITY = 'city';
-    public const string POSTCODE = 'postcode';
-    public const string PROVINCE = 'province';
-    public const string COUNTRY = 'country';
-    public const string POINT_ID = 'point_id';
-    public const string EMAIL = 'email';
-    public const string PHONE = 'phone';
-    public const string IS_DEFAULT = 'is_default';
-    public const string IS_COVER = 'is_cover';
-    public const string SHARED = 'shared';
-
-    /**
-     * @return string
-     */
-    public function getName(): string;
-
-    /**
-     * @param string $name
-     *
-     * @return $this
-     */
-    public function setName(string $name): static;
+    public const string FIELD_TYPE = 'type';
+    public const string FIELD_PERSON = 'person';
+    public const string FIELD_COMPANY = 'company';
+    public const string FIELD_STREET = 'street';
+    public const string FIELD_HOUSE_NUMBER = 'house_number';
+    public const string FIELD_FLAT_NUMBER = 'flat_number';
+    public const string FIELD_CITY = 'city';
+    public const string FIELD_POSTCODE = 'postcode';
+    public const string FIELD_PROVINCE = 'province';
+    public const string FIELD_COUNTRY = 'country';
+    public const string FIELD_POINT_ID = 'point_id';
+    public const string FIELD_EMAIL = 'email';
+    public const string FIELD_PHONE = 'phone';
+    public const string FIELD_IS_DEFAULT = 'is_default';
+    public const string FIELD_IS_COVER = 'is_cover';
+    public const string FIELD_SHARED = 'shared';
 
     /**
      * @return string

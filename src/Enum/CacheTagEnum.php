@@ -24,7 +24,7 @@ enum CacheTagEnum: string
     case Points = 'POLKURIER_POINTS';
 
     /**
-     * The pickup point map's token (Model\Checkout\MapTokenProvider).
+     * The pickup point map's token (Model\PickupPoint\MapTokenProvider).
      */
     case MapToken = 'POLKURIER_MAP_TOKEN';
 

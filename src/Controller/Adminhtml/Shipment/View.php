@@ -43,7 +43,7 @@ class View extends Action implements HttpGetActionInterface
         try {
             $shipment = $this->shipmentRepository->get((int)$this->getRequest()->getParam('id'));
         } catch (NoSuchEntityException) {
-            $this->messageManager->addErrorMessage(\__('This Polkurier shipment no longer exists.'));
+            $this->messageManager->addErrorMessage(__('This Polkurier shipment no longer exists.'));
 
             return $this->resultRedirectFactory->create()->setPath('*/*/index');
         }
@@ -53,7 +53,7 @@ class View extends Action implements HttpGetActionInterface
             throw new \LogicException('The admin area renders backend pages.');
         }
         $page->setActiveMenu('Polkurier_Shipping::shipments');
-        $page->getConfig()->getTitle()->prepend((string)\__(
+        $page->getConfig()->getTitle()->prepend((string)__(
             'Shipment details %1',
             $shipment->getPolkurierNumber() ?: '#' . $shipment->getId(),
         ));

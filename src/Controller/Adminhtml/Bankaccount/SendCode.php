@@ -10,7 +10,7 @@ namespace Polkurier\Shipping\Controller\Adminhtml\Bankaccount;
 use Magento\Backend\App\Action\Context;
 use Magento\Framework\Controller\Result\JsonFactory;
 use Polkurier\Shipping\Controller\Adminhtml\AbstractJsonAction;
-use Polkurier\Shipping\Model\Admin\CodeSent;
+use Polkurier\Shipping\Model\Admin\FlashMessageCollector;
 use Polkurier\Shipping\Model\BankAccount\Publisher;
 
 /**
@@ -32,6 +32,6 @@ class SendCode extends AbstractJsonAction
     {
         $token = $this->publisher->requestCode();
 
-        return ['token' => $token->getId(), 'message' => CodeSent::message($token)];
+        return ['token' => $token->getId(), 'message' => FlashMessageCollector::codeSent($token)];
     }
 }

@@ -13,7 +13,7 @@ use Magento\Eav\Setup\EavSetupFactory;
 use Magento\Framework\Setup\ModuleDataSetupInterface;
 use Magento\Framework\Setup\Patch\DataPatchInterface;
 use Magento\Framework\Setup\Patch\PatchRevertableInterface;
-use Polkurier\Shipping\Model\Shipment\ItemDimensions;
+use Polkurier\Shipping\Model\Shipment\Packing\ItemDimensionsProvider;
 
 /**
  * Product attributes for the size of one unit of a product as it's shipped, for packing orders into
@@ -33,9 +33,9 @@ readonly class AddProductDimensionsPatch implements DataPatchInterface, PatchRev
         $this->moduleDataSetup->getConnection()->startSetup();
         $eavSetup = $this->eavSetupFactory->create(['setup' => $this->moduleDataSetup]);
         $labels = [
-            ItemDimensions::LENGTH => 'Length (cm)',
-            ItemDimensions::WIDTH => 'Width (cm)',
-            ItemDimensions::HEIGHT => 'Height (cm)',
+            ItemDimensionsProvider::FIELD_LENGTH => 'Length (cm)',
+            ItemDimensionsProvider::FIELD_WIDTH => 'Width (cm)',
+            ItemDimensionsProvider::FIELD_HEIGHT => 'Height (cm)',
         ];
         $sortOrder = 10;
         foreach ($labels as $code => $label) {
@@ -70,7 +70,12 @@ readonly class AddProductDimensionsPatch implements DataPatchInterface, PatchRev
     public function revert(): void
     {
         $eavSetup = $this->eavSetupFactory->create(['setup' => $this->moduleDataSetup]);
-        foreach ([ItemDimensions::LENGTH, ItemDimensions::WIDTH, ItemDimensions::HEIGHT] as $code) {
+        $codes = [
+            ItemDimensionsProvider::FIELD_LENGTH,
+            ItemDimensionsProvider::FIELD_WIDTH,
+            ItemDimensionsProvider::FIELD_HEIGHT,
+        ];
+        foreach ($codes as $code) {
             $eavSetup->removeAttribute(Product::ENTITY, $code);
         }
     }

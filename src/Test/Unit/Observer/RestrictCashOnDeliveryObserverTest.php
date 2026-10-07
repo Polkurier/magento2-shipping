@@ -17,10 +17,10 @@ use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Polkurier\Shipping\Api\Data\QuotePointInterface;
+use Polkurier\Shipping\Api\QuotePointRepositoryInterface;
 use Polkurier\Shipping\Model\Carrier\CarrierCatalog;
-use Polkurier\Shipping\Model\Carrier\CarrierFeatures;
-use Polkurier\Shipping\Model\Config;
-use Polkurier\Shipping\Model\OrderPointStore;
+use Polkurier\Shipping\Model\Carrier\CarrierFeatureResolver;
+use Polkurier\Shipping\Model\Config\ConfigProvider;
 use Polkurier\Shipping\Observer\RestrictCashOnDeliveryObserver;
 use Polkurier\Webservice\Exception\ConnectionException;
 use Polkurier\Webservice\Response\Carrier;
@@ -36,7 +36,8 @@ class RestrictCashOnDeliveryObserverTest extends TestCase
     private array $collects = ['DPD' => true, 'INPOST_PACZKOMAT' => true, 'UPS' => false];
 
     /**
-     * @var array<int, array{string, bool}> the point chosen for each quote address: its method and whether it takes cash
+     * @var array<int, array{string, bool|null}> the point chosen for each quote address: its method and
+     *     whether it takes cash (null: not known)
      */
     private array $points = [];
 
@@ -62,11 +63,18 @@ class RestrictCashOnDeliveryObserverTest extends TestCase
         self::assertFalse($this->available('cashondelivery', ['polkurier_GLS']));
     }
 
-    public function testAPointThatDoesntTakeCashHidesIt(): void
+    public function testAPointThatDoesntTakeCashTurnsItOff(): void
     {
         $this->points[0] = ['INPOST_PACZKOMAT', false];
 
         self::assertFalse($this->available('cashondelivery', ['polkurier_INPOST_PACZKOMAT']));
+    }
+
+    public function testAPointNotKnownToTakeCashIsTakenTo(): void
+    {
+        $this->points[0] = ['INPOST_PACZKOMAT', null];
+
+        self::assertTrue($this->available('cashondelivery', ['polkurier_INPOST_PACZKOMAT']));
     }
 
     public function testAPointOfAnotherMethodDoesntCount(): void
@@ -98,16 +106,33 @@ class RestrictCashOnDeliveryObserverTest extends TestCase
 
     public function testInMultiAddressCheckoutEveryPolkurierAddressMustCollect(): void
     {
-        self::assertTrue($this->available('cashondelivery', [11 => 'polkurier_DPD', 12 => 'flatrate_flatrate'], multi: true));
-        self::assertFalse($this->available('cashondelivery', [11 => 'polkurier_DPD', 12 => 'polkurier_UPS'], multi: true));
+        self::assertTrue(
+            $this->available('cashondelivery', [11 => 'polkurier_DPD', 12 => 'flatrate_flatrate'], multi: true),
+        );
+        self::assertFalse(
+            $this->available('cashondelivery', [11 => 'polkurier_DPD', 12 => 'polkurier_UPS'], multi: true),
+        );
     }
 
     public function testInMultiAddressCheckoutEachAddressHasItsOwnPoint(): void
     {
         $this->points[12] = ['INPOST_PACZKOMAT', false];
 
-        self::assertFalse($this->available('cashondelivery', [11 => 'polkurier_DPD', 12 => 'polkurier_INPOST_PACZKOMAT'], multi: true));
-        self::assertTrue($this->available('cashondelivery', [11 => 'polkurier_INPOST_PACZKOMAT', 13 => 'polkurier_DPD'], multi: true));
+        self::assertFalse(
+            $this->available('cashondelivery', [11 => 'polkurier_DPD', 12 => 'polkurier_INPOST_PACZKOMAT'], multi: true),
+        );
+        self::assertTrue(
+            $this->available('cashondelivery', [11 => 'polkurier_INPOST_PACZKOMAT', 13 => 'polkurier_DPD'], multi: true),
+        );
+    }
+
+    public function testInMultiAddressCheckoutACarrierThatCantCollectHidesItWhateverThePoints(): void
+    {
+        $this->points[11] = ['INPOST_PACZKOMAT', false];
+
+        self::assertFalse(
+            $this->available('cashondelivery', [11 => 'polkurier_INPOST_PACZKOMAT', 12 => 'polkurier_UPS'], multi: true),
+        );
     }
 
     /**
@@ -117,7 +142,10 @@ class RestrictCashOnDeliveryObserverTest extends TestCase
     {
         $addresses = [];
         foreach ($methods as $id => $method) {
-            $address = $this->getMockBuilder(Address::class)->disableOriginalConstructor()->onlyMethods(['getShippingMethod', 'getId'])->getMock();
+            $address = $this->getMockBuilder(Address::class)
+                ->disableOriginalConstructor()
+                ->onlyMethods(['getShippingMethod', 'getId'])
+                ->getMock();
             $address->method('getShippingMethod')->willReturn($method);
             $address->method('getId')->willReturn($id);
             $addresses[] = $address;
@@ -144,7 +172,7 @@ class RestrictCashOnDeliveryObserverTest extends TestCase
 
     private function observer(): RestrictCashOnDeliveryObserver
     {
-        $config = $this->createStub(Config::class);
+        $config = $this->createStub(ConfigProvider::class);
         $config->method('getCodPaymentMethods')->willReturn(['cashondelivery']);
         $catalog = $this->createStub(CarrierCatalog::class);
         $catalog->method('getCarrier')->willReturnCallback(function (string $code): ?Carrier {
@@ -154,19 +182,21 @@ class RestrictCashOnDeliveryObserverTest extends TestCase
 
             return isset($this->collects[$code]) ? new Carrier($code, $code, false) : null;
         });
-        $features = $this->createStub(CarrierFeatures::class);
-        $features->method('isCodAvailable')->willReturnCallback(fn(Carrier $carrier): bool => $this->collects[$carrier->getServiceCode()]);
-        $store = $this->createStub(OrderPointStore::class);
-        $store->method('getForQuote')->willReturnCallback(function (int $quoteId, int $addressId): ?QuotePointInterface {
-            if (!isset($this->points[$addressId])) {
-                return null;
-            }
-            $point = $this->createStub(QuotePointInterface::class);
-            $point->method('getMethodCode')->willReturn($this->points[$addressId][0]);
-            $point->method('isPointCod')->willReturn($this->points[$addressId][1]);
+        $features = $this->createStub(CarrierFeatureResolver::class);
+        $features->method('isCodAvailable')
+            ->willReturnCallback(fn(Carrier $carrier): bool => $this->collects[$carrier->getServiceCode()]);
+        $store = $this->createStub(QuotePointRepositoryInterface::class);
+        $store->method('getForQuote')
+            ->willReturnCallback(function (int $quoteId, int $addressId): ?QuotePointInterface {
+                if (!isset($this->points[$addressId])) {
+                    return null;
+                }
+                $point = $this->createStub(QuotePointInterface::class);
+                $point->method('getMethodCode')->willReturn($this->points[$addressId][0]);
+                $point->method('getPointCod')->willReturn($this->points[$addressId][1]);
 
-            return $point;
-        });
+                return $point;
+            });
         $logger = $this->createStub(LoggerInterface::class);
         $logger->method('warning')->willReturnCallback(function (string|\Stringable $message): void {
             $this->warnings[] = (string)$message;

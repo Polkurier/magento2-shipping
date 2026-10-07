@@ -14,18 +14,18 @@
 Polkurier account. `Polkurier::methodCodeOf()` extracts it from a shipping method, or returns null
 for other carriers' methods; `Polkurier::isOrderOf()` tells whether an order was placed with one, and `Polkurier::methodOf()`
 builds the method code from a carrier code. The carrier class is a thin adapter: rates come from
-`Model\Carrier\RateCollector`, tracking titles from `Model\Shipment\TrackingLookup`, and shipping
-labels from `Model\Shipment\NativeLabel`.
+`Model\Carrier\RateCollector`, the shipment of a waybill from `Model\Shipment\ShipmentFinder`, and
+shipping labels from `Model\Shipment\Native\NativeLabelService`.
 
 `collectRates()` returns nothing when the method is disabled for the website; otherwise
 `RateCollector::collect()`:
 
-1. loads the switched-on carriers (`Model\Carrier\CarrierConfigs`), leaving out those the account
+1. loads the switched-on carriers (`Model\CarrierConfig\CarrierConfigProvider`), leaving out those the account
    no longer offers;
 2. checks them against the account's carrier list (`Model\Carrier\CarrierCatalog`, cached). For a
    destination outside Poland, only carriers that deliver abroad are kept. If the list can't be
    fetched, domestic carriers are still offered;
-3. prices each carrier through `Model\Pricing\PriceCalculatorPool`. A carrier the calculator
+3. prices each carrier through `Model\Carrier\Pricing\PriceCalculatorPool`. A carrier the calculator
    returns `null` for is left out, even with free shipping; the others cost 0 when the request has
    free shipping;
 4. titles each method with `CarrierConfigInterface::getLabelForStore()`.
@@ -43,28 +43,29 @@ storefront, and the method row template shows it. The multi-address checkout pri
 as escaped text, so the bridge module puts the logos in with a script there.
 
 Tracking is available: `getTrackingInfo()` finds the shipment by waybill
-(`Model\Shipment\TrackingLookup`) and returns the carrier's tracking link, titled with the method's
-label. The carrier also implements Magento's label hooks, described in
+(`ShipmentFinder::latestByWaybill()`) and returns the carrier's tracking link, titled with the
+method's label in the order's store (`CarrierConfigProvider::getLabel()`). The carrier also
+implements Magento's label hooks, described in
 [Shipping labels in Magento](magento-labels.md).
 
 ## Pricing
 
-Prices are the merchant's own. `Model\Pricing\PriceCalculatorInterface::calculate()` gets the
+Prices are the merchant's own. `Model\Carrier\Pricing\PriceCalculatorInterface::calculate()` gets the
 carrier's settings and a `RateContext` (subtotal, total weight), and returns a price or `null`
 for "not offered". The pool picks a calculator by the carrier's pricing model:
 
 | Pricing model | Calculator |
 |---|---|
-| `FIXED` | `Model\Pricing\Fixed` |
-| `TIER_SUBTOTAL` | `Model\Pricing\Tiers` (virtual type `SubtotalTiers`) |
-| `TIER_WEIGHT` | `Model\Pricing\Tiers` (virtual type `WeightTiers`) |
-| `TIER_SUBTOTAL_WEIGHT` | `Model\Pricing\Tiers` (virtual type `SubtotalWeightTiers`) |
+| `FIXED` | `Model\Carrier\Pricing\FixedPriceCalculator` |
+| `TIER_SUBTOTAL` | `Model\Carrier\Pricing\TieredPriceCalculator` (virtual type `SubtotalTiersVirtual`) |
+| `TIER_WEIGHT` | `Model\Carrier\Pricing\TieredPriceCalculator` (virtual type `WeightTiersVirtual`) |
+| `TIER_SUBTOTAL_WEIGHT` | `Model\Carrier\Pricing\TieredPriceCalculator` (virtual type `SubtotalWeightTiersVirtual`) |
 
 The settings are stored as JSON in `price_info`, and their shape depends on the model. With tiers,
 the highest tier the cart reaches wins; a cart that reaches none gets `null`.
 
-The subtotal is `Model\Pricing\CartValue`'s: the cart's value after discounts, with or without
-tax as `checkout/tier_cart_value` says (`Config::getTierCartValue()`, gross by default), in the
+The subtotal is `RateCollector::cartValueOf()`: the cart's value after discounts, with or without
+tax as `checkout/tier_cart_value` says (`ConfigProvider::getTierCartValue()`, gross by default), in the
 base currency. It's summed from the rate request's items without a parent item, whose rows hold
 their children's totals. Rates are collected after Magento's `tax_subtotal` and `discount`
 collectors and before `tax`, so each row's totals with and without tax and its discount are
@@ -74,15 +75,15 @@ items falls back to Magento's `package_value_with_discount`.
 
 ## Pickup points
 
-What `CarrierFeatures` reports about a carrier decides whether it needs a pickup point. For those
+What `CarrierFeatureResolver` reports about a carrier decides whether it needs a pickup point. For those
 methods, the checkout shows a point picker (`view/frontend/web/js/view/checkout/pickup-point.js`,
 rendered in a `pickup-point-choice` region of the module's copy of the method row template, in
 the `col-carrier` cell, which the module's methods leave without a carrier title; the
 `label_carrier_*` id that names the radio button is on the title's own span, so the point doesn't
 become part of the method's name; opening the map selects the method) that opens the Polkurier map through
 `view/frontend/web/js/model/points-map.js`. The map script is loaded from Polkurier's map host and
-needs a token, which `Model\Checkout\MapTokenProvider` fetches and caches per account. The map
-configuration reaches the page through `Model\Checkout\MapConfigProvider`, under
+needs a token, which `Model\PickupPoint\MapTokenProvider` fetches and caches per account. The map
+configuration reaches the page through `Model\PickupPoint\MapConfigProvider`, under
 `window.checkoutConfig.pickupPoints`.
 
 The token runs out some hours after it's issued: the token says when (it's a JWT with `exp`), and
@@ -102,7 +103,7 @@ From there:
 1. The payload extender mixin adds `pickup_point_id` to the shipping information's extension
    attributes. The shipping step's validation mixin refuses to continue without a point.
 2. `Plugin\Checkout\ShippingInformationManagementPlugin` passes it to
-   `Model\Checkout\PointSelection`. That class looks the point up with Polkurier (cached for a day,
+   `Model\PickupPoint\PointSelectionRecorder`. That class looks the point up with Polkurier (cached for a day,
    see [Talking to Polkurier](talking-to-polkurier.md)), refuses it when it's closed or lacks a
    function the map is set to require (*Show only points that*), and stores it in
    `polkurier_quote_point`, or removes it when the customer switches to another method. When
@@ -113,7 +114,7 @@ From there:
 4. `Observer\DescribePickupPointObserver`, on the same event (and, registered by the bridge module, on
    `checkout_type_multishipping_create_orders_single` for each multi-address order), adds the point
    to the order's shipping description before the order is saved, through
-   `Model\Checkout\PointDescription`: "Paczkomat InPost, pickup point WAW01A (address)", the address
+   `Model\PickupPoint\PointDescriptionBuilder`: "Paczkomat InPost, pickup point WAW01A (address)", the address
    left out when it would overflow the 255-character column. Magento prints that description in
    the order's e-mails, the customer's account, invoices, packing slips and PDFs, so the point
    shows wherever the method does. Tracks are titled with the carrier's label instead.
@@ -122,14 +123,27 @@ From there:
 6. `Plugin\Sales\OrderRepositoryPlugin` exposes it as the `polkurier_point` extension attribute of
    `OrderInterface`.
 
-`Model\OrderPointStore` is the one place that reads and writes both tables, handing out
-`Api\Data\QuotePointInterface` and `Api\Data\OrderPointInterface`.
+`Api\QuotePointRepositoryInterface` and `Api\OrderPointRepositoryInterface` are the one place
+that reads and writes each table, handing out `Api\Data\QuotePointInterface` and
+`Api\Data\OrderPointInterface`; `OrderPointRepositoryInterface::copyFromQuote()` gives an order
+the point chosen at checkout.
 
 ## Cash on delivery at checkout
 
-`Observer\RestrictCashOnDeliveryObserver` (`payment_method_is_active`) hides the payment methods
-configured as cash on delivery when the chosen carrier can't collect, or the chosen point doesn't
-accept it, for any of the cart's addresses.
+`Observer\RestrictCashOnDeliveryObserver` (`payment_method_is_active`) turns off the payment
+methods configured as cash on delivery when the chosen carrier can't collect, or the chosen point
+doesn't accept it, for any of the cart's addresses. Placing an order with one is refused then,
+as with any payment method that isn't available.
+
+When the carrier collects but the chosen point doesn't, the payment step says why:
+`view/checkout/point-refused-cod.js`, in its `afterMethods` region, shows a note when the shipping
+method's carrier collects cash on delivery (`cod` of the method in the map configuration) and the
+point chosen doesn't (`cod` of the point, from the map, or of the stored one when the checkout
+opens). The multi-address checkout's billing step shows the same note (see the bridge).
+
+`point_cod` is null when it isn't known whether the point accepts cash on delivery, as when
+Polkurier couldn't be asked while the point was chosen; then it's taken to. Only a point Polkurier
+says doesn't accept it turns cash on delivery off.
 
 ## Multi-address checkout
 
@@ -139,7 +153,7 @@ which requires this module and `magento/module-multishipping`. Its README descri
 
 What it builds on stays here: points are stored per quote address
 (`polkurier_quote_point.quote_address_id`, 0 in the regular checkout), through
-`Model\Checkout\PointSelection`; the picker's configuration is
+`Model\PickupPoint\PointSelectionRecorder`; the picker's configuration is
 `MapConfigProvider::getMapConfig()`, the same as the regular checkout's; the map is
 `view/frontend/web/js/model/points-map.js`, the styles `view/frontend/web/css/pickup-point.css`;
 and `Observer\DescribePickupPointObserver` names each order's point in its shipping description.

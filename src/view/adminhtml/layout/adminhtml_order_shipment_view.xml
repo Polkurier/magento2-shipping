@@ -12,13 +12,15 @@
             <!-- Above Payment & Shipping Method: the Polkurier options of a label created on this
                  page, for a shipment whose Polkurier order was cancelled or that never had one,
                  with the packaging window's pack templates -->
-            <block class="Magento\Backend\Block\Template" name="polkurier_label_options" template="Polkurier_Shipping::shipment/label-options.phtml">
+            <block class="Magento\Backend\Block\Template" name="polkurier_label_options"
+                   template="Polkurier_Shipping::shipment/label-options.phtml">
                 <arguments>
                     <argument name="view_model" xsi:type="object">Polkurier\Shipping\ViewModel\Adminhtml\LabelOptions</argument>
                 </arguments>
             </block>
             <!-- Under them: every Polkurier order the shipment has had -->
-            <block class="Magento\Backend\Block\Template" name="polkurier_shipment_orders" template="Polkurier_Shipping::shipment/polkurier-orders.phtml">
+            <block class="Magento\Backend\Block\Template" name="polkurier_shipment_orders"
+                   template="Polkurier_Shipping::shipment/polkurier-orders.phtml">
                 <arguments>
                     <argument name="view_model" xsi:type="object">Polkurier\Shipping\ViewModel\Adminhtml\LabelOptions</argument>
                 </arguments>
@@ -26,9 +28,10 @@
             </block>
             <!-- In the Shipping and Tracking Information, under the order's shipping method: the
                  carrier and point this shipment's parcels went with -->
-            <block class="Magento\Backend\Block\Template" name="polkurier_shipped_with" template="Polkurier_Shipping::order/shipped-with.phtml">
+            <block class="Magento\Backend\Block\Template" name="polkurier_shipped_with"
+                   template="Polkurier_Shipping::order/shipped-with.phtml">
                 <arguments>
-                    <argument name="view_model" xsi:type="object">Polkurier\Shipping\ViewModel\Adminhtml\ShippedWith</argument>
+                    <argument name="view_model" xsi:type="object">Polkurier\Shipping\ViewModel\Adminhtml\ActualShipping</argument>
                 </arguments>
             </block>
         </referenceBlock>

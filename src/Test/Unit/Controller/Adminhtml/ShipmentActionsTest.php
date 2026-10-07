@@ -13,29 +13,38 @@ use Magento\Framework\Url\EncoderInterface;
 use Magento\Sales\Model\Order;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\MockObject\MockObject;
 use Polkurier\Shipping\Api\Data\ShipmentDraftInterface;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
+use Polkurier\Shipping\Api\PackTemplateRepositoryInterface;
 use Polkurier\Shipping\Api\ShipmentManagementInterface;
 use Polkurier\Shipping\Controller\Adminhtml\Config\TestConnection;
 use Polkurier\Shipping\Controller\Adminhtml\Shipment\MassPickup;
 use Polkurier\Shipping\Controller\Adminhtml\Shipment\Pack;
+use Polkurier\Shipping\Controller\Adminhtml\Shipment\RequestedShipments;
 use Polkurier\Shipping\Controller\Adminhtml\Shipment\Save;
-use Polkurier\Shipping\Model\Config;
-use Polkurier\Shipping\Model\ErrorMessages;
-use Polkurier\Shipping\Model\Sdk\ClientPool;
-use Polkurier\Shipping\Model\Shipment\AutoPacker;
+use Polkurier\Shipping\Model\Config\ConfigProvider;
+use Polkurier\Shipping\Model\Sdk\ErrorMessageResolver;
+use Polkurier\Shipping\Model\Sdk\PolkurierClient;
 use Polkurier\Shipping\Model\Shipment\Draft;
+use Polkurier\Shipping\Model\Shipment\Draft\DraftHydrator;
+use Polkurier\Shipping\Model\Shipment\Draft\ItemFactory;
 use Polkurier\Shipping\Model\Shipment\Draft\Pack as DraftPack;
-use Polkurier\Shipping\Model\Shipment\DraftHydrator;
-use Polkurier\Shipping\Model\Shipment\MagentoShipment;
-use Polkurier\Shipping\Model\Shipment\OwnOrders;
-use Polkurier\Shipping\Model\Shipment\Pickups;
-use Polkurier\Shipping\Model\Shipment\RejectedDraft;
-use Polkurier\Shipping\Model\Shipment\RequestedShipments;
+use Polkurier\Shipping\Model\Shipment\Draft\PackFactory;
+use Polkurier\Shipping\Model\Shipment\Native\NativeShipmentService;
+use Polkurier\Shipping\Model\Shipment\OrderLoader;
+use Polkurier\Shipping\Model\Shipment\Packing\AutoPacker;
+use Polkurier\Shipping\Model\Shipment\Packing\ItemDimensionsProvider;
+use Polkurier\Shipping\Model\Shipment\PickupService;
+use Polkurier\Shipping\Model\Shipment\Placement\ManualEntrySaver;
+use Polkurier\Shipping\Model\Shipment\Placement\RejectedDraftStorage;
+use Polkurier\Shipping\Model\Shipment\Valuation\OrderAmountCalculator;
 use Polkurier\Shipping\Test\Unit\Support\AdminActionTestCase;
+use Polkurier\Shipping\Test\Unit\Support\NewingObjectManager;
 use Polkurier\Webservice\Api\Service\UtilsServiceInterface;
 use Polkurier\Webservice\Exception\ConnectionException;
 use Polkurier\Webservice\Http\Request\AuthorizationMessage;
+use Polkurier\Webservice\Http\Request\AuthorizationMessageFactory;
 use Polkurier\Webservice\Response\Util\AuthConfirmationMessage;
 
 #[CoversClass(Save::class)]
@@ -45,6 +54,8 @@ use Polkurier\Webservice\Response\Util\AuthConfirmationMessage;
 #[AllowMockObjectsWithoutExpectations]
 class ShipmentActionsTest extends AdminActionTestCase
 {
+    private Draft $draft;
+
     /**
      * @var array<string, mixed>|null
      */
@@ -54,7 +65,8 @@ class ShipmentActionsTest extends AdminActionTestCase
     {
         $this->post = ['order_id' => '29'];
         $management = $this->createStub(ShipmentManagementInterface::class);
-        $management->method('create')->willReturn($this->shipment(ShipmentInterface::STATE_CREATED, 'POL1', ['WB-1', 'WB-2']));
+        $management->method('create')
+            ->willReturn($this->shipment(ShipmentInterface::STATE_CREATED, 'POL1', ['WB-1', 'WB-2']));
 
         $this->save($management)->execute();
 
@@ -67,7 +79,7 @@ class ShipmentActionsTest extends AdminActionTestCase
     {
         $this->post = ['order_id' => '29', 'recipient_phone' => '600'];
         $management = $this->createStub(ShipmentManagementInterface::class);
-        $management->method('create')->willThrowException(new LocalizedException(\__('Polkurier refused: telefon')));
+        $management->method('create')->willThrowException(new LocalizedException(__('Polkurier refused: telefon')));
 
         $this->save($management)->execute();
 
@@ -76,11 +88,42 @@ class ShipmentActionsTest extends AdminActionTestCase
         self::assertSame(['order_id' => '29', 'recipient_phone' => '600'], $this->kept);
     }
 
+    public function testWhatTheAdminMayNotChangeIsntKept(): void
+    {
+        $this->post = ['order_id' => '29'];
+        $this->denied = ['Polkurier_Shipping::addresses', 'Polkurier_Shipping::pack_templates'];
+        $draft = (new Draft())
+            ->setNewSender(true)
+            ->setKeepingNewSender(true)
+            ->setNewSenderName('Magazyn')
+            ->setNewBankAccount(true)
+            ->setKeepingNewBankAccount(true)
+            ->setNewBankAccountNumber('61 1090 1014 0000 0712 1981 2874')
+            ->setPacks([(new DraftPack())->setKeepAs('Tuba'), (new DraftPack())->setTemplateId(3)->setKeepAs('')]);
+        $management = $this->createMock(ShipmentManagementInterface::class);
+        $management->expects(self::once())
+            ->method('create')
+            ->with(29, self::callback(
+                static fn(Draft $kept): bool => !$kept->isKeepingNewSender()
+                    && $kept->isKeepingNewBankAccount()
+                    && $kept->getPacks()[0]->getKeepAs() === '',
+            ))
+            ->willReturn($this->shipment(ShipmentInterface::STATE_CREATED, 'POL1', ['WB-1']));
+
+        $this->save($management, $draft)->execute();
+
+        self::assertSame([
+            '"Magazyn" wasn\'t saved to addresses: you aren\'t allowed to change them.',
+            '"Tuba" wasn\'t saved to pack templates: you aren\'t allowed to change them.',
+        ], $this->messages['warning']);
+    }
+
     public function testAnUnconfirmedShipmentOpensWithAWarningToReconcileIt(): void
     {
         $this->post = ['order_id' => '29'];
         $management = $this->createStub(ShipmentManagementInterface::class);
-        $management->method('create')->willReturn($this->shipment(ShipmentInterface::STATE_UNKNOWN, null, [], 'Timed out.'));
+        $management->method('create')
+            ->willReturn($this->shipment(ShipmentInterface::STATE_UNKNOWN, null, [], 'Timed out.'));
 
         $this->save($management)->execute();
 
@@ -93,28 +136,45 @@ class ShipmentActionsTest extends AdminActionTestCase
     public function testPackingWithoutChosenItemsPacksWhatTheOrderHasLeft(): void
     {
         $this->params = ['data' => ['order_id' => '29']];
-        $packer = $this->createMock(AutoPacker::class);
+        $packer = $this->packer([5 => 2.0]);
         $packer->expects(self::once())->method('pack')->with(self::anything(), [5 => 2.0])
-            ->willReturn(['packs' => [(new DraftPack())->setAmount(1)], 'unmeasured' => [], 'unweighed' => ['Mug'], 'unweighed_own' => [], 'templates' => true]);
+            ->willReturn([
+                'packs' => [(new DraftPack())->setAmount(1)],
+                'unmeasured' => [],
+                'unweighed' => ['Mug'],
+                'unweighed_own' => [],
+                'templates' => true,
+            ]);
 
-        $this->pack($packer, [5 => 2.0])->execute();
+        $this->pack($packer)->execute();
 
         self::assertFalse($this->json['error'] ?? true);
         self::assertTrue($this->json['estimated']);
-        self::assertSame('These products have no weight, so their parcels take the pack template\'s weight: Mug.', $this->json['message']);
+        self::assertSame(
+            'These products have no weight, so their parcels take the pack template\'s weight: Mug.',
+            $this->json['message'],
+        );
     }
 
     public function testAParcelOfItsOwnSizeWithoutAWeightIsToBeWeighedByHand(): void
     {
         $this->params = ['data' => ['order_id' => '29']];
-        $packer = $this->createStub(AutoPacker::class);
-        $packer->method('pack')->willReturn(['packs' => [(new DraftPack())->setAmount(1)], 'unmeasured' => [], 'unweighed' => ['Mug', 'Rug'], 'unweighed_own' => ['Rug'], 'templates' => true]);
+        $packer = $this->packer([5 => 2.0]);
+        $packer->method('pack')
+            ->willReturn([
+                'packs' => [(new DraftPack())->setAmount(1)],
+                'unmeasured' => [],
+                'unweighed' => ['Mug', 'Rug'],
+                'unweighed_own' => ['Rug'],
+                'templates' => true,
+            ]);
 
-        $this->pack($packer, [5 => 2.0])->execute();
+        $this->pack($packer)->execute();
 
         self::assertSame(
-            'These products have no weight, so their parcels take the pack template\'s weight: Mug.'
-            . ' These products have no weight and their parcels have no pack template, so enter those parcels\' weights yourself: Rug.',
+            'These products have no weight, so their parcels take the pack template\'s weight: Mug. '
+            . 'These products have no weight and their parcels have no pack '
+            . 'template, so enter those parcels\' weights yourself: Rug.',
             $this->json['message'],
         );
     }
@@ -122,10 +182,10 @@ class ShipmentActionsTest extends AdminActionTestCase
     public function testNothingLeftToShipIsSaidSo(): void
     {
         $this->params = ['data' => ['order_id' => '29']];
-        $packer = $this->createMock(AutoPacker::class);
+        $packer = $this->packer([]);
         $packer->expects(self::never())->method('pack');
 
-        $this->pack($packer, [])->execute();
+        $this->pack($packer)->execute();
 
         self::assertSame(['error' => true, 'message' => 'Everything in this order is shipped already.'], $this->json);
     }
@@ -134,11 +194,17 @@ class ShipmentActionsTest extends AdminActionTestCase
     {
         // Its items count as shipped on the order: what the order has left is not what it carries.
         $this->params = ['data' => ['order_id' => '29', 'target_shipment_id' => '11']];
-        $packer = $this->createMock(AutoPacker::class);
+        $packer = $this->packer([], 11, [7 => 1.0]);
         $packer->expects(self::once())->method('pack')->with(self::anything(), [7 => 1.0])
-            ->willReturn(['packs' => [(new DraftPack())->setAmount(1)], 'unmeasured' => [], 'unweighed' => [], 'unweighed_own' => [], 'templates' => true]);
+            ->willReturn([
+                'packs' => [(new DraftPack())->setAmount(1)],
+                'unmeasured' => [],
+                'unweighed' => [],
+                'unweighed_own' => [],
+                'templates' => true,
+            ]);
 
-        $this->pack($packer, [], 11, [7 => 1.0])->execute();
+        $this->pack($packer)->execute();
 
         self::assertFalse($this->json['error'] ?? true);
     }
@@ -146,12 +212,25 @@ class ShipmentActionsTest extends AdminActionTestCase
     public function testUnmeasuredProductsAreNamed(): void
     {
         $this->params = ['data' => ['order_id' => '29']];
-        $packer = $this->createStub(AutoPacker::class);
-        $packer->method('pack')->willReturn(['packs' => [], 'unmeasured' => ['Mug', 'Lamp'], 'unweighed' => [], 'unweighed_own' => [], 'templates' => true]);
+        $packer = $this->packer([5 => 2.0]);
+        $packer->method('pack')
+            ->willReturn([
+                'packs' => [],
+                'unmeasured' => ['Mug', 'Lamp'],
+                'unweighed' => [],
+                'unweighed_own' => [],
+                'templates' => true,
+            ]);
 
-        $this->pack($packer, [5 => 2.0])->execute();
+        $this->pack($packer)->execute();
 
-        self::assertSame(['error' => true, 'message' => 'Add shipping dimensions to these products to pack them automatically: Mug, Lamp.'], $this->json);
+        self::assertSame(
+            [
+                'error' => true,
+                'message' => 'Add shipping dimensions to these products to pack them automatically: Mug, Lamp.',
+            ],
+            $this->json,
+        );
     }
 
     public function testAMaskedTokenIsTheSavedOne(): void
@@ -192,7 +271,10 @@ class ShipmentActionsTest extends AdminActionTestCase
             throw new ConnectionException('Timed out.');
         })->execute();
 
-        self::assertSame(['error' => true, 'message' => 'Polkurier could not be reached, or did not answer in time: Timed out.'], $this->json);
+        self::assertSame(
+            ['error' => true, 'message' => 'Polkurier could not be reached, or did not answer in time: Timed out.'],
+            $this->json,
+        );
     }
 
     public function testOnlyShipmentsAwaitingACollectivePickupGoToItsForm(): void
@@ -227,7 +309,7 @@ class ShipmentActionsTest extends AdminActionTestCase
             $this->context(),
             $requested,
             $this->createStub(EncoderInterface::class),
-            (new \ReflectionClass(Pickups::class))->newInstanceWithoutConstructor(),
+            (new \ReflectionClass(PickupService::class))->newInstanceWithoutConstructor(),
         );
     }
 
@@ -243,49 +325,83 @@ class ShipmentActionsTest extends AdminActionTestCase
         return $shipment;
     }
 
-    private function save(ShipmentManagementInterface $management): Save
+    private function save(ShipmentManagementInterface $management, ?ShipmentDraftInterface $draft = null): Save
     {
         $persistor = $this->createStub(DataPersistorInterface::class);
         $persistor->method('set')->willReturnCallback(function (string $key, mixed $data): void {
             $this->kept = $data;
         });
         $hydrator = $this->createStub(DraftHydrator::class);
-        $hydrator->method('fromArray')->willReturn($this->createStub(ShipmentDraftInterface::class));
+        $hydrator->method('fromArray')->willReturn($draft ?? $this->createStub(ShipmentDraftInterface::class));
 
-        return new Save($this->context(), $management, $hydrator, new RejectedDraft($persistor));
+        return new Save(
+            $this->context(),
+            $management,
+            $hydrator,
+            new RejectedDraftStorage($persistor),
+            $this->createStub(ManualEntrySaver::class),
+            $this->flashMessageCollectorFactory(),
+        );
+    }
+
+    private function pack(AutoPacker $packer): Pack
+    {
+        $orders = $this->createStub(OrderLoader::class);
+        $orders->method('getForPolkurier')->willReturn($this->createStub(Order::class));
+        $hydrator = $this->createStub(DraftHydrator::class);
+        $hydrator->method('fromArray')->willReturn($this->draft);
+        $hydrator->method('toArray')->willReturn([ShipmentDraftInterface::FIELD_PACKS => [['amount' => 1]]]);
+
+        return new Pack($this->context(), $this->jsonFactory(), $orders, $hydrator, $packer);
     }
 
     /**
+     * The packer with what the order has left, or the Magento shipment carries; its packing
+     * itself is stubbed, as AutoPackerTest's.
+     *
      * @param array<int, float> $left what the order has left to ship
      * @param array<int, float> $inShipment what the Magento shipment of the draft carries
      */
-    private function pack(AutoPacker $packer, array $left, ?int $targetId = null, array $inShipment = []): Pack
+    private function packer(array $left, ?int $targetId = null, array $inShipment = []): AutoPacker&MockObject
     {
-        $orders = $this->createStub(OwnOrders::class);
-        $orders->method('get')->willReturn($this->createStub(Order::class));
-        $draft = new Draft();
-        $draft->setItems([])->setShipmentType('box')->setTargetShipmentId($targetId);
-        $hydrator = $this->createStub(DraftHydrator::class);
-        $hydrator->method('fromArray')->willReturn($draft);
-        $hydrator->method('toArray')->willReturn([ShipmentDraftInterface::PACKS => [['amount' => 1]]]);
-        $magentoShipment = $this->createStub(MagentoShipment::class);
-        $magentoShipment->method('getQuantities')->willReturn([]);
-        $magentoShipment->method('getQuantitiesLeft')->willReturn($left);
-        $magentoShipment->method('getShipmentQuantities')->willReturn($inShipment);
+        $this->draft = new Draft();
+        $this->draft->setItems([])->setShipmentType('box')->setTargetShipmentId($targetId);
+        $nativeShipments = $this->createStub(NativeShipmentService::class);
+        $nativeShipments->method('getQuantities')->willReturn([]);
+        $nativeShipments->method('getQuantitiesLeft')->willReturn($left);
+        $nativeShipments->method('getShipmentQuantities')->willReturn($inShipment);
 
-        return new Pack($this->context(), $this->jsonFactory(), $orders, $hydrator, $magentoShipment, $packer);
+        return $this->getMockBuilder(AutoPacker::class)->setConstructorArgs([
+            $this->createStub(OrderAmountCalculator::class),
+            $this->createStub(ItemDimensionsProvider::class),
+            $this->createStub(PackTemplateRepositoryInterface::class),
+            $this->createStub(PackFactory::class),
+            $this->createStub(ItemFactory::class),
+            $this->createStub(ConfigProvider::class),
+            $nativeShipments,
+        ])->onlyMethods(['pack', 'packByItems'])->getMock();
     }
 
-    private function testConnection(callable $answer, string $savedLogin = '12345', string $savedToken = 'saved-token'): TestConnection
-    {
+    private function testConnection(
+        callable $answer,
+        string $savedLogin = '12345',
+        string $savedToken = 'saved-token',
+    ): TestConnection {
         $utils = $this->createStub(UtilsServiceInterface::class);
         $utils->method('testAuthApi')->willReturnCallback($answer);
-        $pool = $this->createStub(ClientPool::class);
-        $pool->method('utils')->willReturn($utils);
-        $config = $this->createStub(Config::class);
+        $client = $this->createStub(PolkurierClient::class);
+        $client->method('utils')->willReturn($utils);
+        $config = $this->createStub(ConfigProvider::class);
         $config->method('getLogin')->willReturn($savedLogin);
         $config->method('getToken')->willReturn($savedToken);
-        return new TestConnection($this->context(), $this->jsonFactory(), $pool, $config, new ErrorMessages());
+        return new TestConnection(
+            $this->context(),
+            $this->jsonFactory(),
+            $client,
+            $config,
+            new ErrorMessageResolver(),
+            NewingObjectManager::factory(AuthorizationMessageFactory::class),
+        );
     }
 
     /**

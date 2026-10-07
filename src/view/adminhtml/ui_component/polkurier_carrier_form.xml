@@ -23,7 +23,8 @@
                 <class>back</class>
                 <label translate="true">Back</label>
             </button>
-            <button name="save_and_continue" class="Polkurier\Shipping\Ui\Component\Control\SaveAndContinueCarrier"/>
+            <button name="save_and_continue"
+                    class="Polkurier\Shipping\Ui\Component\Form\Carrier\SaveAndContinueButtonVirtual"/>
             <button name="save" class="Polkurier\Shipping\Ui\Component\Control\SaveButton"/>
         </buttons>
     </settings>
@@ -36,7 +37,8 @@
         <settings>
             <submitUrl path="*/*/save"/>
         </settings>
-        <dataProvider class="Polkurier\Shipping\Ui\Component\Form\Carrier\DataProvider" name="polkurier_carrier_form_data_source">
+        <dataProvider class="Polkurier\Shipping\Ui\Component\Form\Carrier\DataProvider"
+                      name="polkurier_carrier_form_data_source">
             <settings>
                 <requestFieldName>id</requestFieldName>
                 <primaryFieldName>id</primaryFieldName>
@@ -262,7 +264,10 @@
                         <label translate="true">Subtotal from</label>
                         <dataType>number</dataType>
                         <dataScope>subtotal_from</dataScope>
-                        <validation><rule name="validate-number" xsi:type="boolean">true</rule><rule name="validate-zero-or-greater" xsi:type="boolean">true</rule></validation>
+                        <validation>
+                            <rule name="validate-number" xsi:type="boolean">true</rule>
+                            <rule name="validate-zero-or-greater" xsi:type="boolean">true</rule>
+                        </validation>
                     </settings>
                 </field>
                 <field name="weight_from" formElement="input" sortOrder="20">
@@ -270,7 +275,10 @@
                         <label translate="true">Weight from (kg)</label>
                         <dataType>number</dataType>
                         <dataScope>weight_from</dataScope>
-                        <validation><rule name="validate-number" xsi:type="boolean">true</rule><rule name="validate-zero-or-greater" xsi:type="boolean">true</rule></validation>
+                        <validation>
+                            <rule name="validate-number" xsi:type="boolean">true</rule>
+                            <rule name="validate-zero-or-greater" xsi:type="boolean">true</rule>
+                        </validation>
                     </settings>
                 </field>
                 <field name="price" formElement="input" sortOrder="30">
@@ -278,7 +286,11 @@
                         <label translate="true">Price</label>
                         <dataType>number</dataType>
                         <dataScope>price</dataScope>
-                        <validation><rule name="required-entry" xsi:type="boolean">true</rule><rule name="validate-number" xsi:type="boolean">true</rule><rule name="validate-zero-or-greater" xsi:type="boolean">true</rule></validation>
+                        <validation>
+                            <rule name="required-entry" xsi:type="boolean">true</rule>
+                            <rule name="validate-number" xsi:type="boolean">true</rule>
+                            <rule name="validate-zero-or-greater" xsi:type="boolean">true</rule>
+                        </validation>
                     </settings>
                 </field>
                 <actionDelete template="Magento_Backend/dynamic-rows/cells/action-delete" sortOrder="90">

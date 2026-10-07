@@ -10,6 +10,10 @@ namespace Polkurier\Shipping\Model\Shipment;
 use Polkurier\Shipping\Api\Data\ShipmentDraftInterface;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Api\ShipmentManagementInterface;
+use Polkurier\Shipping\Model\Shipment\Draft\DefaultDraftBuilder;
+use Polkurier\Shipping\Model\Shipment\Placement\PlacementService;
+use Polkurier\Shipping\Model\Shipment\Status\ReconciliationService;
+use Polkurier\Shipping\Model\Shipment\Status\StatusRefreshService;
 
 /**
  * The shipment service contract, as the admin and the cron jobs use it, over the services that
@@ -18,46 +22,46 @@ use Polkurier\Shipping\Api\ShipmentManagementInterface;
 readonly class ShipmentManagement implements ShipmentManagementInterface
 {
     public function __construct(
-        private OwnOrders $ownOrders,
+        private OrderLoader $orderLoader,
         private DefaultDraftBuilder $draftBuilder,
-        private Placing $placing,
-        private Reconciliation $reconciliation,
-        private StatusRefresh $statusRefresh,
-        private Cancellation $cancellation,
+        private PlacementService $placementService,
+        private ReconciliationService $reconciliationService,
+        private StatusRefreshService $statusRefreshService,
+        private CancellationService $cancellationService,
     ) {}
 
     public function getDefaultDraft(int $orderId): ShipmentDraftInterface
     {
-        return $this->draftBuilder->createFromOrder($this->ownOrders->get($orderId));
+        return $this->draftBuilder->createFromOrder($this->orderLoader->getForPolkurier($orderId));
     }
 
     public function create(int $orderId, ShipmentDraftInterface $draft): ShipmentInterface
     {
-        return $this->placing->create($orderId, $draft);
+        return $this->placementService->create($orderId, $draft);
     }
 
     public function reconcile(int $shipmentId): ShipmentInterface
     {
-        return $this->reconciliation->reconcile($shipmentId);
+        return $this->reconciliationService->reconcile($shipmentId);
     }
 
     public function adopt(int $shipmentId, string $polkurierNumber): ShipmentInterface
     {
-        return $this->reconciliation->adopt($shipmentId, $polkurierNumber);
+        return $this->reconciliationService->adopt($shipmentId, $polkurierNumber);
     }
 
     public function refreshStatus(int $shipmentId): ShipmentInterface
     {
-        return $this->statusRefresh->refresh($shipmentId);
+        return $this->statusRefreshService->refresh($shipmentId);
     }
 
     public function shipOrder(int $shipmentId): ShipmentInterface
     {
-        return $this->statusRefresh->shipOrder($shipmentId);
+        return $this->statusRefreshService->shipOrder($shipmentId);
     }
 
     public function cancel(int $shipmentId): ShipmentInterface
     {
-        return $this->cancellation->cancel($shipmentId);
+        return $this->cancellationService->cancel($shipmentId);
     }
 }

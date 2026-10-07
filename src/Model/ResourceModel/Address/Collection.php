@@ -21,11 +21,6 @@ class Collection extends AbstractCollection
      */
     protected $_idFieldName = 'address_id';
 
-    protected function _construct(): void
-    {
-        $this->_init(Model::class, ResourceModel::class);
-    }
-
     /**
      * @return Model[]
      */
@@ -35,5 +30,10 @@ class Collection extends AbstractCollection
         $items = parent::getItems();
 
         return $items;
+    }
+
+    protected function _construct(): void
+    {
+        $this->_init(Model::class, ResourceModel::class);
     }
 }

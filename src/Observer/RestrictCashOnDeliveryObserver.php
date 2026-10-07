@@ -12,27 +12,28 @@ use Magento\Framework\Event\Observer;
 use Magento\Framework\Event\ObserverInterface;
 use Magento\Payment\Model\MethodInterface;
 use Magento\Quote\Api\Data\CartInterface;
+use Polkurier\Shipping\Api\QuotePointRepositoryInterface;
 use Polkurier\Shipping\Model\Carrier\CarrierCatalog;
-use Polkurier\Shipping\Model\Carrier\CarrierFeatures;
+use Polkurier\Shipping\Model\Carrier\CarrierFeatureResolver;
 use Polkurier\Shipping\Model\Carrier\Polkurier;
-use Polkurier\Shipping\Model\Config;
-use Polkurier\Shipping\Model\OrderPointStore;
+use Polkurier\Shipping\Model\Config\ConfigProvider;
 use Polkurier\Webservice\Exception\Exception as PolkurierException;
 use Psr\Log\LoggerInterface;
 
 /**
- * Hides cash-on-delivery payment when the chosen Polkurier carrier, or the chosen pickup point,
- * cannot collect it. When Polkurier cannot be asked, payment is left as it is.
+ * Turns cash-on-delivery payment off when the chosen Polkurier carrier, or the chosen pickup point,
+ * cannot collect it. When Polkurier cannot be asked, or doesn't say whether the point takes cash,
+ * payment is left as it is.
  *
  * Event: payment_method_is_active
  */
 readonly class RestrictCashOnDeliveryObserver implements ObserverInterface
 {
     public function __construct(
-        private Config $config,
+        private ConfigProvider $configProvider,
         private CarrierCatalog $catalog,
-        private CarrierFeatures $features,
-        private OrderPointStore $pointStore,
+        private CarrierFeatureResolver $carrierFeatureResolver,
+        private QuotePointRepositoryInterface $quotePointRepository,
         private LoggerInterface $logger,
     ) {}
 
@@ -48,14 +49,14 @@ readonly class RestrictCashOnDeliveryObserver implements ObserverInterface
             return;
         }
         $storeId = (int)$quote->getStoreId();
-        if (!\in_array($method->getCode(), $this->config->getCodPaymentMethods($storeId), true)) {
+        if (!\in_array($method->getCode(), $this->configProvider->getCodPaymentMethods($storeId), true)) {
             return;
         }
         if (!$quote instanceof \Magento\Quote\Model\Quote) {
             return;
         }
         foreach ($this->getDeliveries($quote) as [$carrierCode, $quoteAddressId]) {
-            if (!$this->canCollect($quote, $carrierCode, $quoteAddressId)) {
+            if (!$this->collectsCod($quote, $carrierCode, $quoteAddressId)) {
                 $result->setData('is_available', false);
 
                 return;
@@ -86,7 +87,10 @@ readonly class RestrictCashOnDeliveryObserver implements ObserverInterface
         return $deliveries;
     }
 
-    private function canCollect(\Magento\Quote\Model\Quote $quote, string $carrierCode, int $quoteAddressId): bool
+    /**
+     * Whether the delivery's carrier collects cash on delivery, and its pickup point, if any, too.
+     */
+    private function collectsCod(\Magento\Quote\Model\Quote $quote, string $carrierCode, int $quoteAddressId): bool
     {
         try {
             $carrier = $this->catalog->getCarrier($carrierCode);
@@ -95,10 +99,12 @@ readonly class RestrictCashOnDeliveryObserver implements ObserverInterface
 
             return true;
         }
-        $point = $this->pointStore->getForQuote((int)$quote->getId(), $quoteAddressId);
+        if ($carrier === null || !$this->carrierFeatureResolver->isCodAvailable($carrier)) {
+            return false;
+        }
+        $point = $this->quotePointRepository->getForQuote((int)$quote->getId(), $quoteAddressId);
 
-        return $carrier !== null
-            && $this->features->isCodAvailable($carrier)
-            && ($point === null || $point->getMethodCode() !== $carrierCode || $point->isPointCod());
+        // Not known whether it takes cash: taken to.
+        return $point === null || $point->getMethodCode() !== $carrierCode || $point->getPointCod() !== false;
     }
 }

@@ -179,7 +179,9 @@ define([
                 next = value;
 
             this.set('shipment_value', value);
-            if (codBefore > 0 && !data.replacing && (force || this.followedCod !== null && Math.abs(codBefore - this.followedCod) < 0.005)) {
+            if (codBefore > 0 && !data.replacing
+                && (force || this.followedCod !== null && Math.abs(codBefore - this.followedCod) < 0.005)
+            ) {
                 cod = Math.round(rules.codFor(rules.amount(data.cod_remaining), worth) * 100) / 100;
                 this.followedCod = cod;
                 this.set('cod_amount', cod.toFixed(2));

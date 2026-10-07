@@ -18,10 +18,14 @@
                 </ul>
             </div>
             <div class="polkurier-parcels__actions">
-                <button type="button" class="polkurier-icon-button _edit" data-bind="click: $parent.edit.bind($parent), disable: $parent.packing, attr: {title: $t('Edit')}">
+                <button type="button" class="polkurier-icon-button _edit"
+                        data-bind="click: $parent.edit.bind($parent), disable: $parent.packing,
+                                   attr: {title: $t('Edit')}">
                     <span translate="'Edit'"></span>
                 </button>
-                <button type="button" class="polkurier-icon-button _remove" data-bind="click: $parent.remove.bind($parent), disable: $parent.packing, attr: {title: $t('Remove')}">
+                <button type="button" class="polkurier-icon-button _remove"
+                        data-bind="click: $parent.remove.bind($parent), disable: $parent.packing,
+                                   attr: {title: $t('Remove')}">
                     <span translate="'Remove'"></span>
                 </button>
             </div>
@@ -30,10 +34,12 @@
     </ul>
     <div class="polkurier-parcels__actions-bar">
         <span class="polkurier-parcels__links">
-            <button type="button" class="action-default polkurier-small-button" data-bind="click: add, disable: packing">
+            <button type="button" class="action-default polkurier-small-button"
+                    data-bind="click: add, disable: packing">
                 <span translate="'Add a parcel'"></span>
             </button>
-            <button type="button" class="action-default polkurier-small-button" if="canPack" data-bind="click: packAutomatically, disable: packing">
+            <button type="button" class="action-default polkurier-small-button" if="canPack"
+                    data-bind="click: packAutomatically, disable: packing">
                 <span translate="'Pack automatically'"></span>
             </button>
         </span>
@@ -49,7 +55,8 @@
         <button type="button" class="action-secondary" data-bind="click: add, disable: packing">
             <span translate="'Add a parcel'"></span>
         </button>
-        <button type="button" class="action-secondary" if="canPack" data-bind="click: packAutomatically, disable: packing">
+        <button type="button" class="action-secondary" if="canPack"
+                data-bind="click: packAutomatically, disable: packing">
             <span translate="'Pack automatically'"></span>
         </button>
     </div>
@@ -67,36 +74,47 @@
         <div data-bind="afterRender: initEditor">
             <div class="admin__fieldset polkurier-parcel-editor">
                 <div class="admin__field">
-                    <label class="admin__field-label" for="polkurier-parcel-type"><span translate="'Type'"></span></label>
+                    <label class="admin__field-label"
+                           for="polkurier-parcel-type"><span translate="'Type'"></span></label>
                     <div class="admin__field-control">
                         <select id="polkurier-parcel-type" class="admin__control-select"
-                                data-bind="options: packTypes, optionsText: 'label', optionsValue: 'value', value: editor.packType"></select>
+                                data-bind="options: packTypes, optionsText: 'label', optionsValue: 'value',
+                                           value: editor.packType"></select>
                     </div>
                 </div>
                 <div class="admin__field _required">
-                    <label class="admin__field-label" for="polkurier-parcel-length"><span translate="'Length (cm)'"></span></label>
+                    <label class="admin__field-label"
+                           for="polkurier-parcel-length"><span translate="'Length (cm)'"></span></label>
                     <div class="admin__field-control">
-                        <input id="polkurier-parcel-length" class="admin__control-text" type="number" min="1" step="1" data-bind="value: editor.length"/>
+                        <input id="polkurier-parcel-length" class="admin__control-text" aria-required="true"
+                               type="number" min="1" step="1" data-bind="value: editor.length"/>
                     </div>
                 </div>
                 <div class="admin__field _required">
-                    <label class="admin__field-label" for="polkurier-parcel-width"><span translate="'Width (cm)'"></span></label>
+                    <label class="admin__field-label"
+                           for="polkurier-parcel-width"><span translate="'Width (cm)'"></span></label>
                     <div class="admin__field-control">
-                        <input id="polkurier-parcel-width" class="admin__control-text" type="number" min="1" step="1" data-bind="value: editor.width"/>
+                        <input id="polkurier-parcel-width" class="admin__control-text" aria-required="true"
+                               type="number" min="1" step="1" data-bind="value: editor.width"/>
                     </div>
                 </div>
                 <div class="admin__field _required">
-                    <label class="admin__field-label" for="polkurier-parcel-height"><span translate="'Height (cm)'"></span></label>
+                    <label class="admin__field-label"
+                           for="polkurier-parcel-height"><span translate="'Height (cm)'"></span></label>
                     <div class="admin__field-control">
-                        <input id="polkurier-parcel-height" class="admin__control-text" type="number" min="1" step="1" data-bind="value: editor.height"/>
+                        <input id="polkurier-parcel-height" class="admin__control-text" aria-required="true"
+                               type="number" min="1" step="1" data-bind="value: editor.height"/>
                     </div>
                 </div>
                 <div class="admin__field _required">
-                    <label class="admin__field-label" for="polkurier-parcel-weight"><span translate="'Weight (kg)'"></span></label>
+                    <label class="admin__field-label"
+                           for="polkurier-parcel-weight"><span translate="'Weight (kg)'"></span></label>
                     <div class="admin__field-control">
-                        <input id="polkurier-parcel-weight" class="admin__control-text" type="number" min="0.01" step="0.01" data-bind="value: editor.weight"/>
+                        <input id="polkurier-parcel-weight" class="admin__control-text" aria-required="true"
+                               type="number" min="0.01" step="0.01" data-bind="value: editor.weight"/>
                         <div class="admin__field-note" if="editor.contentsWeight() > 0">
-                            <span data-bind="text: $t('What it holds weighs %1 kg.').replace('%1', editor.contentsWeight())"></span>
+                            <span data-bind="text: $t('What it holds weighs %1 kg.')
+                                                 .replace('%1', editor.contentsWeight())"></span>
                         </div>
                     </div>
                 </div>
@@ -114,7 +132,8 @@
                             <td text="name"></td>
                             <td class="polkurier-items__qty">
                                 <input type="number" class="admin__control-text" min="0" step="any"
-                                       data-bind="value: qty, valueUpdate: 'input', attr: {max: left, 'aria-label': name}, css: {'_error': invalid}"/>
+                                       data-bind="value: qty, valueUpdate: 'input', attr: {max: left, 'aria-label': name},
+                                                  css: {'_error': invalid}"/>
                                 <span class="polkurier-muted" text="leftText"></span>
                             </td>
                         </tr>
@@ -123,18 +142,23 @@
                 </div>
                 <!-- ko if: editor.canKeep -->
                 <div class="admin__field admin__field-option polkurier-parcel-editor__keep">
-                    <input id="polkurier-parcel-keep" type="checkbox" class="admin__control-checkbox" data-bind="checked: editor.keep"/>
-                    <label class="admin__field-label" for="polkurier-parcel-keep" translate="'Save as a pack template for later shipments'"></label>
+                    <input id="polkurier-parcel-keep" type="checkbox" class="admin__control-checkbox"
+                           data-bind="checked: editor.keep"/>
+                    <label class="admin__field-label" for="polkurier-parcel-keep"
+                           translate="'Save as a pack template for later shipments'"></label>
                 </div>
                 <div class="admin__field" if="editor.keep">
-                    <label class="admin__field-label" for="polkurier-parcel-keep-name"><span translate="'Saved as'"></span></label>
+                    <label class="admin__field-label"
+                           for="polkurier-parcel-keep-name"><span translate="'Saved as'"></span></label>
                     <div class="admin__field-control">
-                        <input id="polkurier-parcel-keep-name" class="admin__control-text" type="text" data-bind="textInput: editor.keepName"/>
-                        <div class="admin__field-note" data-bind="text: $t('If left empty: its type and size. Saved once the shipment is placed.')"></div>
+                        <input id="polkurier-parcel-keep-name" class="admin__control-text" type="text"
+                               data-bind="textInput: editor.keepName"/>
+                        <div class="admin__field-note"
+                             data-bind="text: $t('If left empty: its type and size. Saved once the shipment is placed.')"></div>
                     </div>
                 </div>
                 <!-- /ko -->
-                <div class="message message-error" if="editor.error">
+                <div class="message message-error" role="alert" if="editor.error">
                     <span text="editor.error"></span>
                 </div>
             </div>
@@ -151,7 +175,8 @@
                     data-bind="click: $parent.applyTemplate.bind($parent),
                                event: {keydown: $parent.onChooserKey.bind($parent)}">
                     <strong text="name"></strong>
-                    <span class="polkurier-muted" data-bind="text: pack_type_label + ' (' + length + ' × ' + width + ' × ' + height + ' cm, ' + weight + ' kg)'"></span>
+                    <span class="polkurier-muted"
+                          data-bind="text: pack_type_label + ' (' + $t('%1 × %2 × %3 cm, %4 kg').replace('%1', length).replace('%2', width).replace('%3', height).replace('%4', weight) + ')'"></span>
                 </li>
                 <!-- /ko -->
             </ul>

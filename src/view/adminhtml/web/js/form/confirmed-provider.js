@@ -65,23 +65,33 @@ define([
                 done: function (response) {
                     if (response.error) {
                         if (dialog) {
-                            dialog.find('.polkurier-confirm__sent').text(response.message).addClass('message-error error');
+                            dialog.find('.polkurier-confirm__sent')
+                                .text(response.message)
+                                .addClass('message-error error');
                         } else {
-                            alert({title: $t('The confirmation code wasn\'t sent'), content: $('<div/>').text(response.message).html()});
+                            alert({
+                                title: $t('The confirmation code wasn\'t sent'),
+                                content: $('<div/>').text(response.message).html()
+                            });
                         }
 
                         return;
                     }
                     this.set('data.' + this.confirmation.tokenField, response.token);
                     if (dialog) {
-                        dialog.find('.polkurier-confirm__sent').text(response.message).removeClass('message-error error');
+                        dialog.find('.polkurier-confirm__sent')
+                            .text(response.message)
+                            .removeClass('message-error error');
                         dialog.find('[name=code]').val('').trigger('focus');
                     } else {
                         this.ask(options, {code: true, sent: response.message});
                     }
                 }.bind(this),
                 fail: function () {
-                    alert({title: $t('The confirmation code wasn\'t sent'), content: $t('Polkurier could not be asked.')});
+                    alert({
+                        title: $t('The confirmation code wasn\'t sent'),
+                        content: $t('Polkurier could not be asked.')
+                    });
                 },
                 always: function () {
                     body.trigger('processStop');
@@ -102,9 +112,16 @@ define([
                 field = function (name, label, type, note) {
                     const id = 'polkurier-confirm-' + name,
                         row = $('<div class="admin__field"/>')
-                            .append($('<label class="admin__field-label"/>').attr('for', id).append($('<span/>').text(label)))
+                            .append($('<label class="admin__field-label"/>')
+                                .attr('for', id)
+                                .append($('<span/>').text(label)))
                             .append($('<div class="admin__field-control"/>').append(
-                                $('<input class="admin__control-text"/>').attr({id: id, name: name, type: type, autocomplete: 'one-time-code'})
+                                $('<input class="admin__control-text"/>').attr({
+                                    id: id,
+                                    name: name,
+                                    type: type,
+                                    autocomplete: 'one-time-code'
+                                })
                             ));
 
                     if (note) {
@@ -119,8 +136,11 @@ define([
             if (what.code) {
                 dialog.append($('<p class="polkurier-confirm__sent"/>').text(what.sent || ''));
                 dialog.append(field('code', $t('Confirmation code'), 'text'));
-                dialog.append($('<p/>').append($('<button type="button" class="action-link"/>').text($t('Send a new code'))
-                    .on('click', this.sendCode.bind(this, options, dialog))));
+                dialog.append($('<p/>').append(
+                    $('<button type="button" class="action-link"/>')
+                        .text($t('Send a new code'))
+                        .on('click', this.sendCode.bind(this, options, dialog))
+                ));
                 if (settings.optionalPin && settings.pinField) {
                     dialog.append(field('pin', $t('Security PIN'), 'password', settings.optionalPinNote));
                 }
@@ -165,6 +185,17 @@ define([
             this.confirmDialog = dialog;
 
             return dialog;
+        },
+
+        /**
+         * Takes the confirmation modal down with the form: it was added to the page's body.
+         */
+        destroy: function () {
+            if (this.confirmDialog) {
+                this.confirmDialog.modal('destroy').remove();
+                this.confirmDialog = null;
+            }
+            this._super();
         },
 
         /**

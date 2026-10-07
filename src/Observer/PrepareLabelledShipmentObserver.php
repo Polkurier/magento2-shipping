@@ -11,9 +11,9 @@ use Magento\Framework\Event\Observer;
 use Magento\Framework\Event\ObserverInterface;
 use Magento\Sales\Model\Order\Shipment;
 use Polkurier\Shipping\Model\Carrier\Polkurier;
-use Polkurier\Shipping\Model\Config;
-use Polkurier\Shipping\Model\Shipment\MagentoShipment;
-use Polkurier\Shipping\Model\Shipment\NativeLabel;
+use Polkurier\Shipping\Model\Config\ConfigProvider;
+use Polkurier\Shipping\Model\Shipment\Native\NativeLabelService;
+use Polkurier\Shipping\Model\Shipment\Native\NativeShipmentService;
 
 /**
  * Tidies a Magento shipment before it is saved with a label from Magento's packaging popup.
@@ -27,8 +27,8 @@ use Polkurier\Shipping\Model\Shipment\NativeLabel;
 readonly class PrepareLabelledShipmentObserver implements ObserverInterface
 {
     public function __construct(
-        private Config $config,
-        private MagentoShipment $magentoShipment,
+        private ConfigProvider $configProvider,
+        private NativeShipmentService $nativeShipmentService,
     ) {}
 
     public function execute(Observer $observer): void
@@ -37,20 +37,20 @@ readonly class PrepareLabelledShipmentObserver implements ObserverInterface
         if (!$shipment instanceof Shipment) {
             return;
         }
-        if ($shipment->getData(NativeLabel::NO_LABEL)) {
+        if ($shipment->getData(NativeLabelService::FIELD_NO_LABEL)) {
             // Left out of the save, so an existing shipment keeps what it had.
             $shipment->unsetData('shipping_label');
-            $shipment->unsetData(NativeLabel::NO_LABEL);
+            $shipment->unsetData(NativeLabelService::FIELD_NO_LABEL);
         }
 
-        $carrierCode = (string)$shipment->getData(NativeLabel::CARRIER);
-        $shipment->unsetData(NativeLabel::CARRIER);
+        $carrierCode = (string)$shipment->getData(NativeLabelService::FIELD_CARRIER);
+        $shipment->unsetData(NativeLabelService::FIELD_CARRIER);
 
         $tracks = $shipment->getTracks();
         if (!\is_array($tracks) || $tracks === []) {
             return;
         }
-        $magentoTitle = $this->config->getTitle((int)$shipment->getStoreId());
+        $magentoTitle = $this->configProvider->getTitle((int)$shipment->getStoreId());
         $order = $shipment->getOrder();
         if ($carrierCode === '') {
             $carrierCode = (string)Polkurier::methodCodeOf((string)$order->getShippingMethod());
@@ -68,7 +68,7 @@ readonly class PrepareLabelledShipmentObserver implements ObserverInterface
             }
             $seen[$number] = true;
             if (!$track->getEntityId() && (string)$track->getTitle() === $magentoTitle) {
-                $track->setTitle($this->magentoShipment->getTrackTitle($order, $carrierCode));
+                $track->setTitle($this->nativeShipmentService->getTrackTitle($order, $carrierCode));
             }
             $kept[] = $track;
         }

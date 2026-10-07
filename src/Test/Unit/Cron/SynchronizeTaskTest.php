@@ -8,13 +8,12 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Test\Unit\Cron;
 
 use Magento\Framework\Exception\LocalizedException;
-use Magento\Framework\Phrase;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Polkurier\Shipping\Api\SynchronizationInterface;
 use Polkurier\Shipping\Cron\SynchronizeTask;
 use Polkurier\Shipping\Exception\SynchronizationFailedException;
-use Polkurier\Shipping\Model\Config;
+use Polkurier\Shipping\Model\Config\ConfigProvider;
+use Polkurier\Shipping\Model\Sync\Synchronization;
 use Psr\Log\LoggerInterface;
 
 #[CoversClass(SynchronizeTask::class)]
@@ -25,37 +24,37 @@ class SynchronizeTaskTest extends TestCase
 
     public function testAFailureLoggedWhereItHappenedIsNotLoggedAgain(): void
     {
-        $this->runFailing(new SynchronizationFailedException(new Phrase('Addresses: refused.')));
+        $this->runFailing(new SynchronizationFailedException(__('Addresses: refused.')));
 
         self::assertSame([], $this->warnings());
     }
 
     public function testAnyOtherFailureIsLoggedWithItsException(): void
     {
-        $failure = new LocalizedException(new Phrase('A synchronization with Polkurier is already running.'));
+        $failure = new LocalizedException(__('A synchronization with Polkurier is already running.'));
         $this->runFailing($failure);
 
         self::assertCount(1, $this->warnings());
         self::assertSame($failure, $this->warnings()[0][2]['exception']);
     }
 
-
     private function runFailing(\Throwable $failure): void
     {
-        $synchronization = $this->createStub(SynchronizationInterface::class);
+        $synchronization = $this->createStub(Synchronization::class);
         $synchronization->method('synchronize')->willThrowException($failure);
         $this->task($synchronization)->execute();
     }
 
-    private function task(SynchronizationInterface $synchronization): SynchronizeTask
+    private function task(Synchronization $synchronization): SynchronizeTask
     {
-        $config = $this->createStub(Config::class);
+        $config = $this->createStub(ConfigProvider::class);
         $config->method('isSyncEnabled')->willReturn(true);
         $config->method('hasCredentials')->willReturn(true);
         $logger = $this->createStub(LoggerInterface::class);
-        $logger->method('warning')->willReturnCallback(function (string|\Stringable $message, array $context = []): void {
-            $this->logged[] = ['warning', (string)$message, $context];
-        });
+        $logger->method('warning')
+            ->willReturnCallback(function (string|\Stringable $message, array $context = []): void {
+                $this->logged[] = ['warning', (string)$message, $context];
+            });
 
         return new SynchronizeTask($synchronization, $config, $logger);
     }

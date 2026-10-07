@@ -28,7 +28,9 @@ readonly class ShipmentFinder
      */
     public function latestForOrder(int $orderId, array $states = []): ?ShipmentInterface
     {
-        return $this->first($this->query($states)->addFieldToFilter(ShipmentInterface::ORDER_ID, ['eq' => $orderId]));
+        return $this->first(
+            $this->query($states)->addFieldToFilter(ShipmentInterface::FIELD_ORDER_ID, ['eq' => $orderId]),
+        );
     }
 
     /**
@@ -38,7 +40,9 @@ readonly class ShipmentFinder
      */
     public function forOrder(int $orderId, array $states = []): array
     {
-        return $this->all($this->query($states)->addFieldToFilter(ShipmentInterface::ORDER_ID, ['eq' => $orderId]));
+        return $this->all(
+            $this->query($states)->addFieldToFilter(ShipmentInterface::FIELD_ORDER_ID, ['eq' => $orderId]),
+        );
     }
 
     /**
@@ -50,7 +54,9 @@ readonly class ShipmentFinder
      */
     public function latestLinkedTo(int $magentoShipmentId, array $states = []): ?ShipmentInterface
     {
-        return $this->first($this->query($states)->addFieldToFilter(ShipmentInterface::SHIPMENT_ID, ['eq' => $magentoShipmentId]));
+        return $this->first(
+            $this->query($states)->addFieldToFilter(ShipmentInterface::FIELD_SHIPMENT_ID, ['eq' => $magentoShipmentId]),
+        );
     }
 
     /**
@@ -66,7 +72,10 @@ readonly class ShipmentFinder
             return [];
         }
 
-        return $this->all($this->query($states)->addFieldToFilter(ShipmentInterface::SHIPMENT_ID, ['in' => \array_values($magentoShipmentIds)]));
+        return $this->all(
+            $this->query($states)
+                ->addFieldToFilter(ShipmentInterface::FIELD_SHIPMENT_ID, ['in' => \array_values($magentoShipmentIds)]),
+        );
     }
 
     /**
@@ -82,7 +91,10 @@ readonly class ShipmentFinder
             return [];
         }
 
-        return $this->all($this->query($states)->addFieldToFilter(ShipmentInterface::POLKURIER_NUMBER, ['in' => \array_values($numbers)]));
+        return $this->all(
+            $this->query($states)
+                ->addFieldToFilter(ShipmentInterface::FIELD_POLKURIER_NUMBER, ['in' => \array_values($numbers)]),
+        );
     }
 
     /**
@@ -96,7 +108,9 @@ readonly class ShipmentFinder
             return [];
         }
 
-        return $this->all($this->query([])->addFieldToFilter(ShipmentInterface::ENTITY_ID, ['in' => \array_values($ids)]));
+        return $this->all(
+            $this->query([])->addFieldToFilter(ShipmentInterface::FIELD_ENTITY_ID, ['in' => \array_values($ids)]),
+        );
     }
 
     /**
@@ -108,7 +122,9 @@ readonly class ShipmentFinder
             return null;
         }
 
-        return $this->first($this->query([])->addFieldToFilter(ShipmentInterface::WAYBILLS, ['finset' => $waybill]));
+        return $this->first(
+            $this->query([])->addFieldToFilter(ShipmentInterface::FIELD_WAYBILLS, ['finset' => $waybill]),
+        );
     }
 
     /**
@@ -116,7 +132,9 @@ readonly class ShipmentFinder
      */
     public function withCodStatus(string $codStatus): array
     {
-        return $this->all($this->query([])->addFieldToFilter(ShipmentInterface::COD_STATUS, ['eq' => $codStatus]));
+        return $this->all(
+            $this->query([])->addFieldToFilter(ShipmentInterface::FIELD_COD_STATUS, ['eq' => $codStatus]),
+        );
     }
 
     /**
@@ -129,9 +147,9 @@ readonly class ShipmentFinder
     public function dueForStatusCheck(?string $checkedBefore, int $limit): array
     {
         $collection = $this->query([ShipmentInterface::STATE_CREATED])
-            ->addFieldToFilter(ShipmentInterface::IS_FINAL, ['eq' => 0]);
+            ->addFieldToFilter(ShipmentInterface::FIELD_IS_FINAL, ['eq' => 0]);
         if ($checkedBefore !== null) {
-            $collection->addFieldToFilter(ShipmentInterface::STATUS_CHECKED_AT, [
+            $collection->addFieldToFilter(ShipmentInterface::FIELD_STATUS_CHECKED_AT, [
                 ['null' => true],
                 ['lt' => $checkedBefore],
             ]);
@@ -149,8 +167,8 @@ readonly class ShipmentFinder
     public function dueForReconciliation(string $attemptedBefore, string $checkedBefore, int $limit): array
     {
         $collection = $this->query([ShipmentInterface::STATE_UNKNOWN, ShipmentInterface::STATE_PENDING])
-            ->addFieldToFilter(ShipmentInterface::CREATED_AT, ['lt' => $attemptedBefore])
-            ->addFieldToFilter(ShipmentInterface::STATUS_CHECKED_AT, [
+            ->addFieldToFilter(ShipmentInterface::FIELD_CREATED_AT, ['lt' => $attemptedBefore])
+            ->addFieldToFilter(ShipmentInterface::FIELD_STATUS_CHECKED_AT, [
                 ['null' => true],
                 ['lt' => $checkedBefore],
             ]);
@@ -164,7 +182,7 @@ readonly class ShipmentFinder
     public function failedBefore(string $attemptedBefore): array
     {
         return $this->all($this->query([ShipmentInterface::STATE_FAILED])
-            ->addFieldToFilter(ShipmentInterface::CREATED_AT, ['lt' => $attemptedBefore]));
+            ->addFieldToFilter(ShipmentInterface::FIELD_CREATED_AT, ['lt' => $attemptedBefore]));
     }
 
     /**
@@ -174,7 +192,7 @@ readonly class ShipmentFinder
     {
         $collection = $this->collectionFactory->create();
         if ($states !== []) {
-            $collection->addFieldToFilter(ShipmentInterface::STATE, ['in' => \array_values($states)]);
+            $collection->addFieldToFilter(ShipmentInterface::FIELD_STATE, ['in' => \array_values($states)]);
         }
 
         return $collection;
@@ -182,12 +200,18 @@ readonly class ShipmentFinder
 
     private function checkedFirst(Collection $collection, int $limit): Collection
     {
-        return $collection->setOrder(ShipmentInterface::STATUS_CHECKED_AT, Collection::SORT_ORDER_ASC)->setPageSize($limit);
+        return $collection
+            ->setOrder(ShipmentInterface::FIELD_STATUS_CHECKED_AT, Collection::SORT_ORDER_ASC)
+            ->setPageSize($limit);
     }
 
     private function first(Collection $collection): ?ShipmentInterface
     {
-        foreach ($collection->setOrder(ShipmentInterface::ENTITY_ID, Collection::SORT_ORDER_DESC)->setPageSize(1)->getItems() as $shipment) {
+        $items = $collection
+            ->setOrder(ShipmentInterface::FIELD_ENTITY_ID, Collection::SORT_ORDER_DESC)
+            ->setPageSize(1)
+            ->getItems();
+        foreach ($items as $shipment) {
             if ($shipment instanceof ShipmentInterface) {
                 return $shipment;
             }
@@ -202,7 +226,7 @@ readonly class ShipmentFinder
     private function all(Collection $collection): array
     {
         return \array_values(\array_filter(
-            $collection->setOrder(ShipmentInterface::ENTITY_ID, Collection::SORT_ORDER_ASC)->getItems(),
+            $collection->setOrder(ShipmentInterface::FIELD_ENTITY_ID, Collection::SORT_ORDER_ASC)->getItems(),
             static fn($shipment): bool => $shipment instanceof ShipmentInterface,
         ));
     }

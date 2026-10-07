@@ -12,7 +12,7 @@ use Magento\Framework\Event\ObserverInterface;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Quote\Model\Quote;
 use Polkurier\Shipping\Model\Carrier\Polkurier;
-use Polkurier\Shipping\Model\Checkout\PointSelection;
+use Polkurier\Shipping\Model\PickupPoint\PointSelectionRecorder;
 
 /**
  * Refuses to place an order whose delivery method needs a pickup point when none was chosen for
@@ -23,7 +23,7 @@ use Polkurier\Shipping\Model\Checkout\PointSelection;
 readonly class ValidatePickupPointObserver implements ObserverInterface
 {
     public function __construct(
-        private PointSelection $pointSelection,
+        private PointSelectionRecorder $pointSelectionRecorder,
     ) {}
 
     /**
@@ -35,7 +35,7 @@ readonly class ValidatePickupPointObserver implements ObserverInterface
         $quote = $observer->getEvent()->getData('quote');
         $methodCode = Polkurier::methodCodeOf((string)$quote->getShippingAddress()->getShippingMethod());
         if ($methodCode !== null && !$quote->isVirtual()) {
-            $this->pointSelection->requirePoint($quote, $methodCode);
+            $this->pointSelectionRecorder->requirePoint($quote, $methodCode);
         }
     }
 }

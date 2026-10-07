@@ -7,10 +7,12 @@
         xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Cron:etc/crontab.xsd">
     <group id="polkurier">
         <!-- As often as the "Update shipment statuses" setting says -->
-        <job name="polkurier_refresh_shipment_status" instance="Polkurier\Shipping\Cron\RefreshShipmentStatusTask" method="execute">
+        <job name="polkurier_refresh_shipment_status" instance="Polkurier\Shipping\Cron\RefreshShipmentStatusTask"
+             method="execute">
             <config_path>carriers/polkurier/sync/status_schedule</config_path>
         </job>
-        <job name="polkurier_reconcile_shipments" instance="Polkurier\Shipping\Cron\ReconcileShipmentsTask" method="execute">
+        <job name="polkurier_reconcile_shipments" instance="Polkurier\Shipping\Cron\ReconcileShipmentsTask"
+             method="execute">
             <schedule>*/10 * * * *</schedule>
         </job>
         <job name="polkurier_synchronize" instance="Polkurier\Shipping\Cron\SynchronizeTask" method="execute">

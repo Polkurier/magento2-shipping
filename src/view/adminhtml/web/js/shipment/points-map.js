@@ -135,7 +135,8 @@ define(['mage/translate', 'Magento_Ui/js/modal/alert'], function ($t, alert) {
                 return '';
             }
 
-            return point.address || [point.street, [point.zip, point.city].filter(Boolean).join(' ')].filter(Boolean).join(', ');
+            return point.address
+                || [point.street, [point.zip, point.city].filter(Boolean).join(' ')].filter(Boolean).join(', ');
         },
 
         /**

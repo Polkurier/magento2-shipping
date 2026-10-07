@@ -15,7 +15,8 @@
         <!-- ko foreach: errors -->
         <li class="polkurier-section__error">
             <span text="text"></span>
-            <button type="button" class="polkurier-link" if="$parent.canFix($data)" data-bind="click: $parent.fix.bind($parent)">
+            <button type="button" class="polkurier-link" if="$parent.canFix($data)"
+                    data-bind="click: $parent.fix.bind($parent)">
                 <span translate="'Fix'"></span>
             </button>
         </li>
@@ -23,7 +24,8 @@
         <!-- ko foreach: warnings -->
         <li class="polkurier-section__warning">
             <span text="text"></span>
-            <button type="button" class="polkurier-link" if="$parent.canFix($data)" data-bind="click: $parent.fix.bind($parent)">
+            <button type="button" class="polkurier-link" if="$parent.canFix($data)"
+                    data-bind="click: $parent.fix.bind($parent)">
                 <span translate="'Fix'"></span>
             </button>
         </li>

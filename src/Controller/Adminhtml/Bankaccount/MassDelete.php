@@ -10,9 +10,11 @@ namespace Polkurier\Shipping\Controller\Adminhtml\Bankaccount;
 use Magento\Backend\App\Action\Context;
 use Magento\Framework\Data\Collection\AbstractDb;
 use Magento\Ui\Component\MassAction\Filter;
-use Polkurier\Shipping\Controller\Adminhtml\MasterData\AbstractMassDelete;
-use Polkurier\Shipping\Model\Admin\BankAccountHandler;
+use Polkurier\Shipping\Controller\Adminhtml\AbstractMassDelete;
+use Polkurier\Shipping\Model\Admin\FlashMessageCollectorFactory;
+use Polkurier\Shipping\Model\BankAccount\BankAccountHandler;
 use Polkurier\Shipping\Model\ResourceModel\BankAccount\CollectionFactory;
+use Polkurier\Shipping\Model\Sync\SyncResultFactory;
 
 /**
  * Deletes the bank accounts selected in their grid.
@@ -26,8 +28,10 @@ class MassDelete extends AbstractMassDelete
         BankAccountHandler $handler,
         Filter $filter,
         private readonly CollectionFactory $collectionFactory,
+        FlashMessageCollectorFactory $flashMessageCollectorFactory,
+        SyncResultFactory $syncResultFactory,
     ) {
-        parent::__construct($context, $handler, $filter);
+        parent::__construct($context, $handler, $filter, $flashMessageCollectorFactory, $syncResultFactory);
     }
 
     protected function createCollection(): AbstractDb

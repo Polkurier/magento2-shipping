@@ -12,7 +12,12 @@
     </argument>
     <settings>
         <buttons>
-            <button name="payout" class="Polkurier\Shipping\Ui\Component\Control\RequestPayoutLink"/>
+            <button name="payout">
+                <url path="polkurier/payout/request"/>
+                <class>primary</class>
+                <label translate="true">Request a payout</label>
+                <aclResource>Polkurier_Shipping::payout_request</aclResource>
+            </button>
         </buttons>
         <spinner>polkurier_payout_listing_columns</spinner>
         <deps>
@@ -26,8 +31,9 @@
             </storageConfig>
             <updateUrl path="mui/index/render"/>
         </settings>
-        <aclResource>Polkurier_Shipping::money_box</aclResource>
-        <dataProvider class="Polkurier\Shipping\Ui\Component\Listing\Payout\DataProvider" name="polkurier_payout_listing_data_source">
+        <aclResource>Polkurier_Shipping::payouts</aclResource>
+        <dataProvider class="Polkurier\Shipping\Ui\Component\Listing\Payout\DataProvider"
+                      name="polkurier_payout_listing_data_source">
             <settings>
                 <requestFieldName>number</requestFieldName>
                 <primaryFieldName>number</primaryFieldName>
@@ -88,7 +94,7 @@
                 <sortable>false</sortable>
             </settings>
         </column>
-        <actionsColumn name="actions" class="Polkurier\Shipping\Ui\Component\Listing\Column\PayoutActionsColumn">
+        <actionsColumn name="actions" class="Polkurier\Shipping\Ui\Component\Listing\Payout\ActionsColumn">
             <settings>
                 <indexField>number</indexField>
                 <label translate="true">Actions</label>

@@ -15,9 +15,9 @@ use Magento\Sales\Model\Order\Shipment\Track;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Polkurier\Shipping\Model\Config;
-use Polkurier\Shipping\Model\Shipment\MagentoShipment;
-use Polkurier\Shipping\Model\Shipment\NativeLabel;
+use Polkurier\Shipping\Model\Config\ConfigProvider;
+use Polkurier\Shipping\Model\Shipment\Native\NativeLabelService;
+use Polkurier\Shipping\Model\Shipment\Native\NativeShipmentService;
 use Polkurier\Shipping\Observer\PrepareLabelledShipmentObserver;
 
 #[CoversClass(PrepareLabelledShipmentObserver::class)]
@@ -45,33 +45,35 @@ class PrepareLabelledShipmentObserverTest extends TestCase
     {
         $new = $this->track(null, 'WB-1', 'Polkurier');
         $shipment = $this->shipment([$new]);
-        $shipment->setData(NativeLabel::CARRIER, 'INPOST_PACZKOMAT');
+        $shipment->setData(NativeLabelService::FIELD_CARRIER, 'INPOST_PACZKOMAT');
 
         $this->observer()->execute($this->event($shipment));
 
         self::assertSame('InPost Paczkomat', $new->getData('title'));
-        self::assertFalse($shipment->hasData(NativeLabel::CARRIER));
+        self::assertFalse($shipment->hasData(NativeLabelService::FIELD_CARRIER));
     }
 
     public function testALabelThatWasNotAvailableIsNotStored(): void
     {
         $shipment = $this->shipment([]);
-        $shipment->setData(NativeLabel::NO_LABEL, true);
+        $shipment->setData(NativeLabelService::FIELD_NO_LABEL, true);
         $shipment->setData('shipping_label', '%PDF-empty');
 
         $this->observer()->execute($this->event($shipment));
 
         self::assertFalse($shipment->hasData('shipping_label'));
-        self::assertFalse($shipment->hasData(NativeLabel::NO_LABEL));
+        self::assertFalse($shipment->hasData(NativeLabelService::FIELD_NO_LABEL));
     }
 
     private function observer(): PrepareLabelledShipmentObserver
     {
-        $config = $this->createStub(Config::class);
+        $config = $this->createStub(ConfigProvider::class);
         $config->method('getTitle')->willReturn('Polkurier');
-        $titles = $this->createStub(MagentoShipment::class);
+        $titles = $this->createStub(NativeShipmentService::class);
         $titles->method('getTrackTitle')->willReturnCallback(
-            static fn(Order $order, string $carrierCode): string => $carrierCode === 'DPD' ? 'Kurier DPD' : 'InPost Paczkomat',
+            static fn(Order $order, string $carrierCode): string => $carrierCode === 'DPD'
+                ? 'Kurier DPD'
+                : 'InPost Paczkomat',
         );
 
         return new PrepareLabelledShipmentObserver($config, $titles);

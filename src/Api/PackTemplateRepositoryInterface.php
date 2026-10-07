@@ -51,4 +51,19 @@ interface PackTemplateRepositoryInterface
      * @throws CouldNotDeleteException
      */
     public function delete(PackTemplateInterface $entity): bool;
+
+    /**
+     * The pack templates, without those deleted here and not synchronized yet: the default first,
+     * then by name.
+     *
+     * @return \Polkurier\Shipping\Api\Data\PackTemplateInterface[]
+     */
+    public function getAvailable(): array;
+
+    /**
+     * The pack template marked as the default, if one is.
+     *
+     * @return \Polkurier\Shipping\Api\Data\PackTemplateInterface|null
+     */
+    public function getDefault(): ?PackTemplateInterface;
 }

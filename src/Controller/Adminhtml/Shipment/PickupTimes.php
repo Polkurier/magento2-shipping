@@ -10,10 +10,10 @@ namespace Polkurier\Shipping\Controller\Adminhtml\Shipment;
 use Magento\Backend\App\Action\Context;
 use Magento\Framework\Controller\Result\JsonFactory;
 use Magento\Framework\Exception\LocalizedException;
+use Polkurier\Shipping\Api\Data\ShipmentDraftInterface;
 use Polkurier\Shipping\Controller\Adminhtml\AbstractJsonAction;
-use Polkurier\Shipping\Model\ErrorMessages;
-use Polkurier\Shipping\Model\Shipment\Pickups;
-use Polkurier\Shipping\Model\Shipment\SenderPostcode;
+use Polkurier\Shipping\Model\Sdk\ErrorMessageResolver;
+use Polkurier\Shipping\Model\Shipment\PickupService;
 
 /**
  * Days and windows the chosen carrier can collect on, from the sender's postcode.
@@ -25,9 +25,8 @@ class PickupTimes extends AbstractJsonAction
     public function __construct(
         Context $context,
         JsonFactory $jsonFactory,
-        private readonly Pickups $pickups,
-        private readonly ErrorMessages $errorMessages,
-        private readonly SenderPostcode $senderPostcode,
+        private readonly PickupService $pickupService,
+        private readonly ErrorMessageResolver $errorMessageResolver,
     ) {
         parent::__construct($context, $jsonFactory);
     }
@@ -35,22 +34,24 @@ class PickupTimes extends AbstractJsonAction
     protected function answer(): array
     {
         $data = (array)$this->getRequest()->getParam('data', []);
-        $senderPostcode = $this->senderPostcode->of($data);
-        if (empty($data['carrier_code'])) {
-            throw new LocalizedException(\__('Choose a carrier first.'));
+        $senderPostcode = $this->pickupService->senderPostcodeOf($data);
+        if (empty($data[ShipmentDraftInterface::FIELD_CARRIER_CODE])) {
+            throw new LocalizedException(__('Choose a carrier first.'));
         }
 
-        return ['days' => $this->pickups->getPickupTimes(
-            (string)$data['carrier_code'],
+        return ['days' => $this->pickupService->getPickupTimes(
+            (string)$data[ShipmentDraftInterface::FIELD_CARRIER_CODE],
             $senderPostcode,
-            isset($data['recipient_postcode']) ? (string)$data['recipient_postcode'] : null,
-            (string)($data['shipment_type'] ?? 'box'),
+            isset($data[ShipmentDraftInterface::FIELD_RECIPIENT_POSTCODE])
+                ? (string)$data[ShipmentDraftInterface::FIELD_RECIPIENT_POSTCODE]
+                : null,
+            (string)($data[ShipmentDraftInterface::FIELD_SHIPMENT_TYPE] ?? 'box'),
         )];
     }
 
     protected function refused(LocalizedException $e): array
     {
         // Offered again only when that may help; a refusal waits for a change to the shipment.
-        return ['retry' => $this->errorMessages->isTransient($e), 'days' => []];
+        return ['retry' => $this->errorMessageResolver->isTransient($e), 'days' => []];
     }
 }

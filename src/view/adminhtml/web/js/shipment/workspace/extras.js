@@ -4,8 +4,9 @@
  */
 /**
  * Cash on delivery, insurance and the additional services there are for the shipment's type, each
- * switched on and off in place, so they can be chosen before the carrier that offers them. Cash on delivery and insurance switched on take the amount they're known to need, or
- * open their modals to have it entered; "Change" opens them for the details.
+ * switched on and off in place, so they can be chosen before the carrier that offers them. Cash on
+ * delivery and insurance switched on take the amount they're known to need, or open their modals to
+ * have it entered; "Change" opens them for the details.
  */
 define([
     'ko',
@@ -79,7 +80,9 @@ define([
                         id: 'polkurier-service-' + service,
                         label: label,
                         checked: services.indexOf(service) !== -1,
-                        unavailable: offered && offered.indexOf(service) === -1 ? $t('This carrier does not offer it.') : '',
+                        unavailable: offered && offered.indexOf(service) === -1
+                            ? $t('This carrier does not offer it.')
+                            : '',
                         toggle: this.toggleService.bind(this, service)
                     });
                 }
@@ -112,8 +115,11 @@ define([
                 label: $t('Cash on delivery'),
                 checked: on,
                 amount: on ? this.money(data.cod_amount) : '',
-                details: on ? [this.choice('cod_type', data.cod_type), this.choice('cod_return_type', data.cod_return_type)]
-                    .filter(rules.filled).join(' · ') : '',
+                details: on
+                    ? [this.choice('cod_type', data.cod_type), this.choice('cod_return_type', data.cod_return_type)]
+                        .filter(rules.filled)
+                        .join(' · ')
+                    : '',
                 problem: on && data.cod_return_type === 'BA' && (!rules.filled(data.cod_bank_account_id)
                     || (data.cod_bank_account_id === 'new' && !rules.filled(data.new_bank_account_number)))
                     ? $t('No bank account to pay it out to.')
@@ -172,7 +178,10 @@ define([
                 return;
             }
             // What it collects, or else what it's worth (rules.insuranceFor).
-            const value = rules.insuranceFor(rules.amount(this.get('cod_amount')), rules.amount(this.get('shipment_value')));
+            const value = rules.insuranceFor(
+                rules.amount(this.get('cod_amount')),
+                rules.amount(this.get('shipment_value'))
+            );
 
             if (value > 0) {
                 this.set('insurance_amount', value.toFixed(2));

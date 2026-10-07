@@ -17,8 +17,8 @@ readonly class PayoutType extends AbstractOptions
     public function toArray(): array
     {
         return [
-            MoneyBoxPayoutTypeEnum::Account->value => (string)\__('Bank transfer'),
-            MoneyBoxPayoutTypeEnum::Postal->value => (string)\__('Postal order'),
+            MoneyBoxPayoutTypeEnum::Account->value => (string)__('Bank transfer'),
+            MoneyBoxPayoutTypeEnum::Postal->value => (string)__('Postal order'),
         ];
     }
 }

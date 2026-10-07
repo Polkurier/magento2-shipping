@@ -10,7 +10,7 @@ Whenever the module changes something on the Polkurier account, it dispatches an
 Polkurier has confirmed the change and Magento has recorded it. It happens the same way whether the
 change came from the admin, Magento's label flow, your own code or a cron job. The events are the
 cases of the backed enum `Enum\ApiEventEnum`, whose values are the event names and whose cases
-document each event's data. `Model\ApiEventDispatcher` dispatches them, and accepts only those
+document each event's data. `Model\Sdk\ApiEventDispatcher` dispatches them, and accepts only those
 cases, so the module can't dispatch a name that isn't on the list.
 
 Observe them in `events.xml` by name, as in the table below. In PHP, refer to a name through the

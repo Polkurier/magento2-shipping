@@ -12,7 +12,6 @@ use Magento\Framework\App\Action\HttpPostActionInterface;
 use Magento\Framework\Controller\Result\Redirect;
 use Magento\Framework\Exception\LocalizedException;
 use Polkurier\Shipping\Api\ShipmentManagementInterface;
-use Polkurier\Shipping\Model\Shipment\RequestedShipments;
 
 /**
  * Looks for a Polkurier order whose creation went unanswered.
@@ -36,7 +35,9 @@ class Reconcile extends AbstractShipmentAction implements HttpPostActionInterfac
             try {
                 $shipment = $this->management->reconcile((int)$shipment->getId());
                 $shipment->getState() === \Polkurier\Shipping\Api\Data\ShipmentInterface::STATE_CREATED
-                    ? $this->messageManager->addSuccessMessage(\__('Polkurier order %1 found and linked.', $shipment->getPolkurierNumber()))
+                    ? $this->messageManager->addSuccessMessage(
+                        __('Polkurier order %1 found and linked.', $shipment->getPolkurierNumber()),
+                    )
                     : $this->messageManager->addNoticeMessage((string)$shipment->getLastError());
             } catch (LocalizedException $e) {
                 $this->messageManager->addErrorMessage($e->getMessage());

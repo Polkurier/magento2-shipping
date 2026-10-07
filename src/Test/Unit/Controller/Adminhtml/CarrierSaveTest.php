@@ -15,8 +15,9 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use Polkurier\Shipping\Api\CarrierConfigRepositoryInterface;
 use Polkurier\Shipping\Api\Data\CarrierConfigInterface;
 use Polkurier\Shipping\Controller\Adminhtml\Carrier\Save;
+use Polkurier\Shipping\Enum\FormMemoryEnum;
 use Polkurier\Shipping\Model\Admin\FormActions;
-use Polkurier\Shipping\Model\Carrier\CarrierConfigHydrator;
+use Polkurier\Shipping\Model\CarrierConfig\CarrierConfigHydrator;
 use Polkurier\Shipping\Test\Unit\Support\AdminActionTestCase;
 
 #[CoversClass(Save::class)]
@@ -58,10 +59,14 @@ class CarrierSaveTest extends AdminActionTestCase
     {
         $this->post = ['id' => '7', 'form_key' => 'k', 'pricing_model' => 'TIER_WEIGHT', 'tiers' => []];
 
-        $this->save(new LocalizedException(\__('Add at least one price tier.')))->execute();
+        $this->save(new LocalizedException(__('Add at least one price tier.')))->execute();
 
         self::assertSame(['Add at least one price tier.'], $this->messages['error']);
-        self::assertSame(['id' => '7', 'pricing_model' => 'TIER_WEIGHT', 'tiers' => []], $this->kept, 'Without the form key.');
+        self::assertSame(
+            ['id' => '7', 'pricing_model' => 'TIER_WEIGHT', 'tiers' => []],
+            $this->kept,
+            'Without the form key.',
+        );
         self::assertSame(['*/*/edit', ['id' => 7]], $this->redirect);
         self::assertNotContains('save', $this->happened);
     }
@@ -79,29 +84,32 @@ class CarrierSaveTest extends AdminActionTestCase
     {
         $config = $this->createStub(CarrierConfigInterface::class);
         $repository = $this->createStub(CarrierConfigRepositoryInterface::class);
-        $repository->method('get')->willReturnCallback(function (int $id) use ($config, $exists): CarrierConfigInterface {
-            $this->happened[] = 'get ' . $id;
-            if (!$exists) {
-                throw new NoSuchEntityException(\__('The carrier settings with id "%1" do not exist.', $id));
-            }
+        $repository->method('get')
+            ->willReturnCallback(function (int $id) use ($config, $exists): CarrierConfigInterface {
+                $this->happened[] = 'get ' . $id;
+                if (!$exists) {
+                    throw new NoSuchEntityException(__('The carrier settings with id "%1" do not exist.', $id));
+                }
 
-            return $config;
-        });
-        $repository->method('save')->willReturnCallback(function (CarrierConfigInterface $config): CarrierConfigInterface {
-            $this->happened[] = 'save';
+                return $config;
+            });
+        $repository->method('save')
+            ->willReturnCallback(function (CarrierConfigInterface $config): CarrierConfigInterface {
+                $this->happened[] = 'save';
 
-            return $config;
-        });
+                return $config;
+            });
         $hydrator = $this->createStub(CarrierConfigHydrator::class);
-        $hydrator->method('hydrate')->willReturnCallback(function (CarrierConfigInterface $config, array $data) use ($refusal): void {
-            $this->happened[] = 'hydrate ' . $data['pricing_model'];
-            if ($refusal !== null) {
-                throw $refusal;
-            }
-        });
+        $hydrator->method('hydrate')
+            ->willReturnCallback(function (CarrierConfigInterface $config, array $data) use ($refusal): void {
+                $this->happened[] = 'hydrate ' . $data['pricing_model'];
+                if ($refusal !== null) {
+                    throw $refusal;
+                }
+            });
         $persistor = $this->createStub(DataPersistorInterface::class);
         $persistor->method('set')->willReturnCallback(function (string $key, mixed $value): void {
-            self::assertSame(Save::PERSISTOR_KEY, $key);
+            self::assertSame(FormMemoryEnum::Carrier->value, $key);
             $this->kept = $value;
         });
         $persistor->method('clear')->willReturnCallback(function (): void {

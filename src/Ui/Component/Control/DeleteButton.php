@@ -37,11 +37,11 @@ readonly class DeleteButton implements ButtonProviderInterface
         }
 
         return [
-            'label' => \__('Delete'),
+            'label' => __('Delete'),
             'class' => 'delete',
             'on_click' => \sprintf(
                 'deleteConfirm(%s, %s, {data: {}}); return false;',
-                $this->json->serialize((string)\__($this->message)),
+                $this->json->serialize((string)__($this->message)),
                 $this->json->serialize($this->url->getUrl($this->path, ['id' => $id])),
             ),
             'sort_order' => 20,

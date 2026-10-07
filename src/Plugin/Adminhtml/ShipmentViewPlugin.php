@@ -10,10 +10,9 @@ namespace Polkurier\Shipping\Plugin\Adminhtml;
 use Magento\Framework\AuthorizationInterface;
 use Magento\Sales\Model\Order;
 use Magento\Shipping\Block\Adminhtml\View;
-use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Model\Carrier\Polkurier;
-use Polkurier\Shipping\Model\Config;
-use Polkurier\Shipping\Model\Shipment\MagentoShipment;
+use Polkurier\Shipping\Model\Config\ConfigProvider;
+use Polkurier\Shipping\Model\Shipment\Native\NativeShipmentService;
 use Polkurier\Shipping\Model\Shipment\ShipmentFinder;
 
 /**
@@ -32,8 +31,8 @@ readonly class ShipmentViewPlugin
 
     public function __construct(
         private AuthorizationInterface $authorization,
-        private Config $config,
-        private MagentoShipment $magentoShipment,
+        private ConfigProvider $configProvider,
+        private NativeShipmentService $nativeShipmentService,
         private ShipmentFinder $finder,
     ) {}
 
@@ -49,22 +48,26 @@ readonly class ShipmentViewPlugin
         if (!$order instanceof Order || !Polkurier::isOrderOf($order)) {
             return [$layout];
         }
-        $linked = $this->linkedTo((int)$shipment->getId());
+        // The latest when it has had several: one cancelled, another placed on it since.
+        $linked = $this->finder->latestLinkedTo((int)$shipment->getId());
         if ($linked !== null && $this->authorization->isAllowed('Polkurier_Shipping::shipments')) {
             $subject->addButton(self::VIEW_BUTTON, [
-                'label' => \__('Polkurier order'),
-                'onclick' => \sprintf("setLocation('%s')", $subject->getUrl('polkurier/shipment/view', ['id' => $linked->getId()])),
+                'label' => __('Polkurier order'),
+                'onclick' => \sprintf(
+                    "setLocation('%s')",
+                    $subject->getUrl('polkurier/shipment/view', ['id' => $linked->getId()]),
+                ),
                 'class' => 'polkurier-view-order',
             ]);
         }
         if (!$this->authorization->isAllowed('Polkurier_Shipping::shipment_create')
-            || !$this->config->isShipmentScreenEnabled((int)$order->getStoreId())
-            || !isset($this->magentoShipment->getFreeShipments($order)[(int)$shipment->getId()])
+            || !$this->configProvider->isShipmentScreenEnabled((int)$order->getStoreId())
+            || !isset($this->nativeShipmentService->getFreeShipments($order)[(int)$shipment->getId()])
         ) {
             return [$layout];
         }
         $subject->addButton(self::BUTTON, [
-            'label' => \__('Add a Polkurier order'),
+            'label' => __('Add a Polkurier order'),
             'onclick' => \sprintf("setLocation('%s')", $subject->getUrl('polkurier/shipment/create', [
                 'order_id' => $order->getId(),
                 'shipment_id' => $shipment->getId(),
@@ -73,14 +76,5 @@ readonly class ShipmentViewPlugin
         ]);
 
         return [$layout];
-    }
-
-    /**
-     * The shipment's Polkurier order, the latest when it has had several (one cancelled, another
-     * placed on it since).
-     */
-    private function linkedTo(int $magentoShipmentId): ?ShipmentInterface
-    {
-        return $this->finder->latestLinkedTo($magentoShipmentId);
     }
 }

@@ -26,11 +26,17 @@ class ShippingInfoPluginTest extends TestCase
     public function testThePointAndTheCarrierShippedWithGoUnderTheShippingMethod(): void
     {
         $html = (new ShippingInfoPlugin())->afterToHtml(
-            $this->block('order_shipping_view', ['polkurier_order_point' => '<p>WAW195M</p>', 'polkurier_shipped_with' => '<p>DPD</p>']),
+            $this->block(
+                'order_shipping_view',
+                ['polkurier_order_point' => '<p>WAW195M</p>', 'polkurier_shipped_with' => '<p>DPD</p>'],
+            ),
             self::SECTION,
         );
 
-        self::assertSame("<div class=\"order-shipping-method\">\n    <div class=\"admin__page-section-item-content\">\n        <strong>Paczkomat</strong> PLN 14.99\n    <p>WAW195M</p><p>DPD</p></div>\n</div>\n", $html);
+        self::assertSame(
+            "<div class=\"order-shipping-method\">\n    <div class=\"admin__page-section-item-content\">\n        <strong>Paczkomat</strong> PLN 14.99\n    <p>WAW195M</p><p>DPD</p></div>\n</div>\n",
+            $html,
+        );
     }
 
     public function testWithNothingToAddTheSectionStaysAsItIs(): void
@@ -62,10 +68,15 @@ class ShippingInfoPluginTest extends TestCase
 
         $html = (new ShippingInfoPlugin())->afterToHtml(
             $form,
-            '<div class="shipping-description-wrapper"><div class="shipping-description-title">DHL POP</div>Total Shipping Charges</div>',
+            '<div class="shipping-description-wrapper"><div '
+            . 'class="shipping-description-title">DHL POP</div>Total Shipping Charges</div>',
         );
 
-        self::assertSame('<div class="shipping-description-wrapper"><div class="shipping-description-title">DHL POP</div><p>InPost</p>Total Shipping Charges</div>', $html);
+        self::assertSame(
+            '<div class="shipping-description-wrapper"><div class="shipping-description-title">DHL '
+            . 'POP</div><p>InPost</p>Total Shipping Charges</div>',
+            $html,
+        );
         self::assertSame(10, $data['shipment_id'] ?? null, 'Only that shipment\'s carrier.');
     }
 

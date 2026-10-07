@@ -9,7 +9,8 @@
     <table name="polkurier_carrier_config" resource="default" engine="innodb" comment="Polkurier carrier settings">
         <column xsi:type="int" name="config_id" identity="true" nullable="false" unsigned="true" />
         <column xsi:type="varchar" name="carrier_code" nullable="false" length="64" />
-        <column xsi:type="varchar" name="carrier_name" nullable="false" length="255" comment="Name reported by the API" />
+        <column xsi:type="varchar" name="carrier_name" nullable="false" length="255"
+                comment="Name reported by the API" />
         <column xsi:type="varchar" name="custom_label" nullable="true" length="255" />
         <column xsi:type="varchar" name="logo" nullable="true" length="255"
                 comment="Logo shown next to the method in checkout, relative to the media directory" />
@@ -37,7 +38,8 @@
             <column name="config_id" />
             <column name="store_id" />
         </constraint>
-        <constraint xsi:type="foreign" referenceId="POLKURIER_CARRIER_LABEL_CONFIG_ID_POLKURIER_CARRIER_CONFIG_CONFIG_ID"
+        <constraint xsi:type="foreign"
+                    referenceId="POLKURIER_CARRIER_LABEL_CONFIG_ID_POLKURIER_CARRIER_CONFIG_CONFIG_ID"
                     table="polkurier_carrier_label" column="config_id" referenceTable="polkurier_carrier_config"
                     referenceColumn="config_id" onDelete="CASCADE" />
         <constraint xsi:type="foreign" referenceId="POLKURIER_CARRIER_LABEL_STORE_ID_STORE_STORE_ID"
@@ -48,7 +50,8 @@
     <!-- Address book, mirrored with the Polkurier account's -->
     <table name="polkurier_address" resource="default" engine="innodb" comment="Polkurier address book">
         <column xsi:type="int" name="address_id" identity="true" nullable="false" unsigned="true" />
-        <column xsi:type="varbinary" name="ext_id" nullable="true" length="64" comment="Id in Polkurier; its case matters" />
+        <column xsi:type="varbinary" name="ext_id" nullable="true" length="64"
+                comment="Id in Polkurier; its case matters" />
         <column xsi:type="varchar" name="name" nullable="false" length="255" />
         <column xsi:type="varchar" name="type" nullable="false" length="16" default="SENDER" />
         <column xsi:type="varchar" name="person" nullable="false" length="255" />
@@ -86,7 +89,8 @@
     <!-- Bank accounts cash on delivery is paid out to, mirrored from the Polkurier account -->
     <table name="polkurier_bank_account" resource="default" engine="innodb" comment="Polkurier bank accounts">
         <column xsi:type="int" name="account_id" identity="true" nullable="false" unsigned="true" />
-        <column xsi:type="varbinary" name="ext_id" nullable="true" length="64" comment="Id in Polkurier; its case matters" />
+        <column xsi:type="varbinary" name="ext_id" nullable="true" length="64"
+                comment="Id in Polkurier; its case matters" />
         <column xsi:type="varchar" name="name" nullable="false" length="255" />
         <column xsi:type="varchar" name="number" nullable="false" length="64" />
         <column xsi:type="smallint" name="is_default" nullable="false" unsigned="true" default="0" />
@@ -109,7 +113,8 @@
     <!-- Parcel templates, mirrored with the Polkurier account's -->
     <table name="polkurier_pack_template" resource="default" engine="innodb" comment="Polkurier pack templates">
         <column xsi:type="int" name="template_id" identity="true" nullable="false" unsigned="true" />
-        <column xsi:type="varbinary" name="ext_id" nullable="true" length="64" comment="Id in Polkurier; its case matters" />
+        <column xsi:type="varbinary" name="ext_id" nullable="true" length="64"
+                comment="Id in Polkurier; its case matters" />
         <column xsi:type="varchar" name="name" nullable="false" length="255" />
         <column xsi:type="text" name="description" nullable="true" />
         <column xsi:type="varchar" name="pack_type" nullable="false" length="16" default="ST" />
@@ -117,9 +122,12 @@
         <column xsi:type="int" name="width" nullable="false" unsigned="true" />
         <column xsi:type="int" name="height" nullable="false" unsigned="true" />
         <column xsi:type="decimal" name="weight" scale="3" precision="12" unsigned="true" nullable="false" />
-        <column xsi:type="decimal" name="tare" scale="3" precision="12" unsigned="true" nullable="true" comment="What the packaging itself weighs, kg; Magento only" />
-        <column xsi:type="decimal" name="cod_amount" scale="2" precision="12" unsigned="true" nullable="false" default="0" />
-        <column xsi:type="decimal" name="insurance_amount" scale="2" precision="12" unsigned="true" nullable="false" default="0" />
+        <column xsi:type="decimal" name="tare" scale="3" precision="12" unsigned="true" nullable="true"
+                comment="What the packaging itself weighs, kg; Magento only" />
+        <column xsi:type="decimal" name="cod_amount" scale="2" precision="12" unsigned="true" nullable="false"
+                default="0" />
+        <column xsi:type="decimal" name="insurance_amount" scale="2" precision="12" unsigned="true" nullable="false"
+                default="0" />
         <column xsi:type="varchar" name="carrier_code" nullable="true" length="64" />
         <column xsi:type="text" name="services" nullable="true" comment="Comma-separated service codes" />
         <column xsi:type="smallint" name="is_default" nullable="false" unsigned="true" default="0" />
@@ -148,8 +156,8 @@
         <column xsi:type="varchar" name="method_code" nullable="false" length="64" />
         <column xsi:type="varchar" name="point_id" nullable="false" length="64" />
         <column xsi:type="varchar" name="point_label" nullable="true" length="512" />
-        <column xsi:type="smallint" name="point_cod" nullable="false" unsigned="true" default="0"
-                comment="Whether the point accepts cash on delivery, as reported by the API" />
+        <column xsi:type="smallint" name="point_cod" nullable="true" unsigned="true"
+                comment="Whether the point accepts cash on delivery, as reported by the API; null when not known" />
         <column xsi:type="timestamp" name="updated_at" nullable="false" default="CURRENT_TIMESTAMP" on_update="true" />
         <constraint xsi:type="primary" referenceId="PRIMARY">
             <column name="entity_id" />
@@ -169,7 +177,8 @@
         <column xsi:type="varchar" name="method_code" nullable="false" length="64" />
         <column xsi:type="varchar" name="point_id" nullable="false" length="64" />
         <column xsi:type="varchar" name="point_label" nullable="true" length="512" />
-        <column xsi:type="smallint" name="point_cod" nullable="false" unsigned="true" default="0" />
+        <column xsi:type="smallint" name="point_cod" nullable="true" unsigned="true"
+                comment="Whether the point accepts cash on delivery; null when not known" />
         <constraint xsi:type="primary" referenceId="PRIMARY">
             <column name="order_id" />
         </constraint>
@@ -180,14 +189,16 @@
 
     <!-- The shipping the customer chose, kept once the order's shipping is changed to what its
          Polkurier order went with -->
-    <table name="polkurier_order_shipping_choice" resource="sales" engine="innodb" comment="Shipping the customer chose for a Polkurier order">
+    <table name="polkurier_order_shipping_choice" resource="sales" engine="innodb"
+           comment="Shipping the customer chose for a Polkurier order">
         <column xsi:type="int" name="order_id" nullable="false" unsigned="true" />
         <column xsi:type="varchar" name="shipping_method" nullable="true" length="120" />
         <column xsi:type="varchar" name="shipping_description" nullable="true" length="255" />
         <column xsi:type="varchar" name="point_method_code" nullable="true" length="64" />
         <column xsi:type="varchar" name="point_id" nullable="true" length="64" />
         <column xsi:type="varchar" name="point_label" nullable="true" length="512" />
-        <column xsi:type="smallint" name="point_cod" nullable="false" unsigned="true" default="0" />
+        <column xsi:type="smallint" name="point_cod" nullable="true" unsigned="true"
+                comment="Whether the point accepts cash on delivery; null when not known" />
         <column xsi:type="timestamp" name="created_at" nullable="false" default="CURRENT_TIMESTAMP" on_update="false" />
         <constraint xsi:type="primary" referenceId="PRIMARY">
             <column name="order_id" />
@@ -242,9 +253,11 @@
                 comment="Sent to Polkurier as external_order_id: the Magento shipment or order number" />
         <column xsi:type="varchar" name="reserved_shipment_number" nullable="true" length="50"
                 comment="Number taken for the Magento shipment to be created, sent as its external_order_id" />
-        <column xsi:type="mediumtext" name="details" nullable="true" comment="Local copy of the order as Polkurier reports it, as JSON" />
+        <column xsi:type="mediumtext" name="details" nullable="true"
+                comment="Local copy of the order as Polkurier reports it, as JSON" />
         <column xsi:type="datetime" name="details_synced_at" nullable="true" />
-        <column xsi:type="mediumtext" name="tracking" nullable="true" comment="Local copy of the carrier's scan history, as JSON" />
+        <column xsi:type="mediumtext" name="tracking" nullable="true"
+                comment="Local copy of the carrier's scan history, as JSON" />
         <column xsi:type="datetime" name="tracking_synced_at" nullable="true" />
         <column xsi:type="text" name="last_error" nullable="true" />
         <column xsi:type="datetime" name="attention_notified_at" nullable="true"

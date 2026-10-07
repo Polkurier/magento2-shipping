@@ -11,8 +11,9 @@ use Magento\Backend\App\Action\Context;
 use Magento\Framework\App\Request\DataPersistorInterface;
 use Magento\Framework\Controller\Result\Redirect;
 use Magento\Framework\Exception\LocalizedException;
-use Polkurier\Shipping\Controller\Adminhtml\MasterData\AbstractSave;
-use Polkurier\Shipping\Model\Admin\BankAccountHandler;
+use Polkurier\Shipping\Controller\Adminhtml\AbstractSave;
+use Polkurier\Shipping\Model\Admin\FlashMessageCollectorFactory;
+use Polkurier\Shipping\Model\BankAccount\BankAccountHandler;
 
 /**
  * Saves a bank account, or, from the form's Delete button, deletes it with the PIN given there.
@@ -25,8 +26,9 @@ class Save extends AbstractSave
         Context $context,
         private readonly BankAccountHandler $bankAccountHandler,
         DataPersistorInterface $dataPersistor,
+        FlashMessageCollectorFactory $flashMessageCollectorFactory,
     ) {
-        parent::__construct($context, $bankAccountHandler, $dataPersistor);
+        parent::__construct($context, $bankAccountHandler, $dataPersistor, $flashMessageCollectorFactory);
     }
 
     public function execute(): Redirect
@@ -37,11 +39,13 @@ class Save extends AbstractSave
         }
         $id = (int)($data['id'] ?? 0);
         $redirect = $this->resultRedirectFactory->create();
+        $pin = (string)($data[BankAccountHandler::FIELD_CONFIRMATION_PIN] ?? '');
         try {
-            $this->bankAccountHandler->delete($this->bankAccountHandler->get($id), [
-                BankAccountHandler::CONFIRMATION_PIN => (string)($data[BankAccountHandler::CONFIRMATION_PIN] ?? ''),
-            ]);
-            $this->messageManager->addSuccessMessage(\__('Deleted.'));
+            $this->bankAccountHandler->delete(
+                $this->bankAccountHandler->get($id),
+                [BankAccountHandler::FIELD_CONFIRMATION_PIN => $pin],
+            );
+            $this->messageManager->addSuccessMessage(__('Deleted.'));
         } catch (LocalizedException $e) {
             $this->messageManager->addErrorMessage($e->getMessage());
 

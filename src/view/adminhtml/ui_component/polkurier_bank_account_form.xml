@@ -24,28 +24,37 @@
                 <class>back</class>
                 <label translate="true">Back</label>
             </button>
-            <button name="delete" class="Polkurier\Shipping\Ui\Component\Control\DeleteBankAccountButton"/>
-            <button name="save_and_continue" class="Polkurier\Shipping\Ui\Component\Control\SaveAndContinueBankAccount"/>
+            <button name="delete" class="Polkurier\Shipping\Ui\Component\Form\BankAccount\DeleteButton"/>
+            <button name="save_and_continue"
+                    class="Polkurier\Shipping\Ui\Component\Form\BankAccount\SaveAndContinueButtonVirtual"/>
             <button name="save" class="Polkurier\Shipping\Ui\Component\Control\SaveButton"/>
         </buttons>
     </settings>
     <dataSource name="polkurier_bank_account_form_data_source">
         <argument name="data" xsi:type="array">
             <item name="js_config" xsi:type="array">
-                <item name="component" xsi:type="string">Polkurier_Shipping/js/form/bank-account-provider</item>
+                <item name="component" xsi:type="string">Polkurier_Shipping/js/form/confirmed-provider</item>
+                <!-- Saved once confirmed with the code Polkurier sends then, or with the security PIN
+                     where the account locks bank accounts with one -->
+                <item name="confirmation" xsi:type="array">
+                    <item name="pinLocked" xsi:type="string">pin_locked</item>
+                    <item name="pinField" xsi:type="string">confirmation_pin</item>
+                    <item name="title" xsi:type="string" translate="true">Confirm the bank account</item>
+                </item>
             </item>
         </argument>
         <settings>
             <submitUrl path="*/*/save"/>
         </settings>
-        <dataProvider class="Polkurier\Shipping\Ui\Component\Form\BankAccount\DataProvider" name="polkurier_bank_account_form_data_source">
+        <dataProvider class="Polkurier\Shipping\Ui\Component\Form\BankAccount\DataProvider"
+                      name="polkurier_bank_account_form_data_source">
             <settings>
                 <requestFieldName>id</requestFieldName>
                 <primaryFieldName>id</primaryFieldName>
             </settings>
         </dataProvider>
     </dataSource>
-    <!-- Above the fields: saving asks for the confirmation (js/form/bank-account-provider) -->
+    <!-- Above the fields: saving asks for the confirmation (js/form/confirmed-provider) -->
     <container name="confirmation_note" sortOrder="5">
         <argument name="data" xsi:type="array">
             <item name="config" xsi:type="array">

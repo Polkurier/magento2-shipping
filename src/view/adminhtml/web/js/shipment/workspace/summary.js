@@ -112,7 +112,9 @@ define([
             // Polkurier won't price a courier pickup without its date and window, and they don't
             // change the price: until they're chosen, price it as handed over at a point.
             if (payload.pickup_mode === 'courier'
-                && !(rules.filled(payload.pickup_date) && rules.filled(payload.pickup_time_from) && rules.filled(payload.pickup_time_to))
+                && !(rules.filled(payload.pickup_date)
+                    && rules.filled(payload.pickup_time_from)
+                    && rules.filled(payload.pickup_time_to))
             ) {
                 payload.pickup_mode = 'drop_off';
                 payload.pickup_date = payload.pickup_time_from = payload.pickup_time_to = '';
@@ -151,7 +153,11 @@ define([
                     // No quote at all means the draft couldn't be priced, not that no carrier takes it.
                     this.source.set('quotes', _.isEmpty(quotes) ? null : quotes);
                     // Asked again when the merchant says so, or the draft changes.
-                    this.setMessage(response.error ? response.message : '', Boolean(response.error), Boolean(response.retry));
+                    this.setMessage(
+                        response.error ? response.message : '',
+                        Boolean(response.error),
+                        Boolean(response.retry)
+                    );
                 }.bind(this),
                 fail: function () {
                     this.setMessage($t('Prices could not be loaded.'), true, true);

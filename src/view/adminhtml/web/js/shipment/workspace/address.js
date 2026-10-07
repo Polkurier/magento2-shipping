@@ -37,7 +37,14 @@ define([
                 {text: address.company, strong: true},
                 {text: address.person, strong: true},
                 {text: address.street},
-                {text: [address.city, address.country && address.country !== 'PL' ? '(' + address.country + ')' : ''].filter(rules.filled).join(' ')},
+                {
+                    text: [
+                        address.city,
+                        address.country && address.country !== this.get('home_country')
+                            ? '(' + address.country + ')'
+                            : ''
+                    ].filter(rules.filled).join(' ')
+                },
                 {text: [address.phone, address.email].filter(rules.filled).join(', '), muted: true}
             ].filter(function (line) {
                 return rules.filled(line.text);
@@ -73,7 +80,9 @@ define([
 
             return {
                 typedIn: true,
-                caption: keep ? $t('A new address, saved to your addresses once placed') : $t('A new address, for this shipment only'),
+                caption: keep
+                    ? $t('A new address, saved to your addresses once placed')
+                    : $t('A new address, for this shipment only'),
                 company: data.new_sender_company,
                 person: data.new_sender_person,
                 street: [data.new_sender_street, number].filter(rules.filled).join(' '),

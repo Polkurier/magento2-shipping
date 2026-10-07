@@ -9,7 +9,6 @@ namespace Polkurier\Shipping\Test\Unit\Controller\Adminhtml;
 
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Exception\NoSuchEntityException;
-use Magento\Framework\Stdlib\DateTime\TimezoneInterface;
 use Magento\Framework\TestFramework\Unit\Helper\ObjectManager;
 use Magento\Ui\Component\MassAction\Filter;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
@@ -18,15 +17,15 @@ use Polkurier\Shipping\Api\CarrierConfigRepositoryInterface;
 use Polkurier\Shipping\Api\Data\CarrierConfigInterface;
 use Polkurier\Shipping\Controller\Adminhtml\Carrier\Edit;
 use Polkurier\Shipping\Controller\Adminhtml\Carrier\MassToggle;
-use Polkurier\Shipping\Controller\Adminhtml\Moneybox\Cancel;
+use Polkurier\Shipping\Controller\Adminhtml\Payout\Cancel;
 use Polkurier\Shipping\Controller\Adminhtml\Shipment\Create;
 use Polkurier\Shipping\Model\CarrierConfig;
-use Polkurier\Shipping\Model\MoneyBox\Payouts;
+use Polkurier\Shipping\Model\Payout\PayoutManager;
 use Polkurier\Shipping\Model\ResourceModel\CarrierConfig\Collection;
 use Polkurier\Shipping\Model\ResourceModel\CarrierConfig\CollectionFactory;
-use Polkurier\Shipping\Model\Shipment\NotPlaced;
-use Polkurier\Shipping\Model\Shipment\OwnOrders;
-use Polkurier\Shipping\Model\Shipment\SendAgain;
+use Polkurier\Shipping\Model\Shipment\OrderLoader;
+use Polkurier\Shipping\Model\Shipment\Placement\FailedShipmentManager;
+use Polkurier\Shipping\Model\Shipment\Screen\RetriableShipmentFinder;
 use Polkurier\Shipping\Test\Unit\Support\AdminActionTestCase;
 
 #[CoversClass(Create::class)]
@@ -39,20 +38,36 @@ class RedirectingActionsTest extends AdminActionTestCase
     public function testAnOrderOfAnotherCarrierGoesBackToTheOrder(): void
     {
         $this->params = ['order_id' => '30'];
-        $orders = $this->createStub(OwnOrders::class);
-        $orders->method('get')->willThrowException(new LocalizedException(\__('Order #000000052 wasn\'t placed with a Polkurier delivery method, so it isn\'t shipped with Polkurier.')));
+        $orders = $this->createStub(OrderLoader::class);
+        $orders->method('getForPolkurier')
+            ->willThrowException(new LocalizedException(__(
+                'Order #000000052 wasn\'t placed with a Polkurier '
+                . 'delivery method, so it isn\'t shipped with Polkurier.',
+            )));
 
-        (new Create($this->context(), $orders, $this->createStub(SendAgain::class), $this->createStub(TimezoneInterface::class), $this->createStub(NotPlaced::class)))->execute();
+        (new Create(
+            $this->context(),
+            $orders,
+            $this->createStub(RetriableShipmentFinder::class),
+            $this->createStub(FailedShipmentManager::class),
+        ))->execute();
 
         self::assertSame(['sales/order/view', ['order_id' => 30]], $this->redirect);
-        self::assertStringStartsWith('Order #000000052 wasn\'t placed with a Polkurier delivery method', $this->messages['error'][0]);
+        self::assertStringStartsWith(
+            'Order #000000052 wasn\'t placed with a Polkurier delivery method',
+            $this->messages['error'][0],
+        );
     }
 
     public function testACarrierThatIsGoneGoesBackToTheList(): void
     {
         $this->params = ['id' => '999'];
         $repository = $this->createStub(CarrierConfigRepositoryInterface::class);
-        $repository->method('get')->willThrowException(new NoSuchEntityException(\__('The carrier settings with id "%1" do not exist.', 999)));
+        $repository->method('get')
+            ->willThrowException(new NoSuchEntityException(__(
+                'The carrier settings with id "%1" do not exist.',
+                999,
+            )));
 
         (new Edit($this->context(), $repository))->execute();
 
@@ -71,11 +86,12 @@ class RedirectingActionsTest extends AdminActionTestCase
         $collections->method('create')->willReturn($this->createStub(Collection::class));
         $saved = [];
         $repository = $this->createStub(CarrierConfigRepositoryInterface::class);
-        $repository->method('save')->willReturnCallback(static function (CarrierConfigInterface $config) use (&$saved): CarrierConfigInterface {
-            $saved[] = $config->getCarrierCode();
+        $repository->method('save')
+            ->willReturnCallback(static function (CarrierConfigInterface $config) use (&$saved): CarrierConfigInterface {
+                $saved[] = $config->getCarrierCode();
 
-            return $config;
-        });
+                return $config;
+            });
 
         (new MassToggle($this->context(), $filter, $collections, $repository))->execute();
 
@@ -88,7 +104,7 @@ class RedirectingActionsTest extends AdminActionTestCase
     public function testCancellingNoPayoutGoesBackToTheList(): void
     {
         $this->params = ['number' => ''];
-        $payouts = $this->createMock(Payouts::class);
+        $payouts = $this->createMock(PayoutManager::class);
         $payouts->expects(self::never())->method('cancelPayout');
 
         (new Cancel($this->context(), $payouts))->execute();
@@ -100,7 +116,7 @@ class RedirectingActionsTest extends AdminActionTestCase
     public function testACancelledPayoutIsReported(): void
     {
         $this->params = ['number' => 'W-1'];
-        $payouts = $this->createMock(Payouts::class);
+        $payouts = $this->createMock(PayoutManager::class);
         $payouts->expects(self::once())->method('cancelPayout')->with('W-1');
 
         (new Cancel($this->context(), $payouts))->execute();

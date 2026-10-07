@@ -81,7 +81,7 @@ define(['mage/translate', 'Magento_Ui/js/modal/alert'], function ($t, alert) {
          * @param {Object} config the map settings from the checkout configuration
          * @param {Array} providers point networks of the delivery method
          * @param {String} searchQuery where the map starts: the postcode, e.g. "00-001"
-         * @param {Function} onChoose called with {id, label}
+         * @param {Function} onChoose called with {id, label, cod}
          */
         open: function (config, providers, searchQuery, onChoose) {
             freshToken(config).then(function () {
@@ -103,7 +103,11 @@ define(['mage/translate', 'Magento_Ui/js/modal/alert'], function ($t, alert) {
                 map.onConfirm(function (point) {
                     onChoose({
                         id: point.id,
-                        label: point.address || [point.street, [point.zip, point.city].filter(Boolean).join(' ')].filter(Boolean).join(', ')
+                        label: point.address
+                            || [point.street, [point.zip, point.city].filter(Boolean).join(' ')]
+                                .filter(Boolean)
+                                .join(', '),
+                        cod: point.cod
                     });
                     map.closeMapDialog();
                 });

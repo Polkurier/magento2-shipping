@@ -13,8 +13,8 @@ use Magento\Sales\Api\Data\OrderSearchResultInterface;
 use Magento\Sales\Api\OrderRepositoryInterface;
 use Polkurier\Shipping\Api\Data\OrderPointInterface;
 use Polkurier\Shipping\Api\Data\ShippingChoiceInterface;
-use Polkurier\Shipping\Model\OrderPointStore;
-use Polkurier\Shipping\Model\ShippingChoiceStore;
+use Polkurier\Shipping\Api\OrderPointRepositoryInterface;
+use Polkurier\Shipping\Model\ShippingChoice\ShippingChoiceRepository;
 
 /**
  * Exposes the order's pickup point as its polkurier_point extension attribute, and, when the
@@ -24,8 +24,8 @@ use Polkurier\Shipping\Model\ShippingChoiceStore;
 readonly class OrderRepositoryPlugin
 {
     public function __construct(
-        private OrderPointStore $pointStore,
-        private ShippingChoiceStore $choices,
+        private OrderPointRepositoryInterface $orderPointRepository,
+        private ShippingChoiceRepository $shippingChoiceRepository,
         private OrderExtensionFactory $extensionFactory,
     ) {}
 
@@ -33,22 +33,28 @@ readonly class OrderRepositoryPlugin
     {
         if ($order->getEntityId()) {
             $orderId = (int)$order->getEntityId();
-            $this->attach($order, $this->pointStore->getForOrders([$orderId])[$orderId] ?? null, $this->choices->get($orderId));
+            $this->attach(
+                $order,
+                $this->orderPointRepository->getForOrders([$orderId])[$orderId] ?? null,
+                $this->shippingChoiceRepository->getForOrder($orderId),
+            );
         }
 
         return $order;
     }
 
-    public function afterGetList(OrderRepositoryInterface $subject, OrderSearchResultInterface $result): OrderSearchResultInterface
-    {
+    public function afterGetList(
+        OrderRepositoryInterface $subject,
+        OrderSearchResultInterface $result,
+    ): OrderSearchResultInterface {
         $orderIds = [];
         foreach ($result->getItems() as $order) {
             if ($order->getEntityId()) {
                 $orderIds[] = (int)$order->getEntityId();
             }
         }
-        $points = $this->pointStore->getForOrders($orderIds);
-        $choices = $this->choices->getForOrders($orderIds);
+        $points = $this->orderPointRepository->getForOrders($orderIds);
+        $choices = $this->shippingChoiceRepository->getForOrders($orderIds);
         foreach ($result->getItems() as $order) {
             $orderId = (int)$order->getEntityId();
             $this->attach($order, $points[$orderId] ?? null, $choices[$orderId] ?? null);

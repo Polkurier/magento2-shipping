@@ -26,7 +26,7 @@ class Index extends Action implements HttpGetActionInterface
             throw new \LogicException('The admin area renders backend pages.');
         }
         $page->setActiveMenu('Polkurier_Shipping::shipments');
-        $page->getConfig()->getTitle()->prepend((string)\__('Polkurier shipments'));
+        $page->getConfig()->getTitle()->prepend((string)__('Polkurier shipments'));
 
         return $page;
     }

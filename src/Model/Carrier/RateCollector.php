@@ -8,20 +8,24 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Model\Carrier;
 
 use Magento\Framework\App\Area;
+use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\App\State;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Quote\Model\Quote\Address\RateRequest;
 use Magento\Quote\Model\Quote\Address\RateResult\Method;
 use Magento\Quote\Model\Quote\Address\RateResult\MethodFactory;
+use Magento\Quote\Model\Quote\Item\AbstractItem;
 use Magento\Shipping\Model\Rate\Result;
 use Magento\Shipping\Model\Rate\ResultFactory;
+use Magento\Store\Model\ScopeInterface;
 use Polkurier\Shipping\Api\Data\CarrierConfigInterface;
+use Polkurier\Shipping\Enum\CartValueEnum;
 use Polkurier\Shipping\Exception\RecentFailureException;
-use Polkurier\Shipping\Model\Checkout\MapTokenProvider;
-use Polkurier\Shipping\Model\Pricing\CartValue;
-use Polkurier\Shipping\Model\Pricing\PriceCalculatorInterface;
-use Polkurier\Shipping\Model\Pricing\RateContext;
-use Polkurier\Shipping\Model\StoreWeightUnit;
+use Polkurier\Shipping\Model\Carrier\Pricing\PriceCalculatorInterface;
+use Polkurier\Shipping\Model\Carrier\Pricing\RateContext;
+use Polkurier\Shipping\Model\CarrierConfig\CarrierConfigProvider;
+use Polkurier\Shipping\Model\Config\ConfigProvider;
+use Polkurier\Shipping\Model\PickupPoint\MapTokenProvider;
 use Polkurier\Webservice\Exception\Exception as PolkurierException;
 use Polkurier\Webservice\Response\Carrier;
 use Psr\Log\LoggerInterface;
@@ -39,18 +43,24 @@ use Psr\Log\LoggerInterface;
  */
 readonly class RateCollector
 {
+    /**
+     * Magento's "Apply Discount On Prices": whether discounts are worked out on prices with tax.
+     */
+    private const string XML_PATH_DISCOUNT_TAX = 'tax/calculation/discount_tax';
+
     public function __construct(
         private ResultFactory $rateResultFactory,
         private MethodFactory $rateMethodFactory,
-        private CarrierConfigs $carrierConfigs,
+        private CarrierConfigProvider $carrierConfigProvider,
         private CarrierCatalog $catalog,
-        private CarrierFeatures $features,
+        private CarrierFeatureResolver $carrierFeatureResolver,
         private PriceCalculatorInterface $priceCalculator,
-        private StoreWeightUnit $weightUnit,
+        private WeightUnitConverter $weightUnits,
         private LoggerInterface $logger,
         private MapTokenProvider $mapTokenProvider,
         private State $appState,
-        private CartValue $cartValue,
+        private ConfigProvider $configProvider,
+        private ScopeConfigInterface $scopeConfig,
     ) {}
 
     /**
@@ -59,7 +69,7 @@ readonly class RateCollector
     public function collect(RateRequest $request): Result|false
     {
         $storeId = (int)$request->getStoreId();
-        $configs = $this->carrierConfigs->getActive();
+        $configs = $this->carrierConfigProvider->getActive();
         if ($configs === []) {
             return false;
         }
@@ -68,8 +78,8 @@ readonly class RateCollector
         $foreign = $request->getDestCountryId() && $request->getDestCountryId() !== Polkurier::HOME_COUNTRY;
         // The subtotal is in the base currency, as the prices are; weight tiers are in kilograms.
         $context = new RateContext(
-            subtotal: $this->cartValue->of($request),
-            weight: (float)$request->getPackageWeight() * $this->weightUnit->kilogramsPerUnit($storeId),
+            subtotal: $this->cartValueOf($request),
+            weight: $this->weightUnits->toKilograms((float)$request->getPackageWeight(), $storeId),
         );
 
         $result = $this->rateResultFactory->create();
@@ -81,13 +91,13 @@ readonly class RateCollector
             }
             // Carriers for abroad go abroad only, the others only at home: Polkurier prices
             // neither the other way.
-            if ($foreign && ($carrier === null || !$this->features->isForeign($carrier))) {
+            if ($foreign && ($carrier === null || !$this->carrierFeatureResolver->isForeign($carrier))) {
                 continue;
             }
-            if (!$foreign && $carrier !== null && $this->features->isForeign($carrier)) {
+            if (!$foreign && $carrier !== null && $this->carrierFeatureResolver->isForeign($carrier)) {
                 continue;
             }
-            if ($carrier !== null && $this->features->isRecipientPointRequired($carrier)
+            if ($carrier !== null && $this->carrierFeatureResolver->isRecipientPointRequired($carrier)
                 && !($mapAvailable ??= $this->canChoosePoints())
             ) {
                 continue;
@@ -109,11 +119,52 @@ readonly class RateCollector
     public function getAllowedMethods(int $storeId): array
     {
         $methods = [];
-        foreach ($this->carrierConfigs->getActive() as $code => $config) {
+        foreach ($this->carrierConfigProvider->getActive() as $code => $config) {
             $methods[$code] = $config->getLabelForStore($storeId);
         }
 
         return $methods;
+    }
+
+    /**
+     * The cart's value after discounts, with or without tax as the merchant set, in the base
+     * currency, which price tiers by subtotal compare.
+     *
+     * Rates are collected after Magento has worked out each item's row total with and without
+     * tax, and its discount, but before the tax on the discounted amounts: an item's discount is
+     * taken off both in proportion, from the price Magento applies discounts to.
+     */
+    public function cartValueOf(RateRequest $request): float
+    {
+        $storeId = (int)$request->getStoreId();
+        $gross = $this->configProvider->getTierCartValue($storeId) === CartValueEnum::Gross;
+        $discountOnGross = $this->scopeConfig->isSetFlag(
+            self::XML_PATH_DISCOUNT_TAX,
+            ScopeInterface::SCOPE_STORE,
+            $storeId,
+        );
+        $items = \array_filter(
+            (array)$request->getAllItems(),
+            // A bundle's or configurable product's own row holds its children's totals and discounts.
+            static fn($item): bool => $item instanceof AbstractItem && !$item->getParentItem(),
+        );
+        if ($items === []) {
+            return (float)$request->getPackageValueWithDiscount();
+        }
+
+        $value = 0.0;
+        foreach ($items as $item) {
+            $net = (float)$item->getData('base_row_total');
+            // Without tax worked out, as with taxes off, the row is the same both ways.
+            $withTax = (float)$item->getData('base_row_total_incl_tax') ?: $net;
+            $discounted = $discountOnGross ? $withTax : $net;
+            $kept = $discounted > 0.0
+                ? 1.0 - \min(1.0, (float)$item->getData('base_discount_amount') / $discounted)
+                : 0.0;
+            $value += ($gross ? $withTax : $net) * $kept;
+        }
+
+        return \round($value, 4);
     }
 
     /**
@@ -133,7 +184,10 @@ readonly class RateCollector
         } catch (RecentFailureException) {
             return false;
         } catch (PolkurierException $e) {
-            $this->logger->warning('Polkurier points map unavailable: pickup point methods left out of the rates', ['exception' => $e]);
+            $this->logger->warning(
+                'Polkurier points map unavailable: pickup point methods left out of the rates',
+                ['exception' => $e],
+            );
 
             return false;
         }

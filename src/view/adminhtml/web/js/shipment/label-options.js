@@ -14,8 +14,8 @@
  * worth, or everything left to collect for the shipment carrying the rest. The insurance follows
  * them too. Either stops following once it's changed by hand.
  *
- * The rules are in ./label-options/state, the groups in ./sections, their editing in ./editor and
- * the packaging popup's part in ./packaging.
+ * The rules are in ./label-options/state, the groups in ./sections and their editing in ./editor;
+ * the packaging popup's part is ./label-options/packaging, set up for the page by ./packaging-setup.
  */
 define([
     'jquery',
@@ -24,9 +24,8 @@ define([
     './label-options/state',
     './label-options/sections',
     './label-options/editor',
-    './label-options/packaging',
     'Magento_Ui/js/modal/alert'
-], function ($, _, $t, State, Sections, Editor, packaging, alert) {
+], function ($, _, $t, State, Sections, Editor, alert) {
     'use strict';
 
     return function (config, element) {
@@ -63,7 +62,8 @@ define([
                     return;
                 }
                 const text = $('<span/>').text(section.summary()),
-                    edit = $('<button type="button" class="action-default polkurier-label-options__edit"/>').text($t('Change'));
+                    edit = $('<button type="button" class="action-default polkurier-label-options__edit"/>')
+                        .text($t('Change'));
 
                 // Another group open gives way, unapplied.
                 edit.on('click', function () {
@@ -88,7 +88,9 @@ define([
                 if (name === 'services') {
                     inputs.append($('<input type="hidden"/>').attr('name', config.name + '[services][]').val(''));
                     values.services.forEach(function (service) {
-                        inputs.append($('<input type="hidden"/>').attr('name', config.name + '[services][]').val(service));
+                        inputs.append(
+                            $('<input type="hidden"/>').attr('name', config.name + '[services][]').val(service)
+                        );
                     });
                 } else {
                     inputs.append($('<input type="hidden"/>').attr('name', config.name + '[' + name + ']')
@@ -149,7 +151,10 @@ define([
 
                 inputs.find('input').each(function () {
                     if (/\[]$/.test(this.name)) {
-                        params[this.name] = [].concat(Array.isArray(params[this.name]) ? params[this.name] : [], this.value);
+                        params[this.name] = [].concat(
+                            Array.isArray(params[this.name]) ? params[this.name] : [],
+                            this.value
+                        );
                     } else {
                         params[this.name] = this.value;
                     }
@@ -177,9 +182,11 @@ define([
                     const problems = state.problems(),
                         // The packages are there once the label is asked for.
                         packages = method === 'sendCreateLabelRequest' && !problems.length
-                            ? state.packageProblems($('#packages_content select[name=package_container]').map(function () {
-                                return this.value;
-                            }).get())
+                            ? state.packageProblems(
+                                $('#packages_content select[name=package_container]').map(function () {
+                                    return this.value;
+                                }).get()
+                            )
                             : [],
                         list = $('<ul/>');
 
@@ -192,7 +199,10 @@ define([
                     if (packages.length) {
                         alert({
                             title: $t('These packages can\'t go'),
-                            content: $('<div/>').append($('<p/>').text($t('Change the packages, or the carrier in "Polkurier shipping label":')), list).html()
+                            content: $('<div/>').append(
+                                $('<p/>').text($t('Change the packages, or the carrier in "Polkurier shipping label":')),
+                                list
+                            ).html()
                         });
 
                         return undefined;
@@ -201,7 +211,10 @@ define([
                     element.scrollIntoView({block: 'center'});
                     alert({
                         title: $t('The Polkurier shipping label isn\'t ready'),
-                        content: $('<div/>').append($('<p/>').text($t('Fix these in "Polkurier shipping label" first:')), list).html()
+                        content: $('<div/>').append(
+                            $('<p/>').text($t('Fix these in "Polkurier shipping label" first:')),
+                            list
+                        ).html()
                     });
 
                     return undefined;
@@ -227,6 +240,5 @@ define([
         render();
         followQuantities();
         toggle();
-        packaging.init(config.templates || [], config.parcelWeight || 'products', config.autoPack || null);
     };
 });

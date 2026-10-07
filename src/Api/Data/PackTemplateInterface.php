@@ -14,37 +14,24 @@ namespace Polkurier\Shipping\Api\Data;
  */
 interface PackTemplateInterface extends SyncableInterface
 {
-    public const string NAME = 'name';
-    public const string DESCRIPTION = 'description';
-    public const string PACK_TYPE = 'pack_type';
-    public const string LENGTH = 'length';
-    public const string WIDTH = 'width';
-    public const string HEIGHT = 'height';
-    public const string WEIGHT = 'weight';
+    public const string FIELD_DESCRIPTION = 'description';
+    public const string FIELD_PACK_TYPE = 'pack_type';
+    public const string FIELD_LENGTH = 'length';
+    public const string FIELD_WIDTH = 'width';
+    public const string FIELD_HEIGHT = 'height';
+    public const string FIELD_WEIGHT = 'weight';
 
     /**
      * What the packaging itself weighs, added to what's in a parcel weighed by its contents. Kept
      * in Magento only: Polkurier's pack templates have no such thing.
      */
-    public const string TARE = 'tare';
+    public const string FIELD_TARE = 'tare';
 
-    public const string COD_AMOUNT = 'cod_amount';
-    public const string INSURANCE_AMOUNT = 'insurance_amount';
-    public const string CARRIER_CODE = 'carrier_code';
-    public const string SERVICES = 'services';
-    public const string IS_DEFAULT = 'is_default';
-
-    /**
-     * @return string
-     */
-    public function getName(): string;
-
-    /**
-     * @param string $name
-     *
-     * @return $this
-     */
-    public function setName(string $name): static;
+    public const string FIELD_COD_AMOUNT = 'cod_amount';
+    public const string FIELD_INSURANCE_AMOUNT = 'insurance_amount';
+    public const string FIELD_CARRIER_CODE = 'carrier_code';
+    public const string FIELD_SERVICES = 'services';
+    public const string FIELD_IS_DEFAULT = 'is_default';
 
     /**
      * @return string|null

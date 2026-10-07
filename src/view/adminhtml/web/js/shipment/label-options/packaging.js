@@ -95,7 +95,7 @@ define([
 
     /**
      * The packages to save as pack templates go with the label request, in their params, as the
-     * name to save each under (NativeLabel::KEEP_AS_PARAM); unnamed, as its type and size.
+     * name to save each under (NativeLabelPackages::KEEP_AS_PARAM); unnamed, as its type and size.
      */
     function sendKeptPackages() {
         const prototype = window.Packaging && window.Packaging.prototype,
@@ -119,9 +119,12 @@ define([
                         return pack.find('[name=' + field + ']').val();
                     }).join(' × ');
 
-                if (!pack.find('select.polkurier-pack-template').val() && pack.find('.polkurier-pack-keep__box').prop('checked')) {
+                if (!pack.find('select.polkurier-pack-template').val()
+                    && pack.find('.polkurier-pack-keep__box').prop('checked')
+                ) {
                     params['packages[' + this.getPackageId(element) + '][params][polkurier_keep_as]'] = name
-                        || pack.find('select[name=package_container] option:selected').text().trim() + ' ' + size + ' cm';
+                        || pack.find('select[name=package_container] option:selected').text().trim()
+                            + ' ' + size + ' cm';
                 }
             }.bind(this));
 
@@ -212,7 +215,12 @@ define([
                     qty: rules.amount($(this).find('[name=qty]').val())
                 };
             }).get(),
-            weight = rules.parcelWeight(mode, template ? rules.amount(template.weight) : null, contents, template ? template.tare : null);
+            weight = rules.parcelWeight(
+                mode,
+                template ? rules.amount(template.weight) : null,
+                contents,
+                template ? template.tare : null
+            );
 
         if (template || isNaN(parseFloat(field.val()))) {
             field.val(weight > 0 ? weight : '');
@@ -368,7 +376,10 @@ define([
             contents[String(row.order_item_id)] = rules.amount(row.qty);
         });
         grid.update(gridId
-            ? html.replace(new RegExp('(packaging-data-grid-|select-items?-)' + gridId + '\\b', 'g'), '$1' + gridId + '_' + number)
+            ? html.replace(
+                new RegExp('(packaging-data-grid-|select-items?-)' + gridId + '\\b', 'g'),
+                '$1' + gridId + '_' + number
+            )
             : html);
         popup.processPackagePrepare(grid);
         grid.select('.grid tbody tr').each(function (row) {
@@ -426,7 +437,10 @@ define([
                 done: function (response) {
                     stop();
                     if (!response || response.error) {
-                        note([response && response.message ? response.message : $t('The items could not be packed.')], true);
+                        note(
+                            [response && response.message ? response.message : $t('The items could not be packed.')],
+                            true
+                        );
 
                         return;
                     }
@@ -498,21 +512,15 @@ define([
         };
     }
 
-    let started = false;
-
     return {
         /**
-         * Once per page: the label options and the page itself may both ask.
+         * Once per page, by ../packaging-setup.
          *
          * @param {Array<Object>} templates the pack templates with a size
          * @param {String} mode the parcel weight setting: 'products' or 'template'
          * @param {Object|null} autoPack where the items are packed automatically, null where not
          */
         init: function (templates, mode, autoPack) {
-            if (started) {
-                return;
-            }
-            started = true;
             $(document).on('change', '#packages_content select.polkurier-pack-template', function () {
                 applyTemplate(this, templates, mode);
                 toggleKeep($(this).closest('[id^=package_block]'));

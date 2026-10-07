@@ -80,7 +80,9 @@ define([
                 }
             });
             this.keep(Boolean(data[this.keepField]) && data[this.keepField] !== '0');
-            this.keptName(data[this.nameField] === undefined || data[this.nameField] === null ? '' : String(data[this.nameField]));
+            this.keptName(
+                data[this.nameField] === undefined || data[this.nameField] === null ? '' : String(data[this.nameField])
+            );
         }
     });
 });

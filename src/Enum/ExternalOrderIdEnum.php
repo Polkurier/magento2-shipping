@@ -19,8 +19,8 @@ enum ExternalOrderIdEnum: string
     public function label(): string
     {
         return match ($this) {
-            self::Shipment => (string)\__('Shipment ID'),
-            self::Order => (string)\__('Order ID'),
+            self::Shipment => (string)__('Shipment ID'),
+            self::Order => (string)__('Order ID'),
         };
     }
 }

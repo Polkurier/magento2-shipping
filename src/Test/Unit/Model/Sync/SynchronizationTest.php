@@ -14,12 +14,17 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Polkurier\Shipping\Api\Data\SyncableInterface;
 use Polkurier\Shipping\Enum\SyncEntityEnum;
-use Polkurier\Shipping\Model\ErrorMessages;
+use Polkurier\Shipping\Model\Address\AddressSyncAdapter;
+use Polkurier\Shipping\Model\BankAccount\BankAccountSyncAdapter;
+use Polkurier\Shipping\Model\PackTemplate\PackTemplateSyncAdapter;
+use Polkurier\Shipping\Model\Sdk\ErrorMessageResolver;
 use Polkurier\Shipping\Model\Sync\AdapterInterface;
 use Polkurier\Shipping\Model\Sync\SyncEngine;
 use Polkurier\Shipping\Model\Sync\Synchronization;
 use Polkurier\Shipping\Model\Sync\SyncLock;
 use Polkurier\Shipping\Model\Sync\SyncResult;
+use Polkurier\Shipping\Model\Sync\SyncResultFactory;
+use Polkurier\Shipping\Test\Unit\Support\NewingObjectManager;
 use Psr\Log\NullLogger;
 
 #[CoversClass(Synchronization::class)]
@@ -54,7 +59,10 @@ class SynchronizationTest extends TestCase
     {
         $summary = $this->synchronization()->synchronize();
 
-        self::assertSame([SyncEntityEnum::Address, SyncEntityEnum::BankAccount, SyncEntityEnum::PackTemplate], $this->ran);
+        self::assertSame(
+            [SyncEntityEnum::Address, SyncEntityEnum::BankAccount, SyncEntityEnum::PackTemplate],
+            $this->ran,
+        );
         self::assertCount(3, $summary);
         self::assertStringStartsWith('Addresses:', $summary[0]);
     }
@@ -95,7 +103,11 @@ class SynchronizationTest extends TestCase
 
         self::assertSame([SyncEntityEnum::PackTemplate], $this->ran);
         self::assertSame([$entry], $this->only);
-        self::assertSame(SyncEntityEnum::PackTemplate, $result->entityType, 'What became of it, to report with the rest of the action.');
+        self::assertSame(
+            SyncEntityEnum::PackTemplate,
+            $result->entityType,
+            'What became of it, to report with the rest of the action.',
+        );
         self::assertSame(['lock polkurier_sync', 'unlock polkurier_sync'], $this->lockLog);
     }
 
@@ -105,7 +117,10 @@ class SynchronizationTest extends TestCase
 
         $summary = $this->synchronization()->synchronize();
 
-        self::assertSame([SyncEntityEnum::Address, SyncEntityEnum::BankAccount, SyncEntityEnum::PackTemplate], $this->ran);
+        self::assertSame(
+            [SyncEntityEnum::Address, SyncEntityEnum::BankAccount, SyncEntityEnum::PackTemplate],
+            $this->ran,
+        );
         self::assertCount(3, $summary);
         self::assertSame('Addresses: Unreadable.', $summary[2], 'Reported after the others.');
     }
@@ -140,27 +155,41 @@ class SynchronizationTest extends TestCase
     private function synchronization(): Synchronization
     {
         $engine = $this->createStub(SyncEngine::class);
-        $engine->method('run')->willReturnCallback(function (AdapterInterface $adapter, ?SyncableInterface $only = null): SyncResult {
-            $this->ran[] = $adapter->getEntityType();
-            $this->only[] = $only;
-            if (\in_array($adapter->getEntityType(), $this->failing, true)) {
-                throw new \RuntimeException('Unreadable.');
-            }
+        $engine->method('run')
+            ->willReturnCallback(function (AdapterInterface $adapter, ?SyncableInterface $only = null): SyncResult {
+                $this->ran[] = $adapter->getEntityType();
+                $this->only[] = $only;
+                if (\in_array($adapter->getEntityType(), $this->failing, true)) {
+                    throw new \RuntimeException('Unreadable.');
+                }
 
-            return new SyncResult($adapter->getEntityType());
-        });
+                return new SyncResult($adapter->getEntityType());
+            });
 
         return new Synchronization(
             $engine,
-            new ErrorMessages(),
+            new ErrorMessageResolver(),
             new SyncLock($this->locks()),
             new NullLogger(),
-            \array_map(function (SyncEntityEnum $kind): AdapterInterface {
-                $adapter = $this->createStub(AdapterInterface::class);
-                $adapter->method('getEntityType')->willReturn($kind);
-
-                return $adapter;
-            }, SyncEntityEnum::cases()),
+            NewingObjectManager::factory(SyncResultFactory::class),
+            $this->adapter(AddressSyncAdapter::class, SyncEntityEnum::Address),
+            $this->adapter(BankAccountSyncAdapter::class, SyncEntityEnum::BankAccount),
+            $this->adapter(PackTemplateSyncAdapter::class, SyncEntityEnum::PackTemplate),
         );
+    }
+
+    /**
+     * @template T of AdapterInterface
+     *
+     * @param class-string<T> $class
+     *
+     * @return T
+     */
+    private function adapter(string $class, SyncEntityEnum $kind): AdapterInterface
+    {
+        $adapter = $this->createStub($class);
+        $adapter->method('getEntityType')->willReturn($kind);
+
+        return $adapter;
     }
 }

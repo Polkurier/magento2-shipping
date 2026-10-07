@@ -75,7 +75,9 @@ define([
                 control.append(choice);
             });
             if (!control.children().length) {
-                control.append($('<div class="admin__field-note"/>').text($t('This carrier offers no additional services.')));
+                control.append(
+                    $('<div class="admin__field-note"/>').text($t('This carrier offers no additional services.'))
+                );
             }
         }
 
@@ -91,13 +93,17 @@ define([
                 carrier = state.carrier();
 
             control.append(box);
-            if (field.map && pointsMap.canOpen(config.map) && carrier && carrier.providers && carrier.providers.length) {
+            if (field.map && pointsMap.canOpen(config.map)
+                && carrier && carrier.providers && carrier.providers.length
+            ) {
                 control.addClass('polkurier-label-options__point');
                 control.append($('<button type="button" class="action-secondary polkurier-label-options__map"/>')
                     .text($t('Choose on map'))
                     .on('click', function () {
                         // The recipient's postcode, or what the field says, e.g. the sender's.
-                        const search = typeof field.mapSearch === 'function' ? field.mapSearch(control.closest('.polkurier-label-options__form')) : config.mapSearch;
+                        const search = typeof field.mapSearch === 'function'
+                            ? field.mapSearch(control.closest('.polkurier-label-options__form'))
+                            : config.mapSearch;
 
                         pointsMap.open(config.map, carrier.providers, search || '', function (pointId, point) {
                             if (config.pointLabels) {
@@ -119,7 +125,8 @@ define([
          */
         function pickup(id, control) {
             const dates = $('<select class="admin__control-select" name="pickup_date"/>').attr('id', id),
-                windows = $('<select class="admin__control-select" name="pickup_window"/>').attr('aria-label', $t('Collection time')),
+                windows = $('<select class="admin__control-select" name="pickup_window"/>')
+                    .attr('aria-label', $t('Collection time')),
                 anyTime = $('<div class="admin__field-note"/>').text($t('Any time that day')),
                 status = $('<div class="admin__field-note"/>'),
                 setup = config.pickupTimes || {};
@@ -164,7 +171,12 @@ define([
             }}, {
                 done: function (response) {
                     days = response.days || [];
-                    status.text(response.error ? response.message : (days.length ? '' : $t('No collection dates available.')))
+                    status
+                        .text(
+                            response.error
+                                ? response.message
+                                : (days.length ? '' : $t('No collection dates available.'))
+                        )
                         .toggleClass('polkurier-label-options__why', Boolean(response.error));
                     if (!days.length) {
                         return;
@@ -190,7 +202,9 @@ define([
                 wrapper = $('<div class="admin__field"/>'),
                 control = $('<div class="admin__field-control"/>');
 
-            wrapper.append($('<label class="admin__field-label"/>').attr('for', id).append($('<span/>').text(definition.label)));
+            wrapper.append(
+                $('<label class="admin__field-label"/>').attr('for', id).append($('<span/>').text(definition.label))
+            );
             wrapper.append(control);
 
             if (definition.type === 'pickup') {
@@ -200,9 +214,14 @@ define([
                 wrapper.addClass('admin__field-option');
                 wrapper.children('.admin__field-label').remove();
                 control.append(
-                    $('<input type="checkbox" class="admin__control-checkbox" value="1"/>').attr({id: id, name: definition.name})
-                        .prop('checked', filled(values[definition.name]) && String(values[definition.name]) !== '0'
-                            && values[definition.name] !== false),
+                    $('<input type="checkbox" class="admin__control-checkbox" value="1"/>')
+                        .attr({id: id, name: definition.name})
+                        .prop(
+                            'checked',
+                            filled(values[definition.name])
+                                && String(values[definition.name]) !== '0'
+                                && values[definition.name] !== false
+                        ),
                     $('<label class="admin__field-label"/>').attr('for', id).text(definition.label)
                 );
             } else if (definition.type === 'select') {
@@ -337,8 +356,14 @@ define([
                     }
                 });
                 actions.append(
-                    $('<button type="button" class="action-primary"/>').attr('form', OWN_FORM).text($t('Apply')).on('click', done),
-                    $('<button type="button" class="action-tertiary"/>').attr('form', OWN_FORM).text($t('Cancel')).on('click', cancelled)
+                    $('<button type="button" class="action-primary"/>')
+                        .attr('form', OWN_FORM)
+                        .text($t('Apply'))
+                        .on('click', done),
+                    $('<button type="button" class="action-tertiary"/>')
+                        .attr('form', OWN_FORM)
+                        .text($t('Cancel'))
+                        .on('click', cancelled)
                 );
                 form.append(actions);
 

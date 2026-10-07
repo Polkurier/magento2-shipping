@@ -11,7 +11,7 @@ counts as internal and may change between versions.
 
 ## Changing the default shipment
 
-Add an `afterCreateFromOrder` plugin on `Model\Shipment\DefaultDraftBuilder` to change what a new
+Add an `afterCreateFromOrder` plugin on `Model\Shipment\Draft\DefaultDraftBuilder` to change what a new
 shipment starts with: a different sender per store, extra services for certain products, parcels
 computed from the cart. The shipment screen, Magento's label flow (for the options, not the
 parcels, which come from the packaging popup) and the REST draft all pick it up.
@@ -34,10 +34,38 @@ Service codes are the values of the SDK's `AdditionalServiceEnum`.
 
 ## Changing what's sent
 
-An `afterMap` plugin on `Model\Mapper\CreateOrderMessageMapper` sees the final
+An `afterMap` plugin on `Model\Shipment\Placement\CreateOrderMessageMapper` sees the final
 `CreateOrderMessage` just before it goes out, whichever way the shipment was placed. The SDK's
 messages are immutable, so build a new one with the SDK's builders rather than modifying the one
 you get.
+
+Every message the SDK has a builder for is built through that builder, and the module takes each
+builder from Magento's generated factory (`CreateOrderMessageBuilderFactory`,
+`Address\SaveMessageBuilderFactory`, `GetOrdersMessageBuilderFactory`, …), a fresh one per message.
+So a plugin on a builder reaches every message of its kind, wherever the module builds it: a
+`beforeBuild` plugin can still set a field, an `afterBuild` plugin can return another message, and
+a preference can swap the builder for a subclass.
+
+```php
+public function beforeBuild(\Polkurier\Webservice\Builder\Address\SaveMessageBuilder $subject): void
+{
+    $subject->province('mazowieckie');
+}
+```
+
+Smaller messages without a builder (an id, a delete) are created directly.
+
+## Calling Polkurier from your own code
+
+`Api\PolkurierClientInterface` hands out the SDK's services for the account the module is
+connected to, with its credentials, sandbox setting, timeouts and logging:
+
+```php
+$point = $this->polkurierClient->courier()->getCourierPoint('WAW195M', ['INPOST_PACZKOMAT']);
+```
+
+Orders placed this way aren't the module's shipments: it won't list, follow or cancel them. To
+place a shipment for a Magento order, use `ShipmentManagementInterface`.
 
 ## Reacting to changes
 
@@ -47,7 +75,7 @@ the module's own data, observe Magento's model events listed there.
 ## Pricing
 
 To change how an existing pricing model calculates, replace its entry in the `calculators` argument
-of `Model\Pricing\PriceCalculatorPool`:
+of `Model\Carrier\Pricing\PriceCalculatorPool`:
 
 ```xml
 <type name="Polkurier\Shipping\Model\Pricing\PriceCalculatorPool">
@@ -59,7 +87,7 @@ of `Model\Pricing\PriceCalculatorPool`:
 </type>
 ```
 
-Your class implements `Model\Pricing\PriceCalculatorInterface` and returns a price, or `null` to
+Your class implements `Model\Carrier\Pricing\PriceCalculatorInterface` and returns a price, or `null` to
 leave the carrier out. The list of pricing models itself (`Enum\PricingModelEnum`) is
 closed, because the carrier form is built from it. To adjust every price, for example to add a
 surcharge, put a plugin on `PriceCalculatorPool::calculate()`.
@@ -90,17 +118,12 @@ Whatever you change, keep the Polkurier name off the storefront.
 The label options are an ordinary block in the `extra_shipment_info` container
 (`polkurier_label_options` in `adminhtml_order_shipment_new.xml`). Remove it with a layout update if
 you don't want it; labels then use the default draft. The page can only set the draft fields in
-`NativeLabel::OPTION_FIELDS`. To fill in anything else for labels, use the `DefaultDraftBuilder`
-plugin above, which runs for labels too.
-
-## Sync time source
-
-Once you have a better source for when a remote entry changed, replace the
-`Model\Sync\RemoteClockInterface` preference.
+`Native\NativeLabelService::OPTION_FIELDS`. To fill in anything else for labels, use the
+`DefaultDraftBuilder` plugin above, which runs for labels too.
 
 ## Logging alongside the module
 
-Inject `Polkurier\Shipping\Logger\Logger` (see [Logging](logging.md)) so your records land in the
+Inject `Polkurier\Shipping\Logger\LoggerVirtual` (see [Logging](logging.md)) so your records land in the
 same file and get the same masking.
 
 Next: [Tests](tests.md)

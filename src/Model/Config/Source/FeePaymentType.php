@@ -17,11 +17,11 @@ readonly class FeePaymentType extends AbstractOptions
     public function toArray(): array
     {
         return [
-            MoneyBoxFeePaymentTypeEnum::MoneyBox->value => (string)\__('From the money box'),
-            MoneyBoxFeePaymentTypeEnum::Invoice->value => (string)\__('On the invoice'),
-            MoneyBoxFeePaymentTypeEnum::Prepaid->value => (string)\__('From the prepaid balance'),
-            MoneyBoxFeePaymentTypeEnum::Online->value => (string)\__('Online payment'),
-            MoneyBoxFeePaymentTypeEnum::Free->value => (string)\__('Free'),
+            MoneyBoxFeePaymentTypeEnum::MoneyBox->value => (string)__('From the money box'),
+            MoneyBoxFeePaymentTypeEnum::Invoice->value => (string)__('On the invoice'),
+            MoneyBoxFeePaymentTypeEnum::Prepaid->value => (string)__('From the prepaid balance'),
+            MoneyBoxFeePaymentTypeEnum::Online->value => (string)__('Online payment'),
+            MoneyBoxFeePaymentTypeEnum::Free->value => (string)__('Free'),
         ];
     }
 }

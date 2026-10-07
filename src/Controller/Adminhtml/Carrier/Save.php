@@ -14,22 +14,18 @@ use Magento\Framework\App\Request\DataPersistorInterface;
 use Magento\Framework\Controller\Result\Redirect;
 use Magento\Framework\Exception\LocalizedException;
 use Polkurier\Shipping\Api\CarrierConfigRepositoryInterface;
-use Polkurier\Shipping\Controller\Adminhtml\ReadsPostData;
-use Polkurier\Shipping\Model\Carrier\CarrierConfigHydrator;
+use Polkurier\Shipping\Controller\Adminhtml\ReadsPostDataTrait;
+use Polkurier\Shipping\Enum\FormMemoryEnum;
+use Polkurier\Shipping\Model\CarrierConfig\CarrierConfigHydrator;
 
 /**
  * Saves how a carrier is offered and priced in checkout.
  */
 class Save extends Action implements HttpPostActionInterface
 {
-    use ReadsPostData;
+    use ReadsPostDataTrait;
 
     public const string ADMIN_RESOURCE = 'Polkurier_Shipping::carriers';
-
-    /**
-     * Where what was typed waits for the form, when it couldn't be saved.
-     */
-    public const string PERSISTOR_KEY = 'polkurier_carrier';
 
     public function __construct(
         Context $context,
@@ -49,12 +45,12 @@ class Save extends Action implements HttpPostActionInterface
             $config = $this->repository->get($id);
             $this->hydrator->hydrate($config, $data);
             $this->repository->save($config);
-            $this->messageManager->addSuccessMessage(\__('Saved.'));
-            $this->dataPersistor->clear(self::PERSISTOR_KEY);
+            $this->messageManager->addSuccessMessage(__('Saved.'));
+            $this->dataPersistor->clear(FormMemoryEnum::Carrier->value);
         } catch (LocalizedException $e) {
             $this->messageManager->addErrorMessage($e->getMessage());
             // Back to the form with what was typed, as the other settings forms do.
-            $this->dataPersistor->set(self::PERSISTOR_KEY, \array_diff_key($data, ['form_key' => true]));
+            $this->dataPersistor->set(FormMemoryEnum::Carrier->value, \array_diff_key($data, ['form_key' => true]));
 
             return $redirect->setPath('*/*/edit', ['id' => $id]);
         }

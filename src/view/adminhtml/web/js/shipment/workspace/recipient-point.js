@@ -40,7 +40,9 @@ define([
             this.missing(this.required() && this.validated() && !rules.filled(this.get('recipient_point_id')));
             this.pointId(this.get('recipient_point_id') || '');
             // The address is only known for a point chosen on the map or the one from checkout.
-            this.label(this.get('recipient_point_label_id') === this.pointId() ? this.get('recipient_point_label') || '' : '');
+            this.label(
+                this.get('recipient_point_label_id') === this.pointId() ? this.get('recipient_point_label') || '' : ''
+            );
             this.canChoose(pointsMap.canOpen(this.get('map')));
             this.closed(rules.filled(this.pointId()) && this.get('recipient_point_closed') === this.pointId());
         },

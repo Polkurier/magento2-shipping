@@ -64,7 +64,23 @@ class SyncLockTest extends TestCase
         $this->fail = false;
         $lock->run($work);
 
-        self::assertSame(['lock polkurier_sync', 'unlock polkurier_sync', 'lock polkurier_sync', 'unlock polkurier_sync'], $this->log);
+        self::assertSame(
+            ['lock polkurier_sync', 'unlock polkurier_sync', 'lock polkurier_sync', 'unlock polkurier_sync'],
+            $this->log,
+        );
+    }
+
+    public function testALockStillHeldWhenTheRequestEndsIsLetGoOnce(): void
+    {
+        $lock = $this->lock();
+
+        $lock->run(static fn() => $lock->_resetState());
+        $lock->run(static fn(): bool => true);
+
+        self::assertSame(
+            ['lock polkurier_sync', 'unlock polkurier_sync', 'lock polkurier_sync', 'unlock polkurier_sync'],
+            $this->log,
+        );
     }
 
     private function lock(bool $taken = false): SyncLock

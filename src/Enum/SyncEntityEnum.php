@@ -10,8 +10,6 @@ namespace Polkurier\Shipping\Enum;
 /**
  * The kinds of entries kept both in Magento and on the Polkurier account, and synchronized
  * between them.
- *
- * @api
  */
 enum SyncEntityEnum: string
 {
@@ -36,9 +34,9 @@ enum SyncEntityEnum: string
     public function label(): string
     {
         return (string)match ($this) {
-            self::Address => \__('Addresses'),
-            self::BankAccount => \__('Bank accounts'),
-            self::PackTemplate => \__('Pack templates'),
+            self::Address => __('Addresses'),
+            self::BankAccount => __('Bank accounts'),
+            self::PackTemplate => __('Pack templates'),
         };
     }
 }

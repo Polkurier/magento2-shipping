@@ -17,10 +17,10 @@ readonly class SyncState extends AbstractOptions
     public function toArray(): array
     {
         return [
-            SyncableInterface::STATE_SYNCED => (string)\__('In sync'),
-            SyncableInterface::STATE_PENDING => (string)\__('Waiting to be sent'),
-            SyncableInterface::STATE_ERROR => (string)\__('Error'),
-            SyncableInterface::STATE_UNCONFIRMED => (string)\__('Awaiting confirmation'),
+            SyncableInterface::STATE_SYNCED => (string)__('In sync'),
+            SyncableInterface::STATE_PENDING => (string)__('Waiting to be sent'),
+            SyncableInterface::STATE_ERROR => (string)__('Error'),
+            SyncableInterface::STATE_UNCONFIRMED => (string)__('Awaiting confirmation'),
         ];
     }
 }

@@ -17,14 +17,18 @@ use Polkurier\Shipping\Model\ResourceModel\SalesOrder\CarrierOrders;
  */
 readonly class OrderGridFilterPlugin
 {
-    public const string FIELD = 'shipping_carrier';
+    public const string FIELD_SHIPPING_CARRIER = 'shipping_carrier';
 
     /**
      * @param string|array<mixed> $field
      */
-    public function aroundAddFieldToFilter(Collection $subject, callable $proceed, string|array $field, mixed $condition = null): Collection
-    {
-        if ($field !== self::FIELD) {
+    public function aroundAddFieldToFilter(
+        Collection $subject,
+        callable $proceed,
+        string|array $field,
+        mixed $condition = null,
+    ): Collection {
+        if ($field !== self::FIELD_SHIPPING_CARRIER) {
             return $proceed($field, $condition);
         }
         $carrierCode = \trim((string)(\is_array($condition) ? \reset($condition) : $condition));

@@ -11,7 +11,7 @@ use Magento\Checkout\Api\Data\ShippingInformationInterface;
 use Magento\Checkout\Api\ShippingInformationManagementInterface;
 use Magento\Framework\Exception\InputException;
 use Magento\Quote\Api\CartRepositoryInterface;
-use Polkurier\Shipping\Model\Checkout\PointSelection;
+use Polkurier\Shipping\Model\PickupPoint\PointSelectionRecorder;
 
 /**
  * Takes the pickup point chosen in checkout along with the shipping method.
@@ -20,7 +20,7 @@ readonly class ShippingInformationManagementPlugin
 {
     public function __construct(
         private CartRepositoryInterface $quoteRepository,
-        private PointSelection $pointSelection,
+        private PointSelectionRecorder $pointSelectionRecorder,
     ) {}
 
     /**
@@ -33,7 +33,7 @@ readonly class ShippingInformationManagementPlugin
         mixed $cartId,
         ShippingInformationInterface $addressInformation,
     ): array {
-        $this->pointSelection->select(
+        $this->pointSelectionRecorder->select(
             $this->quoteRepository->getActive((int)$cartId),
             (string)$addressInformation->getShippingCarrierCode(),
             (string)$addressInformation->getShippingMethodCode(),

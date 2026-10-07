@@ -40,7 +40,9 @@ define([
         }
         prompt({
             title: $t('Delete the bank account'),
-            content: $('<div/>').text(message + ' ' + $t('Your Polkurier account locks bank accounts with a security PIN: enter it.')).html(),
+            content: $('<div/>')
+                .text(message + ' ' + $t('Your Polkurier account locks bank accounts with a security PIN: enter it.'))
+                .html(),
             attributesField: {type: 'password', autocomplete: 'off', 'aria-label': $t('Security PIN')},
             actions: {confirm: function (pin) {
                 post(pin);

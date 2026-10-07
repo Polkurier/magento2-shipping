@@ -39,7 +39,9 @@ class AdminActionsAclTest extends TestCase
             }
             $relative = \substr((string)$file->getPathname(), \strlen($root) + 1, -4);
             $class = 'Polkurier\\Shipping\\Controller\\Adminhtml\\' . \str_replace('/', '\\', $relative);
-            if (!\class_exists($class) || !\is_subclass_of($class, AbstractAction::class) || (new \ReflectionClass($class))->isAbstract()) {
+            if (!\class_exists($class) || !\is_subclass_of($class, AbstractAction::class)
+                || (new \ReflectionClass($class))->isAbstract()
+            ) {
                 continue;
             }
             $cases[$relative] = [$class];

@@ -8,6 +8,7 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Model\ResourceModel\OrderPoint;
 
 use Magento\Framework\Model\ResourceModel\Db\Collection\AbstractCollection;
+use Polkurier\Shipping\Api\Data\OrderPointInterface;
 use Polkurier\Shipping\Model\OrderPoint as Model;
 use Polkurier\Shipping\Model\ResourceModel\OrderPoint as ResourceModel;
 
@@ -19,12 +20,7 @@ class Collection extends AbstractCollection
     /**
      * @var string
      */
-    protected $_idFieldName = 'order_id';
-
-    protected function _construct(): void
-    {
-        $this->_init(Model::class, ResourceModel::class);
-    }
+    protected $_idFieldName = OrderPointInterface::FIELD_ORDER_ID;
 
     /**
      * @return Model[]
@@ -35,5 +31,10 @@ class Collection extends AbstractCollection
         $items = parent::getItems();
 
         return $items;
+    }
+
+    protected function _construct(): void
+    {
+        $this->_init(Model::class, ResourceModel::class);
     }
 }

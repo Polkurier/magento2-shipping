@@ -50,8 +50,11 @@ class FormatterTest extends TestCase
     {
         $timezone = $this->createStub(TimezoneInterface::class);
         $timezone->method('formatDateTime')->willReturnCallback(
-            static fn(mixed $date): string => ($date instanceof \DateTimeInterface ? \DateTimeImmutable::createFromInterface($date) : new \DateTimeImmutable((string)$date, new \DateTimeZone('UTC')))
-                ->setTimezone(new \DateTimeZone('UTC'))->format(\DATE_ATOM),
+            static fn(mixed $date): string => ($date instanceof \DateTimeInterface
+                ? \DateTimeImmutable::createFromInterface($date)
+                : new \DateTimeImmutable((string)$date, new \DateTimeZone('UTC')))
+                ->setTimezone(new \DateTimeZone('UTC'))
+                ->format(\DATE_ATOM),
         );
         $locale = $this->createStub(ResolverInterface::class);
         $locale->method('getLocale')->willReturn('en_US');

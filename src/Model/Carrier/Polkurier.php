@@ -19,14 +19,16 @@ use Magento\Shipping\Model\Rate\Result;
 use Magento\Shipping\Model\Tracking\Result\Status;
 use Magento\Shipping\Model\Tracking\Result\StatusFactory;
 use Magento\Store\Model\StoreManagerInterface;
-use Polkurier\Shipping\Model\Shipment\NativeLabel;
-use Polkurier\Shipping\Model\Shipment\TrackingLookup;
+use Polkurier\Shipping\Model\CarrierConfig\CarrierConfigProvider;
+use Polkurier\Shipping\Model\Config\Source\PackType;
+use Polkurier\Shipping\Model\Shipment\Native\NativeLabelService;
+use Polkurier\Shipping\Model\Shipment\ShipmentFinder;
 use Psr\Log\LoggerInterface;
 
 /**
  * Magento's carrier for the merchant's Polkurier carriers: an adapter over the module's services.
- * RateCollector prices the checkout rates, TrackingLookup answers tracking, and in the admin
- * NativeLabel creates shipping labels through Magento's packaging popup.
+ * RateCollector prices the checkout rates, ShipmentFinder finds the shipment of a waybill for
+ * tracking, and in the admin NativeLabelService creates shipping labels through Magento's packaging popup.
  *
  * The name "Polkurier" never reaches the storefront: rates carry no carrier title, so Magento's
  * shipping description is the method label alone, and tracking is titled by that label too.
@@ -45,6 +47,16 @@ class Polkurier extends AbstractCarrier implements CarrierInterface
      * What the carrier's shipping methods start with, before the account carrier's code.
      */
     public const string METHOD_PREFIX = self::CODE . '_';
+
+    /**
+     * @var string
+     */
+    protected $_code = self::CODE;
+
+    /**
+     * @var bool
+     */
+    protected $_isFixed = true;
 
     /**
      * The Polkurier carrier code in a Magento shipping method such as "polkurier_DPD", or null for
@@ -75,16 +87,6 @@ class Polkurier extends AbstractCarrier implements CarrierInterface
     }
 
     /**
-     * @var string
-     */
-    protected $_code = self::CODE;
-
-    /**
-     * @var bool
-     */
-    protected $_isFixed = true;
-
-    /**
      * @param array<string, mixed> $data
      */
     public function __construct(
@@ -93,9 +95,11 @@ class Polkurier extends AbstractCarrier implements CarrierInterface
         LoggerInterface $logger,
         private readonly RateCollector $rateCollector,
         private readonly StatusFactory $trackStatusFactory,
-        private readonly TrackingLookup $trackingLookup,
+        private readonly ShipmentFinder $finder,
+        private readonly CarrierConfigProvider $carrierConfigProvider,
         private readonly StoreManagerInterface $storeManager,
-        private readonly NativeLabel $nativeLabel,
+        private readonly NativeLabelService $nativeLabelService,
+        private readonly PackType $packTypes,
         array $data = [],
     ) {
         parent::__construct($scopeConfig, $rateErrorFactory, $logger, $data);
@@ -152,7 +156,7 @@ class Polkurier extends AbstractCarrier implements CarrierInterface
     {
         $store = $this->getStore();
 
-        return $this->nativeLabel->isAvailable($store === null || $store === '' ? null : (int)$store);
+        return $this->nativeLabelService->isAvailable($store === null || $store === '' ? null : (int)$store);
     }
 
     /**
@@ -167,23 +171,28 @@ class Polkurier extends AbstractCarrier implements CarrierInterface
             $this->setStore($request->getStoreId());
         }
 
-        return $this->nativeLabel->request($request);
+        return $this->nativeLabelService->request($request);
     }
 
     /**
+     * The parcel types, as the packaging window's package types. Pack templates are offered
+     * separately, next to them, and only fill in a package.
+     *
      * @return array<string, string>
      */
     public function getContainerTypes(?\Magento\Framework\DataObject $params = null)
     {
-        return $this->nativeLabel->getContainerTypes();
+        return $this->packTypes->toArray();
     }
 
     /**
+     * Every parcel type takes the size entered in the packaging window.
+     *
      * @return string[]
      */
     public function getCustomizableContainerTypes()
     {
-        return $this->nativeLabel->getCustomizableContainerTypes();
+        return \array_map('strval', \array_keys($this->packTypes->toArray()));
     }
 
     /**
@@ -205,8 +214,12 @@ class Polkurier extends AbstractCarrier implements CarrierInterface
     {
         $status = $this->trackStatusFactory->create();
         $status->setCarrier(self::CODE);
-        $shipment = $this->trackingLookup->findByWaybill((string)$tracking);
-        $status->setCarrierTitle($shipment !== null ? $this->trackingLookup->getMethodLabel($shipment) : '');
+        $shipment = $this->finder->latestByWaybill((string)$tracking);
+        // The label of the carrier it went with, in the store it was ordered in.
+        $status->setCarrierTitle($shipment !== null
+            ? $this->carrierConfigProvider->getLabel($shipment->getCarrierCode(), (int)$shipment->getStoreId())
+                ?? $shipment->getCarrierCode()
+            : '');
         $status->setTracking($tracking);
         $status->setPopup(1);
         $status->setUrl((string)$shipment?->getTrackingUrl());

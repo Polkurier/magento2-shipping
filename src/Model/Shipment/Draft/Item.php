@@ -17,21 +17,21 @@ class Item extends DataObject implements ItemInterface
 {
     public function getOrderItemId(): int
     {
-        return (int)$this->getData(self::ORDER_ITEM_ID);
+        return (int)$this->getData(self::FIELD_ORDER_ITEM_ID);
     }
 
     public function setOrderItemId(int $orderItemId): static
     {
-        return $this->setData(self::ORDER_ITEM_ID, $orderItemId);
+        return $this->setData(self::FIELD_ORDER_ITEM_ID, $orderItemId);
     }
 
     public function getQty(): float
     {
-        return (float)$this->getData(self::QTY);
+        return (float)$this->getData(self::FIELD_QTY);
     }
 
     public function setQty(float $qty): static
     {
-        return $this->setData(self::QTY, $qty);
+        return $this->setData(self::FIELD_QTY, $qty);
     }
 }

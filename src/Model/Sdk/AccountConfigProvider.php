@@ -9,15 +9,15 @@ namespace Polkurier\Shipping\Model\Sdk;
 
 use Magento\Framework\Module\PackageInfo;
 use Magento\Framework\Stdlib\DateTime\DateTime;
-use Polkurier\Shipping\Model\Config;
+use Polkurier\Shipping\Model\Config\ConfigProvider;
 use Polkurier\Webservice\Api\ConfigInterface;
 use Polkurier\Webservice\Api\ConfigProviderInterface;
-use Polkurier\Webservice\Config as SdkConfig;
-use Polkurier\Webservice\Http\Request\AuthorizationMessage;
+use Polkurier\Webservice\ConfigFactory as SdkConfigFactory;
+use Polkurier\Webservice\Http\Request\AuthorizationMessageFactory;
 
 /**
  * SDK configuration for the Polkurier account, read from Magento's configuration when it is asked
- * for. The SDK's services read it once, in their constructors; {@see ClientPool} builds them.
+ * for. The SDK's services read it once, in their constructors; {@see PolkurierClient} builds them.
  */
 readonly class AccountConfigProvider implements ConfigProviderInterface
 {
@@ -25,10 +25,12 @@ readonly class AccountConfigProvider implements ConfigProviderInterface
     public const string MODULE_NAME = 'Polkurier_Shipping';
 
     public function __construct(
-        private Config $config,
+        private ConfigProvider $configProvider,
         private PackageInfo $packageInfo,
-        private LogFilesDirectory $logFilesDirectory,
+        private LogFilesDirectoryResolver $logFilesDirectoryResolver,
         private DateTime $dateTime,
+        private SdkConfigFactory $sdkConfigFactory,
+        private AuthorizationMessageFactory $authorizationMessageFactory,
         // At most this many seconds, whatever the setting says: the storefront's customers don't
         // wait as long as the admin does (etc/frontend/di.xml).
         private ?int $maxTimeout = null,
@@ -36,25 +38,27 @@ readonly class AccountConfigProvider implements ConfigProviderInterface
 
     public function getConfig(): ConfigInterface
     {
-        return new SdkConfig(
-            authorization: new AuthorizationMessage(
-                token: $this->config->getToken(),
-                login: $this->config->getLogin(),
-            ),
-            platform: self::PLATFORM,
-            platformVersion: (string)($this->packageInfo->getVersion(self::MODULE_NAME) ?: '1.0.0'),
-            apiUrl: $this->config->getApiUrl(),
-            apiTimeout: $this->maxTimeout !== null ? \min($this->config->getTimeout(), $this->maxTimeout) : $this->config->getTimeout(),
-            sandbox: $this->config->isSandbox(),
-            loggingEnabled: $this->config->isLoggingEnabled(),
-            methodsToLog: $this->config->getMethodsToLog(),
-            logPersonalData: $this->config->isPersonalDataLoggingEnabled(),
-            logFiles: $this->config->isFileLoggingEnabled(),
+        return $this->sdkConfigFactory->create([
+            'authorization' => $this->authorizationMessageFactory->create([
+                'token' => $this->configProvider->getToken(),
+                'login' => $this->configProvider->getLogin(),
+            ]),
+            'platform' => self::PLATFORM,
+            'platformVersion' => (string)($this->packageInfo->getVersion(self::MODULE_NAME) ?: '1.0.0'),
+            'apiUrl' => $this->configProvider->getApiUrl(),
+            'apiTimeout' => $this->maxTimeout !== null
+                ? \min($this->configProvider->getTimeout(), $this->maxTimeout)
+                : $this->configProvider->getTimeout(),
+            'sandbox' => $this->configProvider->isSandbox(),
+            'loggingEnabled' => $this->configProvider->isLoggingEnabled(),
+            'methodsToLog' => $this->configProvider->getMethodsToLog(),
+            'logPersonalData' => $this->configProvider->isPersonalDataLoggingEnabled(),
+            'logFiles' => $this->configProvider->isFileLoggingEnabled(),
             // This month's, so a month's files can be dealt with together.
-            logFilesDirectory: $this->logFilesDirectory->ofMonth(
-                $this->logFilesDirectory->resolve($this->config->getLogFilesDirectory()),
+            'logFilesDirectory' => $this->logFilesDirectoryResolver->ofMonth(
+                $this->logFilesDirectoryResolver->resolve($this->configProvider->getLogFilesDirectory()),
                 $this->dateTime->gmtTimestamp(),
             ),
-        );
+        ]);
     }
 }

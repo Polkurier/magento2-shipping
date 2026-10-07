@@ -41,7 +41,12 @@ class OrderGridFilterPluginTest extends TestCase
     public function testNoCarrierNoFilter(): void
     {
         $collection = $this->collection();
-        (new OrderGridFilterPlugin())->aroundAddFieldToFilter($collection, static fn() => self::fail('Not for the grid.'), OrderGridFilterPlugin::FIELD, ['eq' => '']);
+        (new OrderGridFilterPlugin())->aroundAddFieldToFilter(
+            $collection,
+            static fn() => self::fail('Not for the grid.'),
+            OrderGridFilterPlugin::FIELD_SHIPPING_CARRIER,
+            ['eq' => ''],
+        );
 
         self::assertSame([], $this->where);
     }
@@ -76,7 +81,7 @@ class OrderGridFilterPluginTest extends TestCase
         $result = (new OrderGridFilterPlugin())->aroundAddFieldToFilter(
             $collection,
             static fn() => self::fail('Not for the grid\'s table, which has no such column.'),
-            OrderGridFilterPlugin::FIELD,
+            OrderGridFilterPlugin::FIELD_SHIPPING_CARRIER,
             $condition,
         );
         self::assertSame($collection, $result);

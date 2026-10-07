@@ -33,16 +33,16 @@ interface ShipmentDraftInterface
      */
     public const string PICKUP_MULTI = 'multi';
 
-    public const string CARRIER_CODE = 'carrier_code';
-    public const string SHIPMENT_TYPE = 'shipment_type';
-    public const string DESCRIPTION = 'description';
-    public const string SENDER_ADDRESS_ID = 'sender_address_id';
+    public const string FIELD_CARRIER_CODE = 'carrier_code';
+    public const string FIELD_SHIPMENT_TYPE = 'shipment_type';
+    public const string FIELD_DESCRIPTION = 'description';
+    public const string FIELD_SENDER_ADDRESS_ID = 'sender_address_id';
 
     /**
      * The point the parcels are handed over at, for carriers that take them at points; it starts
      * as the sender address's drop-off point.
      */
-    public const string SENDER_POINT_ID = 'sender_point_id';
+    public const string FIELD_SENDER_POINT_ID = 'sender_point_id';
 
     /**
      * The choice of a sender address or bank account typed in for this shipment rather than one
@@ -53,83 +53,83 @@ interface ShipmentDraftInterface
     /**
      * Whether the sender is the one typed in for this shipment (NEW_SENDER_FIELDS).
      */
-    public const string NEW_SENDER = 'new_sender';
+    public const string FIELD_NEW_SENDER = 'new_sender';
 
     /**
      * The sender typed in, field by field, by the address field each one is.
      */
     public const array NEW_SENDER_FIELDS = [
-        AddressInterface::PERSON => 'new_sender_person',
-        AddressInterface::COMPANY => 'new_sender_company',
-        AddressInterface::STREET => 'new_sender_street',
-        AddressInterface::HOUSE_NUMBER => 'new_sender_house_number',
-        AddressInterface::FLAT_NUMBER => 'new_sender_flat_number',
-        AddressInterface::POSTCODE => 'new_sender_postcode',
-        AddressInterface::CITY => 'new_sender_city',
-        AddressInterface::COUNTRY => 'new_sender_country',
-        AddressInterface::PHONE => 'new_sender_phone',
-        AddressInterface::EMAIL => 'new_sender_email',
+        AddressInterface::FIELD_PERSON => 'new_sender_person',
+        AddressInterface::FIELD_COMPANY => 'new_sender_company',
+        AddressInterface::FIELD_STREET => 'new_sender_street',
+        AddressInterface::FIELD_HOUSE_NUMBER => 'new_sender_house_number',
+        AddressInterface::FIELD_FLAT_NUMBER => 'new_sender_flat_number',
+        AddressInterface::FIELD_POSTCODE => 'new_sender_postcode',
+        AddressInterface::FIELD_CITY => 'new_sender_city',
+        AddressInterface::FIELD_COUNTRY => 'new_sender_country',
+        AddressInterface::FIELD_PHONE => 'new_sender_phone',
+        AddressInterface::FIELD_EMAIL => 'new_sender_email',
     ];
 
     /**
-     * Whether the sender typed in is saved to the addresses, under NEW_SENDER_NAME, once the
+     * Whether the sender typed in is saved to the addresses, under FIELD_NEW_SENDER_NAME, once the
      * shipment is placed.
      */
-    public const string KEEP_NEW_SENDER = 'keep_new_sender';
+    public const string FIELD_KEEP_NEW_SENDER = 'keep_new_sender';
 
-    public const string NEW_SENDER_NAME = 'new_sender_name';
-    public const string RECIPIENT_PERSON = 'recipient_person';
-    public const string RECIPIENT_COMPANY = 'recipient_company';
-    public const string RECIPIENT_STREET = 'recipient_street';
-    public const string RECIPIENT_HOUSE_NUMBER = 'recipient_house_number';
-    public const string RECIPIENT_FLAT_NUMBER = 'recipient_flat_number';
-    public const string RECIPIENT_POSTCODE = 'recipient_postcode';
-    public const string RECIPIENT_CITY = 'recipient_city';
-    public const string RECIPIENT_COUNTRY = 'recipient_country';
-    public const string RECIPIENT_PHONE = 'recipient_phone';
-    public const string RECIPIENT_EMAIL = 'recipient_email';
-    public const string RECIPIENT_POINT_ID = 'recipient_point_id';
-    public const string PACKS = 'packs';
-    public const string ITEMS = 'items';
+    public const string FIELD_NEW_SENDER_NAME = 'new_sender_name';
+    public const string FIELD_RECIPIENT_PERSON = 'recipient_person';
+    public const string FIELD_RECIPIENT_COMPANY = 'recipient_company';
+    public const string FIELD_RECIPIENT_STREET = 'recipient_street';
+    public const string FIELD_RECIPIENT_HOUSE_NUMBER = 'recipient_house_number';
+    public const string FIELD_RECIPIENT_FLAT_NUMBER = 'recipient_flat_number';
+    public const string FIELD_RECIPIENT_POSTCODE = 'recipient_postcode';
+    public const string FIELD_RECIPIENT_CITY = 'recipient_city';
+    public const string FIELD_RECIPIENT_COUNTRY = 'recipient_country';
+    public const string FIELD_RECIPIENT_PHONE = 'recipient_phone';
+    public const string FIELD_RECIPIENT_EMAIL = 'recipient_email';
+    public const string FIELD_RECIPIENT_POINT_ID = 'recipient_point_id';
+    public const string FIELD_PACKS = 'packs';
+    public const string FIELD_ITEMS = 'items';
 
     /**
      * Set on a draft whose parcels were packed automatically, which the screen asks to check.
      */
-    public const string PACKS_ESTIMATED = 'packs_estimated';
+    public const string FIELD_PACKS_ESTIMATED = 'packs_estimated';
 
     /**
      * Whether cash on delivery and insurance cover the shipping and handling charged.
      */
-    public const string SHIPPING_INCLUDED = 'shipping_included';
+    public const string FIELD_SHIPPING_INCLUDED = 'shipping_included';
 
-    public const string COD_AMOUNT = 'cod_amount';
-    public const string COD_TYPE = 'cod_type';
-    public const string COD_RETURN_TYPE = 'cod_return_type';
-    public const string COD_BANK_ACCOUNT_ID = 'cod_bank_account_id';
+    public const string FIELD_COD_AMOUNT = 'cod_amount';
+    public const string FIELD_COD_TYPE = 'cod_type';
+    public const string FIELD_COD_RETURN_TYPE = 'cod_return_type';
+    public const string FIELD_COD_BANK_ACCOUNT_ID = 'cod_bank_account_id';
 
     /**
      * Whether cash on delivery is paid out to the account number typed in for this shipment.
      */
-    public const string NEW_BANK_ACCOUNT = 'new_bank_account';
+    public const string FIELD_NEW_BANK_ACCOUNT = 'new_bank_account';
 
-    public const string NEW_BANK_ACCOUNT_NUMBER = 'new_bank_account_number';
+    public const string FIELD_NEW_BANK_ACCOUNT_NUMBER = 'new_bank_account_number';
 
     /**
-     * Whether that account is saved to the bank accounts, under NEW_BANK_ACCOUNT_NAME, once the
+     * Whether that account is saved to the bank accounts, under FIELD_NEW_BANK_ACCOUNT_NAME, once the
      * shipment is placed.
      */
-    public const string KEEP_NEW_BANK_ACCOUNT = 'keep_new_bank_account';
+    public const string FIELD_KEEP_NEW_BANK_ACCOUNT = 'keep_new_bank_account';
 
-    public const string NEW_BANK_ACCOUNT_NAME = 'new_bank_account_name';
-    public const string INSURANCE_AMOUNT = 'insurance_amount';
-    public const string COVER_ADDRESS_ID = 'cover_address_id';
-    public const string SERVICES = 'services';
-    public const string PICKUP_MODE = 'pickup_mode';
-    public const string PICKUP_DATE = 'pickup_date';
-    public const string PICKUP_TIME_FROM = 'pickup_time_from';
-    public const string PICKUP_TIME_TO = 'pickup_time_to';
-    public const string ADDITIONAL_FIELDS = 'additional_fields';
-    public const string TARGET_SHIPMENT_ID = 'target_shipment_id';
+    public const string FIELD_NEW_BANK_ACCOUNT_NAME = 'new_bank_account_name';
+    public const string FIELD_INSURANCE_AMOUNT = 'insurance_amount';
+    public const string FIELD_COVER_ADDRESS_ID = 'cover_address_id';
+    public const string FIELD_SERVICES = 'services';
+    public const string FIELD_PICKUP_MODE = 'pickup_mode';
+    public const string FIELD_PICKUP_DATE = 'pickup_date';
+    public const string FIELD_PICKUP_TIME_FROM = 'pickup_time_from';
+    public const string FIELD_PICKUP_TIME_TO = 'pickup_time_to';
+    public const string FIELD_ADDITIONAL_FIELDS = 'additional_fields';
+    public const string FIELD_TARGET_SHIPMENT_ID = 'target_shipment_id';
 
     /**
      * @return string
@@ -357,7 +357,7 @@ interface ShipmentDraftInterface
 
     /**
      * Whether the cash on delivery and the insurance cover the shipping and handling charged,
-     * besides the products (OrderAmounts::getShipmentWorth).
+     * besides the products (OrderAmountCalculator::getShipmentWorth).
      *
      * @return bool
      */

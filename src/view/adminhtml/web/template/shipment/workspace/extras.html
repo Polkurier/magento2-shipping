@@ -5,7 +5,8 @@
 <div class="polkurier-section__part polkurier-section__wide">
     <ul class="polkurier-switches">
         <!-- ko foreach: switches -->
-        <li class="polkurier-switches__item" data-bind="css: {'_unavailable': $data.unavailable && checked}, click: $parent.onTile.bind($parent)">
+        <li class="polkurier-switches__item"
+            data-bind="css: {'_unavailable': $data.unavailable && checked}, click: $parent.onTile.bind($parent)">
             <div class="admin__actions-switch" data-role="switcher">
                 <input type="checkbox" class="admin__actions-switch-checkbox"
                        data-bind="attr: {id: id}, checked: checked, event: {change: $parent.onSwitch.bind($parent)}"/>
@@ -25,10 +26,13 @@
                 </button>
                 <!-- /ko -->
                 <div class="polkurier-switches__note polkurier-text-error" if="$data.problem" text="problem"></div>
-                <div class="polkurier-switches__note polkurier-text-error" if="$data.unavailable && checked" text="unavailable"></div>
+                <div class="polkurier-switches__note polkurier-text-error" if="$data.unavailable && checked"
+                     text="unavailable"></div>
                 <!-- ko if: $data.cover && checked -->
                 <div class="polkurier-switches__note">
-                    <select class="admin__control-select" data-bind="options: $parent.coverOptions, optionsText: 'label', optionsValue: 'value', value: $parent.coverAddressId"></select>
+                    <select class="admin__control-select"
+                            data-bind="options: $parent.coverOptions, optionsText: 'label', optionsValue: 'value',
+                                       value: $parent.coverAddressId"></select>
                 </div>
                 <!-- /ko -->
             </div>

@@ -14,15 +14,21 @@ namespace Polkurier\Shipping\Api\Data;
  */
 interface SyncableInterface
 {
-    public const string EXT_ID = 'ext_id';
-    public const string SYNC_STATE = 'sync_state';
-    public const string SYNC_ERROR = 'sync_error';
-    public const string REMOTE_HASH = 'remote_hash';
-    public const string REMOTE_UPDATED_AT = 'remote_updated_at';
-    public const string SYNCED_AT = 'synced_at';
-    public const string DELETED_AT = 'deleted_at';
-    public const string CREATED_AT = 'created_at';
-    public const string UPDATED_AT = 'updated_at';
+    public const string FIELD_EXT_ID = 'ext_id';
+
+    /**
+     * What the merchant tells the entries apart by.
+     */
+    public const string FIELD_NAME = 'name';
+
+    public const string FIELD_SYNC_STATE = 'sync_state';
+    public const string FIELD_SYNC_ERROR = 'sync_error';
+    public const string FIELD_REMOTE_HASH = 'remote_hash';
+    public const string FIELD_REMOTE_UPDATED_AT = 'remote_updated_at';
+    public const string FIELD_SYNCED_AT = 'synced_at';
+    public const string FIELD_DELETED_AT = 'deleted_at';
+    public const string FIELD_CREATED_AT = 'created_at';
+    public const string FIELD_UPDATED_AT = 'updated_at';
 
     /**
      * Changed in Magento and not yet sent, or never sent.
@@ -63,6 +69,18 @@ interface SyncableInterface
      * @return $this
      */
     public function setExtId(?string $extId): static;
+
+    /**
+     * @return string
+     */
+    public function getName(): string;
+
+    /**
+     * @param string $name
+     *
+     * @return $this
+     */
+    public function setName(string $name): static;
 
     /**
      * @return string

@@ -18,7 +18,9 @@
     <!-- /ko -->
     <!-- ko ifnot: pointId -->
     <div data-bind="css: {'polkurier-text-error': pointMissing, 'polkurier-muted': !pointMissing()}">
-        <span data-bind="text: pointRequired() ? $t('This carrier takes the parcels at a point: choose the drop-off point you hand them over at.') : $t('None: you choose the point when dropping them off')"></span>
+        <span data-bind="text: pointRequired()
+                             ? $t('This carrier takes the parcels at a point: choose the drop-off point you hand them over at.')
+                             : $t('None: you choose the point when dropping them off')"></span>
     </div>
     <button type="button" class="action-secondary" if="canChoosePoint" click="choosePoint">
         <span translate="'Choose on map'"></span>

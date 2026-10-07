@@ -9,7 +9,8 @@
     <columns name="sales_order_shipment_columns">
         <!-- Right after the selection column and the shipment number: Magento inserts a column with a
              sortOrder at that position, and the admin's saved column order still applies over it -->
-        <column name="polkurier_order" class="Polkurier\Shipping\Ui\Component\Listing\Column\PolkurierOrderColumn"
+        <column name="polkurier_order"
+                class="Polkurier\Shipping\Ui\Component\Listing\SalesShipment\PolkurierOrderColumn"
                 sortOrder="2">
             <argument name="data" xsi:type="array">
                 <item name="config" xsi:type="array">

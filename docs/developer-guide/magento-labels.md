@@ -23,31 +23,43 @@ doesn't configure.
 ## The flow
 
 1. **Is it available?** Magento asks the order's carrier `isShippingLabelsAvailable()` before
-   showing the checkbox. The carrier answers from `labels/native_labels`, via
-   `Model\Shipment\NativeLabel::isAvailable()`. Only orders placed with a Polkurier method get this
-   far, because Magento always asks the order's own carrier.
+   showing the checkbox, without saying which order (or store) it's for, so the carrier says yes
+   (`Model\Shipment\Native\NativeLabelService::isAvailable()`, which answers from
+   `labels/native_labels` only when given a store). `Plugin\Adminhtml\NativeLabelPagePlugin`
+   answers for the order instead, after the pages' `canCreateShippingLabel()` (`Create\Items` and
+   `View\Form`): no unless `labels/native_labels` is on for the order's store. Only orders placed
+   with a Polkurier method get this far, because Magento always asks the order's own carrier.
 2. **Packaging popup.** Magento asks the carrier for container types.
-   `NativeLabel::getContainerTypes()` returns the parcel types (`ST`, `NST`, `DLU`, `ENV`, `PPAL`,
+   The carrier's `getContainerTypes()` returns the parcel types (`ST`, `NST`, `DLU`, `ENV`, `PPAL`,
    `PAL`), all customizable; they make the shipment's type (see [Shipments](shipments.md#the-draft)),
    and the label options check them when the label is asked for. Pack templates are not container types: they fill in a package from a list of
    their own (see below), so the package's fields stay editable. `isGirthAllowed()` answers no,
    and there are no delivery confirmation or content types.
-3. **Label request.** On save, Magento calls the carrier's `requestToShipment()` with the shipment
-   and the packages, and the carrier hands it to `NativeLabel::request()`:
-   - it checks the `Polkurier_Shipping::shipment_create` permission;
-   - it builds the default draft for the order, and applies the options posted from the New
-     Shipment page (the `polkurier[...]` fields, limited to `NativeLabel::OPTION_FIELDS`; the
-     recipient always comes from the order);
-   - it turns the packages into parcels, one per package, converting pounds and inches;
-   - it calls `Model\Shipment\Placing::forMagentoShipment()`, which places the order without
+3. **Label request.** Magento's actions asking for the label (`Order\Shipment\Save` with
+   **Create Shipping Label** ticked, and `Order\Shipment\CreateLabel` for a shipment made without)
+   check only Magento's own permissions. `NativeLabelPagePlugin`, around both,
+   answers the packaging window with an error for an admin not allowed
+   `Polkurier_Shipping::shipment_create`, and drops the packages' pack template names, with a
+   warning, for one not allowed `Polkurier_Shipping::pack_templates`. Magento then calls the
+   carrier's `requestToShipment()` with the shipment and the packages; before that, in Magento's
+   `LabelGenerator::create()`, the plugin puts the options posted from the page (the
+   `polkurier[...]` fields) on the Magento shipment (`NativeLabelService::FIELD_OPTIONS`), the way Magento
+   puts the packages there. The carrier hands it to `NativeLabelService::request()`:
+   - it refuses the label when `labels/native_labels` is off for the order's store;
+   - it builds the default draft for the order, and applies the options from the Magento shipment,
+     limited to `NativeLabelService::OPTION_FIELDS` (the recipient always comes from the order);
+   - `Native\NativeLabelPackageMapper` turns the packages into parcels, one per package, converting pounds
+     and inches with Magento's own conversion (`Shipping\Helper\Carrier`), and refuses packages
+     holding what the shipment doesn't carry;
+   - it calls `Model\Shipment\Placement\PlacementService::forNativeShipment()`, which places the order without
      shipping the Magento order, and throws when the outcome is unclear, so Magento doesn't save a
      shipment without tracking. Reconciliation ships the order later;
-   - it marks the Magento shipment with the Polkurier shipment's id (`NativeLabel::LINK`).
+   - it marks the Magento shipment with the Polkurier shipment's id (`NativeLabelService::FIELD_LINK`).
 4. **The answer** is the single entry Magento expects: every waybill as `tracking_number` (Magento
    accepts a list there) and the label as `label_content`. The label is always fetched as PDF,
    whatever label format is configured, because Magento merges labels as PDF documents.
 5. **No label yet.** If the label can't be fetched, the answer is empty, the tracks are added to
-   the shipment directly, the shipment is flagged (`NativeLabel::NO_LABEL`) and the admin gets a
+   the shipment directly, the shipment is flagged (`NativeLabelService::FIELD_NO_LABEL`) and the admin gets a
    notice.
 6. **Saving.** Magento saves the shipment and the order in one transaction. Two observers in the
    admin area finish the job:
@@ -113,7 +125,7 @@ its fields, red, and the label is held back by the blocking ones about the field
 refusal shows in the popup like any other label error. The collection date and window
 are chosen from those `polkurier/shipment/pickupTimes` returns, as on the shipment screen.
 
-The block also passes `codCollected` and `codRemaining` (see `Model\Shipment\OrderAmounts`) and
+The block also passes `codCollected` and `codRemaining` (see `Model\Shipment\Valuation\OrderAmountCalculator`) and
 `items`: the unit value and quantity of each item that ships. The script watches the page's
 `shipment[items][…]` fields and keeps the cash on delivery at what the quantities collect
 (`rules.codFor()`) and the insurance at what they're worth (`rules.insuranceFor()`), by the
@@ -135,7 +147,7 @@ follows `parcelWeight` (`rules.parcelWeight()`): the script wraps the popup's
 they change, and weighs a package with a template again right after. Without a template, the sum
 stays, except that a product without a weight leaves the field empty instead of `NaN`.
 
-`Model\Shipment\ShipmentOptions` supplies the choices (carriers and their features, sender
+`Model\Shipment\Screen\ShipmentOptionsProvider` supplies the choices (carriers and their features, sender
 addresses, bank accounts). The shipment screen's data provider uses it too.
 
 ## The order page

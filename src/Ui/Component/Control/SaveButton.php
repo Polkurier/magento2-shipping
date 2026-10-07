@@ -16,7 +16,7 @@ use Magento\Framework\View\Element\UiComponent\Control\ButtonProviderInterface;
 readonly class SaveButton implements ButtonProviderInterface
 {
     public function __construct(
-        private string $label = 'Save',
+        private ?string $label = null,
     ) {}
 
     /**
@@ -25,7 +25,7 @@ readonly class SaveButton implements ButtonProviderInterface
     public function getButtonData(): array
     {
         return [
-            'label' => \__($this->label),
+            'label' => $this->label !== null ? __($this->label) : __('Save'),
             'class' => 'save primary',
             'data_attribute' => [
                 'mage-init' => ['button' => ['event' => 'save']],

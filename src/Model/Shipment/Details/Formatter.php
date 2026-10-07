@@ -11,8 +11,8 @@ use Magento\Framework\Locale\ResolverInterface;
 use Magento\Framework\Pricing\PriceCurrencyInterface;
 use Magento\Framework\Stdlib\DateTime\TimezoneInterface;
 use Polkurier\Shipping\Model\Carrier\Polkurier;
-use Polkurier\Shipping\Model\Sdk\PolkurierTime;
-use Polkurier\Shipping\Model\Shipment\PlnAmounts;
+use Polkurier\Shipping\Model\Sdk\PolkurierTimeZone;
+use Polkurier\Shipping\Model\Shipment\Valuation\OrderAmountCalculator;
 
 /**
  * How the shipment details page writes numbers, money, times, sizes and places, in the admin's
@@ -30,7 +30,8 @@ readonly class Formatter
 
     public function number(float $value): string
     {
-        return (string)(new \NumberFormatter($this->localeResolver->getLocale(), \NumberFormatter::DECIMAL))->format($value);
+        return (string)(new \NumberFormatter($this->localeResolver->getLocale(), \NumberFormatter::DECIMAL))
+            ->format($value);
     }
 
     /**
@@ -38,7 +39,7 @@ readonly class Formatter
      */
     public function money(float $amount): string
     {
-        return $this->priceCurrency->format($amount, false, 2, null, PlnAmounts::CURRENCY);
+        return $this->priceCurrency->format($amount, false, 2, null, OrderAmountCalculator::CURRENCY);
     }
 
     /**
@@ -46,7 +47,9 @@ readonly class Formatter
      */
     public function storedTime(?string $value): string
     {
-        return $value ? $this->timezone->formatDateTime($value, \IntlDateFormatter::MEDIUM, \IntlDateFormatter::SHORT) : self::NONE;
+        return $value
+            ? $this->timezone->formatDateTime($value, \IntlDateFormatter::MEDIUM, \IntlDateFormatter::SHORT)
+            : self::NONE;
     }
 
     /**
@@ -58,7 +61,7 @@ readonly class Formatter
             return self::NONE;
         }
         try {
-            $time = (new \DateTimeImmutable($value, PolkurierTime::zone()))
+            $time = (new \DateTimeImmutable($value, PolkurierTimeZone::zone()))
                 ->setTimezone(new \DateTimeZone('UTC'));
         } catch (\DateMalformedStringException) {
             return $value;
@@ -69,12 +72,12 @@ readonly class Formatter
 
     public function size(mixed $length, mixed $width, mixed $height): string
     {
-        return (string)\__('%1 × %2 × %3 cm', $length ?? '?', $width ?? '?', $height ?? '?');
+        return (string)__('%1 × %2 × %3 cm', $length ?? '?', $width ?? '?', $height ?? '?');
     }
 
     public function weight(float $kilograms): string
     {
-        return (string)\__('%1 kg', $this->number($kilograms));
+        return (string)__('%1 kg', $this->number($kilograms));
     }
 
     /**

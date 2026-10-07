@@ -13,7 +13,8 @@ use Magento\Framework\App\Action\HttpPostActionInterface;
 use Magento\Framework\Controller\Result\Json;
 use Magento\Framework\Controller\Result\JsonFactory;
 use Magento\Framework\Exception\LocalizedException;
-use Polkurier\Shipping\Model\Carrier\CarrierLogo;
+use Polkurier\Shipping\Api\Data\CarrierConfigInterface;
+use Polkurier\Shipping\Model\Carrier\CarrierLogoStorage;
 
 /**
  * Receives a logo from the carrier form's image uploader. The carrier is only changed when the
@@ -26,7 +27,7 @@ class UploadLogo extends Action implements HttpPostActionInterface
     public function __construct(
         Context $context,
         private readonly JsonFactory $jsonFactory,
-        private readonly CarrierLogo $carrierLogo,
+        private readonly CarrierLogoStorage $carrierLogoStorage,
     ) {
         parent::__construct($context);
     }
@@ -35,7 +36,11 @@ class UploadLogo extends Action implements HttpPostActionInterface
     {
         $result = $this->jsonFactory->create();
         try {
-            return $result->setData($this->carrierLogo->upload((string)$this->getRequest()->getParam('param_name', 'logo')));
+            return $result->setData(
+                $this->carrierLogoStorage->upload(
+                    (string)$this->getRequest()->getParam('param_name', CarrierConfigInterface::FIELD_LOGO),
+                ),
+            );
         } catch (LocalizedException $e) {
             return $result->setData(['error' => $e->getMessage(), 'errorcode' => 1]);
         }

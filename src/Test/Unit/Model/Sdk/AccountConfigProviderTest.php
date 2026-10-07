@@ -13,16 +13,19 @@ use Magento\Framework\Encryption\EncryptorInterface;
 use Magento\Framework\Module\PackageInfo;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Polkurier\Shipping\Model\Config;
+use Polkurier\Shipping\Model\Config\ConfigProvider;
 use Polkurier\Shipping\Model\Config\Source\StatusSchedule;
 use Polkurier\Shipping\Model\Sdk\AccountConfigProvider;
-use Polkurier\Shipping\Model\Sdk\LogFilesDirectory;
+use Polkurier\Shipping\Model\Sdk\LogFilesDirectoryResolver;
 use Polkurier\Shipping\Test\Unit\Support\FixedDateTime;
+use Polkurier\Shipping\Test\Unit\Support\NewingObjectManager;
+use Polkurier\Webservice\ConfigFactory as SdkConfigFactory;
 use Polkurier\Webservice\Enum\Http\ApiMethodEnum;
+use Polkurier\Webservice\Http\Request\AuthorizationMessageFactory;
 
 #[CoversClass(AccountConfigProvider::class)]
-#[CoversClass(Config::class)]
-#[CoversClass(LogFilesDirectory::class)]
+#[CoversClass(ConfigProvider::class)]
+#[CoversClass(LogFilesDirectoryResolver::class)]
 class AccountConfigProviderTest extends TestCase
 {
     /**
@@ -31,12 +34,12 @@ class AccountConfigProviderTest extends TestCase
      * @var array<string, string>
      */
     private array $values = [
-        Config::XML_PATH_LOGIN => 'enc:11111',
-        Config::XML_PATH_TOKEN => 'enc:token-one',
-        Config::XML_PATH_SANDBOX => '1',
-        Config::XML_PATH_TIMEOUT => '45',
-        Config::XML_PATH_LOGGING => '1',
-        Config::XML_PATH_LOG_METHODS => 'create_order,no_such_method,cancel_order',
+        ConfigProvider::XML_PATH_LOGIN => 'enc:11111',
+        ConfigProvider::XML_PATH_TOKEN => 'enc:token-one',
+        ConfigProvider::XML_PATH_SANDBOX => '1',
+        ConfigProvider::XML_PATH_TIMEOUT => '45',
+        ConfigProvider::XML_PATH_LOGGING => '1',
+        ConfigProvider::XML_PATH_LOG_METHODS => 'create_order,no_such_method,cancel_order',
     ];
 
     public function testReadsTheAccountFromTheDefaultScopeOnly(): void
@@ -58,30 +61,44 @@ class AccountConfigProviderTest extends TestCase
         self::assertFalse($config->isPersonalDataLoggingEnabled());
         self::assertFalse($config->isFileLoggingEnabled());
         self::assertFalse($config->isSensitiveDataLoggingEnabled(), 'Secrets are never logged.');
-        self::assertSame('/srv/magento/var/log/polkurier/files/2026/10', $config->getLogFilesDirectory(), 'This month\'s.');
+        self::assertSame(
+            '/srv/magento/var/log/polkurier/files/2026/10',
+            $config->getLogFilesDirectory(),
+            'This month\'s.',
+        );
     }
 
     public function testLogsPersonalDataAndSavesFilesWhereAllowed(): void
     {
-        $this->values[Config::XML_PATH_LOG_PERSONAL_DATA] = '1';
-        $this->values[Config::XML_PATH_LOG_FILES] = '1';
-        $this->values[Config::XML_PATH_LOG_FILES_DIRECTORY] = ' var/polkurier/./files ';
+        $this->values[ConfigProvider::XML_PATH_LOG_PERSONAL_DATA] = '1';
+        $this->values[ConfigProvider::XML_PATH_LOG_FILES] = '1';
+        $this->values[ConfigProvider::XML_PATH_LOG_FILES_DIRECTORY] = ' var/polkurier/./files ';
         $config = $this->provider()->getConfig();
 
         self::assertTrue($config->isPersonalDataLoggingEnabled());
         self::assertTrue($config->isFileLoggingEnabled());
-        self::assertSame('/srv/magento/var/polkurier/files/2026/10', $config->getLogFilesDirectory(), 'Relative to Magento\'s root.');
+        self::assertSame(
+            '/srv/magento/var/polkurier/files/2026/10',
+            $config->getLogFilesDirectory(),
+            'Relative to Magento\'s root.',
+        );
 
-        $this->values[Config::XML_PATH_LOG_FILES_DIRECTORY] = '/var/log/shop/../polkurier';
+        $this->values[ConfigProvider::XML_PATH_LOG_FILES_DIRECTORY] = '/var/log/shop/../polkurier';
         self::assertSame('/var/log/polkurier/2026/10', $this->provider()->getConfig()->getLogFilesDirectory());
     }
 
     public function testTheStatusIntervalIsReadFromEveryScheduleOffered(): void
     {
-        $expected = ['*/10 * * * *' => 10, '*/15 * * * *' => 15, '*/20 * * * *' => 20, '*/30 * * * *' => 30, '0 * * * *' => 60];
+        $expected = [
+            '*/10 * * * *' => 10,
+            '*/15 * * * *' => 15,
+            '*/20 * * * *' => 20,
+            '*/30 * * * *' => 30,
+            '0 * * * *' => 60,
+        ];
         $intervals = [];
         foreach (\array_keys((new StatusSchedule())->toArray()) as $schedule) {
-            $this->values[Config::XML_PATH_STATUS_SCHEDULE] = $schedule;
+            $this->values[ConfigProvider::XML_PATH_STATUS_SCHEDULE] = $schedule;
             $intervals[$schedule] = $this->config()->getStatusIntervalMinutes();
         }
 
@@ -90,17 +107,17 @@ class AccountConfigProviderTest extends TestCase
 
     public function testAnEmptyTimeoutFallsBackToTheDefault(): void
     {
-        $this->values[Config::XML_PATH_TIMEOUT] = '';
+        $this->values[ConfigProvider::XML_PATH_TIMEOUT] = '';
 
         self::assertSame(30, $this->provider()->getConfig()->getApiTimeout());
     }
 
     public function testTheStorefrontWaitsAtMostItsOwnLimit(): void
     {
-        $this->values[Config::XML_PATH_TIMEOUT] = '30';
+        $this->values[ConfigProvider::XML_PATH_TIMEOUT] = '30';
         self::assertSame(5, $this->provider(5)->getConfig()->getApiTimeout());
 
-        $this->values[Config::XML_PATH_TIMEOUT] = '3';
+        $this->values[ConfigProvider::XML_PATH_TIMEOUT] = '3';
         self::assertSame(3, $this->provider(5)->getConfig()->getApiTimeout(), 'A shorter setting stands.');
     }
 
@@ -110,18 +127,27 @@ class AccountConfigProviderTest extends TestCase
 
         self::assertSame(AccountConfigProvider::PLATFORM, $config->getPlatform());
         self::assertSame('1.2.3', $config->getPlatformVersion());
-        self::assertSame(\Polkurier\Webservice\Config::SANDBOX_API_URL, $config->getApiUrl(), 'No endpoint configured: the sandbox flag decides.');
+        self::assertSame(
+            \Polkurier\Webservice\Config::SANDBOX_API_URL,
+            $config->getApiUrl(),
+            'No endpoint configured: the sandbox flag decides.',
+        );
 
-        $this->values[Config::XML_PATH_API_URL] = 'http://api.local/';
+        $this->values[ConfigProvider::XML_PATH_API_URL] = 'http://api.local/';
         self::assertSame('http://api.local', $this->provider()->getConfig()->getApiUrl());
     }
 
     public function testResolvesAtCallTimeNotAtConstruction(): void
     {
         $provider = $this->provider();
-        $this->values[Config::XML_PATH_TOKEN] = 'enc:rotated';
+        $this->values[ConfigProvider::XML_PATH_TOKEN] = 'enc:rotated';
 
         self::assertSame('rotated', $provider->getConfig()->getAuthorization()->getToken());
+    }
+
+    public static function directoryList(): DirectoryList
+    {
+        return new DirectoryList('/srv/magento');
     }
 
     private function provider(?int $maxTimeout = null): AccountConfigProvider
@@ -129,30 +155,38 @@ class AccountConfigProviderTest extends TestCase
         $packageInfo = $this->createStub(PackageInfo::class);
         $packageInfo->method('getVersion')->willReturn('1.2.3');
 
-        return new AccountConfigProvider($this->config(), $packageInfo, new LogFilesDirectory(self::directoryList()), new FixedDateTime((int)\strtotime('2026-10-06 07:00:00 UTC')), $maxTimeout);
+        return new AccountConfigProvider(
+            $this->config(),
+            $packageInfo,
+            new LogFilesDirectoryResolver(self::directoryList()),
+            new FixedDateTime((int)\strtotime('2026-10-06 07:00:00 UTC')),
+            NewingObjectManager::factory(SdkConfigFactory::class),
+            NewingObjectManager::factory(AuthorizationMessageFactory::class),
+            $maxTimeout,
+        );
     }
 
-    private function config(): Config
+    private function config(): ConfigProvider
     {
         $scopeConfig = $this->createStub(ScopeConfigInterface::class);
         $scopeConfig->method('getValue')->willReturnCallback(function (string $path, string $scope): ?string {
-            self::assertSame(ScopeConfigInterface::SCOPE_TYPE_DEFAULT, $scope, 'A website can\'t have an account of its own.');
+            self::assertSame(
+                ScopeConfigInterface::SCOPE_TYPE_DEFAULT,
+                $scope,
+                'A website can\'t have an account of its own.',
+            );
 
             return $this->values[$path] ?? null;
         });
         $scopeConfig->method('isSetFlag')->willReturnCallback(
-            fn(string $path, string $scope): bool => $scope === ScopeConfigInterface::SCOPE_TYPE_DEFAULT && (bool)($this->values[$path] ?? false),
+            fn(string $path, string $scope): bool => $scope === ScopeConfigInterface::SCOPE_TYPE_DEFAULT
+                && (bool)($this->values[$path] ?? false),
         );
         $encryptor = $this->createStub(EncryptorInterface::class);
         $encryptor->method('decrypt')->willReturnCallback(
             static fn(string $value): string => \str_starts_with($value, 'enc:') ? \substr($value, 4) : '',
         );
 
-        return new Config($scopeConfig, $encryptor);
-    }
-
-    public static function directoryList(): DirectoryList
-    {
-        return new DirectoryList('/srv/magento');
+        return new ConfigProvider($scopeConfig, $encryptor);
     }
 }

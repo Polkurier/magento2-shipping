@@ -14,21 +14,8 @@ namespace Polkurier\Shipping\Api\Data;
  */
 interface BankAccountInterface extends SyncableInterface
 {
-    public const string NAME = 'name';
-    public const string NUMBER = 'number';
-    public const string IS_DEFAULT = 'is_default';
-
-    /**
-     * @return string
-     */
-    public function getName(): string;
-
-    /**
-     * @param string $name
-     *
-     * @return $this
-     */
-    public function setName(string $name): static;
+    public const string FIELD_NUMBER = 'number';
+    public const string FIELD_IS_DEFAULT = 'is_default';
 
     /**
      * @return string

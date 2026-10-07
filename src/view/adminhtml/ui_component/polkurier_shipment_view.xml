@@ -18,16 +18,16 @@
             <dep>polkurier_shipment_view.polkurier_shipment_view_data_source</dep>
         </deps>
         <buttons>
-            <button name="back" class="Polkurier\Shipping\Ui\Component\Control\ShipmentView\BackButton"/>
-            <button name="reconcile" class="Polkurier\Shipping\Ui\Component\Control\ShipmentView\ReconcileButton"/>
-            <button name="send_again" class="Polkurier\Shipping\Ui\Component\Control\ShipmentView\SendAgainButton"/>
-            <button name="discard" class="Polkurier\Shipping\Ui\Component\Control\ShipmentView\DiscardButton"/>
-            <button name="link" class="Polkurier\Shipping\Ui\Component\Control\ShipmentView\LinkButton"/>
-            <button name="cancel" class="Polkurier\Shipping\Ui\Component\Control\ShipmentView\CancelButton"/>
-            <button name="ship" class="Polkurier\Shipping\Ui\Component\Control\ShipmentView\ShipButton"/>
-            <button name="refresh" class="Polkurier\Shipping\Ui\Component\Control\ShipmentView\RefreshButton"/>
-            <button name="protocol" class="Polkurier\Shipping\Ui\Component\Control\ShipmentView\ProtocolButton"/>
-            <button name="label" class="Polkurier\Shipping\Ui\Component\Control\ShipmentView\LabelButton"/>
+            <button name="back" class="Polkurier\Shipping\Ui\Component\Form\ShipmentView\BackButton"/>
+            <button name="reconcile" class="Polkurier\Shipping\Ui\Component\Form\ShipmentView\ReconcileButton"/>
+            <button name="send_again" class="Polkurier\Shipping\Ui\Component\Form\ShipmentView\SendAgainButton"/>
+            <button name="discard" class="Polkurier\Shipping\Ui\Component\Form\ShipmentView\DiscardButton"/>
+            <button name="link" class="Polkurier\Shipping\Ui\Component\Form\ShipmentView\LinkButton"/>
+            <button name="cancel" class="Polkurier\Shipping\Ui\Component\Form\ShipmentView\CancelButton"/>
+            <button name="ship" class="Polkurier\Shipping\Ui\Component\Form\ShipmentView\ShipButton"/>
+            <button name="refresh" class="Polkurier\Shipping\Ui\Component\Form\ShipmentView\RefreshButton"/>
+            <button name="protocol" class="Polkurier\Shipping\Ui\Component\Form\ShipmentView\ProtocolButton"/>
+            <button name="label" class="Polkurier\Shipping\Ui\Component\Form\ShipmentView\LabelButton"/>
         </buttons>
     </settings>
     <dataSource name="polkurier_shipment_view_data_source">
@@ -37,7 +37,8 @@
             </item>
         </argument>
         <aclResource>Polkurier_Shipping::shipments</aclResource>
-        <dataProvider class="Polkurier\Shipping\Ui\Component\Form\ShipmentView\DataProvider" name="polkurier_shipment_view_data_source">
+        <dataProvider class="Polkurier\Shipping\Ui\Component\Form\ShipmentView\DataProvider"
+                      name="polkurier_shipment_view_data_source">
             <settings>
                 <requestFieldName>id</requestFieldName>
                 <primaryFieldName>entity_id</primaryFieldName>

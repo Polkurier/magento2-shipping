@@ -9,8 +9,10 @@ namespace Polkurier\Shipping\Controller\Adminhtml\Bankaccount;
 
 use Magento\Backend\App\Action\Context;
 use Magento\Framework\Controller\Result\JsonFactory;
-use Polkurier\Shipping\Controller\Adminhtml\MasterData\AbstractInlineEdit;
-use Polkurier\Shipping\Model\Admin\BankAccountHandler;
+use Polkurier\Shipping\Api\Data\BankAccountInterface;
+use Polkurier\Shipping\Controller\Adminhtml\AbstractInlineEdit;
+use Polkurier\Shipping\Model\Admin\FlashMessageCollectorFactory;
+use Polkurier\Shipping\Model\BankAccount\BankAccountHandler;
 
 /**
  * Saves the bank accounts edited in place in their grid.
@@ -19,13 +21,21 @@ class InlineEdit extends AbstractInlineEdit
 {
     public const string ADMIN_RESOURCE = 'Polkurier_Shipping::bank_accounts';
 
-    public function __construct(Context $context, BankAccountHandler $handler, JsonFactory $jsonFactory)
-    {
-        parent::__construct($context, $handler, $jsonFactory);
+    public function __construct(
+        Context $context,
+        BankAccountHandler $handler,
+        JsonFactory $jsonFactory,
+        FlashMessageCollectorFactory $flashMessageCollectorFactory,
+    ) {
+        parent::__construct($context, $handler, $jsonFactory, $flashMessageCollectorFactory);
     }
 
     protected function getEditableFields(): array
     {
-        return ['name', 'number', 'is_default'];
+        return [
+            BankAccountInterface::FIELD_NAME,
+            BankAccountInterface::FIELD_NUMBER,
+            BankAccountInterface::FIELD_IS_DEFAULT,
+        ];
     }
 }

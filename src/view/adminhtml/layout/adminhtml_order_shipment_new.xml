@@ -8,7 +8,8 @@
     <body>
         <!-- Inside the shipment form, so its hidden fields are sent with the label request -->
         <referenceContainer name="extra_shipment_info">
-            <block class="Magento\Backend\Block\Template" name="polkurier_label_options" template="Polkurier_Shipping::shipment/label-options.phtml">
+            <block class="Magento\Backend\Block\Template" name="polkurier_label_options"
+                   template="Polkurier_Shipping::shipment/label-options.phtml">
                 <arguments>
                     <argument name="view_model" xsi:type="object">Polkurier\Shipping\ViewModel\Adminhtml\LabelOptions</argument>
                 </arguments>

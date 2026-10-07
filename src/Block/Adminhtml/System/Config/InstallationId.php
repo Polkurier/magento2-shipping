@@ -11,7 +11,7 @@ use Magento\Backend\Block\Template\Context;
 use Magento\Config\Block\System\Config\Form\Field;
 use Magento\Framework\Data\Form\Element\AbstractElement;
 use Magento\Framework\View\Helper\SecureHtmlRenderer;
-use Polkurier\Shipping\Model\Sdk\ApplicationId;
+use Polkurier\Shipping\Model\Sdk\ApplicationIdProvider;
 
 /**
  * "Installation ID" in the Polkurier configuration: the id made from the encryption key shows in
@@ -25,7 +25,7 @@ class InstallationId extends Field
      */
     public function __construct(
         Context $context,
-        private readonly ApplicationId $applicationId,
+        private readonly ApplicationIdProvider $applicationIdProvider,
         array $data = [],
         ?SecureHtmlRenderer $secureRenderer = null,
     ) {
@@ -34,7 +34,7 @@ class InstallationId extends Field
 
     protected function _getElementHtml(AbstractElement $element): string
     {
-        $element->setData('placeholder', $this->applicationId->computed());
+        $element->setData('placeholder', $this->applicationIdProvider->computed());
 
         return parent::_getElementHtml($element);
     }

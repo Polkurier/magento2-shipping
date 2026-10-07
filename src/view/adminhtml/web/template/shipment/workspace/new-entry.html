@@ -8,7 +8,8 @@
     <div class="admin__field" css="{_required: required, _error: missing}">
         <label class="admin__field-label" attr="{for: id}"><span text="label"></span></label>
         <div class="admin__field-control">
-            <input class="admin__control-text" attr="{id: id, type: type, maxlength: maxlength, 'aria-required': required ? 'true' : 'false'}"
+            <input class="admin__control-text"
+                   attr="{id: id, type: type, maxlength: maxlength, 'aria-required': required ? 'true' : 'false'}"
                    data-bind="textInput: value"/>
             <div class="admin__field-note" if="$data.notice" text="$data.notice"></div>
         </div>

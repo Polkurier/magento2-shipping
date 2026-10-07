@@ -11,10 +11,9 @@ use Magento\Backend\App\Action\Context;
 use Magento\Framework\Controller\Result\JsonFactory;
 use Polkurier\Shipping\Api\Data\ShipmentDraftInterface;
 use Polkurier\Shipping\Controller\Adminhtml\AbstractJsonAction;
-use Polkurier\Shipping\Model\Mapper\CreateOrderMessageMapper;
-use Polkurier\Shipping\Model\Shipment\DraftHydrator;
-use Polkurier\Shipping\Model\Shipment\Pickups;
-use Polkurier\Shipping\Model\Shipment\SenderPostcode;
+use Polkurier\Shipping\Model\Shipment\Draft\DraftHydrator;
+use Polkurier\Shipping\Model\Shipment\PickupService;
+use Polkurier\Shipping\Model\Shipment\Placement\CreateOrderMessageMapper;
 
 /**
  * Whether the shipment being filled in can be collected with others later, as Polkurier answers
@@ -28,8 +27,7 @@ class CollectivePickup extends AbstractJsonAction
     public function __construct(
         Context $context,
         JsonFactory $jsonFactory,
-        private readonly Pickups $pickups,
-        private readonly SenderPostcode $senderPostcode,
+        private readonly PickupService $pickupService,
         private readonly DraftHydrator $hydrator,
         private readonly CreateOrderMessageMapper $messageMapper,
     ) {
@@ -39,17 +37,21 @@ class CollectivePickup extends AbstractJsonAction
     protected function answer(): array
     {
         $data = (array)$this->getRequest()->getParam('data', []);
-        $carrierCode = (string)($data[ShipmentDraftInterface::CARRIER_CODE] ?? '');
-        $packs = $this->hydrator->fromArray([ShipmentDraftInterface::PACKS => (array)($data[ShipmentDraftInterface::PACKS] ?? [])])->getPacks();
+        $carrierCode = (string)($data[ShipmentDraftInterface::FIELD_CARRIER_CODE] ?? '');
+        $packs = $this->hydrator
+            ->fromArray([
+                ShipmentDraftInterface::FIELD_PACKS => (array)($data[ShipmentDraftInterface::FIELD_PACKS] ?? []),
+            ])
+            ->getPacks();
         if ($carrierCode === '' || $packs === []) {
             return ['available' => null];
         }
 
         // When it can't be had, the screen offers it all the same: Polkurier says so when placing.
-        return ['available' => $this->pickups->isCollectiveAvailable(
+        return ['available' => $this->pickupService->isCollectiveAvailable(
             $carrierCode,
-            $this->senderPostcode->of($data),
-            (string)($data[ShipmentDraftInterface::SHIPMENT_TYPE] ?? 'box'),
+            $this->pickupService->senderPostcodeOf($data),
+            (string)($data[ShipmentDraftInterface::FIELD_SHIPMENT_TYPE] ?? 'box'),
             \array_map($this->messageMapper->mapPack(...), $packs),
         )];
     }

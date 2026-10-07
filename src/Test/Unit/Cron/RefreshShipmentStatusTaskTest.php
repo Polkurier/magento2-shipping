@@ -11,15 +11,15 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Polkurier\Shipping\Cron\RefreshShipmentStatusTask;
-use Polkurier\Shipping\Model\Config;
-use Polkurier\Shipping\Model\Shipment\StatusRefresher;
+use Polkurier\Shipping\Model\Config\ConfigProvider;
+use Polkurier\Shipping\Model\Shipment\Status\StatusRefreshService;
 
 #[CoversClass(RefreshShipmentStatusTask::class)]
 class RefreshShipmentStatusTaskTest extends TestCase
 {
     public function testTheDueShipmentsAreRefreshed(): void
     {
-        $refresher = $this->createMock(StatusRefresher::class);
+        $refresher = $this->createMock(StatusRefreshService::class);
         $refresher->expects(self::once())->method('refreshPending')->willReturn(3);
 
         (new RefreshShipmentStatusTask($refresher, $this->config(true, true)))->execute();
@@ -39,15 +39,15 @@ class RefreshShipmentStatusTaskTest extends TestCase
     #[DataProvider('notToRun')]
     public function testNothingIsAskedOfPolkurierWhenItShouldntBe(bool $enabled, bool $credentials): void
     {
-        $refresher = $this->createMock(StatusRefresher::class);
+        $refresher = $this->createMock(StatusRefreshService::class);
         $refresher->expects(self::never())->method('refreshPending');
 
         (new RefreshShipmentStatusTask($refresher, $this->config($enabled, $credentials)))->execute();
     }
 
-    private function config(bool $enabled, bool $credentials): Config
+    private function config(bool $enabled, bool $credentials): ConfigProvider
     {
-        $config = $this->createStub(Config::class);
+        $config = $this->createStub(ConfigProvider::class);
         $config->method('isStatusSyncEnabled')->willReturn($enabled);
         $config->method('hasCredentials')->willReturn($credentials);
 

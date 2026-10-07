@@ -11,14 +11,14 @@ use Magento\Framework\Exception\LocalizedException;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use Polkurier\Shipping\Model\Shipment\Pickups;
+use Polkurier\Shipping\Model\Shipment\PickupService;
 
-#[CoversClass(Pickups::class)]
+#[CoversClass(PickupService::class)]
 class PickupWindowTest extends TestCase
 {
     public function testAWindowIsInPolishTime(): void
     {
-        $window = Pickups::window('2026-10-08', '09:00', '15:30');
+        $window = PickupService::window('2026-10-08', '09:00', '15:30');
 
         self::assertSame('2026-10-08 09:00 Europe/Warsaw', $window['from']->format('Y-m-d H:i e'));
         self::assertSame('2026-10-08 15:30', $window['to']->format('Y-m-d H:i'));
@@ -47,6 +47,6 @@ class PickupWindowTest extends TestCase
     {
         $this->expectException(LocalizedException::class);
 
-        Pickups::window($date, $from, $to);
+        PickupService::window($date, $from, $to);
     }
 }

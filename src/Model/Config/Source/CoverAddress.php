@@ -7,7 +7,7 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Model\Config\Source;
 
-use Polkurier\Shipping\Model\Shipment\ShipmentOptions;
+use Polkurier\Shipping\Model\Shipment\Screen\ShipmentOptionsProvider;
 
 /**
  * The address book's addresses that can be printed on the label as the sender (marked "Can be a
@@ -16,13 +16,13 @@ use Polkurier\Shipping\Model\Shipment\ShipmentOptions;
 readonly class CoverAddress extends AbstractOptions
 {
     public function __construct(
-        private ShipmentOptions $options,
+        private ShipmentOptionsProvider $shipmentOptions,
     ) {}
 
     public function toArray(): array
     {
-        $options = ['' => (string)\__('None: the sender address')];
-        foreach ($this->options->getSenderOptions(true) as $option) {
+        $options = ['' => (string)__('None: the sender address')];
+        foreach ($this->shipmentOptions->getSenderOptions(true) as $option) {
             $options[$option['value']] = $option['label'];
         }
 

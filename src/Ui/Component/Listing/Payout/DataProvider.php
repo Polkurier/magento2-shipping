@@ -12,8 +12,8 @@ use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Message\ManagerInterface;
 use Magento\Framework\Stdlib\DateTime as DateFormat;
 use Magento\Ui\DataProvider\AbstractDataProvider;
-use Polkurier\Shipping\Model\Config;
-use Polkurier\Shipping\Model\MoneyBox\Payouts;
+use Polkurier\Shipping\Model\Config\ConfigProvider;
+use Polkurier\Shipping\Model\Payout\PayoutManager;
 use Polkurier\Shipping\Model\ResourceModel\Shipment\CollectionFactory;
 
 /**
@@ -34,8 +34,8 @@ class DataProvider extends AbstractDataProvider
         string $primaryFieldName,
         string $requestFieldName,
         CollectionFactory $collectionFactory,
-        private readonly Payouts $payouts,
-        private readonly Config $config,
+        private readonly PayoutManager $payoutManager,
+        private readonly ConfigProvider $configProvider,
         private readonly ManagerInterface $messageManager,
         array $meta = [],
         array $data = [],
@@ -63,11 +63,11 @@ class DataProvider extends AbstractDataProvider
      */
     public function getData(): array
     {
-        if (!$this->config->hasCredentials()) {
+        if (!$this->configProvider->hasCredentials()) {
             return ['items' => [], 'totalRecords' => 0];
         }
         try {
-            $list = $this->payouts->getPayouts($this->page, $this->pageSize);
+            $list = $this->payoutManager->getPayouts($this->page, $this->pageSize);
         } catch (LocalizedException $e) {
             $this->messageManager->addErrorMessage($e->getMessage());
 

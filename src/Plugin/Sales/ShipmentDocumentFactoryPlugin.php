@@ -10,7 +10,7 @@ namespace Polkurier\Shipping\Plugin\Sales;
 use Magento\Sales\Api\Data\OrderInterface;
 use Magento\Sales\Api\Data\ShipmentInterface;
 use Magento\Sales\Model\Order\ShipmentDocumentFactory;
-use Polkurier\Shipping\Model\Shipment\ReservedShipmentNumbers;
+use Polkurier\Shipping\Model\Shipment\Native\ReservedNumberRegistry;
 
 /**
  * Gives a Magento shipment the module makes for a Polkurier order the number taken for it before
@@ -19,14 +19,18 @@ use Polkurier\Shipping\Model\Shipment\ReservedShipmentNumbers;
 readonly class ShipmentDocumentFactoryPlugin
 {
     public function __construct(
-        private ReservedShipmentNumbers $reservedNumbers,
+        private ReservedNumberRegistry $reservedNumbers,
     ) {}
 
     /**
      * @param mixed ...$arguments the rest of create()'s
      */
-    public function afterCreate(ShipmentDocumentFactory $subject, ShipmentInterface $result, OrderInterface $order, mixed ...$arguments): ShipmentInterface
-    {
+    public function afterCreate(
+        ShipmentDocumentFactory $subject,
+        ShipmentInterface $result,
+        OrderInterface $order,
+        mixed ...$arguments,
+    ): ShipmentInterface {
         // A shipment numbered already leaves the reserved number for the one it was reserved for.
         if ($result->getIncrementId()) {
             return $result;

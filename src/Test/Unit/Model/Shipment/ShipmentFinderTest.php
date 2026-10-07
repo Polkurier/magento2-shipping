@@ -48,7 +48,10 @@ class ShipmentFinderTest extends TestCase
     public function testNoShipmentIsNull(): void
     {
         self::assertNull($this->finder()->latestForOrder(42));
-        self::assertSame([['order_id ' . \json_encode(['eq' => 42]), 'order entity_id DESC', 'page 1']], $this->queries);
+        self::assertSame(
+            [['order_id ' . \json_encode(['eq' => 42]), 'order entity_id DESC', 'page 1']],
+            $this->queries,
+        );
     }
 
     public function testTheOrdersShipmentsOldestFirst(): void
@@ -73,7 +76,12 @@ class ShipmentFinderTest extends TestCase
 
         self::assertSame([
             ['shipment_id ' . \json_encode(['in' => [11, 12]]), 'order entity_id ASC'],
-            ['state ' . \json_encode(['in' => ['created']]), 'shipment_id ' . \json_encode(['eq' => 11]), 'order entity_id DESC', 'page 1'],
+            [
+                'state ' . \json_encode(['in' => ['created']]),
+                'shipment_id ' . \json_encode(['eq' => 11]),
+                'order entity_id DESC',
+                'page 1',
+            ],
         ], $this->queries);
     }
 
@@ -97,7 +105,11 @@ class ShipmentFinderTest extends TestCase
         $finder->withCodStatus('MB');
 
         self::assertSame([
-            ['state ' . \json_encode(['in' => ['created']]), 'polkurier_number ' . \json_encode(['in' => ['711400-27']]), 'order entity_id ASC'],
+            [
+                'state ' . \json_encode(['in' => ['created']]),
+                'polkurier_number ' . \json_encode(['in' => ['711400-27']]),
+                'order entity_id ASC',
+            ],
             ['entity_id ' . \json_encode(['in' => [4, 5]]), 'order entity_id ASC'],
             ['waybills ' . \json_encode(['finset' => 'WB-1']), 'order entity_id DESC', 'page 1'],
             ['cod_status ' . \json_encode(['eq' => 'MB']), 'order entity_id ASC'],
@@ -116,7 +128,11 @@ class ShipmentFinderTest extends TestCase
         ];
         $ordered = ['order status_checked_at ASC', 'page 200', 'order entity_id ASC'];
         self::assertSame([
-            [...$due, 'status_checked_at ' . \json_encode([['null' => true], ['lt' => '2026-09-30 09:31:00']]), ...$ordered],
+            [
+                ...$due,
+                'status_checked_at ' . \json_encode([['null' => true], ['lt' => '2026-09-30 09:31:00']]),
+                ...$ordered,
+            ],
             [...$due, ...$ordered],
         ], $this->queries, 'Every store\'s: one account.');
     }
@@ -153,21 +169,27 @@ class ShipmentFinderTest extends TestCase
             $query = \count($this->queries);
             $this->queries[$query] = [];
             $collection = $this->createStub(Collection::class);
-            $collection->method('addFieldToFilter')->willReturnCallback(function (string $field, mixed $condition) use ($collection, $query): Collection {
-                $this->queries[$query][] = $field . ' ' . \json_encode($condition);
+            $collection->method('addFieldToFilter')->willReturnCallback(
+                function (string $field, mixed $condition) use ($collection, $query): Collection {
+                    $this->queries[$query][] = $field . ' ' . \json_encode($condition);
 
-                return $collection;
-            });
-            $collection->method('setOrder')->willReturnCallback(function (string $field, string $direction) use ($collection, $query): Collection {
-                $this->queries[$query][] = 'order ' . $field . ' ' . $direction;
+                    return $collection;
+                },
+            );
+            $collection->method('setOrder')->willReturnCallback(
+                function (string $field, string $direction) use ($collection, $query): Collection {
+                    $this->queries[$query][] = 'order ' . $field . ' ' . $direction;
 
-                return $collection;
-            });
-            $collection->method('setPageSize')->willReturnCallback(function (int $size) use ($collection, $query): Collection {
-                $this->queries[$query][] = 'page ' . $size;
+                    return $collection;
+                },
+            );
+            $collection->method('setPageSize')->willReturnCallback(
+                function (int $size) use ($collection, $query): Collection {
+                    $this->queries[$query][] = 'page ' . $size;
 
-                return $collection;
-            });
+                    return $collection;
+                },
+            );
             $collection->method('getItems')->willReturnCallback(fn(): array => $this->items);
 
             return $collection;

@@ -17,9 +17,9 @@ readonly class PointFunction extends AbstractOptions
     public function toArray(): array
     {
         return [
-            PointFunctionEnum::Collect->value => (string)\__('Hand out parcels'),
-            PointFunctionEnum::Send->value => (string)\__('Accept parcels for sending'),
-            PointFunctionEnum::Cod->value => (string)\__('Take cash on delivery'),
+            PointFunctionEnum::Collect->value => (string)__('Hand out parcels'),
+            PointFunctionEnum::Send->value => (string)__('Accept parcels for sending'),
+            PointFunctionEnum::Cod->value => (string)__('Take cash on delivery'),
         ];
     }
 }

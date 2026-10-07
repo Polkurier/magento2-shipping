@@ -11,9 +11,9 @@ use Magento\Framework\Event\Observer;
 use Magento\Framework\Event\ObserverInterface;
 use Magento\Sales\Model\Order\Shipment;
 use Polkurier\Shipping\Api\ShipmentRepositoryInterface;
-use Polkurier\Shipping\Model\Shipment\MagentoFollowUp;
-use Polkurier\Shipping\Model\Shipment\MagentoShipment;
-use Polkurier\Shipping\Model\Shipment\NativeLabel;
+use Polkurier\Shipping\Model\Shipment\Native\NativeFollowUpService;
+use Polkurier\Shipping\Model\Shipment\Native\NativeLabelService;
+use Polkurier\Shipping\Model\Shipment\Native\NativeShipmentService;
 
 /**
  * Links the Polkurier order placed for a shipping label to the Magento shipment it was placed for,
@@ -24,19 +24,19 @@ readonly class LinkLabelledShipmentObserver implements ObserverInterface
 {
     public function __construct(
         private ShipmentRepositoryInterface $shipmentRepository,
-        private MagentoShipment $magentoShipment,
-        private MagentoFollowUp $followUp,
+        private NativeShipmentService $nativeShipmentService,
+        private NativeFollowUpService $followUp,
     ) {}
 
     public function execute(Observer $observer): void
     {
         $magentoShipment = $observer->getEvent()->getData('shipment');
-        if (!$magentoShipment instanceof Shipment || !$magentoShipment->getData(NativeLabel::LINK)) {
+        if (!$magentoShipment instanceof Shipment || !$magentoShipment->getData(NativeLabelService::FIELD_LINK)) {
             return;
         }
-        $shipment = $this->shipmentRepository->get((int)$magentoShipment->getData(NativeLabel::LINK));
-        $magentoShipment->unsetData(NativeLabel::LINK);
-        $this->magentoShipment->release((int)$magentoShipment->getId());
+        $shipment = $this->shipmentRepository->get((int)$magentoShipment->getData(NativeLabelService::FIELD_LINK));
+        $magentoShipment->unsetData(NativeLabelService::FIELD_LINK);
+        $this->nativeShipmentService->release((int)$magentoShipment->getId());
         $this->shipmentRepository->save($shipment->setShipmentId((int)$magentoShipment->getId()));
         $this->followUp->remarkLinked($shipment);
     }

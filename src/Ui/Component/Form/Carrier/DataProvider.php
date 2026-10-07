@@ -12,10 +12,10 @@ use Magento\Framework\App\RequestInterface;
 use Magento\Store\Model\StoreManagerInterface;
 use Polkurier\Shipping\Api\Data\CarrierConfigInterface;
 use Polkurier\Shipping\Api\Data\CarrierLabelInterface;
-use Polkurier\Shipping\Controller\Adminhtml\Carrier\Save;
-use Polkurier\Shipping\Model\Carrier\CarrierLogo;
-use Polkurier\Shipping\Model\Pricing\Fixed;
-use Polkurier\Shipping\Model\Pricing\Tiers;
+use Polkurier\Shipping\Enum\FormMemoryEnum;
+use Polkurier\Shipping\Model\Carrier\CarrierLogoStorage;
+use Polkurier\Shipping\Model\Carrier\Pricing\FixedPriceCalculator;
+use Polkurier\Shipping\Model\Carrier\Pricing\TieredPriceCalculator;
 use Polkurier\Shipping\Model\ResourceModel\CarrierConfig\Collection;
 use Polkurier\Shipping\Model\ResourceModel\CarrierConfig\CollectionFactory;
 use Polkurier\Shipping\Ui\Component\Form\FormDataProvider;
@@ -38,7 +38,7 @@ class DataProvider extends FormDataProvider
         CollectionFactory $collectionFactory,
         private readonly RequestInterface $request,
         private readonly StoreManagerInterface $storeManager,
-        private readonly CarrierLogo $carrierLogo,
+        private readonly CarrierLogoStorage $carrierLogoStorage,
         private readonly DataPersistorInterface $dataPersistor,
         array $meta = [],
         array $data = [],
@@ -46,45 +46,6 @@ class DataProvider extends FormDataProvider
         parent::__construct($name, $primaryFieldName, $requestFieldName, $meta, $data);
         $this->collection = $collectionFactory->create();
         $this->carriers = $this->collection;
-    }
-
-    protected function load(): array
-    {
-        $id = (int)$this->request->getParam('id');
-        $result = [];
-        foreach ($this->getEditedConfig() as $config) {
-            $info = $config->getPriceInfo();
-            $result[$id] = [
-                'id' => $id,
-                CarrierConfigInterface::CARRIER_CODE => $config->getCarrierCode(),
-                CarrierConfigInterface::CARRIER_NAME => $config->getCarrierName(),
-                CarrierConfigInterface::CUSTOM_LABEL => $config->getCustomLabel(),
-                CarrierConfigInterface::LOGO => $config->getLogo() !== null ? [[
-                    'file' => $config->getLogo(),
-                    'name' => \basename((string)$config->getLogo()),
-                    'url' => $this->carrierLogo->getUrlFor($config),
-                ]] : [],
-                CarrierConfigInterface::STORE_LABELS => \array_map(
-                    static fn(CarrierLabelInterface $label): array => [
-                        CarrierLabelInterface::STORE_ID => (string)$label->getStoreId(),
-                        CarrierLabelInterface::LABEL => $label->getLabel(),
-                    ],
-                    $config->getStoreLabels(),
-                ),
-                CarrierConfigInterface::ACTIVE => $config->isActive() ? '1' : '0',
-                CarrierConfigInterface::PRICING_MODEL => $config->getPricingModel(),
-                Fixed::PRICE => $info[Fixed::PRICE] ?? '',
-                Tiers::TIERS => \array_values((array)($info[Tiers::TIERS] ?? [])),
-            ];
-        }
-        // What was typed, when saving it failed.
-        $persisted = $this->dataPersistor->get(Save::PERSISTOR_KEY);
-        if (\is_array($persisted) && $id && (int)($persisted['id'] ?? 0) === $id) {
-            $result[$id] = \array_merge($result[$id] ?? [], $persisted, ['id' => $id]);
-        }
-        $this->dataPersistor->clear(Save::PERSISTOR_KEY);
-
-        return $result;
     }
 
     /**
@@ -99,10 +60,51 @@ class DataProvider extends FormDataProvider
         foreach ($this->storeManager->getStores() as $store) {
             $options[] = ['value' => (string)$store->getId(), 'label' => (string)$store->getName()];
         }
-        $meta['general']['children'][CarrierConfigInterface::STORE_LABELS]['children']['record']['children']
-            [CarrierLabelInterface::STORE_ID]['arguments']['data']['config']['options'] = $options;
+        $meta['general']['children'][CarrierConfigInterface::FIELD_STORE_LABELS]['children']['record']['children']
+            [CarrierLabelInterface::FIELD_STORE_ID]['arguments']['data']['config']['options'] = $options;
 
         return $meta;
+    }
+
+    protected function load(): array
+    {
+        $id = (int)$this->request->getParam('id');
+        $result = [];
+        foreach ($this->getEditedConfig() as $config) {
+            $info = $config->getPriceInfo();
+            $result[$id] = [
+                'id' => $id,
+                CarrierConfigInterface::FIELD_CARRIER_CODE => $config->getCarrierCode(),
+                CarrierConfigInterface::FIELD_CARRIER_NAME => $config->getCarrierName(),
+                CarrierConfigInterface::FIELD_CUSTOM_LABEL => $config->getCustomLabel(),
+                CarrierConfigInterface::FIELD_LOGO => $config->getLogo() !== null ? [[
+                    'file' => $config->getLogo(),
+                    'name' => \basename((string)$config->getLogo()),
+                    'url' => $this->carrierLogoStorage->getUrlFor($config),
+                ]] : [],
+                CarrierConfigInterface::FIELD_STORE_LABELS => \array_map(
+                    static fn(CarrierLabelInterface $label): array => [
+                        CarrierLabelInterface::FIELD_STORE_ID => (string)$label->getStoreId(),
+                        CarrierLabelInterface::FIELD_LABEL => $label->getLabel(),
+                    ],
+                    $config->getStoreLabels(),
+                ),
+                CarrierConfigInterface::FIELD_ACTIVE => $config->isActive() ? '1' : '0',
+                CarrierConfigInterface::FIELD_PRICING_MODEL => $config->getPricingModel(),
+                FixedPriceCalculator::FIELD_PRICE => $info[FixedPriceCalculator::FIELD_PRICE] ?? '',
+                TieredPriceCalculator::FIELD_TIERS => \array_values(
+                    (array)($info[TieredPriceCalculator::FIELD_TIERS] ?? []),
+                ),
+            ];
+        }
+        // What was typed, when saving it failed.
+        $persisted = $this->dataPersistor->get(FormMemoryEnum::Carrier->value);
+        if (\is_array($persisted) && $id && (int)($persisted['id'] ?? 0) === $id) {
+            $result[$id] = \array_merge($result[$id] ?? [], $persisted, ['id' => $id]);
+        }
+        $this->dataPersistor->clear(FormMemoryEnum::Carrier->value);
+
+        return $result;
     }
 
     /**
@@ -112,7 +114,7 @@ class DataProvider extends FormDataProvider
     {
         if (!$this->carriers->isLoaded()) {
             $this->carriers->addFieldToFilter(
-                CarrierConfigInterface::CONFIG_ID,
+                CarrierConfigInterface::FIELD_CONFIG_ID,
                 ['eq' => (int)$this->request->getParam('id')],
             );
         }

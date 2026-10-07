@@ -17,7 +17,8 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Polkurier\Shipping\Api\Data\OrderPointInterface;
 use Polkurier\Shipping\Api\Data\QuotePointInterface;
-use Polkurier\Shipping\Model\OrderPointStore;
+use Polkurier\Shipping\Api\OrderPointRepositoryInterface;
+use Polkurier\Shipping\Api\QuotePointRepositoryInterface;
 use Polkurier\Shipping\Observer\CopyPickupPointToOrderObserver;
 use Psr\Log\LoggerInterface;
 
@@ -77,7 +78,7 @@ class CopyPickupPointToOrderObserverTest extends TestCase
 
     private function observer(?string $pointMethod, bool $failing = false): CopyPickupPointToOrderObserver
     {
-        $store = $this->createStub(OrderPointStore::class);
+        $store = $this->createStub(QuotePointRepositoryInterface::class);
         $store->method('getForQuote')->willReturnCallback(function () use ($pointMethod): ?QuotePointInterface {
             if ($pointMethod === null) {
                 return null;
@@ -87,19 +88,22 @@ class CopyPickupPointToOrderObserverTest extends TestCase
 
             return $point;
         });
-        $store->method('copyToOrder')->willReturnCallback(function (QuotePointInterface $point, int $orderId) use ($failing): OrderPointInterface {
-            if ($failing) {
-                throw new \RuntimeException('Deadlock');
-            }
-            $this->copied[] = $orderId;
+        $orderPoints = $this->createStub(OrderPointRepositoryInterface::class);
+        $orderPoints->method('copyFromQuote')->willReturnCallback(
+            function (QuotePointInterface $point, int $orderId) use ($failing): OrderPointInterface {
+                if ($failing) {
+                    throw new \RuntimeException('Deadlock');
+                }
+                $this->copied[] = $orderId;
 
-            return $this->createStub(OrderPointInterface::class);
-        });
+                return $this->createStub(OrderPointInterface::class);
+            },
+        );
         $logger = $this->createStub(LoggerInterface::class);
         $logger->method('error')->willReturnCallback(function (string|\Stringable $message): void {
             $this->errors[] = (string)$message;
         });
 
-        return new CopyPickupPointToOrderObserver($store, $logger);
+        return new CopyPickupPointToOrderObserver($orderPoints, $store, $logger);
     }
 }

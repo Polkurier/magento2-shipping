@@ -19,7 +19,7 @@ readonly class PostButton implements ButtonProviderInterface
 {
     public function __construct(
         private UrlInterface $url,
-        private OnClick $onClick,
+        private OnClickScriptBuilder $onClickScriptBuilder,
         private string $label,
         private string $path,
         private string $class = 'secondary',
@@ -32,9 +32,9 @@ readonly class PostButton implements ButtonProviderInterface
     public function getButtonData(): array
     {
         return [
-            'label' => \__($this->label),
+            'label' => __($this->label),
             'class' => $this->class,
-            'on_click' => $this->onClick->post($this->url->getUrl($this->path)),
+            'on_click' => $this->onClickScriptBuilder->post($this->url->getUrl($this->path)),
             'sort_order' => $this->sortOrder,
         ];
     }

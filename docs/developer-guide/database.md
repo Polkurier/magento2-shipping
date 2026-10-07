@@ -33,7 +33,7 @@ every installation starts clean. Add one only for a change after the first relea
 Each table has its own model and resource model, except two: `polkurier_carrier_label`, whose rows
 the carrier config's resource model loads and saves along with the carrier (its collection
 attaches them after loading), and `polkurier_order_shipping_choice`, which
-`Model\ShippingChoiceStore` reads and writes directly (see
+`Model\ShippingChoice\ShippingChoiceRepository` reads and writes directly (see
 [The order's shipping](shipments.md#the-orders-shipping)). The entities exposed as service contracts also have a repository (see
 [Service contracts](service-contracts.md)).
 
@@ -44,7 +44,7 @@ attaches them after loading), and `polkurier_order_shipping_choice`, which
 - `carrier_name` is the carrier's own name, refreshed from the account; `custom_label` is the
   merchant's.
 - `logo` is the checkout logo, a path relative to the media directory
-  (`shipping/carrier_logos/…`, see `Model\Carrier\CarrierLogo`).
+  (`shipping/carrier_logos/…`, see `Model\Carrier\CarrierLogoStorage`).
 - `available` says whether the account still offers the carrier. A carrier that disappears from
   the account keeps its row, with `available = 0`, so its settings survive; the carriers grid
   and checkout leave it out.
@@ -74,7 +74,8 @@ Rows with `deleted_at` set are hidden everywhere except in the sync. See
 `polkurier_quote_point` has one row per `(quote_id, quote_address_id)`, with `quote_address_id = 0`
 in the regular checkout, which has one shipping address. `polkurier_order_point` has one row per
 order. Both keep the carrier method code, the point id, a label for display and whether the point
-accepts cash on delivery.
+accepts cash on delivery (`point_cod`: 1 or 0, null when that isn't known);
+`polkurier_order_shipping_choice` keeps the same of the customer's choice.
 
 ## Shipments
 
@@ -97,10 +98,10 @@ that couldn't be placed, which the order's next attempt reuses rather than addin
 | `insurance_amount`, `cod_amount`, `cod_status` | insurance and cash on delivery |
 | `multi_pickup`, `pickup_booked` | placed for a collective pickup, and whether it's booked |
 | `is_final`, `status_checked_at` | whether the shipment is finished, and when its status was last checked |
-| `attention_notified_at` | when the admin was told about this shipment needing attention (see `Model\Admin\AttentionNotifier`); cleared by a new attempt |
-| `draft` | the shipment as it was filled in (JSON, see `Model\Shipment\DraftHydrator`): what sending it again starts from |
+| `attention_notified_at` | when the admin was told about this shipment needing attention (see `Model\Shipment\AttentionNotifier`); cleared by a new attempt |
+| `draft` | the shipment as it was filled in (JSON, see `Model\Shipment\Draft\DraftHydrator`): what sending it again starts from |
 | `request` | the serialized request as sent, without credentials |
-| `details`, `details_synced_at` | the local copy of the order as Polkurier reports it (JSON, see `Model\Shipment\OrderDetails`), and when it was read |
+| `details`, `details_synced_at` | the local copy of the order as Polkurier reports it (JSON, see `Model\Shipment\Status\RemoteOrderApplier::fromOrder()`), and when it was read |
 | `ship_items` | the quantities the Magento shipment carries, by order item id (JSON); empty for everything left |
 | `ship_packages` | the packages of the Magento shipment, as Magento keeps them (JSON): each parcel and what it holds |
 | `target_shipment_id` | the existing Magento shipment the order goes on once placed, when the order has nothing left to ship |

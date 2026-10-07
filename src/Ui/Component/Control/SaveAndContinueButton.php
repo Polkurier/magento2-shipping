@@ -25,7 +25,7 @@ readonly class SaveAndContinueButton implements ButtonProviderInterface
     public function getButtonData(): array
     {
         return [
-            'label' => \__('Save and Continue Edit'),
+            'label' => __('Save and Continue Edit'),
             'class' => 'save',
             'data_attribute' => [
                 'mage-init' => [

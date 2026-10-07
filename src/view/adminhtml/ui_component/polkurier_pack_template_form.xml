@@ -24,8 +24,9 @@
                 <class>back</class>
                 <label translate="true">Back</label>
             </button>
-            <button name="delete" class="Polkurier\Shipping\Ui\Component\Control\DeletePackTemplateButton"/>
-            <button name="save_and_continue" class="Polkurier\Shipping\Ui\Component\Control\SaveAndContinuePackTemplate"/>
+            <button name="delete" class="Polkurier\Shipping\Ui\Component\Form\PackTemplate\DeleteButtonVirtual"/>
+            <button name="save_and_continue"
+                    class="Polkurier\Shipping\Ui\Component\Form\PackTemplate\SaveAndContinueButtonVirtual"/>
             <button name="save" class="Polkurier\Shipping\Ui\Component\Control\SaveButton"/>
         </buttons>
     </settings>
@@ -38,7 +39,8 @@
         <settings>
             <submitUrl path="*/*/save"/>
         </settings>
-        <dataProvider class="Polkurier\Shipping\Ui\Component\Form\MasterData\PackTemplateDataProvider" name="polkurier_pack_template_form_data_source">
+        <dataProvider class="Polkurier\Shipping\Ui\Component\Form\PackTemplate\DataProviderVirtual"
+                      name="polkurier_pack_template_form_data_source">
             <settings>
                 <requestFieldName>id</requestFieldName>
                 <primaryFieldName>id</primaryFieldName>
@@ -91,7 +93,11 @@
                 <label translate="true">Length (cm)</label>
                 <dataType>text</dataType>
                 <dataScope>length</dataScope>
-                <validation><rule name="validate-digits" xsi:type="boolean">true</rule><rule name="validate-greater-than-zero" xsi:type="boolean">true</rule><rule name="required-entry" xsi:type="boolean">true</rule></validation>
+                <validation>
+                    <rule name="validate-digits" xsi:type="boolean">true</rule>
+                    <rule name="validate-greater-than-zero" xsi:type="boolean">true</rule>
+                    <rule name="required-entry" xsi:type="boolean">true</rule>
+                </validation>
             </settings>
         </field>
         <field name="width" formElement="input">
@@ -99,7 +105,11 @@
                 <label translate="true">Width (cm)</label>
                 <dataType>text</dataType>
                 <dataScope>width</dataScope>
-                <validation><rule name="validate-digits" xsi:type="boolean">true</rule><rule name="validate-greater-than-zero" xsi:type="boolean">true</rule><rule name="required-entry" xsi:type="boolean">true</rule></validation>
+                <validation>
+                    <rule name="validate-digits" xsi:type="boolean">true</rule>
+                    <rule name="validate-greater-than-zero" xsi:type="boolean">true</rule>
+                    <rule name="required-entry" xsi:type="boolean">true</rule>
+                </validation>
             </settings>
         </field>
         <field name="height" formElement="input">
@@ -107,7 +117,11 @@
                 <label translate="true">Height (cm)</label>
                 <dataType>text</dataType>
                 <dataScope>height</dataScope>
-                <validation><rule name="validate-digits" xsi:type="boolean">true</rule><rule name="validate-greater-than-zero" xsi:type="boolean">true</rule><rule name="required-entry" xsi:type="boolean">true</rule></validation>
+                <validation>
+                    <rule name="validate-digits" xsi:type="boolean">true</rule>
+                    <rule name="validate-greater-than-zero" xsi:type="boolean">true</rule>
+                    <rule name="required-entry" xsi:type="boolean">true</rule>
+                </validation>
             </settings>
         </field>
         <field name="weight" formElement="input">
@@ -116,7 +130,11 @@
                 <notice translate="true">The most a parcel of this template may weigh with what's in it.</notice>
                 <dataType>text</dataType>
                 <dataScope>weight</dataScope>
-                <validation><rule name="validate-number" xsi:type="boolean">true</rule><rule name="validate-greater-than-zero" xsi:type="boolean">true</rule><rule name="required-entry" xsi:type="boolean">true</rule></validation>
+                <validation>
+                    <rule name="validate-number" xsi:type="boolean">true</rule>
+                    <rule name="validate-greater-than-zero" xsi:type="boolean">true</rule>
+                    <rule name="required-entry" xsi:type="boolean">true</rule>
+                </validation>
             </settings>
         </field>
         <field name="tare" formElement="input">
@@ -133,7 +151,10 @@
                 <label translate="true">Cash on delivery</label>
                 <dataType>text</dataType>
                 <dataScope>cod_amount</dataScope>
-                <validation><rule name="validate-number" xsi:type="boolean">true</rule><rule name="validate-zero-or-greater" xsi:type="boolean">true</rule></validation>
+                <validation>
+                    <rule name="validate-number" xsi:type="boolean">true</rule>
+                    <rule name="validate-zero-or-greater" xsi:type="boolean">true</rule>
+                </validation>
             </settings>
         </field>
         <field name="insurance_amount" formElement="input">
@@ -141,7 +162,10 @@
                 <label translate="true">Insurance</label>
                 <dataType>text</dataType>
                 <dataScope>insurance_amount</dataScope>
-                <validation><rule name="validate-number" xsi:type="boolean">true</rule><rule name="validate-zero-or-greater" xsi:type="boolean">true</rule></validation>
+                <validation>
+                    <rule name="validate-number" xsi:type="boolean">true</rule>
+                    <rule name="validate-zero-or-greater" xsi:type="boolean">true</rule>
+                </validation>
             </settings>
         </field>
         <field name="carrier_code" formElement="select">

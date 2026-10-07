@@ -12,15 +12,16 @@ use Magento\Framework\App\RequestInterface;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Model\ResourceModel\Db\Collection\AbstractCollection;
 use Magento\Framework\UrlInterface;
+use Polkurier\Shipping\Model\BankAccount\BankAccountHandler;
 use Polkurier\Shipping\Model\BankAccount\Publisher;
 use Polkurier\Shipping\Model\Sdk\AccountCache;
-use Polkurier\Shipping\Ui\Component\Form\MasterData\DataProvider as MasterDataProvider;
+use Polkurier\Shipping\Ui\Component\Form\SyncableEntityDataProvider;
 
 /**
  * The bank account form, plus what its confirmation fields need: whether the account asks for
  * the security PIN instead of a code, and where to ask for a code.
  */
-class DataProvider extends MasterDataProvider
+class DataProvider extends SyncableEntityDataProvider
 {
     /**
      * How long whether bank account changes need the PIN is trusted, in seconds.
@@ -38,14 +39,24 @@ class DataProvider extends MasterDataProvider
         AbstractCollection $collection,
         RequestInterface $request,
         DataPersistorInterface $dataPersistor,
+        BankAccountHandler $handler,
         private readonly UrlInterface $url,
         private readonly Publisher $publisher,
         private readonly AccountCache $accountCache,
-        string $persistorKey = 'polkurier_bank_account',
         array $meta = [],
         array $data = [],
     ) {
-        parent::__construct($name, $primaryFieldName, $requestFieldName, $collection, $request, $dataPersistor, $persistorKey, $meta, $data);
+        parent::__construct(
+            $name,
+            $primaryFieldName,
+            $requestFieldName,
+            $collection,
+            $request,
+            $dataPersistor,
+            $handler,
+            $meta,
+            $data,
+        );
     }
 
     protected function load(): array
@@ -66,7 +77,11 @@ class DataProvider extends MasterDataProvider
     {
         try {
             // Rarely changed, and asked for with every form opened.
-            return (bool)$this->accountCache->remember('pin_locked', self::PIN_LOCK_LIFETIME, fn(): bool => $this->publisher->isPinLocked());
+            return (bool)$this->accountCache->remember(
+                'pin_locked',
+                self::PIN_LOCK_LIFETIME,
+                fn(): bool => $this->publisher->isPinLocked(),
+            );
         } catch (LocalizedException) {
             // Unknown: offer the code, which Polkurier then refuses with its own reason if a PIN is needed.
             return false;

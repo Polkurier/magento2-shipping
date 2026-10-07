@@ -16,11 +16,14 @@
     </div>
     <div class="polkurier-muted" if="label" text="label"></div>
     <!-- Bound through $t: a colon in a translate attribute is read as binding syntax. -->
-    <div class="polkurier-text-error" if="closed" data-bind="text: $t('Closed or no longer there: choose another point.')"></div>
+    <div class="polkurier-text-error" if="closed"
+         data-bind="text: $t('Closed or no longer there: choose another point.')"></div>
     <!-- /ko -->
     <!-- ko ifnot: pointId -->
     <div data-bind="css: {'polkurier-text-error': missing, 'polkurier-muted': !missing()}">
-        <span data-bind="text: required() ? $t('This carrier delivers to pickup points only: choose one.') : $t('To the door (no pickup point)')"></span>
+        <span data-bind="text: required()
+                             ? $t('This carrier delivers to pickup points only: choose one.')
+                             : $t('To the door (no pickup point)')"></span>
     </div>
     <button type="button" class="action-secondary" if="canChoose" click="chooseOnMap">
         <span translate="'Choose on map'"></span>

@@ -31,14 +31,16 @@ enum ParcelWeightEnum: string
             return \round($contentsWeight, 3);
         }
 
-        return $this === self::Products && $weighed ? \round($contentsWeight + \max(0.0, (float)$tare), 3) : $templateWeight;
+        return $this === self::Products && $weighed
+            ? \round($contentsWeight + \max(0.0, (float)$tare), 3)
+            : $templateWeight;
     }
 
     public function label(): string
     {
         return match ($this) {
-            self::Products => (string)\__('What the products in it weigh'),
-            self::Template => (string)\__('The pack template\'s weight'),
+            self::Products => (string)__('What the products in it weigh'),
+            self::Template => (string)__('The pack template\'s weight'),
         };
     }
 }

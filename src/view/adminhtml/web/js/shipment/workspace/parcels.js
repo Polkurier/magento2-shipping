@@ -125,7 +125,11 @@ define([
                 this.packing(true);
                 request().post(this.get('urls.pack'), {
                     // Without parcels, the items decide what they go as (AutoPacker::packByItems).
-                    data: {order_id: this.get('order_id'), items: this.get('items'), shipment_type: this.packs().length ? this.get('shipment_type') : ''}
+                    data: {
+                        order_id: this.get('order_id'),
+                        items: this.get('items'),
+                        shipment_type: this.packs().length ? this.get('shipment_type') : ''
+                    }
                 }, {
                     done: function (response) {
                         if (response.error) {
@@ -211,7 +215,18 @@ define([
             return _.filter(_.values(this.get('packs') || []), function (pack) {
                 return pack && !pack.delete;
             }).map(function (pack) {
-                return _.pick(pack, 'template_id', 'pack_type', 'length', 'width', 'height', 'weight', 'amount', 'items', 'keep_as');
+                return _.pick(
+                    pack,
+                    'template_id',
+                    'pack_type',
+                    'length',
+                    'width',
+                    'height',
+                    'weight',
+                    'amount',
+                    'items',
+                    'keep_as'
+                );
             });
         },
 
@@ -483,11 +498,16 @@ define([
         weigh: function (templateWeight, rows, tare) {
             const items = rules.itemsById(this.get() || {});
 
-            return rules.parcelWeight(this.get('parcel_weight') || 'products', rules.amount(templateWeight) || null, (rows || []).map(function (row) {
-                const item = items[String(row.order_item_id)];
+            return rules.parcelWeight(
+                this.get('parcel_weight') || 'products',
+                rules.amount(templateWeight) || null,
+                (rows || []).map(function (row) {
+                    const item = items[String(row.order_item_id)];
 
-                return {weight: item ? rules.amount(item.weight) : 0, qty: rules.amount(row.qty)};
-            }), rules.amount(tare) || null);
+                    return {weight: item ? rules.amount(item.weight) : 0, qty: rules.amount(row.qty)};
+                }),
+                rules.amount(tare) || null
+            );
         },
 
         /**
@@ -567,7 +587,9 @@ define([
             });
 
             if (over) {
-                editor.error($t('The parcels would hold more of "%1" than the shipment carries.').replace('%1', over.name));
+                editor.error(
+                    $t('The parcels would hold more of "%1" than the shipment carries.').replace('%1', over.name)
+                );
 
                 return;
             }
@@ -598,6 +620,18 @@ define([
             }
             this.store(packs);
             this.editorModal.modal('closeModal');
+        },
+
+        /**
+         * Takes the parcel and template modals down with the part: they were moved to the page's body.
+         */
+        destroy: function () {
+            [this.editorModal, this.chooserModal].forEach(function (modal) {
+                if (modal) {
+                    modal.modal('destroy');
+                }
+            });
+            this._super();
         },
 
         closeChooser: function () {

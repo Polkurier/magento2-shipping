@@ -14,7 +14,7 @@ use Magento\Framework\Controller\Result\Json;
 use Magento\Framework\Controller\Result\JsonFactory;
 use Magento\Framework\Exception\LocalizedException;
 use Polkurier\Shipping\Api\CarrierConfigRepositoryInterface;
-use Polkurier\Shipping\Model\Carrier\CarrierConfigHydrator;
+use Polkurier\Shipping\Model\CarrierConfig\CarrierConfigHydrator;
 
 /**
  * Label, visibility and a fixed price edited straight in the carriers grid.

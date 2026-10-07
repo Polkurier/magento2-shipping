@@ -16,10 +16,10 @@ use Polkurier\Shipping\Controller\Adminhtml\Shipment\Discard;
 use Polkurier\Shipping\Controller\Adminhtml\Shipment\MassRefresh;
 use Polkurier\Shipping\Controller\Adminhtml\Shipment\Pickup;
 use Polkurier\Shipping\Controller\Adminhtml\Shipment\Refresh;
-use Polkurier\Shipping\Model\Shipment\DetailsLoader;
-use Polkurier\Shipping\Model\Shipment\NotPlaced;
-use Polkurier\Shipping\Model\Shipment\Pickups;
-use Polkurier\Shipping\Model\Shipment\RequestedShipments;
+use Polkurier\Shipping\Controller\Adminhtml\Shipment\RequestedShipments;
+use Polkurier\Shipping\Model\Shipment\Details\DetailsLoader;
+use Polkurier\Shipping\Model\Shipment\PickupService;
+use Polkurier\Shipping\Model\Shipment\Placement\FailedShipmentManager;
 use Polkurier\Shipping\Test\Unit\Support\AdminActionTestCase;
 
 /**
@@ -35,11 +35,22 @@ class FollowingShipmentsActionsTest extends AdminActionTestCase
 {
     public function testAPickupWindowThatIsntOneGoesBackToTheFormWithTheShipments(): void
     {
-        $this->params = ['ids' => '4,5', 'order_id' => '29', 'pickup_date' => '2026-10-07', 'pickup_time_from' => '14:00', 'pickup_time_to' => '11:00'];
-        $pickups = $this->createMock(Pickups::class);
+        $this->params = [
+            'ids' => '4,5',
+            'order_id' => '29',
+            'pickup_date' => '2026-10-07',
+            'pickup_time_from' => '14:00',
+            'pickup_time_to' => '11:00',
+        ];
+        $pickups = $this->createMock(PickupService::class);
         $pickups->expects(self::never())->method('bookCollective');
 
-        (new Pickup($this->context(), $this->requested([]), $pickups))->execute();
+        (new Pickup(
+            $this->context(),
+            $this->requested([]),
+            $pickups,
+            $this->flashMessageCollectorFactory(),
+        ))->execute();
 
         self::assertSame(['*/*/pickupForm', ['ids' => '4,5', 'order_id' => 29]], $this->redirect);
         self::assertCount(1, $this->messages['error']);
@@ -48,23 +59,38 @@ class FollowingShipmentsActionsTest extends AdminActionTestCase
     public function testAPickupBookedForSomeSaysWhichAndWhyNotTheRest(): void
     {
         $this->params = ['pickup_date' => '2026-10-07', 'pickup_time_from' => '11:00', 'pickup_time_to' => '14:00'];
-        $pickups = $this->createStub(Pickups::class);
-        $pickups->method('bookCollective')->willReturn(['booked' => ['711400-26'], 'failed' => ['711400-27' => 'Already collected']]);
+        $pickups = $this->createStub(PickupService::class);
+        $pickups->method('bookCollective')
+            ->willReturn(['booked' => ['711400-26'], 'failed' => ['711400-27' => 'Already collected']]);
 
-        (new Pickup($this->context(), $this->requested([]), $pickups))->execute();
+        (new Pickup(
+            $this->context(),
+            $this->requested([]),
+            $pickups,
+            $this->flashMessageCollectorFactory(),
+        ))->execute();
 
         // One message, at the gravest of what it says.
-        self::assertSame(['Collective pickup booked for: 711400-26. Not booked for 711400-27: Already collected'], $this->messages['warning']);
+        self::assertSame(
+            ['Collective pickup booked for: 711400-26. Not booked for 711400-27: Already collected'],
+            $this->messages['warning'],
+        );
         self::assertSame(['polkurier/shipment/index', []], $this->redirect);
     }
 
     public function testAPickupBookedForNoneIsAnError(): void
     {
         $this->params = ['pickup_date' => '2026-10-07', 'pickup_time_from' => '11:00', 'pickup_time_to' => '14:00'];
-        $pickups = $this->createStub(Pickups::class);
-        $pickups->method('bookCollective')->willReturn(['booked' => [], 'failed' => ['711400-27' => 'Already collected']]);
+        $pickups = $this->createStub(PickupService::class);
+        $pickups->method('bookCollective')
+            ->willReturn(['booked' => [], 'failed' => ['711400-27' => 'Already collected']]);
 
-        (new Pickup($this->context(), $this->requested([]), $pickups))->execute();
+        (new Pickup(
+            $this->context(),
+            $this->requested([]),
+            $pickups,
+            $this->flashMessageCollectorFactory(),
+        ))->execute();
 
         self::assertSame(['Not booked for 711400-27: Already collected'], $this->messages['error']);
         self::assertArrayNotHasKey('success', $this->messages);
@@ -75,7 +101,7 @@ class FollowingShipmentsActionsTest extends AdminActionTestCase
         $management = $this->createStub(ShipmentManagementInterface::class);
         $management->method('refreshStatus')->willReturnCallback(function (int $id): ShipmentInterface {
             if ($id === 6) {
-                throw new LocalizedException(\__('Polkurier is not answering.'));
+                throw new LocalizedException(__('Polkurier is not answering.'));
             }
 
             return $this->shipment($id, ShipmentInterface::STATE_CREATED, '711400-' . $id);
@@ -86,19 +112,34 @@ class FollowingShipmentsActionsTest extends AdminActionTestCase
             $this->shipment(6, ShipmentInterface::STATE_CREATED, '711400-6'),
         ];
 
-        (new MassRefresh($this->context(), $this->requested($selected), $management))->execute();
+        (new MassRefresh(
+            $this->context(),
+            $this->requested($selected),
+            $management,
+            $this->flashMessageCollectorFactory(),
+        ))->execute();
 
-        self::assertSame(['1 shipment(s) updated. Not updated: 711400-6: Polkurier is not answering.'], $this->messages['warning']);
+        self::assertSame(
+            ['1 shipment(s) updated. Not updated: 711400-6: Polkurier is not answering.'],
+            $this->messages['warning'],
+        );
     }
 
     public function testUpdatingOneShipmentSaysItsStatusAndReadsItsScans(): void
     {
         $management = $this->createStub(ShipmentManagementInterface::class);
-        $management->method('refreshStatus')->willReturn($this->shipment(4, ShipmentInterface::STATE_CREATED, '711400-4', 'Doręczona'));
+        $management->method('refreshStatus')
+            ->willReturn($this->shipment(4, ShipmentInterface::STATE_CREATED, '711400-4', 'Doręczona'));
         $details = $this->createMock(DetailsLoader::class);
         $details->expects(self::once())->method('refreshTracking');
 
-        (new Refresh($this->context(), $this->requested([], $this->shipment(4, ShipmentInterface::STATE_CREATED, '711400-4')), $management, $details))->execute();
+        (new Refresh(
+            $this->context(),
+            $this->requested([], $this->shipment(4, ShipmentInterface::STATE_CREATED, '711400-4')),
+            $management,
+            $details,
+            $this->flashMessageCollectorFactory(),
+        ))->execute();
 
         self::assertSame(['Polkurier order 711400-4: Doręczona.'], $this->messages['success']);
     }
@@ -106,21 +147,36 @@ class FollowingShipmentsActionsTest extends AdminActionTestCase
     public function testScansThatCantBeReadDontUndoTheStatus(): void
     {
         $management = $this->createStub(ShipmentManagementInterface::class);
-        $management->method('refreshStatus')->willReturn($this->shipment(4, ShipmentInterface::STATE_CREATED, '711400-4', 'Doręczona'));
+        $management->method('refreshStatus')
+            ->willReturn($this->shipment(4, ShipmentInterface::STATE_CREATED, '711400-4', 'Doręczona'));
         $details = $this->createStub(DetailsLoader::class);
-        $details->method('refreshTracking')->willThrowException(new LocalizedException(\__('The carrier\'s scans could not be read.')));
+        $details->method('refreshTracking')
+            ->willThrowException(new LocalizedException(__('The carrier\'s scans could not be read.')));
 
-        (new Refresh($this->context(), $this->requested([], $this->shipment(4, ShipmentInterface::STATE_CREATED, '711400-4')), $management, $details))->execute();
+        (new Refresh(
+            $this->context(),
+            $this->requested([], $this->shipment(4, ShipmentInterface::STATE_CREATED, '711400-4')),
+            $management,
+            $details,
+            $this->flashMessageCollectorFactory(),
+        ))->execute();
 
-        self::assertSame(['Polkurier order 711400-4: Doręczona. The carrier\'s scans could not be read.'], $this->messages['warning']);
+        self::assertSame(
+            ['Polkurier order 711400-4: Doręczona. The carrier\'s scans could not be read.'],
+            $this->messages['warning'],
+        );
     }
 
     public function testADiscardedShipmentGoesBackToItsOrderNotToItsGonePage(): void
     {
-        $notPlaced = $this->createMock(NotPlaced::class);
-        $notPlaced->expects(self::once())->method('discard')->with(4);
+        $failedShipmentManager = $this->createMock(FailedShipmentManager::class);
+        $failedShipmentManager->expects(self::once())->method('discard')->with(4);
 
-        (new Discard($this->context(), $this->requested([], $this->shipment(4, ShipmentInterface::STATE_FAILED, null)), $notPlaced))->execute();
+        (new Discard(
+            $this->context(),
+            $this->requested([], $this->shipment(4, ShipmentInterface::STATE_FAILED, null)),
+            $failedShipmentManager,
+        ))->execute();
 
         self::assertSame(['The shipment that wasn\'t placed was discarded.'], $this->messages['success']);
         self::assertSame(['sales/order/view', ['order_id' => 29]], $this->redirect);
@@ -128,10 +184,15 @@ class FollowingShipmentsActionsTest extends AdminActionTestCase
 
     public function testAShipmentThatCantBeDiscardedSaysWhy(): void
     {
-        $notPlaced = $this->createStub(NotPlaced::class);
-        $notPlaced->method('discard')->willThrowException(new LocalizedException(\__('Only a shipment that wasn\'t placed can be discarded.')));
+        $failedShipmentManager = $this->createStub(FailedShipmentManager::class);
+        $failedShipmentManager->method('discard')
+            ->willThrowException(new LocalizedException(__('Only a shipment that wasn\'t placed can be discarded.')));
 
-        (new Discard($this->context(), $this->requested([], $this->shipment(4, ShipmentInterface::STATE_CREATED, '711400-4')), $notPlaced))->execute();
+        (new Discard(
+            $this->context(),
+            $this->requested([], $this->shipment(4, ShipmentInterface::STATE_CREATED, '711400-4')),
+            $failedShipmentManager,
+        ))->execute();
 
         self::assertSame(['Only a shipment that wasn\'t placed can be discarded.'], $this->messages['error']);
     }

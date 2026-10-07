@@ -14,8 +14,8 @@ namespace Polkurier\Shipping\Api\Data\ShipmentDraft;
  */
 interface ItemInterface
 {
-    public const string ORDER_ITEM_ID = 'order_item_id';
-    public const string QTY = 'qty';
+    public const string FIELD_ORDER_ITEM_ID = 'order_item_id';
+    public const string FIELD_QTY = 'qty';
 
     /**
      * @return int

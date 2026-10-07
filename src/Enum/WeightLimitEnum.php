@@ -26,8 +26,8 @@ enum WeightLimitEnum: string
     public function label(): string
     {
         return match ($this) {
-            self::Warn => (string)\__('Only warn about heavier parcels'),
-            self::KeepUnder => (string)\__('Keep parcels under them where possible'),
+            self::Warn => (string)__('Only warn about heavier parcels'),
+            self::KeepUnder => (string)__('Keep parcels under them where possible'),
         };
     }
 }

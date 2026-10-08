@@ -14,7 +14,6 @@ use Polkurier\Webservice\Request\BankAccount\DeleteBankAccountMessage;
 use Polkurier\Webservice\Request\Common\TokenMessage;
 use Polkurier\Webservice\Request\MoneyBox\CreateMoneyBoxPayoutMessage;
 use Polkurier\Webservice\Request\TwoFactorToken\VerifyMessage;
-use Polkurier\Webservice\Response\Account\AccountInfoMessage;
 use Polkurier\Webservice\Response\Account\AccountVerificationMessage;
 use Psr\Http\Message\MessageInterface;
 
@@ -37,6 +36,11 @@ readonly class TokenRedactingProcessor
     public const string MASK = '***';
 
     /**
+     * The phone PIN in Polkurier's account info answer, which the SDK doesn't read.
+     */
+    private const string FIELD_PHONE_PIN = 'phone_pin';
+
+    /**
      * Wire names whose values are secrets, wherever they appear in a JSON body.
      */
     private const array SECRET_FIELDS = [
@@ -47,7 +51,7 @@ readonly class TokenRedactingProcessor
         VerifyMessage::FIELD_CODE,
         DeleteBankAccountMessage::FIELD_ACCESS_PIN,
         CreateMoneyBoxPayoutMessage::FIELD_SECURITY_PIN,
-        AccountInfoMessage::FIELD_PHONE_PIN,
+        self::FIELD_PHONE_PIN,
         PinMessage::FIELD_PIN,
         ChangePasswordMessage::FIELD_PASSWORD,
         ChangePasswordMessage::FIELD_PREVIOUS_PASSWORD,

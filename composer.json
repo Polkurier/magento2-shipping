@@ -28,7 +28,7 @@
         "magento/module-store": "^101.1.7",
         "magento/module-ui": "^101.2.7",
         "monolog/monolog": "^2.7||^3.6",
-        "polkurier/polkurier-sdk": "2.0.0-dev",
+        "polkurier/polkurier-sdk": "^2.0",
         "psr/http-message": "^1.1||^2.0",
         "psr/log": "^2||^3",
         "symfony/cache": "^6.4||^7.0",

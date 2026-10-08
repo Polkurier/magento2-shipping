@@ -58,7 +58,9 @@ define([
                         [address.company, address.person].filter(Boolean).join(', '),
                         address.street,
                         address.city,
-                        [address.phone, address.email].filter(Boolean).join(', ')
+                        [address.phone, address.email].filter(Boolean).join(', '),
+                        // Where its parcels are dropped off, for carriers that take them at points.
+                        address.point_id ? $t('Drop-off point') + ': ' + address.point_id : ''
                     ].filter(Boolean),
                     isDefault: !!address.default,
                     selected: String(option.value) === String(selected)

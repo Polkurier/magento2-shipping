@@ -108,7 +108,7 @@ readonly class DraftHydrator
                 ->setHeight((int)($row[PackInterface::FIELD_HEIGHT] ?? 0))
                 ->setWeight((float)\str_replace(',', '.', (string)($row[PackInterface::FIELD_WEIGHT] ?? 0)))
                 ->setKeepAs(self::string($row, PackInterface::FIELD_KEEP_AS))
-                // Each parcel is one: identical ones are listed one by one.
+                // Amount is always 1: identical parcels are listed one by one.
                 ->setAmount(1);
         }
         $draft->setPacks($packs);

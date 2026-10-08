@@ -16,9 +16,9 @@ use Polkurier\Shipping\Model\Shipment\PickupService;
 use Polkurier\Shipping\Model\Shipment\Placement\CreateOrderMessageMapper;
 
 /**
- * Whether the shipment being filled in can be collected with others later, as Polkurier answers
- * for its carrier, sender and parcels: "available" true or false, or null when it can't be asked
- * yet (no carrier, sender or parcels); "error" and "message" when the answer couldn't be had.
+ * Asks Polkurier whether the shipment being filled in can be collected with others later, given
+ * its carrier, sender and parcels. Answers "available" true or false, or null when it can't be
+ * asked yet (no carrier, sender or parcels); "error" and "message" when no answer could be had.
  */
 class CollectivePickup extends AbstractJsonAction
 {
@@ -28,8 +28,8 @@ class CollectivePickup extends AbstractJsonAction
         Context $context,
         JsonFactory $jsonFactory,
         private readonly PickupService $pickupService,
-        private readonly DraftHydrator $hydrator,
-        private readonly CreateOrderMessageMapper $messageMapper,
+        private readonly DraftHydrator $draftHydrator,
+        private readonly CreateOrderMessageMapper $createOrderMessageMapper,
     ) {
         parent::__construct($context, $jsonFactory);
     }
@@ -38,7 +38,7 @@ class CollectivePickup extends AbstractJsonAction
     {
         $data = (array)$this->getRequest()->getParam('data', []);
         $carrierCode = (string)($data[ShipmentDraftInterface::FIELD_CARRIER_CODE] ?? '');
-        $packs = $this->hydrator
+        $packs = $this->draftHydrator
             ->fromArray([
                 ShipmentDraftInterface::FIELD_PACKS => (array)($data[ShipmentDraftInterface::FIELD_PACKS] ?? []),
             ])
@@ -47,12 +47,13 @@ class CollectivePickup extends AbstractJsonAction
             return ['available' => null];
         }
 
-        // When it can't be had, the screen offers it all the same: Polkurier says so when placing.
+        // Without an answer, the screen offers it anyway; if it isn't available, Polkurier says so
+        // when the order is placed.
         return ['available' => $this->pickupService->isCollectiveAvailable(
             $carrierCode,
             $this->pickupService->senderPostcodeOf($data),
             (string)($data[ShipmentDraftInterface::FIELD_SHIPMENT_TYPE] ?? 'box'),
-            \array_map($this->messageMapper->mapPack(...), $packs),
+            \array_map($this->createOrderMessageMapper->mapPack(...), $packs),
         )];
     }
 }

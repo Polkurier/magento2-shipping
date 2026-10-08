@@ -143,13 +143,11 @@ class ShipmentActionsTest extends AdminActionTestCase
                 'unmeasured' => [],
                 'unweighed' => ['Mug'],
                 'unweighed_own' => [],
-                'templates' => true,
             ]);
 
         $this->pack($packer)->execute();
 
         self::assertFalse($this->json['error'] ?? true);
-        self::assertTrue($this->json['estimated']);
         self::assertSame(
             'These products have no weight, so their parcels take the pack template\'s weight: Mug.',
             $this->json['message'],
@@ -166,7 +164,6 @@ class ShipmentActionsTest extends AdminActionTestCase
                 'unmeasured' => [],
                 'unweighed' => ['Mug', 'Rug'],
                 'unweighed_own' => ['Rug'],
-                'templates' => true,
             ]);
 
         $this->pack($packer)->execute();
@@ -201,7 +198,6 @@ class ShipmentActionsTest extends AdminActionTestCase
                 'unmeasured' => [],
                 'unweighed' => [],
                 'unweighed_own' => [],
-                'templates' => true,
             ]);
 
         $this->pack($packer)->execute();
@@ -219,7 +215,6 @@ class ShipmentActionsTest extends AdminActionTestCase
                 'unmeasured' => ['Mug', 'Lamp'],
                 'unweighed' => [],
                 'unweighed_own' => [],
-                'templates' => true,
             ]);
 
         $this->pack($packer)->execute();
@@ -356,8 +351,8 @@ class ShipmentActionsTest extends AdminActionTestCase
     }
 
     /**
-     * The packer with what the order has left, or the Magento shipment carries; its packing
-     * itself is stubbed, as AutoPackerTest's.
+     * The packer with what the order has left, or the Magento shipment carries; its packing itself
+     * is stubbed, as {@see \Polkurier\Shipping\Test\Unit\Model\Shipment\Packing\AutoPackerTest}'s.
      *
      * @param array<int, float> $left what the order has left to ship
      * @param array<int, float> $inShipment what the Magento shipment of the draft carries
@@ -379,7 +374,7 @@ class ShipmentActionsTest extends AdminActionTestCase
             $this->createStub(ItemFactory::class),
             $this->createStub(ConfigProvider::class),
             $nativeShipments,
-        ])->onlyMethods(['pack', 'packByItems'])->getMock();
+        ])->onlyMethods(['pack'])->getMock();
     }
 
     private function testConnection(

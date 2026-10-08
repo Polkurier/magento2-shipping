@@ -10,7 +10,7 @@ namespace Polkurier\Shipping\Model\Sync;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Polkurier\Shipping\Api\Data\SyncableInterface;
-use Polkurier\Shipping\Enum\FormMemoryEnum;
+use Polkurier\Shipping\Enum\Adminhtml\FormMemoryEnum;
 
 /**
  * What the admin screens of addresses, bank accounts and pack templates do with an entry. The
@@ -36,13 +36,13 @@ interface EntityHandlerInterface
     public function save(SyncableInterface $entity, array $data): SyncResult;
 
     /**
-     * @param array<string, string> $confirmation what the merchant confirmed the delete with, such
-     *     as the security PIN, for kinds Polkurier deletes only with one
+     * @param string|null $pin the security PIN the merchant confirmed the delete with, for kinds
+     *     Polkurier deletes only with one
      *
      * @return SyncResult what became of it in Polkurier, for the action's one message
      * @throws LocalizedException when it wasn't deleted
      */
-    public function delete(SyncableInterface $entity, array $confirmation = []): SyncResult;
+    public function delete(SyncableInterface $entity, ?string $pin = null): SyncResult;
 
     /**
      * The full two-way synchronization of the kind.
@@ -51,11 +51,6 @@ interface EntityHandlerInterface
      * @throws LocalizedException
      */
     public function synchronize(): array;
-
-    /**
-     * The menu item of the kind's screens.
-     */
-    public function getMenuId(): string;
 
     public function getLabel(): string;
 

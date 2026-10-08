@@ -18,9 +18,7 @@ trait SyncableTrait
 {
     public function getExtId(): ?string
     {
-        $value = $this->getData(SyncableInterface::FIELD_EXT_ID);
-
-        return $value === null || $value === '' ? null : (string)$value;
+        return $this->nullableString(SyncableInterface::FIELD_EXT_ID);
     }
 
     public function setExtId(?string $extId): static
@@ -40,9 +38,7 @@ trait SyncableTrait
 
     public function getSyncError(): ?string
     {
-        $value = $this->getData(SyncableInterface::FIELD_SYNC_ERROR);
-
-        return $value === null || $value === '' ? null : (string)$value;
+        return $this->nullableString(SyncableInterface::FIELD_SYNC_ERROR);
     }
 
     public function setSyncError(?string $syncError): static
@@ -52,9 +48,7 @@ trait SyncableTrait
 
     public function getRemoteHash(): ?string
     {
-        $value = $this->getData(SyncableInterface::FIELD_REMOTE_HASH);
-
-        return $value === null || $value === '' ? null : (string)$value;
+        return $this->nullableString(SyncableInterface::FIELD_REMOTE_HASH);
     }
 
     public function setRemoteHash(?string $remoteHash): static
@@ -64,9 +58,7 @@ trait SyncableTrait
 
     public function getRemoteUpdatedAt(): ?string
     {
-        $value = $this->getData(SyncableInterface::FIELD_REMOTE_UPDATED_AT);
-
-        return $value === null || $value === '' ? null : (string)$value;
+        return $this->nullableString(SyncableInterface::FIELD_REMOTE_UPDATED_AT);
     }
 
     public function setRemoteUpdatedAt(?string $remoteUpdatedAt): static
@@ -76,9 +68,7 @@ trait SyncableTrait
 
     public function getSyncedAt(): ?string
     {
-        $value = $this->getData(SyncableInterface::FIELD_SYNCED_AT);
-
-        return $value === null || $value === '' ? null : (string)$value;
+        return $this->nullableString(SyncableInterface::FIELD_SYNCED_AT);
     }
 
     public function setSyncedAt(?string $syncedAt): static
@@ -88,9 +78,7 @@ trait SyncableTrait
 
     public function getDeletedAt(): ?string
     {
-        $value = $this->getData(SyncableInterface::FIELD_DELETED_AT);
-
-        return $value === null || $value === '' ? null : (string)$value;
+        return $this->nullableString(SyncableInterface::FIELD_DELETED_AT);
     }
 
     public function setDeletedAt(?string $deletedAt): static
@@ -100,9 +88,7 @@ trait SyncableTrait
 
     public function getCreatedAt(): ?string
     {
-        $value = $this->getData(SyncableInterface::FIELD_CREATED_AT);
-
-        return $value === null || $value === '' ? null : (string)$value;
+        return $this->nullableString(SyncableInterface::FIELD_CREATED_AT);
     }
 
     public function setCreatedAt(?string $createdAt): static
@@ -112,13 +98,18 @@ trait SyncableTrait
 
     public function getUpdatedAt(): ?string
     {
-        $value = $this->getData(SyncableInterface::FIELD_UPDATED_AT);
-
-        return $value === null || $value === '' ? null : (string)$value;
+        return $this->nullableString(SyncableInterface::FIELD_UPDATED_AT);
     }
 
     public function setUpdatedAt(?string $updatedAt): static
     {
         return $this->setData(SyncableInterface::FIELD_UPDATED_AT, $updatedAt);
+    }
+
+    private function nullableString(string $field): ?string
+    {
+        $value = $this->getData($field);
+
+        return $value === null || $value === '' ? null : (string)$value;
     }
 }

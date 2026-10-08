@@ -17,6 +17,7 @@ use Magento\Sales\Model\Order\Shipment\TrackFactory;
 use Polkurier\Shipping\Api\Data\AddressInterface;
 use Polkurier\Shipping\Api\Data\ShipmentDraftInterface;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
+use Polkurier\Shipping\Logger\Logger;
 use Polkurier\Shipping\Model\Carrier\Polkurier;
 use Polkurier\Shipping\Model\Config\ConfigProvider;
 use Polkurier\Shipping\Model\Shipment\DocumentService;
@@ -24,7 +25,6 @@ use Polkurier\Shipping\Model\Shipment\Draft\DefaultDraftBuilder;
 use Polkurier\Shipping\Model\Shipment\Draft\DraftHydrator;
 use Polkurier\Shipping\Model\Shipment\Placement\PlacementService;
 use Polkurier\Shipping\Model\Shipment\ShipmentFinder;
-use Psr\Log\LoggerInterface;
 
 /**
  * Shipping labels from Magento's own shipment page.
@@ -37,8 +37,9 @@ use Psr\Log\LoggerInterface;
  * The Polkurier order is linked to the Magento shipment once Magento has saved it.
  *
  * Magento's shipment pages ask the carrier without saying which order they're for, and post the
- * options with the request; Plugin\Adminhtml\NativeLabelPagePlugin answers for the order, and
- * puts the options on the Magento shipment (FIELD_OPTIONS) before the label is asked for.
+ * options with the request; {@see \Polkurier\Shipping\Plugin\Adminhtml\NativeLabelPagePlugin}
+ * answers for the order, and puts the options on the Magento shipment (FIELD_OPTIONS) before the
+ * label is asked for.
  */
 class NativeLabelService implements ResetAfterRequestInterface
 {
@@ -53,8 +54,9 @@ class NativeLabelService implements ResetAfterRequestInterface
     public const string FIELD_NO_LABEL = 'polkurier_no_label';
 
     /**
-     * Data key on the Magento shipment: the carrier its Polkurier order went with, which titles the
-     * tracks Magento adds for the label (Observer\PrepareLabelledShipmentObserver).
+     * Data key on the Magento shipment: the carrier of its Polkurier order, used as the title of
+     * the tracks Magento adds for the label
+     * ({@see \Polkurier\Shipping\Observer\Adminhtml\PrepareLabelledShipmentObserver}).
      */
     public const string FIELD_CARRIER = 'polkurier_carrier_code';
 
@@ -114,20 +116,21 @@ class NativeLabelService implements ResetAfterRequestInterface
         private readonly ConfigProvider $configProvider,
         private readonly NativeLabelPackageMapper $nativeLabelPackageMapper,
         private readonly PlacementService $placementService,
-        private readonly DefaultDraftBuilder $draftBuilder,
-        private readonly DraftHydrator $hydrator,
-        private readonly ShipmentFinder $finder,
+        private readonly DefaultDraftBuilder $defaultDraftBuilder,
+        private readonly DraftHydrator $draftHydrator,
+        private readonly ShipmentFinder $shipmentFinder,
         private readonly DocumentService $documentService,
         private readonly NativeShipmentService $nativeShipmentService,
         private readonly TrackFactory $trackFactory,
-        private readonly LoggerInterface $logger,
+        private readonly Logger $logger,
         private readonly DataObjectFactory $dataObjectFactory,
     ) {}
 
     /**
-     * Whether labels are on for the store. Asked without one, as Magento's shipment pages and its
-     * label generator ask the carrier, it's yes: the order is known only there, where
-     * NativeLabelPagePlugin answers for it, and request() checks it again.
+     * Whether labels are on for the store. Without a store, as Magento's shipment pages and label
+     * generator ask the carrier, the answer is yes: the order is known only in
+     * {@see \Polkurier\Shipping\Plugin\Adminhtml\NativeLabelPagePlugin}, which answers for it, and
+     * request() checks again.
      */
     public function isAvailable(?int $storeId): bool
     {
@@ -152,13 +155,16 @@ class NativeLabelService implements ResetAfterRequestInterface
             ));
         }
 
-        $shipment = $magentoShipment->getId() ? $this->findLinked((int)$magentoShipment->getId()) : null;
+        $magentoShipmentId = $magentoShipment->getId() ? (int)$magentoShipment->getId() : null;
+        $shipment = $magentoShipmentId !== null
+            ? $this->shipmentFinder->latestLinkedTo($magentoShipmentId, [ShipmentInterface::STATE_CREATED])
+            : null;
         if ($shipment === null) {
             $draft = $this->buildDraft($magentoShipment, $order, (array)$request->getData('packages'));
             $shipment = $this->placementService->forNativeShipment(
                 (int)$order->getEntityId(),
                 $draft,
-                $magentoShipment->getId() ? (int)$magentoShipment->getId() : null,
+                $magentoShipmentId,
             );
             $magentoShipment->setData(self::FIELD_LINK, (int)$shipment->getId());
         }
@@ -171,8 +177,8 @@ class NativeLabelService implements ResetAfterRequestInterface
     }
 
     /**
-     * The Polkurier order of the shipment just labelled, when its label wasn't ready to go with
-     * it; asked once, by what tells the admin about the shipment.
+     * The Polkurier order of the shipment just labelled, when its label wasn't ready in time. Read
+     * once, by the code that tells the admin about the shipment.
      */
     public function takeUnreadyLabel(): ?string
     {
@@ -200,11 +206,13 @@ class NativeLabelService implements ResetAfterRequestInterface
             $qtys[(int)$item->getOrderItemId()] = (float)$item->getQty();
         }
         $data = \array_replace(
-            $this->hydrator->toArray($this->draftBuilder->createFromOrder($order, $qtys)),
+            $this->draftHydrator->toArray($this->defaultDraftBuilder->createFromOrder($order, $qtys)),
             $this->options($magentoShipment),
         );
-        $draft = $this->hydrator->fromArray($data);
-        $packs = $this->nativeLabelPackageMapper->toPacks($packages, $qtys);
+        $draft = $this->draftHydrator->fromArray($data);
+        $packs = $this->nativeLabelPackageMapper->toPacks($packages);
+        // Magento's packaging window ships no item twice; this checks what's posted.
+        $this->nativeShipmentService->assertPacked($order, $packs, $qtys);
         if ($packs !== []) {
             $draft->setPacks($packs);
         }
@@ -242,7 +250,8 @@ class NativeLabelService implements ResetAfterRequestInterface
             $magentoShipment->addTrack($track);
         }
         $magentoShipment->setData(self::FIELD_NO_LABEL, true);
-        // Told in Magento's own message about the shipment (Plugin\Adminhtml\ShipmentSavePlugin).
+        // Reported in Magento's own message about the shipment
+        // ({@see \Polkurier\Shipping\Plugin\Adminhtml\ShipmentSavePlugin}).
         $this->unreadyLabel = (string)$shipment->getPolkurierNumber();
 
         return $this->dataObjectFactory->create(['data' => ['info' => []]]);
@@ -262,11 +271,6 @@ class NativeLabelService implements ResetAfterRequestInterface
         }
 
         return \str_contains($content, '%PDF-') ? $content : null;
-    }
-
-    private function findLinked(int $magentoShipmentId): ?ShipmentInterface
-    {
-        return $this->finder->latestLinkedTo($magentoShipmentId, [ShipmentInterface::STATE_CREATED]);
     }
 
     /**

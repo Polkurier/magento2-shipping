@@ -14,6 +14,8 @@ use Polkurier\Shipping\Model\Shipment as Model;
 
 /**
  * The Polkurier shipments.
+ *
+ * @method Model[] getItems()
  */
 class Collection extends AbstractCollection
 {
@@ -21,17 +23,6 @@ class Collection extends AbstractCollection
      * @var string
      */
     protected $_idFieldName = ShipmentInterface::FIELD_ENTITY_ID;
-
-    /**
-     * @return Model[]
-     */
-    public function getItems(): array
-    {
-        /** @var Model[] $items */
-        $items = parent::getItems();
-
-        return $items;
-    }
 
     protected function _construct(): void
     {

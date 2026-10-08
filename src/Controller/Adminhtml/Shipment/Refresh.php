@@ -12,7 +12,6 @@ use Magento\Framework\App\Action\HttpPostActionInterface;
 use Magento\Framework\Controller\Result\Redirect;
 use Magento\Framework\Exception\LocalizedException;
 use Polkurier\Shipping\Api\ShipmentManagementInterface;
-use Polkurier\Shipping\Model\Admin\FlashMessageCollector;
 use Polkurier\Shipping\Model\Admin\FlashMessageCollectorFactory;
 use Polkurier\Shipping\Model\Shipment\Details\DetailsLoader;
 
@@ -27,7 +26,7 @@ class Refresh extends AbstractShipmentAction implements HttpPostActionInterface
     public function __construct(
         Context $context,
         RequestedShipments $requestedShipments,
-        private readonly ShipmentManagementInterface $management,
+        private readonly ShipmentManagementInterface $shipmentManagement,
         private readonly DetailsLoader $detailsLoader,
         private readonly FlashMessageCollectorFactory $flashMessageCollectorFactory,
     ) {
@@ -39,7 +38,7 @@ class Refresh extends AbstractShipmentAction implements HttpPostActionInterface
         $shipment = $this->getShipment();
         if ($shipment !== null) {
             try {
-                $shipment = $this->management->refreshStatus((int)$shipment->getId());
+                $shipment = $this->shipmentManagement->refreshStatus((int)$shipment->getId());
             } catch (LocalizedException $e) {
                 $this->messageManager->addErrorMessage($e->getMessage());
 

@@ -13,17 +13,18 @@ use Magento\Framework\Stdlib\DateTime as DateFormat;
 use Polkurier\Shipping\Api\Data\SyncableInterface;
 
 /**
- * What every entity handler does alike: copy a form onto an entry, with a name of its own. The
- * handlers change entries under SyncLock, so that no synchronization saves its older copy over it.
+ * What every entity handler does the same way: copy a form onto an entry, whose name must be
+ * unique. The handlers change entries under {@see \Polkurier\Shipping\Model\Sync\SyncLock}, so that
+ * no synchronization saves its older copy over them.
  *
- * Expects $this->dateTime (Magento\Framework\Stdlib\DateTime\DateTime).
+ * Expects $this->dateTime ({@see \Magento\Framework\Stdlib\DateTime\DateTime}).
  */
 trait EditsSyncableEntriesTrait
 {
     /**
-     * Copies the form's fields onto the entity, leaving the synchronization's own fields alone,
-     * and marks it as changed in Magento. Its name, which tells it apart in the lists and
-     * choices, must be its own.
+     * Copies the form's fields onto the entity, leaving the synchronization's own fields alone, and
+     * marks it as changed in Magento. Its name, which tells it apart in lists and choices, must be
+     * unique.
      *
      * @param array<string, mixed> $data
      *

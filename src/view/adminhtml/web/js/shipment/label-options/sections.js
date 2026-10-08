@@ -102,7 +102,7 @@ define(['mage/translate', 'Polkurier_Shipping/js/shipment/workspace/rules'], fun
         }
 
         /**
-         * The bank account only for cash on delivery paid out to one.
+         * The bank account applies only to cash on delivery paid out to a bank account.
          *
          * @param {jQuery} form the group's fields, as edited
          * @returns {Boolean}
@@ -311,7 +311,7 @@ define(['mage/translate', 'Polkurier_Shipping/js/shipment/workspace/rules'], fun
                             : ''
                     ].filter(Boolean).join(' · ');
                 },
-                // Asked for again after the cash on delivery changes: insurance may have to follow.
+                // Normalized again after the cash on delivery changes: insurance may have to follow.
                 normalizes: true,
                 fields: [
                     {name: 'cod_amount', label: $t('Amount to collect'), type: 'number', note: state.codNote},
@@ -388,7 +388,8 @@ define(['mage/translate', 'Polkurier_Shipping/js/shipment/workspace/rules'], fun
                         name: 'services',
                         label: $t('Additional services'),
                         type: 'checkboxes',
-                        // Whichever carrier offers it: one the chosen carrier doesn't is a problem.
+                        // Offered when any carrier offers it; one the chosen carrier doesn't offer
+                        // is a problem.
                         filter: function (value) {
                             return state.anyCarrierOffers(value);
                         }

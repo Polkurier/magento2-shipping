@@ -8,7 +8,7 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Model\Admin;
 
 /**
- * What the admin forms' buttons post along with the form, as the save actions read it.
+ * Parameters the admin forms' buttons post along with the form, which the save actions read.
  */
 final class FormActions
 {

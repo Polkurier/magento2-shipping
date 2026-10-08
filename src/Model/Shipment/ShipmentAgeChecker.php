@@ -7,7 +7,6 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Model\Shipment;
 
-use Magento\Framework\Stdlib\DateTime as DateFormat;
 use Magento\Framework\Stdlib\DateTime\DateTime;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 
@@ -43,14 +42,6 @@ readonly class ShipmentAgeChecker
     public function __construct(
         private DateTime $dateTime,
     ) {}
-
-    /**
-     * Now, as a shipment's times are recorded: UTC.
-     */
-    public function now(): string
-    {
-        return $this->dateTime->gmtDate(DateFormat::DATETIME_PHP_FORMAT);
-    }
 
     /**
      * Whether the shipment was recorded more than the given minutes ago; one without a time isn't.

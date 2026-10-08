@@ -13,9 +13,10 @@ use Polkurier\Shipping\Model\Shipment\Placement\FailedShipmentManager;
 use Polkurier\Shipping\Model\Shipment\Status\ReconciliationService;
 
 /**
- * Settles the shipments still undecided: those placed without an answer are looked for in
- * Polkurier, those not placed two days ago are removed (FailedShipmentManager), so none stays unsettled, and
- * the admin is notified of what needs someone (AttentionNotifier).
+ * Settles the shipments still undecided, so that none stays unsettled. Those placed without an
+ * answer are looked for in Polkurier; those not placed whose last attempt is two days old are
+ * removed ({@see FailedShipmentManager}). The admin is then notified of shipments that need
+ * attention ({@see AttentionNotifier}).
  */
 readonly class ReconcileShipmentsTask
 {
@@ -28,15 +29,15 @@ readonly class ReconcileShipmentsTask
 
     public function execute(): void
     {
-        // These two ask nothing of Polkurier.
+        // These two don't call Polkurier.
         $this->failedShipmentManager->expire();
         try {
-            // As every job asking Polkurier: not before the account is configured.
+            // Like every job that calls Polkurier: only once the account is configured.
             if ($this->configProvider->hasCredentials()) {
                 $this->reconciliationService->reconcilePending();
             }
         } finally {
-            // What the checks left for someone, after they had their go.
+            // Then report what the checks left for someone to handle.
             $this->attentionNotifier->notify();
         }
     }

@@ -8,8 +8,8 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Api\Data;
 
 /**
- * The shipping the customer chose, kept when the order's shipping was changed to the carrier and
- * pickup point its Polkurier order went with. The order then shows what was actually sent.
+ * The shipping the customer chose. It's kept aside when the order's shipping is changed to the
+ * carrier and pickup point of its Polkurier order, so that the order shows what was actually sent.
  *
  * @api
  */
@@ -57,8 +57,8 @@ interface ShippingChoiceInterface
     public function getPointLabel(): ?string;
 
     /**
-     * Whether the point accepts cash on delivery; null when that isn't known, as when Polkurier
-     * couldn't be asked: then it's taken to.
+     * Whether the point accepts cash on delivery. Null when that isn't known, e.g. when Polkurier
+     * couldn't be asked; the point is then assumed to accept it.
      *
      * @return bool|null
      */

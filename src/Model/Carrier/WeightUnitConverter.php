@@ -14,8 +14,8 @@ use Magento\Shipping\Helper\Carrier as CarrierHelper;
 use Magento\Store\Model\ScopeInterface;
 
 /**
- * Weights in the store's unit, kilograms or pounds, in kilograms, as Polkurier takes them; the
- * conversion is Magento's own, as its carriers use.
+ * Converts weights from the store's unit, kilograms or pounds, to kilograms, as Polkurier takes
+ * them. The conversion is Magento's own, the one its carriers use.
  */
 readonly class WeightUnitConverter
 {

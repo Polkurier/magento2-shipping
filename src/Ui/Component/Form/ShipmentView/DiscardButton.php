@@ -11,7 +11,7 @@ use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Ui\Component\ShipmentConfirmationProvider;
 
 /**
- * For a shipment that wasn't placed: discarded, rather than sent again.
+ * Discards a shipment that wasn't placed, rather than sending it again.
  */
 class DiscardButton extends AbstractButton
 {

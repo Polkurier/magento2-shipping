@@ -17,7 +17,8 @@ use Polkurier\Webservice\Http\Request\AuthorizationMessageFactory;
 
 /**
  * SDK configuration for the Polkurier account, read from Magento's configuration when it is asked
- * for. The SDK's services read it once, in their constructors; {@see PolkurierClient} builds them.
+ * for. The SDK's services read it once, in their constructors;
+ * {@see \Polkurier\Shipping\Model\Sdk\PolkurierClient} builds them.
  */
 readonly class AccountConfigProvider implements ConfigProviderInterface
 {

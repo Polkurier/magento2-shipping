@@ -12,7 +12,6 @@ use Magento\Framework\App\Action\HttpPostActionInterface;
 use Magento\Framework\App\ActionInterface;
 use Magento\Framework\Controller\Result\Redirect;
 use Magento\Framework\Exception\LocalizedException;
-use Polkurier\Shipping\Model\Admin\FlashMessageCollector;
 use Polkurier\Shipping\Model\Admin\FlashMessageCollectorFactory;
 use Polkurier\Shipping\Model\Shipment\PickupService;
 

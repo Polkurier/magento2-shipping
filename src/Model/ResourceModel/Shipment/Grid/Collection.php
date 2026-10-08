@@ -37,8 +37,8 @@ class Collection extends SearchResult
     }
 
     /**
-     * A grid sorts by its default column, unless the admin's saved state for it names none, e.g.
-     * one saved before the default was set: then by the newest still, not in the table's order.
+     * A grid sorts by its default column. When the admin's saved state names no sort column, the
+     * grid sorts newest first, not in the table's order.
      */
     protected function _beforeLoad(): static
     {

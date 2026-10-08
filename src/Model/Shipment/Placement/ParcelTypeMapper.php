@@ -48,7 +48,7 @@ final readonly class ParcelTypeMapper
     ];
 
     /**
-     * @return string the parcel type for the shipment type and the parcel type Polkurier has
+     * @return string the parcel type for the shipment type and parcel type Polkurier reports
      */
     public static function fromPolkurier(
         ShipmentTypeEnum|string|null $shipmentType,
@@ -73,7 +73,7 @@ final readonly class ParcelTypeMapper
     }
 
     /**
-     * @return string a parcel type there is, standard for anything else
+     * @return string a known parcel type; standard for anything else
      */
     public static function normalize(?string $packType): string
     {

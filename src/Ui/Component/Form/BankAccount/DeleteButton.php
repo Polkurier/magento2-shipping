@@ -13,9 +13,9 @@ use Magento\Framework\UrlInterface;
 use Magento\Framework\View\Element\UiComponent\Control\ButtonProviderInterface;
 
 /**
- * Deletes the bank account being edited, in Polkurier and Magento, with the security PIN asked
- * for where the account locks bank accounts with one: the only place such an account can be
- * deleted from.
+ * Deletes the bank account being edited, in Polkurier and Magento. Where the account locks bank
+ * accounts with the security PIN, it asks for the PIN; this is the only place such a bank account
+ * can be deleted from.
  */
 readonly class DeleteButton implements ButtonProviderInterface
 {
@@ -40,7 +40,7 @@ readonly class DeleteButton implements ButtonProviderInterface
             return [];
         }
         $message = $this->json->serialize((string)__('Delete this bank account in Polkurier and in Magento?'));
-        $url = $this->json->serialize($this->url->getUrl('polkurier/bankaccount/save'));
+        $url = $this->json->serialize($this->url->getUrl('polkurier/bankaccount/delete'));
 
         return [
             'label' => __('Delete'),

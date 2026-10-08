@@ -3,10 +3,12 @@
  * All Rights Reserved
  */
 /**
- * Magento's orders list opened with /carrier/<code>/ in its address, as the Polkurier menu opens
- * it, starts filtered to that carrier's orders: the filter shows, and is cleared, as any other.
- * Magento's own URL filter applier, which waits for the list's saved state, given the filter by
- * the address's path rather than its query, which a menu item can't carry.
+ * When Magento's orders list is opened with /carrier/<code>/ in its URL, as the Polkurier menu
+ * opens it, it starts filtered to that carrier's orders. The filter shows, and is cleared, like any
+ * other.
+ *
+ * This is Magento's own URL filter applier, which waits for the list's saved state. It only reads
+ * the filter from the URL's path rather than its query, since a menu item can't carry a query.
  */
 define(['Magento_Ui/js/grid/url-filter-applier'], function (UrlFilterApplier) {
     'use strict';

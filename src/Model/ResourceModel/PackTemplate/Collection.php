@@ -13,6 +13,8 @@ use Polkurier\Shipping\Model\ResourceModel\PackTemplate as ResourceModel;
 
 /**
  * The pack templates.
+ *
+ * @method Model[] getItems()
  */
 class Collection extends AbstractCollection
 {
@@ -20,17 +22,6 @@ class Collection extends AbstractCollection
      * @var string
      */
     protected $_idFieldName = 'template_id';
-
-    /**
-     * @return Model[]
-     */
-    public function getItems(): array
-    {
-        /** @var Model[] $items */
-        $items = parent::getItems();
-
-        return $items;
-    }
 
     protected function _construct(): void
     {

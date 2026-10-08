@@ -19,11 +19,11 @@ use Polkurier\Shipping\Model\Shipment\OrderLoader;
 use Polkurier\Shipping\Model\Shipment\ShipmentFinder;
 
 /**
- * A shipment that wasn't placed, because Polkurier or the connection failed, waits for the
- * merchant only so long: it's placed ("Send again", or the order's next attempt) or discarded. A
- * day after its last attempt the admin is told about it (Model\Admin\AttentionMessage), and a day
- * later still it's removed. None stays "Not placed" for good. Each removal is noted in the order's
- * history.
+ * A shipment that wasn't placed because Polkurier or the connection failed waits for the merchant
+ * only so long, to be placed ("Send again", or the order's next attempt) or discarded. A day after
+ * its last attempt the admin is told about it
+ * ({@see \Polkurier\Shipping\Model\Shipment\AttentionNotifier}), and a day after that it's removed.
+ * None stays "Not placed" for good. Each removal is noted in the order's history.
  */
 readonly class FailedShipmentManager
 {
@@ -39,12 +39,12 @@ readonly class FailedShipmentManager
 
     public function __construct(
         private ShipmentRepositoryInterface $shipmentRepository,
-        private ShipmentFinder $finder,
-        private NativeFollowUpService $followUp,
+        private ShipmentFinder $shipmentFinder,
+        private NativeFollowUpService $nativeFollowUpService,
         private OrderLoader $orderLoader,
         private CarrierNameProvider $carrierNameProvider,
         private DateTime $dateTime,
-        private Formatter $format,
+        private Formatter $formatter,
     ) {}
 
     /**
@@ -56,22 +56,15 @@ readonly class FailedShipmentManager
     public function describe(ShipmentInterface $shipment): array
     {
         return [
-            'tried' => $this->format->storedTime($shipment->getCreatedAt()),
+            'tried' => $this->formatter->storedTime($shipment->getCreatedAt()),
             'reason' => \rtrim((string)$shipment->getLastError(), '. '),
-            'removed' => $this->format->storedTime($this->expiresAt($shipment)),
+            'removed' => $this->formatter->storedTime($this->expiresAfter((string)$shipment->getCreatedAt())),
         ];
     }
 
     /**
-     * When it's removed unless placed or discarded first, UTC.
-     */
-    public function expiresAt(ShipmentInterface $shipment): string
-    {
-        return $this->expiresAfter((string)$shipment->getCreatedAt());
-    }
-
-    /**
-     * The same, from when it was last tried, UTC.
+     * When a shipment that wasn't placed is removed, unless placed or discarded first, counted from
+     * its last attempt; UTC.
      */
     public function expiresAfter(string $lastTried): string
     {
@@ -109,7 +102,7 @@ readonly class FailedShipmentManager
             $this->dateTime->gmtTimestamp() - self::LIFETIME_HOURS * 3600,
         );
         $removed = 0;
-        foreach ($this->finder->failedBefore($before) as $shipment) {
+        foreach ($this->shipmentFinder->failedBefore($before) as $shipment) {
             $this->remove($shipment, __(
                 'The %1 shipment that wasn\'t placed was removed, %2 hours after it was last tried. '
                 . 'Why it wasn\'t placed: %3',
@@ -127,7 +120,7 @@ readonly class FailedShipmentManager
     {
         $this->shipmentRepository->delete($shipment);
         try {
-            $this->followUp->comment($this->orderLoader->get($shipment->getOrderId()), $comment);
+            $this->nativeFollowUpService->comment($this->orderLoader->get($shipment->getOrderId()), $comment);
         } catch (LocalizedException) {
             // The order is gone: nothing to note it on.
         }

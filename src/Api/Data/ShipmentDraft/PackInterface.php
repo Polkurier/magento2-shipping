@@ -24,8 +24,8 @@ interface PackInterface
     public const string FIELD_ITEMS = 'items';
 
     /**
-     * The name to save a parcel without a template under as a pack template once the shipment is
-     * placed; empty to save nothing.
+     * For a parcel without a template: the name to save it under as a pack template once the
+     * shipment is placed. Empty to save nothing.
      */
     public const string FIELD_KEEP_AS = 'keep_as';
 
@@ -114,7 +114,7 @@ interface PackInterface
     public function setAmount(int $amount): static;
 
     /**
-     * The order's items in one parcel of these; empty when not said.
+     * The order items in each one of these parcels; empty when not specified.
      *
      * @return \Polkurier\Shipping\Api\Data\ShipmentDraft\ItemInterface[]
      */

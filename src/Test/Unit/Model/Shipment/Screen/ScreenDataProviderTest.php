@@ -7,6 +7,7 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Test\Unit\Model\Shipment\Screen;
 
+use Magento\Backend\Model\UrlInterface;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
@@ -14,7 +15,6 @@ use Polkurier\Shipping\Api\AddressRepositoryInterface;
 use Polkurier\Shipping\Api\Data\OrderPointInterface;
 use Polkurier\Shipping\Api\OrderPointRepositoryInterface;
 use Polkurier\Shipping\Api\PackTemplateRepositoryInterface;
-use Polkurier\Shipping\Api\ShipmentManagementInterface;
 use Polkurier\Shipping\Model\Carrier\CarrierCatalog;
 use Polkurier\Shipping\Model\Carrier\CarrierFeatureResolver;
 use Polkurier\Shipping\Model\Config\ConfigProvider;
@@ -112,7 +112,6 @@ class ScreenDataProviderTest extends TestCase
         $points->method('getForOrder')->willReturn($chosen);
 
         return new ScreenDataProvider(
-            $this->createStub(ShipmentManagementInterface::class),
             $this->createStub(DraftHydrator::class),
             $this->createStub(PackTemplateRepositoryInterface::class),
             $this->createStub(AddressRepositoryInterface::class),
@@ -124,6 +123,7 @@ class ScreenDataProviderTest extends TestCase
             new CarrierFeatureResolver(),
             $this->createStub(DefaultDraftBuilder::class),
             $points,
+            $this->createStub(UrlInterface::class),
         );
     }
 }

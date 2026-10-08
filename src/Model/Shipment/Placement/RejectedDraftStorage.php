@@ -8,7 +8,7 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Model\Shipment\Placement;
 
 use Magento\Framework\App\Request\DataPersistorInterface;
-use Polkurier\Shipping\Enum\FormMemoryEnum;
+use Polkurier\Shipping\Enum\Adminhtml\FormMemoryEnum;
 
 /**
  * The shipment form as it was sent when placing it failed, kept in the admin session so the form
@@ -29,7 +29,7 @@ readonly class RejectedDraftStorage
     }
 
     /**
-     * The form kept for the order, once: it's forgotten as it's handed out.
+     * The form kept for the order. It's handed out only once, then forgotten.
      *
      * @return array<string, mixed>|null
      */

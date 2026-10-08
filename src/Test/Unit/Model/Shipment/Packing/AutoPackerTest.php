@@ -13,9 +13,10 @@ use PHPUnit\Framework\TestCase;
 use Polkurier\Shipping\Api\Data\PackTemplateInterface;
 use Polkurier\Shipping\Api\Data\ShipmentDraft\ItemInterface;
 use Polkurier\Shipping\Api\PackTemplateRepositoryInterface;
-use Polkurier\Shipping\Enum\ParcelWeightEnum;
-use Polkurier\Shipping\Enum\WeightLimitEnum;
+use Polkurier\Shipping\Enum\Config\ParcelWeightEnum;
+use Polkurier\Shipping\Enum\Config\WeightLimitEnum;
 use Polkurier\Shipping\Model\Config\ConfigProvider;
+use Polkurier\Shipping\Model\Shipment\Draft;
 use Polkurier\Shipping\Model\Shipment\Draft\Item;
 use Polkurier\Shipping\Model\Shipment\Draft\ItemFactory;
 use Polkurier\Shipping\Model\Shipment\Draft\Pack;
@@ -84,6 +85,11 @@ class AutoPackerTest extends TestCase
      * @var array<int, float> weights of one unit that differ from the items', by order item id
      */
     private array $weights = [];
+
+    /**
+     * @var array<int, float> what the order has left to ship, for a draft packed without items
+     */
+    private array $left = [];
 
     public function testTheMarginMakesEveryItemABitBigger(): void
     {
@@ -186,14 +192,16 @@ class AutoPackerTest extends TestCase
             $this->template(3, 'Envelope', 30, 20, 2, 0.1, 'envelope'),
         ];
 
-        $mugs = $this->packer($templates)->packByItems($this->order(), [5 => 2.0]);
+        $this->left = [5 => 2.0];
+        $mugs = $this->packer($templates)->packDraft($this->order(), new Draft());
         self::assertSame(
             [1],
             \array_map(static fn(Pack $pack): ?int => $pack->getTemplateId(), $mugs['packs']),
             'Parcels by default: a box, not an envelope or the pallet.',
         );
 
-        $rug = $this->packer($templates)->packByItems($this->order(), [7 => 1.0, 5 => 2.0]);
+        $this->left = [7 => 1.0, 5 => 2.0];
+        $rug = $this->packer($templates)->packDraft($this->order(), new Draft());
         self::assertSame(
             [1, null],
             \array_map(static fn(Pack $pack): ?int => $pack->getTemplateId(), $rug['packs']),
@@ -213,7 +221,8 @@ class AutoPackerTest extends TestCase
             $this->template(9, 'Pallet', 120, 80, 150, 25.0, 'palette'),
         ];
 
-        $mugs = $this->packer($templates)->packByItems($this->order(), [5 => 2.0]);
+        $this->left = [5 => 2.0];
+        $mugs = $this->packer($templates)->packDraft($this->order(), new Draft());
 
         self::assertSame(
             [9],
@@ -226,8 +235,9 @@ class AutoPackerTest extends TestCase
     {
         $this->shipmentType = ShipmentTypeEnum::Envelope;
 
+        $this->left = [7 => 1.0];
         $result = $this->packer([$this->template(3, 'Envelope', 30, 20, 2, 0.1, 'envelope')])
-            ->packByItems($this->order(), [7 => 1.0]);
+            ->packDraft($this->order(), new Draft());
 
         self::assertCount(1, $result['packs']);
         self::assertNull($result['packs'][0]->getTemplateId());
@@ -241,7 +251,8 @@ class AutoPackerTest extends TestCase
             $this->template(9, 'Pallet', 120, 80, 150, 25.0, 'palette'),
         ];
 
-        $mugs = $this->packer($templates)->packByItems($this->order(), [5 => 2.0], 'palette');
+        $this->left = [5 => 2.0];
+        $mugs = $this->packer($templates)->packDraft($this->order(), (new Draft())->setShipmentType('palette'));
 
         self::assertSame(
             [9],
@@ -441,6 +452,8 @@ class AutoPackerTest extends TestCase
         $config->method('getWeightLimit')->willReturnCallback(fn(): WeightLimitEnum => $this->weightLimit);
         $config->method('getParcelWeight')->willReturnCallback(fn(): ParcelWeightEnum => $this->parcelWeight);
         $config->method('getDefaultShipmentType')->willReturnCallback(fn(): ShipmentTypeEnum => $this->shipmentType);
+        $nativeShipments = $this->createStub(NativeShipmentService::class);
+        $nativeShipments->method('getQuantitiesLeft')->willReturnCallback(fn(): array => $this->left);
 
         return new AutoPacker(
             $amounts,
@@ -449,7 +462,7 @@ class AutoPackerTest extends TestCase
             $packs,
             $items,
             $config,
-            $this->createStub(NativeShipmentService::class),
+            $nativeShipments,
         );
     }
 

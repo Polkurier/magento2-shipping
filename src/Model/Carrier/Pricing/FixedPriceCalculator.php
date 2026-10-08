@@ -16,7 +16,7 @@ readonly class FixedPriceCalculator implements PriceCalculatorInterface
 {
     public const string FIELD_PRICE = 'price';
 
-    public function calculate(CarrierConfigInterface $config, RateContext $context): ?float
+    public function calculate(CarrierConfigInterface $config, float $subtotal, float $weight): ?float
     {
         $price = $config->getPriceInfo()[self::FIELD_PRICE] ?? null;
 

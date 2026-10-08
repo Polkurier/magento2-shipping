@@ -14,10 +14,10 @@ use Magento\Sales\Model\Order;
 use Polkurier\Shipping\Model\Carrier\Polkurier;
 
 /**
- * Loads the orders the module works with. A Polkurier shipment is only started for an order
- * placed with a Polkurier delivery method (getForPolkurier()): the module never ships orders of
- * other carriers, whose integrations handle them. What follows from a shipment already made goes
- * with its order however it was placed (get()).
+ * Loads the orders the module works with. A Polkurier shipment is only started for an order placed
+ * with a Polkurier delivery method (getForPolkurier()): the module never ships orders of other
+ * carriers, whose integrations handle them. Anything that follows from an existing shipment loads
+ * its order however it was placed (get()).
  */
 readonly class OrderLoader
 {

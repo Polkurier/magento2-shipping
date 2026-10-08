@@ -13,7 +13,6 @@ use Magento\Framework\Controller\Result\Redirect;
 use Magento\Framework\Exception\LocalizedException;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Api\ShipmentManagementInterface;
-use Polkurier\Shipping\Model\Admin\FlashMessageCollector;
 use Polkurier\Shipping\Model\Admin\FlashMessageCollectorFactory;
 
 /**
@@ -26,7 +25,7 @@ class MassRefresh extends AbstractShipmentAction implements HttpPostActionInterf
     public function __construct(
         Context $context,
         RequestedShipments $requestedShipments,
-        private readonly ShipmentManagementInterface $management,
+        private readonly ShipmentManagementInterface $shipmentManagement,
         private readonly FlashMessageCollectorFactory $flashMessageCollectorFactory,
     ) {
         parent::__construct($context, $requestedShipments);
@@ -43,7 +42,7 @@ class MassRefresh extends AbstractShipmentAction implements HttpPostActionInterf
                     continue;
                 }
                 try {
-                    $this->management->refreshStatus((int)$shipment->getId());
+                    $this->shipmentManagement->refreshStatus((int)$shipment->getId());
                     $refreshed++;
                 } catch (LocalizedException $e) {
                     $failed[] = $shipment->getPolkurierNumber() . ': ' . $e->getMessage();

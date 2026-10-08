@@ -11,14 +11,12 @@ use Magento\Framework\App\Action\HttpGetActionInterface;
 use Magento\Framework\Controller\Result\Json;
 use Magento\Framework\Controller\Result\JsonFactory;
 use Polkurier\Shipping\Model\PickupPoint\MapTokenProvider;
-use Polkurier\Webservice\Exception\Exception as PolkurierException;
-use Psr\Log\LoggerInterface;
 
 /**
  * A fresh token for the pickup point map, for a checkout page whose token is gone or about to run
- * out: the same token every checkout page is given, so it tells no one anything new.
+ * out. Every checkout page is given this same token, so it reveals nothing new.
  *
- * The answer names nothing of Polkurier's; it's never cached by the page cache or the browser.
+ * The answer is never cached by the page cache or the browser.
  */
 class Token implements HttpGetActionInterface
 {
@@ -29,23 +27,14 @@ class Token implements HttpGetActionInterface
 
     public function __construct(
         private readonly JsonFactory $jsonFactory,
-        private readonly MapTokenProvider $tokenProvider,
-        private readonly LoggerInterface $logger,
+        private readonly MapTokenProvider $mapTokenProvider,
     ) {}
 
     public function execute(): Json
     {
         $result = $this->jsonFactory->create();
         $result->setHeader('Cache-Control', 'no-store', true);
-        try {
-            $token = $this->tokenProvider->getToken();
-            $expires = $this->tokenProvider->getExpiry();
-        } catch (PolkurierException $e) {
-            $this->logger->warning('Pickup point map token unavailable', ['exception' => $e]);
-            $token = '';
-            $expires = 0;
-        }
 
-        return $result->setData(['token' => $token, 'expires' => $expires]);
+        return $result->setData($this->mapTokenProvider->getTokenWithExpiry());
     }
 }

@@ -5,20 +5,20 @@
 /**
  * Opens the pickup point map in a dialog; shared by the regular and the multi-address checkout.
  *
- * The map needs a token, which runs out some hours after it's issued. The page is given one with
- * when it stops working; opening the map asks for a fresh one when there's none or it's about to
- * run out, so a page left open for a long time still shows the map.
+ * The map needs a token, which runs out some hours after it's issued. The page is given one,
+ * along with when it stops working. Opening the map asks for a fresh one when there's none or it's
+ * about to run out, so a page left open for a long time still shows the map.
  */
 define(['mage/translate', 'Magento_Ui/js/modal/alert'], function ($t, alert) {
     'use strict';
 
-    // Seconds before a token runs out when a fresh one is asked for instead.
+    // How many seconds before a token runs out a fresh one is asked for instead.
     const REFRESH_BEFORE = 600;
 
     let widget = null;
 
     /**
-     * @param {Object} config the map settings; given a fresh token in place
+     * @param {Object} config the map settings; updated in place with a fresh token
      * @returns {Promise<String>} the token to open the map with
      */
     function freshToken(config) {
@@ -26,9 +26,6 @@ define(['mage/translate', 'Magento_Ui/js/modal/alert'], function ($t, alert) {
 
         if (config.token && (!config.tokenExpires || config.tokenExpires - now > REFRESH_BEFORE)) {
             return Promise.resolve(config.token);
-        }
-        if (!config.tokenUrl) {
-            return config.token ? Promise.resolve(config.token) : Promise.reject(new Error('No map token'));
         }
 
         return fetch(config.tokenUrl, {

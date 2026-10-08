@@ -8,7 +8,7 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Test\Unit\Support;
 
 use Polkurier\Shipping\Api\Data\SyncableInterface;
-use Polkurier\Shipping\Enum\SyncEntityEnum;
+use Polkurier\Shipping\Enum\Sync\SyncEntityEnum;
 use Polkurier\Shipping\Model\PackTemplate;
 use Polkurier\Shipping\Model\Sync\AdapterInterface;
 

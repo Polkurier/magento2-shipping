@@ -13,8 +13,8 @@ use Magento\Framework\UrlInterface;
 use Magento\Framework\View\Element\UiComponent\Control\ButtonProviderInterface;
 
 /**
- * Deletes the entry being edited, once confirmed, by POST to the path given: the form's own
- * delete, as the list's row action is. Configured per form as a virtual type in adminhtml/di.xml.
+ * The form's own Delete, as the list's row action is: deletes the entry being edited, once
+ * confirmed, by POST to the given path. Configured per form as a virtual type in adminhtml/di.xml.
  */
 readonly class DeleteButton implements ButtonProviderInterface
 {

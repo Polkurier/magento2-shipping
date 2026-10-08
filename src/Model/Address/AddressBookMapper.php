@@ -54,9 +54,9 @@ readonly class AddressBookMapper
     }
 
     /**
-     * What Polkurier can't keep stays as Magento has it: a sender's drop-off point (Polkurier
-     * keeps points for recipients only) and a province it has none for (it knows no Polish
-     * ones).
+     * Fields Polkurier can't keep stay as Magento has them: a sender's drop-off point (Polkurier
+     * keeps points for recipients only) and the province when Polkurier has none (it knows no
+     * Polish ones).
      *
      * @param array<string, mixed> $remote as returned by {@see normalize()}
      */

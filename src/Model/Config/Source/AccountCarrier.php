@@ -18,13 +18,13 @@ use Polkurier\Webservice\Exception\Exception as PolkurierException;
 readonly class AccountCarrier extends AbstractOptions
 {
     public function __construct(
-        private CarrierCatalog $catalog,
+        private CarrierCatalog $carrierCatalog,
     ) {}
 
     public function toArray(): array
     {
         try {
-            $carriers = $this->catalog->getAccountCarriers();
+            $carriers = $this->carrierCatalog->getAccountCarriers();
         } catch (PolkurierException) {
             return [];
         }

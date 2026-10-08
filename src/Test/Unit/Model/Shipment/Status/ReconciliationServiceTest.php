@@ -16,6 +16,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Api\ShipmentRepositoryInterface;
+use Polkurier\Shipping\Logger\Logger;
 use Polkurier\Shipping\Model\ResourceModel\Shipment as ShipmentResource;
 use Polkurier\Shipping\Model\Shipment;
 use Polkurier\Shipping\Model\Shipment\Native\NativeFollowUpService;
@@ -29,7 +30,6 @@ use Polkurier\Shipping\Model\Shipment\Status\RemoteOrderMatcher;
 use Polkurier\Shipping\Test\Unit\Support\FixedDateTime;
 use Polkurier\Shipping\Test\Unit\Support\MemoryLocks;
 use Polkurier\Webservice\Response\Order as RemoteOrder;
-use Psr\Log\NullLogger;
 
 #[CoversClass(ReconciliationService::class)]
 #[AllowMockObjectsWithoutExpectations]
@@ -214,7 +214,7 @@ class ReconciliationServiceTest extends TestCase
             new OrderLock(new MemoryLocks()),
             $this->createStub(ShipmentFinder::class),
             $this->createStub(ShipmentResource::class),
-            new NullLogger(),
+            $this->createStub(Logger::class),
         );
     }
 }

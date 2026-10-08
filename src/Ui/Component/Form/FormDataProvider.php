@@ -11,8 +11,8 @@ use Magento\Framework\Api\Filter;
 use Magento\Ui\DataProvider\AbstractDataProvider;
 
 /**
- * The data of one of the module's forms or pages, which reads what it shows by its own request
- * parameter, not through the collection's filters, and once per request.
+ * The data of one of the module's forms or pages. It reads what it shows once per request, by its
+ * own request parameter rather than through the collection's filters.
  */
 abstract class FormDataProvider extends AbstractDataProvider
 {

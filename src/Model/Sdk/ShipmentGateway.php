@@ -30,12 +30,14 @@ use Polkurier\Webservice\Response\Order\DocumentMessage;
 use Polkurier\Webservice\Response\Order\MultiPickupResultMessage;
 use Polkurier\Webservice\Response\Order\OrderListMessage;
 use Polkurier\Webservice\Response\Order\OrderStatusMessage;
+use Polkurier\Webservice\Response\Order\ValuationMessage;
 
 /**
- * The Polkurier calls the shipment side of the module makes, over PolkurierClient, in the module's
- * terms. Requests and answers are the SDK's messages, but no SDK exception gets past: a refusal or
- * failure is a LocalizedException describing it for the merchant, and placing an order that may
- * have gone through anyway is a PlacementUncertainException.
+ * The Polkurier calls the shipment side of the module makes, over
+ * {@see \Polkurier\Shipping\Model\Sdk\PolkurierClient}, in the module's terms. Requests and answers
+ * are the SDK's messages, but no SDK exception gets past: a refusal or failure is a
+ * {@see \Magento\Framework\Exception\LocalizedException} describing it for the merchant, and placing
+ * an order that may have gone through anyway is a {@see PlacementUncertainException}.
  */
 readonly class ShipmentGateway
 {
@@ -53,7 +55,7 @@ readonly class ShipmentGateway
     private const array NOT_SENT_CURL_ERRORS = [5, 6, 7, 35];
 
     public function __construct(
-        private PolkurierClientInterface $client,
+        private PolkurierClientInterface $polkurierClient,
         private ErrorMessageResolver $errorMessageResolver,
     ) {}
 
@@ -64,7 +66,7 @@ readonly class ShipmentGateway
     public function placeOrder(CreateOrderMessage $message): CreatedOrderMessage
     {
         try {
-            return $this->client->orders()->createOrder($message);
+            return $this->polkurierClient->orders()->createOrder($message);
         } catch (PolkurierException $e) {
             if ($this->mayHaveBeenPlaced($e)) {
                 throw new PlacementUncertainException($this->errorMessageResolver->phrase($e), $e);
@@ -79,7 +81,7 @@ readonly class ShipmentGateway
      */
     public function cancelOrder(OrderIdMessage $message): CancellationMessage
     {
-        return $this->call(fn(): CancellationMessage => $this->client->orders()->cancelOrder($message));
+        return $this->call(fn(): CancellationMessage => $this->polkurierClient->orders()->cancelOrder($message));
     }
 
     /**
@@ -87,7 +89,7 @@ readonly class ShipmentGateway
      */
     public function findOrders(GetOrdersMessage $message): OrderListMessage
     {
-        return $this->call(fn(): OrderListMessage => $this->client->orders()->getOrders($message));
+        return $this->call(fn(): OrderListMessage => $this->polkurierClient->orders()->getOrders($message));
     }
 
     /**
@@ -95,7 +97,7 @@ readonly class ShipmentGateway
      */
     public function getStatus(string $number, bool $tracking): OrderStatusMessage
     {
-        return $this->call(fn(): OrderStatusMessage => $this->client->orders()->getStatus(
+        return $this->call(fn(): OrderStatusMessage => $this->polkurierClient->orders()->getStatus(
             new GetStatusMessage($number, tracking: $tracking),
         ));
     }
@@ -105,7 +107,7 @@ readonly class ShipmentGateway
      */
     public function getLabel(GetDocumentMessage $message): DocumentMessage
     {
-        return $this->call(fn(): DocumentMessage => $this->client->orders()->getLabel($message));
+        return $this->call(fn(): DocumentMessage => $this->polkurierClient->orders()->getLabel($message));
     }
 
     /**
@@ -113,18 +115,18 @@ readonly class ShipmentGateway
      */
     public function getProtocol(GetDocumentMessage $message): DocumentMessage
     {
-        return $this->call(fn(): DocumentMessage => $this->client->orders()->getProtocol($message));
+        return $this->call(fn(): DocumentMessage => $this->polkurierClient->orders()->getProtocol($message));
     }
 
     /**
-     * What each carrier would charge for the order, as the API answers.
+     * What each carrier would charge for the order, one quote per carrier.
      *
-     * @return array<mixed>
+     * @return ValuationMessage[]
      * @throws LocalizedException
      */
     public function valuate(CreateOrderMessage $message): array
     {
-        return $this->call(fn(): array => $this->client->orders()->orderValuation($message));
+        return $this->call(fn(): array => $this->polkurierClient->orders()->orderValuation($message));
     }
 
     /**
@@ -133,18 +135,20 @@ readonly class ShipmentGateway
      */
     public function getPickupTimes(GetPickupTimeMessage $message): array
     {
-        return $this->call(fn(): array => $this->client->courier()->getCourierPickupTime($message));
+        return $this->call(fn(): array => $this->polkurierClient->courier()->getCourierPickupTime($message));
     }
 
     /**
      * Whether a shipment can be collected with others, as Polkurier answers for its carrier and
-     * parcels: false also when it can't tell.
+     * parcels. Also false when Polkurier can't tell.
      *
      * @throws LocalizedException
      */
     public function isMultiPickupAvailable(MultiPickupAvailabilityRequestMessage $message): bool
     {
-        return $this->call(fn(): bool => $this->client->orders()->isMultiPickupAvailable($message)->isAvailable());
+        return $this->call(
+            fn(): bool => $this->polkurierClient->orders()->isMultiPickupAvailable($message)->isAvailable(),
+        );
     }
 
     /**
@@ -152,7 +156,9 @@ readonly class ShipmentGateway
      */
     public function bookMultiPickup(MultiPickupRequestMessage $message): MultiPickupResultMessage
     {
-        return $this->call(fn(): MultiPickupResultMessage => $this->client->orders()->createMultiOrderPickup($message));
+        return $this->call(
+            fn(): MultiPickupResultMessage => $this->polkurierClient->orders()->createMultiOrderPickup($message),
+        );
     }
 
     /**
@@ -203,8 +209,9 @@ readonly class ShipmentGateway
     }
 
     /**
-     * Whether the connection failed before the request went out: so Polkurier can't have it. A
-     * timeout counts only while connecting; one while waiting for the answer may follow a placed order.
+     * Whether the connection failed before the request went out, so Polkurier can't have received
+     * it. A timeout counts only while connecting; one while waiting for the answer may follow a
+     * placed order.
      */
     private function wasNotSent(ConnectionException $e): bool
     {

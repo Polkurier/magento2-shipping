@@ -86,9 +86,9 @@ define([
                 shipping: this.money(rules.amount(data.shipping_charged)),
                 total: this.money(worth.order_total),
                 value: this.money(worth.value),
-                // Part of the order, priced: whether it carries the shipping and handling is asked.
-                // Not for the part carrying the rest, which includes it as it collects it, nor once
-                // another part includes it.
+                // For a priced part of the order, the merchant is asked whether it carries the
+                // shipping and handling. Not for the part carrying the rest, which includes it as it
+                // collects it, nor once another part includes it.
                 canIncludeShipping: !replacing && !worth.whole && !worth.rest
                     && !worth.shipping_covered && worth.products > 0,
                 basis: worth.whole
@@ -121,7 +121,7 @@ define([
                 return $t('Updating prices…');
             }
 
-            // Why is said under it.
+            // The reason is shown under it.
             if (this.unpriced()) {
                 return $t('No price');
             }

@@ -18,7 +18,7 @@ define([
         return Shipping.extend({
             initialize: function () {
                 this._super();
-                // Magento clears it when the method changes; a point chosen clears it too.
+                // Magento clears it when the method changes; choosing a point clears it too.
                 pickupPoint.onChange(function () {
                     this.errorValidationMessage(false);
                 }.bind(this));

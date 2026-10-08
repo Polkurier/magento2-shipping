@@ -8,7 +8,7 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Test\Unit\Support;
 
 use Magento\Framework\Event\ManagerInterface;
-use Polkurier\Shipping\Enum\ApiEventEnum;
+use Polkurier\Shipping\Enum\Sdk\ApiEventEnum;
 
 /**
  * Keeps every dispatched event, and can make listeners fail.

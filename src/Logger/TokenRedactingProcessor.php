@@ -22,14 +22,15 @@ use Psr\Http\Message\MessageInterface;
  * Keeps the API token and every other secret out of the log.
  *
  * Every authenticated request body carries the token, and the SDK hands its logger the body
- * verbatim — both inside the message and as the PSR-7 request in the context, and its answer as
- * the PSR-7 response. Confirmations add PINs, codes and two-factor tokens, answers access tokens
- * and phone PINs. This replaces their values in the message and anywhere in the context, and
- * swaps request and response objects for a redacted copy of their body.
+ * verbatim — both inside the message and as the PSR-7 request in the context, and its answer as the
+ * PSR-7 response. Confirmations add PINs, codes and two-factor tokens; answers add access tokens
+ * and phone PINs. This replaces their values in the message and anywhere in the context, and swaps
+ * request and response objects for a redacted copy of their body.
  *
- * A plain callable rather than Monolog's ProcessorInterface, whose signature differs between
- * Monolog 2 (array records, Magento 2.4.7) and Monolog 3 (LogRecord, Magento 2.4.8 and later):
- * Monolog takes any callable as a processor, and this one handles both kinds of record.
+ * A plain callable rather than Monolog's {@see \Monolog\Processor\ProcessorInterface}, whose
+ * signature differs between Monolog 2 (array records, Magento 2.4.7) and Monolog 3
+ * ({@see LogRecord}, Magento 2.4.8 and later): Monolog takes any callable as a processor, and this
+ * one handles both kinds of record.
  */
 readonly class TokenRedactingProcessor
 {

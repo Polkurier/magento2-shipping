@@ -12,8 +12,8 @@
             </argument>
         </arguments>
     </type>
-    <!-- A customer doesn't wait for Polkurier as long as the admin may: a pickup point is checked,
-         or the carriers read, within seconds or not at all -->
+    <!-- A customer doesn't wait for Polkurier as long as the admin may: checking a pickup point or
+         reading the carriers either finishes within seconds or not at all -->
     <type name="Polkurier\Shipping\Model\Sdk\AccountConfigProvider">
         <arguments>
             <argument name="maxTimeout" xsi:type="number">5</argument>

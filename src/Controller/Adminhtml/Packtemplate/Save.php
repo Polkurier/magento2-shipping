@@ -10,7 +10,6 @@ namespace Polkurier\Shipping\Controller\Adminhtml\Packtemplate;
 use Magento\Backend\App\Action\Context;
 use Magento\Framework\App\Request\DataPersistorInterface;
 use Polkurier\Shipping\Controller\Adminhtml\AbstractSave;
-use Polkurier\Shipping\Model\Admin\FlashMessageCollectorFactory;
 use Polkurier\Shipping\Model\PackTemplate\PackTemplateHandler;
 
 /**
@@ -22,10 +21,9 @@ class Save extends AbstractSave
 
     public function __construct(
         Context $context,
-        PackTemplateHandler $handler,
+        PackTemplateHandler $packTemplateHandler,
         DataPersistorInterface $dataPersistor,
-        FlashMessageCollectorFactory $flashMessageCollectorFactory,
     ) {
-        parent::__construct($context, $handler, $dataPersistor, $flashMessageCollectorFactory);
+        parent::__construct($context, $packTemplateHandler, $dataPersistor);
     }
 }

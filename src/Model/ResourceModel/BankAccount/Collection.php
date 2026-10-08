@@ -13,6 +13,8 @@ use Polkurier\Shipping\Model\ResourceModel\BankAccount as ResourceModel;
 
 /**
  * The bank accounts.
+ *
+ * @method Model[] getItems()
  */
 class Collection extends AbstractCollection
 {
@@ -20,17 +22,6 @@ class Collection extends AbstractCollection
      * @var string
      */
     protected $_idFieldName = 'account_id';
-
-    /**
-     * @return Model[]
-     */
-    public function getItems(): array
-    {
-        /** @var Model[] $items */
-        $items = parent::getItems();
-
-        return $items;
-    }
 
     protected function _construct(): void
     {

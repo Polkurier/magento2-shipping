@@ -11,14 +11,10 @@
     <preference for="Polkurier\Webservice\Api\Validation\ValidatorInterface"
                 type="Polkurier\Shipping\Model\Sdk\Validator" />
     <type name="Polkurier\Shipping\Model\Sdk\SerializerProvider" shared="true" />
-    <type name="Polkurier\Shipping\Model\Sdk\PolkurierClient">
+
+    <!-- The module's log, in its own files -->
+    <type name="Polkurier\Shipping\Logger\Logger">
         <arguments>
-            <argument name="logger" xsi:type="object">Polkurier\Shipping\Logger\LoggerVirtual</argument>
-        </arguments>
-    </type>
-    <virtualType name="Polkurier\Shipping\Logger\LoggerVirtual" type="Magento\Framework\Logger\Monolog">
-        <arguments>
-            <argument name="name" xsi:type="string">polkurier</argument>
             <argument name="handlers" xsi:type="array">
                 <item name="file" xsi:type="object">Polkurier\Shipping\Logger\Handler</item>
             </argument>
@@ -26,7 +22,7 @@
                 <item name="redact_token" xsi:type="object">Polkurier\Shipping\Logger\TokenRedactingProcessor</item>
             </argument>
         </arguments>
-    </virtualType>
+    </type>
 
     <!-- System configuration -->
     <type name="Magento\Config\Model\Config\TypePool">
@@ -89,39 +85,18 @@
     <type name="Polkurier\Shipping\Model\Carrier\RateCollector">
         <arguments>
             <argument name="priceCalculator" xsi:type="object">Polkurier\Shipping\Model\Carrier\Pricing\PriceCalculatorPool</argument>
-            <argument name="logger" xsi:type="object">Polkurier\Shipping\Logger\LoggerVirtual</argument>
         </arguments>
     </type>
     <type name="Polkurier\Shipping\Model\Carrier\Polkurier">
         <arguments>
-            <argument name="logger" xsi:type="object">Polkurier\Shipping\Logger\LoggerVirtual</argument>
+            <!-- Magento gives every carrier its own logger by this name -->
+            <argument name="logger" xsi:type="object">Polkurier\Shipping\Logger\Logger</argument>
             <!-- Only the admin's shipment pages use it; checkout never builds it -->
             <argument name="nativeLabelService" xsi:type="object">Polkurier\Shipping\Model\Shipment\Native\NativeLabelService\Proxy</argument>
         </arguments>
     </type>
-    <type name="Polkurier\Shipping\Model\Shipment\Native\NativeLabelService">
-        <arguments>
-            <argument name="logger" xsi:type="object">Polkurier\Shipping\Logger\LoggerVirtual</argument>
-        </arguments>
-    </type>
-    <type name="Polkurier\Shipping\Model\Carrier\CarrierLogoStorage">
-        <arguments>
-            <argument name="logger" xsi:type="object">Polkurier\Shipping\Logger\LoggerVirtual</argument>
-        </arguments>
-    </type>
-    <type name="Polkurier\Shipping\Model\Shipment\Placement\ManualEntrySaver">
-        <arguments>
-            <argument name="logger" xsi:type="object">Polkurier\Shipping\Logger\LoggerVirtual</argument>
-        </arguments>
-    </type>
-    <type name="Polkurier\Shipping\Observer\RestrictCashOnDeliveryObserver">
-        <arguments>
-            <argument name="logger" xsi:type="object">Polkurier\Shipping\Logger\LoggerVirtual</argument>
-        </arguments>
-    </type>
     <type name="Polkurier\Shipping\Model\Carrier\Pricing\PriceCalculatorPool">
         <arguments>
-            <argument name="logger" xsi:type="object">Polkurier\Shipping\Logger\LoggerVirtual</argument>
             <argument name="calculators" xsi:type="array">
                 <item name="FIXED" xsi:type="object">Polkurier\Shipping\Model\Carrier\Pricing\FixedPriceCalculator</item>
                 <item name="TIER_SUBTOTAL" xsi:type="object">Polkurier\Shipping\Model\Carrier\Pricing\SubtotalTiersVirtual</item>
@@ -152,66 +127,8 @@
         </arguments>
     </virtualType>
 
-    <!-- Synchronization with the Polkurier account -->
-    <type name="Polkurier\Shipping\Model\Sync\Synchronization">
-        <arguments>
-            <argument name="logger" xsi:type="object">Polkurier\Shipping\Logger\LoggerVirtual</argument>
-        </arguments>
-    </type>
-    <type name="Polkurier\Shipping\Model\Sync\SyncEngine">
-        <arguments>
-            <argument name="logger" xsi:type="object">Polkurier\Shipping\Logger\LoggerVirtual</argument>
-        </arguments>
-    </type>
-
-    <!-- The module logs to its own file -->
-    <type name="Polkurier\Shipping\Model\Sdk\ApiEventDispatcher">
-        <arguments>
-            <argument name="logger" xsi:type="object">Polkurier\Shipping\Logger\LoggerVirtual</argument>
-        </arguments>
-    </type>
-    <type name="Polkurier\Shipping\Model\Shipment\Placement\PlacementService">
-        <arguments>
-            <argument name="logger" xsi:type="object">Polkurier\Shipping\Logger\LoggerVirtual</argument>
-        </arguments>
-    </type>
-    <type name="Polkurier\Shipping\Model\Shipment\Native\NativeFollowUpService">
-        <arguments>
-            <argument name="logger" xsi:type="object">Polkurier\Shipping\Logger\LoggerVirtual</argument>
-        </arguments>
-    </type>
-    <type name="Polkurier\Shipping\Model\Shipment\Details\DetailsLoader">
-        <arguments>
-            <argument name="logger" xsi:type="object">Polkurier\Shipping\Logger\LoggerVirtual</argument>
-        </arguments>
-    </type>
-    <type name="Polkurier\Shipping\Model\Shipment\Screen\ShipmentOptionsProvider">
-        <arguments>
-            <argument name="logger" xsi:type="object">Polkurier\Shipping\Logger\LoggerVirtual</argument>
-        </arguments>
-    </type>
-    <type name="Polkurier\Shipping\Model\Carrier\CarrierNoticeProvider">
-        <arguments>
-            <argument name="logger" xsi:type="object">Polkurier\Shipping\Logger\LoggerVirtual</argument>
-        </arguments>
-    </type>
-    <type name="Polkurier\Shipping\Controller\Map\Token">
-        <arguments>
-            <argument name="logger" xsi:type="object">Polkurier\Shipping\Logger\LoggerVirtual</argument>
-        </arguments>
-    </type>
-    <type name="Polkurier\Shipping\Observer\DescribePickupPointObserver">
-        <arguments>
-            <argument name="logger" xsi:type="object">Polkurier\Shipping\Logger\LoggerVirtual</argument>
-        </arguments>
-    </type>
-    <type name="Polkurier\Shipping\Observer\CopyPickupPointToOrderObserver">
-        <arguments>
-            <argument name="logger" xsi:type="object">Polkurier\Shipping\Logger\LoggerVirtual</argument>
-        </arguments>
-    </type>
     <!-- The module's grids: a keyword search over their own fields, which in the shipment grids
-         include the order number and the customer (Ui\Component\DataProvider\KeywordSearch) -->
+         include the order number and the customer (Polkurier\Shipping\Ui\Component\DataProvider\KeywordSearch) -->
     <virtualType name="Polkurier\Shipping\Ui\Component\DataProvider\GridFilterPoolVirtual"
                  type="Magento\Framework\View\Element\UiComponent\DataProvider\FilterPool">
         <arguments>
@@ -232,59 +149,9 @@
             <argument name="reporting" xsi:type="object">Polkurier\Shipping\Ui\Component\DataProvider\GridReportingVirtual</argument>
         </arguments>
     </virtualType>
-    <type name="Polkurier\Shipping\Observer\FollowShipmentCarrierObserver">
-        <arguments>
-            <argument name="logger" xsi:type="object">Polkurier\Shipping\Logger\LoggerVirtual</argument>
-        </arguments>
-    </type>
     <type name="Polkurier\Shipping\Model\Shipment\Native\ActualShippingUpdater">
         <arguments>
             <argument name="orderGrid" xsi:type="object">Magento\Sales\Model\ResourceModel\Order\Grid</argument>
-        </arguments>
-    </type>
-    <type name="Polkurier\Shipping\Model\Shipment\Valuation\CostEstimator">
-        <arguments>
-            <argument name="logger" xsi:type="object">Polkurier\Shipping\Logger\LoggerVirtual</argument>
-        </arguments>
-    </type>
-    <type name="Polkurier\Shipping\Model\Shipment\Status\ReconciliationService">
-        <arguments>
-            <argument name="logger" xsi:type="object">Polkurier\Shipping\Logger\LoggerVirtual</argument>
-        </arguments>
-    </type>
-    <type name="Polkurier\Shipping\Model\Shipment\Status\StatusRefreshService">
-        <arguments>
-            <argument name="logger" xsi:type="object">Polkurier\Shipping\Logger\LoggerVirtual</argument>
-        </arguments>
-    </type>
-    <type name="Polkurier\Shipping\Model\Shipment\Status\StatusWebhookHandler">
-        <arguments>
-            <argument name="logger" xsi:type="object">Polkurier\Shipping\Logger\LoggerVirtual</argument>
-        </arguments>
-    </type>
-    <type name="Polkurier\Shipping\Model\PickupPoint\MapConfigProvider">
-        <arguments>
-            <argument name="logger" xsi:type="object">Polkurier\Shipping\Logger\LoggerVirtual</argument>
-        </arguments>
-    </type>
-    <type name="Polkurier\Shipping\Model\PickupPoint\PointSelectionRecorder">
-        <arguments>
-            <argument name="logger" xsi:type="object">Polkurier\Shipping\Logger\LoggerVirtual</argument>
-        </arguments>
-    </type>
-    <type name="Polkurier\Shipping\Model\Shipment\Draft\DefaultDraftBuilder">
-        <arguments>
-            <argument name="logger" xsi:type="object">Polkurier\Shipping\Logger\LoggerVirtual</argument>
-        </arguments>
-    </type>
-    <type name="Polkurier\Shipping\Cron\SynchronizeTask">
-        <arguments>
-            <argument name="logger" xsi:type="object">Polkurier\Shipping\Logger\LoggerVirtual</argument>
-        </arguments>
-    </type>
-    <type name="Polkurier\Shipping\Cron\RefreshCarriersTask">
-        <arguments>
-            <argument name="logger" xsi:type="object">Polkurier\Shipping\Logger\LoggerVirtual</argument>
         </arguments>
     </type>
 

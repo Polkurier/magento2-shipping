@@ -9,7 +9,6 @@ namespace Polkurier\Shipping\Controller\Adminhtml\Bankaccount;
 
 use Magento\Backend\App\Action\Context;
 use Polkurier\Shipping\Controller\Adminhtml\AbstractIndex;
-use Polkurier\Shipping\Model\Admin\FlashMessageCollectorFactory;
 use Polkurier\Shipping\Model\BankAccount\BankAccountHandler;
 
 /**
@@ -21,9 +20,8 @@ class Index extends AbstractIndex
 
     public function __construct(
         Context $context,
-        BankAccountHandler $handler,
-        FlashMessageCollectorFactory $flashMessageCollectorFactory,
+        BankAccountHandler $bankAccountHandler,
     ) {
-        parent::__construct($context, $handler, $flashMessageCollectorFactory);
+        parent::__construct($context, $bankAccountHandler);
     }
 }

@@ -5,14 +5,14 @@
 /**
  * Polkurier options of a shipping label on Magento's New Shipment page.
  *
- * Every group of options is a one-line summary, edited in place with its Change. The values live in hidden
- * fields of the shipment form, which Magento sends along when it asks the carrier for the label.
- * Changing the carrier drops what the new one does not support. "Create Shipping Label" starts
- * ticked, so the shipment is created with its Polkurier order.
+ * Every group of options is a one-line summary, edited in place with its Change button. The values
+ * live in hidden fields of the shipment form, which Magento sends along when it asks the carrier
+ * for the label. Changing the carrier drops what the new one does not support. "Create Shipping
+ * Label" starts ticked, so the shipment is created with its Polkurier order.
  *
- * When the order ships in parts, cash on delivery follows the quantities shipped: what they're
- * worth, or everything left to collect for the shipment carrying the rest. The insurance follows
- * them too. Either stops following once it's changed by hand.
+ * When the order ships in parts, cash on delivery follows the quantities shipped: their worth, or,
+ * for the shipment carrying the rest, everything left to collect. The insurance follows them too.
+ * Either stops following once it's changed by hand.
  *
  * The rules are in ./label-options/state, the groups in ./sections and their editing in ./editor;
  * the packaging popup's part is ./label-options/packaging, set up for the page by ./packaging-setup.
@@ -65,12 +65,12 @@ define([
                     edit = $('<button type="button" class="action-default polkurier-label-options__edit"/>')
                         .text($t('Change'));
 
-                // Another group open gives way, unapplied.
+                // Any other open group closes without applying.
                 edit.on('click', function () {
                     editing = section.title;
                     render();
                 });
-                // What's wrong, said: red alone would leave it to be guessed.
+                // Say what's wrong: red alone would leave it to guesswork.
                 const why = [].concat(section.warning ? section.warning() || [] : []).filter(Boolean),
                     line = $('<dd/>')
                         .toggleClass('polkurier-label-options__warning', why.length > 0)
@@ -121,12 +121,12 @@ define([
         $(document).on('change', '#create_shipping_label', toggle);
         // Redrawn once typing pauses, not with every key.
         $(document).on('change keyup', state.ITEM_INPUT, _.debounce(followQuantities, 150));
-        // A shipment of a Polkurier order goes with a Polkurier order: the label can't be left out.
-        // Clicked, not set, so Magento's own handler runs too. Magento unticks it when the packaging
-        // window is closed or the label refused, and draws the items part again (a fresh, unticked
-        // box) as quantities change, so the box is hidden for good, ticked whenever it appears, and
-        // again right before a submit. The server refuses a shipment without it all the same
-        // (Plugin\Adminhtml\ShipmentSavePlugin).
+        // A shipment of a Polkurier order needs its Polkurier order, so the label can't be left out.
+        // The box is clicked, not set, so Magento's own handler runs too. Magento unticks it when
+        // the packaging window is closed or the label is refused, and redraws the items part (with
+        // a fresh, unticked box) as quantities change. So the box is hidden for good, and ticked
+        // whenever it appears and again right before a submit. The server refuses a shipment
+        // without it all the same (Polkurier\Shipping\Plugin\Adminhtml\ShipmentSavePlugin).
         function keepLabel() {
             const box = document.getElementById('create_shipping_label');
 
@@ -230,7 +230,8 @@ define([
             $('body').addClass('polkurier-label-kept');
             keepLabel();
             new MutationObserver(keepLabel).observe(document.body, {childList: true, subtree: true});
-            // Captured on the way down: before the button's own handler opens the packaging window.
+            // In the capture phase, so it runs before the button's own handler opens the packaging
+            // window.
             document.addEventListener('click', function (event) {
                 if ($(event.target).closest('.submit-button').length) {
                     keepLabel();

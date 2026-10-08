@@ -14,7 +14,6 @@ use Polkurier\Shipping\Controller\Adminhtml\AbstractMassDelete;
 use Polkurier\Shipping\Model\Admin\FlashMessageCollectorFactory;
 use Polkurier\Shipping\Model\BankAccount\BankAccountHandler;
 use Polkurier\Shipping\Model\ResourceModel\BankAccount\CollectionFactory;
-use Polkurier\Shipping\Model\Sync\SyncResultFactory;
 
 /**
  * Deletes the bank accounts selected in their grid.
@@ -25,13 +24,12 @@ class MassDelete extends AbstractMassDelete
 
     public function __construct(
         Context $context,
-        BankAccountHandler $handler,
+        BankAccountHandler $bankAccountHandler,
         Filter $filter,
         private readonly CollectionFactory $collectionFactory,
         FlashMessageCollectorFactory $flashMessageCollectorFactory,
-        SyncResultFactory $syncResultFactory,
     ) {
-        parent::__construct($context, $handler, $filter, $flashMessageCollectorFactory, $syncResultFactory);
+        parent::__construct($context, $bankAccountHandler, $filter, $flashMessageCollectorFactory);
     }
 
     protected function createCollection(): AbstractDb

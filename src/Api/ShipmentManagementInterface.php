@@ -14,11 +14,11 @@ use Polkurier\Shipping\Api\Data\ShipmentInterface;
 /**
  * Places, tracks and cancels Polkurier orders for Magento orders.
  *
- * Every method that talks to Polkurier turns the SDK's failures into a LocalizedException whose
- * message a merchant can act on. A failure that leaves the outcome unknown does not throw: the
- * shipment comes back in the "unknown" state and must be reconciled before it is sent again. That
- * covers no answer, an unreadable answer, and any error that doesn't clearly say the order was
- * refused.
+ * Every method that talks to Polkurier turns the SDK's failures into a
+ * {@see \Magento\Framework\Exception\LocalizedException} whose message a merchant can act on. A
+ * failure that leaves the outcome unknown does not throw: the shipment comes back in the "unknown"
+ * state and must be reconciled before it is sent again. That covers no answer, an unreadable
+ * answer, and any error that doesn't clearly say the order was refused.
  *
  * @api
  */

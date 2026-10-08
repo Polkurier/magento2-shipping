@@ -11,7 +11,6 @@ use Magento\Backend\App\Action\Context;
 use Magento\Framework\App\Request\DataPersistorInterface;
 use Polkurier\Shipping\Controller\Adminhtml\AbstractSave;
 use Polkurier\Shipping\Model\Address\AddressHandler;
-use Polkurier\Shipping\Model\Admin\FlashMessageCollectorFactory;
 
 /**
  * Saves a sender address from its form.
@@ -22,10 +21,9 @@ class Save extends AbstractSave
 
     public function __construct(
         Context $context,
-        AddressHandler $handler,
+        AddressHandler $addressHandler,
         DataPersistorInterface $dataPersistor,
-        FlashMessageCollectorFactory $flashMessageCollectorFactory,
     ) {
-        parent::__construct($context, $handler, $dataPersistor, $flashMessageCollectorFactory);
+        parent::__construct($context, $addressHandler, $dataPersistor);
     }
 }

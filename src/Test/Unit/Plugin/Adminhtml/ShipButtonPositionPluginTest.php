@@ -26,11 +26,12 @@ class ShipButtonPositionPluginTest extends TestCase
         );
     }
 
-    public function testWithoutShipItTakesItsPlace(): void
+    public function testWithoutShipItComesLast(): void
     {
+        // An admin not allowed to ship gets no "Ship".
         self::assertSame(
-            ['order_cancel', 'order_hold', 'order_invoice', 'polkurier_ship', 'order_reorder'],
-            $this->laidOut(['order_cancel', 'order_hold', 'order_invoice', 'order_reorder', 'polkurier_ship']),
+            ['order_cancel', 'order_hold', 'order_invoice', 'order_reorder', 'polkurier_ship'],
+            $this->laidOut(['order_cancel', 'polkurier_ship', 'order_hold', 'order_invoice', 'order_reorder']),
         );
     }
 

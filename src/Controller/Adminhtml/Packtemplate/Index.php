@@ -9,7 +9,6 @@ namespace Polkurier\Shipping\Controller\Adminhtml\Packtemplate;
 
 use Magento\Backend\App\Action\Context;
 use Polkurier\Shipping\Controller\Adminhtml\AbstractIndex;
-use Polkurier\Shipping\Model\Admin\FlashMessageCollectorFactory;
 use Polkurier\Shipping\Model\PackTemplate\PackTemplateHandler;
 
 /**
@@ -21,9 +20,8 @@ class Index extends AbstractIndex
 
     public function __construct(
         Context $context,
-        PackTemplateHandler $handler,
-        FlashMessageCollectorFactory $flashMessageCollectorFactory,
+        PackTemplateHandler $packTemplateHandler,
     ) {
-        parent::__construct($context, $handler, $flashMessageCollectorFactory);
+        parent::__construct($context, $packTemplateHandler);
     }
 }

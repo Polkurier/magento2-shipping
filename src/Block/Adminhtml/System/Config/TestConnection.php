@@ -55,7 +55,7 @@ class TestConnection extends Field
 
     protected function _getElementHtml(AbstractElement $element): string
     {
-        // The button's own id ends in its field name; the others share the rest.
+        // The button's id is a prefix plus its field name; the other fields' ids share that prefix.
         $id = (string)$element->getHtmlId();
         $this->setData(
             'field_prefix',

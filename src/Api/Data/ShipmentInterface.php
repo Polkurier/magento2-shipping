@@ -406,8 +406,9 @@ interface ShipmentInterface
     public function setRequest(?string $request): static;
 
     /**
-     * The shipment as it was filled in to place it, as DraftHydrator gives it: what sending it
-     * again starts from. Empty when it wasn't kept.
+     * The shipment as it was filled in when it was placed, in the form
+     * {@see \Polkurier\Shipping\Model\Shipment\Draft\DraftHydrator} gives. Sending it again starts
+     * from this. Empty when it wasn't kept.
      *
      * @return array<string, mixed>
      */
@@ -505,8 +506,9 @@ interface ShipmentInterface
     public function setTargetShipmentId(?int $shipmentId): static;
 
     /**
-     * What identifies the order to Polkurier as its external_order_id, with the installation's
-     * application id: the Magento shipment's number or the order's, as configured when it was sent.
+     * The external_order_id that, with the installation's application id, identifies the order to
+     * Polkurier: the Magento shipment's number or the order's, as configured when the order was
+     * sent.
      *
      * @return string|null
      */
@@ -520,8 +522,8 @@ interface ShipmentInterface
     public function setExternalOrderId(?string $externalOrderId): static;
 
     /**
-     * The number taken for the Magento shipment still to be created for the order, which it gets
-     * once created; sent as the external_order_id.
+     * The number reserved for the order's Magento shipment before that shipment is created; the
+     * shipment gets it once created. Sent as the external_order_id.
      *
      * @return string|null
      */
@@ -562,8 +564,8 @@ interface ShipmentInterface
     public function setLastError(?string $lastError): static;
 
     /**
-     * When the admin was told it needs someone (Model\Shipment\AttentionNotifier); a new attempt
-     * clears it.
+     * When the admin was told the shipment needs attention
+     * ({@see \Polkurier\Shipping\Model\Shipment\AttentionNotifier}); a new attempt clears it.
      *
      * @return string|null
      */

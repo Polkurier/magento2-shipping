@@ -37,7 +37,7 @@ class Protocol extends AbstractShipmentAction implements HttpGetActionInterface,
     {
         try {
             $document = $this->documentService->getProtocol($this->getSelectedShipments());
-            // Seen on the next page, as the file is the answer to this one.
+            // These show on the next page, since this request answers with the file.
             foreach ($document['left_out'] as $message) {
                 $this->messageManager->addWarningMessage($message);
             }

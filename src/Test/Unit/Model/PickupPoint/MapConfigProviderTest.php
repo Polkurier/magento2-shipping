@@ -16,6 +16,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Polkurier\Shipping\Api\Data\CarrierConfigInterface;
 use Polkurier\Shipping\Api\QuotePointRepositoryInterface;
+use Polkurier\Shipping\Logger\Logger;
 use Polkurier\Shipping\Model\Carrier\CarrierCatalog;
 use Polkurier\Shipping\Model\Carrier\CarrierFeatureResolver;
 use Polkurier\Shipping\Model\CarrierConfig\CarrierConfigProvider;
@@ -27,7 +28,6 @@ use Polkurier\Webservice\Enum\Courier\PointRequirementEnum;
 use Polkurier\Webservice\Response\Carrier;
 use Polkurier\Webservice\Response\Carrier\AdditionalData;
 use Polkurier\Webservice\Response\Carrier\AdditionalData\PointsMap;
-use Psr\Log\NullLogger;
 
 #[CoversClass(MapConfigProvider::class)]
 #[AllowMockObjectsWithoutExpectations]
@@ -89,8 +89,8 @@ class MapConfigProviderTest extends TestCase
                 pointsMap: new PointsMap(['inpost'], recipientPoint: PointRequirementEnum::Required),
             )));
         $tokens = $this->createStub(MapTokenProvider::class);
-        $tokens->method('getToken')->willReturn($token);
-        $tokens->method('getExpiry')->willReturn($token !== '' ? 1790014400 : 0);
+        $tokens->method('getTokenWithExpiry')
+            ->willReturn(['token' => $token, 'expires' => $token !== '' ? 1790014400 : 0]);
         $url = $this->createStub(UrlInterface::class);
         $url->method('getUrl')->willReturn('https://shop.test/pickup-points/map/token/');
         $store = $this->createStub(StoreInterface::class);
@@ -108,7 +108,7 @@ class MapConfigProviderTest extends TestCase
             $this->createStub(Session::class),
             $storeManager,
             $url,
-            new NullLogger(),
+            $this->createStub(Logger::class),
         );
     }
 }

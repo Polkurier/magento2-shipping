@@ -19,16 +19,15 @@ use Magento\Shipping\Model\Rate\Result;
 use Magento\Shipping\Model\Rate\ResultFactory;
 use Magento\Store\Model\ScopeInterface;
 use Polkurier\Shipping\Api\Data\CarrierConfigInterface;
-use Polkurier\Shipping\Enum\CartValueEnum;
+use Polkurier\Shipping\Enum\Config\CartValueEnum;
 use Polkurier\Shipping\Exception\RecentFailureException;
+use Polkurier\Shipping\Logger\Logger;
 use Polkurier\Shipping\Model\Carrier\Pricing\PriceCalculatorInterface;
-use Polkurier\Shipping\Model\Carrier\Pricing\RateContext;
 use Polkurier\Shipping\Model\CarrierConfig\CarrierConfigProvider;
 use Polkurier\Shipping\Model\Config\ConfigProvider;
 use Polkurier\Shipping\Model\PickupPoint\MapTokenProvider;
 use Polkurier\Webservice\Exception\Exception as PolkurierException;
 use Polkurier\Webservice\Response\Carrier;
-use Psr\Log\LoggerInterface;
 
 /**
  * The checkout rates of the merchant's Polkurier carriers, priced by the merchant's own rules.
@@ -52,11 +51,11 @@ readonly class RateCollector
         private ResultFactory $rateResultFactory,
         private MethodFactory $rateMethodFactory,
         private CarrierConfigProvider $carrierConfigProvider,
-        private CarrierCatalog $catalog,
+        private CarrierCatalog $carrierCatalog,
         private CarrierFeatureResolver $carrierFeatureResolver,
         private PriceCalculatorInterface $priceCalculator,
-        private WeightUnitConverter $weightUnits,
-        private LoggerInterface $logger,
+        private WeightUnitConverter $weightUnitConverter,
+        private Logger $logger,
         private MapTokenProvider $mapTokenProvider,
         private State $appState,
         private ConfigProvider $configProvider,
@@ -77,24 +76,19 @@ readonly class RateCollector
         $carriers = $this->getCatalog();
         $foreign = $request->getDestCountryId() && $request->getDestCountryId() !== Polkurier::HOME_COUNTRY;
         // The subtotal is in the base currency, as the prices are; weight tiers are in kilograms.
-        $context = new RateContext(
-            subtotal: $this->cartValueOf($request),
-            weight: $this->weightUnits->toKilograms((float)$request->getPackageWeight(), $storeId),
-        );
+        $subtotal = $this->cartValueOf($request);
+        $weight = $this->weightUnitConverter->toKilograms((float)$request->getPackageWeight(), $storeId);
 
         $result = $this->rateResultFactory->create();
         $mapAvailable = null;
         foreach ($configs as $code => $config) {
-            $carrier = $carriers === null ? null : ($carriers[$code] ?? null);
-            if ($carriers !== null && $carrier === null) {
+            if ($carriers !== null && !isset($carriers[$code])) {
                 continue;
             }
-            // Carriers for abroad go abroad only, the others only at home: Polkurier prices
-            // neither the other way.
-            if ($foreign && ($carrier === null || !$this->carrierFeatureResolver->isForeign($carrier))) {
-                continue;
-            }
-            if (!$foreign && $carrier !== null && $this->carrierFeatureResolver->isForeign($carrier)) {
+            $carrier = $carriers[$code] ?? null;
+            // Carriers for abroad ship only abroad, the others only within Poland: Polkurier prices
+            // neither the other way. Without the list, a carrier is assumed to be domestic.
+            if ($foreign !== (bool)$carrier?->isForeignShipments()) {
                 continue;
             }
             if ($carrier !== null && $this->carrierFeatureResolver->isRecipientPointRequired($carrier)
@@ -103,7 +97,7 @@ readonly class RateCollector
                 continue;
             }
             // A method the merchant doesn't price for this cart isn't offered, free shipping or not.
-            $price = $this->priceCalculator->calculate($config, $context);
+            $price = $this->priceCalculator->calculate($config, $subtotal, $weight);
             if ($price === null) {
                 continue;
             }
@@ -114,21 +108,8 @@ readonly class RateCollector
     }
 
     /**
-     * @return array<string, string> method labels by carrier code
-     */
-    public function getAllowedMethods(int $storeId): array
-    {
-        $methods = [];
-        foreach ($this->carrierConfigProvider->getActive() as $code => $config) {
-            $methods[$code] = $config->getLabelForStore($storeId);
-        }
-
-        return $methods;
-    }
-
-    /**
-     * The cart's value after discounts, with or without tax as the merchant set, in the base
-     * currency, which price tiers by subtotal compare.
+     * The cart value that subtotal price tiers compare: after discounts, with or without tax as the
+     * merchant set, in the base currency.
      *
      * Rates are collected after Magento has worked out each item's row total with and without
      * tax, and its discount, but before the tax on the discounted amounts: an item's discount is
@@ -155,7 +136,7 @@ readonly class RateCollector
         $value = 0.0;
         foreach ($items as $item) {
             $net = (float)$item->getData('base_row_total');
-            // Without tax worked out, as with taxes off, the row is the same both ways.
+            // With no tax worked out (e.g. taxes off), the row total is the same either way.
             $withTax = (float)$item->getData('base_row_total_incl_tax') ?: $net;
             $discounted = $discountOnGross ? $withTax : $net;
             $kept = $discounted > 0.0
@@ -200,7 +181,7 @@ readonly class RateCollector
     private function getCatalog(): ?array
     {
         try {
-            return $this->catalog->getCarriers();
+            return $this->carrierCatalog->getCarriers();
         } catch (PolkurierException $e) {
             $this->logger->warning('Polkurier carrier list unavailable for rates', ['exception' => $e]);
 

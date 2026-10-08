@@ -11,12 +11,12 @@ use Magento\Framework\Serialize\Serializer\Json;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use Polkurier\Shipping\Exception\RecentFailureException;
+use Polkurier\Shipping\Logger\Logger;
 use Polkurier\Shipping\Model\Cache\Type as PolkurierCache;
 use Polkurier\Shipping\Model\Config\ConfigProvider;
 use Polkurier\Shipping\Model\PickupPoint\MapTokenProvider;
 use Polkurier\Shipping\Model\Sdk\AccountCache;
 use Polkurier\Shipping\Model\Sdk\ErrorMessageResolver;
-use Polkurier\Shipping\Test\Unit\Support\FixedDateTime;
 use Polkurier\Shipping\Test\Unit\Support\SdkTestCase;
 use Polkurier\Webservice\Testing\RecordingClient;
 
@@ -48,40 +48,39 @@ class MapTokenProviderTest extends SdkTestCase
         self::assertSame([MapTokenProvider::CACHE_LIFETIME], \array_values($this->lifetimes));
     }
 
-    public function testATokenRunsOutFourHoursAfterItWasIssuedEvenFromTheCache(): void
-    {
-        $http = new RecordingClient(self::success(['token' => 'map-token']));
-
-        $issued = $this->provider($http)->getExpiry();
-        $cached = $this->provider($http)->getExpiry();
-
-        self::assertSame(
-            [self::NOW + MapTokenProvider::TOKEN_LIFETIME, self::NOW + MapTokenProvider::TOKEN_LIFETIME],
-            [$issued, $cached],
-        );
-        self::assertSame(1, $http->requestCount());
-    }
-
     public function testAJwtSaysWhenItRunsOutItself(): void
     {
         $payload = \base64_encode((string)\json_encode(['iat' => self::NOW - 600, 'exp' => self::NOW + 9000]));
         $claims = \rtrim(\strtr($payload, '+/', '-_'), '=');
-        $http = new RecordingClient(self::success(['token' => 'eyJ0eXAiOiJKV1QifQ.' . $claims . '.signature']));
+        $token = 'eyJ0eXAiOiJKV1QifQ.' . $claims . '.signature';
+        $http = new RecordingClient(self::success(['token' => $token]));
 
         self::assertSame(self::NOW + 9000, $this->provider($http)->getExpiry());
+        self::assertSame(
+            ['token' => $token, 'expires' => self::NOW + 9000],
+            $this->provider($http)->getTokenWithExpiry(),
+            'The same from the cache.',
+        );
+        self::assertSame(1, $http->requestCount());
     }
 
-    public function testATokenCachedWithoutItsTimeIsTakenAsOldAsCanBe(): void
+    public function testATokenThatIsNoJwtSaysNothingOfWhenItRunsOut(): void
     {
         $http = new RecordingClient(self::success(['token' => 'map-token']));
-        $this->provider($http)->getToken();
-        $key = \array_key_first($this->cached);
-        $this->cached[$key] = 'old-token';
 
-        self::assertSame('old-token', $this->provider($http)->getToken());
+        self::assertSame(0, $this->provider($http)->getExpiry());
+    }
+
+    public function testATokenThatCantBeHadIsAnEmptyOneAndLogged(): void
+    {
+        $logger = $this->createMock(Logger::class);
+        $logger->expects(self::once())
+            ->method('warning')
+            ->with('Pickup point map token unavailable', self::arrayHasKey('exception'));
+
         self::assertSame(
-            self::NOW - MapTokenProvider::CACHE_LIFETIME + MapTokenProvider::TOKEN_LIFETIME,
-            $this->provider($http)->getExpiry(),
+            ['token' => '', 'expires' => 0],
+            $this->provider(new RecordingClient('<html>Bad gateway</html>'), $logger)->getTokenWithExpiry(),
         );
     }
 
@@ -115,7 +114,7 @@ class MapTokenProviderTest extends SdkTestCase
         self::assertSame([MapTokenProvider::FAILURE_LIFETIME], \array_values($this->lifetimes));
     }
 
-    private function provider(RecordingClient $http): MapTokenProvider
+    private function provider(RecordingClient $http, ?Logger $logger = null): MapTokenProvider
     {
         $config = $this->createStub(ConfigProvider::class);
         $config->method('getLogin')->willReturn(self::LOGIN);
@@ -134,7 +133,7 @@ class MapTokenProviderTest extends SdkTestCase
             $cache,
             new ErrorMessageResolver(),
             new AccountCache($this->createStub(PolkurierCache::class), new Json(), $config),
-            new FixedDateTime(self::NOW),
+            $logger ?? $this->createStub(Logger::class),
         );
     }
 }

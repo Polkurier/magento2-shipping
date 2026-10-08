@@ -9,25 +9,22 @@ namespace Polkurier\Shipping\Model\Shipment\Status;
 
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Api\ShipmentManagementInterface;
+use Polkurier\Shipping\Logger\Logger;
 use Polkurier\Shipping\Model\Config\ConfigProvider;
 use Polkurier\Shipping\Model\Shipment\ShipmentFinder;
-use Psr\Log\LoggerInterface;
+use Polkurier\Webservice\Exception\InvalidArgumentException;
+use Polkurier\Webservice\Webhook\OrderWebhookReader;
 
 /**
- * What Polkurier's webhook says: that one of the account's orders was created, changed status or
- * was cancelled. The shipment placed with that order is refreshed as the scheduled updates do.
+ * Handles Polkurier's webhook, which says that one of the account's orders was created, changed
+ * status or was cancelled. The shipment placed with that order is refreshed as the scheduled
+ * updates do.
  *
- * Polkurier posts the event form-encoded: "type", "data" (the whole order, as get_orders gives
- * it) and "hash", an HMAC-SHA256 of the request's other fields, keyed with the secret the
- * Polkurier panel shows for the webhook. It sends each event once, in no set order, and without
- * a time or nonce to tell a repeat. So the order is read from Polkurier again rather than taken
- * from the event: a repeated, late or replayed event only refreshes what is current. Of the
- * event, only its order number is used.
- *
- * The signature is checked on the body as it came: "hash" is its last field, and what comes
- * before it is what was signed. Reading the fields first would depend on PHP's max_input_vars,
- * which a large order exceeds. That "hash" comes last is how Polkurier builds the event, not
- * something it documents: should that change, events are refused, never misread.
+ * The SDK's {@see OrderWebhookReader} checks the event against the secret the Polkurier panel shows
+ * for the webhook, and reads it. Polkurier sends each event once, in no set order, and without a
+ * time or nonce to tell a repeat. So the order is read from Polkurier again rather than taken from
+ * the event: a repeated, late or replayed event only refreshes what is current. Only the event's
+ * order number is used.
  */
 readonly class StatusWebhookHandler
 {
@@ -35,14 +32,12 @@ readonly class StatusWebhookHandler
     public const string REFUSED = 'refused';
     public const string FAILED = 'failed';
 
-    private const string FIELD_HASH = 'hash';
-    private const string FIELD_NUMBER = 'data[number]';
-
     public function __construct(
         private ConfigProvider $configProvider,
-        private ShipmentFinder $finder,
-        private ShipmentManagementInterface $management,
-        private LoggerInterface $logger,
+        private ShipmentFinder $shipmentFinder,
+        private ShipmentManagementInterface $shipmentManagement,
+        private OrderWebhookReader $orderWebhookReader,
+        private Logger $logger,
     ) {}
 
     /**
@@ -54,23 +49,28 @@ readonly class StatusWebhookHandler
     public function receive(string $body): string
     {
         $secret = $this->configProvider->getWebhookSecret();
-        $signed = $this->signed($body);
-        if ($secret === '' || $signed === null
-            || !\hash_equals(\hash_hmac('sha256', $signed['payload'], $secret), \strtolower($signed['hash']))
-        ) {
+        if ($secret === '' || !$this->orderWebhookReader->isAuthentic($body, $secret)) {
             return self::REFUSED;
         }
-        $number = $this->field($signed['payload'], self::FIELD_NUMBER);
+        try {
+            $number = \trim((string)$this->orderWebhookReader->read($body)->getOrder()->getNumber());
+        } catch (InvalidArgumentException $e) {
+            // Signed, so Polkurier's, but not an order this module can read: nothing to follow.
+            $this->logger->warning('Polkurier status webhook: the event was not read', ['exception' => $e]);
+
+            return self::RECEIVED;
+        }
         if ($number === '') {
             return self::RECEIVED;
         }
         $failed = false;
-        // Only a shipment of this shop's, placed and so known by its number; any other order of the
-        // account, such as a copy of the shop's, or one placed in the panel, isn't this shop's to follow.
-        foreach ($this->finder->byNumbers([$number], [ShipmentInterface::STATE_CREATED]) as $shipment) {
+        // Only a placed shipment of this shop, which is known by its number. Other orders of the
+        // account, such as a copy of the shop's or one placed in the panel, aren't this shop's to
+        // follow.
+        foreach ($this->shipmentFinder->byNumbers([$number], [ShipmentInterface::STATE_CREATED]) as $shipment) {
             $shipmentId = (int)$shipment->getId();
             try {
-                $this->management->refreshStatus((int)$shipmentId);
+                $this->shipmentManagement->refreshStatus($shipmentId);
             } catch (\Throwable $e) {
                 $failed = true;
                 // The scheduled updates still follow it.
@@ -82,38 +82,5 @@ readonly class StatusWebhookHandler
         }
 
         return $failed ? self::FAILED : self::RECEIVED;
-    }
-
-    /**
-     * @return array{payload: string, hash: string}|null the body without its last field, and that
-     *     field's value, when that field is the hash
-     */
-    private function signed(string $body): ?array
-    {
-        $at = \strrpos($body, '&');
-        if ($at === false) {
-            return null;
-        }
-        $last = \explode('=', \substr($body, $at + 1), 2);
-        if (\count($last) !== 2 || \urldecode($last[0]) !== self::FIELD_HASH) {
-            return null;
-        }
-
-        return ['payload' => \substr($body, 0, $at), 'hash' => \urldecode($last[1])];
-    }
-
-    /**
-     * One field of a form-encoded body, read without parsing the whole of it.
-     */
-    private function field(string $body, string $name): string
-    {
-        foreach (\explode('&', $body) as $pair) {
-            $parts = \explode('=', $pair, 2);
-            if (\urldecode($parts[0]) === $name) {
-                return \trim(\urldecode($parts[1] ?? ''));
-            }
-        }
-
-        return '';
     }
 }

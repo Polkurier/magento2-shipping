@@ -24,7 +24,7 @@ use Polkurier\Shipping\Ui\Component\Form\SyncableEntityDataProvider;
 class DataProvider extends SyncableEntityDataProvider
 {
     /**
-     * How long whether bank account changes need the PIN is trusted, in seconds.
+     * How long, in seconds, the answer to whether bank account changes need the PIN is cached.
      */
     public const int PIN_LOCK_LIFETIME = 900;
 
@@ -39,7 +39,7 @@ class DataProvider extends SyncableEntityDataProvider
         AbstractCollection $collection,
         RequestInterface $request,
         DataPersistorInterface $dataPersistor,
-        BankAccountHandler $handler,
+        BankAccountHandler $bankAccountHandler,
         private readonly UrlInterface $url,
         private readonly Publisher $publisher,
         private readonly AccountCache $accountCache,
@@ -53,7 +53,7 @@ class DataProvider extends SyncableEntityDataProvider
             $collection,
             $request,
             $dataPersistor,
-            $handler,
+            $bankAccountHandler,
             $meta,
             $data,
         );

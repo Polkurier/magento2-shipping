@@ -10,9 +10,10 @@ namespace Polkurier\Shipping\Model\Sdk;
 use Magento\Framework\App\Filesystem\DirectoryList;
 
 /**
- * Where the SDK saves files of logged requests and answers: the directory entered, relative to
- * Magento's root unless absolute, or var/log/polkurier/files, and in it a directory a month, e.g.
- * 2026/10. Never one the web server serves: labels show the recipient's name and address.
+ * Where the SDK saves files of logged requests and answers: the directory entered (relative to
+ * Magento's root unless absolute), or var/log/polkurier/files. Inside it, each month has a
+ * directory of its own, e.g. 2026/10. Never a directory the web server serves: labels show the
+ * recipient's name and address.
  */
 readonly class LogFilesDirectoryResolver
 {
@@ -38,7 +39,7 @@ readonly class LogFilesDirectoryResolver
     }
 
     /**
-     * The month's directory in the one resolved, e.g. ".../files/2026/10".
+     * The month's directory inside the resolved one, e.g. ".../files/2026/10".
      */
     public function ofMonth(string $directory, int $timestamp): string
     {
@@ -62,7 +63,7 @@ readonly class LogFilesDirectoryResolver
     }
 
     /**
-     * Without "." and "..", which a directory not created yet can't be resolved with by realpath().
+     * Resolves "." and ".." by hand: realpath() can't, for a directory not created yet.
      */
     private static function normalize(string $path): string
     {

@@ -11,7 +11,8 @@ use Polkurier\Shipping\Model\Shipment\Placement\ParcelTypeMapper;
 use Polkurier\Webservice\Enum\Order\PackTypeEnum;
 
 /**
- * Parcel types: parcels, an envelope and pallets. A shipment's type follows from them (ParcelTypeMapper).
+ * Parcel types: parcels, an envelope and pallets. A shipment's type follows from them
+ * ({@see ParcelTypeMapper}).
  */
 readonly class PackType extends AbstractOptions
 {

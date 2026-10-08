@@ -202,12 +202,16 @@ readonly class CreateOrderMessageMapper
      */
     private function mapSender(ShipmentDraftInterface $draft, int $storeId): OrderAddressMessage
     {
+        // The point the parcels are handed over at is the shipment's, whichever the sender is.
+        $pointId = $draft->getSenderPointId();
         if ($draft->isNewSender()) {
-            $sender = $this->senderMapper->fromFields($this->newSender($draft));
+            $sender = $this->senderMapper->fromFields(
+                [AddressInterface::FIELD_POINT_ID => (string)$pointId] + $this->newSender($draft),
+            );
         } elseif ($draft->getSenderAddressId()) {
-            $sender = $this->senderMapper->fromAddress($this->address($draft->getSenderAddressId()));
+            $sender = $this->senderMapper->fromAddress($this->address($draft->getSenderAddressId()), $pointId);
         } else {
-            $sender = $this->senderMapper->fromStore($storeId);
+            $sender = $this->senderMapper->fromStore($storeId, $pointId);
         }
         if ($sender === null) {
             throw new LocalizedException(__(
@@ -216,8 +220,7 @@ readonly class CreateOrderMessageMapper
             ));
         }
 
-        // The point the parcels are handed over at is the shipment's, whichever the sender is.
-        return $this->senderMapper->withPoint($sender, $draft->getSenderPointId());
+        return $sender;
     }
 
     /**
@@ -290,8 +293,8 @@ readonly class CreateOrderMessageMapper
 
     private function mapPickup(ShipmentDraftInterface $draft): ?PickupMessage
     {
-        // Handed over at a drop-off point, no courier comes: said outright, since without it
-        // Polkurier books one for some point carriers, at the moment of placing.
+        // Handed over at a drop-off point, so no courier comes. Stated explicitly, since otherwise
+        // Polkurier books a courier for some point carriers when the order is placed.
         if ($draft->getSenderPointId() !== null) {
             return $this->pickupMessageBuilderFactory->create()->noCourierOrder(true)->build();
         }

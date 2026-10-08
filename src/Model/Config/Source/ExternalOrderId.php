@@ -7,7 +7,7 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Model\Config\Source;
 
-use Polkurier\Shipping\Enum\ExternalOrderIdEnum;
+use Polkurier\Shipping\Enum\Config\ExternalOrderIdEnum;
 
 /**
  * What a Polkurier order is identified by: the Magento order's number or its shipment's.

@@ -8,7 +8,7 @@
     <!-- New credentials may mean another account: forget what was cached for the old one -->
     <event name="admin_system_config_changed_section_carriers">
         <observer name="polkurier_credentials_changed"
-                  instance="Polkurier\Shipping\Observer\CredentialsChangedObserver" />
+                  instance="Polkurier\Shipping\Observer\Adminhtml\CredentialsChangedObserver" />
     </event>
     <!-- An order created in the admin has no way to pick a point: the merchant sets it in the
          Polkurier shipment form instead. -->
@@ -18,10 +18,10 @@
     <!-- Shipping labels from Magento's packaging popup -->
     <event name="sales_order_shipment_save_before">
         <observer name="polkurier_prepare_labelled_shipment"
-                  instance="Polkurier\Shipping\Observer\PrepareLabelledShipmentObserver" />
+                  instance="Polkurier\Shipping\Observer\Adminhtml\PrepareLabelledShipmentObserver" />
     </event>
     <event name="sales_order_shipment_save_after">
         <observer name="polkurier_link_labelled_shipment"
-                  instance="Polkurier\Shipping\Observer\LinkLabelledShipmentObserver" />
+                  instance="Polkurier\Shipping\Observer\Adminhtml\LinkLabelledShipmentObserver" />
     </event>
 </config>

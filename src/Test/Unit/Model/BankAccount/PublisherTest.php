@@ -14,11 +14,11 @@ use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use Polkurier\Shipping\Api\BankAccountRepositoryInterface;
 use Polkurier\Shipping\Api\Data\BankAccountInterface;
-use Polkurier\Shipping\Enum\ApiEventEnum;
+use Polkurier\Shipping\Enum\Sdk\ApiEventEnum;
+use Polkurier\Shipping\Logger\Logger;
 use Polkurier\Shipping\Model\BankAccount;
 use Polkurier\Shipping\Model\BankAccount\BankAccountMapper;
 use Polkurier\Shipping\Model\BankAccount\BankAccountSyncAdapter;
-use Polkurier\Shipping\Model\BankAccount\Confirmation;
 use Polkurier\Shipping\Model\BankAccount\Publisher;
 use Polkurier\Shipping\Model\Sdk\ApiEventDispatcher;
 use Polkurier\Shipping\Model\Sdk\ErrorMessageResolver;
@@ -28,10 +28,8 @@ use Polkurier\Shipping\Test\Unit\Support\RecordingEventManager;
 use Polkurier\Shipping\Test\Unit\Support\SdkTestCase;
 use Polkurier\Webservice\Builder\BankAccount\SaveMessageBuilderFactory;
 use Polkurier\Webservice\Testing\RecordingClient;
-use Psr\Log\NullLogger;
 
 #[CoversClass(Publisher::class)]
-#[CoversClass(Confirmation::class)]
 #[CoversClass(BankAccountMapper::class)]
 #[AllowMockObjectsWithoutExpectations]
 class PublisherTest extends SdkTestCase
@@ -56,7 +54,7 @@ class PublisherTest extends SdkTestCase
         ]));
         $account = $this->account();
 
-        $this->publisher($http)->save($account, new Confirmation(twoFactorToken: 'tok', twoFactorCode: '123456'));
+        $this->publisher($http)->save($account, 'tok', '123456', null);
 
         $payload = $http->lastPayload();
         self::assertSame('save_bank_account', $payload['apimethod']);
@@ -85,10 +83,7 @@ class PublisherTest extends SdkTestCase
             'default' => true,
         ]));
 
-        $this->publisher($http)->save(
-            $this->account(),
-            new Confirmation(pin: '9999', twoFactorToken: 'tok', twoFactorCode: '1'),
-        );
+        $this->publisher($http)->save($this->account(), 'tok', '1', '9999');
 
         $data = $http->lastPayload()['data'];
         self::assertSame('9999', $data['access_pin']);
@@ -104,10 +99,7 @@ class PublisherTest extends SdkTestCase
         ]));
 
         try {
-            $this->publisher($http)->save(
-                $this->account(),
-                new Confirmation(twoFactorToken: 'tok', twoFactorCode: '000000'),
-            );
+            $this->publisher($http)->save($this->account(), 'tok', '000000', null);
             self::fail('Expected the refusal to be reported.');
         } catch (LocalizedException $e) {
             self::assertStringContainsString('Nieprawidłowy kod', $e->getMessage());
@@ -155,7 +147,7 @@ class PublisherTest extends SdkTestCase
             $this->createStub(BankAccountSyncAdapter::class),
             $engine,
             $repository,
-            new ApiEventDispatcher($this->events, new NullLogger()),
+            new ApiEventDispatcher($this->events, $this->createStub(Logger::class)),
             new ErrorMessageResolver(),
             $dateTime,
         );

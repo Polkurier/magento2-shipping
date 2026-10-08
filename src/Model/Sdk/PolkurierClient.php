@@ -9,6 +9,7 @@ namespace Polkurier\Shipping\Model\Sdk;
 
 use Magento\Framework\ObjectManager\ResetAfterRequestInterface;
 use Polkurier\Shipping\Api\PolkurierClientInterface;
+use Polkurier\Shipping\Logger\Logger;
 use Polkurier\Webservice\Api\Service\AccountServiceInterface;
 use Polkurier\Webservice\Api\Service\AddressesServiceInterface;
 use Polkurier\Webservice\Api\Service\BankAccountsServiceInterface;
@@ -21,11 +22,9 @@ use Polkurier\Webservice\Api\Service\SystemServiceInterface;
 use Polkurier\Webservice\Api\Service\TwoFactorTokenServiceInterface;
 use Polkurier\Webservice\Api\Service\UtilsServiceInterface;
 use Polkurier\Webservice\Api\Validation\ValidatorInterface;
-use Polkurier\Webservice\Http\ClientFactoryInterface;
 use Polkurier\Webservice\PolkurierWebservice;
 use Polkurier\Webservice\PolkurierWebserviceFactory;
 use Polkurier\Webservice\Serializer\SerializerProviderInterface;
-use Psr\Log\LoggerInterface;
 
 /**
  * Hands out the SDK's services for the Polkurier account.
@@ -44,8 +43,7 @@ class PolkurierClient implements PolkurierClientInterface, ResetAfterRequestInte
         private readonly AccountConfigProviderFactory $configProviderFactory,
         private readonly SerializerProviderInterface $serializerProvider,
         private readonly ValidatorInterface $validator,
-        private readonly LoggerInterface $logger,
-        private readonly ?ClientFactoryInterface $clientFactory = null,
+        private readonly Logger $logger,
     ) {}
 
     public function courier(): CourierServiceInterface
@@ -125,7 +123,6 @@ class PolkurierClient implements PolkurierClientInterface, ResetAfterRequestInte
                 'logger' => $this->logger,
                 'serializerProvider' => $this->serializerProvider,
                 'configProvider' => $configProvider,
-                'clientFactory' => $this->clientFactory,
                 'validator' => $this->validator,
             ]);
         }

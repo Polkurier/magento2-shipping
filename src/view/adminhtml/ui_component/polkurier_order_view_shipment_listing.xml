@@ -5,9 +5,9 @@
 -->
 <listing xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Ui:etc/ui_configuration.xsd">
-    <!-- The order page's Polkurier tab: every Polkurier shipment of the order, also those that weren't
-         placed, with why, and what can be done with each; the toolbar and mass actions of the
-         shipments grid, kept to the order -->
+    <!-- The order page's Polkurier tab: every Polkurier shipment of the order, including those that
+         weren't placed (with the reason), and what can be done with each. It has the shipments
+         grid's toolbar and mass actions, limited to the order -->
     <argument name="data" xsi:type="array">
         <item name="js_config" xsi:type="array">
             <item name="provider" xsi:type="string">polkurier_order_view_shipment_listing.polkurier_order_view_shipment_listing_data_source</item>

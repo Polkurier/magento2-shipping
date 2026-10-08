@@ -5,8 +5,8 @@
 -->
 <listing xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Ui:etc/ui_configuration.xsd">
-    <!-- Magento's shipment page: every Polkurier order the shipment has had, the cancelled ones
-         before it included, and what can be done with each -->
+    <!-- Magento's shipment page: every Polkurier order the shipment has had, including the
+         cancelled ones before the current one, and what can be done with each -->
     <argument name="data" xsi:type="array">
         <item name="js_config" xsi:type="array">
             <item name="provider" xsi:type="string">polkurier_magento_shipment_listing.polkurier_magento_shipment_listing_data_source</item>

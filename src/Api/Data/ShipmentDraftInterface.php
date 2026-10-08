@@ -45,8 +45,8 @@ interface ShipmentDraftInterface
     public const string FIELD_SENDER_POINT_ID = 'sender_point_id';
 
     /**
-     * The choice of a sender address or bank account typed in for this shipment rather than one
-     * of those stored, as the screens send it in place of an id.
+     * The value the screens send in place of an id when the sender address or bank account is typed
+     * in for this shipment rather than chosen from those stored.
      */
     public const string NEW = 'new';
 
@@ -56,7 +56,7 @@ interface ShipmentDraftInterface
     public const string FIELD_NEW_SENDER = 'new_sender';
 
     /**
-     * The sender typed in, field by field, by the address field each one is.
+     * The form fields of the sender typed in for this shipment, keyed by address field.
      */
     public const array NEW_SENDER_FIELDS = [
         AddressInterface::FIELD_PERSON => 'new_sender_person',
@@ -93,7 +93,7 @@ interface ShipmentDraftInterface
     public const string FIELD_ITEMS = 'items';
 
     /**
-     * Set on a draft whose parcels were packed automatically, which the screen asks to check.
+     * Set when the parcels were packed automatically; the screen asks the merchant to check them.
      */
     public const string FIELD_PACKS_ESTIMATED = 'packs_estimated';
 
@@ -144,8 +144,8 @@ interface ShipmentDraftInterface
     public function setCarrierCode(string $carrierCode): static;
 
     /**
-     * The shipment type its parcels make: "box", "envelope" or "palette". Without parcels, or with
-     * parcels of more than one kind, the one set.
+     * The shipment type given by its parcels: "box", "envelope" or "palette". Without parcels, or
+     * with parcels of more than one kind, the type that was set.
      *
      * @return string
      */
@@ -327,8 +327,8 @@ interface ShipmentDraftInterface
     public function setPacks(array $packs): static;
 
     /**
-     * The order's items the shipment carries in Magento. Empty for everything the order still
-     * has to ship.
+     * The order items the Magento shipment carries. Empty means everything the order still has to
+     * ship.
      *
      * @return \Polkurier\Shipping\Api\Data\ShipmentDraft\ItemInterface[]
      */
@@ -342,7 +342,7 @@ interface ShipmentDraftInterface
     public function setItems(array $items): static;
 
     /**
-     * Whether the parcels were packed automatically, which the screen asks to check.
+     * Whether the parcels were packed automatically; the screen asks the merchant to check them.
      *
      * @return bool
      */
@@ -357,7 +357,8 @@ interface ShipmentDraftInterface
 
     /**
      * Whether the cash on delivery and the insurance cover the shipping and handling charged,
-     * besides the products (OrderAmountCalculator::getShipmentWorth).
+     * besides the products
+     * ({@see \Polkurier\Shipping\Model\Shipment\Valuation\OrderAmountCalculator::getShipmentWorth()}).
      *
      * @return bool
      */
@@ -623,8 +624,8 @@ interface ShipmentDraftInterface
     public function setAdditionalFields(array $additionalFields): static;
 
     /**
-     * The order's Magento shipment the Polkurier order goes on, one whose Polkurier order was
-     * cancelled; null to ship items the order has left.
+     * An existing Magento shipment of the order, whose Polkurier order was cancelled, for the new
+     * Polkurier order to go on; null to ship the items the order has left.
      *
      * @return int|null
      */

@@ -10,7 +10,7 @@ namespace Polkurier\Shipping\Exception;
 use Magento\Framework\Exception\LocalizedException;
 
 /**
- * A synchronization in which every entity failed; each failure is logged already, where it
+ * A synchronization in which every entity failed. Each failure was already logged where it
  * happened, and the message lists them.
  */
 class SynchronizationFailedException extends LocalizedException

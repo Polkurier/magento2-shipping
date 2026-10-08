@@ -10,7 +10,7 @@ namespace Polkurier\Shipping\Model\Carrier;
 use Composer\InstalledVersions;
 use Magento\Framework\ObjectManager\ResetAfterRequestInterface;
 use Polkurier\Shipping\Api\PolkurierClientInterface;
-use Polkurier\Shipping\Enum\CacheTagEnum;
+use Polkurier\Shipping\Enum\Cache\CacheTagEnum;
 use Polkurier\Shipping\Exception\RecentFailureException;
 use Polkurier\Shipping\Model\Cache\Type as PolkurierCache;
 use Polkurier\Shipping\Model\Sdk\AccountCache;
@@ -24,19 +24,19 @@ use Polkurier\Webservice\Response\CourierPoint;
  * The carriers the Polkurier account may ship with, and what each supports.
  *
  * The list is account-specific but changes rarely, and checkout needs it on every cart change, so
- * it's cached per account, for a day, which RefreshCarriersTask starts afresh daily. The response
- * classes only map one way (from the API: empty fields are left out when mapping back, and required
- * ones can't be rebuilt), so the cache holds them PHP-serialized. Only SDK response classes and
- * enums are instantiated on read, the key changes with the SDK version, and an entry that can't be
- * read back whole is dropped and fetched again.
+ * it's cached per account for a day; {@see \Polkurier\Shipping\Cron\RefreshCarriersTask} refreshes
+ * it daily. The response classes only map one way (from the API: empty fields are left out when
+ * mapping back, and required ones can't be rebuilt), so the cache holds them PHP-serialized. Only
+ * SDK response classes and enums are instantiated on read, the key changes with the SDK version,
+ * and an entry that can't be read back whole is dropped and fetched again.
  *
  * When the API can't be asked, every caller would wait for the timeout again, several times per
- * checkout step: the failure is kept for the rest of the request, and for a short while in the
- * cache, and reported again without asking.
+ * checkout step. So the failure is kept for the rest of the request, and briefly in the cache, and
+ * reported again without asking.
  *
  * Pickup points are looked up one by one, as they're chosen, and cached for a day: a point hardly
  * ever moves or closes. Their entries have a tag of their own, so refreshing the carriers keeps
- * them. While the carriers or the points couldn't be read a moment ago, a point isn't asked for.
+ * them. A point isn't looked up while the carriers or the points couldn't be read a moment ago.
  */
 class CarrierCatalog implements ResetAfterRequestInterface
 {
@@ -44,7 +44,7 @@ class CarrierCatalog implements ResetAfterRequestInterface
     public const int FAILURE_LIFETIME = 90;
 
     /**
-     * How long a point looked up is kept, found or not.
+     * How long a looked-up point is cached, whether it was found or not.
      */
     public const int POINT_LIFETIME = 86400;
 
@@ -71,8 +71,8 @@ class CarrierCatalog implements ResetAfterRequestInterface
     private array $failed = [];
 
     public function __construct(
-        private readonly PolkurierClientInterface $client,
-        private readonly PolkurierCache $cache,
+        private readonly PolkurierClientInterface $polkurierClient,
+        private readonly PolkurierCache $polkurierCache,
         private readonly ErrorMessageResolver $errorMessageResolver,
         private readonly AvailableCarrierFilter $availableCarrierFilter,
         private readonly AccountCache $accountCache,
@@ -110,7 +110,7 @@ class CarrierCatalog implements ResetAfterRequestInterface
         if ($carriers !== null) {
             return $this->loaded[$key] = $carriers;
         }
-        $failure = $this->cache->load($key . self::FAILURE_SUFFIX);
+        $failure = $this->polkurierCache->load($key . self::FAILURE_SUFFIX);
         if (\is_string($failure) && $failure !== '') {
             throw $this->failed[$key] = new RecentFailureException($failure);
         }
@@ -118,8 +118,8 @@ class CarrierCatalog implements ResetAfterRequestInterface
         try {
             $carriers = $this->fetch();
         } catch (PolkurierException $e) {
-            $this->cache->save(
-                $this->errorMessageResolver->describe($e),
+            $this->polkurierCache->save(
+                (string)$this->errorMessageResolver->phrase($e),
                 $key . self::FAILURE_SUFFIX,
                 [CacheTagEnum::Carriers->value, CacheTagEnum::Failures->value],
                 self::FAILURE_LIFETIME,
@@ -132,8 +132,8 @@ class CarrierCatalog implements ResetAfterRequestInterface
     }
 
     /**
-     * Reads the account's carriers from Polkurier again, past the cache. What was cached for the
-     * account goes only once the new list is in: a failure leaves it as it was.
+     * Reads the account's carriers from Polkurier again, bypassing the cache. What was cached for
+     * the account is dropped only once the new list is in, so a failure leaves it as it was.
      *
      * @return array<string, Carrier> by carrier code
      * @throws PolkurierException
@@ -160,7 +160,7 @@ class CarrierCatalog implements ResetAfterRequestInterface
      * @param string[] $providers
      *
      * @return CourierPoint|null null when there is no such point
-     * @throws PolkurierException RecentFailureException while Polkurier couldn't be asked a moment ago
+     * @throws PolkurierException {@see RecentFailureException} while Polkurier couldn't be asked a moment ago
      */
     public function findPoint(string $pointId, array $providers): ?CourierPoint
     {
@@ -169,16 +169,16 @@ class CarrierCatalog implements ResetAfterRequestInterface
         }
         \sort($providers);
         $key = $this->accountCache->key('point', $this->sdkVersion(), $pointId, \implode(',', $providers));
-        $cached = $this->cache->load($key);
+        $cached = $this->polkurierCache->load($key);
         if ($cached === self::NO_POINT) {
             return null;
         }
-        $point = \is_string($cached) && $cached !== '' ? $this->readObject($cached, CourierPoint::class) : null;
+        $point = \is_string($cached) && $cached !== '' ? $this->unserializeCached($cached) : null;
         if ($point instanceof CourierPoint) {
             return $point;
         }
         foreach ([$this->cacheKey(), $this->pointsFailureKey()] as $failing) {
-            $failure = $this->failed[$failing] ?? $this->cache->load($failing . self::FAILURE_SUFFIX);
+            $failure = $this->failed[$failing] ?? $this->polkurierCache->load($failing . self::FAILURE_SUFFIX);
             if ($failure instanceof PolkurierException) {
                 throw $failure;
             }
@@ -188,13 +188,13 @@ class CarrierCatalog implements ResetAfterRequestInterface
         }
 
         try {
-            $point = $this->client->courier()->getCourierPoint($pointId, $providers);
+            $point = $this->polkurierClient->courier()->getCourierPoint($pointId, $providers);
         } catch (PolkurierException $e) {
             // Polkurier unreachable or busy: not asked again for a while. A refusal of this point
             // says nothing of the next one.
             if ($this->errorMessageResolver->isTransient($e)) {
-                $this->cache->save(
-                    $this->errorMessageResolver->describe($e),
+                $this->polkurierCache->save(
+                    (string)$this->errorMessageResolver->phrase($e),
                     $this->pointsFailureKey() . self::FAILURE_SUFFIX,
                     [CacheTagEnum::Points->value, CacheTagEnum::Failures->value],
                     self::FAILURE_LIFETIME,
@@ -204,9 +204,8 @@ class CarrierCatalog implements ResetAfterRequestInterface
 
             throw $e;
         }
-        $point === null
-            ? $this->cache->save(self::NO_POINT, $key, [CacheTagEnum::Points->value], self::POINT_LIFETIME)
-            : $this->cache->save(\serialize($point), $key, [CacheTagEnum::Points->value], self::POINT_LIFETIME);
+        $data = $point === null ? self::NO_POINT : \serialize($point);
+        $this->polkurierCache->save($data, $key, [CacheTagEnum::Points->value], self::POINT_LIFETIME);
 
         return $point;
     }
@@ -219,7 +218,7 @@ class CarrierCatalog implements ResetAfterRequestInterface
         $this->loaded = [];
         $this->failed = [];
         // Polkurier answered, or is to be asked afresh: whatever failed a moment ago is asked again.
-        $this->cache->cleanTags(CacheTagEnum::Carriers, CacheTagEnum::Notices, CacheTagEnum::Failures);
+        $this->polkurierCache->cleanTags(CacheTagEnum::Carriers, CacheTagEnum::Notices, CacheTagEnum::Failures);
     }
 
     public function _resetState(): void
@@ -235,7 +234,8 @@ class CarrierCatalog implements ResetAfterRequestInterface
     private function fetch(): array
     {
         $carriers = [];
-        $available = $this->client->courier()->availableCarriers(new AvailableCarriersMessage(additionalData: true));
+        $message = new AvailableCarriersMessage(additionalData: true);
+        $available = $this->polkurierClient->courier()->availableCarriers($message);
         foreach ($available as $carrier) {
             $carriers[$carrier->getServiceCode()] = $carrier;
         }
@@ -250,7 +250,7 @@ class CarrierCatalog implements ResetAfterRequestInterface
      */
     private function keep(string $key, array $carriers): array
     {
-        $this->cache->save(\serialize($carriers), $key, [CacheTagEnum::Carriers->value], self::CACHE_LIFETIME);
+        $this->polkurierCache->save(\serialize($carriers), $key, [CacheTagEnum::Carriers->value], self::CACHE_LIFETIME);
 
         return $this->loaded[$key] = $carriers;
     }
@@ -260,44 +260,33 @@ class CarrierCatalog implements ResetAfterRequestInterface
      */
     private function readCache(string $key): ?array
     {
-        $cached = $this->cache->load($key);
+        $cached = $this->polkurierCache->load($key);
         if (!\is_string($cached) || $cached === '') {
             return null;
         }
-        try {
-            $classes = $this->cachedClasses($cached);
-            $carriers = $classes === null ? false : \unserialize($cached, ['allowed_classes' => $classes]);
-            if (\is_array($carriers)
-                && \array_filter($carriers, static fn(mixed $carrier): bool => !$carrier instanceof Carrier) === []
-            ) {
-                return $carriers;
-            }
-        } catch (\Throwable) {
-            // Unreadable, whatever the reason: fetched again below.
+        $carriers = $this->unserializeCached($cached);
+        if (\is_array($carriers)
+            && \array_filter($carriers, static fn(mixed $carrier): bool => !$carrier instanceof Carrier) === []
+        ) {
+            return $carriers;
         }
-        $this->cache->remove($key);
+        // Unreadable, whatever the reason: fetched again.
+        $this->polkurierCache->remove($key);
 
         return null;
     }
 
     /**
-     * One cached object of the given class, or null when the entry can't be read back whole.
-     *
-     * @template T of object
-     *
-     * @param class-string<T> $class
-     *
-     * @return T|null
+     * A cached value, or false when it can't be read back whole.
      */
-    private function readObject(string $cached, string $class): ?object
+    private function unserializeCached(string $cached): mixed
     {
         try {
             $classes = $this->cachedClasses($cached);
-            $object = $classes === null ? false : \unserialize($cached, ['allowed_classes' => $classes]);
 
-            return $object instanceof $class ? $object : null;
+            return $classes === null ? false : \unserialize($cached, ['allowed_classes' => $classes]);
         } catch (\Throwable) {
-            return null;
+            return false;
         }
     }
 

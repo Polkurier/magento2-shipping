@@ -17,16 +17,16 @@ use Polkurier\Shipping\Model\Shipment\Native\NativeLabelService;
 use Polkurier\Shipping\Model\Shipment\OrderLoader;
 
 /**
- * A shipment of an order placed with a Polkurier method isn't saved on Magento's shipment page
- * without its Polkurier order: only with a shipping label, which places it, and which isn't saved
- * either when Polkurier refuses. Otherwise a refused shipment could still be submitted without
- * the label, and leave the order shipped with nothing sent.
+ * On Magento's shipment page, a shipment of an order placed with a Polkurier method is saved only
+ * together with its Polkurier order, that is, only with a shipping label, which places the order.
+ * When Polkurier refuses, the shipment isn't saved either. Otherwise a refused shipment could still
+ * be submitted without the label, leaving the order shipped with nothing sent.
  *
- * Left alone when the module ships nothing itself: with both the labels on Magento's page and the
- * shipment screen turned off.
+ * Does nothing when the module ships nothing itself: when both the labels on Magento's page and
+ * the shipment screen are turned off.
  *
- * With a label, Magento's own message tells about the shipment; when Polkurier had no label ready
- * yet, it's replaced by one that says so.
+ * With a label, Magento's own message reports the shipment. When Polkurier had no label ready yet,
+ * that message is replaced by one that says so.
  */
 readonly class ShipmentSavePlugin
 {
@@ -77,8 +77,8 @@ readonly class ShipmentSavePlugin
     }
 
     /**
-     * Placed, but with no label yet: Magento's message says it created one. Its message is
-     * replaced, so that there's one, and it's right.
+     * Placed, but with no label yet, while Magento's message says it created one. That message is
+     * replaced, so there's only one message and it's correct.
      */
     private function tellUnreadyLabel(): void
     {

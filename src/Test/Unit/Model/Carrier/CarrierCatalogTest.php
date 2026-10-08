@@ -11,7 +11,7 @@ use Magento\Framework\Serialize\Serializer\Json;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Polkurier\Shipping\Enum\CacheTagEnum;
+use Polkurier\Shipping\Enum\Cache\CacheTagEnum;
 use Polkurier\Shipping\Exception\RecentFailureException;
 use Polkurier\Shipping\Model\Cache\Type as PolkurierCache;
 use Polkurier\Shipping\Model\Carrier\AvailableCarrierFilter;
@@ -221,7 +221,7 @@ class CarrierCatalogTest extends TestCase
         } catch (RecentFailureException $e) {
             self::assertSame(
                 'Polkurier could not be reached, or did not answer in time: Timed out.',
-                (new ErrorMessageResolver())->describe($e),
+                (string)(new ErrorMessageResolver())->phrase($e),
             );
         }
         self::assertSame(1, $this->requests, 'The next request is told without waiting for the API.');

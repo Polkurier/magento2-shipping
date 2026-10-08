@@ -12,7 +12,7 @@ define(['jquery', 'mage/translate', 'Polkurier_Shipping/js/request'], function (
     return function (config, element) {
         const $element = $(element),
             $result = $element.find('.polkurier-test-connection__result'),
-            // A second click answers for what's typed now, not for the first.
+            // A second click checks what's typed now; the answer to the first one is dropped.
             checks = request();
 
         /**

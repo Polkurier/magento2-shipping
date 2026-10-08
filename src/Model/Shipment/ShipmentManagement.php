@@ -23,7 +23,7 @@ readonly class ShipmentManagement implements ShipmentManagementInterface
 {
     public function __construct(
         private OrderLoader $orderLoader,
-        private DefaultDraftBuilder $draftBuilder,
+        private DefaultDraftBuilder $defaultDraftBuilder,
         private PlacementService $placementService,
         private ReconciliationService $reconciliationService,
         private StatusRefreshService $statusRefreshService,
@@ -32,7 +32,7 @@ readonly class ShipmentManagement implements ShipmentManagementInterface
 
     public function getDefaultDraft(int $orderId): ShipmentDraftInterface
     {
-        return $this->draftBuilder->createFromOrder($this->orderLoader->getForPolkurier($orderId));
+        return $this->defaultDraftBuilder->createFromOrder($this->orderLoader->getForPolkurier($orderId));
     }
 
     public function create(int $orderId, ShipmentDraftInterface $draft): ShipmentInterface

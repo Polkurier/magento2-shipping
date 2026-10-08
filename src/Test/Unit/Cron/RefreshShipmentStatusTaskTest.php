@@ -20,7 +20,7 @@ class RefreshShipmentStatusTaskTest extends TestCase
     public function testTheDueShipmentsAreRefreshed(): void
     {
         $refresher = $this->createMock(StatusRefreshService::class);
-        $refresher->expects(self::once())->method('refreshPending')->willReturn(3);
+        $refresher->expects(self::once())->method('refreshPending');
 
         (new RefreshShipmentStatusTask($refresher, $this->config(true, true)))->execute();
     }

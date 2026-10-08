@@ -6,84 +6,82 @@
 
 [User guide](README.md) › Carriers and prices
 
-Everything about which carriers your customers can choose, what they're called and what they
-cost is set under **Polkurier > Settings > Carriers**.
+Carriers, their names at checkout and their prices are set under **Polkurier > Settings >
+Carriers**.
 
 ## Fetching your carriers
 
-Click **Synchronize with Polkurier**. The module fetches the carriers available on your
-account and adds any new ones to the list, switched off. Your account's carriers can change over
-time, so the module also checks once a day while the scheduled synchronization is on (see
-[Configuration](configuration.md#synchronization)); click the button when you want a change to
+Click **Synchronize with Polkurier**. The carriers available on your Polkurier account are added to
+the list, switched off.
+
+The list is also checked once a day, while the scheduled synchronization is on (see
+[Configuration](configuration.md#synchronization)). Click the button when you want a change to
 show at once.
 
-Only the carriers selected under **Available carriers** in the
-[configuration](configuration.md#new-shipments) are listed; with none selected, all of them are.
-
-A carrier your account no longer offers disappears from the list and from checkout. Its settings
-are kept, so if the account offers it again, it comes back as it was.
-
-Either way, a message in **System > Notifications** says which carriers came or went. Shipping an
-order placed with a carrier that's gone asks you to choose another: the Polkurier shipment screen
-and the New Shipment page mark the carrier, and the order isn't sent with it.
+- **Only some carriers listed?** Only the carriers selected under **Available carriers** in the
+  [configuration](configuration.md#connecting-your-account) are listed. With none selected, all
+  of them are.
+- **A carrier your account no longer offers** disappears from the list and from checkout. Its
+  settings are kept: if your account offers it again, it comes back as it was.
+- **When carriers come or go**, a message in **System > Notifications** says which. If an order was
+  placed with a carrier that's gone, the shipping screens point it out and ask you to choose
+  another.
 
 ## Setting up a carrier
 
-Open a carrier from the list:
+![The Carriers list, with enabled carriers at the top](images/carriers.jpg)
 
-- **Enabled** switches it on for customers.
+Click **Edit** on a carrier:
+
+- **Enabled** offers the carrier to customers.
 - **Label in checkout** is the name customers see, for example "Kurier DPD" or "Paczkomat
-  InPost". It's also what they see in e-mails and on their order page, and the title of the
-  tracking numbers of parcels sent with the carrier. Leave it empty to use the carrier's own name.
-- **Label per store view** gives the carrier a different name in a particular store view, for
-  example in English for an English store view. Click **Add a store view label**, pick the store
-  view and type the label. Store views without a label of their own use the one above.
-- **Logo in checkout** is shown in front of the method name at checkout. Click **Upload** and
-  choose a JPG, PNG, GIF or WebP file; something around 60 × 30 pixels looks best, as the logo is
-  shown at most 60 pixels wide and 24 high. Click the bin icon on the preview to remove it. The
-  list of carriers shows each logo as a thumbnail.
+  InPost". They also see it in e-mails, on their order page and as the title of the tracking
+  numbers. Leave it empty to use the carrier's own name.
+- **Label per store view** gives the carrier another name in one store view, for example in
+  English. Click **Add a store view label**, pick the store view and type the label. Other store
+  views use the label above.
+- **Logo in checkout** is shown in front of the carrier's name at checkout. Click **Upload** and
+  choose a JPG, PNG, GIF or WebP file of about 60 × 30 pixels. To remove it, click the bin icon on
+  the preview.
+- **Pricing** sets what customers pay; see [Pricing](#pricing) below.
 
-The list shows the enabled carriers first, then the others, each in the order checkout offers
-them, so it can't be sorted by its columns. To change the order, drag a carrier by the handle at
-the start of its row to where it should go, among the carriers enabled or not like it; a bar
-across the list shows where it will land, and the new order is saved as soon as you let go. From
-the keyboard, focus the handle and press Alt+Up or Alt+Down to move the carrier one place.
-Carriers the list doesn't show keep their places.
-A carrier new to your account comes last.
+### Working in the list
 
-The label and **Enabled** can also be changed straight in the list: click a carrier's
-row, edit, and click **Save** under it. The same goes for the price of carriers
-with a fixed price, in the **Fixed price** column; tiered prices are edited on the carrier's page.
-To switch several carriers at once, tick them and choose **Enable / disable** from **Actions**:
-each ticked carrier that was enabled is switched off, and each one that wasn't is switched on.
-**Save and Continue Edit** on the carrier's page saves without taking you back to the list.
+- **Order at checkout**: checkout offers the carriers in the order of the list. Enabled carriers
+  come first. To move a carrier, drag it by the handle at the start of its row, or focus the handle
+  and press Alt+Up or Alt+Down. The new order is saved at once. A carrier new to your account comes
+  last.
+- **Quick edits**: click a row to change the label, **Enabled** or a fixed price, then click
+  **Save** under it. Price tiers are edited on the carrier's page.
+- **Several at once**: tick the carriers and choose **Enable / disable** from **Actions**. Each
+  ticked carrier is switched to the opposite state.
 
 ## Pricing
 
-**Pricing** decides what the customer pays for shipping with the carrier. Prices and subtotals are
-in your store's base currency, as Magento's own shipping prices are. The price you set is what the
-customer pays; what Polkurier charges you is a separate matter between you and
-Polkurier.
+The price you set is what the customer pays for shipping, whatever Polkurier charges you. Prices
+are in your store's base currency.
+
+Choose one of these under **Pricing**:
 
 - **Fixed price**: the same price for every cart.
-- **By cart subtotal**: price tiers by the value of the cart.
-- **By cart weight**: price tiers by the total weight of the products, in kilograms (a store that
-  weighs in pounds is converted).
-- **By cart subtotal and weight**: each tier has both a minimum value and a minimum weight, and a
-  cart has to reach both.
+- **By cart subtotal**: the price depends on the value of the cart.
+- **By cart weight**: the price depends on the total weight of the products, in kilograms. A store
+  that weighs in pounds is converted.
+- **By cart subtotal and weight**: each tier has a minimum value and a minimum weight, and the cart
+  has to reach both.
 
-With tiers, the customer gets the price of the highest tier the cart reaches. If the cart doesn't
-reach any tier, the carrier isn't offered for that cart at all. That's useful on purpose (a
-pallet carrier only for heavy carts, say), but usually you'll want your lowest tier to start at 0.
+With tiers, the customer pays the price of the highest tier the cart reaches.
 
-The subtotal is the value of the cart after discounts, with tax by default: what the customer sees.
-To compare tiers with the value without tax instead, set **Cart value for price tiers** in the
-configuration (see [Configuration](configuration.md#the-delivery-method)). The weight is the sum
-of the products' weights as set in the catalog.
+**A cart that reaches no tier doesn't get the carrier at all.** Start your lowest tier at 0, unless
+you want that, for example to offer a pallet carrier only for heavy carts.
+
+The cart value is what the customer sees: after discounts, and with tax unless you set **Cart value
+for price tiers** otherwise (see [Configuration](configuration.md#the-delivery-method)). The weight
+is the sum of the product weights from the catalog.
 
 ### Examples
 
-**Free shipping above 200 zł**, 14.99 zł otherwise, with **By cart subtotal**:
+**Free shipping from 200 zł**, 14.99 zł below that, with **By cart subtotal**:
 
 | Subtotal from | Price |
 |---|---|
@@ -98,22 +96,23 @@ of the products' weights as set in the catalog.
 | 10 | 22.00 |
 | 25 | 35.00 |
 
-Carts over 25 kg pay 35 zł. If the carrier can't take parcels that heavy, don't add a tier for
-them, and the carrier won't be offered for such carts.
+Carts over 25 kg pay 35 zł. If the carrier can't take parcels that heavy, leave out the last tier:
+carts over 25 kg then don't get the carrier.
 
-Magento's cart price rules with free shipping still work: when a rule grants free shipping, every
-method offered for the cart is free. A method your prices don't cover for the cart, such as one
-priced only from a certain subtotal, stays hidden.
+### Free shipping from cart price rules
+
+Magento's cart price rules with free shipping still work. When a rule grants free shipping, every
+carrier offered for the cart is free. A carrier your prices don't cover for that cart stays hidden.
 
 ## Pickup points
 
-Carriers that deliver to parcel lockers or pickup shops automatically get the point picker at
-checkout (see [Checkout](checkout.md)). There's nothing to set up per carrier.
+Carriers that deliver to parcel lockers or pickup shops get the pickup point map at checkout on their
+own (see [Checkout](checkout.md#pickup-points)).
 
 ## Other countries
 
-Carriers that only deliver within Poland are offered only for Polish shipping addresses. For other
-countries, only carriers that deliver abroad are offered. You can narrow this down further with
-**Ship to Specific Countries** on the configuration page.
+Carriers that deliver only within Poland are offered only for Polish addresses. For other countries,
+only carriers that deliver abroad are offered. To limit the countries further, use **Ship to
+Specific Countries** on the configuration page.
 
-Next: [Addresses, bank accounts and pack templates](master-data.md)
+Next: [Addresses, bank accounts and pack templates](synced-data.md)

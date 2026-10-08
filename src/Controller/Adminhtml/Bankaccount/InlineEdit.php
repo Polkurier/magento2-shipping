@@ -11,7 +11,6 @@ use Magento\Backend\App\Action\Context;
 use Magento\Framework\Controller\Result\JsonFactory;
 use Polkurier\Shipping\Api\Data\BankAccountInterface;
 use Polkurier\Shipping\Controller\Adminhtml\AbstractInlineEdit;
-use Polkurier\Shipping\Model\Admin\FlashMessageCollectorFactory;
 use Polkurier\Shipping\Model\BankAccount\BankAccountHandler;
 
 /**
@@ -23,11 +22,10 @@ class InlineEdit extends AbstractInlineEdit
 
     public function __construct(
         Context $context,
-        BankAccountHandler $handler,
+        BankAccountHandler $bankAccountHandler,
         JsonFactory $jsonFactory,
-        FlashMessageCollectorFactory $flashMessageCollectorFactory,
     ) {
-        parent::__construct($context, $handler, $jsonFactory, $flashMessageCollectorFactory);
+        parent::__construct($context, $bankAccountHandler, $jsonFactory);
     }
 
     protected function getEditableFields(): array

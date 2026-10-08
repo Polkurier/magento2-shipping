@@ -13,10 +13,11 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Api\ShipmentManagementInterface;
+use Polkurier\Shipping\Logger\Logger;
 use Polkurier\Shipping\Model\Config\ConfigProvider;
 use Polkurier\Shipping\Model\Shipment\ShipmentFinder;
 use Polkurier\Shipping\Model\Shipment\Status\StatusWebhookHandler;
-use Psr\Log\LoggerInterface;
+use Polkurier\Webservice\Webhook\OrderWebhookReader;
 
 #[CoversClass(StatusWebhookHandler::class)]
 #[AllowMockObjectsWithoutExpectations]
@@ -57,7 +58,7 @@ class StatusWebhookHandlerTest extends TestCase
         self::assertSame([31], $this->refreshed);
     }
 
-    public function testTheSignatureCoversTheWholeBodyBeforeTheHash(): void
+    public function testTheSignatureCoversTheWholeBody(): void
     {
         $body = $this->body('UPDATED', '711400-27');
 
@@ -78,12 +79,22 @@ class StatusWebhookHandlerTest extends TestCase
         self::assertSame([], $this->refreshed);
     }
 
-    public function testABodyWhoseLastFieldIsntTheHashIsRefused(): void
+    public function testAFieldAddedToASignedEventOrAnUnsignedOneIsRefused(): void
     {
         $body = $this->body('UPDATED', '711400-27') . '&data%5Bnumber%5D=1';
 
         self::assertSame(StatusWebhookHandler::REFUSED, $this->webhook([31])->receive($body));
         self::assertSame(StatusWebhookHandler::REFUSED, $this->webhook([31])->receive('type=UPDATED'));
+        self::assertSame([], $this->refreshed);
+    }
+
+    public function testASignedEventThatIsntAnOrderIsAcknowledgedAndLeftAlone(): void
+    {
+        $fields = ['type' => 'UPDATED', 'data' => ['note' => 'not an order']];
+        $fields['hash'] = \hash_hmac('sha256', \http_build_query($fields), self::SECRET);
+
+        self::assertSame(StatusWebhookHandler::RECEIVED, $this->webhook([31])->receive(\http_build_query($fields)));
+        self::assertSame([], $this->refreshed);
     }
 
     public function testAnOrderThisShopDidntPlaceIsAcknowledgedAndLeftAlone(): void
@@ -104,28 +115,15 @@ class StatusWebhookHandlerTest extends TestCase
     }
 
     /**
-     * As Polkurier builds it: the HMAC of the form-encoded type and data, then the hash added last.
+     * As Polkurier builds it: the order as get_orders gives it (a recorded one), and the HMAC of the
+     * form-encoded type and data as the hash.
      *
      * @param array<string, mixed> $more more order fields
      */
     private function body(string $type, string $number, array $more = []): string
     {
-        $fields = [
-            'type' => $type,
-            'data' => [
-                'number' => $number,
-                'status' => 'Oczekuje na odbiór',
-                'status_code' => 'OC',
-                'delivered_date' => '',
-                'is_paid' => true,
-                'price_gross' => 22.85,
-                // Dropped by the form encoding on both sides.
-                'cover_address' => null,
-                'COD' => [],
-                'waybills' => [['number' => '0000000000', 'is_default' => true]],
-                'external_order_id' => '1042',
-            ] + $more,
-        ];
+        $recorded = \json_decode((string)\file_get_contents(__DIR__ . '/../../../_files/get_orders.json'), true);
+        $fields = ['type' => $type, 'data' => ['number' => $number] + $more + $recorded['response']['result'][0]];
         $fields['hash'] = \hash_hmac('sha256', \http_build_query($fields), self::SECRET);
 
         return \http_build_query($fields, '', '&');
@@ -163,6 +161,12 @@ class StatusWebhookHandlerTest extends TestCase
             return $this->createStub(ShipmentInterface::class);
         });
 
-        return new StatusWebhookHandler($config, $finder, $management, $this->createStub(LoggerInterface::class));
+        return new StatusWebhookHandler(
+            $config,
+            $finder,
+            $management,
+            new OrderWebhookReader(),
+            $this->createStub(Logger::class),
+        );
     }
 }

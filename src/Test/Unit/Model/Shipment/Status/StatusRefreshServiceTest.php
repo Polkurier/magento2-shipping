@@ -16,6 +16,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Api\ShipmentRepositoryInterface;
+use Polkurier\Shipping\Logger\Logger;
 use Polkurier\Shipping\Model\Config\ConfigProvider;
 use Polkurier\Shipping\Model\ResourceModel\Shipment as ShipmentResource;
 use Polkurier\Shipping\Model\Shipment;
@@ -32,7 +33,6 @@ use Polkurier\Shipping\Model\Shipment\Status\StatusRefreshService;
 use Polkurier\Shipping\Test\Unit\Support\FixedDateTime;
 use Polkurier\Shipping\Test\Unit\Support\MemoryLocks;
 use Polkurier\Webservice\Response\Order as RemoteOrder;
-use Psr\Log\NullLogger;
 
 #[CoversClass(StatusRefreshService::class)]
 #[AllowMockObjectsWithoutExpectations]
@@ -171,7 +171,7 @@ class StatusRefreshServiceTest extends TestCase
 
     /**
      * @param array{waybills?: string[], delivered?: string, state?: string} $remote what Polkurier
-     *     says, as RemoteOrderApplier would apply it
+     *     says, as {@see RemoteOrderApplier} would apply it
      * @param \Throwable|null $tracksError what adding the waybills to the Magento shipment throws
      */
     private function refresh(
@@ -257,7 +257,7 @@ class StatusRefreshServiceTest extends TestCase
             $this->createStub(ShipmentFinder::class),
             $this->createStub(ShipmentResource::class),
             $this->createStub(ConfigProvider::class),
-            new NullLogger(),
+            $this->createStub(Logger::class),
         );
     }
 }

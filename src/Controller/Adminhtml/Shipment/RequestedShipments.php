@@ -23,7 +23,7 @@ readonly class RequestedShipments
 {
     public function __construct(
         private ShipmentRepositoryInterface $shipmentRepository,
-        private ShipmentFinder $finder,
+        private ShipmentFinder $shipmentFinder,
         private CollectionFactory $collectionFactory,
         private Filter $filter,
     ) {}
@@ -45,12 +45,13 @@ readonly class RequestedShipments
     public function getSelected(RequestInterface $request): array
     {
         $ids = \array_filter(\array_map('intval', \explode(',', (string)$request->getParam('ids'))));
-        // Sent from an order's Polkurier tab (Ui\Component\Listing\Shipment\OrderScopedMassAction):
-        // that order's shipments only, whatever else the selection says.
+        // Sent from an order's Polkurier tab
+        // ({@see \Polkurier\Shipping\Ui\Component\Listing\Shipment\OrderScopedMassAction}): that
+        // order's shipments only, whatever else the selection says.
         $orderId = (int)$request->getParam('order_id');
         if ($ids !== []) {
             return \array_values(\array_filter(
-                $this->finder->byIds($ids),
+                $this->shipmentFinder->byIds($ids),
                 static fn(ShipmentInterface $shipment): bool => !$orderId || $shipment->getOrderId() === $orderId,
             ));
         }

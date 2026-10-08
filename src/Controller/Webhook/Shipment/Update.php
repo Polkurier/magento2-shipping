@@ -15,12 +15,13 @@ use Magento\Framework\App\RequestInterface;
 use Magento\Framework\Controller\Result\Raw;
 use Magento\Framework\Controller\Result\RawFactory;
 use Polkurier\Shipping\Model\Shipment\Status\StatusWebhookHandler;
+use Polkurier\Webservice\Webhook\OrderWebhookReader;
 
 /**
  * Polkurier's status webhook: the URL to give in the Polkurier panel. Polkurier takes an event as
  * delivered when the answer's body is exactly "OK", whatever the status code.
  *
- * Not a form of this shop's: its signature, not a form key, says where it comes from.
+ * Not one of this shop's forms: the request's signature, not a form key, says where it comes from.
  */
 class Update implements HttpPostActionInterface, CsrfAwareActionInterface
 {
@@ -44,7 +45,7 @@ class Update implements HttpPostActionInterface, CsrfAwareActionInterface
         $result->setHeader('Cache-Control', 'no-store', true);
 
         return match ($outcome) {
-            StatusWebhookHandler::RECEIVED => $result->setContents('OK'),
+            StatusWebhookHandler::RECEIVED => $result->setContents(OrderWebhookReader::ACKNOWLEDGEMENT),
             StatusWebhookHandler::REFUSED => $result->setHttpResponseCode(403)->setContents('Forbidden'),
             default => $result->setHttpResponseCode(503)->setContents('Not updated'),
         };

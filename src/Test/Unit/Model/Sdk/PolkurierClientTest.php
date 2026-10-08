@@ -10,6 +10,7 @@ namespace Polkurier\Shipping\Test\Unit\Model\Sdk;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use Polkurier\Shipping\Logger\Logger;
 use Polkurier\Shipping\Model\Sdk\AccountConfigProvider;
 use Polkurier\Shipping\Model\Sdk\AccountConfigProviderFactory;
 use Polkurier\Shipping\Model\Sdk\PolkurierClient;
@@ -19,7 +20,6 @@ use Polkurier\Webservice\PolkurierWebservice;
 use Polkurier\Webservice\PolkurierWebserviceFactory;
 use Polkurier\Webservice\Serializer\SerializerProvider;
 use Polkurier\Webservice\Validator\DefaultValidatorRegistryFactory;
-use Psr\Log\NullLogger;
 
 #[CoversClass(PolkurierClient::class)]
 #[AllowMockObjectsWithoutExpectations]
@@ -74,7 +74,7 @@ class PolkurierClientTest extends TestCase
             $configProviders,
             new SerializerProvider(),
             DefaultValidatorRegistryFactory::create(),
-            new NullLogger(),
+            $this->createStub(Logger::class),
         );
     }
 }

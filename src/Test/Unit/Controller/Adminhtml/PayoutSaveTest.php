@@ -12,7 +12,7 @@ use Magento\Framework\Exception\LocalizedException;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use Polkurier\Shipping\Controller\Adminhtml\Payout\Save;
-use Polkurier\Shipping\Enum\FormMemoryEnum;
+use Polkurier\Shipping\Enum\Adminhtml\FormMemoryEnum;
 use Polkurier\Shipping\Model\Payout\PayoutManager;
 use Polkurier\Shipping\Test\Unit\Support\AdminActionTestCase;
 use Polkurier\Webservice\Enum\MoneyBox\MoneyBoxFeePaymentTypeEnum;

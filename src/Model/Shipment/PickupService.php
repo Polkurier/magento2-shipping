@@ -12,7 +12,7 @@ use Polkurier\Shipping\Api\AddressRepositoryInterface;
 use Polkurier\Shipping\Api\Data\ShipmentDraftInterface;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Api\ShipmentRepositoryInterface;
-use Polkurier\Shipping\Enum\ApiEventEnum;
+use Polkurier\Shipping\Enum\Sdk\ApiEventEnum;
 use Polkurier\Shipping\Model\Sdk\ApiEventDispatcher;
 use Polkurier\Shipping\Model\Sdk\PolkurierTimeZone;
 use Polkurier\Shipping\Model\Sdk\ShipmentGateway;
@@ -29,9 +29,9 @@ use Polkurier\Webservice\Request\Order\PackMessage;
 readonly class PickupService
 {
     public function __construct(
-        private ShipmentGateway $gateway,
+        private ShipmentGateway $shipmentGateway,
         private ShipmentRepositoryInterface $shipmentRepository,
-        private ApiEventDispatcher $events,
+        private ApiEventDispatcher $apiEventDispatcher,
         private OrderLoader $orderLoader,
         private AddressRepositoryInterface $addressRepository,
         private SenderMapper $senderMapper,
@@ -52,7 +52,7 @@ readonly class PickupService
         ?string $recipientPostcode,
         string $shipmentType,
     ): array {
-        $days = $this->gateway->getPickupTimes($this->getPickupTimeMessageBuilderFactory->create()
+        $days = $this->shipmentGateway->getPickupTimes($this->getPickupTimeMessageBuilderFactory->create()
             ->courier($carrierCode)
             ->shipFrom($senderPostcode)
             ->shipTo($recipientPostcode ?: null)
@@ -95,7 +95,7 @@ readonly class PickupService
             ->shipmentType(ShipmentTypeEnum::tryFrom($shipmentType))
             ->build();
 
-        return $this->gateway->isMultiPickupAvailable($request);
+        return $this->shipmentGateway->isMultiPickupAvailable($request);
     }
 
     /**
@@ -132,7 +132,7 @@ readonly class PickupService
 
     /**
      * A collection date and window as typed, in Polish time, as Polkurier offers them whatever
-     * PHP's own zone: a real date, and a window that ends after it starts.
+     * PHP's own zone. The date must be real, and the window must end after it starts.
      *
      * @return array{date: \DateTimeImmutable, from: \DateTimeImmutable, to: \DateTimeImmutable}
      * @throws LocalizedException
@@ -170,8 +170,8 @@ readonly class PickupService
         if ($numbers === []) {
             throw new LocalizedException(__('None of the selected shipments awaits a collective pickup.'));
         }
-        // Whether a shipment can be collected so is Polkurier's answer for each one, given with
-        // the ones it couldn't book: it depends on the carrier and the parcels, not the account.
+        // Polkurier answers for each shipment whether it can be collected this way, listing those
+        // it couldn't book: that depends on the carrier and the parcels, not the account.
         $window = self::window($date, $from, $to);
         $request = $this->multiPickupRequestMessageBuilderFactory->create()
             ->pickupDate($window['date'])
@@ -179,7 +179,7 @@ readonly class PickupService
             ->pickupTimeTo($window['to'])
             ->orders(\array_map('strval', \array_keys($numbers)))
             ->build();
-        $result = $this->gateway->bookMultiPickup($request);
+        $result = $this->shipmentGateway->bookMultiPickup($request);
 
         $booked = \array_map('strval', $result->getSuccess());
         $bookedShipments = [];
@@ -191,7 +191,7 @@ readonly class PickupService
         }
         $failed = \array_map('strval', $result->getFailed());
         if ($bookedShipments !== []) {
-            $this->events->dispatch(ApiEventEnum::PickupCreateAfter, null, [
+            $this->apiEventDispatcher->dispatch(ApiEventEnum::PickupCreateAfter, null, [
                 'shipments' => $bookedShipments,
                 'failed' => $failed,
                 'request' => $request,
@@ -203,8 +203,8 @@ readonly class PickupService
     }
 
     /**
-     * The postcode a shipment being filled in goes from, for what Polkurier answers by it: the
-     * sender chosen, the one typed in, or the store's.
+     * The postcode a shipment being filled in is sent from, which Polkurier's answers depend on:
+     * the chosen sender's, the typed-in sender's, or the store's.
      *
      * @param array<string, mixed> $data the shipment as the screen has it: order_id,
      *        sender_address_id, new_sender_postcode

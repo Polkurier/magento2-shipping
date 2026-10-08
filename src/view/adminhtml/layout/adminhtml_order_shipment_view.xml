@@ -6,8 +6,8 @@
 <page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
       xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
     <body>
-        <!-- Placed in the shipment form by Plugin\Adminhtml\ShippingInfoPlugin, since Magento's
-             template renders no children -->
+        <!-- Placed in the shipment form by Polkurier\Shipping\Plugin\Adminhtml\ShippingInfoPlugin,
+             since Magento's template renders no children -->
         <referenceBlock name="form">
             <!-- Above Payment & Shipping Method: the Polkurier options of a label created on this
                  page, for a shipment whose Polkurier order was cancelled or that never had one,

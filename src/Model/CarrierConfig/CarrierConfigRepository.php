@@ -27,7 +27,7 @@ use Polkurier\Shipping\Model\ResourceModel\CarrierConfig\CollectionFactory;
 readonly class CarrierConfigRepository implements CarrierConfigRepositoryInterface
 {
     public function __construct(
-        private CarrierConfigFactory $entityFactory,
+        private CarrierConfigFactory $carrierConfigFactory,
         private ResourceModel $resource,
         private CollectionFactory $collectionFactory,
         private CollectionProcessorInterface $collectionProcessor,
@@ -36,7 +36,7 @@ readonly class CarrierConfigRepository implements CarrierConfigRepositoryInterfa
 
     public function get(int $id): CarrierConfigInterface
     {
-        $entity = $this->entityFactory->create();
+        $entity = $this->carrierConfigFactory->create();
         $this->resource->load($entity, $id);
         if (!$entity->getId()) {
             throw new NoSuchEntityException(__('The carrier settings with id "%1" do not exist.', $id));

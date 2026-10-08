@@ -20,6 +20,7 @@ use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Polkurier\Shipping\Api\Data\ShipmentDraftInterface;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
+use Polkurier\Shipping\Logger\Logger;
 use Polkurier\Shipping\Model\Config\ConfigProvider;
 use Polkurier\Shipping\Model\Shipment\DocumentService;
 use Polkurier\Shipping\Model\Shipment\Draft;
@@ -37,7 +38,6 @@ use Polkurier\Shipping\Model\Shipment\Placement\PlacementService;
 use Polkurier\Shipping\Model\Shipment\ShipmentFinder;
 use Polkurier\Shipping\Test\Unit\Support\MagentoMeasures;
 use Polkurier\Shipping\Test\Unit\Support\NewingObjectManager;
-use Psr\Log\NullLogger;
 
 #[CoversClass(NativeLabelService::class)]
 #[CoversClass(NativeLabelPackageMapper::class)]
@@ -68,7 +68,7 @@ class NativeLabelServiceTest extends TestCase
 
     private bool $labelsOn = true;
 
-    public function testPackagesCannotShipAnItemTwice(): void
+    public function testPackagesAreCheckedAgainstWhatTheShipmentCarries(): void
     {
         $shipment = $this->magentoShipment(null);
         $this->management->expects(self::never())->method('forNativeShipment');
@@ -76,13 +76,18 @@ class NativeLabelServiceTest extends TestCase
             'params' => ['container' => 'ST', 'weight' => '1'],
             'items' => [11 => ['qty' => '2', 'order_item_id' => '5']],
         ];
+        $native = $this->createMock(NativeShipmentService::class);
+        $native->expects(self::once())->method('assertPacked')->with(
+            self::anything(),
+            self::callback(static fn(array $packs): bool => \count($packs) === 2
+                && $packs[1]->getItems()[0]->getOrderItemId() === 5
+                && $packs[1]->getItems()[0]->getQty() === 2.0),
+            [5 => 2.0],
+        )->willThrowException(new LocalizedException(__('Two mugs in each parcel, of the two the shipment carries.')));
 
-        try {
-            $this->label()->request($this->labelRequest($shipment, [1 => $item, 2 => $item]));
-            self::fail('Two mugs in each package, of the two the shipment carries.');
-        } catch (LocalizedException $e) {
-            self::assertStringContainsString('more of an item than the shipment carries', $e->getMessage());
-        }
+        $this->expectException(LocalizedException::class);
+
+        $this->label($native)->request($this->labelRequest($shipment, [1 => $item, 2 => $item]));
     }
 
     public function testPackagesBecomeParcelsInKilogramsAndCentimetres(): void
@@ -268,7 +273,8 @@ class NativeLabelServiceTest extends TestCase
         $shipment->method('getId')->willReturn($id);
         $shipment->method('getOrder')->willReturn($order);
         $shipment->method('getTracks')->willReturn([]);
-        // As NativeLabelPagePlugin puts them there from the request.
+        // As {@see \Polkurier\Shipping\Plugin\Adminhtml\NativeLabelPagePlugin} puts them there from the
+        // request.
         $shipment->method('getData')->willReturnCallback(
             fn(string $key = '') => $key === NativeLabelService::FIELD_OPTIONS ? $this->options : null,
         );
@@ -294,7 +300,7 @@ class NativeLabelServiceTest extends TestCase
         return $shipment;
     }
 
-    private function label(): NativeLabelService
+    private function label(?NativeShipmentService $nativeShipmentService = null): NativeLabelService
     {
         $config = $this->createStub(ConfigProvider::class);
         $config->method('isNativeLabelsEnabled')->willReturnCallback(fn(?int $storeId): bool => $this->labelsOn);
@@ -334,9 +340,9 @@ class NativeLabelServiceTest extends TestCase
             new DraftHydrator($draftFactory, $packFactory, $this->createStub(ItemFactory::class)),
             $finder,
             $this->documentService,
-            $this->createStub(NativeShipmentService::class),
+            $nativeShipmentService ?? $this->createStub(NativeShipmentService::class),
             $tracks,
-            new NullLogger(),
+            $this->createStub(Logger::class),
             NewingObjectManager::factory(DataObjectFactory::class),
         );
     }

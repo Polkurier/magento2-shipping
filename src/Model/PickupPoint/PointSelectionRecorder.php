@@ -11,6 +11,7 @@ use Magento\Framework\Exception\InputException;
 use Magento\Quote\Api\Data\CartInterface;
 use Polkurier\Shipping\Api\QuotePointRepositoryInterface;
 use Polkurier\Shipping\Exception\RecentFailureException;
+use Polkurier\Shipping\Logger\Logger;
 use Polkurier\Shipping\Model\Carrier\CarrierCatalog;
 use Polkurier\Shipping\Model\Carrier\CarrierFeatureResolver;
 use Polkurier\Shipping\Model\Carrier\Polkurier;
@@ -19,25 +20,24 @@ use Polkurier\Shipping\Model\QuotePointFactory;
 use Polkurier\Webservice\Enum\Courier\PointFunctionEnum;
 use Polkurier\Webservice\Exception\Exception as PolkurierException;
 use Polkurier\Webservice\Response\CourierPoint;
-use Psr\Log\LoggerInterface;
 
 /**
  * Records the pickup point a customer chose, after checking it with Polkurier.
  *
- * What the browser says about the point is not trusted: the point is looked up by its id, has to
- * be open and do what the map shows points for, and its label and whether it accepts cash on
- * delivery come from that lookup. If Polkurier cannot be
- * asked, the id is kept, labelled with itself, and treated as not accepting cash on delivery.
+ * What the browser says about the point is not trusted. The point is looked up by its id, and has
+ * to be open and do what the map shows points for; its label and whether it accepts cash on
+ * delivery come from that lookup. If Polkurier cannot be asked, the id is kept and used as its own
+ * label, and whether it accepts cash on delivery stays unknown, so it's taken to accept it.
  */
 readonly class PointSelectionRecorder
 {
     public function __construct(
         private QuotePointRepositoryInterface $quotePointRepository,
         private QuotePointFactory $quotePointFactory,
-        private CarrierCatalog $catalog,
+        private CarrierCatalog $carrierCatalog,
         private CarrierFeatureResolver $carrierFeatureResolver,
         private ConfigProvider $configProvider,
-        private LoggerInterface $logger,
+        private Logger $logger,
     ) {}
 
     /**
@@ -62,7 +62,7 @@ readonly class PointSelectionRecorder
         }
 
         try {
-            $carrier = $this->catalog->getCarrier($methodCode);
+            $carrier = $this->carrierCatalog->getCarrier($methodCode);
         } catch (PolkurierException $e) {
             $this->logger->warning(
                 'Polkurier carrier list unavailable while saving the pickup point',
@@ -83,12 +83,12 @@ readonly class PointSelectionRecorder
         }
 
         $label = $pointId;
-        // Not known unless Polkurier says: then cash on delivery is left as it is.
+        // Unknown unless Polkurier says; while unknown, cash on delivery is left as it is.
         $cod = null;
         $providers = $carrier !== null ? $this->carrierFeatureResolver->getPointProviders($carrier) : [];
         if ($providers !== []) {
             try {
-                $point = $this->catalog->findPoint($pointId, $providers);
+                $point = $this->carrierCatalog->findPoint($pointId, $providers);
                 if ($point === null || !$this->isUsable($point, $storeId)) {
                     throw new InputException(__('The chosen pickup point is not available. Choose another one.'));
                 }
@@ -103,11 +103,8 @@ readonly class PointSelectionRecorder
             }
         }
 
-        $point = $this->quotePointRepository->getForQuote($quoteId, $quoteAddressId);
-        if ($point === null) {
-            $point = $this->quotePointFactory->create()->setQuoteId($quoteId)->setQuoteAddressId($quoteAddressId);
-            $point->isObjectNew(true);
-        }
+        $point = $this->quotePointRepository->getForQuote($quoteId, $quoteAddressId)
+            ?? $this->quotePointFactory->create()->setQuoteId($quoteId)->setQuoteAddressId($quoteAddressId);
         $point->setMethodCode($methodCode)
             ->setPointId($pointId)
             ->setPointLabel(\mb_substr($label, 0, 512))
@@ -130,7 +127,7 @@ readonly class PointSelectionRecorder
             return;
         }
         try {
-            $carrier = $this->catalog->getCarrier($methodCode);
+            $carrier = $this->carrierCatalog->getCarrier($methodCode);
         } catch (PolkurierException) {
             return;
         }
@@ -140,7 +137,8 @@ readonly class PointSelectionRecorder
     }
 
     /**
-     * Open, and doing everything the map is set to show points for, such as handing out parcels.
+     * Whether the point is open and does everything the map is set to show points for, such as
+     * handing out parcels.
      */
     private function isUsable(CourierPoint $point, int $storeId): bool
     {

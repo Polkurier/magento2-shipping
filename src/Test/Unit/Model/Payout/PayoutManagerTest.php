@@ -12,6 +12,7 @@ use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
+use Polkurier\Shipping\Logger\Logger;
 use Polkurier\Shipping\Model\Payout\PayoutManager;
 use Polkurier\Shipping\Model\Sdk\ApiEventDispatcher;
 use Polkurier\Shipping\Model\Sdk\ErrorMessageResolver;
@@ -27,7 +28,6 @@ use Polkurier\Webservice\Enum\MoneyBox\MoneyBoxPayoutTypeEnum;
 use Polkurier\Webservice\Exception\ConnectionException;
 use Polkurier\Webservice\Response\Account\AccountInfoMessage;
 use Polkurier\Webservice\Response\TwoFactorToken;
-use Psr\Log\NullLogger;
 
 #[CoversClass(PayoutManager::class)]
 #[AllowMockObjectsWithoutExpectations]
@@ -93,7 +93,7 @@ class PayoutManagerTest extends TestCase
         $payouts = new PayoutManager(
             $client,
             new ErrorMessageResolver(),
-            new ApiEventDispatcher(new RecordingEventManager(), new NullLogger()),
+            new ApiEventDispatcher(new RecordingEventManager(), $this->createStub(Logger::class)),
             NewingObjectManager::factory(GetMoneyBoxPayoutsMessageBuilderFactory::class),
             NewingObjectManager::factory(CreateMoneyBoxPayoutMessageBuilderFactory::class),
         );
@@ -152,7 +152,7 @@ class PayoutManagerTest extends TestCase
         return new PayoutManager(
             $client,
             new ErrorMessageResolver(),
-            new ApiEventDispatcher(new RecordingEventManager(), new NullLogger()),
+            new ApiEventDispatcher(new RecordingEventManager(), $this->createStub(Logger::class)),
             NewingObjectManager::factory(GetMoneyBoxPayoutsMessageBuilderFactory::class),
             NewingObjectManager::factory(CreateMoneyBoxPayoutMessageBuilderFactory::class),
         );

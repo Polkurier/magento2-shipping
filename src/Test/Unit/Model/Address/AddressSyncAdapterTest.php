@@ -12,7 +12,8 @@ use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use Polkurier\Shipping\Api\AddressRepositoryInterface;
 use Polkurier\Shipping\Api\Data\AddressInterface;
-use Polkurier\Shipping\Enum\ApiEventEnum;
+use Polkurier\Shipping\Enum\Sdk\ApiEventEnum;
+use Polkurier\Shipping\Logger\Logger;
 use Polkurier\Shipping\Model\Address;
 use Polkurier\Shipping\Model\Address\AddressBookMapper;
 use Polkurier\Shipping\Model\Address\AddressSyncAdapter;
@@ -26,7 +27,6 @@ use Polkurier\Webservice\Builder\Address\SaveMessageBuilderFactory;
 use Polkurier\Webservice\Request\Address\DeleteMessage;
 use Polkurier\Webservice\Request\Address\SaveMessage;
 use Polkurier\Webservice\Testing\RecordingClient;
-use Psr\Log\NullLogger;
 
 #[CoversClass(AddressSyncAdapter::class)]
 #[CoversClass(ApiEventDispatcher::class)]
@@ -86,7 +86,7 @@ class AddressSyncAdapterTest extends SdkTestCase
             $this->createStub(CollectionFactory::class),
             $this->createStub(AddressFactory::class),
             $this->createStub(AddressRepositoryInterface::class),
-            new ApiEventDispatcher($this->events, new NullLogger()),
+            new ApiEventDispatcher($this->events, $this->createStub(Logger::class)),
         );
     }
 

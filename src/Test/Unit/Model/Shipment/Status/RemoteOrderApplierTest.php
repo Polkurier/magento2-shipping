@@ -56,7 +56,7 @@ class RemoteOrderApplierTest extends SdkTestCase
 
         self::assertSame(
             $final,
-            (new RemoteOrderApplier(new FixedDateTime()))->isFinal($shipment, new \DateTimeImmutable(self::NOW)),
+            (new RemoteOrderApplier(new FixedDateTime((int)\strtotime(self::NOW . ' UTC'))))->isFinal($shipment),
         );
     }
 

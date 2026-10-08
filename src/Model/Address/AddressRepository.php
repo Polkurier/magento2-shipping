@@ -28,7 +28,7 @@ use Polkurier\Shipping\Model\ResourceModel\Address\CollectionFactory;
 readonly class AddressRepository implements AddressRepositoryInterface
 {
     public function __construct(
-        private AddressFactory $entityFactory,
+        private AddressFactory $addressFactory,
         private ResourceModel $resource,
         private CollectionFactory $collectionFactory,
         private CollectionProcessorInterface $collectionProcessor,
@@ -37,7 +37,7 @@ readonly class AddressRepository implements AddressRepositoryInterface
 
     public function get(int $id): AddressInterface
     {
-        $entity = $this->entityFactory->create();
+        $entity = $this->addressFactory->create();
         $this->resource->load($entity, $id);
         if (!$entity->getId()) {
             throw new NoSuchEntityException(__('The address with id "%1" does not exist.', $id));

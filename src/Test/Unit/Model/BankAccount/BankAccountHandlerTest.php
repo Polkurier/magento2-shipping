@@ -18,7 +18,6 @@ use Polkurier\Shipping\Api\Data\BankAccountInterface;
 use Polkurier\Shipping\Api\Data\SyncableInterface;
 use Polkurier\Shipping\Model\BankAccount;
 use Polkurier\Shipping\Model\BankAccount\BankAccountHandler;
-use Polkurier\Shipping\Model\BankAccount\Confirmation;
 use Polkurier\Shipping\Model\BankAccount\Publisher;
 use Polkurier\Shipping\Model\BankAccountFactory;
 use Polkurier\Shipping\Model\Sync\EntityHandlerInterface;
@@ -57,15 +56,12 @@ class BankAccountHandlerTest extends TestCase
     public function testAConfirmedAccountIsSentWithTheConfirmationButNeverKeepsIt(): void
     {
         $publisher = $this->createMock(Publisher::class);
-        $publisher->expects(self::once())->method('save')->with(
-            self::anything(),
-            self::callback(static fn(Confirmation $confirmation): bool => $confirmation->isGiven()),
-        );
+        $publisher->expects(self::once())->method('save')->with(self::anything(), null, null, '2342');
         $account = $this->account();
 
         $result = $this->handler($publisher)->save($account, [
             'name' => 'Firmowe',
-            BankAccountHandler::FIELD_CONFIRMATION_PIN => '2342',
+            BankAccountHandler::FIELD_CONFIRMATION_PIN => ' 2342 ',
         ]);
 
         self::assertSame(1, $result->pushed);
@@ -73,6 +69,19 @@ class BankAccountHandlerTest extends TestCase
             self::assertNull($account->getData($field), $field . ' is used once, never stored.');
             self::assertArrayNotHasKey($field, $this->saves[0]);
         }
+    }
+
+    public function testATwoFactorTokenWithoutItsCodeIsNoConfirmation(): void
+    {
+        $publisher = $this->createMock(Publisher::class);
+        $publisher->expects(self::never())->method('save');
+
+        $result = $this->handler($publisher)->save($this->account(), [
+            BankAccountHandler::FIELD_TWO_FACTOR_TOKEN => 'token-1',
+            BankAccountHandler::FIELD_TWO_FACTOR_CODE => ' ',
+        ]);
+
+        self::assertSame(1, $result->unconfirmed);
     }
 
     public function testARefusedAccountWaitsWithTheReason(): void
@@ -109,7 +118,7 @@ class BankAccountHandlerTest extends TestCase
         $publisher = $this->createMock(Publisher::class);
         $publisher->expects(self::once())->method('delete')->with(self::anything(), '2342');
 
-        $this->handler($publisher)->delete($this->account(), [BankAccountHandler::FIELD_CONFIRMATION_PIN => ' 2342 ']);
+        $this->handler($publisher)->delete($this->account(), ' 2342 ');
     }
 
     public function testWithoutAPinThePlainDeleteIsTried(): void

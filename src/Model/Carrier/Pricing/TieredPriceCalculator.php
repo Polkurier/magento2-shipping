@@ -29,7 +29,7 @@ readonly class TieredPriceCalculator implements PriceCalculatorInterface
         private bool $byWeight,
     ) {}
 
-    public function calculate(CarrierConfigInterface $config, RateContext $context): ?float
+    public function calculate(CarrierConfigInterface $config, float $subtotal, float $weight): ?float
     {
         $best = null;
         foreach ((array)($config->getPriceInfo()[self::FIELD_TIERS] ?? []) as $tier) {
@@ -38,7 +38,7 @@ readonly class TieredPriceCalculator implements PriceCalculatorInterface
             }
             $subtotalFrom = $this->bySubtotal ? (float)($tier[self::FIELD_SUBTOTAL_FROM] ?? 0) : 0.0;
             $weightFrom = $this->byWeight ? (float)($tier[self::FIELD_WEIGHT_FROM] ?? 0) : 0.0;
-            if ($context->subtotal < $subtotalFrom || $context->weight < $weightFrom) {
+            if ($subtotal < $subtotalFrom || $weight < $weightFrom) {
                 continue;
             }
             if ($best === null

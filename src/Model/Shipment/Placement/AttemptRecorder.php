@@ -8,13 +8,14 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Model\Shipment\Placement;
 
 use Magento\Framework\Exception\LocalizedException;
+use Magento\Framework\Stdlib\DateTime as DateFormat;
+use Magento\Framework\Stdlib\DateTime\DateTime;
 use Magento\Sales\Model\Order;
 use Polkurier\Shipping\Api\Data\ShipmentDraftInterface;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Api\ShipmentRepositoryInterface;
 use Polkurier\Shipping\Model\Shipment;
 use Polkurier\Shipping\Model\Shipment\Draft\DraftHydrator;
-use Polkurier\Shipping\Model\Shipment\OrderLock;
 use Polkurier\Shipping\Model\Shipment\ShipmentAgeChecker;
 use Polkurier\Shipping\Model\Shipment\ShipmentFinder;
 use Polkurier\Shipping\Model\ShipmentFactory;
@@ -26,17 +27,19 @@ use Polkurier\Webservice\Serializer\SerializerProviderInterface;
  * Records an attempt to place a Polkurier order, and what came of it. An order has one shipment
  * however many times it's tried: the one that wasn't placed is sent again, not a row per attempt.
  * No attempt is made while an earlier one may have gone through unseen; that is checked under the
- * order's lock (OrderLock), until the new attempt is recorded.
+ * order's lock ({@see \Polkurier\Shipping\Model\Shipment\OrderLock}), until the new attempt is
+ * recorded.
  */
 readonly class AttemptRecorder
 {
     public function __construct(
-        private ShipmentFinder $finder,
+        private ShipmentFinder $shipmentFinder,
         private ShipmentFactory $shipmentFactory,
         private ShipmentRepositoryInterface $shipmentRepository,
         private SerializerProviderInterface $serializerProvider,
-        private DraftHydrator $hydrator,
+        private DraftHydrator $draftHydrator,
         private ShipmentAgeChecker $shipmentAgeChecker,
+        private DateTime $dateTime,
     ) {}
 
     /**
@@ -44,7 +47,7 @@ readonly class AttemptRecorder
      */
     public function notPlaced(int $orderId): ?Shipment
     {
-        $shipment = $this->finder->latestForOrder($orderId, [ShipmentInterface::STATE_FAILED]);
+        $shipment = $this->shipmentFinder->latestForOrder($orderId, [ShipmentInterface::STATE_FAILED]);
 
         return $shipment instanceof Shipment ? $shipment : null;
     }
@@ -57,7 +60,7 @@ readonly class AttemptRecorder
      */
     public function assertNothingUnresolved(int $orderId): void
     {
-        $unresolved = $this->finder->forOrder(
+        $unresolved = $this->shipmentFinder->forOrder(
             $orderId,
             [ShipmentInterface::STATE_UNKNOWN, ShipmentInterface::STATE_PENDING],
         );
@@ -91,10 +94,11 @@ readonly class AttemptRecorder
      * @param array{qtys: array<int, float>, shipment_id: int|null, packages: array<int, array<string, mixed>>} $target
      *     what the Magento shipment ships: quantities by order item id, the existing one it goes
      *     on, and its packages
-     * @param array{id: string, reserved: string|null} $externalIds from ExternalIdService::forAttempt()
+     * @param array{id: string, reserved: string|null} $externalIds from
+     *     {@see \Polkurier\Shipping\Model\Shipment\Placement\ExternalIdService::forAttempt()}
      *
-     * @return array{shipment: Shipment, previous: array<string, mixed>|null} the shipment, and as
-     *     it was before when it's one that wasn't placed being sent again, for refused()
+     * @return array{shipment: Shipment, previous: array<string, mixed>|null} the shipment, and its
+     *     data from before when a shipment that wasn't placed is being sent again, for refused()
      */
     public function record(
         ?Shipment $notPlaced,
@@ -126,13 +130,13 @@ readonly class AttemptRecorder
             ->setShipPackages($target['packages'] ?: null)
             ->setRequest($this->serializerProvider->getSerializer()->serialize($message, 'json'))
             // What sending it again starts from, should it fail on Polkurier's side.
-            ->setDraft($this->hydrator->toArray($draft))
+            ->setDraft($this->draftHydrator->toArray($draft))
             ->setLastError(null)
             // A new attempt: whatever the admin was told about the earlier one is past.
             ->setAttentionNotifiedAt(null);
         if ($previous !== null) {
-            // Its age is this attempt's: an interrupted one is told apart by it.
-            $shipment->setCreatedAt($this->shipmentAgeChecker->now());
+            // Its age is this attempt's: that's how an interrupted attempt is recognised.
+            $shipment->setCreatedAt($this->dateTime->gmtDate(DateFormat::DATETIME_PHP_FORMAT));
         }
         $this->shipmentRepository->save($shipment);
 

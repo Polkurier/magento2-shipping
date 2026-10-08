@@ -30,8 +30,8 @@ readonly class OrderAmountCalculator
     public const string CURRENCY = 'PLN';
 
     public function __construct(
-        private ShipmentFinder $finder,
-        private WeightUnitConverter $weightUnits,
+        private ShipmentFinder $shipmentFinder,
+        private WeightUnitConverter $weightUnitConverter,
     ) {}
 
     /**
@@ -67,7 +67,8 @@ readonly class OrderAmountCalculator
     public function getCodCollected(Order $order): float
     {
         $collected = 0.0;
-        foreach ($this->finder->forOrder((int)$order->getEntityId(), ShipmentInterface::LIVE_STATES) as $shipment) {
+        $shipments = $this->shipmentFinder->forOrder((int)$order->getEntityId(), ShipmentInterface::LIVE_STATES);
+        foreach ($shipments as $shipment) {
             $collected += (float)$shipment->getCodAmount();
         }
 
@@ -80,7 +81,8 @@ readonly class OrderAmountCalculator
      */
     public function isShippingCovered(Order $order): bool
     {
-        foreach ($this->finder->forOrder((int)$order->getEntityId(), ShipmentInterface::LIVE_STATES) as $shipment) {
+        $shipments = $this->shipmentFinder->forOrder((int)$order->getEntityId(), ShipmentInterface::LIVE_STATES);
+        foreach ($shipments as $shipment) {
             if (!empty($shipment->getDraft()[ShipmentDraftInterface::FIELD_SHIPPING_INCLUDED])) {
                 return true;
             }
@@ -152,7 +154,10 @@ readonly class OrderAmountCalculator
                     4,
                 ),
                 // Of one unit, in kilograms; the order keeps it in the store's weight unit.
-                'weight' => \round($this->weightUnits->toKilograms((float)$item->getWeight(), $order->getStoreId()), 3),
+                'weight' => \round(
+                    $this->weightUnitConverter->toKilograms((float)$item->getWeight(), $order->getStoreId()),
+                    3,
+                ),
                 'qty' => \max(0.0, $ordered - (float)$item->getQtyCanceled()),
                 'qty_shipped' => (float)$item->getQtyShipped(),
                 'qty_to_ship' => (float)$item->getQtyToShip(),
@@ -176,12 +181,12 @@ readonly class OrderAmountCalculator
     }
 
     /**
-     * The shipment value, what it's insured for, with what it comes from, to show: what the
+     * The shipment value (what it's insured for), with the amounts it comes from, to show: what the
      * products in the shipment are worth (with tax, after discounts), the shipping and handling
      * charged, the order total, and whether the shipment carries the whole order. The whole order
-     * is worth its total; part of it, its products, and the shipping and handling too when it's
-     * included. All in złoty. Cash on delivery goes by
-     * getCodFor(), which collects the order in full whatever this says.
+     * is worth its total; a part is worth its products, plus the shipping and handling when it's
+     * included. All in złoty. Cash on delivery is set by getCodFor(), which collects the order in
+     * full whatever this says.
      *
      * @param array<int, float>|null $qtys quantities shipped by order item id, or null for
      *     everything the order still has to ship
@@ -224,7 +229,7 @@ readonly class OrderAmountCalculator
             'rest' => $rest,
             'shipping_covered' => $covered,
             'with_shipping' => $withShipping,
-            // Products without a price leave the order total to go by.
+            // Products without a price: go by the order total.
             // The whole order is insured for its total, shipping and handling included.
             'value' => match (true) {
                 $whole || $products <= 0 => $total,

@@ -10,8 +10,8 @@ namespace Polkurier\Shipping\Ui\Component\Control;
 use Magento\Framework\View\Element\UiComponent\Control\ButtonProviderInterface;
 
 /**
- * The button that submits a form; a form whose submit does something else than save names it in a
- * virtual type in adminhtml/di.xml.
+ * The button that submits a form. A form whose submit does something other than save gives the
+ * button its own label in a virtual type in adminhtml/di.xml.
  */
 readonly class SaveButton implements ButtonProviderInterface
 {

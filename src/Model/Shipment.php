@@ -29,9 +29,7 @@ class Shipment extends AbstractModel implements ShipmentInterface
 
     public function getOrderId(): int
     {
-        $value = $this->getData(self::FIELD_ORDER_ID);
-
-        return (int)$value;
+        return (int)$this->getData(self::FIELD_ORDER_ID);
     }
 
     public function setOrderId(int $orderId): static
@@ -41,9 +39,7 @@ class Shipment extends AbstractModel implements ShipmentInterface
 
     public function getStoreId(): ?int
     {
-        $value = $this->getData(self::FIELD_STORE_ID);
-
-        return $value === null || $value === '' ? null : (int)$value;
+        return $this->nullableInt(self::FIELD_STORE_ID);
     }
 
     public function setStoreId(?int $storeId): static
@@ -53,9 +49,7 @@ class Shipment extends AbstractModel implements ShipmentInterface
 
     public function getShipmentId(): ?int
     {
-        $value = $this->getData(self::FIELD_SHIPMENT_ID);
-
-        return $value === null || $value === '' ? null : (int)$value;
+        return $this->nullableInt(self::FIELD_SHIPMENT_ID);
     }
 
     public function setShipmentId(?int $shipmentId): static
@@ -65,9 +59,7 @@ class Shipment extends AbstractModel implements ShipmentInterface
 
     public function getState(): string
     {
-        $value = $this->getData(self::FIELD_STATE);
-
-        return (string)$value;
+        return (string)$this->getData(self::FIELD_STATE);
     }
 
     public function setState(string $state): static
@@ -77,9 +69,7 @@ class Shipment extends AbstractModel implements ShipmentInterface
 
     public function getPolkurierNumber(): ?string
     {
-        $value = $this->getData(self::FIELD_POLKURIER_NUMBER);
-
-        return $value === null || $value === '' ? null : (string)$value;
+        return $this->nullableString(self::FIELD_POLKURIER_NUMBER);
     }
 
     public function setPolkurierNumber(?string $polkurierNumber): static
@@ -89,9 +79,7 @@ class Shipment extends AbstractModel implements ShipmentInterface
 
     public function getCarrierCode(): string
     {
-        $value = $this->getData(self::FIELD_CARRIER_CODE);
-
-        return (string)$value;
+        return (string)$this->getData(self::FIELD_CARRIER_CODE);
     }
 
     public function setCarrierCode(string $carrierCode): static
@@ -101,9 +89,7 @@ class Shipment extends AbstractModel implements ShipmentInterface
 
     public function getDescription(): string
     {
-        $value = $this->getData(self::FIELD_DESCRIPTION);
-
-        return (string)$value;
+        return (string)$this->getData(self::FIELD_DESCRIPTION);
     }
 
     public function setDescription(string $description): static
@@ -113,9 +99,7 @@ class Shipment extends AbstractModel implements ShipmentInterface
 
     public function getRecipientPostcode(): ?string
     {
-        $value = $this->getData(self::FIELD_RECIPIENT_POSTCODE);
-
-        return $value === null || $value === '' ? null : (string)$value;
+        return $this->nullableString(self::FIELD_RECIPIENT_POSTCODE);
     }
 
     public function setRecipientPostcode(?string $recipientPostcode): static
@@ -125,9 +109,7 @@ class Shipment extends AbstractModel implements ShipmentInterface
 
     public function getRecipientPhone(): ?string
     {
-        $value = $this->getData(self::FIELD_RECIPIENT_PHONE);
-
-        return $value === null || $value === '' ? null : (string)$value;
+        return $this->nullableString(self::FIELD_RECIPIENT_PHONE);
     }
 
     public function setRecipientPhone(?string $recipientPhone): static
@@ -137,9 +119,7 @@ class Shipment extends AbstractModel implements ShipmentInterface
 
     public function getPackCount(): int
     {
-        $value = $this->getData(self::FIELD_PACK_COUNT);
-
-        return (int)$value;
+        return (int)$this->getData(self::FIELD_PACK_COUNT);
     }
 
     public function setPackCount(int $packCount): static
@@ -167,9 +147,7 @@ class Shipment extends AbstractModel implements ShipmentInterface
 
     public function getStatusCode(): ?string
     {
-        $value = $this->getData(self::FIELD_STATUS_CODE);
-
-        return $value === null || $value === '' ? null : (string)$value;
+        return $this->nullableString(self::FIELD_STATUS_CODE);
     }
 
     public function setStatusCode(?string $statusCode): static
@@ -179,9 +157,7 @@ class Shipment extends AbstractModel implements ShipmentInterface
 
     public function getStatusLabel(): ?string
     {
-        $value = $this->getData(self::FIELD_STATUS_LABEL);
-
-        return $value === null || $value === '' ? null : (string)$value;
+        return $this->nullableString(self::FIELD_STATUS_LABEL);
     }
 
     public function setStatusLabel(?string $statusLabel): static
@@ -191,9 +167,7 @@ class Shipment extends AbstractModel implements ShipmentInterface
 
     public function getStatusDate(): ?string
     {
-        $value = $this->getData(self::FIELD_STATUS_DATE);
-
-        return $value === null || $value === '' ? null : (string)$value;
+        return $this->nullableString(self::FIELD_STATUS_DATE);
     }
 
     public function setStatusDate(?string $statusDate): static
@@ -203,9 +177,7 @@ class Shipment extends AbstractModel implements ShipmentInterface
 
     public function getDeliveredAt(): ?string
     {
-        $value = $this->getData(self::FIELD_DELIVERED_AT);
-
-        return $value === null || $value === '' ? null : (string)$value;
+        return $this->nullableString(self::FIELD_DELIVERED_AT);
     }
 
     public function setDeliveredAt(?string $deliveredAt): static
@@ -215,9 +187,7 @@ class Shipment extends AbstractModel implements ShipmentInterface
 
     public function getTrackingUrl(): ?string
     {
-        $value = $this->getData(self::FIELD_TRACKING_URL);
-
-        return $value === null || $value === '' ? null : (string)$value;
+        return $this->nullableString(self::FIELD_TRACKING_URL);
     }
 
     public function setTrackingUrl(?string $trackingUrl): static
@@ -227,9 +197,7 @@ class Shipment extends AbstractModel implements ShipmentInterface
 
     public function getPriceNet(): ?float
     {
-        $value = $this->getData(self::FIELD_PRICE_NET);
-
-        return $value === null || $value === '' ? null : (float)$value;
+        return $this->nullableFloat(self::FIELD_PRICE_NET);
     }
 
     public function setPriceNet(?float $priceNet): static
@@ -239,9 +207,7 @@ class Shipment extends AbstractModel implements ShipmentInterface
 
     public function getPriceGross(): ?float
     {
-        $value = $this->getData(self::FIELD_PRICE_GROSS);
-
-        return $value === null || $value === '' ? null : (float)$value;
+        return $this->nullableFloat(self::FIELD_PRICE_GROSS);
     }
 
     public function setPriceGross(?float $priceGross): static
@@ -251,9 +217,7 @@ class Shipment extends AbstractModel implements ShipmentInterface
 
     public function getInsuranceAmount(): ?float
     {
-        $value = $this->getData(self::FIELD_INSURANCE_AMOUNT);
-
-        return $value === null || $value === '' ? null : (float)$value;
+        return $this->nullableFloat(self::FIELD_INSURANCE_AMOUNT);
     }
 
     public function setInsuranceAmount(?float $insuranceAmount): static
@@ -263,9 +227,7 @@ class Shipment extends AbstractModel implements ShipmentInterface
 
     public function getCodAmount(): ?float
     {
-        $value = $this->getData(self::FIELD_COD_AMOUNT);
-
-        return $value === null || $value === '' ? null : (float)$value;
+        return $this->nullableFloat(self::FIELD_COD_AMOUNT);
     }
 
     public function setCodAmount(?float $codAmount): static
@@ -275,9 +237,7 @@ class Shipment extends AbstractModel implements ShipmentInterface
 
     public function getCodStatus(): ?string
     {
-        $value = $this->getData(self::FIELD_COD_STATUS);
-
-        return $value === null || $value === '' ? null : (string)$value;
+        return $this->nullableString(self::FIELD_COD_STATUS);
     }
 
     public function setCodStatus(?string $codStatus): static
@@ -287,9 +247,7 @@ class Shipment extends AbstractModel implements ShipmentInterface
 
     public function isMultiPickup(): bool
     {
-        $value = $this->getData(self::FIELD_MULTI_PICKUP);
-
-        return (bool)$value;
+        return (bool)$this->getData(self::FIELD_MULTI_PICKUP);
     }
 
     public function setMultiPickup(bool $multiPickup): static
@@ -299,9 +257,7 @@ class Shipment extends AbstractModel implements ShipmentInterface
 
     public function isPickupBooked(): bool
     {
-        $value = $this->getData(self::FIELD_PICKUP_BOOKED);
-
-        return (bool)$value;
+        return (bool)$this->getData(self::FIELD_PICKUP_BOOKED);
     }
 
     public function setPickupBooked(bool $pickupBooked): static
@@ -321,9 +277,7 @@ class Shipment extends AbstractModel implements ShipmentInterface
 
     public function getStatusCheckedAt(): ?string
     {
-        $value = $this->getData(self::FIELD_STATUS_CHECKED_AT);
-
-        return $value === null || $value === '' ? null : (string)$value;
+        return $this->nullableString(self::FIELD_STATUS_CHECKED_AT);
     }
 
     public function setStatusCheckedAt(?string $statusCheckedAt): static
@@ -333,9 +287,7 @@ class Shipment extends AbstractModel implements ShipmentInterface
 
     public function getRequest(): ?string
     {
-        $value = $this->getData(self::FIELD_REQUEST);
-
-        return $value === null || $value === '' ? null : (string)$value;
+        return $this->nullableString(self::FIELD_REQUEST);
     }
 
     public function setRequest(?string $request): static
@@ -355,7 +307,7 @@ class Shipment extends AbstractModel implements ShipmentInterface
 
     public function setDraft(?array $draft): static
     {
-        // Nothing filled in is no draft.
+        // Nothing filled in means no draft.
         return $this->setData(self::FIELD_DRAFT, $draft ? self::encode($draft) : null);
     }
 
@@ -372,9 +324,7 @@ class Shipment extends AbstractModel implements ShipmentInterface
 
     public function getDetailsSyncedAt(): ?string
     {
-        $value = $this->getData(self::FIELD_DETAILS_SYNCED_AT);
-
-        return $value === null || $value === '' ? null : (string)$value;
+        return $this->nullableString(self::FIELD_DETAILS_SYNCED_AT);
     }
 
     public function setDetailsSyncedAt(?string $syncedAt): static
@@ -395,9 +345,7 @@ class Shipment extends AbstractModel implements ShipmentInterface
 
     public function getTrackingSyncedAt(): ?string
     {
-        $value = $this->getData(self::FIELD_TRACKING_SYNCED_AT);
-
-        return $value === null || $value === '' ? null : (string)$value;
+        return $this->nullableString(self::FIELD_TRACKING_SYNCED_AT);
     }
 
     public function setTrackingSyncedAt(?string $syncedAt): static
@@ -422,9 +370,7 @@ class Shipment extends AbstractModel implements ShipmentInterface
 
     public function getTargetShipmentId(): ?int
     {
-        $value = $this->getData(self::FIELD_TARGET_SHIPMENT_ID);
-
-        return $value === null || $value === '' ? null : (int)$value;
+        return $this->nullableInt(self::FIELD_TARGET_SHIPMENT_ID);
     }
 
     public function setTargetShipmentId(?int $shipmentId): static
@@ -434,9 +380,7 @@ class Shipment extends AbstractModel implements ShipmentInterface
 
     public function getExternalOrderId(): ?string
     {
-        $value = $this->getData(self::FIELD_EXTERNAL_ORDER_ID);
-
-        return $value === null || $value === '' ? null : (string)$value;
+        return $this->nullableString(self::FIELD_EXTERNAL_ORDER_ID);
     }
 
     public function setExternalOrderId(?string $externalOrderId): static
@@ -446,9 +390,7 @@ class Shipment extends AbstractModel implements ShipmentInterface
 
     public function getReservedShipmentNumber(): ?string
     {
-        $value = $this->getData(self::FIELD_RESERVED_SHIPMENT_NUMBER);
-
-        return $value === null || $value === '' ? null : (string)$value;
+        return $this->nullableString(self::FIELD_RESERVED_SHIPMENT_NUMBER);
     }
 
     public function setReservedShipmentNumber(?string $number): static
@@ -473,9 +415,7 @@ class Shipment extends AbstractModel implements ShipmentInterface
 
     public function getLastError(): ?string
     {
-        $value = $this->getData(self::FIELD_LAST_ERROR);
-
-        return $value === null || $value === '' ? null : (string)$value;
+        return $this->nullableString(self::FIELD_LAST_ERROR);
     }
 
     public function setLastError(?string $lastError): static
@@ -485,9 +425,7 @@ class Shipment extends AbstractModel implements ShipmentInterface
 
     public function getAttentionNotifiedAt(): ?string
     {
-        $value = $this->getData(self::FIELD_ATTENTION_NOTIFIED_AT);
-
-        return $value === null || $value === '' ? null : (string)$value;
+        return $this->nullableString(self::FIELD_ATTENTION_NOTIFIED_AT);
     }
 
     public function setAttentionNotifiedAt(?string $notifiedAt): static
@@ -497,9 +435,7 @@ class Shipment extends AbstractModel implements ShipmentInterface
 
     public function getCreatedAt(): ?string
     {
-        $value = $this->getData(self::FIELD_CREATED_AT);
-
-        return $value === null || $value === '' ? null : (string)$value;
+        return $this->nullableString(self::FIELD_CREATED_AT);
     }
 
     public function setCreatedAt(?string $createdAt): static
@@ -509,9 +445,7 @@ class Shipment extends AbstractModel implements ShipmentInterface
 
     public function getUpdatedAt(): ?string
     {
-        $value = $this->getData(self::FIELD_UPDATED_AT);
-
-        return $value === null || $value === '' ? null : (string)$value;
+        return $this->nullableString(self::FIELD_UPDATED_AT);
     }
 
     public function setUpdatedAt(?string $updatedAt): static
@@ -527,7 +461,7 @@ class Shipment extends AbstractModel implements ShipmentInterface
     /**
      * @param array<mixed>|object $value an object for keys that are numbers
      *
-     * @throws \JsonException what can't be stored isn't stored as something else
+     * @throws \JsonException when the value can't be encoded; it's never stored as something else
      */
     private static function encode(array|object $value): string
     {
@@ -545,5 +479,26 @@ class Shipment extends AbstractModel implements ShipmentInterface
         $decoded = \is_string($value) && $value !== '' ? \json_decode($value, true) : null;
 
         return \is_array($decoded) ? $decoded : [];
+    }
+
+    private function nullableString(string $field): ?string
+    {
+        $value = $this->getData($field);
+
+        return $value === null || $value === '' ? null : (string)$value;
+    }
+
+    private function nullableInt(string $field): ?int
+    {
+        $value = $this->getData($field);
+
+        return $value === null || $value === '' ? null : (int)$value;
+    }
+
+    private function nullableFloat(string $field): ?float
+    {
+        $value = $this->getData($field);
+
+        return $value === null || $value === '' ? null : (float)$value;
     }
 }

@@ -8,7 +8,7 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Model\Sync;
 
 use Polkurier\Shipping\Api\Data\SyncableInterface;
-use Polkurier\Shipping\Enum\SyncEntityEnum;
+use Polkurier\Shipping\Enum\Sync\SyncEntityEnum;
 use Polkurier\Webservice\Exception\Exception as PolkurierException;
 
 /**
@@ -18,9 +18,9 @@ use Polkurier\Webservice\Exception\Exception as PolkurierException;
  * array of the fields both sides share, which is what is compared, fingerprinted and copied.
  *
  * An adapter whose local changes the synchronization may send by itself also implements
- * PushableAdapterInterface. The others (Polkurier wants the merchant's confirmation for each
- * change) only read: their local changes wait as "awaiting confirmation" and are sent from the
- * admin instead.
+ * {@see \Polkurier\Shipping\Model\Sync\PushableAdapterInterface}. The others (Polkurier wants the
+ * merchant's confirmation for each change) only read: their local changes wait as "awaiting
+ * confirmation" and are sent from the admin instead.
  */
 interface AdapterInterface
 {

@@ -7,7 +7,7 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Model\Config\Source;
 
-use Polkurier\Shipping\Enum\ParcelWeightEnum;
+use Polkurier\Shipping\Enum\Config\ParcelWeightEnum;
 
 /**
  * What a parcel of a pack template weighs.

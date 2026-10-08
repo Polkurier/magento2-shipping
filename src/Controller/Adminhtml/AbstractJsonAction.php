@@ -15,8 +15,8 @@ use Magento\Framework\Controller\Result\JsonFactory;
 use Magento\Framework\Exception\LocalizedException;
 
 /**
- * An admin action the screens ask in the background. It answers JSON with "error" and, when it's
- * true, "message": what was refused, as Polkurier or the module says it.
+ * An admin action that screens call in the background. It answers with JSON holding "error" and,
+ * when that is true, "message": the refusal, in Polkurier's or the module's words.
  */
 abstract class AbstractJsonAction extends Action implements HttpPostActionInterface
 {
@@ -42,7 +42,7 @@ abstract class AbstractJsonAction extends Action implements HttpPostActionInterf
      * The answer; "error" is false unless it says otherwise.
      *
      * @return array<string, mixed>
-     * @throws LocalizedException for the answer to be an error with its message
+     * @throws LocalizedException to answer with an error carrying its message
      */
     abstract protected function answer(): array;
 

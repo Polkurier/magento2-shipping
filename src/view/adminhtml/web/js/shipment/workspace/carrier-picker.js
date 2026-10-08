@@ -6,17 +6,21 @@
  * The carrier, chosen in its modal from a list that shows what each carrier would charge for the
  * shipment as it stands, cheapest first. Carriers that can't take it, such as those without a
  * service chosen, are tucked away until asked for. Choosing one closes the modal.
+ *
+ * Publishes what the chosen carrier supports as data.features, which the rest of the form imports
+ * to show, hide and narrow its fields. A pickup point belongs to the carrier it was chosen for:
+ * changing the carrier puts it aside, and going back to that carrier brings it back.
  */
 define([
-    'Polkurier_Shipping/js/shipment/carrier',
+    'Magento_Ui/js/form/element/select',
     'uiRegistry',
     'ko',
     'mage/translate',
     './rules'
-], function (Carrier, registry, ko, $t, rules) {
+], function (Select, registry, ko, $t, rules) {
     'use strict';
 
-    return Carrier.extend({
+    return Select.extend({
         defaults: {
             // The modal it sits in, from the form's XML.
             modal: '',
@@ -29,11 +33,15 @@ define([
             tracks: {
                 quotes: true,
                 quoting: true
+            },
+            listens: {
+                value: 'publishFeatures'
             }
         },
 
         initialize: function () {
             this._super();
+            this.publishFeatures(this.value());
             this.search = ko.observable('');
             this.showAll = ko.observable(false);
             this.searchPlaceholder = $t('Search carriers');
@@ -145,6 +153,61 @@ define([
 
         toggleAll: function () {
             this.showAll(!this.showAll());
+        },
+
+        /**
+         * @param {String} previous
+         * @param {String} code
+         */
+        swapPoint: function (previous, code) {
+            const point = rules.swapPoint(this.pointsByCarrier, previous, code, {
+                id: this.source.get('data.recipient_point_id') || '',
+                label: this.source.get('data.recipient_point_label_id') === this.source.get('data.recipient_point_id')
+                    ? this.source.get('data.recipient_point_label') || ''
+                    : ''
+            });
+
+            this.source.set('data.recipient_point_id', point.id);
+            this.source.set('data.recipient_point_label', point.label);
+            this.source.set('data.recipient_point_label_id', point.id);
+        },
+
+        /**
+         * @returns {String} the drop-off point of the chosen sender address, '' without one
+         */
+        senderAddressPoint: function () {
+            const data = this.source.get('data') || {},
+                address = (data.senders || {})[String(data.sender_address_id || '')];
+
+            return address && address.point_id ? String(address.point_id) : '';
+        },
+
+        /**
+         * @param {String} code
+         */
+        publishFeatures: function (code) {
+            // Also called while the field is set up, with the carrier the form starts with.
+            if (this.pointsByCarrier === undefined) {
+                this.pointsByCarrier = {};
+                this.carrier = code;
+            } else if (code !== this.carrier) {
+                this.swapPoint(this.carrier, code);
+                this.carrier = code;
+                // Points belong to a carrier: the sender's point goes back to its address's.
+                this.source.set('data.sender_point_id', this.senderAddressPoint());
+            }
+            const carriers = this.source.get('data.carriers') || {},
+                carrier = carriers[code] || null;
+
+            this.source.set('data.features', rules.featuresOf(carrier));
+            // Parcels can't be dropped off with a carrier that only collects them, and must be with
+            // one that takes them only at points.
+            if (carrier && !carrier.drop_off && this.source.get('data.pickup_mode') === 'drop_off') {
+                this.source.set('data.pickup_mode', 'courier');
+            }
+            if (carrier && carrier.sender_point === 'REQUIRED' && carrier.drop_off) {
+                this.source.set('data.pickup_mode', 'drop_off');
+            }
         }
     });
 });

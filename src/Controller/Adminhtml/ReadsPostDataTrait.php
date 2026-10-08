@@ -13,7 +13,7 @@ use Polkurier\Shipping\Model\Admin\FormActions;
 /**
  * For the admin actions that save a form: the posted fields, and nothing from the query string.
  *
- * For controllers extending Magento\Backend\App\Action.
+ * For controllers extending {@see \Magento\Backend\App\Action}.
  */
 trait ReadsPostDataTrait
 {

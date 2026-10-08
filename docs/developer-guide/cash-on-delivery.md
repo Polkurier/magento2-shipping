@@ -6,25 +6,35 @@
 
 [Developer guide](README.md) › Cash on delivery payouts
 
-`Model\Payout\PayoutManager` wraps the SDK's money box service:
+[`Model\Payout\PayoutManager`](../../src/Model/Payout/PayoutManager.php) wraps the SDK's money box
+service. A payout requested on the **Request a payout** screen goes through it in these steps:
 
-| Method | |
-|---|---|
-| `getConfig()` | the account's payout settings |
-| `getPayouts()` | the payouts requested so far, paged |
-| `quote()` | the fee for paying out given orders a given way |
-| `requestCode()` | sends the two-factor code a payout needs |
-| `createPayout()` | requests a payout, with the code and, if the account locks payouts, the PIN; refuses a transfer without an account, or a request without the code, before asking Polkurier. `chosenAccount()` reads the form's bank account choice: an account's number, or `ANOTHER_ACCOUNT` for the one typed in |
-| `cancelPayout()` | cancels a payout that hasn't been processed |
+```
+the payout form ............... starts from getConfig(), the account's payout settings, with the
+        │                       orders whose cash is in the money box as of their last status
+        │                       update; quote() prices it whenever the orders or payout type change
+        │
+"Request the payout"
+        │
+requestCode() ................. Polkurier sends the two-factor code; refused, with no code sent,
+        │                       when the money box has nothing to pay out
+        │
+"Confirm the payout" .......... the code, and the PIN if the money box settings are locked with
+        │                       one; "Send a new code" calls requestCode() again
+        │
+createPayout() ................ refuses a transfer without an account, or a request without the
+        │                       code, before asking Polkurier
+        ├── requested ......... the payout listing
+        └── refused ........... the form again, with the choices kept and the code and PIN asked
+                                for again
 
-The payout screens work with the installation's one Polkurier account and take no website.
-`PayoutManager::parseOrderNumbers()` parses the Polkurier order numbers typed into the payout form, one
-per line or separated by commas or spaces.
+cancelPayout() ................ from the payout listing, while Polkurier hasn't sent the payout
+```
 
-The payout listing (`polkurier_payout_listing`) reads the account directly through its data
-provider; payouts aren't stored locally.
+The payout screens work with the installation's one Polkurier account. Payouts aren't stored
+locally: the payout listing (`polkurier_payout_listing`) reads them from the account with
+`getPayouts()`, a page at a time.
 
-Requesting and cancelling payouts need the `Polkurier_Shipping::payout_request` ACL resource.
 The confirmation code and PIN are never stored or logged, and the payout event doesn't include the
 request that carried them.
 

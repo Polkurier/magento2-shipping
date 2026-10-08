@@ -32,7 +32,7 @@ use Polkurier\Webservice\Request\Order\PickupMessage;
 readonly class ErrorMessageResolver
 {
     /**
-     * Error codes for a Polkurier that is down or busy, rather than refusing the request itself.
+     * Error codes meaning Polkurier is down or busy, rather than refusing the request itself.
      */
     private const array TRANSIENT_CODES = [
         ApiErrorCodeEnum::UnknownError,
@@ -42,9 +42,10 @@ readonly class ErrorMessageResolver
     ];
 
     /**
-     * How Polkurier and the carriers word a passing failure in an uncoded refusal: "try again",
-     * "temporarily", "in a moment", "later", "overload". Every other uncoded refusal (a service the
-     * carrier doesn't offer, a missing configuration, funds, sizes) stays the same however often asked.
+     * Phrases Polkurier and the carriers use for a passing failure in a refusal without an error
+     * code: "try again", "temporarily", "in a moment", "later", "overload". Every other uncoded
+     * refusal (a service the carrier doesn't offer, a missing configuration, funds, sizes) gets the
+     * same answer however often it's repeated.
      */
     private const string TRANSIENT_HINT = '/spr[oó]b(uj|ować)\s+ponownie|chwilow|za\s+chwil|później|przeciąż/iu';
 
@@ -57,16 +58,9 @@ readonly class ErrorMessageResolver
     }
 
     /**
-     * The failure described for the merchant, as text.
-     */
-    public function describe(\Throwable $e): string
-    {
-        return (string)$this->phrase($e);
-    }
-
-    /**
-     * The failure described for the merchant, as a phrase to put in an exception or another phrase
-     * as it is: a message translated already only fills a placeholder, it isn't translated again.
+     * The failure described for the merchant, as a phrase to use in an exception or, as it is, in
+     * another phrase. An already translated message only fills a placeholder; it isn't translated
+     * again.
      */
     public function phrase(\Throwable $e): Phrase
     {
@@ -95,10 +89,10 @@ readonly class ErrorMessageResolver
                 . 'if it persists, contact Polkurier.',
                 $e->getResponse()->getStatusCode(),
             ),
-            // Described when it failed: final already.
+            // Already described for the merchant when it failed.
             $e instanceof RecentFailureException => __('%1', $e->getMessage()),
             $e instanceof PolkurierException => __('Polkurier error: %1', $e->getMessage()),
-            // Translated by whoever threw it, or not ours to translate: final as it is.
+            // Translated by whoever threw it, or not ours to translate: used as it is.
             default => __('%1', $e->getMessage()),
         };
     }
@@ -110,7 +104,7 @@ readonly class ErrorMessageResolver
      */
     public function isTransient(\Throwable $e): bool
     {
-        // Through the merchant-facing exceptions to the SDK failure behind them.
+        // Unwrap the merchant-facing exceptions to reach the SDK failure behind them.
         while ($e instanceof LocalizedException && $e->getPrevious() !== null) {
             $e = $e->getPrevious();
         }

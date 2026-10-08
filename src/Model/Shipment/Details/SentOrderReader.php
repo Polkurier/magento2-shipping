@@ -16,8 +16,9 @@ use Polkurier\Webservice\Request\Order\OrderAddressMessage;
 use Polkurier\Webservice\Request\Order\PickupMessage;
 
 /**
- * The order as it was sent to Polkurier, in the shape of the copy read back from Polkurier, for
- * the details of shipments Polkurier hasn't been read for. An unreadable request gives nothing.
+ * The order as it was sent to Polkurier, in the shape of the copy read back from Polkurier. Used
+ * for the details of shipments whose order hasn't been read from Polkurier. An unreadable request
+ * gives nothing.
  */
 readonly class SentOrderReader
 {
@@ -45,7 +46,7 @@ readonly class SentOrderReader
             if (!\is_array($value)) {
                 return null;
             }
-            // The cover address names its flat flat_number, and has its house number in the street.
+            // The cover address's flat field is flat_number; its house number is in the street.
             $flat = (string)(
                 $value[OrderAddressMessage::FIELD_FLAT_NUMBER] ?? $value[CoverAddressMessage::FIELD_FLAT_NUMBER] ?? ''
             );

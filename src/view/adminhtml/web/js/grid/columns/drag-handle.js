@@ -5,11 +5,11 @@
 /**
  * The first column of a grid whose rows are put in order by dragging them by a handle, as
  * Magento's dynamic rows are: the row is lifted and follows the pointer, a bar across the table
- * marks the gap it will land in, and it lands there when let go. The page scrolls when
- * the pointer is held near the top or bottom of the window, and Escape puts the row back. The column has no caption
- * and doesn't sort; the grid is always in the order dragging sets. A drop shows the new order at
- * once and posts the ids of the rows shown, in order, to sortUrl, where they're fitted in among
- * the rows not shown.
+ * marks the gap it will land in, and it lands there when let go. The page scrolls when the pointer
+ * is held near the top or bottom of the window, and Escape puts the row back. The column has no
+ * caption and doesn't sort; the grid is always in the order dragging sets. A drop shows the new
+ * order at once and posts the ids of the rows shown, in order, to sortUrl, where they're fitted in
+ * among the rows not shown.
  *
  * From the keyboard, Alt+Up and Alt+Down on a focused handle move its row one place, and the
  * handle keeps the focus.
@@ -143,9 +143,9 @@ define([
         /**
          * Lifts the row: a copy of it, in a table of its own, follows the pointer.
          *
-         * Where every other row sits is measured once, now: nothing in the table moves until the
-         * row lands, so the spot under the pointer is worked out from those positions on every
-         * move and again where the button is let go, however fast the pointer went.
+         * The other rows' positions are measured once, now. Nothing in the table moves until the
+         * row lands, so on every move, and again where the button is let go, the spot under the
+         * pointer is worked out from those positions, however fast the pointer went.
          *
          * @param {MouseEvent} event
          */
@@ -216,8 +216,8 @@ define([
         },
 
         /**
-         * Moves the copy with the pointer and puts the bar in the gap the row would land in; no
-         * bar where it would land where it already is.
+         * Moves the copy with the pointer and puts the bar in the gap the row would land in. There's
+         * no bar when the row would land where it already is.
          *
          * @param {Number} pageY
          */

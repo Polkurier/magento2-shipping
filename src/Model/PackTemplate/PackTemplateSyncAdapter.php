@@ -11,8 +11,8 @@ use Polkurier\Shipping\Api\Data\PackTemplateInterface;
 use Polkurier\Shipping\Api\Data\SyncableInterface;
 use Polkurier\Shipping\Api\PackTemplateRepositoryInterface;
 use Polkurier\Shipping\Api\PolkurierClientInterface;
-use Polkurier\Shipping\Enum\ApiEventEnum;
-use Polkurier\Shipping\Enum\SyncEntityEnum;
+use Polkurier\Shipping\Enum\Sdk\ApiEventEnum;
+use Polkurier\Shipping\Enum\Sync\SyncEntityEnum;
 use Polkurier\Shipping\Model\PackTemplateFactory;
 use Polkurier\Shipping\Model\ResourceModel\PackTemplate\CollectionFactory;
 use Polkurier\Shipping\Model\Sdk\ApiEventDispatcher;
@@ -27,12 +27,12 @@ readonly class PackTemplateSyncAdapter implements PushableAdapterInterface
     use MatchedByNameTrait;
 
     public function __construct(
-        private PolkurierClientInterface $client,
-        private PackTemplateMapper $mapper,
+        private PolkurierClientInterface $polkurierClient,
+        private PackTemplateMapper $packTemplateMapper,
         private CollectionFactory $collectionFactory,
         private PackTemplateFactory $packTemplateFactory,
-        private PackTemplateRepositoryInterface $repository,
-        private ApiEventDispatcher $events,
+        private PackTemplateRepositoryInterface $packTemplateRepository,
+        private ApiEventDispatcher $apiEventDispatcher,
     ) {}
 
     public function getEntityType(): SyncEntityEnum
@@ -43,9 +43,9 @@ readonly class PackTemplateSyncAdapter implements PushableAdapterInterface
     public function fetchRemote(): array
     {
         $remote = [];
-        foreach ($this->client->packTemplates()->getPackTemplates() as $template) {
+        foreach ($this->polkurierClient->packTemplates()->getPackTemplates() as $template) {
             if ($template->getId() !== null) {
-                $remote[$template->getId()] = $this->mapper->normalize($template);
+                $remote[$template->getId()] = $this->packTemplateMapper->normalize($template);
             }
         }
 
@@ -66,31 +66,31 @@ readonly class PackTemplateSyncAdapter implements PushableAdapterInterface
     public function applyRemote(SyncableInterface $local, array $remote): void
     {
         /** @var PackTemplateInterface $local */
-        $this->mapper->apply($remote, $local);
+        $this->packTemplateMapper->apply($remote, $local);
     }
 
     public function push(SyncableInterface $local): array
     {
         /** @var PackTemplateInterface $local */
-        $request = $this->mapper->toSaveMessage($local);
+        $request = $this->packTemplateMapper->toSaveMessage($local);
         $isNew = $local->getExtId() === null;
-        $response = $this->client->packTemplates()->savePackTemplates($request);
-        $this->events->dispatch(ApiEventEnum::PackTemplateSaveAfter, null, [
+        $response = $this->polkurierClient->packTemplates()->savePackTemplates($request);
+        $this->apiEventDispatcher->dispatch(ApiEventEnum::PackTemplateSaveAfter, null, [
             'pack_template' => $local,
             'is_new' => $isNew,
             'request' => $request,
             'response' => $response,
         ]);
 
-        return $this->mapper->normalize($response);
+        return $this->packTemplateMapper->normalize($response);
     }
 
     public function deleteRemote(SyncableInterface $local): void
     {
         /** @var PackTemplateInterface $local */
-        $request = $this->mapper->toDeleteMessage($local);
-        if ($this->client->packTemplates()->deletePackTemplates($request)) {
-            $this->events->dispatch(
+        $request = $this->packTemplateMapper->toDeleteMessage($local);
+        if ($this->polkurierClient->packTemplates()->deletePackTemplates($request)) {
+            $this->apiEventDispatcher->dispatch(
                 ApiEventEnum::PackTemplateDeleteAfter,
                 null,
                 ['pack_template' => $local, 'request' => $request],
@@ -101,12 +101,12 @@ readonly class PackTemplateSyncAdapter implements PushableAdapterInterface
     public function save(SyncableInterface $local): void
     {
         /** @var PackTemplateInterface $local */
-        $this->repository->save($local);
+        $this->packTemplateRepository->save($local);
     }
 
     public function delete(SyncableInterface $local): void
     {
         /** @var PackTemplateInterface $local */
-        $this->repository->delete($local);
+        $this->packTemplateRepository->delete($local);
     }
 }

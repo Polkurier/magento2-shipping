@@ -32,7 +32,7 @@ class TestConnection extends AbstractJsonAction
     public function __construct(
         Context $context,
         JsonFactory $jsonFactory,
-        private readonly PolkurierClientInterface $client,
+        private readonly PolkurierClientInterface $polkurierClient,
         private readonly ConfigProvider $configProvider,
         private readonly ErrorMessageResolver $errorMessageResolver,
         private readonly AuthorizationMessageFactory $authorizationMessageFactory,
@@ -50,7 +50,7 @@ class TestConnection extends AbstractJsonAction
             throw new LocalizedException(__('Enter the customer ID and the API token.'));
         }
         try {
-            $this->client->utils()->testAuthApi(
+            $this->polkurierClient->utils()->testAuthApi(
                 $this->authorizationMessageFactory->create(['token' => $token, 'login' => $login]),
             );
         } catch (PolkurierException $e) {

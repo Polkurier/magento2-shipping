@@ -8,20 +8,20 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Model\Sdk;
 
 use Magento\Framework\Serialize\Serializer\Json;
-use Polkurier\Shipping\Enum\CacheTagEnum;
+use Polkurier\Shipping\Enum\Cache\CacheTagEnum;
 use Polkurier\Shipping\Model\Cache\Type as PolkurierCache;
 use Polkurier\Shipping\Model\Config\ConfigProvider;
 
 /**
- * What is cached for the Polkurier account: small answers kept for a while, so that opening an
- * admin page doesn't wait for the API each time, and the keys of everything else cached for the
- * account, which hold the account they're for, so the entries of another account are never
- * read. Forgotten with the carrier list when the credentials change.
+ * What is cached for the Polkurier account. Small answers are kept for a while, so that opening an
+ * admin page doesn't wait for the API each time. The keys of everything else cached for the account
+ * come from here too; they include the account, so another account's entries are never read.
+ * Forgotten with the carrier list when the credentials change.
  */
 readonly class AccountCache
 {
     public function __construct(
-        private PolkurierCache $cache,
+        private PolkurierCache $polkurierCache,
         private Json $json,
         private ConfigProvider $configProvider,
     ) {}
@@ -39,16 +39,16 @@ readonly class AccountCache
     public function remember(string $name, int $lifetime, callable $load): mixed
     {
         $key = $this->key($name);
-        $cached = $this->cache->load($key);
+        $cached = $this->polkurierCache->load($key);
         if (\is_string($cached) && $cached !== '') {
             try {
                 return $this->json->unserialize($cached)['value'] ?? null;
             } catch (\InvalidArgumentException) {
-                $this->cache->remove($key);
+                $this->polkurierCache->remove($key);
             }
         }
         $value = $load();
-        $this->cache->save(
+        $this->polkurierCache->save(
             (string)$this->json->serialize(['value' => $value]),
             $key,
             [CacheTagEnum::Account->value],

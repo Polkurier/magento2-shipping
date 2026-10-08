@@ -47,22 +47,6 @@ class OrderLock implements ResetAfterRequestInterface
      */
     public function run(int $orderId, callable $work): mixed
     {
-        $this->lock($orderId);
-        try {
-            return $work();
-        } finally {
-            $this->unlock($orderId);
-        }
-    }
-
-    /**
-     * Takes the order's lock, for a caller that can't hand its work over as one callable; release
-     * it with unlock() in a `finally`.
-     *
-     * @throws LocalizedException when another request keeps the lock for too long
-     */
-    public function lock(int $orderId): void
-    {
         $held = $this->held[$orderId] ?? 0;
         if ($held === 0 && !$this->lockManager->lock(self::PREFIX . $orderId, self::TIMEOUT_SECONDS)) {
             throw new LocalizedException(__(
@@ -70,21 +54,19 @@ class OrderLock implements ResetAfterRequestInterface
             ));
         }
         $this->held[$orderId] = $held + 1;
-    }
-
-    public function unlock(int $orderId): void
-    {
-        if (!isset($this->held[$orderId])) {
-            return;
-        }
-        if (--$this->held[$orderId] === 0) {
-            unset($this->held[$orderId]);
-            $this->lockManager->unlock(self::PREFIX . $orderId);
+        try {
+            return $work();
+        } finally {
+            // Already released if the request was reset meanwhile.
+            if (isset($this->held[$orderId]) && --$this->held[$orderId] === 0) {
+                unset($this->held[$orderId]);
+                $this->lockManager->unlock(self::PREFIX . $orderId);
+            }
         }
     }
 
     /**
-     * Locks still held when the request ends, as after a fatal error, are let go.
+     * Locks still held when the request ends, as after a fatal error, are released.
      */
     public function _resetState(): void
     {

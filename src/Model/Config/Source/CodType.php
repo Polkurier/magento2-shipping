@@ -10,7 +10,7 @@ namespace Polkurier\Shipping\Model\Config\Source;
 use Polkurier\Webservice\Enum\Order\CodTypeEnum;
 
 /**
- * Cash on delivery payout times. 16 days is left out: it can't be ordered through the module.
+ * Cash on delivery payout times. 16 days is left out: Polkurier's API refuses it.
  */
 readonly class CodType extends AbstractOptions
 {

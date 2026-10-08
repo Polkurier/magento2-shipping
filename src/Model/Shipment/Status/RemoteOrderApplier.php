@@ -76,11 +76,13 @@ readonly class RemoteOrderApplier
     /**
      * Whether nothing about the order will change any more.
      */
-    public function isFinal(ShipmentInterface $shipment, ?\DateTimeImmutable $now = null): bool
+    public function isFinal(ShipmentInterface $shipment): bool
     {
         if ($shipment->getState() === ShipmentInterface::STATE_CANCELLED) {
             return true;
         }
+        $statusDate = $shipment->getStatusDate();
+        $settledBefore = $this->dateTime->gmtTimestamp() - self::RETURN_SETTLED_AFTER_DAYS * 86400;
 
         return match ($shipment->getStatusCode()) {
             OrderStatusCodeEnum::Delivered->value => \in_array(
@@ -90,11 +92,8 @@ readonly class RemoteOrderApplier
             ),
             // A return has no status for "back with the sender": it stays "on its way back" for good.
             // Once that has not changed for a while, the parcel is taken to be back.
-            OrderStatusCodeEnum::Return->value => $this->isOlderThan(
-                $shipment->getStatusDate(),
-                self::RETURN_SETTLED_AFTER_DAYS,
-                $now ?? new \DateTimeImmutable('@' . $this->dateTime->gmtTimestamp()),
-            ),
+            OrderStatusCodeEnum::Return->value => $statusDate !== null
+                && \strtotime($statusDate . ' UTC') < $settledBefore,
             default => false,
         };
     }
@@ -203,18 +202,6 @@ readonly class RemoteOrderApplier
         \usort($events, static fn(array $a, array $b): int => \strcmp($b['date'], $a['date']));
 
         return $events;
-    }
-
-    private function isOlderThan(?string $date, int $days, \DateTimeImmutable $now): bool
-    {
-        if ($date === null) {
-            return false;
-        }
-        try {
-            return new \DateTimeImmutable($date, new \DateTimeZone('UTC')) < $now->modify('-' . $days . ' days');
-        } catch (\DateMalformedStringException) {
-            return false;
-        }
     }
 
     private static function utc(\DateTimeInterface $time): string

@@ -8,8 +8,9 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Api\Data;
 
 /**
- * The order's pickup point: the one the customer chose in checkout, or the one its Polkurier
- * order went with when that changed (the customer's is then kept, see ShippingChoiceInterface).
+ * The order's pickup point: the one the customer chose in checkout or, when the Polkurier order
+ * went with a different point, that point. The customer's choice is then kept in
+ * {@see \Polkurier\Shipping\Api\Data\ShippingChoiceInterface}.
  *
  * @api
  */
@@ -70,8 +71,8 @@ interface OrderPointInterface
     public function setPointLabel(?string $pointLabel): static;
 
     /**
-     * Whether the point accepts cash on delivery; null when that isn't known, as when Polkurier
-     * couldn't be asked: then it's taken to.
+     * Whether the point accepts cash on delivery. Null when that isn't known, e.g. when Polkurier
+     * couldn't be asked; the point is then assumed to accept it.
      *
      * @return bool|null
      */

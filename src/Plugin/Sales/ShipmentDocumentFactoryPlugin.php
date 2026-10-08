@@ -13,13 +13,14 @@ use Magento\Sales\Model\Order\ShipmentDocumentFactory;
 use Polkurier\Shipping\Model\Shipment\Native\ReservedNumberRegistry;
 
 /**
- * Gives a Magento shipment the module makes for a Polkurier order the number taken for it before
- * the order was placed, and sent to Polkurier: Magento numbers a shipment without one as it's saved.
+ * When the module makes a Magento shipment for a Polkurier order, gives it the number reserved
+ * before the order was placed and sent to Polkurier. Without it, Magento would number the shipment
+ * as it's saved.
  */
 readonly class ShipmentDocumentFactoryPlugin
 {
     public function __construct(
-        private ReservedNumberRegistry $reservedNumbers,
+        private ReservedNumberRegistry $reservedNumberRegistry,
     ) {}
 
     /**
@@ -35,7 +36,7 @@ readonly class ShipmentDocumentFactoryPlugin
         if ($result->getIncrementId()) {
             return $result;
         }
-        $number = $this->reservedNumbers->take((int)$order->getEntityId());
+        $number = $this->reservedNumberRegistry->take((int)$order->getEntityId());
         if ($number !== null) {
             $result->setIncrementId($number);
         }

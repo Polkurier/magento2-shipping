@@ -14,6 +14,7 @@ use Magento\Store\Model\StoreManagerInterface;
 use Polkurier\Shipping\Api\Data\QuotePointInterface;
 use Polkurier\Shipping\Api\QuotePointRepositoryInterface;
 use Polkurier\Shipping\Controller\Map\Token;
+use Polkurier\Shipping\Logger\Logger;
 use Polkurier\Shipping\Model\Carrier\CarrierCatalog;
 use Polkurier\Shipping\Model\Carrier\CarrierFeatureResolver;
 use Polkurier\Shipping\Model\Carrier\Polkurier;
@@ -21,12 +22,11 @@ use Polkurier\Shipping\Model\CarrierConfig\CarrierConfigProvider;
 use Polkurier\Shipping\Model\Config\ConfigProvider;
 use Polkurier\Webservice\Enum\Courier\PointFunctionEnum;
 use Polkurier\Webservice\Exception\Exception as PolkurierException;
-use Psr\Log\LoggerInterface;
 
 /**
  * Tells the checkout which Polkurier methods deliver to a pickup point, and how to open the map.
  *
- * The map's token comes with it when there is one, with when it stops working; the page asks
+ * The map token comes with it when there is one, along with when it stops working; the page asks
  * tokenUrl for a fresh one when it has none or it's about to run out. Never breaks checkout: if
  * Polkurier cannot be asked, no method offers the map, and the server refuses an order that needed
  * a point without one.
@@ -36,14 +36,14 @@ readonly class MapConfigProvider implements ConfigProviderInterface
     public function __construct(
         private ConfigProvider $configProvider,
         private CarrierConfigProvider $carrierConfigProvider,
-        private CarrierCatalog $catalog,
+        private CarrierCatalog $carrierCatalog,
         private CarrierFeatureResolver $carrierFeatureResolver,
-        private MapTokenProvider $tokenProvider,
+        private MapTokenProvider $mapTokenProvider,
         private QuotePointRepositoryInterface $quotePointRepository,
         private Session $checkoutSession,
         private StoreManagerInterface $storeManager,
         private UrlInterface $url,
-        private LoggerInterface $logger,
+        private Logger $logger,
     ) {}
 
     /**
@@ -71,13 +71,12 @@ readonly class MapConfigProvider implements ConfigProviderInterface
         $store = $this->storeManager->getStore();
         $storeId = (int)$store->getId();
         $methods = [];
-        $token = '';
-        $expires = 0;
+        $token = ['token' => '', 'expires' => 0];
 
         if ($this->configProvider->isActive($storeId)) {
             try {
                 foreach ($this->carrierConfigProvider->getActive() as $code => $carrierConfig) {
-                    $carrier = $this->catalog->getCarrier($code);
+                    $carrier = $this->carrierCatalog->getCarrier($code);
                     if ($carrier !== null && $this->carrierFeatureResolver->isRecipientPointAllowed($carrier)) {
                         $methods[$code] = [
                             'providers' => $this->carrierFeatureResolver->getPointProviders($carrier),
@@ -92,20 +91,16 @@ readonly class MapConfigProvider implements ConfigProviderInterface
             }
             if ($methods !== []) {
                 // Without a token now, the page asks for one when the map is opened; methods that
-                // need a point are only offered while there's a map (RateCollector).
-                try {
-                    $token = $this->tokenProvider->getToken();
-                    $expires = $this->tokenProvider->getExpiry();
-                } catch (PolkurierException) {
-                }
+                // need a point are only offered while there's a map
+                // ({@see \Polkurier\Shipping\Model\Carrier\RateCollector}).
+                $token = $this->mapTokenProvider->getTokenWithExpiry();
             }
         }
 
-        // Neutral names only: nothing sent to the storefront may name Polkurier.
         return [
             'methods' => (object)$methods,
-            'token' => $token,
-            'tokenExpires' => $expires,
+            'token' => $token['token'],
+            'tokenExpires' => $token['expires'],
             'tokenUrl' => $this->url->getUrl(Token::ROUTE),
             'baseUrl' => $this->configProvider->getMapUrl() . '/',
             'latitude' => $this->configProvider->getMapLatitude($storeId),

@@ -32,13 +32,6 @@ readonly class AvailableCarrierFilter
         return $codes === [] ? null : $codes;
     }
 
-    public function isAvailable(string $carrierCode): bool
-    {
-        $codes = $this->getCodes();
-
-        return $codes === null || \in_array($carrierCode, $codes, true);
-    }
-
     /**
      * @template T
      *

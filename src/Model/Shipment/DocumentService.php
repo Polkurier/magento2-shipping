@@ -19,14 +19,14 @@ use Polkurier\Webservice\Request\Order\GetDocumentMessage;
  * Labels and handover protocols for Polkurier orders. Several orders of one account come back as
  * one document.
  *
- * Several are read from Polkurier first, each, and those it no longer has placed are left out and
- * named: Polkurier leaves labels it can't print out of the file without a word, and a protocol
- * with one number it doesn't know fails as a whole.
+ * When there are several, each is read from Polkurier first; those Polkurier no longer has as
+ * placed are left out and named. This is because Polkurier silently leaves labels it can't print
+ * out of the file, and a protocol with one number it doesn't know fails as a whole.
  */
 readonly class DocumentService
 {
     public function __construct(
-        private ShipmentGateway $gateway,
+        private ShipmentGateway $shipmentGateway,
         private ConfigProvider $configProvider,
         private DateTime $dateTime,
         private StatusRefreshService $statusRefreshService,
@@ -44,21 +44,15 @@ readonly class DocumentService
         [$storeId, $numbers, $leftOut] = $this->numbers($shipments);
         $format = $pdf ? null : $this->configProvider->getLabelFormat($storeId);
 
-        $document = $this->gateway->getLabel(new GetDocumentMessage($numbers, $format));
+        $document = $this->shipmentGateway->getLabel(new GetDocumentMessage($numbers, $format));
+        [$extension, $contentType] = $format === null ? ['pdf', 'application/pdf'] : ['txt', 'text/plain'];
 
-        return $format === null
-            ? [
-                'file_name' => $this->fileName('labels', $numbers, 'pdf'),
-                'content' => $document->getDecodedFile(),
-                'content_type' => 'application/pdf',
-                'left_out' => $leftOut,
-            ]
-            : [
-                'file_name' => $this->fileName('labels', $numbers, 'txt'),
-                'content' => $document->getDecodedFile(),
-                'content_type' => 'text/plain',
-                'left_out' => $leftOut,
-            ];
+        return [
+            'file_name' => $this->fileName('labels', $numbers, $extension),
+            'content' => $document->getDecodedFile(),
+            'content_type' => $contentType,
+            'left_out' => $leftOut,
+        ];
     }
 
     /**
@@ -70,7 +64,7 @@ readonly class DocumentService
     public function getProtocol(array $shipments): array
     {
         [, $numbers, $leftOut] = $this->numbers($shipments);
-        $document = $this->gateway->getProtocol(new GetDocumentMessage($numbers));
+        $document = $this->shipmentGateway->getProtocol(new GetDocumentMessage($numbers));
 
         return [
             'file_name' => $this->fileName('protocol', $numbers, 'pdf'),
@@ -111,8 +105,8 @@ readonly class DocumentService
     }
 
     /**
-     * Reads each order from Polkurier, as a status refresh does, which also clears those cancelled
-     * there, and drops those it no longer has placed.
+     * Reads each order from Polkurier, as a status refresh does (which also clears those cancelled
+     * there), and drops those Polkurier no longer has as placed.
      *
      * @param array<string, ShipmentInterface> $placed by Polkurier number
      *

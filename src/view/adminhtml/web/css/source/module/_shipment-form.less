@@ -13,7 +13,7 @@
     align-items: start;
 }
 
-/* The sections one under another, but for the shipment and its items, side by side */
+/* The sections stack one under another, except the shipment and its items, which sit side by side */
 .polkurier-workspace__main {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -30,7 +30,7 @@
     grid-column: auto;
 }
 
-/* Half as wide, the shipment's details take the whole of it, as the parcels do. */
+/* At half width, the shipment's details and items take a single column, as the parcels do. */
 .polkurier-section--shipment .polkurier-section__content,
 .polkurier-section--items .polkurier-section__content {
     grid-template-columns: minmax(0, 1fr);
@@ -77,7 +77,7 @@
 
 /* "Change", "Remove" and the like, as "Change" on Magento's New Shipment page */
 .polkurier-compact-button {
-    // The text sits high in its line: a little less below it.
+    // The text sits high in its line, so the padding below it is a little smaller.
     padding: .3rem .9rem .2rem;
     font-size: 1.2rem;
 }
@@ -127,7 +127,7 @@
     margin-bottom: 3rem;
 }
 
-// Their label column is empty: no field's height to keep, but its width, for the control's column
+// Their label column is empty: it keeps the field's width, for the controls, but not its height
 .admin__fieldset > .admin__field.polkurier-field-note > .admin__field-label,
 .admin__fieldset > .admin__field.polkurier-field-fee > .admin__field-label {
     min-height: 1px;
@@ -257,7 +257,7 @@
     font-size: 1.6rem;
 }
 
-// Only the price: what's said under it reads as the rest
+// Only the price is larger: the text under it keeps the normal size
 .polkurier-facts__price .polkurier-facts__line {
     font-size: 1.4rem;
 }

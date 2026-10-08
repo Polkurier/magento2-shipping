@@ -18,12 +18,10 @@ abstract class AbstractIndex extends AbstractAction implements HttpGetActionInte
 {
     public function execute(): Page
     {
+        /** @var Page $page */
         $page = $this->resultFactory->create(ResultFactory::TYPE_PAGE);
-        if (!$page instanceof Page) {
-            throw new \LogicException('The admin area renders backend pages.');
-        }
-        $page->setActiveMenu($this->handler->getMenuId());
-        $page->getConfig()->getTitle()->prepend($this->handler->getLabel());
+        $page->setActiveMenu(static::ADMIN_RESOURCE);
+        $page->getConfig()->getTitle()->prepend($this->entityHandler->getLabel());
 
         return $page;
     }

@@ -5,8 +5,9 @@
 -->
 <listing xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Ui:etc/ui_configuration.xsd">
-    <!-- Magento's orders list: a filter by the shipping carrier, which the Polkurier menu opens the list
-         with set to Polkurier (OrderGridFilterPlugin, js/grid/carrier-filter.js). -->
+    <!-- Magento's orders list: a filter by shipping carrier. The Polkurier menu opens the list with
+         it set to Polkurier (Polkurier\Shipping\Plugin\Adminhtml\OrderGridFilterPlugin,
+         js/grid/carrier-filter.js). -->
     <container name="carrier_filter_from_url">
         <argument name="data" xsi:type="array">
             <item name="config" xsi:type="array">

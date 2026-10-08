@@ -11,7 +11,7 @@ use Magento\Framework\Serialize\Serializer\Json;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Polkurier\Shipping\Enum\CacheTagEnum;
+use Polkurier\Shipping\Enum\Cache\CacheTagEnum;
 use Polkurier\Shipping\Model\Cache\Type as PolkurierCache;
 use Polkurier\Shipping\Model\Config\ConfigProvider;
 use Polkurier\Shipping\Model\Sdk\AccountCache;
@@ -63,7 +63,7 @@ class AccountCacheTest extends TestCase
     {
         $keys = $this->cache();
 
-        // The shape the caches used before, so their entries stay valid.
+        // The cache's prefix, then a hash of the login, the sandbox flag and what else the entry depends on.
         self::assertSame('polkurier_map_token_' . \sha1('12345|0'), $keys->key('map_token'));
         self::assertSame('polkurier_carriers_' . \sha1('12345|0|2.0.0@abc'), $keys->key('carriers', '2.0.0@abc'));
     }

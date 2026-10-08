@@ -14,6 +14,7 @@ use Polkurier\Shipping\Api\Data\BankAccountInterface;
 use Polkurier\Shipping\Api\Data\PackTemplateInterface;
 use Polkurier\Shipping\Api\Data\ShipmentDraftInterface;
 use Polkurier\Shipping\Api\Data\SyncableInterface;
+use Polkurier\Shipping\Logger\Logger;
 use Polkurier\Shipping\Model\Address\AddressHandler;
 use Polkurier\Shipping\Model\Admin\FlashMessageCollector;
 use Polkurier\Shipping\Model\Admin\FlashMessageCollectorFactory;
@@ -26,30 +27,30 @@ use Polkurier\Shipping\Model\ResourceModel\BankAccount\CollectionFactory as Bank
 use Polkurier\Shipping\Model\ResourceModel\PackTemplate\CollectionFactory as PackTemplateCollectionFactory;
 use Polkurier\Shipping\Model\Sync\EntityHandlerInterface;
 use Polkurier\Shipping\Model\Sync\SyncResult;
-use Psr\Log\LoggerInterface;
 
 /**
- * Saves what a shipment had typed in rather than chosen, where asked to: the sender to the
+ * Saves what was typed in for a shipment rather than chosen, when asked to: the sender to the
  * addresses, the cash on delivery account to the bank accounts, and parcels without a template to
- * the pack templates, as their settings pages save them, and so sent to Polkurier. Only once the
- * shipment is placed: a refused one keeps nothing. The first of each becomes the default.
+ * the pack templates. They're saved as their settings pages save them, and so sent to Polkurier.
+ * This happens only once the shipment is placed: a refused one keeps nothing. The first of each
+ * becomes the default.
  *
- * The shipment is placed whatever becomes of them. What became of each is gathered for the
- * action that placed it to tell the admin (takeOutcome()). Whether the admin may change them is
- * that action's to check: it drops what they may not keep before the draft gets here.
+ * The shipment is placed whatever becomes of them. What became of each is gathered for the action
+ * that placed the shipment, to tell the admin (takeOutcome()). That action also checks whether the
+ * admin may change them: it drops what they may not keep before the draft gets here.
  */
 class ManualEntrySaver implements ResetAfterRequestInterface
 {
     private FlashMessageCollector $flashMessageCollector;
 
     public function __construct(
-        private readonly AddressHandler $addresses,
-        private readonly BankAccountHandler $bankAccounts,
-        private readonly PackTemplateHandler $packTemplates,
+        private readonly AddressHandler $addressHandler,
+        private readonly BankAccountHandler $bankAccountHandler,
+        private readonly PackTemplateHandler $packTemplateHandler,
         private readonly AddressCollectionFactory $addressCollectionFactory,
         private readonly BankAccountCollectionFactory $bankAccountCollectionFactory,
         private readonly PackTemplateCollectionFactory $packTemplateCollectionFactory,
-        private readonly LoggerInterface $logger,
+        private readonly Logger $logger,
         private readonly FlashMessageCollectorFactory $flashMessageCollectorFactory,
     ) {
         $this->flashMessageCollector = $this->flashMessageCollectorFactory->create();
@@ -59,19 +60,19 @@ class ManualEntrySaver implements ResetAfterRequestInterface
     {
         if ($draft->isNewSender() && $draft->isKeepingNewSender()) {
             $address = $draft->getNewSenderAddress();
-            $this->save($this->addresses, [
+            $this->save($this->addressHandler, [
                 AddressInterface::FIELD_NAME => $draft->getNewSenderName() ?: self::addressName($address),
                 AddressInterface::FIELD_TYPE => AddressInterface::TYPE_SENDER,
                 AddressInterface::FIELD_COUNTRY => Polkurier::HOME_COUNTRY,
                 AddressInterface::FIELD_IS_DEFAULT => $this->isFirst($this->addressCollectionFactory->create()),
-                // Handed over where it was this time, for the next shipment from it.
+                // The drop-off point used this time, for the next shipment from this address.
                 AddressInterface::FIELD_POINT_ID => $draft->getSenderPointId(),
             ] + \array_filter($address, static fn(string $value): bool => $value !== ''));
         }
         if ($draft->isNewBankAccount() && $draft->isKeepingNewBankAccount()
             && $draft->getNewBankAccountNumber() !== ''
         ) {
-            $this->save($this->bankAccounts, [
+            $this->save($this->bankAccountHandler, [
                 BankAccountInterface::FIELD_NAME => self::bankAccountName($draft),
                 BankAccountInterface::FIELD_NUMBER => BankAccountMapper::normalizeNumber(
                     $draft->getNewBankAccountNumber(),
@@ -83,7 +84,7 @@ class ManualEntrySaver implements ResetAfterRequestInterface
             if ($pack->getKeepAs() === '' || $pack->getTemplateId() !== null) {
                 continue;
             }
-            $this->save($this->packTemplates, [
+            $this->save($this->packTemplateHandler, [
                 PackTemplateInterface::FIELD_NAME => $pack->getKeepAs(),
                 PackTemplateInterface::FIELD_PACK_TYPE => $pack->getPackType(),
                 PackTemplateInterface::FIELD_LENGTH => $pack->getLength(),
@@ -98,7 +99,7 @@ class ManualEntrySaver implements ResetAfterRequestInterface
     }
 
     /**
-     * What became of the entries kept since it was last asked, as one message to send; empty when
+     * What became of the entries kept since the last call, as one message to send; empty when
      * nothing was kept.
      */
     public function takeOutcome(): FlashMessageCollector
@@ -147,7 +148,6 @@ class ManualEntrySaver implements ResetAfterRequestInterface
         try {
             $entity = $handler->create();
             $result = $handler->save($entity, $data);
-            $entity = $handler->get((int)$entity->getId());
         } catch (\Throwable $e) {
             $this->logger->warning(
                 'Polkurier: an entry typed in for a shipment could not be saved',

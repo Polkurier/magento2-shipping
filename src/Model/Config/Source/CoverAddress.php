@@ -16,13 +16,13 @@ use Polkurier\Shipping\Model\Shipment\Screen\ShipmentOptionsProvider;
 readonly class CoverAddress extends AbstractOptions
 {
     public function __construct(
-        private ShipmentOptionsProvider $shipmentOptions,
+        private ShipmentOptionsProvider $shipmentOptionsProvider,
     ) {}
 
     public function toArray(): array
     {
         $options = ['' => (string)__('None: the sender address')];
-        foreach ($this->shipmentOptions->getSenderOptions(true) as $option) {
+        foreach ($this->shipmentOptionsProvider->getSenderOptions(true) as $option) {
             $options[$option['value']] = $option['label'];
         }
 

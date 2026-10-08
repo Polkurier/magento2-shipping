@@ -58,7 +58,7 @@ class Create extends Action implements HttpGetActionInterface
             ));
         } elseif (($failed = $this->retriableShipmentFinder->findForOrder($order)) !== null) {
             $described = $this->failedShipmentManager->describe($failed);
-            // Placing another replaces it: said before, so it isn't lost unnoticed.
+            // Placing a new one replaces it. Say so up front, so it isn't lost unnoticed.
             $this->messageManager->addNoticeMessage(__(
                 'A shipment of this order wasn\'t placed on %1: %2. Placing now places it, as filled in here; '
                 . '"Send again" in the order\'s Polkurier tab starts from what was filled in then. '
@@ -69,10 +69,8 @@ class Create extends Action implements HttpGetActionInterface
             ));
         }
 
+        /** @var Page $page */
         $page = $this->resultFactory->create(ResultFactory::TYPE_PAGE);
-        if (!$page instanceof Page) {
-            throw new \LogicException('The admin area renders backend pages.');
-        }
         $page->setActiveMenu('Magento_Sales::sales_order');
         $page->getConfig()->getTitle()->prepend((string)__('Ship order #%1 with Polkurier', $order->getIncrementId()));
 

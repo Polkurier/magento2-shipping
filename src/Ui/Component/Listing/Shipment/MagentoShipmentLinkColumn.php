@@ -17,8 +17,8 @@ use Magento\Ui\Component\Listing\Columns\Column;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 
 /**
- * The Magento shipment a Polkurier shipment went on, by its number, linked to it; empty for one
- * that has none, as one that wasn't placed.
+ * The number of the Magento shipment a Polkurier shipment went on, linked to it. Empty when there
+ * is none, e.g. for a shipment that wasn't placed.
  */
 class MagentoShipmentLinkColumn extends Column
 {

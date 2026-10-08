@@ -5,9 +5,9 @@
 /**
  * The parcels of the shipment: a list with a way to add, change and remove each, and a parcel
  * editor. A new parcel opens in the editor, empty or filled in from a pack template chosen under
- * "Add a parcel", so its size, weight and the shipped items it holds can be set
- * before it's added. Until it's typed in, its weight follows the parcel weight setting: what the items in
- * it weigh, or its template's weight (rules.parcelWeight).
+ * "Add a parcel", so its size, weight and the shipped items it holds can be set before it's added.
+ * Until its weight is typed in, it follows the parcel weight setting: what the items in it weigh,
+ * or its template's weight (rules.parcelWeight).
  */
 define([
     'jquery',
@@ -44,7 +44,7 @@ define([
                 origin: {},
                 // The weight of the template the parcel came from, null without one.
                 templateWeight: null,
-                // A template of another shipment type: the parcels there are give way to this one.
+                // A template of another shipment type: this parcel replaces the existing ones.
                 shipmentType: null,
                 packType: ko.observable(''),
                 length: ko.observable(''),
@@ -58,7 +58,7 @@ define([
                 keepName: ko.observable(''),
                 error: ko.observable('')
             };
-            // Only a parcel that isn't a template's as it is can be saved as one.
+            // Only a parcel that differs from its template can be saved as a template.
             this.editor.canKeep = ko.pureComputed(function () {
                 const editor = this.editor,
                     origin = editor.origin || {};
@@ -117,14 +117,15 @@ define([
         },
 
         /**
-         * Puts the items shipped into parcels of the pack templates, from the products' shipping
-         * dimensions, in place of the parcels there are, once confirmed.
+         * Once confirmed, packs the shipped items into parcels of the pack templates, by the
+         * products' shipping dimensions, replacing the existing parcels.
          */
         packAutomatically: function () {
             const pack = function () {
                 this.packing(true);
                 request().post(this.get('urls.pack'), {
-                    // Without parcels, the items decide what they go as (AutoPacker::packByItems).
+                    // Without parcels, the items decide what they're sent as
+                    // (Polkurier\Shipping\Model\Shipment\Packing\AutoPacker::packDraft()).
                     data: {
                         order_id: this.get('order_id'),
                         items: this.get('items'),
@@ -160,7 +161,7 @@ define([
         },
 
         /**
-         * What one parcel holds, an item a line, and what that weighs; none when not said.
+         * What one parcel holds, one item per line, and what that weighs; nothing when not given.
          *
          * @param {Object} pack
          * @param {Object} items the shipped items by order item id
@@ -207,7 +208,7 @@ define([
         },
 
         /**
-         * The form's parcels, without the rows Magento's dynamic rows used to mark as deleted.
+         * The form's parcels, without those marked as deleted.
          *
          * @returns {Array<Object>}
          */
@@ -240,8 +241,8 @@ define([
 
             this.set('packs_estimated', Boolean(estimated));
             this.set('packs', packs);
-            // The shipment is what its parcels are. Without any, it's back to what a new one
-            // starts as, so automatic packing doesn't keep to the kind of parcels removed.
+            // The shipment takes the type of its parcels. Without any, it goes back to the type a
+            // new one starts with, so automatic packing doesn't stick to the kind of parcels removed.
             if (types.length === 1) {
                 this.set('shipment_type', types[0]);
             } else if (!packs.length) {
@@ -361,8 +362,8 @@ define([
 
         /**
          * Opens a new parcel in the editor, filled in from a template. A template of another
-         * shipment type replaces the parcels there are, once confirmed, since one shipment can't
-         * mix types.
+         * shipment type replaces the existing parcels, once confirmed, since one shipment can't mix
+         * types.
          *
          * @param {Object} template
          */
@@ -401,8 +402,8 @@ define([
         /**
          * @param {Number} index -1 for a new parcel
          * @param {Object} pack
-         * @param {String|null} [shipmentType] the type a new parcel changes the shipment to, which
-         *     the parcels there are give way to
+         * @param {String|null} [shipmentType] the type a new parcel changes the shipment to,
+         *     replacing the existing parcels
          */
         openEditor: function (index, pack, shipmentType) {
             const editor = this.editor;
@@ -420,7 +421,7 @@ define([
             editor.contentsWeight(this.weighContents());
             editor.keep(Boolean(pack.keep_as));
             editor.keepName(pack.keep_as || '');
-            // A weight other than the setting's of a parcel that says what it holds was typed in.
+            // For a parcel that says what it holds, a weight other than the setting's was typed in.
             this.followedWeight = (pack.items || []).length && rules.amount(editor.weight()) !== this.editorWeight()
                 ? null
                 : editor.weight();
@@ -429,8 +430,8 @@ define([
         },
 
         /**
-         * The shipped items for the editor, each with what this parcel holds of it and how many are
-         * left for it, besides what the other parcels hold.
+         * The shipped items for the editor, each with how much of it this parcel holds and how much
+         * is left for it after what the other parcels hold.
          *
          * @param {Number} index the parcel edited, -1 for a new one
          * @param {Object} pack
@@ -438,7 +439,7 @@ define([
          */
         editorItems: function (index, pack) {
             const data = this.get() || {},
-                // Parcels of another shipment type give way to this one, so hold nothing.
+                // Parcels of another shipment type are replaced by this one, so they hold nothing.
                 others = rules.packed((this.editor.shipmentType ? [] : this.packs()).filter(function (other, position) {
                     return position !== index;
                 })),
@@ -488,7 +489,7 @@ define([
         },
 
         /**
-         * What a parcel of the template given, holding the items given, weighs by the setting.
+         * What a parcel of the given template, holding the given items, weighs by the setting.
          *
          * @param {Number|String|null} templateWeight
          * @param {Number|String|null} [tare] what the template's packaging weighs
@@ -602,8 +603,8 @@ define([
 
                 return;
             }
-            // A parcel of another type or size no longer is the template it came from; its weight
-            // may be what's in it.
+            // A parcel of another type or size no longer matches the template it came from; its
+            // weight may be what's in it.
             pack.template_id = editor.templateId && ['pack_type', 'length', 'width', 'height'].every(function (field) {
                 return String(previous[field]) === String(pack[field]);
             }) ? editor.templateId : null;

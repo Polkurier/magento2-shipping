@@ -10,14 +10,13 @@ namespace Polkurier\Shipping\Controller\Adminhtml\Shipment;
 use Magento\Backend\App\Action\Context;
 use Magento\Framework\App\Action\HttpPostActionInterface;
 use Magento\Framework\Controller\Result\Redirect;
-use Polkurier\Shipping\Model\Admin\FlashMessageCollector;
 use Polkurier\Shipping\Model\Admin\FlashMessageCollectorFactory;
 use Polkurier\Shipping\Model\Config\ConfigProvider;
 use Polkurier\Shipping\Model\Shipment\Status\StatusRefreshService;
 
 /**
- * "Update statuses" on the shipments grid: what the scheduled update does, now, for the shipments
- * still in motion, however recently they were checked.
+ * "Update statuses" on the shipments grid: runs the scheduled update now for the shipments still
+ * in motion, however recently they were checked.
  */
 class RefreshAll extends AbstractShipmentAction implements HttpPostActionInterface
 {

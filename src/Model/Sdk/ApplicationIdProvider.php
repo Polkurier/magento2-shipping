@@ -14,10 +14,10 @@ use Polkurier\Shipping\Model\Config\ConfigProvider;
 /**
  * This Magento installation's id, sent to Polkurier with every order as its
  * external_application_id: the one entered as "Installation ID", or else "magento2-" and a code
- * made from the installation's first encryption key. Installations sharing a Polkurier account,
- * e.g. a shop and its staging copy, so tell their orders apart; rotating the key keeps the first,
- * and so the id. A copy that took the key along needs an id entered. Polkurier keeps up to 50
- * characters of it, and checks nothing about it.
+ * made from the installation's first encryption key. It lets installations sharing a Polkurier
+ * account, e.g. a shop and its staging copy, tell their orders apart. Rotating the key keeps the
+ * first key, and so the id. A copy that took the key along needs an id entered. Polkurier keeps up
+ * to 50 characters of the id, and checks nothing about it.
  */
 class ApplicationIdProvider
 {

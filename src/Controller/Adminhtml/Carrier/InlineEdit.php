@@ -26,8 +26,8 @@ class InlineEdit extends Action implements HttpPostActionInterface
     public function __construct(
         Context $context,
         private readonly JsonFactory $jsonFactory,
-        private readonly CarrierConfigRepositoryInterface $repository,
-        private readonly CarrierConfigHydrator $hydrator,
+        private readonly CarrierConfigRepositoryInterface $carrierConfigRepository,
+        private readonly CarrierConfigHydrator $carrierConfigHydrator,
     ) {
         parent::__construct($context);
     }
@@ -40,9 +40,9 @@ class InlineEdit extends Action implements HttpPostActionInterface
                 continue;
             }
             try {
-                $config = $this->repository->get((int)$id);
-                $this->hydrator->applyRow($config, $row);
-                $this->repository->save($config);
+                $config = $this->carrierConfigRepository->get((int)$id);
+                $this->carrierConfigHydrator->applyRow($config, $row);
+                $this->carrierConfigRepository->save($config);
             } catch (LocalizedException $e) {
                 $messages[] = $e->getMessage();
             }

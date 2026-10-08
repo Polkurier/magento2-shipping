@@ -6,27 +6,29 @@
 
 [User guide](README.md) › Permissions
 
-The module adds its own permissions to the role editor in **System > Permissions > User Roles**,
-under **Role Resources**. They let you, for example, have someone print labels without being able
-to place or cancel shipments, or keep payouts to a few people.
+Permissions are set in **System > Permissions > User Roles**. Open a role and go to **Role
+Resources**. The module's permissions are under **Polkurier**:
 
-| Permission | Allows |
-|---|---|
-| **Polkurier** | the Polkurier menu (needed for everything below); its **Orders** item, Magento's orders list, needs Magento's own **Sales > Operations > Orders** |
-| **Shipments** | see shipments, print labels and protocols, update statuses |
-| &nbsp;&nbsp;**Create shipments** | place shipments (on either page), reconcile unclear ones, create missing Magento shipments, book collective pickups |
-| &nbsp;&nbsp;**Cancel shipments** | cancel shipments in Polkurier |
-| **Cash on delivery** | see payouts |
-| &nbsp;&nbsp;**Request payouts** | request and cancel payouts |
-| **Settings** | the Settings menu |
-| &nbsp;&nbsp;**Addresses**, **Bank accounts**, **Pack templates**, **Carriers** | manage each of them |
+- **Polkurier**: the Polkurier menu. Needed for everything below.
+  - **Sales**: the Sales menu. Its **Orders** item opens Magento's orders list, so it also needs
+    Magento's own **Sales > Operations > Orders**.
+    - **Shipments**: see shipments, print labels and protocols, update statuses.
+      - **Create shipments**: place shipments (on either page), reconcile unclear ones, create
+        missing Magento shipments and book collective pickups.
+      - **Cancel shipments**: cancel shipments in Polkurier.
+    - **Cash on delivery payouts**: see payouts.
+      - **Request payouts**: request and cancel payouts.
+  - **Settings**: the Settings menu.
+    - **Carriers**: manage carriers.
+    - **Addresses**: manage addresses.
+    - **Bank accounts**: manage bank accounts.
+    - **Pack templates**: manage pack templates.
 
-The configuration page, its **Test connection** button and the **Configuration** menu item are
-controlled by Magento's own **Stores > Settings > Configuration > Delivery Methods Section**,
-because the settings sit among Magento's delivery methods.
+**The configuration page** has no permission of its own. It's part of Magento's **Delivery
+Methods** settings, so it needs **Stores > Settings > Configuration > Delivery Methods Section**.
 
-Shipping on Magento's own shipment page needs Magento's usual permission to create shipments
-(**Sales > Operations > Orders > Actions > Ship**) as well as **Create shipments** above. Without
-the latter, Magento can still create plain shipments, but not Polkurier labels.
+**Shipping on Magento's own shipment page** needs two permissions: Magento's usual one for creating
+shipments (**Sales > Operations > Orders > Actions > Ship**) and **Create shipments** above.
+Without **Create shipments**, Magento can still create plain shipments, but not Polkurier labels.
 
 Next: [Troubleshooting](troubleshooting.md)

@@ -12,7 +12,7 @@ use Polkurier\Shipping\Api\CarrierConfigRepositoryInterface;
 use Polkurier\Shipping\Api\Data\CarrierConfigInterface;
 
 /**
- * The order carriers are offered in at checkout, as rows are dragged in the carriers grid.
+ * Sets the order carriers are offered in at checkout, as rows are dragged in the carriers grid.
  *
  * The grid may show only some carriers: a page, a filter, or the available carriers. The rows it
  * sends take the places they held among all carriers, in their new order, so the carriers it didn't
@@ -24,7 +24,7 @@ readonly class CarrierSortOrderUpdater
 
     public function __construct(
         private CarrierConfigProvider $carrierConfigProvider,
-        private CarrierConfigRepositoryInterface $repository,
+        private CarrierConfigRepositoryInterface $carrierConfigRepository,
     ) {}
 
     /**
@@ -59,7 +59,7 @@ readonly class CarrierSortOrderUpdater
         foreach ($arranged as $position => $config) {
             $sortOrder = ($position + 1) * self::STEP;
             if ($config->getSortOrder() !== $sortOrder) {
-                $this->repository->save($config->setSortOrder($sortOrder));
+                $this->carrierConfigRepository->save($config->setSortOrder($sortOrder));
             }
         }
         $this->carrierConfigProvider->reset();

@@ -13,10 +13,10 @@ use Monolog\Logger;
 use Monolog\LogRecord;
 
 /**
- * Writes the module's and the SDK's log records to files a month in var/log/polkurier, Apache
- * style: requests and answers to e.g. 2026-10-access.log, failed requests, warnings and errors to
- * 2026-10-error.log. The month is each record's, so a process running into the next month goes on
- * in the next month's files.
+ * Writes the module's and the SDK's log records to monthly files in var/log/polkurier, Apache
+ * style: requests and answers to e.g. 2026-10-access.log; failed requests, warnings and errors to
+ * 2026-10-error.log. Each record goes to the files of its own month, so a process that runs into
+ * the next month continues in that month's files.
  */
 class Handler extends Base
 {

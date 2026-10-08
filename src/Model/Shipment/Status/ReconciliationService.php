@@ -12,6 +12,7 @@ use Magento\Framework\Stdlib\DateTime as DateFormat;
 use Magento\Framework\Stdlib\DateTime\DateTime;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Api\ShipmentRepositoryInterface;
+use Polkurier\Shipping\Logger\Logger;
 use Polkurier\Shipping\Model\ResourceModel\Shipment as ShipmentResource;
 use Polkurier\Shipping\Model\Shipment\Native\NativeFollowUpService;
 use Polkurier\Shipping\Model\Shipment\OrderLoader;
@@ -20,11 +21,11 @@ use Polkurier\Shipping\Model\Shipment\ShipmentAgeChecker;
 use Polkurier\Shipping\Model\Shipment\ShipmentFinder;
 use Polkurier\Webservice\Enum\Order\OrderStatusCodeEnum;
 use Polkurier\Webservice\Response\Order;
-use Psr\Log\LoggerInterface;
 
 /**
  * Settles attempts whose outcome is unknown: finds the Polkurier order they placed, if any, or
- * links the one the merchant names. What counts as a match is RemoteOrderMatcher's.
+ * links the one the merchant names. What counts as a match is
+ * {@see \Polkurier\Shipping\Model\Shipment\Status\RemoteOrderMatcher}'s.
  *
  * The scheduled run (reconcilePending()) takes shipments whose outcome is unknown, and pending ones
  * old enough that their request must have been interrupted, least recently checked first, like
@@ -41,35 +42,29 @@ readonly class ReconciliationService
         private RemoteOrderMatcher $remoteOrderMatcher,
         private RemoteOrderApplier $remoteOrderApplier,
         private ShipmentAgeChecker $shipmentAgeChecker,
-        private NativeFollowUpService $followUp,
+        private NativeFollowUpService $nativeFollowUpService,
         private OrderLoader $orderLoader,
         private DateTime $dateTime,
         private OrderLock $orderLock,
-        private ShipmentFinder $finder,
+        private ShipmentFinder $shipmentFinder,
         private ShipmentResource $shipmentResource,
-        private LoggerInterface $logger,
+        private Logger $logger,
     ) {}
 
     /**
      * The scheduled run, without anyone having to ask.
-     *
-     * @return int how many shipments were settled: adopted, or found not to have been placed
      */
-    public function reconcilePending(): int
+    public function reconcilePending(): void
     {
         $now = $this->dateTime->gmtTimestamp();
-        $shipments = $this->finder->dueForReconciliation(
+        $shipments = $this->shipmentFinder->dueForReconciliation(
             \gmdate(DateFormat::DATETIME_PHP_FORMAT, $now - ShipmentAgeChecker::RECONCILE_PENDING_AFTER_MINUTES * 60),
             \gmdate(DateFormat::DATETIME_PHP_FORMAT, $now - self::RECHECK_AFTER_MINUTES * 60),
             self::BATCH_SIZE,
         );
-
-        $settled = 0;
         foreach ($shipments as $shipment) {
             try {
-                if ($this->reconcile((int)$shipment->getId())->getState() !== ShipmentInterface::STATE_UNKNOWN) {
-                    $settled++;
-                }
+                $this->reconcile((int)$shipment->getId());
             } catch (\Throwable $e) {
                 $this->logger->warning('Polkurier reconciliation failed', [
                     'shipment' => $shipment->getId(),
@@ -79,8 +74,6 @@ readonly class ReconciliationService
                 $this->shipmentResource->markChecked((int)$shipment->getId(), (string)$this->dateTime->gmtDate());
             }
         }
-
-        return $settled;
     }
 
     /**
@@ -203,7 +196,7 @@ readonly class ReconciliationService
         $shipment->setLastError($duplicatesNote !== null ? (string)$duplicatesNote : null);
         $this->shipmentRepository->save($shipment);
         if ($shipment->getState() === ShipmentInterface::STATE_CANCELLED) {
-            $this->followUp->comment($order, __(
+            $this->nativeFollowUpService->comment($order, __(
                 'Polkurier order %1 was found after an unconfirmed request, already cancelled in Polkurier. '
                 . 'The order can be shipped again.',
                 $shipment->getPolkurierNumber(),
@@ -211,15 +204,15 @@ readonly class ReconciliationService
 
             return $shipment;
         }
-        $this->followUp->comment($order, __(
+        $this->nativeFollowUpService->comment($order, __(
             'Polkurier order %1 found and linked after an unconfirmed request.',
             $shipment->getPolkurierNumber(),
         ));
         if ($duplicatesNote !== null) {
-            $this->followUp->comment($order, $duplicatesNote);
+            $this->nativeFollowUpService->comment($order, $duplicatesNote);
         }
-        $this->followUp->ship($order, $shipment);
-        $this->followUp->linked($shipment, $order, 'reconcile');
+        $this->nativeFollowUpService->ship($order, $shipment);
+        $this->nativeFollowUpService->linked($shipment, $order, 'reconcile');
 
         return $shipment;
     }
@@ -231,7 +224,7 @@ readonly class ReconciliationService
         $this->shipmentRepository->save($shipment);
         $order = $this->orderLoader->get($shipment->getOrderId());
         if ($shipment->getState() === ShipmentInterface::STATE_CANCELLED) {
-            $this->followUp->comment($order, __(
+            $this->nativeFollowUpService->comment($order, __(
                 'Polkurier order %1 linked by hand after an unconfirmed request, already cancelled in Polkurier. '
                 . 'The order can be shipped again.',
                 $shipment->getPolkurierNumber(),
@@ -239,12 +232,12 @@ readonly class ReconciliationService
 
             return $shipment;
         }
-        $this->followUp->comment($order, __(
+        $this->nativeFollowUpService->comment($order, __(
             'Polkurier order %1 linked by hand after an unconfirmed request.',
             $shipment->getPolkurierNumber(),
         ));
-        $this->followUp->ship($order, $shipment);
-        $this->followUp->linked($shipment, $order, 'adopt');
+        $this->nativeFollowUpService->ship($order, $shipment);
+        $this->nativeFollowUpService->linked($shipment, $order, 'adopt');
 
         return $shipment;
     }

@@ -10,13 +10,13 @@ namespace Polkurier\Shipping\Model\Carrier;
 use Magento\Framework\Escaper;
 use Magento\Framework\Serialize\Serializer\Json;
 use Polkurier\Shipping\Api\PolkurierClientInterface;
-use Polkurier\Shipping\Enum\CacheTagEnum;
+use Polkurier\Shipping\Enum\Cache\CacheTagEnum;
+use Polkurier\Shipping\Logger\Logger;
 use Polkurier\Shipping\Model\Cache\Type as PolkurierCache;
 use Polkurier\Shipping\Model\Sdk\AccountCache;
 use Polkurier\Webservice\Enum\Courier\CourierMessageSeverityEnum;
 use Polkurier\Webservice\Enum\Courier\CourierMessageTypeEnum;
 use Polkurier\Webservice\Exception\Exception as PolkurierException;
-use Psr\Log\LoggerInterface;
 
 /**
  * Polkurier's current notices about carriers (delays, suspensions, extra fees), shown on the
@@ -32,10 +32,10 @@ readonly class CarrierNoticeProvider
     private const array ALLOWED_TAGS = ['a', 'b', 'strong', 'em', 'i', 'br', 'p', 'span'];
 
     public function __construct(
-        private PolkurierClientInterface $client,
-        private PolkurierCache $cache,
+        private PolkurierClientInterface $polkurierClient,
+        private PolkurierCache $polkurierCache,
         private Escaper $escaper,
-        private LoggerInterface $logger,
+        private Logger $logger,
         private Json $json,
         private AccountCache $accountCache,
     ) {}
@@ -46,7 +46,7 @@ readonly class CarrierNoticeProvider
     public function getNotices(): array
     {
         $key = $this->accountCache->key('carrier_notices');
-        $cached = $this->cache->load($key);
+        $cached = $this->polkurierCache->load($key);
         if (\is_string($cached) && $cached !== '') {
             try {
                 $notices = $this->json->unserialize($cached);
@@ -59,7 +59,7 @@ readonly class CarrierNoticeProvider
         }
 
         try {
-            $messages = $this->client->system()->getCouriersMessages();
+            $messages = $this->polkurierClient->system()->getCouriersMessages();
         } catch (PolkurierException $e) {
             // Notices are a courtesy: the screen works without them.
             $this->logger->warning('Polkurier carrier notices could not be read', ['exception' => $e]);
@@ -79,7 +79,7 @@ readonly class CarrierNoticeProvider
                 'alert' => $message->getType() === CourierMessageTypeEnum::Alert,
             ];
         }
-        $this->cache->save(
+        $this->polkurierCache->save(
             $this->json->serialize($notices),
             $key,
             [CacheTagEnum::Notices->value],

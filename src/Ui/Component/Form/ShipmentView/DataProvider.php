@@ -32,7 +32,7 @@ class DataProvider extends FormDataProvider
         CollectionFactory $collectionFactory,
         private readonly RequestInterface $request,
         private readonly ShipmentRepositoryInterface $shipmentRepository,
-        private readonly DetailsLoader $loader,
+        private readonly DetailsLoader $detailsLoader,
         private readonly ShipmentDetails $shipmentDetails,
         array $meta = [],
         array $data = [],
@@ -49,7 +49,7 @@ class DataProvider extends FormDataProvider
         } catch (NoSuchEntityException) {
             return [];
         }
-        $loaded = $this->loader->ensure($shipment);
+        $loaded = $this->detailsLoader->ensure($shipment);
 
         return [$id => ['view' => $this->shipmentDetails->build($loaded['shipment'], $loaded['errors'])]];
     }

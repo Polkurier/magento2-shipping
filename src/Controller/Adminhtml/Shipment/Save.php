@@ -19,15 +19,14 @@ use Polkurier\Shipping\Controller\Adminhtml\Address\Save as AddressSave;
 use Polkurier\Shipping\Controller\Adminhtml\Bankaccount\Save as BankAccountSave;
 use Polkurier\Shipping\Controller\Adminhtml\Packtemplate\Save as PackTemplateSave;
 use Polkurier\Shipping\Controller\Adminhtml\ReadsPostDataTrait;
-use Polkurier\Shipping\Model\Admin\FlashMessageCollector;
 use Polkurier\Shipping\Model\Admin\FlashMessageCollectorFactory;
 use Polkurier\Shipping\Model\Shipment\Draft\DraftHydrator;
 use Polkurier\Shipping\Model\Shipment\Placement\ManualEntrySaver;
 use Polkurier\Shipping\Model\Shipment\Placement\RejectedDraftStorage;
 
 /**
- * Places the Polkurier order from the shipment form. What was typed in to be kept among the
- * addresses, bank accounts or pack templates is kept only where the admin may change them.
+ * Places the Polkurier order from the shipment form. Entries typed in to be kept as addresses, bank
+ * accounts or pack templates are kept only if the admin is allowed to change that list.
  */
 class Save extends Action implements HttpPostActionInterface
 {
@@ -37,8 +36,8 @@ class Save extends Action implements HttpPostActionInterface
 
     public function __construct(
         Context $context,
-        private readonly ShipmentManagementInterface $management,
-        private readonly DraftHydrator $hydrator,
+        private readonly ShipmentManagementInterface $shipmentManagement,
+        private readonly DraftHydrator $draftHydrator,
         private readonly RejectedDraftStorage $rejectedDraftStorage,
         private readonly ManualEntrySaver $manualEntrySaver,
         private readonly FlashMessageCollectorFactory $flashMessageCollectorFactory,
@@ -53,9 +52,9 @@ class Save extends Action implements HttpPostActionInterface
         $redirect = $this->resultRedirectFactory->create();
 
         try {
-            $shipment = $this->management->create(
+            $shipment = $this->shipmentManagement->create(
                 $orderId,
-                $this->keepingOnlyAllowed($this->hydrator->fromArray($data)),
+                $this->keepingOnlyAllowed($this->draftHydrator->fromArray($data)),
             );
         } catch (LocalizedException $e) {
             $this->messageManager->addErrorMessage($e->getMessage());
@@ -83,15 +82,15 @@ class Save extends Action implements HttpPostActionInterface
                 ->send($this->messageManager);
         }
 
-        // What became of the entries typed in to be kept, once it's placed.
+        // Once it's placed, report what became of the entries typed in to be kept.
         $this->manualEntrySaver->takeOutcome()->send($this->messageManager);
 
-        // To what was placed, whatever came of it.
+        // To the placed shipment's page, whatever the outcome.
         return $redirect->setPath('*/*/view', ['id' => $shipment->getId()]);
     }
 
     /**
-     * The draft without asking to keep what the admin may not change, which is said instead.
+     * The draft, no longer asking to keep what the admin may not change; a warning says so instead.
      */
     private function keepingOnlyAllowed(ShipmentDraftInterface $draft): ShipmentDraftInterface
     {

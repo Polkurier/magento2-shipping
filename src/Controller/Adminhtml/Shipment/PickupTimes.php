@@ -51,7 +51,8 @@ class PickupTimes extends AbstractJsonAction
 
     protected function refused(LocalizedException $e): array
     {
-        // Offered again only when that may help; a refusal waits for a change to the shipment.
+        // Retry is offered only when it may help. After a refusal, the screen waits for a change to
+        // the shipment.
         return ['retry' => $this->errorMessageResolver->isTransient($e), 'days' => []];
     }
 }

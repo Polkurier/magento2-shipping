@@ -4,9 +4,9 @@
  */
 /**
  * What the shipment carries in Magento: items the order has left, with the quantity of each, so an
- * order can go out in parts. With nothing left, it replaces a cancelled Polkurier order on that
- * order's Magento shipment. The cash on delivery follows what the shipment collects and the insurance
- * what it's worth, until either is set by hand.
+ * order can go out in parts. With nothing left to ship, the Polkurier order replaces a cancelled
+ * one on the order's Magento shipment. The cash on delivery follows what the shipment collects and
+ * the insurance what it's worth, until either is set by hand.
  */
 define([
     'ko',
@@ -40,7 +40,8 @@ define([
             // Whether the shipment was the whole order, and included the shipping, when last seen.
             this.wasWhole = null;
             this.wasIncluded = null;
-            // The cash on delivery when last seen: changed elsewhere, the insurance follows it.
+            // The cash on delivery when last seen: when it's changed elsewhere, the insurance
+            // follows it.
             this.seenCod = null;
         },
 
@@ -67,7 +68,7 @@ define([
                 this.followedCod = rules.amount(data.cod_amount);
                 this.wasWhole = rules.shipmentWorth(data).whole;
             }
-            // Including the shipping and handling, or not, is asking for both amounts again.
+            // Including or excluding the shipping and handling sets both amounts again.
             if (this.wasIncluded !== null && Boolean(data.shipping_included) !== this.wasIncluded) {
                 this.wasIncluded = Boolean(data.shipping_included);
                 this.followCod(data);
@@ -126,8 +127,8 @@ define([
         },
 
         /**
-         * The cash on delivery changed by hand or switched on: the insurance, unless set by hand
-         * or off, goes with it.
+         * When the cash on delivery is changed by hand or switched on, the insurance follows it,
+         * unless it's off or was set by hand.
          *
          * @param {Object} data
          */
@@ -140,7 +141,8 @@ define([
             if (before === null || Math.abs(cod - before) < 0.005 || insurance <= 0) {
                 return;
             }
-            // Set by hand: neither what it last followed, nor the old cash on delivery, nor the value.
+            // Set by hand if it's neither what it last followed, nor the old cash on delivery, nor
+            // the value.
             if (![this.followed, before, rules.amount(data.shipment_value)].some(function (amount) {
                 return amount !== null && Math.abs(insurance - amount) < 0.005;
             })) {
@@ -152,9 +154,9 @@ define([
 
         /**
          * Keeps the cash on delivery at what the shipment collects (rules.codFor) and the insurance
-         * at what it's worth, unless either is off or, unless forced, was set by hand.
+         * at what it's worth, unless either is off or was set by hand (the latter ignored when forced).
          *
-         * @param {Boolean} [force] set them whatever they are, as including the shipping asks
+         * @param {Boolean} [force] set them whatever they are, as including the shipping requires
          */
         follow: function (force) {
             let data = this.get(),

@@ -11,7 +11,7 @@ use Polkurier\Shipping\Api\BankAccountRepositoryInterface;
 use Polkurier\Shipping\Api\Data\BankAccountInterface;
 use Polkurier\Shipping\Api\Data\SyncableInterface;
 use Polkurier\Shipping\Api\PolkurierClientInterface;
-use Polkurier\Shipping\Enum\SyncEntityEnum;
+use Polkurier\Shipping\Enum\Sync\SyncEntityEnum;
 use Polkurier\Shipping\Model\BankAccountFactory;
 use Polkurier\Shipping\Model\ResourceModel\BankAccount\CollectionFactory;
 use Polkurier\Shipping\Model\Sync\AdapterInterface;
@@ -24,11 +24,11 @@ use Polkurier\Shipping\Model\Sync\AdapterInterface;
 readonly class BankAccountSyncAdapter implements AdapterInterface
 {
     public function __construct(
-        private PolkurierClientInterface $client,
-        private BankAccountMapper $mapper,
+        private PolkurierClientInterface $polkurierClient,
+        private BankAccountMapper $bankAccountMapper,
         private CollectionFactory $collectionFactory,
         private BankAccountFactory $bankAccountFactory,
-        private BankAccountRepositoryInterface $repository,
+        private BankAccountRepositoryInterface $bankAccountRepository,
     ) {}
 
     public function getEntityType(): SyncEntityEnum
@@ -39,9 +39,9 @@ readonly class BankAccountSyncAdapter implements AdapterInterface
     public function fetchRemote(): array
     {
         $remote = [];
-        foreach ($this->client->bankAccounts()->getBankAccounts() as $account) {
+        foreach ($this->polkurierClient->bankAccounts()->getBankAccounts() as $account) {
             if ($account->getId() !== null) {
-                $remote[$account->getId()] = $this->mapper->normalize($account);
+                $remote[$account->getId()] = $this->bankAccountMapper->normalize($account);
             }
         }
 
@@ -62,14 +62,14 @@ readonly class BankAccountSyncAdapter implements AdapterInterface
     public function applyRemote(SyncableInterface $local, array $remote): void
     {
         /** @var BankAccountInterface $local */
-        $this->mapper->apply($remote, $local);
+        $this->bankAccountMapper->apply($remote, $local);
     }
 
     public function getNaturalKey(SyncableInterface|array $entry): ?string
     {
         /** @var BankAccountInterface|array<string, mixed> $entry */
         $value = \is_array($entry) ? (string)($entry[BankAccountInterface::FIELD_NUMBER] ?? '') : $entry->getNumber();
-        $key = \strtoupper((string)\preg_replace('/\s+/', '', $value));
+        $key = \strtoupper(BankAccountMapper::normalizeNumber($value));
 
         return $key !== '' ? $key : null;
     }
@@ -77,12 +77,12 @@ readonly class BankAccountSyncAdapter implements AdapterInterface
     public function save(SyncableInterface $local): void
     {
         /** @var BankAccountInterface $local */
-        $this->repository->save($local);
+        $this->bankAccountRepository->save($local);
     }
 
     public function delete(SyncableInterface $local): void
     {
         /** @var BankAccountInterface $local */
-        $this->repository->delete($local);
+        $this->bankAccountRepository->delete($local);
     }
 }

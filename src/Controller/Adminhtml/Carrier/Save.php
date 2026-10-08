@@ -15,7 +15,7 @@ use Magento\Framework\Controller\Result\Redirect;
 use Magento\Framework\Exception\LocalizedException;
 use Polkurier\Shipping\Api\CarrierConfigRepositoryInterface;
 use Polkurier\Shipping\Controller\Adminhtml\ReadsPostDataTrait;
-use Polkurier\Shipping\Enum\FormMemoryEnum;
+use Polkurier\Shipping\Enum\Adminhtml\FormMemoryEnum;
 use Polkurier\Shipping\Model\CarrierConfig\CarrierConfigHydrator;
 
 /**
@@ -29,8 +29,8 @@ class Save extends Action implements HttpPostActionInterface
 
     public function __construct(
         Context $context,
-        private readonly CarrierConfigRepositoryInterface $repository,
-        private readonly CarrierConfigHydrator $hydrator,
+        private readonly CarrierConfigRepositoryInterface $carrierConfigRepository,
+        private readonly CarrierConfigHydrator $carrierConfigHydrator,
         private readonly DataPersistorInterface $dataPersistor,
     ) {
         parent::__construct($context);
@@ -42,9 +42,9 @@ class Save extends Action implements HttpPostActionInterface
         $id = (int)($data['id'] ?? 0);
         $redirect = $this->resultRedirectFactory->create();
         try {
-            $config = $this->repository->get($id);
-            $this->hydrator->hydrate($config, $data);
-            $this->repository->save($config);
+            $config = $this->carrierConfigRepository->get($id);
+            $this->carrierConfigHydrator->hydrate($config, $data);
+            $this->carrierConfigRepository->save($config);
             $this->messageManager->addSuccessMessage(__('Saved.'));
             $this->dataPersistor->clear(FormMemoryEnum::Carrier->value);
         } catch (LocalizedException $e) {

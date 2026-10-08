@@ -17,10 +17,11 @@ use Polkurier\Shipping\Model\Config\ConfigProvider;
  * with a "Ship with Polkurier" button. Orders of other carriers get nothing.
  *
  * Magento's Ship button keeps leading to Magento's shipment page, where labels are created, unless
- * labels there are turned off: then Ship opens the shipment screen instead of a second button.
+ * labels there are turned off. Then Ship itself opens the shipment screen, and no second button is
+ * added.
  *
- * The button stays while the order has items left to ship, or a Magento shipment without a
- * Polkurier order to send one for.
+ * The button stays while the order has items left to ship, or has a Magento shipment without a
+ * Polkurier order.
  */
 readonly class OrderViewPlugin
 {
@@ -45,7 +46,7 @@ readonly class OrderViewPlugin
             return [$layout];
         }
         // Alongside Magento's Ship only. A Polkurier order for a Magento shipment made without one
-        // is added from that shipment's page (ShipmentViewPlugin).
+        // is added from that shipment's page ({@see \Polkurier\Shipping\Plugin\Adminhtml\ShipmentViewPlugin}).
         if (!$order->canShip()) {
             return [$layout];
         }
@@ -58,7 +59,7 @@ readonly class OrderViewPlugin
         if (!$this->configProvider->isNativeLabelsEnabled($storeId)) {
             $subject->updateButton('order_ship', 'onclick', \sprintf("setLocation('%s')", $url));
         } else {
-            // Placed next to Magento's "Ship" by ShipButtonPositionPlugin.
+            // Placed next to Magento's "Ship" by {@see \Polkurier\Shipping\Plugin\Adminhtml\ShipButtonPositionPlugin}.
             $subject->addButton(ShipButtonPositionPlugin::BUTTON, [
                 'label' => __('Ship with Polkurier'),
                 'onclick' => \sprintf("setLocation('%s')", $url),

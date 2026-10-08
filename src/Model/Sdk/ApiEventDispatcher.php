@@ -8,8 +8,8 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Model\Sdk;
 
 use Magento\Framework\Event\ManagerInterface;
-use Polkurier\Shipping\Enum\ApiEventEnum;
-use Psr\Log\LoggerInterface;
+use Polkurier\Shipping\Enum\Sdk\ApiEventEnum;
+use Polkurier\Shipping\Logger\Logger;
 
 /**
  * Dispatches the events of {@see ApiEventEnum}.
@@ -21,7 +21,7 @@ readonly class ApiEventDispatcher
 {
     public function __construct(
         private ManagerInterface $eventManager,
-        private LoggerInterface $logger,
+        private Logger $logger,
     ) {}
 
     /**

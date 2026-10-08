@@ -16,8 +16,8 @@ use Polkurier\Shipping\Model\Shipment\OrderLoader;
 use Polkurier\Shipping\Model\Shipment\Packing\AutoPacker;
 
 /**
- * Packs the items shipped into parcels of the pack templates, for the shipment screen to put in
- * place of its parcels, or Magento's packaging window in place of its packages.
+ * Packs the shipped items into parcels based on the pack templates. The shipment screen puts them
+ * in place of its parcels; Magento's packaging window puts them in place of its packages.
  */
 class Pack extends AbstractJsonAction
 {
@@ -27,7 +27,7 @@ class Pack extends AbstractJsonAction
         Context $context,
         JsonFactory $jsonFactory,
         private readonly OrderLoader $orderLoader,
-        private readonly DraftHydrator $hydrator,
+        private readonly DraftHydrator $draftHydrator,
         private readonly AutoPacker $autoPacker,
     ) {
         parent::__construct($context, $jsonFactory);
@@ -37,13 +37,12 @@ class Pack extends AbstractJsonAction
     {
         $data = (array)$this->getRequest()->getParam('data', []);
         $order = $this->orderLoader->getForPolkurier((int)($data['order_id'] ?? 0));
-        $draft = $this->hydrator->fromArray($data);
+        $draft = $this->draftHydrator->fromArray($data);
         ['packs' => $packs, 'notice' => $notice] = $this->autoPacker->packDraft($order, $draft);
-        $rows = $this->hydrator->toArray($draft->setPacks($packs));
+        $rows = $this->draftHydrator->toArray($draft->setPacks($packs));
 
         return [
             'packs' => $rows[ShipmentDraftInterface::FIELD_PACKS],
-            'estimated' => true,
             'message' => $notice,
         ];
     }

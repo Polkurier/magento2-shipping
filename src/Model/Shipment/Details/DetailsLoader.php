@@ -10,12 +10,12 @@ namespace Polkurier\Shipping\Model\Shipment\Details;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Stdlib\DateTime\DateTime;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
+use Polkurier\Shipping\Logger\Logger;
 use Polkurier\Shipping\Model\ResourceModel\Shipment as ShipmentResource;
 use Polkurier\Shipping\Model\Sdk\ShipmentGateway;
 use Polkurier\Shipping\Model\Shipment as ShipmentModel;
 use Polkurier\Shipping\Model\Shipment\Status\RemoteOrderApplier;
 use Polkurier\Shipping\Model\Shipment\Status\RemoteOrderMatcher;
-use Psr\Log\LoggerInterface;
 
 /**
  * Gets what the shipment details page shows: the local copy of the Polkurier order and the
@@ -36,9 +36,9 @@ readonly class DetailsLoader
         private RemoteOrderMatcher $remoteOrderMatcher,
         private RemoteOrderApplier $remoteOrderApplier,
         private ShipmentResource $shipmentResource,
-        private ShipmentGateway $gateway,
+        private ShipmentGateway $shipmentGateway,
         private DateTime $dateTime,
-        private LoggerInterface $logger,
+        private Logger $logger,
     ) {}
 
     /**
@@ -89,7 +89,7 @@ readonly class DetailsLoader
             return;
         }
         try {
-            $status = $this->gateway->getStatus($number, true);
+            $status = $this->shipmentGateway->getStatus($number, true);
         } catch (LocalizedException $e) {
             throw new LocalizedException(__('The carrier\'s scans could not be read: %1', $e->getMessage()), $e);
         }

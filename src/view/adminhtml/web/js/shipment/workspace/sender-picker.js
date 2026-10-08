@@ -35,7 +35,7 @@ define([
                 store = this.source.get('data.store_sender'),
                 selected = this.value() || '';
 
-            // As given: the select takes the store's address, valued '', for its caption.
+            // As given: the select uses the store's address, with the value '', as its caption.
             return (this.initialOptions || this.options() || []).filter(function (option) {
                 return option.value !== '' || store;
             }).map(function (option) {
@@ -75,7 +75,7 @@ define([
             this.value(tile.value);
             // Handed over at that address's drop-off point, if it has one.
             this.source.set('data.sender_point_id', address && address.point_id ? String(address.point_id) : '');
-            // Its fields are filled in below first.
+            // A new address's fields are filled in below first, so the modal stays open.
             if (tile.value === 'new') {
                 return;
             }

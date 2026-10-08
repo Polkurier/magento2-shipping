@@ -3,10 +3,10 @@
  * All Rights Reserved
  */
 /**
- * Cash on delivery, insurance and the additional services there are for the shipment's type, each
- * switched on and off in place, so they can be chosen before the carrier that offers them. Cash on
- * delivery and insurance switched on take the amount they're known to need, or open their modals to
- * have it entered; "Change" opens them for the details.
+ * Cash on delivery, insurance and the additional services available for the shipment's type, each
+ * switched on and off in place, so they can be chosen before the carrier that offers them. When
+ * switched on, cash on delivery and insurance take the amount they're known to need, or open their
+ * modals for it to be entered; "Change" opens the modals for the details.
  */
 define([
     'ko',
@@ -17,7 +17,7 @@ define([
 ], function (ko, _, $t, Part, rules) {
     'use strict';
 
-    // The cover sender address: what printing the cover address on the label is, as a service.
+    // The cover sender address: the service that prints the cover address on the label.
     const COVER = 'COVER_ADDRESS_SENDER';
 
     return Part.extend({
@@ -42,7 +42,7 @@ define([
         refresh: function () {
             const data = this.get() || {},
                 features = this.features(),
-                // What there is for the shipment's type, whichever carrier offers it.
+                // What's available for the shipment's type, whichever carrier offers it.
                 allowed = rules.servicesFor(data),
                 offered = features.services || null,
                 coverOffered = allowed === null || allowed.indexOf(COVER) !== -1,
@@ -50,9 +50,9 @@ define([
                 services = (data.services || []).slice(),
                 switches = [];
 
-            // Services there are none of for the shipment's type go. The chosen carrier not
-            // offering one is a problem with the carrier (rules.js). The cover sender address is
-            // never one: the cover address chosen below switches it on.
+            // Services not available for the shipment's type are dropped. A service the chosen
+            // carrier doesn't offer is a problem with the carrier (rules.js). The cover sender
+            // address is never kept among them: choosing a cover address below switches it on.
             const kept = services.filter(function (service) {
                 return service !== COVER && (allowed === null || allowed.indexOf(service) !== -1);
             });
@@ -224,8 +224,8 @@ define([
         },
 
         /**
-         * A click anywhere on a service's tile flips its switch, but not one on what the tile
-         * holds that does something itself: the switch and its caption, "Change", the address list.
+         * A click anywhere on a service's tile flips its switch, except a click on something in
+         * the tile that acts by itself: the switch and its caption, "Change", the address list.
          *
          * @param {Object} item
          * @param {Event} event

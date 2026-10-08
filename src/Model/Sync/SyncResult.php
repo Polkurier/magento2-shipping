@@ -7,11 +7,11 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Model\Sync;
 
-use Polkurier\Shipping\Enum\SyncEntityEnum;
+use Polkurier\Shipping\Enum\Sync\SyncEntityEnum;
 
 /**
- * What one synchronization run of one entity type did, as counts. The engine and the entry
- * handlers count into its fields as they go, and what they hand on is read from them.
+ * What one synchronization run of one entity type did, as counts. The engine and the entry handlers
+ * add to its fields as they go, and callers read the results from them.
  */
 class SyncResult
 {
@@ -52,23 +52,6 @@ class SyncResult
     public function __construct(
         public readonly SyncEntityEnum $entityType,
     ) {}
-
-    /**
-     * Adds what another run did, as for the entries of a mass action pushed one by one.
-     */
-    public function add(SyncResult $other): self
-    {
-        $this->created += $other->created;
-        $this->pulled += $other->pulled;
-        $this->pushed += $other->pushed;
-        $this->deleted += $other->deleted;
-        $this->unchanged += $other->unchanged;
-        $this->unconfirmed += $other->unconfirmed;
-        $this->failed += $other->failed;
-        $this->errors = \array_merge($this->errors, $other->errors);
-
-        return $this;
-    }
 
     public function summary(): string
     {

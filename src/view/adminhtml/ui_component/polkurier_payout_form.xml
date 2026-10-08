@@ -23,7 +23,7 @@
                 <class>back</class>
                 <label translate="true">Back</label>
             </button>
-            <button name="save" class="Polkurier\Shipping\Ui\Component\Form\Payout\RequestButton"/>
+            <button name="save" class="Polkurier\Shipping\Ui\Component\Form\Payout\RequestButtonVirtual"/>
         </buttons>
     </settings>
     <dataSource name="polkurier_payout_form_data_source">
@@ -138,7 +138,8 @@
                 <item name="config" xsi:type="array">
                     <item name="shownWhen" xsi:type="array">
                         <item name="payout_type" xsi:type="string">ACCOUNT</item>
-                        <!-- bank_account_choice: Payouts::ANOTHER_ACCOUNT, set by the data provider -->
+                        <!-- bank_account_choice: Polkurier\Shipping\Model\Payout\PayoutManager::ANOTHER_ACCOUNT,
+                             set by the data provider -->
                     </item>
                 </item>
             </argument>

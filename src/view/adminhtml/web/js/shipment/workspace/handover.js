@@ -7,10 +7,10 @@
  * from Polkurier; dropping them off at a point; or a collective pickup booked later. The dates
  * are read again whenever the carrier, the sender or the shipment changes, and the first free
  * one is taken until the merchant picks another. A collective pickup is offered unless Polkurier
- * says the carrier can't collect these parcels so, which it's asked whenever they change.
+ * says the carrier can't collect these parcels that way; it's asked again whenever they change.
  *
- * Dropped off, for a carrier that takes parcels at points, the point is chosen on the map, near
- * the sender. It starts as the sender address's drop-off point.
+ * When the parcels are dropped off with a carrier that takes them at points, the point is chosen
+ * on the map, near the sender. It starts as the sender address's drop-off point.
  */
 define([
     'ko',
@@ -40,7 +40,8 @@ define([
             this.message = ko.observable('');
             // A failure, in red; otherwise a muted note.
             this.failed = ko.observable(false);
-            // With "Try again" when asking again may help: not after a refusal, which would repeat.
+            // Offers "Try again" when asking again may help, but not after a refusal, which would
+            // repeat.
             this.retryable = ko.observable(false);
             this.dateMissing = ko.observable(false);
             this.windowMissing = ko.observable(false);
@@ -126,7 +127,8 @@ define([
                     this.scheduleLoad();
                 }
             } else if (this.mode() === 'courier' && features.pickup_date === false) {
-                // A carrier that takes no collection date: one chosen for another would go unseen.
+                // A carrier that takes no collection date: a date chosen for another carrier would
+                // go unseen.
                 this.datesKey = null;
                 this.days([]);
                 this.forgetDate();
@@ -191,7 +193,7 @@ define([
         },
 
         /**
-         * Asks again whenever what Polkurier answers by changes.
+         * Asks again whenever anything Polkurier's answer depends on changes.
          *
          * @param {Object} data
          */
@@ -222,14 +224,14 @@ define([
                 )
             }, {
                 done: function (response) {
-                    // Not known, nor when Polkurier couldn't answer: offered, as it says so when placing.
+                    // Offered when unknown or when Polkurier couldn't answer: it says so when placing.
                     this.collective(
                         !response.error && typeof response.available === 'boolean' ? response.available : null
                     );
                     this.refresh();
                 }.bind(this),
                 fail: function () {
-                    // Offered all the same: Polkurier says so when placing, should it not take it.
+                    // Offered anyway: if Polkurier can't take it, it says so when placing.
                     this.collective(null);
                     this.refresh();
                 }.bind(this)
@@ -341,7 +343,8 @@ define([
                 }
                 this.window(chosen.value);
             } else {
-                // A day without windows: the carrier comes when it comes, and none stays chosen.
+                // A day without windows: the carrier comes at any time that day, and no window
+                // stays chosen.
                 this.window('');
                 ['pickup_time_from', 'pickup_time_to'].forEach(function (field) {
                     if (rules.filled(this.get(field))) {

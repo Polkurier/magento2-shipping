@@ -3,9 +3,9 @@
  * All Rights Reserved
  */
 /**
- * Magento's packaging window on the shipment pages of a Polkurier order, with the label options
- * or without them (a shipment whose Polkurier order stands): pack templates, kilograms and
- * centimetres, see ./label-options/packaging.
+ * Sets up Magento's packaging window on the shipment pages of a Polkurier order, with or without
+ * the label options (without them for a shipment whose Polkurier order is still active): pack
+ * templates, kilograms and centimetres. See ./label-options/packaging.
  */
 define(['./label-options/packaging'], function (packaging) {
     'use strict';

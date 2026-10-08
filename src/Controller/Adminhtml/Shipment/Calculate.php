@@ -28,7 +28,7 @@ class Calculate extends AbstractJsonAction
         Context $context,
         JsonFactory $jsonFactory,
         private readonly CostEstimator $costEstimator,
-        private readonly DraftHydrator $hydrator,
+        private readonly DraftHydrator $draftHydrator,
         private readonly OrderLoader $orderLoader,
         private readonly ErrorMessageResolver $errorMessageResolver,
     ) {
@@ -39,22 +39,21 @@ class Calculate extends AbstractJsonAction
     {
         $data = (array)$this->getRequest()->getParam('data', []);
         $order = $this->orderLoader->getForPolkurier((int)($data['order_id'] ?? 0));
-        $draft = $this->hydrator->fromArray($data);
+        $draft = $this->draftHydrator->fromArray($data);
         $quotes = $this->costEstimator->quoteAll($draft, (int)$order->getStoreId());
         $cost = $quotes[$draft->getCarrierCode()] ?? null;
 
         return [
             'error' => $cost === null,
             'message' => $cost === null ? (string)__('Service unavailable') : '',
-            'net' => $cost['net'] ?? null,
-            'gross' => $cost['gross'] ?? null,
             'quotes' => (object)$quotes,
         ];
     }
 
     protected function refused(LocalizedException $e): array
     {
-        // Offered again only when that may help; a refusal waits for a change to the shipment.
+        // Retry is offered only when it may help. After a refusal, the screen waits for a change to
+        // the shipment.
         return ['retry' => $this->errorMessageResolver->isTransient($e), 'quotes' => (object)[]];
     }
 }

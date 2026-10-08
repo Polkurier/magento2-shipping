@@ -7,13 +7,12 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Model\Shipment\Screen;
 
+use Magento\Backend\Model\UrlInterface;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Sales\Model\Order;
 use Polkurier\Shipping\Api\AddressRepositoryInterface;
 use Polkurier\Shipping\Api\OrderPointRepositoryInterface;
 use Polkurier\Shipping\Api\PackTemplateRepositoryInterface;
-use Polkurier\Shipping\Api\ShipmentManagementInterface;
-use Polkurier\Shipping\Enum\ParcelWeightEnum;
 use Polkurier\Shipping\Model\Carrier\CarrierCatalog;
 use Polkurier\Shipping\Model\Carrier\CarrierFeatureResolver;
 use Polkurier\Shipping\Model\Config\ConfigProvider;
@@ -32,24 +31,24 @@ use Polkurier\Webservice\Response\CourierPoint;
 readonly class ScreenDataProvider
 {
     public function __construct(
-        private ShipmentManagementInterface $management,
-        private DraftHydrator $hydrator,
+        private DraftHydrator $draftHydrator,
         private PackTemplateRepositoryInterface $packTemplateRepository,
         private AddressRepositoryInterface $addressRepository,
         private PackType $packTypes,
         private MapTokenProvider $mapTokenProvider,
         private ConfigProvider $configProvider,
-        private OrderAmountCalculator $amountCalculator,
-        private CarrierCatalog $catalog,
+        private OrderAmountCalculator $orderAmountCalculator,
+        private CarrierCatalog $carrierCatalog,
         private CarrierFeatureResolver $carrierFeatureResolver,
-        private DefaultDraftBuilder $draftBuilder,
+        private DefaultDraftBuilder $defaultDraftBuilder,
         private OrderPointRepositoryInterface $orderPointRepository,
+        private UrlInterface $url,
     ) {}
 
     /**
-     * The order's pickup point as Polkurier has it now: its address today, or the one the
-     * customer chose it by when it can't be looked up, and whether it's closed or gone since,
-     * a problem to fix before placing.
+     * The order's pickup point as Polkurier has it now: its current address or, when it can't be
+     * looked up, the address the customer chose it by. Also whether it has closed or gone since,
+     * which must be fixed before placing.
      *
      * @return array{id: string, label: string, closed: bool}
      */
@@ -87,12 +86,12 @@ readonly class ScreenDataProvider
             return null;
         }
         try {
-            $carrier = $this->catalog->getCarrier($carrierCode);
+            $carrier = $this->carrierCatalog->getCarrier($carrierCode);
             $providers = $carrier !== null ? $this->carrierFeatureResolver->getPointProviders($carrier) : [];
             if ($providers === []) {
                 return null;
             }
-            $point = $this->catalog->findPoint($pointId, $providers);
+            $point = $this->carrierCatalog->findPoint($pointId, $providers);
         } catch (PolkurierException) {
             return null;
         }
@@ -101,20 +100,18 @@ readonly class ScreenDataProvider
     }
 
     /**
-     * The draft a new shipment of the order starts from, as the screens take it; empty when the
-     * order can't be shipped with Polkurier.
+     * The draft a new shipment of the Polkurier order starts from, as the screens take it; empty
+     * when it can't be put together.
      *
-     * @param array<int, float>|null $qtys what a Magento shipment there is carries, by order item
-     *     id, for a Polkurier order going on it; null for what the order has left
+     * @param array<int, float>|null $qtys what an existing Magento shipment carries, by order item id,
+     *     for a Polkurier order going on it; null for what the order has left
      *
      * @return array<string, mixed>
      */
-    public function getDefaultValues(Order $order, ?array $qtys = null): array
+    public function getDefaultValues(Order $order, ?array $qtys): array
     {
         try {
-            return $this->hydrator->toArray($qtys !== null
-                ? $this->draftBuilder->createFromOrder($order, $qtys)
-                : $this->management->getDefaultDraft((int)$order->getEntityId()));
+            return $this->draftHydrator->toArray($this->defaultDraftBuilder->createFromOrder($order, $qtys));
         } catch (LocalizedException) {
             return [];
         }
@@ -169,26 +166,16 @@ readonly class ScreenDataProvider
     }
 
     /**
-     * Where the pickup point map is, its token and when that runs out (empty and 0 when it can't
-     * be had). Where the screen asks for a fresh one is the view's to add
-     * (the polkurier/shipment/mapToken action).
+     * Where the pickup point map is, its token and when that runs out (empty and 0 when it can't be
+     * obtained), and where the screen asks for a fresh one.
      *
-     * @return array{token: string, expires: int, baseUrl: string}
+     * @return array{token: string, expires: int, baseUrl: string, tokenUrl: string}
      */
     public function getMap(): array
     {
-        try {
-            $token = $this->mapTokenProvider->getToken();
-            $expires = $this->mapTokenProvider->getExpiry();
-        } catch (PolkurierException) {
-            $token = '';
-            $expires = 0;
-        }
-
-        return [
-            'token' => $token,
-            'expires' => $expires,
+        return $this->mapTokenProvider->getTokenWithExpiry() + [
             'baseUrl' => $this->configProvider->getMapUrl() . '/',
+            'tokenUrl' => $this->url->getUrl('polkurier/shipment/mapToken'),
         ];
     }
 
@@ -200,11 +187,11 @@ readonly class ScreenDataProvider
     public function getAmounts(Order $order): array
     {
         return [
-            'grand_total' => $this->amountCalculator->getGrandTotal($order),
-            'shipping_charged' => $this->amountCalculator->getShippingCharged($order),
-            'cod_collected' => $this->amountCalculator->getCodCollected($order),
-            'cod_remaining' => $this->amountCalculator->getCodRemaining($order),
-            'shipping_covered' => $this->amountCalculator->isShippingCovered($order),
+            'grand_total' => $this->orderAmountCalculator->getGrandTotal($order),
+            'shipping_charged' => $this->orderAmountCalculator->getShippingCharged($order),
+            'cod_collected' => $this->orderAmountCalculator->getCodCollected($order),
+            'cod_remaining' => $this->orderAmountCalculator->getCodRemaining($order),
+            'shipping_covered' => $this->orderAmountCalculator->isShippingCovered($order),
         ];
     }
 }

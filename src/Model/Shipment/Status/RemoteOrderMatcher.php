@@ -13,6 +13,7 @@ use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Model\Sdk\ApplicationIdProvider;
 use Polkurier\Shipping\Model\Sdk\ShipmentGateway;
 use Polkurier\Shipping\Model\Shipment\ShipmentFinder;
+use Polkurier\Webservice\Builder\Order\GetOrdersMessageBuilder;
 use Polkurier\Webservice\Builder\Order\GetOrdersMessageBuilderFactory;
 use Polkurier\Webservice\Request\Order\GetOrdersMessage;
 use Polkurier\Webservice\Response\Order;
@@ -39,8 +40,8 @@ readonly class RemoteOrderMatcher
     private const string NO_MATCH = '';
 
     public function __construct(
-        private ShipmentGateway $gateway,
-        private ShipmentFinder $finder,
+        private ShipmentGateway $shipmentGateway,
+        private ShipmentFinder $shipmentFinder,
         private DateTime $dateTime,
         private ApplicationIdProvider $applicationIdProvider,
         private GetOrdersMessageBuilderFactory $getOrdersMessageBuilderFactory,
@@ -56,36 +57,18 @@ readonly class RemoteOrderMatcher
         // Sent with the shop's own ids, it's found by them; Polkurier may have failed to keep
         // them without saying so, so not finding it that way proves nothing.
         $found = $this->findByExternalIds($shipment);
-        if ($found['sure'] !== [] || $found['possible'] !== []) {
+        if ($found[self::SURE] !== [] || $found[self::POSSIBLE] !== []) {
             return $found;
         }
         $createdAt = new \DateTimeImmutable(
             (string)($shipment->getCreatedAt() ?: '@' . $this->dateTime->gmtTimestamp()),
             new \DateTimeZone('UTC'),
         );
-        $found = ['sure' => [], 'possible' => []];
 
-        for ($page = 1; $page <= self::MAX_PAGES; $page++) {
-            $list = $this->gateway->findOrders($this->getOrdersMessageBuilderFactory->create()
-                ->courier($shipment->getCarrierCode())
-                ->dateFrom($createdAt->modify('-' . self::WINDOW_DAYS . ' day'))
-                ->dateTo($createdAt->modify('+' . self::WINDOW_DAYS . ' day'))
-                ->pageSize(GetOrdersMessage::MAX_PAGE_SIZE)
-                ->page($page)
-                ->packs(true)
-                ->build());
-            foreach ($list->getResult() as $order) {
-                $match = $order->getNumber() !== null ? $this->match($shipment, $order) : self::NO_MATCH;
-                if ($match !== self::NO_MATCH) {
-                    $found[$match][] = $order;
-                }
-            }
-            if ($page >= $list->getTotalPages()) {
-                break;
-            }
-        }
-
-        return $this->unclaimed($shipment, $found);
+        return $this->findMatching($shipment, static fn(GetOrdersMessageBuilder $builder) => $builder
+            ->courier($shipment->getCarrierCode())
+            ->dateFrom($createdAt->modify('-' . self::WINDOW_DAYS . ' day'))
+            ->dateTo($createdAt->modify('+' . self::WINDOW_DAYS . ' day')));
     }
 
     /**
@@ -97,21 +80,12 @@ readonly class RemoteOrderMatcher
     {
         // Searched by phrase, which matches longer numbers that hold it too; the exact one is
         // picked, on whichever page it comes.
-        for ($page = 1; $page <= self::MAX_PAGES; $page++) {
-            $list = $this->gateway->findOrders($this->getOrdersMessageBuilderFactory->create()
-                ->searchPhrase($number)
-                ->pageSize(GetOrdersMessage::MAX_PAGE_SIZE)
-                ->page($page)
-                ->packs(true)
-                ->items(true)
-                ->build());
-            foreach ($list->getResult() as $order) {
-                if ($order->getNumber() === $number) {
-                    return $order;
-                }
-            }
-            if ($page >= $list->getTotalPages()) {
-                break;
+        $orders = $this->findOrders(static fn(GetOrdersMessageBuilder $builder) => $builder
+            ->searchPhrase($number)
+            ->items(true));
+        foreach ($orders as $order) {
+            if ($order->getNumber() === $number) {
+                return $order;
             }
         }
 
@@ -127,7 +101,8 @@ readonly class RemoteOrderMatcher
      */
     private function unclaimed(ShipmentInterface $shipment, array $found): array
     {
-        $taken = $this->getAdoptedNumbers((int)$shipment->getId(), \array_merge($found['sure'], $found['possible']));
+        $all = \array_merge($found[self::SURE], $found[self::POSSIBLE]);
+        $taken = $this->getAdoptedNumbers((int)$shipment->getId(), $all);
         foreach ($found as $kind => $orders) {
             $found[$kind] = \array_values(\array_filter(
                 $orders,
@@ -147,31 +122,60 @@ readonly class RemoteOrderMatcher
      */
     private function findByExternalIds(ShipmentInterface $shipment): array
     {
-        $found = ['sure' => [], 'possible' => []];
         $externalOrderId = $shipment->getExternalOrderId();
         if ($externalOrderId === null) {
-            return $found;
+            return [self::SURE => [], self::POSSIBLE => []];
         }
+
+        return $this->findMatching($shipment, fn(GetOrdersMessageBuilder $builder) => $builder
+            ->externalApplicationId($this->applicationIdProvider->get())
+            ->externalOrderId($externalOrderId));
+    }
+
+    /**
+     * The orders the search finds that match the shipment, and no other shipment holds.
+     *
+     * @param callable(GetOrdersMessageBuilder): GetOrdersMessageBuilder $filter
+     *
+     * @return array{sure: Order[], possible: Order[]}
+     * @throws LocalizedException
+     */
+    private function findMatching(ShipmentInterface $shipment, callable $filter): array
+    {
+        $found = [self::SURE => [], self::POSSIBLE => []];
+        foreach ($this->findOrders($filter) as $order) {
+            $match = $order->getNumber() !== null ? $this->match($shipment, $order) : self::NO_MATCH;
+            if ($match !== self::NO_MATCH) {
+                $found[$match][] = $order;
+            }
+        }
+
+        return $this->unclaimed($shipment, $found);
+    }
+
+    /**
+     * The orders the search lists, with their parcels, page after page up to MAX_PAGES.
+     *
+     * @param callable(GetOrdersMessageBuilder): GetOrdersMessageBuilder $filter
+     *
+     * @return \Generator<Order>
+     * @throws LocalizedException
+     */
+    private function findOrders(callable $filter): \Generator
+    {
         for ($page = 1; $page <= self::MAX_PAGES; $page++) {
-            $list = $this->gateway->findOrders($this->getOrdersMessageBuilderFactory->create()
+            $builder = $this->getOrdersMessageBuilderFactory->create()
                 ->pageSize(GetOrdersMessage::MAX_PAGE_SIZE)
                 ->page($page)
-                ->packs(true)
-                ->externalApplicationId($this->applicationIdProvider->get())
-                ->externalOrderId($externalOrderId)
-                ->build());
+                ->packs(true);
+            $list = $this->shipmentGateway->findOrders($filter($builder)->build());
             foreach ($list->getResult() as $order) {
-                $match = $order->getNumber() !== null ? $this->match($shipment, $order) : self::NO_MATCH;
-                if ($match !== self::NO_MATCH) {
-                    $found[$match][] = $order;
-                }
+                yield $order;
             }
             if ($page >= $list->getTotalPages()) {
                 break;
             }
         }
-
-        return $this->unclaimed($shipment, $found);
     }
 
     /**
@@ -225,7 +229,7 @@ readonly class RemoteOrderMatcher
             return [];
         }
         $numbers = [];
-        $shipments = $this->finder->byNumbers(
+        $shipments = $this->shipmentFinder->byNumbers(
             \array_map(static fn(Order $order): string => (string)$order->getNumber(), $orders),
         );
         foreach ($shipments as $item) {

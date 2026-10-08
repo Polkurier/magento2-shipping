@@ -51,13 +51,11 @@ class ReconcileShipmentsTaskTest extends TestCase
     private function task(bool $credentials, ?\Throwable $failure = null): ReconcileShipmentsTask
     {
         $reconciler = $this->createStub(ReconciliationService::class);
-        $reconciler->method('reconcilePending')->willReturnCallback(function () use ($failure): int {
+        $reconciler->method('reconcilePending')->willReturnCallback(function () use ($failure): void {
             $this->ran[] = 'reconcile';
             if ($failure !== null) {
                 throw $failure;
             }
-
-            return 0;
         });
         $config = $this->createStub(ConfigProvider::class);
         $config->method('hasCredentials')->willReturn($credentials);
@@ -68,10 +66,8 @@ class ReconcileShipmentsTaskTest extends TestCase
             return 0;
         });
         $attentionNotifier = $this->createStub(AttentionNotifier::class);
-        $attentionNotifier->method('notify')->willReturnCallback(function (): int {
+        $attentionNotifier->method('notify')->willReturnCallback(function (): void {
             $this->ran[] = 'notify';
-
-            return 0;
         });
 
         return new ReconcileShipmentsTask($reconciler, $config, $failedShipmentManager, $attentionNotifier);

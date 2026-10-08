@@ -27,7 +27,7 @@ use Polkurier\Shipping\Model\ShipmentFactory;
 readonly class ShipmentRepository implements ShipmentRepositoryInterface
 {
     public function __construct(
-        private ShipmentFactory $entityFactory,
+        private ShipmentFactory $shipmentFactory,
         private ResourceModel $resource,
         private CollectionFactory $collectionFactory,
         private CollectionProcessorInterface $collectionProcessor,
@@ -36,7 +36,7 @@ readonly class ShipmentRepository implements ShipmentRepositoryInterface
 
     public function get(int $id): ShipmentInterface
     {
-        $entity = $this->entityFactory->create();
+        $entity = $this->shipmentFactory->create();
         $this->resource->load($entity, $id);
         if (!$entity->getId()) {
             throw new NoSuchEntityException(__('The shipment with id "%1" does not exist.', $id));

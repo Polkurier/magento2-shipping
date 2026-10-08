@@ -18,16 +18,16 @@ use Polkurier\Shipping\Model\PickupPoint\PointDescriptionBuilder;
 use Polkurier\Webservice\Exception\Exception as PolkurierException;
 
 /**
- * The pickup point the customer chose, for the order page's shipping information. Only for an
- * order whose method delivers to pickup points alone, and whose shipping description doesn't name
- * it already (see PointDescription); the point is changed for a shipment on the shipment screen,
- * not here.
+ * The pickup point the customer chose, for the order page's shipping information. Only for an order
+ * whose method delivers to pickup points alone, and whose shipping description doesn't name it
+ * already (see {@see PointDescriptionBuilder}); the point is changed for a shipment on the shipment
+ * screen, not here.
  */
 readonly class OrderPickupPoint implements ArgumentInterface
 {
     public function __construct(
         private OrderPointRepositoryInterface $orderPointRepository,
-        private CarrierCatalog $catalog,
+        private CarrierCatalog $carrierCatalog,
         private CarrierFeatureResolver $carrierFeatureResolver,
         private PointDescriptionBuilder $pointDescriptionBuilder,
     ) {}
@@ -42,7 +42,7 @@ readonly class OrderPickupPoint implements ArgumentInterface
             return null;
         }
         try {
-            $carrier = $this->catalog->getCarrier($methodCode);
+            $carrier = $this->carrierCatalog->getCarrier($methodCode);
         } catch (PolkurierException) {
             // Without the carrier list, the point the order went with is still worth showing.
             return $point;

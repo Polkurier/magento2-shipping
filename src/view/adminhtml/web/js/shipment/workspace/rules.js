@@ -10,7 +10,8 @@
 define(['mage/translate'], function ($t) {
     'use strict';
 
-    // What a shipment draft is made of (DraftHydrator), out of everything the form's data holds.
+    // The fields a shipment draft is made of (Polkurier\Shipping\Model\Shipment\Draft\DraftHydrator),
+    // out of everything the form's data holds.
     const DRAFT_FIELDS = [
         'order_id', 'carrier_code', 'shipment_type', 'description', 'sender_address_id', 'sender_point_id',
         'recipient_person', 'recipient_company', 'recipient_street', 'recipient_house_number',
@@ -30,7 +31,7 @@ define(['mage/translate'], function ($t) {
      * @returns {Array<String>} what a sender typed in still lacks, by name
      */
     function newSenderLacking(data) {
-        // As Polkurier takes a sender, with how each is named.
+        // The sender fields Polkurier requires, with their names.
         const required = {
             new_sender_person: $t('name'),
             new_sender_street: $t('street'),
@@ -63,12 +64,12 @@ define(['mage/translate'], function ($t) {
     }
 
     /**
-     * The draft out of the form's data, with each item and parcel down to what it's made of: what
-     * the screen shows besides (the carriers, the choices, the templates…) would be far more than
-     * a request may carry.
+     * The draft taken from the form's data, with each item and parcel reduced to its own fields.
+     * Everything else the screen shows (the carriers, the choices, the templates…) would be far
+     * more than a request may carry.
      *
      * @param {Object} data the form's data
-     * @param {Boolean} [withItems] with the items shipped, which pricing goes without
+     * @param {Boolean} [withItems] whether to include the shipped items, which pricing doesn't need
      * @returns {Object}
      */
     function draft(data, withItems) {
@@ -172,7 +173,7 @@ define(['mage/translate'], function ($t) {
      * What a parcel weighs, as the parcel weight setting says: what's in it with its template's
      * tare, or its template's weight. A parcel with a product that has no weight takes its
      * template's weight either way; a parcel without a template weighs what's in it
-     * (ParcelWeightEnum::weigh).
+     * (Polkurier\Shipping\Enum\Config\ParcelWeightEnum::weigh()).
      *
      * @param {String} mode 'products' or 'template'
      * @param {Number|null} templateWeight null for a parcel without a template
@@ -201,7 +202,7 @@ define(['mage/translate'], function ($t) {
     }
 
     /**
-     * How much of each item the parcels hold, identical parcels counted each.
+     * How much of each item the parcels hold, with each of several identical parcels counted.
      *
      * @param {Array<Object>} packs
      * @returns {Object} quantities by order item id
@@ -221,9 +222,10 @@ define(['mage/translate'], function ($t) {
     }
 
     /**
-     * What the chosen quantities are worth, by the server's rule (OrderAmountCalculator::getShipmentWorth):
-     * the order total for the whole order, or when the products have no price; otherwise the
-     * products, and the shipping and handling too when it's included (data.shipping_included).
+     * What the chosen quantities are worth, by the server's rule
+     * (Polkurier\Shipping\Model\Shipment\Valuation\OrderAmountCalculator::getShipmentWorth()): the
+     * order total for the whole order, or when the products have no price; otherwise the products,
+     * and the shipping and handling too when it's included (data.shipping_included).
      *
      * @param {Object} data the form's data
      * @returns {{products: Number, shipping: Number, order_total: Number, whole: Boolean, rest: Boolean,
@@ -234,7 +236,7 @@ define(['mage/translate'], function ($t) {
         const total = amount(data.grand_total),
             shipping = amount(data.shipping_charged);
         let products = 0,
-            // The list leaves out what's shipped already: the whole order only when nothing is.
+            // The list leaves out what's already shipped, so it's the whole order only when nothing is.
             whole = !(data.items || []).some(function (item) {
                 return amount(item.qty_shipped) > 0;
             }) && !data.partly_shipped,
@@ -274,8 +276,8 @@ define(['mage/translate'], function ($t) {
     }
 
     /**
-     * What the shipment is insured for, so the order's parts add up to its total as their cash on
-     * delivery does: what it collects, or without cash on delivery, what it's worth.
+     * What the shipment is insured for: what it collects or, without cash on delivery, what it's
+     * worth. That way the parts' insurance adds up to the order total, as their cash on delivery does.
      *
      * @param {Number} cod
      * @param {Number} value the shipment value (shipmentWorth)
@@ -286,7 +288,7 @@ define(['mage/translate'], function ($t) {
     }
 
     /**
-     * The services there are for the shipment's type: those any carrier offers for it, so they
+     * The services available for the shipment's type: those any carrier offers for it, so they
      * can be chosen before the carrier that offers them. Null when the carriers aren't known.
      *
      * @param {Object} data the form's data
@@ -319,7 +321,7 @@ define(['mage/translate'], function ($t) {
     }
 
     /**
-     * The chosen services a carrier doesn't offer, with the cover address as the service it is.
+     * The chosen services a carrier doesn't offer, counting the cover address as its service.
      *
      * @param {Object} data the form's data
      * @param {Array<String>|null|undefined} offered what the carrier offers, unknown when not given
@@ -341,10 +343,11 @@ define(['mage/translate'], function ($t) {
     }
 
     /**
-     * What cash on delivery collects, as OrderAmountCalculator::getCodFor works it out: the order in full,
-     * so everything left to collect for the whole order or the part carrying the rest, or when the
-     * products have no price; otherwise the products, and the shipping and handling too when it's
-     * included, never more than is left.
+     * What cash on delivery collects, worked out as
+     * Polkurier\Shipping\Model\Shipment\Valuation\OrderAmountCalculator::getCodFor() does it.
+     * Everything left to collect for the whole order, for the part carrying the rest, or when the
+     * products have no price; otherwise the products, plus the shipping and handling when it's
+     * included, but never more than is left.
      *
      * @param {Number} remaining what's left to collect on the order
      * @param {Object} worth as shipmentWorth gives it
@@ -362,8 +365,8 @@ define(['mage/translate'], function ($t) {
     }
 
     /**
-     * What the parcels make the shipment, each once: "box", "envelope" or "palette". One for a
-     * shipment that can go, none without parcels.
+     * The shipment types the parcels make, each listed once: "box", "envelope" or "palette". A
+     * shipment that can be sent has one; without parcels, there are none.
      *
      * @param {Array<Object>} packs
      * @param {Object} kinds the shipment type of each parcel type
@@ -379,7 +382,7 @@ define(['mage/translate'], function ($t) {
 
     /**
      * @param {String} type a shipment type
-     * @returns {String} that the carrier doesn't take it
+     * @returns {String} a message that the carrier doesn't take it
      */
     function typeNotTaken(type) {
         return {
@@ -476,11 +479,10 @@ define(['mage/translate'], function ($t) {
 
         /**
          * @param {Object} data the form's data
-         * @param {Object|null} quotes prices by carrier code, null until the first quote
          * @returns {Array<{card: String, text: String, blocking: Boolean, fix: (Object|Boolean|null), field: String}>}
          *     field: the form field the issue is about, for a page that has only some of them
          */
-        issues: function (data, quotes) {
+        issues: function (data) {
             const features = data.features || {},
                 issues = [],
                 cod = amount(data.cod_amount),
@@ -489,9 +491,9 @@ define(['mage/translate'], function ($t) {
                     return pack && !pack.delete;
                 });
 
-            // field is the form field it's about; fix, when given, says where the problem is fixed,
-            // if not where the card's problems are: {parcel: index}, {part: name} of the section,
-            // {modal: name} of the form, or false.
+            // field is the form field it's about. fix, when given, says where the problem is fixed
+            // if that's not where the card's problems are: {parcel: index}, {part: name} of the
+            // section, {modal: name} of the form, or false.
             function add(field, card, text, blocking, fix) {
                 issues.push({
                     field: field,
@@ -513,12 +515,12 @@ define(['mage/translate'], function ($t) {
                     false
                 );
             }
-            // A carrier that doesn't price the shipment is said under the price itself.
+            // A carrier that doesn't price the shipment is reported under the price itself.
             if (!filled(data.carrier_code)) {
                 add('carrier_code', 'carrier', $t('Choose a carrier.'));
             }
-            // The account's carriers change: the order's may have gone, or been left out of the
-            // carriers worked with, since.
+            // The account's carriers change: the order's carrier may have gone since, or been left
+            // out of the carriers worked with.
             if (filled(data.carrier_code) && !filled(data.carriers_error) && Object.keys(data.carriers || {}).length
                 && !(data.carriers || {})[data.carrier_code]
             ) {
@@ -603,7 +605,7 @@ define(['mage/translate'], function ($t) {
                     {modal: 'carrier_modal'}
                 );
             }
-            // Chosen before the carrier: another carrier offers them.
+            // Chosen before the carrier, since another carrier offers them.
             servicesLacking(data, features.services).forEach(function (service) {
                 add(
                     'services',

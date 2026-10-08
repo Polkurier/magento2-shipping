@@ -23,7 +23,7 @@ class Cancel extends AbstractShipmentAction implements HttpPostActionInterface
     public function __construct(
         Context $context,
         RequestedShipments $requestedShipments,
-        private readonly ShipmentManagementInterface $management,
+        private readonly ShipmentManagementInterface $shipmentManagement,
     ) {
         parent::__construct($context, $requestedShipments);
     }
@@ -33,7 +33,7 @@ class Cancel extends AbstractShipmentAction implements HttpPostActionInterface
         $shipment = $this->getShipment();
         if ($shipment !== null) {
             try {
-                $shipment = $this->management->cancel((int)$shipment->getId());
+                $shipment = $this->shipmentManagement->cancel((int)$shipment->getId());
                 $this->messageManager->addSuccessMessage(
                     __('Polkurier order %1 cancelled.', $shipment->getPolkurierNumber()),
                 );

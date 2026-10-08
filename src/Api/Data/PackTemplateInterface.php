@@ -22,8 +22,8 @@ interface PackTemplateInterface extends SyncableInterface
     public const string FIELD_WEIGHT = 'weight';
 
     /**
-     * What the packaging itself weighs, added to what's in a parcel weighed by its contents. Kept
-     * in Magento only: Polkurier's pack templates have no such thing.
+     * The weight of the packaging itself, added to the contents of a parcel weighed by its
+     * contents. Kept in Magento only: Polkurier's pack templates have no such field.
      */
     public const string FIELD_TARE = 'tare';
 
@@ -46,7 +46,7 @@ interface PackTemplateInterface extends SyncableInterface
     public function setDescription(?string $description): static;
 
     /**
-     * The shipment type its parcel type makes, e.g. "envelope" for an envelope.
+     * The shipment type given by the template's parcel type, e.g. "envelope" for an envelope.
      *
      * @return string
      */
@@ -115,7 +115,7 @@ interface PackTemplateInterface extends SyncableInterface
     public function setWeight(float $weight): static;
 
     /**
-     * What the packaging itself weighs, in kilograms; null when not said.
+     * What the packaging itself weighs, in kilograms; null when not set.
      *
      * @return float|null
      */

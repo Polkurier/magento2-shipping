@@ -25,6 +25,7 @@ use Magento\Store\Model\StoreManagerInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
 use Polkurier\Shipping\Api\Data\CarrierConfigInterface;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
+use Polkurier\Shipping\Logger\Logger;
 use Polkurier\Shipping\Model\Cache\Type as PolkurierCache;
 use Polkurier\Shipping\Model\Carrier\AvailableCarrierFilter;
 use Polkurier\Shipping\Model\Carrier\CarrierCatalog;
@@ -47,7 +48,6 @@ use Polkurier\Shipping\Test\Unit\Support\MagentoMeasures;
 use Polkurier\Shipping\Test\Unit\Support\SdkTestCase;
 use Polkurier\Webservice\Exception\ConnectionException;
 use Polkurier\Webservice\Testing\RecordingClient;
-use Psr\Log\NullLogger;
 
 #[CoversClass(Polkurier::class)]
 #[CoversClass(RateCollector::class)]
@@ -193,7 +193,7 @@ class PolkurierTest extends SdkTestCase
         self::assertSame(
             ['', ''],
             [$unknown->getData('carrier_title'), $unknown->getData('url')],
-            'Nothing names Polkurier to the customer.',
+            'A track of an unknown waybill has no carrier title or URL.',
         );
     }
 
@@ -220,7 +220,7 @@ class PolkurierTest extends SdkTestCase
         $methods = [];
         foreach ($result->getAllRates() as $rate) {
             self::assertSame(Polkurier::CODE, $rate->getData('carrier'));
-            self::assertSame('', $rate->getData('carrier_title'), 'The carrier name never reaches the storefront.');
+            self::assertSame('', $rate->getData('carrier_title'), 'The rate has no carrier title.');
             $methods[(string)$rate->getData('method')] = (float)$rate->getData('price');
         }
 
@@ -297,13 +297,13 @@ class PolkurierTest extends SdkTestCase
             $configs,
             $catalog,
             new CarrierFeatureResolver(),
-            new PriceCalculatorPool([
+            new PriceCalculatorPool($this->createStub(Logger::class), [
                 'FIXED' => new FixedPriceCalculator(),
                 'TIER_SUBTOTAL' => new TieredPriceCalculator(true, false),
                 'TIER_WEIGHT' => new TieredPriceCalculator(false, true),
             ]),
             new WeightUnitConverter($scopeConfig, MagentoMeasures::carrierHelper()),
-            new NullLogger(),
+            $this->createStub(Logger::class),
             $tokens,
             $appState,
             $config,
@@ -320,7 +320,7 @@ class PolkurierTest extends SdkTestCase
         return new Polkurier(
             $scopeConfig,
             $this->createStub(ErrorFactory::class),
-            new NullLogger(),
+            $this->createStub(Logger::class),
             $rateCollector,
             $statuses,
             $finder,

@@ -16,9 +16,9 @@ use Magento\Sales\Model\Order;
 use Polkurier\Shipping\Model\Carrier\Polkurier;
 
 /**
- * The order page's Polkurier tab: every Polkurier shipment of the order, also those that weren't
- * placed and so have no Magento shipment to show in the Shipments tab. Holds the
- * polkurier_order_view_shipment_listing component. Orders of other carriers don't get it.
+ * The order page's Polkurier tab. It lists every Polkurier shipment of the order, including those
+ * that weren't placed and so have no Magento shipment in the Shipments tab. Holds the
+ * polkurier_order_view_shipment_listing component. Orders of other carriers don't get the tab.
  */
 class PolkurierShipments extends ListText implements TabInterface
 {

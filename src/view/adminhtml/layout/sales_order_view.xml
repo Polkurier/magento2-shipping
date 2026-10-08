@@ -7,7 +7,7 @@
       xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
     <body>
         <!-- The customer's pickup point, then the carrier and point the parcels went with, in the
-             Shipping & Handling Information; placed there by Plugin\Adminhtml\ShippingInfoPlugin,
+             Shipping & Handling Information; placed there by Polkurier\Shipping\Plugin\Adminhtml\ShippingInfoPlugin,
              since Magento's template renders no children. -->
         <referenceBlock name="order_shipping_view">
             <block class="Magento\Backend\Block\Template" name="polkurier_order_point"
@@ -23,8 +23,8 @@
                 </arguments>
             </block>
         </referenceBlock>
-        <!-- A tab with every Polkurier shipment of the order, right after Shipments: also those that
-             weren't placed, which have no Magento shipment -->
+        <!-- A tab right after Shipments with every Polkurier shipment of the order, including those
+             that weren't placed and so have no Magento shipment -->
         <referenceBlock name="sales_order_tabs">
             <block class="Polkurier\Shipping\Block\Adminhtml\Order\View\Tab\PolkurierShipments"
                    name="polkurier_order_shipments.grid.container">

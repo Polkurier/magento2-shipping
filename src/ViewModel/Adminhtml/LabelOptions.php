@@ -35,13 +35,13 @@ use Polkurier\Shipping\Model\Shipment\Valuation\OrderAmountCalculator;
 
 /**
  * The Polkurier options of a shipping label, on Magento's New Shipment page, and on the page of a
- * Magento shipment without a Polkurier order that stands (its order was cancelled, or it was made
+ * Magento shipment without an active Polkurier order (its order was cancelled, or it was made
  * without one), where "Create Shipping Label" places one for its items.
  *
- * Each group of options shows as a one-line summary and is edited in its own modal. The values
+ * Each group of options shows as a one-line summary and is edited in place, in its line. The values
  * travel with the shipment form as hidden fields, and are read when Magento asks for the label.
- * The page is Magento's own, with no UI component to hook into, so a template with this view
- * model renders them; what it starts from is shared with the shipment screen (ScreenDataProvider).
+ * The page is Magento's own, with no UI component to hook into, so a template with this view model
+ * renders them; the defaults it starts from are shared with the shipment screen ({@see ScreenDataProvider}).
  */
 class LabelOptions implements ArgumentInterface, ResetAfterRequestInterface
 {
@@ -52,15 +52,15 @@ class LabelOptions implements ArgumentInterface, ResetAfterRequestInterface
         private readonly RequestInterface $request,
         private readonly AuthorizationInterface $authorization,
         private readonly OrderLoader $orderLoader,
-        private readonly ScreenDataProvider $screenData,
-        private readonly ShipmentOptionsProvider $shipmentOptions,
+        private readonly ScreenDataProvider $screenDataProvider,
+        private readonly ShipmentOptionsProvider $shipmentOptionsProvider,
         private readonly ConfigProvider $configProvider,
         private readonly AdditionalService $services,
         private readonly CodType $codTypes,
         private readonly CodReturnType $codReturnTypes,
         private readonly PickupMode $pickupModes,
         private readonly Json $json,
-        private readonly OrderAmountCalculator $amountCalculator,
+        private readonly OrderAmountCalculator $orderAmountCalculator,
         private readonly ShipmentRepositoryInterface $shipmentRepository,
         private readonly NativeShipmentService $nativeShipmentService,
         private readonly RetriableShipmentFinder $retriableShipmentFinder,
@@ -87,8 +87,8 @@ class LabelOptions implements ArgumentInterface, ResetAfterRequestInterface
     }
 
     /**
-     * Whether the page's order was placed with a Polkurier method: its packaging window, whatever
-     * else, gets the pack templates.
+     * Whether the page's order was placed with a Polkurier method. If so, its packaging window gets
+     * the pack templates in any case.
      */
     public function isPolkurierOrder(): bool
     {
@@ -105,7 +105,7 @@ class LabelOptions implements ArgumentInterface, ResetAfterRequestInterface
         $order = $this->getOrder();
 
         return (string)$this->json->serialize([
-            'templates' => $this->screenData->getTemplates(),
+            'templates' => $this->screenDataProvider->getTemplates(),
             'parcelWeight' => $order !== null
                 ? $this->configProvider->getParcelWeight((int)$order->getStoreId())->value
                 : 'products',
@@ -136,7 +136,7 @@ class LabelOptions implements ArgumentInterface, ResetAfterRequestInterface
     }
 
     /**
-     * Whether this is the page of a Magento shipment there is, not the New Shipment page.
+     * Whether this is the page of an existing Magento shipment, not the New Shipment page.
      */
     public function isForExistingShipment(): bool
     {
@@ -154,12 +154,12 @@ class LabelOptions implements ArgumentInterface, ResetAfterRequestInterface
         $shipped = $existing !== null
             ? $this->nativeShipmentService->getShipmentQuantities($order, (int)$existing->getId())
             : null;
-        $values = $this->screenData->getDefaultValues($order, $shipped);
-        $amounts = $this->screenData->getAmounts($order);
+        $values = $this->screenDataProvider->getDefaultValues($order, $shipped);
+        $amounts = $this->screenDataProvider->getAmounts($order);
 
         return (string)$this->json->serialize([
             'name' => NativeLabelService::OPTIONS_PARAM,
-            // A shipment there is: its quantities are fixed, and its label is asked for on its page.
+            // An existing shipment: its quantities are fixed, and its label is asked for on its page.
             'existingShipment' => $existing !== null,
             'shippedQtys' => (object)($shipped ?? []),
             'fields' => NativeLabelService::OPTION_FIELDS,
@@ -170,41 +170,43 @@ class LabelOptions implements ArgumentInterface, ResetAfterRequestInterface
             'codCollected' => $amounts['cod_collected'],
             'codRemaining' => $amounts['cod_remaining'],
             'shippingCovered' => $amounts['shipping_covered'],
-            'items' => (object)$this->amountCalculator->getItems($order),
-            'carriers' => (object)$this->shipmentOptions->getCarrierFeatures(),
-            'carriersError' => $this->shipmentOptions->getCarriersError(),
-            'map' => $this->screenData->getMap() + ['tokenUrl' => $this->url->getUrl('polkurier/shipment/mapToken')],
-            // What each parcel type makes the shipment, for the packages' check.
+            'items' => (object)$this->orderAmountCalculator->getItems($order),
+            'carriers' => (object)$this->shipmentOptionsProvider->getCarrierFeatures(),
+            'carriersError' => $this->shipmentOptionsProvider->getCarriersError(),
+            'map' => $this->screenDataProvider->getMap(),
+            // The shipment type each parcel type makes, for checking the packages.
             'packShipmentTypes' => (object)ParcelTypeMapper::map(),
             // Services for pallets, which only pallets may have.
-            'palletServices' => $this->screenData->getPalletServices(),
+            'palletServices' => $this->screenDataProvider->getPalletServices(),
             // Where the point map starts: the postcode alone, which the city can't contradict.
             'mapSearch' => \trim((string)$order->getShippingAddress()?->getPostcode()),
             // The sender addresses' postcodes and drop-off points, for the drop-off point.
-            'senderPoints' => (object)$this->screenData->getSenderPoints(),
+            'senderPoints' => (object)$this->screenDataProvider->getSenderPoints(),
             // The collection dates and windows, as the Polkurier shipment screen asks for them.
             'pickupTimes' => [
                 'url' => $this->url->getUrl('polkurier/shipment/pickupTimes'),
                 'orderId' => (int)$order->getEntityId(),
                 'recipientPostcode' => \trim((string)$order->getShippingAddress()?->getPostcode()),
             ],
-            'point' => $this->screenData->describeRecipientPoint(
+            'point' => $this->screenDataProvider->describeRecipientPoint(
                 (int)$order->getEntityId(),
                 (string)($values[ShipmentDraftInterface::FIELD_CARRIER_CODE] ?? ''),
                 (string)($values[ShipmentDraftInterface::FIELD_RECIPIENT_POINT_ID] ?? ''),
             ),
             'options' => [
-                ShipmentDraftInterface::FIELD_CARRIER_CODE => $this->shipmentOptions->getCarrierOptions(),
-                ShipmentDraftInterface::FIELD_SENDER_ADDRESS_ID => $this->shipmentOptions->getSenderChoices($storeId),
+                ShipmentDraftInterface::FIELD_CARRIER_CODE => $this->shipmentOptionsProvider->getCarrierOptions(),
+                ShipmentDraftInterface::FIELD_SENDER_ADDRESS_ID
+                    => $this->shipmentOptionsProvider->getSenderChoices($storeId),
                 ShipmentDraftInterface::FIELD_SERVICES => $this->services->toOptionArray(),
                 // Only those that can be printed as the sender.
                 ShipmentDraftInterface::FIELD_COVER_ADDRESS_ID => \array_merge(
                     [['value' => '', 'label' => (string)__('None: the sender address')]],
-                    $this->shipmentOptions->getSenderOptions(true),
+                    $this->shipmentOptionsProvider->getSenderOptions(true),
                 ),
                 ShipmentDraftInterface::FIELD_COD_TYPE => $this->codTypes->toOptionArray(),
                 ShipmentDraftInterface::FIELD_COD_RETURN_TYPE => $this->codReturnTypes->toOptionArray(),
-                ShipmentDraftInterface::FIELD_COD_BANK_ACCOUNT_ID => $this->shipmentOptions->getBankAccountChoices(),
+                ShipmentDraftInterface::FIELD_COD_BANK_ACCOUNT_ID
+                    => $this->shipmentOptionsProvider->getBankAccountChoices(),
                 ShipmentDraftInterface::FIELD_PICKUP_MODE => $this->pickupModes->toOptionArray(),
             ],
         ]);
@@ -217,8 +219,8 @@ class LabelOptions implements ArgumentInterface, ResetAfterRequestInterface
     }
 
     /**
-     * Packing the items into the pack templates, as the Polkurier shipment screen does: on asking,
-     * and when the packaging window opens empty if new shipments start packed.
+     * Settings for packing the items into the pack templates, as the Polkurier shipment screen
+     * does: on request, and when the packaging window opens empty if new shipments start packed.
      *
      * @return array{url: string, orderId: int, shipmentId: int|null, onOpen: bool}|null null where
      *     no label is created with the options

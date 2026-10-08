@@ -33,10 +33,8 @@ class FlashMessageCollectorTest extends TestCase
 
     public function testNothingToSayIsNoMessage(): void
     {
-        $flash = (new FlashMessageCollector())->warning('  ');
+        (new FlashMessageCollector())->warning('  ')->send($this->messages());
 
-        self::assertTrue($flash->isEmpty());
-        $flash->send($this->messages());
         self::assertSame([], $this->sent);
     }
 

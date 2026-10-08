@@ -7,21 +7,20 @@
 [Developer guide](README.md) › Events
 
 Whenever the module changes something on the Polkurier account, it dispatches an event once
-Polkurier has confirmed the change and Magento has recorded it. It happens the same way whether the
-change came from the admin, Magento's label flow, your own code or a cron job. The events are the
-cases of the backed enum `Enum\ApiEventEnum`, whose values are the event names and whose cases
-document each event's data. `Model\Sdk\ApiEventDispatcher` dispatches them, and accepts only those
-cases, so the module can't dispatch a name that isn't on the list.
+Polkurier has confirmed the change and Magento has recorded it, whether the change came from the
+admin, Magento's label flow, your own code or a cron job. The events are the cases of the backed
+enum [`Enum\Sdk\ApiEventEnum`](../../src/Enum/Sdk/ApiEventEnum.php): each case's value is the event
+name, and each case documents its event's data.
 
-Observe them in `events.xml` by name, as in the table below. In PHP, refer to a name through the
-enum, for example `ApiEventEnum::OrderCreateAfter->value`; `ApiEventEnum::cases()` lists them
-all.
+Observe them in `events.xml` by name. In PHP, refer to a name through the enum, for example
+[`ApiEventEnum::OrderCreateAfter->value`](../../src/Enum/Sdk/ApiEventEnum.php).
 
 ## Reference
 
 Every event carries `store_id`. For the order and cancellation events it's the order's store (null
 for a shipment whose store view has been deleted since). The other events are about the account,
-which is one for the whole installation, so their `store_id` is null. The other keys:
+and there is one account for the whole installation, so their `store_id` is null. Besides
+`store_id`, the events carry:
 
 | Event | When | Data |
 |---|---|---|
@@ -38,9 +37,9 @@ which is one for the whole installation, so their `store_id` is null. The other 
 | `polkurier_api_payout_create_after` | a cash on delivery payout was requested | `order_numbers` (empty for everything available), `payout_type`, `fee_payment_type`, `response` |
 | `polkurier_api_payout_cancel_after` | a payout was cancelled | `request`, `response` |
 
-`shipment`, `address`, `pack_template` and `bank_account` are the module's data interfaces;
-`order` is Magento's `OrderInterface`; `request` and `response` are the SDK messages that were sent
-and received.
+`shipment`, `address`, `pack_template` and `bank_account` are the module's data interfaces; `order`
+is Magento's `Magento\Sales\Api\Data\OrderInterface`; `request` and `response` are the SDK messages
+that were sent and received.
 
 ## Things worth knowing
 
@@ -64,8 +63,8 @@ and received.
 - The change has already happened on Polkurier's side when your observer runs. An exception from
   an observer is written to the module's error log, `var/log/polkurier/YYYY-MM-error.log`, and not
   passed on. Otherwise a failing observer could make a placed order or a requested payout look
-  failed, and someone might repeat it. If your reaction must not be lost, record it somewhere durable (a message queue, say) rather
-  than doing slow work inline.
+  failed, and someone might repeat it. If your reaction must not be lost, record it somewhere
+  durable (a message queue, say) rather than doing slow work inline.
 
 ## Example
 

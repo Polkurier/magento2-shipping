@@ -13,7 +13,8 @@ use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Polkurier\Shipping\Api\Data\SyncableInterface;
-use Polkurier\Shipping\Enum\SyncEntityEnum;
+use Polkurier\Shipping\Enum\Sync\SyncEntityEnum;
+use Polkurier\Shipping\Logger\Logger;
 use Polkurier\Shipping\Model\PackTemplate;
 use Polkurier\Shipping\Model\Sdk\ErrorMessageResolver;
 use Polkurier\Shipping\Model\Sync\AdapterInterface;
@@ -22,8 +23,6 @@ use Polkurier\Shipping\Model\Sync\SyncResultFactory;
 use Polkurier\Shipping\Test\Unit\Support\FakePushableSyncAdapter;
 use Polkurier\Shipping\Test\Unit\Support\FakeSyncAdapter;
 use Polkurier\Shipping\Test\Unit\Support\NewingObjectManager;
-use Psr\Log\LoggerInterface;
-use Psr\Log\NullLogger;
 
 #[CoversClass(SyncEngine::class)]
 #[AllowMockObjectsWithoutExpectations]
@@ -397,7 +396,7 @@ class SyncEngineTest extends TestCase
     {
         $dateTime = $this->createStub(DateTime::class);
         $dateTime->method('gmtTimestamp')->willReturn((int)\strtotime(self::NOW . ' UTC'));
-        $logger = $this->createStub(LoggerInterface::class);
+        $logger = $this->createStub(Logger::class);
         foreach (['error', 'warning'] as $level) {
             $logger->method($level)
                 ->willReturnCallback(function (string|\Stringable $message, array $context = []) use ($level): void {
@@ -454,7 +453,7 @@ class SyncEngineTest extends TestCase
         return (new SyncEngine(
             new ErrorMessageResolver(),
             $dateTime,
-            new NullLogger(),
+            $this->createStub(Logger::class),
             NewingObjectManager::factory(SyncResultFactory::class),
         ))->hash($remote);
     }

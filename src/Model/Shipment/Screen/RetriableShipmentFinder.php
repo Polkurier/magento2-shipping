@@ -14,13 +14,13 @@ use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Api\ShipmentRepositoryInterface;
 use Polkurier\Shipping\Model\Shipment\Native\NativeShipmentService;
 use Polkurier\Shipping\Model\Shipment\OrderLoader;
-use Polkurier\Shipping\Model\Shipment\Placement\PlacementService;
 use Polkurier\Shipping\Model\Shipment\ShipmentFinder;
 
 /**
- * Sending a shipment that wasn't placed again: the shipment screen opens with what was sent then,
- * and why it failed. Only failures on Polkurier's side leave a shipment that wasn't placed
- * (PlacementService); it's placed by the order's next attempt, from here or not.
+ * Finds shipments that weren't placed and can be sent again. The shipment screen opens with what
+ * was sent then, and why it failed. Only failures on Polkurier's side leave a shipment that wasn't
+ * placed ({@see \Polkurier\Shipping\Model\Shipment\Placement\PlacementService}); the order's next
+ * attempt places it, whether made from here or not.
  */
 readonly class RetriableShipmentFinder
 {
@@ -28,7 +28,7 @@ readonly class RetriableShipmentFinder
 
     public function __construct(
         private ShipmentRepositoryInterface $shipmentRepository,
-        private ShipmentFinder $finder,
+        private ShipmentFinder $shipmentFinder,
         private OrderLoader $orderLoader,
         private NativeShipmentService $nativeShipmentService,
     ) {}
@@ -82,18 +82,18 @@ readonly class RetriableShipmentFinder
     }
 
     /**
-     * The order's shipment that wasn't placed and can be sent again, if any: what the pages that
-     * place a Polkurier order tell about, as placing one places it.
+     * The order's shipment that wasn't placed and can be sent again, if any. The pages that place a
+     * Polkurier order mention it, since placing an order sends it again.
      */
     public function findForOrder(Order $order): ?ShipmentInterface
     {
-        $latest = $this->finder->latestForOrder((int)$order->getEntityId());
+        $latest = $this->shipmentFinder->latestForOrder((int)$order->getEntityId());
 
         return $latest !== null && $this->isPossible($latest) ? $latest : null;
     }
 
     private function isLatest(int $shipmentId, int $orderId): bool
     {
-        return (int)$this->finder->latestForOrder($orderId)?->getId() === $shipmentId;
+        return (int)$this->shipmentFinder->latestForOrder($orderId)?->getId() === $shipmentId;
     }
 }

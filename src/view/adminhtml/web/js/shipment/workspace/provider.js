@@ -3,9 +3,9 @@
  * All Rights Reserved
  */
 /**
- * The shipment screen's data, placed as the draft alone (rules.draft): the carriers, choices and
- * templates the screen shows besides would take the request past PHP's limit on how many values
- * one may carry, and the server would never see it.
+ * The shipment screen's data, saved as the draft alone (rules.draft). The carriers, choices and
+ * templates the screen also shows would push the request past PHP's limit on the number of input
+ * values, and the server would never see it.
  */
 define([
     'Magento_Ui/js/form/provider',

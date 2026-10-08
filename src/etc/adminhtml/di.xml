@@ -15,8 +15,8 @@
                 type="Polkurier\Shipping\Plugin\Adminhtml\ShipmentSavePlugin" />
         <plugin name="polkurier_native_label_page" type="Polkurier\Shipping\Plugin\Adminhtml\NativeLabelPagePlugin" />
     </type>
-    <!-- Magento's shipment pages: a Polkurier label needs the permissions behind it, labels are on per order,
-         and the options posted reach the carrier -->
+    <!-- Magento's shipment pages: a Polkurier label requires the permissions behind it, labels are
+         enabled per order, and the posted options reach the carrier -->
     <type name="Magento\Shipping\Controller\Adminhtml\Order\Shipment\CreateLabel">
         <plugin name="polkurier_native_label_page" type="Polkurier\Shipping\Plugin\Adminhtml\NativeLabelPagePlugin" />
     </type>
@@ -29,7 +29,7 @@
     <type name="Magento\Shipping\Model\Shipping\LabelGenerator">
         <plugin name="polkurier_native_label_page" type="Polkurier\Shipping\Plugin\Adminhtml\NativeLabelPagePlugin" />
     </type>
-    <!-- Magento shipment page: "Add a Polkurier order" for one made without -->
+    <!-- Magento shipment page: "Add a Polkurier order" for a shipment made without one -->
     <type name="Magento\Shipping\Block\Adminhtml\View">
         <plugin name="polkurier_shipment_view_buttons" type="Polkurier\Shipping\Plugin\Adminhtml\ShipmentViewPlugin" />
     </type>
@@ -53,7 +53,7 @@
                  type="Polkurier\Shipping\Ui\Component\Form\SyncableEntityDataProvider">
         <arguments>
             <argument name="collection" xsi:type="object" shared="false">Polkurier\Shipping\Model\ResourceModel\Address\Collection</argument>
-            <argument name="handler" xsi:type="object">Polkurier\Shipping\Model\Address\AddressHandler</argument>
+            <argument name="entityHandler" xsi:type="object">Polkurier\Shipping\Model\Address\AddressHandler</argument>
         </arguments>
     </virtualType>
     <type name="Polkurier\Shipping\Ui\Component\Form\BankAccount\DataProvider">
@@ -65,7 +65,7 @@
                  type="Polkurier\Shipping\Ui\Component\Form\SyncableEntityDataProvider">
         <arguments>
             <argument name="collection" xsi:type="object" shared="false">Polkurier\Shipping\Model\ResourceModel\PackTemplate\Collection</argument>
-            <argument name="handler" xsi:type="object">Polkurier\Shipping\Model\PackTemplate\PackTemplateHandler</argument>
+            <argument name="entityHandler" xsi:type="object">Polkurier\Shipping\Model\PackTemplate\PackTemplateHandler</argument>
         </arguments>
     </virtualType>
     <!-- Toolbar buttons of actions that change data: sent by POST -->
@@ -111,6 +111,18 @@
                  type="Polkurier\Shipping\Ui\Component\Control\SaveButton">
         <arguments>
             <argument name="label" xsi:type="string">Book the pickup</argument>
+        </arguments>
+    </virtualType>
+    <virtualType name="Polkurier\Shipping\Ui\Component\Form\Shipment\PlaceButtonVirtual"
+                 type="Polkurier\Shipping\Ui\Component\Control\SaveButton">
+        <arguments>
+            <argument name="label" xsi:type="string">Place the Polkurier order</argument>
+        </arguments>
+    </virtualType>
+    <virtualType name="Polkurier\Shipping\Ui\Component\Form\Payout\RequestButtonVirtual"
+                 type="Polkurier\Shipping\Ui\Component\Control\SaveButton">
+        <arguments>
+            <argument name="label" xsi:type="string">Request the payout</argument>
         </arguments>
     </virtualType>
     <virtualType name="Polkurier\Shipping\Ui\Component\Listing\Carrier\RefreshButtonVirtual"

@@ -61,7 +61,7 @@
                            showInDefault="1" showInWebsite="1" canRestore="1">
                         <label>Cart value for price tiers</label>
                         <source_model>Polkurier\Shipping\Model\Config\Source\CartValue</source_model>
-                        <comment>What price tiers by subtotal compare, after discounts.</comment>
+                        <comment>The cart value, after discounts, that price tiers by subtotal are compared with.</comment>
                     </field>
                 </group>
 
@@ -170,7 +170,7 @@
                            showInDefault="1" showInWebsite="1" canRestore="1">
                         <label>Parcel weight</label>
                         <source_model>Polkurier\Shipping\Model\Config\Source\ParcelWeight</source_model>
-                        <comment>The weight parcels made from pack templates are sent with.</comment>
+                        <comment>The weight sent for parcels made from pack templates.</comment>
                     </field>
                     <field id="pack_new_shipments" translate="label comment" type="select" sortOrder="64"
                            showInDefault="1" showInWebsite="1" canRestore="1">

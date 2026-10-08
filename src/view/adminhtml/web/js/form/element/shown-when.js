@@ -3,9 +3,9 @@
  * All Rights Reserved
  */
 /**
- * What a field shown only for some choices of the form adds to its element: it's visible while
- * each field named in shownWhen has the value given, e.g. {payout_type: 'ACCOUNT'}. Hidden, it
- * isn't validated.
+ * Makes a form element shown only for some choices of the form: it's visible while each field
+ * named in shownWhen has the given value, e.g. {payout_type: 'ACCOUNT'}. While hidden, it isn't
+ * validated.
  */
 define(['underscore'], function (_) {
     'use strict';

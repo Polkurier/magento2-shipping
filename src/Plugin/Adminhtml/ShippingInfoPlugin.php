@@ -19,9 +19,9 @@ use Magento\Shipping\Block\Adminhtml\View\Form as ShipmentForm;
  *    (polkurier_order_point) and the carriers the parcels went with (polkurier_shipped_with),
  *    before the closing tag of the section's content;
  *  - the shipment page's Shipping and Tracking Information gets the carrier that shipment went
- *    with (polkurier_shipped_with), right under the shipping method; and above Payment & Shipping
- *    Method go the Polkurier label options (polkurier_label_options) and the shipment's Polkurier
- *    orders (polkurier_shipment_orders).
+ *    with (polkurier_shipped_with), right under the shipping method. The Polkurier label options
+ *    (polkurier_label_options) and the shipment's Polkurier orders (polkurier_shipment_orders) go
+ *    above Payment & Shipping Method.
  */
 readonly class ShippingInfoPlugin
 {

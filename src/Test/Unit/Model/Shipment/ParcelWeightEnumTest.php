@@ -9,7 +9,7 @@ namespace Polkurier\Shipping\Test\Unit\Model\Shipment;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Polkurier\Shipping\Enum\ParcelWeightEnum;
+use Polkurier\Shipping\Enum\Config\ParcelWeightEnum;
 
 #[CoversClass(ParcelWeightEnum::class)]
 class ParcelWeightEnumTest extends TestCase

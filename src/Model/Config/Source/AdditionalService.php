@@ -11,8 +11,9 @@ use Polkurier\Webservice\Enum\Order\AdditionalServiceEnum;
 
 /**
  * Additional services that can be bought with a shipment, to choose from. The cover sender address
- * isn't one to tick: it comes with the address chosen to print as the sender (the shipment's cover
- * address), which Polkurier needs for it and switches it on by. labels() has it, for what was sent.
+ * service isn't offered as a checkbox: it comes with the address chosen to print as the sender (the
+ * shipment's cover address). Polkurier needs that address for the service, and switches the service
+ * on by it. labels() still includes it, to name it in what was sent.
  */
 readonly class AdditionalService extends AbstractOptions
 {

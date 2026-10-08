@@ -15,13 +15,11 @@ use Magento\MediaStorage\Model\File\UploaderFactory;
 use Magento\Store\Model\Store;
 use Magento\Store\Model\StoreManagerInterface;
 use Polkurier\Shipping\Api\Data\CarrierConfigInterface;
-use Psr\Log\LoggerInterface;
+use Polkurier\Shipping\Logger\Logger;
 
 /**
  * Carrier logos: uploaded by the merchant, kept in the media directory and shown next to the
  * methods in checkout.
- *
- * The directory name is neutral on purpose: logo URLs end up in the storefront's pages.
  */
 readonly class CarrierLogoStorage
 {
@@ -36,7 +34,7 @@ readonly class CarrierLogoStorage
         private UploaderFactory $uploaderFactory,
         private Filesystem $filesystem,
         private StoreManagerInterface $storeManager,
-        private LoggerInterface $logger,
+        private Logger $logger,
     ) {}
 
     /**

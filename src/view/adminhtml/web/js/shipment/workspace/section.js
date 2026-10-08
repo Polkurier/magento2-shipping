@@ -6,10 +6,10 @@
  * A section of the shipment screen: a titled admin page section holding its parts, with an
  * optional action next to the title that opens the section's modal.
  *
- * A section also says what in it still needs attention: of the provider's "issues", which the
- * summary works out for the whole screen (see rules.js), those of what it holds ("cards"). What
- * would stop the shipment is only marked once placing it has been tried, and is then kept up to
- * date; softer warnings show as they come up.
+ * A section also shows what in it still needs attention: of the provider's "issues", which the
+ * summary works out for the whole screen (see rules.js), those about what it holds (its "cards").
+ * Problems that would stop the shipment are marked only once placing it has been tried, and are
+ * then kept up to date; softer warnings show as they come up.
  */
 define([
     'ko',
@@ -39,7 +39,7 @@ define([
             this.errors = ko.observableArray([]);
             this.warnings = ko.observableArray([]);
             if (this.cards.length) {
-                // At once: placing the shipment looks for the sections marked right after.
+                // Not debounced: placing the shipment looks for the marked sections right after.
                 this.source.on('issues', this.refreshIssues.bind(this), this.name);
                 this.source.on('validated', this.refreshIssues.bind(this), this.name);
                 this.refreshIssues();
@@ -49,7 +49,7 @@ define([
         },
 
         /**
-         * Takes the section's listeners off the form's data as it goes.
+         * Removes the section's listeners from the form's data as it goes.
          */
         destroy: function () {
             this.source.off(this.name);
@@ -103,7 +103,7 @@ define([
 
         /**
          * @param {Object} issue
-         * @returns {Boolean} whether the problem is fixed somewhere else than the section itself
+         * @returns {Boolean} whether the problem is fixed somewhere other than the section itself
          */
         canFix: function (issue) {
             const target = this.fixTarget(issue);

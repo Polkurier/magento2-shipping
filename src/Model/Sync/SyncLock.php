@@ -15,8 +15,6 @@ use Magento\Framework\ObjectManager\ResetAfterRequestInterface;
  * One writer at a time for the synchronized entries: the hourly synchronization and saving in the
  * admin, which synchronizes straight away. Two synchronizations at once would both send a new
  * entry, and one would save rows the other had changed in between.
- *
- * Re-entrant within a request: saving in the admin holds it while it synchronizes.
  */
 class SyncLock implements ResetAfterRequestInterface
 {
@@ -24,9 +22,9 @@ class SyncLock implements ResetAfterRequestInterface
     public const int TIMEOUT_SECONDS = 20;
 
     /**
-     * How many times the lock is held here.
+     * Whether the lock is held here.
      */
-    private int $held = 0;
+    private bool $held = false;
 
     public function __construct(
         private readonly LockManagerInterface $lockManager,
@@ -42,30 +40,28 @@ class SyncLock implements ResetAfterRequestInterface
      */
     public function run(callable $work): mixed
     {
-        if ($this->held === 0 && !$this->lockManager->lock(self::NAME, self::TIMEOUT_SECONDS)) {
+        if (!$this->lockManager->lock(self::NAME, self::TIMEOUT_SECONDS)) {
             throw new LocalizedException(__(
                 'A synchronization with Polkurier is already running. Try again in a moment.',
             ));
         }
-        $this->held++;
+        $this->held = true;
         try {
             return $work();
         } finally {
-            // Let go already if the request was reset meanwhile (_resetState()).
-            if ($this->held > 0 && --$this->held === 0) {
-                $this->lockManager->unlock(self::NAME);
-            }
+            // Unless the request was reset meanwhile, which released it already.
+            $this->_resetState();
         }
     }
 
     /**
-     * The lock, if still held when the request ends, as after a fatal error, is let go.
+     * The lock, if still held when the request ends, as after a fatal error, is released.
      */
     public function _resetState(): void
     {
-        if ($this->held > 0) {
+        if ($this->held) {
             $this->lockManager->unlock(self::NAME);
         }
-        $this->held = 0;
+        $this->held = false;
     }
 }

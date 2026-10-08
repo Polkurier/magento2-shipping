@@ -11,10 +11,10 @@ use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\Encryption\EncryptorInterface;
 use Magento\Framework\Phrase;
 use Magento\Store\Model\ScopeInterface;
-use Polkurier\Shipping\Enum\CartValueEnum;
-use Polkurier\Shipping\Enum\ExternalOrderIdEnum;
-use Polkurier\Shipping\Enum\ParcelWeightEnum;
-use Polkurier\Shipping\Enum\WeightLimitEnum;
+use Polkurier\Shipping\Enum\Config\CartValueEnum;
+use Polkurier\Shipping\Enum\Config\ExternalOrderIdEnum;
+use Polkurier\Shipping\Enum\Config\ParcelWeightEnum;
+use Polkurier\Shipping\Enum\Config\WeightLimitEnum;
 use Polkurier\Webservice\Enum\Courier\PointFunctionEnum;
 use Polkurier\Webservice\Enum\Http\ApiMethodEnum;
 use Polkurier\Webservice\Enum\Order\AdditionalServiceEnum;
@@ -26,11 +26,11 @@ use Polkurier\Webservice\Enum\Order\ShipmentTypeEnum;
 /**
  * The module's system configuration.
  *
- * The Polkurier account is one for the whole installation: its credentials, environment, logging,
- * available carriers and synchronization are read from the default scope, with no store. The
- * rest, how the module works with Magento's orders and storefront, is read for a given store, and
- * may differ per website or store view. A null store id means the current store, which in the
- * admin is the default scope.
+ * There is one Polkurier account for the whole installation: its credentials, environment, logging,
+ * available carriers and synchronization are read from the default scope, with no store. The rest,
+ * how the module works with Magento's orders and storefront, is read for a given store, and may
+ * differ per website or store view. A null store id means the current store, which in the admin is
+ * the default scope.
  */
 readonly class ConfigProvider
 {
@@ -104,7 +104,7 @@ readonly class ConfigProvider
     }
 
     /**
-     * The cart value price tiers by subtotal are compared against.
+     * The cart value that subtotal price tiers are compared against.
      */
     public function getTierCartValue(?int $storeId = null): CartValueEnum
     {
@@ -128,7 +128,7 @@ readonly class ConfigProvider
     }
 
     /**
-     * What an action asking Polkurier says without the credentials.
+     * The message an action that calls Polkurier gives when the credentials are missing.
      */
     public static function credentialsMissing(): Phrase
     {
@@ -168,7 +168,8 @@ readonly class ConfigProvider
     }
 
     /**
-     * The installation id entered in place of the one made from the encryption key; empty for that one.
+     * The installation id entered to replace the one made from the encryption key; empty to use
+     * that one.
      */
     public function getApplicationIdOverride(): string
     {
@@ -264,7 +265,7 @@ readonly class ConfigProvider
     }
 
     /**
-     * What a shipment's parcels go as, unless the carrier doesn't take them so: parcels (boxes),
+     * The parcel type a shipment uses unless the carrier doesn't take it: parcels (boxes),
      * envelopes or pallets. Packing keeps to it.
      */
     public function getDefaultShipmentType(?int $storeId = null): ShipmentTypeEnum
@@ -446,8 +447,8 @@ readonly class ConfigProvider
     }
 
     /**
-     * A setting of the Polkurier account, which is one for the whole installation: read from the
-     * default scope only, whatever a website or store view may still hold.
+     * A setting of the Polkurier account, which is one for the whole installation. It's read from
+     * the default scope only, ignoring any value saved for a website or store view.
      */
     private function globalValue(string $path): mixed
     {
@@ -464,10 +465,7 @@ readonly class ConfigProvider
      */
     private function globalList(string $path): array
     {
-        return \array_values(\array_filter(
-            \array_map('trim', \explode(',', (string)$this->globalValue($path))),
-            static fn(string $item): bool => $item !== '',
-        ));
+        return $this->parseList($this->globalValue($path));
     }
 
     private function globalDecrypt(string $path): string
@@ -492,8 +490,18 @@ readonly class ConfigProvider
      */
     private function list(string $path, ?int $storeId): array
     {
+        return $this->parseList($this->value($path, $storeId));
+    }
+
+    /**
+     * A comma-separated setting's items, without blanks.
+     *
+     * @return string[]
+     */
+    private function parseList(mixed $value): array
+    {
         return \array_values(\array_filter(
-            \array_map('trim', \explode(',', (string)$this->value($path, $storeId))),
+            \array_map('trim', \explode(',', (string)$value)),
             static fn(string $item): bool => $item !== '',
         ));
     }

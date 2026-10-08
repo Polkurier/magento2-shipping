@@ -28,10 +28,8 @@ class Index extends Action implements HttpGetActionInterface
 
     public function execute(): Page
     {
+        /** @var Page $page */
         $page = $this->resultFactory->create(ResultFactory::TYPE_PAGE);
-        if (!$page instanceof Page) {
-            throw new \LogicException('The admin area renders backend pages.');
-        }
         $page->setActiveMenu('Polkurier_Shipping::carriers');
         $page->getConfig()->getTitle()->prepend((string)__('Carriers'));
 

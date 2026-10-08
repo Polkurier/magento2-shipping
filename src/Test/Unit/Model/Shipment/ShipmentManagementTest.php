@@ -33,8 +33,9 @@ use Polkurier\Shipping\Api\BankAccountRepositoryInterface;
 use Polkurier\Shipping\Api\Data\ShipmentDraftInterface;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Api\ShipmentRepositoryInterface;
-use Polkurier\Shipping\Enum\ApiEventEnum;
-use Polkurier\Shipping\Enum\ExternalOrderIdEnum;
+use Polkurier\Shipping\Enum\Config\ExternalOrderIdEnum;
+use Polkurier\Shipping\Enum\Sdk\ApiEventEnum;
+use Polkurier\Shipping\Logger\Logger;
 use Polkurier\Shipping\Model\Carrier\CarrierCatalog;
 use Polkurier\Shipping\Model\Carrier\CarrierFeatureResolver;
 use Polkurier\Shipping\Model\Carrier\CarrierNameProvider;
@@ -96,7 +97,6 @@ use Polkurier\Webservice\Response\Carrier\AdditionalData\PointsMap;
 use Polkurier\Webservice\Response\Order\CreatedOrderMessage;
 use Polkurier\Webservice\Serializer\SerializerProvider;
 use Polkurier\Webservice\Testing\RecordingClient;
-use Psr\Log\NullLogger;
 
 #[CoversClass(ShipmentManagement::class)]
 #[CoversClass(PlacementService::class)]
@@ -1147,7 +1147,7 @@ class ShipmentManagementTest extends SdkTestCase
             return $magentoShipment;
         });
 
-        return new ExternalIdService($config, $this->applicationId(), $magentoShipments, $sequences);
+        return new ExternalIdService($config, $magentoShipments, $sequences);
     }
 
     private function applicationId(): ApplicationIdProvider
@@ -1321,7 +1321,7 @@ class ShipmentManagementTest extends SdkTestCase
     }
 
     /**
-     * The services behind ShipmentManagement, over the real SDK answering from $this->http.
+     * The services behind {@see ShipmentManagement}, over the real SDK answering from $this->http.
      *
      * @return array{placing: PlacementService, reconciliation: ReconciliationService, refresh: StatusRefreshService, cancellation: CancellationService, orders: OrderLoader}
      */
@@ -1336,7 +1336,7 @@ class ShipmentManagementTest extends SdkTestCase
 
         $gateway = new ShipmentGateway($this->clientPool($this->http), new ErrorMessageResolver());
         $clock = new FixedDateTime($this->now);
-        $events = new ApiEventDispatcher($this->events, new NullLogger());
+        $events = new ApiEventDispatcher($this->events, $this->createStub(Logger::class));
         $reconciler = new RemoteOrderMatcher(
             $gateway,
             new ShipmentFinder($this->collectionFactory()),
@@ -1362,7 +1362,7 @@ class ShipmentManagementTest extends SdkTestCase
             $commentFactory,
             $commentRepository,
             $events,
-            new NullLogger(),
+            $this->createStub(Logger::class),
             $this->carrierNames(),
         );
 
@@ -1376,7 +1376,7 @@ class ShipmentManagementTest extends SdkTestCase
                     $this->mapper(),
                     new Validator(),
                     new ErrorMessageResolver(),
-                    new NullLogger(),
+                    $this->createStub(Logger::class),
                 ),
                 new AttemptRecorder(
                     $finder,
@@ -1389,8 +1389,10 @@ class ShipmentManagementTest extends SdkTestCase
                         $this->createStub(ItemFactory::class),
                     ),
                     $age,
+                    $clock,
                 ),
                 $this->externalIds(),
+                $this->applicationId(),
                 $this->mapper(),
                 $this->nativeShipmentService,
                 $gateway,
@@ -1399,7 +1401,7 @@ class ShipmentManagementTest extends SdkTestCase
                 $this->carrierNames(),
                 $events,
                 $this->manualEntrySaver ?? $this->createStub(ManualEntrySaver::class),
-                new NullLogger(),
+                $this->createStub(Logger::class),
             ),
             'reconciliation' => new ReconciliationService(
                 $this->repository(),
@@ -1412,7 +1414,7 @@ class ShipmentManagementTest extends SdkTestCase
                 $orderLock,
                 $finder,
                 $this->createStub(ShipmentResource::class),
-                new NullLogger(),
+                $this->createStub(Logger::class),
             ),
             'refresh' => new StatusRefreshService(
                 $this->repository(),
@@ -1428,7 +1430,7 @@ class ShipmentManagementTest extends SdkTestCase
                 $finder,
                 $this->createStub(ShipmentResource::class),
                 $this->createStub(ConfigProvider::class),
-                new NullLogger(),
+                $this->createStub(Logger::class),
             ),
             'cancellation' => new CancellationService(
                 $this->repository(),

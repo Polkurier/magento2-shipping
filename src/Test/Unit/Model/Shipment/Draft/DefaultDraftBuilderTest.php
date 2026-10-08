@@ -16,7 +16,8 @@ use Polkurier\Shipping\Api\BankAccountRepositoryInterface;
 use Polkurier\Shipping\Api\Data\PackTemplateInterface;
 use Polkurier\Shipping\Api\OrderPointRepositoryInterface;
 use Polkurier\Shipping\Api\PackTemplateRepositoryInterface;
-use Polkurier\Shipping\Enum\ParcelWeightEnum;
+use Polkurier\Shipping\Enum\Config\ParcelWeightEnum;
+use Polkurier\Shipping\Logger\Logger;
 use Polkurier\Shipping\Model\Carrier\CarrierCatalog;
 use Polkurier\Shipping\Model\Carrier\CarrierFeatureResolver;
 use Polkurier\Shipping\Model\Config\ConfigProvider;
@@ -30,7 +31,6 @@ use Polkurier\Shipping\Model\Shipment\Packing\AutoPacker;
 use Polkurier\Shipping\Model\Shipment\Placement\SenderMapper;
 use Polkurier\Shipping\Model\Shipment\Placement\StreetParser;
 use Polkurier\Shipping\Model\Shipment\Valuation\OrderAmountCalculator;
-use Psr\Log\NullLogger;
 
 #[CoversClass(DefaultDraftBuilder::class)]
 #[AllowMockObjectsWithoutExpectations]
@@ -95,7 +95,7 @@ class DefaultDraftBuilderTest extends TestCase
         $amounts = $this->createStub(OrderAmountCalculator::class);
         $amounts->method('getItems')->willReturn([5 => ['name' => 'Mug', 'weight' => $mugWeight]]);
         $autoPacker = $this->createStub(AutoPacker::class);
-        $autoPacker->method('packByItems')->willReturnCallback(function (): array {
+        $autoPacker->method('pack')->willReturnCallback(function (): array {
             $this->packings++;
 
             return [
@@ -103,7 +103,6 @@ class DefaultDraftBuilderTest extends TestCase
                 'unmeasured' => [],
                 'unweighed' => [],
                 'unweighed_own' => [],
-                'templates' => true,
             ];
         });
         $template = $this->createStub(PackTemplateInterface::class);
@@ -134,7 +133,7 @@ class DefaultDraftBuilderTest extends TestCase
             $amounts,
             $this->createStub(ItemFactory::class),
             $autoPacker,
-            new NullLogger(),
+            $this->createStub(Logger::class),
             $this->createStub(SenderMapper::class),
         );
         $order = $this->createStub(Order::class);

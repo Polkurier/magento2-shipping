@@ -12,7 +12,7 @@ use Magento\Framework\App\RequestInterface;
 use Magento\Store\Model\StoreManagerInterface;
 use Polkurier\Shipping\Api\Data\CarrierConfigInterface;
 use Polkurier\Shipping\Api\Data\CarrierLabelInterface;
-use Polkurier\Shipping\Enum\FormMemoryEnum;
+use Polkurier\Shipping\Enum\Adminhtml\FormMemoryEnum;
 use Polkurier\Shipping\Model\Carrier\CarrierLogoStorage;
 use Polkurier\Shipping\Model\Carrier\Pricing\FixedPriceCalculator;
 use Polkurier\Shipping\Model\Carrier\Pricing\TieredPriceCalculator;

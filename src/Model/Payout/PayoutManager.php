@@ -9,7 +9,7 @@ namespace Polkurier\Shipping\Model\Payout;
 
 use Magento\Framework\Exception\LocalizedException;
 use Polkurier\Shipping\Api\PolkurierClientInterface;
-use Polkurier\Shipping\Enum\ApiEventEnum;
+use Polkurier\Shipping\Enum\Sdk\ApiEventEnum;
 use Polkurier\Shipping\Model\BankAccount\BankAccountMapper;
 use Polkurier\Shipping\Model\Sdk\ApiEventDispatcher;
 use Polkurier\Shipping\Model\Sdk\ErrorMessageResolver;
@@ -37,14 +37,14 @@ use Polkurier\Webservice\Response\TwoFactorToken;
 readonly class PayoutManager
 {
     /**
-     * The bank account choice that takes the number typed in.
+     * The bank account choice that uses the number typed in.
      */
     public const string ANOTHER_ACCOUNT = 'new';
 
     public function __construct(
-        private PolkurierClientInterface $client,
+        private PolkurierClientInterface $polkurierClient,
         private ErrorMessageResolver $errorMessageResolver,
-        private ApiEventDispatcher $events,
+        private ApiEventDispatcher $apiEventDispatcher,
         private GetMoneyBoxPayoutsMessageBuilderFactory $getMoneyBoxPayoutsMessageBuilderFactory,
         private CreateMoneyBoxPayoutMessageBuilderFactory $createMoneyBoxPayoutMessageBuilderFactory,
     ) {}
@@ -54,7 +54,7 @@ readonly class PayoutManager
      */
     public function getConfig(): MoneyBoxConfigMessage
     {
-        return $this->call(fn() => $this->client->moneyBox()->getConfig());
+        return $this->call(fn() => $this->polkurierClient->moneyBox()->getConfig());
     }
 
     /**
@@ -62,7 +62,7 @@ readonly class PayoutManager
      */
     public function getPayouts(int $page = 1, int $pageSize = 20): MoneyBoxPayoutListMessage
     {
-        return $this->call(fn() => $this->client->moneyBox()->getPayouts(
+        return $this->call(fn() => $this->polkurierClient->moneyBox()->getPayouts(
             $this->getMoneyBoxPayoutsMessageBuilderFactory->create()->pageSize($pageSize)->page($page)->build(),
         ));
     }
@@ -74,7 +74,7 @@ readonly class PayoutManager
     {
         try {
             return $this->call(
-                fn(): float => $this->client->account()->getAccountInfo()->getMoneyBoxPayoutAvailableBalance(),
+                fn(): float => $this->polkurierClient->account()->getAccountInfo()->getMoneyBoxPayoutAvailableBalance(),
             );
         } catch (LocalizedException) {
             return null;
@@ -105,14 +105,14 @@ readonly class PayoutManager
      */
     public function quote(array $orderNumbers, ?MoneyBoxPayoutTypeEnum $payoutType = null): MoneyBoxFeeMessage
     {
-        return $this->call(fn() => $this->client->moneyBox()->calculatePayoutFee(
+        return $this->call(fn() => $this->polkurierClient->moneyBox()->calculatePayoutFee(
             new CalculateMoneyBoxPayoutFeeMessage(orders: \array_values($orderNumbers), payoutType: $payoutType),
         ));
     }
 
     /**
-     * Sends the account holder the two-factor code a payout needs; not when the money box has
-     * nothing to pay out, for a payout that can't be made.
+     * Sends the account holder the two-factor code a payout needs. Nothing is sent when the money
+     * box has nothing to pay out, since that payout can't be made.
      *
      * @throws LocalizedException
      */
@@ -122,10 +122,10 @@ readonly class PayoutManager
         if ($available !== null && $available <= 0) {
             throw new LocalizedException(__('The money box has nothing to pay out yet. No code was sent.'));
         }
-        $token = $this->call(fn() => $this->client->twoFactorToken()->twoFactorTokenRegister(
+        $token = $this->call(fn() => $this->polkurierClient->twoFactorToken()->twoFactorTokenRegister(
             new RegisterMessage(TwoFactorNamespaceEnum::MoneyBoxPayout),
         ));
-        $this->events->dispatch(ApiEventEnum::TwoFactorCodeRequestAfter, null, [
+        $this->apiEventDispatcher->dispatch(ApiEventEnum::TwoFactorCodeRequestAfter, null, [
             'namespace' => TwoFactorNamespaceEnum::MoneyBoxPayout,
         ]);
 
@@ -165,8 +165,8 @@ readonly class PayoutManager
             ->twoFactorToken($twoFactorToken)
             ->twoFactorCode($twoFactorCode)
             ->build();
-        $payout = $this->call(fn() => $this->client->moneyBox()->createPayout($message));
-        $this->events->dispatch(ApiEventEnum::PayoutCreateAfter, null, [
+        $payout = $this->call(fn() => $this->polkurierClient->moneyBox()->createPayout($message));
+        $this->apiEventDispatcher->dispatch(ApiEventEnum::PayoutCreateAfter, null, [
             'order_numbers' => \array_values($orderNumbers),
             'payout_type' => $payoutType,
             'fee_payment_type' => $feePaymentType,
@@ -182,8 +182,8 @@ readonly class PayoutManager
     public function cancelPayout(string $payoutNumber): MoneyBoxPayoutMessage
     {
         $request = new CancelMoneyBoxPayoutMessage($payoutNumber);
-        $payout = $this->call(fn() => $this->client->moneyBox()->cancelPayout($request));
-        $this->events->dispatch(ApiEventEnum::PayoutCancelAfter, null, [
+        $payout = $this->call(fn() => $this->polkurierClient->moneyBox()->cancelPayout($request));
+        $this->apiEventDispatcher->dispatch(ApiEventEnum::PayoutCancelAfter, null, [
             'request' => $request,
             'response' => $payout,
         ]);

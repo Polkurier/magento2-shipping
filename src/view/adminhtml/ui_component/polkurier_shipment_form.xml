@@ -20,7 +20,7 @@
         </deps>
         <buttons>
             <button name="back" class="Polkurier\Shipping\Ui\Component\Form\Shipment\BackToOrderButton"/>
-            <button name="save" class="Polkurier\Shipping\Ui\Component\Form\Shipment\PlaceButton"/>
+            <button name="save" class="Polkurier\Shipping\Ui\Component\Form\Shipment\PlaceButtonVirtual"/>
         </buttons>
     </settings>
     <dataSource name="polkurier_shipment_form_data_source">
@@ -61,7 +61,7 @@
                     <item name="config" xsi:type="array">
                         <item name="label" xsi:type="string" translate="true">Shipment</item>
                         <item name="additionalClasses" xsi:type="string">polkurier-section polkurier-section--shipment</item>
-                        <!-- What in the section the checks in rules.js report on -->
+                        <!-- The parts of the section that the checks in rules.js report on -->
                         <item name="cards" xsi:type="array">
                             <item name="0" xsi:type="string">carrier</item>
                             <item name="1" xsi:type="string">fields</item>
@@ -96,7 +96,7 @@
                     <item name="config" xsi:type="array">
                         <item name="label" xsi:type="string" translate="true">Items to ship</item>
                         <item name="additionalClasses" xsi:type="string">polkurier-section polkurier-section--items</item>
-                        <!-- What in the section the checks in rules.js report on -->
+                        <!-- The parts of the section that the checks in rules.js report on -->
                         <item name="cards" xsi:type="array">
                             <item name="0" xsi:type="string">items</item>
                         </item>
@@ -111,7 +111,7 @@
                     <item name="config" xsi:type="array">
                         <item name="label" xsi:type="string" translate="true">Additional services</item>
                         <item name="additionalClasses" xsi:type="string">polkurier-section polkurier-section--extras</item>
-                        <!-- What in the section the checks in rules.js report on -->
+                        <!-- The parts of the section that the checks in rules.js report on -->
                         <item name="cards" xsi:type="array">
                             <item name="0" xsi:type="string">cod</item>
                             <item name="1" xsi:type="string">extras</item>
@@ -140,7 +140,7 @@
                         <item name="actionLabel" xsi:type="string" translate="true">Change</item>
                         <item name="action" xsi:type="string">${ $.ns }.${ $.ns }.sender_modal</item>
                         <item name="additionalClasses" xsi:type="string">polkurier-section polkurier-section--sender</item>
-                        <!-- What in the section the checks in rules.js report on -->
+                        <!-- The parts of the section that the checks in rules.js report on -->
                         <item name="cards" xsi:type="array">
                             <item name="0" xsi:type="string">sender</item>
                             <item name="1" xsi:type="string">handover</item>
@@ -169,7 +169,7 @@
                         <item name="actionLabel" xsi:type="string" translate="true">Change</item>
                         <item name="action" xsi:type="string">${ $.ns }.${ $.ns }.recipient_modal</item>
                         <item name="additionalClasses" xsi:type="string">polkurier-section polkurier-section--recipient</item>
-                        <!-- What in the section the checks in rules.js report on -->
+                        <!-- The parts of the section that the checks in rules.js report on -->
                         <item name="cards" xsi:type="array">
                             <item name="0" xsi:type="string">recipient</item>
                         </item>
@@ -209,7 +209,7 @@
                     <item name="config" xsi:type="array">
                         <item name="label" xsi:type="string" translate="true">Parcels</item>
                         <item name="additionalClasses" xsi:type="string">polkurier-section polkurier-section--parcels</item>
-                        <!-- What in the section the checks in rules.js report on -->
+                        <!-- The parts of the section that the checks in rules.js report on -->
                         <item name="cards" xsi:type="array">
                             <item name="0" xsi:type="string">parcels</item>
                         </item>
@@ -625,7 +625,7 @@
                     <label translate="true">Paid out to</label>
                     <dataType>text</dataType>
                     <dataScope>cod_return_type</dataScope>
-                    <!-- The bank account only for cash on delivery paid out to one. -->
+                    <!-- The bank account, only for cash on delivery paid out to a bank account. -->
                     <switcherConfig>
                         <enabled>true</enabled>
                         <rules>

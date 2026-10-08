@@ -10,7 +10,6 @@ namespace Polkurier\Shipping\Controller\Adminhtml\Address;
 use Magento\Backend\App\Action\Context;
 use Polkurier\Shipping\Controller\Adminhtml\AbstractIndex;
 use Polkurier\Shipping\Model\Address\AddressHandler;
-use Polkurier\Shipping\Model\Admin\FlashMessageCollectorFactory;
 
 /**
  * The sender addresses grid.
@@ -21,9 +20,8 @@ class Index extends AbstractIndex
 
     public function __construct(
         Context $context,
-        AddressHandler $handler,
-        FlashMessageCollectorFactory $flashMessageCollectorFactory,
+        AddressHandler $addressHandler,
     ) {
-        parent::__construct($context, $handler, $flashMessageCollectorFactory);
+        parent::__construct($context, $addressHandler);
     }
 }

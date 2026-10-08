@@ -16,13 +16,14 @@ define([
     const ITEM_INPUT = 'input[name^="shipment[items]["]';
 
     /**
-     * @param {Object} config the page's label options, as LabelOptions gives them
+     * @param {Object} config the page's label options, as
+     *     Polkurier\Shipping\ViewModel\Adminhtml\LabelOptions gives them
      * @returns {Object}
      */
     return function (config) {
         const values = $.extend({services: []}, config.values),
             filled = rules.filled,
-            // Points put aside by changing the carrier, by the carrier they were chosen for.
+            // Points set aside when the carrier changed, keyed by the carrier they were chosen for.
             pointsByCarrier = {};
 
         let insuranceEdited = false,
@@ -88,7 +89,7 @@ define([
                     shipped = config.shippedQtys || {},
                     qtys = {};
 
-                // A shipment there is carries what it does; a new one what its form says.
+                // An existing shipment carries what it already does; a new one, what its form says.
                 Object.keys(shipped).forEach(function (id) {
                     qtys[id] = parseFloat(shipped[id]) || 0;
                 });
@@ -115,7 +116,8 @@ define([
                             unit: items[id].unit,
                             qty: qtys[id] || 0,
                             qty_ordered: items[id].qty,
-                            // A shipment there is counts among the shipped: what went before it.
+                            // An existing shipment counts among the shipped; take it out to get
+                            // what went before it.
                             qty_shipped: items[id].qty_shipped - (parseFloat(shipped[id]) || 0),
                             qty_to_ship: items[id].qty_to_ship
                         };
@@ -125,7 +127,7 @@ define([
 
             /**
              * Keeps the cash on delivery at what the shipment collects (rules.codFor), unless it was
-             * set by hand or is off. A shipment there is carries what it does already.
+             * set by hand or is off. An existing shipment keeps the amount it already has.
              *
              * @returns {Boolean} whether it changed
              */
@@ -182,10 +184,10 @@ define([
             },
 
             /**
-             * What the shipment screen's rules find wrong with the options, about the fields given:
-             * the page has only some of the screen's fields.
+             * What the shipment screen's rules find wrong with the options, limited to the given
+             * fields, since the page has only some of the screen's fields.
              *
-             * @param {Array<String>} [fields] the fields to tell about; the page's when left out
+             * @param {Array<String>} [fields] the fields to report on; the page's when left out
              * @param {Boolean} [blockingOnly]
              * @returns {Array<String>}
              */
@@ -206,7 +208,7 @@ define([
                     cod_collected: config.codCollected,
                     cod_remaining: config.codRemaining,
                     recipient_point_closed: config.point && config.point.closed ? config.point.id : ''
-                }), null).filter(function (issue) {
+                })).filter(function (issue) {
                     return names.indexOf(issue.field) !== -1 && (!blockingOnly || issue.blocking);
                 }).map(function (issue) {
                     return issue.text;
@@ -224,9 +226,9 @@ define([
             },
 
             /**
-             * What stands in the way of the packages going: parcels of more than one kind, a kind
-             * the carrier doesn't take, or services for pallets with other packages. Magento's packaging
-             * window has them, so it's checked when the label is asked for.
+             * Why the packages can't be sent: parcels of more than one kind, a kind the carrier
+             * doesn't take, or pallet services with other packages. The packages are in Magento's
+             * packaging window, so this is checked when the label is asked for.
              *
              * @param {Array<String>} containers the parcel type of each package
              * @returns {Array<String>}
@@ -299,8 +301,8 @@ define([
                 if (!c) {
                     return;
                 }
-                // Services stay: chosen first, they're matched with a carrier (problems()). The
-                // cover sender address comes with the cover address, not as a service.
+                // Services stay: they can be chosen before the carrier and are checked against it
+                // (problems()). COVER_ADDRESS_SENDER comes with the cover address, not as a service.
                 values.services = values.services.filter(function (service) {
                     return service !== 'COVER_ADDRESS_SENDER';
                 });
@@ -321,7 +323,7 @@ define([
                 if (values.pickup_mode === 'drop_off' && !c.drop_off) {
                     values.pickup_mode = 'courier';
                 }
-                // Taken only at points: dropped off there.
+                // A carrier that takes parcels only at points: they're dropped off there.
                 if (c.sender_point === 'REQUIRED' && c.drop_off) {
                     values.pickup_mode = 'drop_off';
                 }

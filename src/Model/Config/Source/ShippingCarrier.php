@@ -10,8 +10,9 @@ namespace Polkurier\Shipping\Model\Config\Source;
 use Magento\Framework\App\Config\ScopeConfigInterface;
 
 /**
- * Every shipping carrier of the store, enabled or not, as orders may have been placed with one
- * since switched off: its title, with its code when the title says something else.
+ * Every shipping carrier of the store, enabled or not, since orders may have been placed with a
+ * carrier switched off since. Each is listed by its title, with its code when the title says
+ * something else.
  */
 readonly class ShippingCarrier extends AbstractOptions
 {

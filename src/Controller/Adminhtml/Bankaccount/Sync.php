@@ -22,10 +22,10 @@ class Sync extends AbstractSync
 
     public function __construct(
         Context $context,
-        BankAccountHandler $handler,
+        BankAccountHandler $bankAccountHandler,
         ConfigProvider $config,
         FlashMessageCollectorFactory $flashMessageCollectorFactory,
     ) {
-        parent::__construct($context, $handler, $config, $flashMessageCollectorFactory);
+        parent::__construct($context, $bankAccountHandler, $config, $flashMessageCollectorFactory);
     }
 }

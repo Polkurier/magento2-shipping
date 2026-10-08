@@ -3,8 +3,8 @@
  * All Rights Reserved
  */
 /**
- * Posts to the module's admin actions, with the form key and isAjax, so an expired session
- * answers in a way Magento's admin scripts redirect on instead of with the login page.
+ * Posts to the module's admin actions, with the form key and isAjax, so that an expired session
+ * gets an answer Magento's admin scripts redirect on, instead of the login page.
  *
  * Each sender counts its own posts and hands on only the answer to the latest: a sender used for
  * one kind of request (the prices, the collection dates) never lets an older answer overwrite a

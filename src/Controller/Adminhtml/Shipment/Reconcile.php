@@ -23,7 +23,7 @@ class Reconcile extends AbstractShipmentAction implements HttpPostActionInterfac
     public function __construct(
         Context $context,
         RequestedShipments $requestedShipments,
-        private readonly ShipmentManagementInterface $management,
+        private readonly ShipmentManagementInterface $shipmentManagement,
     ) {
         parent::__construct($context, $requestedShipments);
     }
@@ -33,7 +33,7 @@ class Reconcile extends AbstractShipmentAction implements HttpPostActionInterfac
         $shipment = $this->getShipment();
         if ($shipment !== null) {
             try {
-                $shipment = $this->management->reconcile((int)$shipment->getId());
+                $shipment = $this->shipmentManagement->reconcile((int)$shipment->getId());
                 $shipment->getState() === \Polkurier\Shipping\Api\Data\ShipmentInterface::STATE_CREATED
                     ? $this->messageManager->addSuccessMessage(
                         __('Polkurier order %1 found and linked.', $shipment->getPolkurierNumber()),

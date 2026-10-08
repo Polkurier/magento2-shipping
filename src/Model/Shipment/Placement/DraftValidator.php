@@ -9,6 +9,7 @@ namespace Polkurier\Shipping\Model\Shipment\Placement;
 
 use Magento\Framework\Exception\LocalizedException;
 use Polkurier\Shipping\Api\Data\ShipmentDraftInterface;
+use Polkurier\Shipping\Logger\Logger;
 use Polkurier\Shipping\Model\Carrier\CarrierCatalog;
 use Polkurier\Shipping\Model\Carrier\CarrierFeatureResolver;
 use Polkurier\Shipping\Model\Sdk\ErrorMessageResolver;
@@ -17,26 +18,25 @@ use Polkurier\Webservice\Enum\Courier\PointRequirementEnum;
 use Polkurier\Webservice\Enum\Order\ShipmentTypeEnum;
 use Polkurier\Webservice\Exception\Exception as PolkurierException;
 use Polkurier\Webservice\Exception\ValidationException;
-use Psr\Log\LoggerInterface;
 
 /**
- * What a draft is checked for before it's placed, beyond what the form checks: what Polkurier
- * wouldn't refuse, or would refuse only later.
+ * Checks a draft before it's placed, beyond what the form checks: things Polkurier wouldn't refuse,
+ * or would refuse only later.
  */
 readonly class DraftValidator
 {
     public function __construct(
-        private CarrierCatalog $catalog,
+        private CarrierCatalog $carrierCatalog,
         private CarrierFeatureResolver $carrierFeatureResolver,
-        private CreateOrderMessageMapper $messageMapper,
+        private CreateOrderMessageMapper $createOrderMessageMapper,
         private Validator $validator,
         private ErrorMessageResolver $errorMessageResolver,
-        private LoggerInterface $logger,
+        private Logger $logger,
     ) {}
 
     /**
-     * Settles the sender point, then checks the order the draft makes as the SDK would, before a
-     * shipment's number is taken for it, which an order refused as it is would leave unused.
+     * Settles the sender point, then checks the draft's order as the SDK would. This happens before
+     * a shipment number is reserved for it, since a refused order would leave that number unused.
      *
      * @throws LocalizedException
      */
@@ -44,23 +44,23 @@ readonly class DraftValidator
     {
         $this->settleSenderPoint($draft);
         try {
-            $this->validator->validate($this->messageMapper->map($draft, $storeId));
+            $this->validator->validate($this->createOrderMessageMapper->map($draft, $storeId));
         } catch (ValidationException $e) {
             throw $this->errorMessageResolver->exception($e);
         }
     }
 
     /**
-     * The carrier is one the merchant works with, and takes the shipment's type: Polkurier takes a
-     * shipment of a type its carrier doesn't, so it's checked here. A carrier list that can't be
-     * read leaves it to Polkurier.
+     * Checks that the carrier is one the merchant works with and takes the shipment's type.
+     * Polkurier accepts a shipment of a type its carrier doesn't take, so this is checked here. A
+     * carrier list that can't be read leaves the check to Polkurier.
      *
      * @throws LocalizedException
      */
     public function assertCarrierTakes(string $carrierCode, ShipmentTypeEnum $type): void
     {
         try {
-            $carrier = $this->catalog->getCarrier($carrierCode);
+            $carrier = $this->carrierCatalog->getCarrier($carrierCode);
         } catch (PolkurierException $e) {
             $this->logger->warning(
                 'Polkurier carrier list unavailable to check the shipment type',
@@ -85,17 +85,18 @@ readonly class DraftValidator
     }
 
     /**
-     * The point the parcels are handed over at goes only to a carrier that takes them at points,
-     * and only when they're dropped off there, or the carrier takes them only at points but not
-     * as dropped off; one that takes them only at points gets one, or would refuse the shipment
-     * later. A carrier list that can't be read leaves it as it is.
+     * Keeps the sender's drop-off point only for a carrier that takes parcels at points, and only
+     * when the parcels are dropped off, or when the carrier takes them only at points and doesn't
+     * offer drop-off as a choice. A carrier that takes parcels only at points must get a point, or
+     * it would refuse the shipment later. A carrier list that can't be read leaves the point as it
+     * is.
      *
      * @throws LocalizedException
      */
     private function settleSenderPoint(ShipmentDraftInterface $draft): void
     {
         try {
-            $carrier = $this->catalog->getCarrier($draft->getCarrierCode());
+            $carrier = $this->carrierCatalog->getCarrier($draft->getCarrierCode());
         } catch (PolkurierException) {
             return;
         }

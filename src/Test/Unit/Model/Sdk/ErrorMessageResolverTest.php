@@ -51,26 +51,26 @@ class ErrorMessageResolverTest extends TestCase
 
         self::assertSame(
             'Polkurier would not accept this. Check: Recipient: Phone is required; Parcel 1: Weight too heavy',
-            $messages->describe(new ValidationException([
+            (string)$messages->phrase(new ValidationException([
                 'recipient.phone' => ['is required'],
                 'packs.0.weight' => ['too heavy'],
             ])),
         );
         self::assertSame(
             'The request to Polkurier could not be built: No carrier',
-            $messages->describe(new InvalidArgumentException('No carrier')),
+            (string)$messages->phrase(new InvalidArgumentException('No carrier')),
         );
         self::assertStringStartsWith(
             'Polkurier did not accept the API credentials.',
-            $messages->describe($this->refusal(AuthorizationException::class, 'Błędny token')),
+            (string)$messages->phrase($this->refusal(AuthorizationException::class, 'Błędny token')),
         );
         self::assertStringEndsWith(
             '(Błędny token)',
-            $messages->describe($this->refusal(AuthorizationException::class, 'Błędny token')),
+            (string)$messages->phrase($this->refusal(AuthorizationException::class, 'Błędny token')),
         );
         self::assertSame(
             'Polkurier refused: Kod pocztowy jest nieprawidłowy Check: Recipient: Postcode wrong',
-            $messages->describe($this->refusal(
+            (string)$messages->phrase($this->refusal(
                 WebserviceException::class,
                 'Kod pocztowy jest nieprawidłowy',
                 ['recipient.postcode' => ['wrong']],
@@ -78,24 +78,24 @@ class ErrorMessageResolverTest extends TestCase
         );
         self::assertSame(
             'Polkurier could not be reached, or did not answer in time: cURL error 28',
-            $messages->describe(new ConnectionException('Request failed', 0, new \RuntimeException('cURL error 28'))),
+            (string)$messages->phrase(new ConnectionException('Request failed', 0, new \RuntimeException('cURL error 28'))),
         );
         self::assertSame(
             'Polkurier answered with something unexpected (HTTP 502). Try again later; '
             . 'if it persists, contact Polkurier.',
-            $messages->describe(new MalformedResponseException('Not JSON', $response)),
+            (string)$messages->phrase(new MalformedResponseException('Not JSON', $response)),
         );
         self::assertSame(
             'Polkurier did not answer a moment ago.',
-            $messages->describe(new RecentFailureException('Polkurier did not answer a moment ago.')),
+            (string)$messages->phrase(new RecentFailureException('Polkurier did not answer a moment ago.')),
         );
         self::assertSame(
             'Polkurier error: Something else',
-            $messages->describe(new PolkurierException('Something else')),
+            (string)$messages->phrase(new PolkurierException('Something else')),
         );
         self::assertSame(
             'Choose a carrier first.',
-            $messages->describe(new LocalizedException(__('Choose a carrier first.'))),
+            (string)$messages->phrase(new LocalizedException(__('Choose a carrier first.'))),
         );
     }
 

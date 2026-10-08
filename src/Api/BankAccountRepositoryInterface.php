@@ -61,8 +61,8 @@ interface BankAccountRepositoryInterface
     public function getAvailable(): array;
 
     /**
-     * The account cash on delivery is paid out to unless the merchant picks another: the default
-     * one, or else the first by name, since a shipment with cash on delivery needs an account.
+     * The account that cash on delivery is paid out to, unless the merchant picks another. It's the
+     * default account, or else the first by name, since a shipment with cash on delivery needs one.
      * Unlike the other defaults, it's null only when there is no account at all.
      *
      * @return \Polkurier\Shipping\Api\Data\BankAccountInterface|null

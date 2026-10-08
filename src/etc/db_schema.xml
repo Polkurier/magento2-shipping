@@ -187,8 +187,8 @@
                     referenceColumn="entity_id" onDelete="CASCADE" />
     </table>
 
-    <!-- The shipping the customer chose, kept once the order's shipping is changed to what its
-         Polkurier order went with -->
+    <!-- The shipping the customer chose, kept once the order's shipping is changed to match its
+         Polkurier order -->
     <table name="polkurier_order_shipping_choice" resource="sales" engine="innodb"
            comment="Shipping the customer chose for a Polkurier order">
         <column xsi:type="int" name="order_id" nullable="false" unsigned="true" />

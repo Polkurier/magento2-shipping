@@ -11,7 +11,7 @@ use Magento\Framework\App\Request\DataPersistorInterface;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\UrlInterface;
 use Polkurier\Shipping\Api\BankAccountRepositoryInterface;
-use Polkurier\Shipping\Enum\FormMemoryEnum;
+use Polkurier\Shipping\Enum\Adminhtml\FormMemoryEnum;
 use Polkurier\Shipping\Model\BankAccount\BankAccountMapper;
 use Polkurier\Shipping\Model\Config\ConfigProvider;
 use Polkurier\Shipping\Model\Payout\MoneyBoxOrderFinder;
@@ -55,7 +55,7 @@ class DataProvider extends FormDataProvider
         $meta = parent::getMeta();
         $meta['payout']['children']['bank_account_choice']['arguments']['data']['config']['options']
             = $this->accountOptions();
-        // The number field is for the choice of another account.
+        // The number field shows only when another account is chosen.
         $meta['payout']['children']['bank_account_number']['arguments']['data']['config']['shownWhen']['bank_account_choice']
             = PayoutManager::ANOTHER_ACCOUNT;
 
@@ -89,7 +89,7 @@ class DataProvider extends FormDataProvider
         }
         $this->dataPersistor->clear(FormMemoryEnum::Payout->value);
 
-        // The form has no entity: it looks its data up by an absent parameter.
+        // The form has no entity, so its data is keyed by the value of an absent parameter.
         return ['' => $data];
     }
 
@@ -111,8 +111,9 @@ class DataProvider extends FormDataProvider
     }
 
     /**
-     * The bank account the money box pays out to, when it's one of them; the default one when the
-     * money box names none; otherwise its number typed in.
+     * The account to preselect: the bank account the money box pays out to, when it's one of them;
+     * the default one when the money box names none; otherwise another account, with the money
+     * box's number typed in.
      */
     private function accountChoice(string $number): string
     {
@@ -130,7 +131,7 @@ class DataProvider extends FormDataProvider
     }
 
     /**
-     * Whether two numbers are one account, written with or without spaces and the country code.
+     * Whether two numbers are the same account, written with or without spaces and the country code.
      */
     private static function sameAccount(string $one, string $other): bool
     {

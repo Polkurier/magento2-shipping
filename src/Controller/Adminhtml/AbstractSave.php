@@ -12,8 +12,6 @@ use Magento\Framework\App\Action\HttpPostActionInterface;
 use Magento\Framework\App\Request\DataPersistorInterface;
 use Magento\Framework\Controller\Result\Redirect;
 use Magento\Framework\Exception\LocalizedException;
-use Polkurier\Shipping\Model\Admin\FlashMessageCollector;
-use Polkurier\Shipping\Model\Admin\FlashMessageCollectorFactory;
 use Polkurier\Shipping\Model\Sync\EntityHandlerInterface;
 
 /**
@@ -26,11 +24,10 @@ abstract class AbstractSave extends AbstractAction implements HttpPostActionInte
 
     public function __construct(
         Context $context,
-        EntityHandlerInterface $handler,
+        EntityHandlerInterface $entityHandler,
         private readonly DataPersistorInterface $dataPersistor,
-        FlashMessageCollectorFactory $flashMessageCollectorFactory,
     ) {
-        parent::__construct($context, $handler, $flashMessageCollectorFactory);
+        parent::__construct($context, $entityHandler);
     }
 
     public function execute(): Redirect
@@ -41,28 +38,25 @@ abstract class AbstractSave extends AbstractAction implements HttpPostActionInte
         unset($data['id'], $data['form_key']);
 
         try {
-            $entity = $id ? $this->handler->get($id) : $this->handler->create();
-            $result = $this->handler->save($entity, $data);
-            $entity = $this->handler->get((int)$entity->getId());
-            $flash = $this->flashMessageCollectorFactory->create();
+            $entity = $id ? $this->entityHandler->get($id) : $this->entityHandler->create();
+            $result = $this->entityHandler->save($entity, $data);
             if ($result->failed > 0 || $entity->getSyncError()) {
-                $flash->warning(__(
+                $this->messageManager->addWarningMessage((string)__(
                     'Saved in Magento, but not in Polkurier: %1',
                     $entity->getSyncError() ?: $this->reasons($result),
                 ));
             } elseif ($result->unconfirmed > 0) {
-                $flash->notice(__(
+                $this->messageManager->addNoticeMessage((string)__(
                     'Saved in Magento. It goes to Polkurier once you confirm it with the code or your security PIN.',
                 ));
             } else {
-                $flash->success(__('Saved.'));
+                $this->messageManager->addSuccessMessage((string)__('Saved.'));
             }
-            $flash->send($this->messageManager);
-            $this->dataPersistor->clear($this->handler->getFormMemory()->value);
+            $this->dataPersistor->clear($this->entityHandler->getFormMemory()->value);
         } catch (LocalizedException $e) {
             $this->messageManager->addErrorMessage($e->getMessage());
             $this->dataPersistor->set(
-                $this->handler->getFormMemory()->value,
+                $this->entityHandler->getFormMemory()->value,
                 \array_diff_key($data, \array_flip($this->getTransientFields())),
             );
 

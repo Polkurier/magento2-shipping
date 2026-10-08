@@ -3,9 +3,9 @@
  * All Rights Reserved
  */
 /**
- * The foot of the side column: the price with the chosen carrier, a cheaper carrier if there is
- * one. The shipment is placed with the page's button; placing it with something missing marks
- * what, in the sections, instead of sending an order Polkurier would refuse.
+ * The foot of the side column: the price with the chosen carrier, and a cheaper carrier if there
+ * is one. The shipment is placed with the page's button. If something is missing, placing marks
+ * it in the sections instead of sending an order Polkurier would refuse.
  *
  * Whenever something that affects the price changes, it asks Polkurier again, once things settle,
  * and publishes every carrier's price as the provider's "quotes", for the carrier list and the
@@ -63,7 +63,7 @@ define([
         },
 
         /**
-         * Takes the summary's listeners off the form's data as it goes.
+         * Removes the summary's listeners from the form's data as it goes.
          */
         destroy: function () {
             this.source.off(this.name);
@@ -152,7 +152,7 @@ define([
 
                     // No quote at all means the draft couldn't be priced, not that no carrier takes it.
                     this.source.set('quotes', _.isEmpty(quotes) ? null : quotes);
-                    // Asked again when the merchant says so, or the draft changes.
+                    // Asked again when the merchant says so, or when the draft changes.
                     this.setMessage(
                         response.error ? response.message : '',
                         Boolean(response.error),
@@ -210,7 +210,7 @@ define([
          * @returns {Array<{card: String, text: String, blocking: Boolean, fix: (Object|Boolean|null)}>}
          */
         publishIssues: function () {
-            const issues = rules.issues(this.source.get('data') || {}, this.source.get('quotes') || null);
+            const issues = rules.issues(this.source.get('data') || {});
 
             this.source.set('issues', issues);
 

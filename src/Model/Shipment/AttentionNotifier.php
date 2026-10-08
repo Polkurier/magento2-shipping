@@ -19,11 +19,13 @@ use Polkurier\Shipping\Model\Shipment\Placement\FailedShipmentManager;
 
 /**
  * Tells the admin, in Magento's notifications (the bell, System > Notifications), about each
- * Polkurier shipment that needs someone, so none is missed: not placed a day after its last
- * attempt (removed a day later), placed without an answer and still not settled by the automatic
- * check an hour on, or placed without its Magento shipment an hour on. Once per shipment: a new
- * attempt clears it (PlacementService). A notice whose shipment no longer needs anyone (placed, discarded,
- * removed, settled, tried again since) is withdrawn, rather than left pointing at what's past.
+ * Polkurier shipment that needs attention, so none is missed. Such a shipment is either not placed
+ * a day after its last attempt (it's removed a day later), placed without an answer and still not
+ * settled by the automatic check an hour later, or placed but still without its Magento shipment an
+ * hour later. Each shipment is reported once; a new attempt resets that
+ * ({@see \Polkurier\Shipping\Model\Shipment\Placement\PlacementService}). A notice whose shipment
+ * no longer needs attention (placed, discarded, removed, settled, or tried again since) is
+ * withdrawn rather than left pointing at the past.
  */
 readonly class AttentionNotifier
 {
@@ -40,15 +42,12 @@ readonly class AttentionNotifier
         private ShipmentResource $shipmentResource,
         private NotifierInterface $notifier,
         private UrlInterface $url,
-        private Formatter $format,
+        private Formatter $formatter,
         private DateTime $dateTime,
         private FailedShipmentManager $failedShipmentManager,
     ) {}
 
-    /**
-     * @return int how many were notified
-     */
-    public function notify(): int
+    public function notify(): void
     {
         $now = $this->dateTime->gmtTimestamp();
         $noticeBefore = \gmdate(
@@ -78,7 +77,6 @@ readonly class AttentionNotifier
             )
             ->where('shipment.' . ShipmentInterface::FIELD_ATTENTION_NOTIFIED_AT . ' IS NULL')
             ->where($this->needsSomeone($noticeBefore, $settleBefore));
-        $notified = 0;
         foreach ($connection->fetchAll($select) as $row) {
             [$title, $description] = $this->describe($row);
             $this->notifier->addMajor($title, $description, $this->url->getUrl(self::VIEW_PATH, [
@@ -89,14 +87,11 @@ readonly class AttentionNotifier
             $this->shipmentResource->updateColumns((int)$row[ShipmentInterface::FIELD_ENTITY_ID], [
                 ShipmentInterface::FIELD_ATTENTION_NOTIFIED_AT => \gmdate(DateFormat::DATETIME_PHP_FORMAT, $now),
             ]);
-            $notified++;
         }
-
-        return $notified;
     }
 
     /**
-     * The condition on a shipment (as "shipment") that it needs someone.
+     * The SQL condition that a shipment (aliased "shipment") needs attention.
      */
     private function needsSomeone(string $noticeBefore, string $settleBefore): string
     {
@@ -118,7 +113,7 @@ readonly class AttentionNotifier
 
     /**
      * Withdraws the notices still showing whose shipment is gone, was tried again since, or no
-     * longer needs anyone. Without Magento's notifications there are none to withdraw.
+     * longer needs attention. Without Magento's notifications there are none to withdraw.
      */
     private function withdrawSettled(string $noticeBefore, string $settleBefore): void
     {
@@ -131,7 +126,7 @@ readonly class AttentionNotifier
         foreach ($inbox->fetchPairs($inbox->select()
             ->from($inboxTable, ['notification_id', 'url'])
             ->where('is_remove = 0')
-            // By the page it links to: the title is in the admin's language when it was added.
+            // Matched by its link: the title is in the language the admin used when it was added.
             ->where('url LIKE ?', '%/' . self::VIEW_PATH . '/id/%')) as $notificationId => $url
         ) {
             if (\preg_match('#/' . \preg_quote(self::VIEW_PATH, '#') . '/id/(\d+)/?$#', (string)$url, $m)) {
@@ -164,7 +159,7 @@ readonly class AttentionNotifier
     private function describe(array $row): array
     {
         $order = (string)($row['increment_id'] ?? '');
-        $when = $this->format->storedTime((string)$row[ShipmentInterface::FIELD_CREATED_AT]);
+        $when = $this->formatter->storedTime((string)$row[ShipmentInterface::FIELD_CREATED_AT]);
         $reason = \rtrim((string)$row[ShipmentInterface::FIELD_LAST_ERROR], '. ');
 
         return match ((string)$row[ShipmentInterface::FIELD_STATE]) {
@@ -175,7 +170,7 @@ readonly class AttentionNotifier
                     . 'otherwise it\'s removed on %3.',
                     $when,
                     $reason,
-                    $this->format->storedTime(
+                    $this->formatter->storedTime(
                         $this->failedShipmentManager->expiresAfter((string)$row[ShipmentInterface::FIELD_CREATED_AT]),
                     ),
                 ),

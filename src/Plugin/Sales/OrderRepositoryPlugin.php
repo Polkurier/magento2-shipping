@@ -17,8 +17,8 @@ use Polkurier\Shipping\Api\OrderPointRepositoryInterface;
 use Polkurier\Shipping\Model\ShippingChoice\ShippingChoiceRepository;
 
 /**
- * Exposes the order's pickup point as its polkurier_point extension attribute, and, when the
- * order's shipping was changed to what its Polkurier order went with, the shipping the customer
+ * Exposes the order's pickup point as its polkurier_point extension attribute. When the order's
+ * shipping was changed to match its Polkurier order, it also exposes the shipping the customer
  * chose as polkurier_shipping_choice.
  */
 readonly class OrderRepositoryPlugin

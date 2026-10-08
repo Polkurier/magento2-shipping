@@ -22,7 +22,8 @@
                     <sandbox_mode>1</sandbox_mode>
                     <timeout>30</timeout>
                     <external_order_id>order</external_order_id>
-                    <!-- Empty: made from the encryption key, see Model\Sdk\ApplicationId. -->
+                    <!-- Empty: made from the encryption key, see
+                         Polkurier\Shipping\Model\Sdk\ApplicationIdProvider. -->
                     <application_id />
                     <!-- Empty: the SDK chooses between production and sandbox. -->
                     <api_url />

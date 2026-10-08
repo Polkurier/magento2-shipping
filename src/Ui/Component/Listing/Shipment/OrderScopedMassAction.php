@@ -10,10 +10,11 @@ namespace Polkurier\Shipping\Ui\Component\Listing\Shipment;
 use Polkurier\Shipping\Ui\Component\MassAction\AllowedAction;
 
 /**
- * A mass action of the order page's Polkurier tab. Magento's grids post no more than the selection
- * and the filters, and the tab's order is a parameter of the grid's address, not a filter, so
- * "Select All" would reach every order's shipments: the order goes with the action's address,
- * and the action takes that order's shipments only (Model\Shipment\RequestedShipments).
+ * A mass action of the order page's Polkurier tab. Magento's grids post only the selection and the
+ * filters, and the tab's order is a parameter of the grid's URL, not a filter, so "Select All"
+ * would reach every order's shipments. Instead, the order goes with the action's URL, and the
+ * action takes that order's shipments only
+ * ({@see \Polkurier\Shipping\Controller\Adminhtml\Shipment\RequestedShipments}).
  */
 class OrderScopedMassAction extends AllowedAction
 {

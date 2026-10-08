@@ -12,7 +12,8 @@ use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Polkurier\Shipping\Api\Data\SyncableInterface;
-use Polkurier\Shipping\Enum\SyncEntityEnum;
+use Polkurier\Shipping\Enum\Sync\SyncEntityEnum;
+use Polkurier\Shipping\Logger\Logger;
 use Polkurier\Shipping\Model\Address\AddressHandler;
 use Polkurier\Shipping\Model\Admin\FlashMessageCollectorFactory;
 use Polkurier\Shipping\Model\BankAccount\BankAccountHandler;
@@ -28,7 +29,6 @@ use Polkurier\Shipping\Model\Shipment\Draft\Pack;
 use Polkurier\Shipping\Model\Shipment\Placement\ManualEntrySaver;
 use Polkurier\Shipping\Model\Sync\SyncResult;
 use Polkurier\Shipping\Test\Unit\Support\NewingObjectManager;
-use Psr\Log\NullLogger;
 
 #[CoversClass(ManualEntrySaver::class)]
 #[AllowMockObjectsWithoutExpectations]
@@ -121,7 +121,7 @@ class ManualEntrySaverTest extends TestCase
             $this->factory(AddressCollectionFactory::class, AddressCollection::class),
             $this->factory(BankAccountCollectionFactory::class, BankAccountCollection::class),
             $this->factory(PackTemplateCollectionFactory::class, PackTemplateCollection::class),
-            new NullLogger(),
+            $this->createStub(Logger::class),
             NewingObjectManager::factory(FlashMessageCollectorFactory::class),
         );
     }
@@ -150,12 +150,10 @@ class ManualEntrySaverTest extends TestCase
     private function handler(string $class, string $key, string $label, SyncEntityEnum $type): object
     {
         $entity = $this->createStub(SyncableInterface::class);
-        $entity->method('getId')->willReturn(1);
         $entity->method('getSyncError')->willReturn(null);
         $handler = $this->createStub($class);
         $handler->method('getLabel')->willReturn($label);
         $handler->method('create')->willReturn($entity);
-        $handler->method('get')->willReturn($entity);
         $handler->method('save')->willReturnCallback(function ($entity, array $data) use ($key, $type): SyncResult {
             $this->saved[$key][] = $data;
 

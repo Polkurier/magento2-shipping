@@ -16,13 +16,13 @@ use Polkurier\Shipping\Model\Shipment\Native\NativeShipmentService;
 use Polkurier\Shipping\Model\Shipment\ShipmentFinder;
 
 /**
- * On the page of a Magento shipment of a Polkurier order: "Polkurier order", to its details, when
- * the shipment has one.
+ * Buttons on the page of a Magento shipment of a Polkurier order. "Polkurier order" opens the
+ * details of the shipment's Polkurier order, when it has one.
  *
- * And "Add a Polkurier order" on a Magento shipment without one that stands: made in Magento
- * itself, or whose Polkurier order was cancelled. The shipment screen then places one for that
- * shipment's items, on it (Magento's own "Create Shipping Label" does the same with the packaging
- * window).
+ * "Add a Polkurier order" shows on a Magento shipment without an active Polkurier order: one made
+ * in Magento itself, or one whose Polkurier order was cancelled. The shipment screen then places a
+ * Polkurier order for that shipment's items and links it to the shipment (Magento's own "Create
+ * Shipping Label" does the same with the packaging window).
  */
 readonly class ShipmentViewPlugin
 {
@@ -33,7 +33,7 @@ readonly class ShipmentViewPlugin
         private AuthorizationInterface $authorization,
         private ConfigProvider $configProvider,
         private NativeShipmentService $nativeShipmentService,
-        private ShipmentFinder $finder,
+        private ShipmentFinder $shipmentFinder,
     ) {}
 
     /**
@@ -48,8 +48,8 @@ readonly class ShipmentViewPlugin
         if (!$order instanceof Order || !Polkurier::isOrderOf($order)) {
             return [$layout];
         }
-        // The latest when it has had several: one cancelled, another placed on it since.
-        $linked = $this->finder->latestLinkedTo((int)$shipment->getId());
+        // If it has had several (one cancelled, another placed on it since), the latest.
+        $linked = $this->shipmentFinder->latestLinkedTo((int)$shipment->getId());
         if ($linked !== null && $this->authorization->isAllowed('Polkurier_Shipping::shipments')) {
             $subject->addButton(self::VIEW_BUTTON, [
                 'label' => __('Polkurier order'),

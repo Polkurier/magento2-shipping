@@ -19,12 +19,12 @@ use Magento\Sales\Model\Order;
 use Magento\Sales\Model\Order\Shipment as MagentoShipmentModel;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Api\ShipmentRepositoryInterface;
-use Polkurier\Shipping\Enum\ApiEventEnum;
+use Polkurier\Shipping\Enum\Sdk\ApiEventEnum;
+use Polkurier\Shipping\Logger\Logger;
 use Polkurier\Shipping\Model\Carrier\CarrierNameProvider;
 use Polkurier\Shipping\Model\Sdk\ApiEventDispatcher;
 use Polkurier\Shipping\Model\Shipment\OrderLoader;
 use Polkurier\Shipping\Model\Shipment\ShipmentFinder;
-use Psr\Log\LoggerInterface;
 
 /**
  * What follows on the Magento side once a Polkurier order is known: the Magento order's shipment
@@ -38,12 +38,12 @@ readonly class NativeFollowUpService
         private ShipmentRepositoryInterface $shipmentRepository,
         private NativeShipmentService $nativeShipmentService,
         private MagentoShipmentRepository $magentoShipmentRepository,
-        private ShipmentFinder $finder,
+        private ShipmentFinder $shipmentFinder,
         private OrderStatusHistoryRepositoryInterface $historyRepository,
         private ShipmentCommentInterfaceFactory $commentFactory,
         private ShipmentCommentRepositoryInterface $commentRepository,
-        private ApiEventDispatcher $events,
-        private LoggerInterface $logger,
+        private ApiEventDispatcher $apiEventDispatcher,
+        private Logger $logger,
         private CarrierNameProvider $carrierNameProvider,
     ) {}
 
@@ -82,11 +82,11 @@ readonly class NativeFollowUpService
     }
 
     /**
-     * Clears the Magento shipment of a cancelled Polkurier order of its label, packages and
-     * waybills, for another Polkurier order to go on it: the shipment stays, with its items, so
-     * another can be placed from its page ("Create Shipping Label") or the shipment screen. A
-     * shipment another standing Polkurier order holds, or of another order, is left as it is. A
-     * failure is logged rather than thrown: the Polkurier order is cancelled either way.
+     * Removes the label, packages and waybills from the Magento shipment of a cancelled Polkurier
+     * order, so another Polkurier order can go on it. The shipment stays, with its items, so
+     * another order can be placed from its page ("Create Shipping Label") or the shipment screen. A
+     * shipment held by another standing Polkurier order, or belonging to another order, is left as
+     * it is. A failure is logged rather than thrown: the Polkurier order is cancelled either way.
      *
      * @return string|null the number of the Magento shipment cleared, or null
      */
@@ -209,7 +209,7 @@ readonly class NativeFollowUpService
      */
     public function linked(ShipmentInterface $shipment, Order $order, string $source): void
     {
-        $this->events->dispatch(ApiEventEnum::OrderCreateAfter, $shipment->getStoreId(), [
+        $this->apiEventDispatcher->dispatch(ApiEventEnum::OrderCreateAfter, $shipment->getStoreId(), [
             'shipment' => $shipment,
             'order' => $order,
             'source' => $source,
@@ -233,7 +233,7 @@ readonly class NativeFollowUpService
         if ((int)$magentoShipment->getOrderId() !== (int)$order->getEntityId()) {
             return null;
         }
-        foreach ($this->finder->linkedTo([$magentoShipmentId]) as $polkurier) {
+        foreach ($this->shipmentFinder->linkedTo([$magentoShipmentId]) as $polkurier) {
             if ((int)$polkurier->getId() !== (int)$cancelled->getId()
                 && \in_array($polkurier->getState(), ShipmentInterface::LIVE_STATES, true)
             ) {

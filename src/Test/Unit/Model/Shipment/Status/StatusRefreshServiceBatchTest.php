@@ -14,6 +14,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Api\ShipmentRepositoryInterface;
+use Polkurier\Shipping\Logger\Logger;
 use Polkurier\Shipping\Model\Config\ConfigProvider;
 use Polkurier\Shipping\Model\ResourceModel\Shipment as ShipmentResource;
 use Polkurier\Shipping\Model\Shipment;
@@ -29,7 +30,6 @@ use Polkurier\Shipping\Model\Shipment\Status\RemoteOrderMatcher;
 use Polkurier\Shipping\Model\Shipment\Status\StatusRefreshService;
 use Polkurier\Shipping\Test\Unit\Support\FixedDateTime;
 use Polkurier\Shipping\Test\Unit\Support\MemoryLocks;
-use Psr\Log\NullLogger;
 
 #[CoversClass(StatusRefreshService::class)]
 #[AllowMockObjectsWithoutExpectations]
@@ -80,9 +80,8 @@ class StatusRefreshServiceBatchTest extends TestCase
     {
         $checked = [];
 
-        $refreshed = $this->refresher([$this->shipment(7), $this->shipment(8)], $checked)->refreshPending();
+        $this->refresher([$this->shipment(7), $this->shipment(8)], $checked)->refreshPending();
 
-        self::assertSame(1, $refreshed);
         self::assertSame([7 => '2026-09-30 10:00:00'], $checked, 'It must not stay first in line.');
     }
 
@@ -111,9 +110,8 @@ class StatusRefreshServiceBatchTest extends TestCase
         $this->failure = new \LogicException('Unexpected.');
         $checked = [];
 
-        $refreshed = $this->refresher([$this->shipment(7), $this->shipment(8)], $checked)->refreshPending();
+        $this->refresher([$this->shipment(7), $this->shipment(8)], $checked)->refreshPending();
 
-        self::assertSame(1, $refreshed);
         self::assertSame([7], \array_keys($checked));
     }
 
@@ -190,9 +188,10 @@ class StatusRefreshServiceBatchTest extends TestCase
             $finder,
             $resource,
             $config,
-            new NullLogger(),
+            $this->createStub(Logger::class),
         ])->onlyMethods(['refresh'])->getMock();
-        // Each shipment's own refresh is StatusRefreshServiceTest's.
+        // Each shipment's own refresh is
+        // {@see \Polkurier\Shipping\Test\Unit\Model\Shipment\Status\StatusRefreshServiceTest}'s.
         $refresher->method('refresh')->willReturnCallback($refresh);
 
         return $refresher;

@@ -23,7 +23,7 @@ class Adopt extends AbstractShipmentAction implements HttpPostActionInterface
     public function __construct(
         Context $context,
         RequestedShipments $requestedShipments,
-        private readonly ShipmentManagementInterface $management,
+        private readonly ShipmentManagementInterface $shipmentManagement,
     ) {
         parent::__construct($context, $requestedShipments);
     }
@@ -34,7 +34,7 @@ class Adopt extends AbstractShipmentAction implements HttpPostActionInterface
         $number = \trim((string)$this->getRequest()->getParam('polkurier_number'));
         if ($shipment !== null && $number !== '') {
             try {
-                $shipment = $this->management->adopt((int)$shipment->getId(), $number);
+                $shipment = $this->shipmentManagement->adopt((int)$shipment->getId(), $number);
                 $this->messageManager->addSuccessMessage(
                     __('Polkurier order %1 linked.', $shipment->getPolkurierNumber()),
                 );

@@ -89,8 +89,8 @@ class DataProvider extends AbstractDataProvider
             ];
         }
 
-        // Polkurier lists the newest first, by the moment each was requested, but leaves those of
-        // the same second in no set order: the number settles it.
+        // Polkurier lists the newest first, by the moment each was requested, but leaves payouts
+        // from the same second in no set order. The number breaks the tie.
         \usort($items, static fn(array $a, array $b): int => [$b['date'], $b['number']] <=> [$a['date'], $a['number']]);
 
         return ['items' => $items, 'totalRecords' => $list->getTotalRows()];

@@ -8,55 +8,54 @@
 
 ## What the module does
 
-**At checkout**, your customers choose from the carriers you offer through Polkurier: couriers
-such as DPD, DHL, UPS or GLS, parcel lockers, pickup shops and so on. They pay the prices you set,
-not what Polkurier charges you. For lockers and other pickup points, they pick the point on a map.
-Both Magento's regular checkout and, with an add-on module, the multi-address checkout are
-supported.
+**At checkout**, customers choose from the carriers you offer: couriers such as DPD, DHL, UPS or
+GLS, parcel lockers, pickup shops and so on. They pay the prices you set, not what Polkurier
+charges you. For a locker or other pickup point, they pick the point on a map.
 
-**In the admin**, you ship an order straight from the order page, in one of two ways:
+**In the admin**, you ship an order from the order page, in one of two ways:
 
-- through **Magento's own shipment page**, where you pack the parcels in Magento's packaging window
-  and the Polkurier label is stored with the shipment, like any other carrier's label;
-- on the module's **shipment screen**, which puts every option of the shipment on one page.
+- on **Magento's own shipment page**, where you pack the parcels in Magento's packaging window.
+  The Polkurier label is stored with the shipment, like any other carrier's label.
+- on the module's **shipment screen**, which has every option of the shipment on one page.
+
+Either way, the shipment is filled in from the order and your defaults. Once Polkurier accepts it,
+the Magento order is shipped, with the waybill numbers as tracking numbers.
 
 Only orders placed with a Polkurier delivery method are shipped this way. Orders placed with
-another carrier's method are left alone: no Polkurier buttons or sections appear on them, so they
-stay with that carrier's own integration.
+another carrier's method get no Polkurier buttons or sections, so they stay with that carrier.
 
-Either way, the shipment starts from what the customer ordered and your defaults, and once
-Polkurier accepts it, the Magento order is shipped with the waybill numbers as tracking numbers.
-
-**Afterwards** you can print labels and handover protocols, book a courier pickup for several
-shipments at once, follow the delivery status, cancel shipments and request payouts of the cash
-on delivery money you collected.
+**Afterwards**, you can print labels and handover protocols, book a courier pickup for several
+shipments at once, follow the delivery status, cancel shipments and request payouts of cash on
+delivery money.
 
 **Behind the scenes**, the module keeps your sender addresses, bank accounts and pack templates the
 same in Magento and in your Polkurier account, so you can edit them in either place.
 
-## Your customers never see the Polkurier name
+## What you need
 
-Carriers appear at checkout, in e-mails and on the customer's order page under the labels you give
-them, for example "Paczkomat InPost" or "Kurier DPD". The module's own name only shows up in the
-admin.
+- **A Polkurier account with API access.** You'll need the customer ID and the API token from the
+  Polkurier panel. For a test account (sandbox), write to api@polkurier.pl.
+- **Magento 2.4.7 or later, with the standard checkout.** Other checkouts aren't supported (see
+  [Known limitations](known-limitations.md)).
+- **Magento's scheduled jobs (cron) running on the server.** They update shipment statuses, keep
+  your data in step with Polkurier and check shipments whose result was unclear.
 
-## Requirements
+The module adds a **Polkurier** menu to the admin. Its settings are under **Stores > Configuration
+> Sales > Delivery Methods > Polkurier**. The admin and checkout are available in English and Polish.
 
-- Magento Open Source or Adobe Commerce 2.4.7 or later (tested on 2.4.9), with the standard
-  Luma-based checkout
-- PHP 8.3, 8.4 or 8.5, as far as your Magento version supports it: 2.4.7 runs on PHP 8.3, 2.4.8
-  on 8.3 and 8.4, 2.4.9 on 8.3 to 8.5
-- Magento's cron running on the server, for status updates, synchronization and settling unclear
-  shipments
-- A Polkurier account with API access. You'll need the customer ID and the API token from the
-  Polkurier panel. For a test account (sandbox), contact api@polkurier.pl.
+### Multi-address checkout
+
+Pickup points in **Check Out with Multiple Addresses** come with a separate add-on,
+`polkurier/magento2-multishipping` ([installation](../developer-guide/installation.md#multi-address-checkout)).
+Without it, that checkout still works, but customers can't choose a pickup point in it.
 
 ## Several websites
 
-The module works with one Polkurier account for the whole Magento installation. Separate accounts
-for different websites aren't supported. Credentials, carriers, prices, addresses, bank accounts
-and pack templates are shared by all websites. Most other settings, such as the shipment defaults,
-can differ between websites, and each store view can have its own carrier labels and a few texts
-of its own.
+One Polkurier account serves the whole Magento installation. Separate accounts for different
+websites aren't supported.
 
-Next: [Installation](installation.md)
+All websites share the credentials, carriers, prices, addresses, bank accounts and pack templates.
+Most other settings, such as the shipment defaults, can differ between websites. Each store view
+can have its own carrier labels and a few texts of its own.
+
+Next: [Configuration](configuration.md)

@@ -38,7 +38,8 @@ readonly class BackButton implements ButtonProviderInterface
         return [
             'label' => $orderId ? __('Back to the order') : __('Back'),
             'on_click' => $this->onClickScriptBuilder->location(match (true) {
-                // Only a page of this admin; the parameter is the browser's and is trusted no further.
+                // Only a page of this admin: the parameter comes from the browser and isn't trusted
+                // further.
                 \str_starts_with($back, (string)$this->url->getBaseUrl()) => $back,
                 $orderId > 0 => $this->url->getUrl('sales/order/view', ['order_id' => $orderId]),
                 default => $this->url->getUrl('polkurier/shipment/index'),

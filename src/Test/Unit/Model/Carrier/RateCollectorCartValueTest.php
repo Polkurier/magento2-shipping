@@ -19,7 +19,8 @@ use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use Polkurier\Shipping\Enum\CartValueEnum;
+use Polkurier\Shipping\Enum\Config\CartValueEnum;
+use Polkurier\Shipping\Logger\Logger;
 use Polkurier\Shipping\Model\Carrier\CarrierCatalog;
 use Polkurier\Shipping\Model\Carrier\CarrierFeatureResolver;
 use Polkurier\Shipping\Model\Carrier\Pricing\PriceCalculatorInterface;
@@ -28,7 +29,6 @@ use Polkurier\Shipping\Model\Carrier\WeightUnitConverter;
 use Polkurier\Shipping\Model\CarrierConfig\CarrierConfigProvider;
 use Polkurier\Shipping\Model\Config\ConfigProvider;
 use Polkurier\Shipping\Model\PickupPoint\MapTokenProvider;
-use Psr\Log\NullLogger;
 
 #[CoversClass(RateCollector::class)]
 #[CoversClass(CartValueEnum::class)]
@@ -139,7 +139,7 @@ class RateCollectorCartValueTest extends TestCase
             new CarrierFeatureResolver(),
             $this->createStub(PriceCalculatorInterface::class),
             $this->createStub(WeightUnitConverter::class),
-            new NullLogger(),
+            $this->createStub(Logger::class),
             $this->createStub(MapTokenProvider::class),
             $this->createStub(State::class),
             new ConfigProvider($scopeConfig, $this->createStub(EncryptorInterface::class)),

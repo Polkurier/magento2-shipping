@@ -15,7 +15,8 @@ use Polkurier\Shipping\Api\AddressRepositoryInterface;
 use Polkurier\Shipping\Api\Data\AddressInterface;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Api\ShipmentRepositoryInterface;
-use Polkurier\Shipping\Enum\ApiEventEnum;
+use Polkurier\Shipping\Enum\Sdk\ApiEventEnum;
+use Polkurier\Shipping\Logger\Logger;
 use Polkurier\Shipping\Model\Sdk\ApiEventDispatcher;
 use Polkurier\Shipping\Model\Sdk\ShipmentGateway;
 use Polkurier\Shipping\Model\Shipment\OrderLoader;
@@ -35,7 +36,6 @@ use Polkurier\Webservice\Request\Order\PackMessage;
 use Polkurier\Webservice\Response\Courier\PickupTimeMessage;
 use Polkurier\Webservice\Response\Courier\TimeIntervalMessage;
 use Polkurier\Webservice\Response\Order\MultiPickupResultMessage;
-use Psr\Log\NullLogger;
 
 #[CoversClass(PickupService::class)]
 #[AllowMockObjectsWithoutExpectations]
@@ -256,7 +256,7 @@ class PickupServiceTest extends TestCase
         return new PickupService(
             $gateway,
             $repository,
-            new ApiEventDispatcher($this->events, new NullLogger()),
+            new ApiEventDispatcher($this->events, $this->createStub(Logger::class)),
             $orders,
             $addresses,
             $this->createStub(SenderMapper::class),

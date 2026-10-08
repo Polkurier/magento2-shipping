@@ -15,7 +15,7 @@ use Polkurier\Shipping\Model\Shipment\Screen\RetriableShipmentFinder;
 use Polkurier\Shipping\Ui\Component\Control\OnClickScriptBuilder;
 
 /**
- * For a shipment that wasn't placed: the shipment screen, starting from it.
+ * For a shipment that wasn't placed: opens the shipment screen, starting from that shipment.
  */
 class SendAgainButton extends AbstractButton
 {

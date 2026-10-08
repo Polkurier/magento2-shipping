@@ -13,14 +13,14 @@ use Magento\Framework\Event\ManagerInterface as EventManager;
 use Magento\Framework\Serialize\Serializer\Json;
 use Magento\Framework\View\Element\UiComponent\DataProvider\SearchResult;
 use Polkurier\Shipping\Api\Data\CarrierConfigInterface;
-use Polkurier\Shipping\Enum\PricingModelEnum;
+use Polkurier\Shipping\Enum\CarrierConfig\PricingModelEnum;
 use Polkurier\Shipping\Model\Carrier\AvailableCarrierFilter;
 use Polkurier\Shipping\Model\Carrier\Pricing\FixedPriceCalculator;
 use Psr\Log\LoggerInterface as Logger;
 
 /**
- * The carriers list in the admin: the account's carriers, narrowed to the available carriers, and
- * always with the enabled carriers first, each part in the order checkout offers them, which the
+ * The carriers list in the admin: the account's carriers, narrowed to the available carriers. The
+ * enabled carriers always come first; each group is in the order checkout offers them, which the
  * merchant sets by dragging the rows.
  * Carriers left out, including those the account no longer offers, keep their settings; they're
  * only hidden.

@@ -55,7 +55,7 @@ class FailedShipmentManagerTest extends TestCase
     {
         self::assertSame(
             '2026-10-03 08:30:00',
-            $this->manager([])->expiresAt($this->shipment(ShipmentInterface::STATE_FAILED, '')),
+            $this->manager([])->expiresAfter('2026-10-01 08:30:00'),
         );
     }
 

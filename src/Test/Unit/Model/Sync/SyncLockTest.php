@@ -23,16 +23,6 @@ class SyncLockTest extends TestCase
     private array $log = [];
     private bool $fail = false;
 
-    public function testASaveThatSynchronizesTakesTheLockOnce(): void
-    {
-        $lock = $this->lock();
-
-        $result = $lock->run(fn(): string => $lock->run(fn(): string => 'synchronized'));
-
-        self::assertSame('synchronized', $result);
-        self::assertSame(['lock polkurier_sync', 'unlock polkurier_sync'], $this->log);
-    }
-
     public function testAnotherRequestHoldingItIsReported(): void
     {
         $this->fail = true;

@@ -87,29 +87,23 @@ class OrderLockTest extends TestCase
         );
     }
 
-    public function testUnlockingALockNotHeldDoesNothing(): void
-    {
-        $this->lock()->unlock(42);
-
-        self::assertSame([], $this->log);
-    }
-
     public function testLocksStillHeldWhenTheRequestEndsAreLetGo(): void
     {
         $lock = $this->lock();
-        $lock->lock(42);
-        $lock->lock(42);
-        $lock->lock(43);
+        $reset = static function () use ($lock): bool {
+            $lock->_resetState();
 
-        $lock->_resetState();
-        $lock->unlock(42);
+            return true;
+        };
+
+        $lock->run(42, fn(): bool => $lock->run(42, fn(): bool => $lock->run(43, $reset)));
 
         self::assertSame([
             'lock polkurier_order_42',
             'lock polkurier_order_43',
             'unlock polkurier_order_42',
             'unlock polkurier_order_43',
-        ], $this->log);
+        ], $this->log, 'Once each, and not again when the work then finishes.');
     }
 
     private function lock(bool $taken = false): OrderLock

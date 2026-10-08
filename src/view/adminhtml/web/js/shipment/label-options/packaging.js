@@ -33,9 +33,9 @@ define([
 
     /**
      * Pack templates fill in a package: its parcel type, size and weight, which stay editable.
-     * They're offered in a column of their own before the package type, never as one, with the
-     * default template chosen. Every package is copied from Magento's package template, so the
-     * column is added there once.
+     * They're offered in a column of their own before the package type, never as a package type,
+     * with the default template preselected. Every package is copied from Magento's package
+     * template, so the column is added there once.
      *
      * @param {Array<Object>} templates
      */
@@ -64,8 +64,8 @@ define([
     }
 
     /**
-     * Under "No template": saving the package as a pack template once the shipment is placed,
-     * under a name. Copied with the package, as the template choice is.
+     * Under "No template": an option to save the package as a pack template, under a name, once
+     * the shipment is placed. It's copied with the package, as the template choice is.
      *
      * @returns {jQuery}
      */
@@ -81,7 +81,8 @@ define([
     }
 
     /**
-     * Shows the keep choice of a package without a template, and its name once ticked.
+     * Shows the "Save as a pack template" choice for a package without a template, and its name
+     * field once ticked.
      *
      * @param {jQuery} pack a package block
      */
@@ -94,8 +95,9 @@ define([
     }
 
     /**
-     * The packages to save as pack templates go with the label request, in their params, as the
-     * name to save each under (NativeLabelPackages::KEEP_AS_PARAM); unnamed, as its type and size.
+     * Sends the packages to save as pack templates with the label request: each package's params
+     * get the name to save it under (Polkurier\Shipping\Model\Shipment\Native\NativeLabelPackageMapper::KEEP_AS_PARAM),
+     * or its type and size when no name was given.
      */
     function sendKeptPackages() {
         const prototype = window.Packaging && window.Packaging.prototype,
@@ -194,10 +196,10 @@ define([
     }
 
     /**
-     * Weighs a package by the parcel weight setting: what the products in it weigh, or its pack
-     * template's weight, which a package with a product without a weight takes either way. Without
-     * a template, Magento's sum of the products stays, but never as "NaN" for a product without a
-     * weight.
+     * Weighs a package by the parcel weight setting: either what its products weigh, or its pack
+     * template's weight. A package holding a product without a weight takes the template's weight
+     * either way. Without a template, Magento's sum of the products stays, but never as "NaN" for a
+     * product without a weight.
      *
      * @param {jQuery} pack a package block
      * @param {Array<Object>} templates
@@ -295,8 +297,8 @@ define([
     }
 
     /**
-     * The items the window packs, as Magento offers them to a package: by order item id, what's
-     * shipped of each. Asked for once per packing.
+     * The items the window packs, as Magento offers them to a package: the quantity shipped of
+     * each, by order item id. Requested once per packing.
      *
      * @param {Object} popup the packaging window's Packaging
      * @param {Function} done called with the grid's markup and the quantities
@@ -336,7 +338,7 @@ define([
      * @param {Object} popup the packaging popup's Packaging
      * @param {Object} pack template_id, pack_type, length, width, height, weight, items
      * @param {String} html the items' grid
-     * @param {Number} number the package's, which keeps its grid's ids its own
+     * @param {Number} number the package's number, which keeps its grid's ids unique
      * @param {Array<Object>} templates
      * @param {String} mode
      */
@@ -399,9 +401,10 @@ define([
     }
 
     /**
-     * Puts the items shipped into packages of the pack templates, by their shipping dimensions, in
-     * place of the packages there are. Packages with items keep the shipment to their kind; without
-     * any, the items decide what they go as (AutoPacker::packByItems).
+     * Packs the shipped items into packages of the pack templates, by their shipping dimensions,
+     * replacing the existing packages. Packages that hold items keep the shipment to their kind;
+     * without any, the items decide what they're sent as
+     * (Polkurier\Shipping\Model\Shipment\Packing\AutoPacker::packDraft()).
      *
      * @param {Object} popup the packaging popup's Packaging
      * @param {Object} config url, orderId, shipmentId
@@ -457,9 +460,9 @@ define([
     }
 
     /**
-     * The window gets a Pack automatically button by Add Package, and, where new shipments start
-     * packed, packs the items when it opens without packages. Packages emptied (Cancel) take the
-     * note away.
+     * Adds a "Pack automatically" button next to Add Package. Where new shipments start packed, the
+     * window also packs the items when it opens without packages. Emptying the packages (Cancel)
+     * removes the note.
      *
      * @param {Object} config url, orderId, shipmentId, onOpen
      * @param {Array<Object>} templates
@@ -514,7 +517,7 @@ define([
 
     return {
         /**
-         * Once per page, by ../packaging-setup.
+         * Called once per page, by ../packaging-setup.
          *
          * @param {Array<Object>} templates the pack templates with a size
          * @param {String} mode the parcel weight setting: 'products' or 'template'

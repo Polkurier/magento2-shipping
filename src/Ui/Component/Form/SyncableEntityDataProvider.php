@@ -30,7 +30,7 @@ class SyncableEntityDataProvider extends FormDataProvider
         AbstractCollection $collection,
         private readonly RequestInterface $request,
         private readonly DataPersistorInterface $dataPersistor,
-        private readonly EntityHandlerInterface $handler,
+        private readonly EntityHandlerInterface $entityHandler,
         array $meta = [],
         array $data = [],
     ) {
@@ -49,10 +49,10 @@ class SyncableEntityDataProvider extends FormDataProvider
                 $loaded[$id] = \array_merge($item->getData(), ['id' => $id]);
             }
         }
-        $persisted = $this->dataPersistor->get($this->handler->getFormMemory()->value);
+        $persisted = $this->dataPersistor->get($this->entityHandler->getFormMemory()->value);
         if (\is_array($persisted)) {
             $loaded[$id ?: ''] = \array_merge($loaded[$id] ?? [], $persisted, ['id' => $id ?: null]);
-            $this->dataPersistor->clear($this->handler->getFormMemory()->value);
+            $this->dataPersistor->clear($this->entityHandler->getFormMemory()->value);
         }
 
         return $loaded;

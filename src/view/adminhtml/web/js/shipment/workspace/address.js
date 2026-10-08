@@ -29,7 +29,7 @@ define([
         refresh: function () {
             const address = this.kind === 'sender' ? this.sender() : this.recipient();
 
-            // What a sender typed in lacks is said as the section's problem.
+            // What's missing from a typed-in sender is reported as the section's problem.
             this.missing(address ? '' : $t('No sender address.'));
             this.addressesUrl(this.get('urls.addresses') || '');
             this.caption(address && address.caption ? address.caption : '');

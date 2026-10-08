@@ -28,7 +28,7 @@ use Polkurier\Shipping\Model\ResourceModel\BankAccount\CollectionFactory;
 readonly class BankAccountRepository implements BankAccountRepositoryInterface
 {
     public function __construct(
-        private BankAccountFactory $entityFactory,
+        private BankAccountFactory $bankAccountFactory,
         private ResourceModel $resource,
         private CollectionFactory $collectionFactory,
         private CollectionProcessorInterface $collectionProcessor,
@@ -37,7 +37,7 @@ readonly class BankAccountRepository implements BankAccountRepositoryInterface
 
     public function get(int $id): BankAccountInterface
     {
-        $entity = $this->entityFactory->create();
+        $entity = $this->bankAccountFactory->create();
         $this->resource->load($entity, $id);
         if (!$entity->getId()) {
             throw new NoSuchEntityException(__('The bank account with id "%1" does not exist.', $id));

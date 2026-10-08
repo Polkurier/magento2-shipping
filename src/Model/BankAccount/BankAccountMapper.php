@@ -34,7 +34,7 @@ readonly class BankAccountMapper
     ): SaveMessage {
         return $this->saveMessageBuilderFactory->create()
             ->name($account->getName())
-            ->number(\preg_replace('/\s+/', '', $account->getNumber()) ?? $account->getNumber())
+            ->number(self::normalizeNumber($account->getNumber()))
             ->id($account->getExtId())
             ->default($account->isDefault())
             ->twoFactorToken($pin ? null : ($twoFactorToken ?: null))

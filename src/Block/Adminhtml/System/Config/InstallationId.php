@@ -14,9 +14,9 @@ use Magento\Framework\View\Helper\SecureHtmlRenderer;
 use Polkurier\Shipping\Model\Sdk\ApplicationIdProvider;
 
 /**
- * "Installation ID" in the Polkurier configuration: the id made from the encryption key shows in
- * the field while it's empty, as its placeholder. Not as its value, which a copied database would
- * take along to a staging copy, whose orders the id is there to tell apart.
+ * "Installation ID" in the Polkurier configuration. While the field is empty, it shows the id made
+ * from the encryption key as a placeholder, not as a value. A saved value would travel with a copied
+ * database to a staging copy, and the id is there to tell that copy's orders apart.
  */
 class InstallationId extends Field
 {

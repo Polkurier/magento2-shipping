@@ -21,7 +21,7 @@ readonly class ShippingChoiceRepository
 
     public function __construct(
         private ResourceConnection $resource,
-        private ShippingChoiceFactory $factory,
+        private ShippingChoiceFactory $shippingChoiceFactory,
     ) {}
 
     /**
@@ -50,7 +50,8 @@ readonly class ShippingChoiceRepository
         );
         $choices = [];
         foreach ($rows as $row) {
-            $choices[(int)$row[ShippingChoiceInterface::FIELD_ORDER_ID]] = $this->factory->create(['data' => $row]);
+            $orderId = (int)$row[ShippingChoiceInterface::FIELD_ORDER_ID];
+            $choices[$orderId] = $this->shippingChoiceFactory->create(['data' => $row]);
         }
 
         return $choices;

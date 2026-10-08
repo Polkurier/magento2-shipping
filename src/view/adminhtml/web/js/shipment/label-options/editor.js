@@ -3,8 +3,9 @@
  * All Rights Reserved
  */
 /**
- * One group of label options edited in place, in its line of the summary: its fields, filled in
- * from the options chosen so far, Apply, which takes them back, and Cancel.
+ * Edits one group of label options in place, in its line of the summary. It shows the group's
+ * fields, filled in from the options chosen so far, with Apply, which takes the values back, and
+ * Cancel.
  */
 define([
     'jquery',
@@ -14,7 +15,8 @@ define([
 ], function ($, $t, pointsMap, request) {
     'use strict';
 
-    // A form there is none of: the fields belong to it, not to the shipment's form around them.
+    // The id of a form that doesn't exist: the fields belong to it, so they stay out of the
+    // shipment's form around them.
     const OWN_FORM = 'polkurier-label-options-editor';
 
     /**
@@ -116,9 +118,9 @@ define([
         }
 
         /**
-         * The collection date and window, from those Polkurier offers for the carrier, the sender
-         * and the recipient, as on the Polkurier shipment screen: what it doesn't offer can't be
-         * picked, and the courier wouldn't come then.
+         * The collection date and window, chosen from those Polkurier offers for the carrier, the
+         * sender and the recipient, as on the Polkurier shipment screen. What Polkurier doesn't
+         * offer can't be picked, since the courier wouldn't come then.
          *
          * @param {String} id
          * @param {jQuery} control
@@ -146,7 +148,7 @@ define([
                 if (windows.val() === null) {
                     windows.prop('selectedIndex', 0);
                 }
-                // A day without windows: the carrier comes when it comes.
+                // A day without windows: the carrier comes at any time that day.
                 windows.toggle(windows.children().length > 0);
                 anyTime.toggle(Boolean(day) && windows.children().length === 0);
             }
@@ -210,7 +212,7 @@ define([
             if (definition.type === 'pickup') {
                 pickup(id, control);
             } else if (definition.type === 'checkbox') {
-                // A single choice, said by its label beside the box.
+                // A single choice, with its label beside the box.
                 wrapper.addClass('admin__field-option');
                 wrapper.children('.admin__field-label').remove();
                 control.append(
@@ -320,8 +322,8 @@ define([
              * @returns {jQuery}
              */
             edit: function (section, applied, cancelled) {
-                // Not a form: it sits inside the shipment's own, which its fields stay out of, so
-                // they're neither sent with the shipment nor submit it.
+                // Not a <form>: it sits inside the shipment's form. Its fields stay out of that
+                // form, so they're neither sent with the shipment nor submit it.
                 const form = $('<div class="admin__fieldset polkurier-label-options__form" role="group"/>')
                         .attr('aria-label', section.title),
                     actions = $('<div class="polkurier-label-options__actions"/>'),
@@ -335,7 +337,8 @@ define([
                         form.append(field(definition, form));
                     }
                 });
-                // A field named as its line needn't say it again; it keeps the name for screen readers.
+                // A field named like its line doesn't show the name again; it keeps it for screen
+                // readers.
                 form.find('.admin__field > .admin__field-label').filter(function () {
                     return $(this).text().trim() === section.title;
                 }).each(function () {

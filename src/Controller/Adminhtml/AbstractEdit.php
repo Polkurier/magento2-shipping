@@ -23,19 +23,17 @@ abstract class AbstractEdit extends AbstractAction implements HttpGetActionInter
         $id = (int)$this->getRequest()->getParam('id');
         if ($id) {
             try {
-                $this->handler->get($id);
+                $this->entityHandler->get($id);
             } catch (NoSuchEntityException $e) {
                 $this->messageManager->addErrorMessage($e->getMessage());
 
                 return $this->resultRedirectFactory->create()->setPath('*/*/index');
             }
         }
+        /** @var Page $page */
         $page = $this->resultFactory->create(ResultFactory::TYPE_PAGE);
-        if (!$page instanceof Page) {
-            throw new \LogicException('The admin area renders backend pages.');
-        }
-        $page->setActiveMenu($this->handler->getMenuId());
-        $page->getConfig()->getTitle()->prepend($this->handler->getLabel());
+        $page->setActiveMenu(static::ADMIN_RESOURCE);
+        $page->getConfig()->getTitle()->prepend($this->entityHandler->getLabel());
         $page->getConfig()->getTitle()->prepend($id ? (string)__('Edit') : (string)__('New entry'));
 
         return $page;

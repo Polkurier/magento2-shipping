@@ -12,6 +12,7 @@ use Magento\Framework\Stdlib\DateTime as DateFormat;
 use Magento\Framework\Stdlib\DateTime\DateTime;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Api\ShipmentRepositoryInterface;
+use Polkurier\Shipping\Logger\Logger;
 use Polkurier\Shipping\Model\Config\ConfigProvider;
 use Polkurier\Shipping\Model\ResourceModel\Shipment as ShipmentResource;
 use Polkurier\Shipping\Model\Shipment\Details\Formatter;
@@ -22,7 +23,6 @@ use Polkurier\Shipping\Model\Shipment\OrderLock;
 use Polkurier\Shipping\Model\Shipment\ShipmentAgeChecker;
 use Polkurier\Shipping\Model\Shipment\ShipmentFinder;
 use Polkurier\Webservice\Response\Order;
-use Psr\Log\LoggerInterface;
 
 /**
  * Brings placed shipments up to date with Polkurier, and catches the Magento side up with them:
@@ -42,30 +42,28 @@ readonly class StatusRefreshService
         private RemoteOrderMatcher $remoteOrderMatcher,
         private RemoteOrderApplier $remoteOrderApplier,
         private NativeShipmentService $nativeShipmentService,
-        private NativeFollowUpService $followUp,
+        private NativeFollowUpService $nativeFollowUpService,
         private OrderLoader $orderLoader,
         private DateTime $dateTime,
-        private Formatter $format,
+        private Formatter $formatter,
         private OrderLock $orderLock,
         private ShipmentAgeChecker $shipmentAgeChecker,
-        private ShipmentFinder $finder,
+        private ShipmentFinder $shipmentFinder,
         private ShipmentResource $shipmentResource,
         private ConfigProvider $configProvider,
-        private LoggerInterface $logger,
+        private Logger $logger,
     ) {}
 
     /**
-     * The scheduled run: the shipments not checked since the previous one. Whether the scheduled
-     * updates are on is the cron job's to check.
-     *
-     * @return int how many shipments were refreshed
+     * The scheduled run: the shipments not checked since the previous one. The cron job checks
+     * whether the scheduled updates are on.
      */
-    public function refreshPending(): int
+    public function refreshPending(): void
     {
         // A minute short of the interval, so that a shipment checked by the previous run is due.
         $minAge = \max(1, $this->configProvider->getStatusIntervalMinutes() - 1);
 
-        return $this->refreshBatch($minAge)['refreshed'];
+        $this->refreshBatch($minAge);
     }
 
     /**
@@ -126,15 +124,15 @@ readonly class StatusRefreshService
         $shipment->setLastError(null)->setStatusCheckedAt((string)$this->dateTime->gmtDate());
         $this->shipmentRepository->save($shipment);
         if (!$wasDelivered && $shipment->getDeliveredAt() !== null) {
-            $this->followUp->remark($shipment->getShipmentId(), __(
+            $this->nativeFollowUpService->remark($shipment->getShipmentId(), __(
                 'Polkurier order %1 delivered (%2).',
                 $number,
-                $this->format->storedTime($shipment->getDeliveredAt()),
+                $this->formatter->storedTime($shipment->getDeliveredAt()),
             ));
         }
         if (!$wasCancelled && $shipment->getState() === ShipmentInterface::STATE_CANCELLED) {
             // Cancelled in the Polkurier panel: its Magento shipment is cleared, as when cancelled here.
-            $this->followUp->cancelled($shipment, true);
+            $this->nativeFollowUpService->cancelled($shipment, true);
 
             return $shipment;
         }
@@ -142,7 +140,7 @@ readonly class StatusRefreshService
             && $this->shipmentAgeChecker->isOlderThan($shipment, ShipmentAgeChecker::SHIP_AGAIN_AFTER_MINUTES)
         ) {
             // Placed, but the Magento shipment failed back then: try again with every refresh.
-            $this->followUp->ship($this->orderLoader->get($shipment->getOrderId()), $shipment);
+            $this->nativeFollowUpService->ship($this->orderLoader->get($shipment->getOrderId()), $shipment);
 
             return $shipment;
         }
@@ -170,7 +168,7 @@ readonly class StatusRefreshService
         if ($shipment->getShipmentId() !== null) {
             throw new LocalizedException(__('The Magento order is already shipped with this Polkurier order.'));
         }
-        $error = $this->followUp->ship($this->orderLoader->get($shipment->getOrderId()), $shipment);
+        $error = $this->nativeFollowUpService->ship($this->orderLoader->get($shipment->getOrderId()), $shipment);
         if ($error !== null) {
             throw new LocalizedException(__('The Magento shipment could not be created: %1', $error));
         }
@@ -190,7 +188,7 @@ readonly class StatusRefreshService
             : null;
         $refreshed = 0;
         $failed = 0;
-        foreach ($this->finder->dueForStatusCheck($checkedBefore, self::BATCH_SIZE) as $shipment) {
+        foreach ($this->shipmentFinder->dueForStatusCheck($checkedBefore, self::BATCH_SIZE) as $shipment) {
             try {
                 $this->refresh((int)$shipment->getId());
                 $refreshed++;

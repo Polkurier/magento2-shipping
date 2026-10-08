@@ -19,6 +19,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Api\ShipmentRepositoryInterface as PolkurierShipments;
+use Polkurier\Shipping\Logger\Logger;
 use Polkurier\Shipping\Model\Carrier\CarrierNameProvider;
 use Polkurier\Shipping\Model\Sdk\ApiEventDispatcher;
 use Polkurier\Shipping\Model\Shipment;
@@ -26,7 +27,6 @@ use Polkurier\Shipping\Model\Shipment\Native\NativeFollowUpService;
 use Polkurier\Shipping\Model\Shipment\Native\NativeShipmentService as NativeShipments;
 use Polkurier\Shipping\Model\Shipment\OrderLoader;
 use Polkurier\Shipping\Model\Shipment\ShipmentFinder;
-use Psr\Log\LoggerInterface;
 
 #[CoversClass(NativeFollowUpService::class)]
 #[AllowMockObjectsWithoutExpectations]
@@ -121,7 +121,7 @@ class NativeFollowUpServiceTest extends TestCase
         );
         $finder = $this->createStub(ShipmentFinder::class);
         $finder->method('linkedTo')->willReturn($linked);
-        $logger = $this->createStub(LoggerInterface::class);
+        $logger = $this->createStub(Logger::class);
         $logger->method('error')->willReturnCallback(function (string|\Stringable $message): void {
             $this->log[] = 'error ' . $message;
         });

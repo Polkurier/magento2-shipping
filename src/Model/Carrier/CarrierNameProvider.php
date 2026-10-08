@@ -10,9 +10,9 @@ namespace Polkurier\Shipping\Model\Carrier;
 use Polkurier\Shipping\Model\CarrierConfig\CarrierConfigProvider;
 
 /**
- * Carriers by name, as the admin shows them: the name Polkurier gives a carrier, kept with its
- * settings. Its code is for the API and for developers; it's shown only for a carrier the module
- * knows nothing else of.
+ * Carrier names as the admin shows them: the name Polkurier gives a carrier, kept with its
+ * settings. A carrier's code is for the API and for developers; it's shown only for a carrier the
+ * module knows nothing else about.
  */
 readonly class CarrierNameProvider
 {

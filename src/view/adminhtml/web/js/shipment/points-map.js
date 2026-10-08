@@ -17,14 +17,14 @@
 define(['mage/translate', 'Magento_Ui/js/modal/alert'], function ($t, alert) {
     'use strict';
 
-    // Seconds before a token runs out when a fresh one is asked for instead.
+    // How many seconds before a token runs out a fresh one is asked for instead.
     const REFRESH_BEFORE = 600;
 
     let frame = null,
         widget = null;
 
     /**
-     * @param {Object} map the map settings; given a fresh token in place
+     * @param {Object} map the map settings; updated in place with a fresh token
      * @returns {Promise<String>}
      */
     function freshToken(map) {
@@ -32,9 +32,6 @@ define(['mage/translate', 'Magento_Ui/js/modal/alert'], function ($t, alert) {
 
         if (map.token && (!map.expires || map.expires - now > REFRESH_BEFORE)) {
             return Promise.resolve(map.token);
-        }
-        if (!map.tokenUrl) {
-            return map.token ? Promise.resolve(map.token) : Promise.reject(new Error('No map token'));
         }
 
         return fetch(map.tokenUrl + (map.tokenUrl.indexOf('?') === -1 ? '?' : '&') + 'isAjax=true', {

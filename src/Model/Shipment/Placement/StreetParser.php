@@ -13,7 +13,7 @@ namespace Polkurier\Shipping\Model\Shipment\Placement;
  * Magento keeps the street as up to four free-form lines and never separates the house number,
  * which the API requires. Two conventions are understood: the number on a line of its own
  * ("Długa" / "12/3" or "Długa" / "12" / "3"), and the number at the end of the first line
- * ("Długa 12/3", "Długa 12 m. 3", "al. Jana Pawła II 5A lok. 7"). Before a flat said as such
+ * ("Długa 12/3", "Długa 12 m. 3", "al. Jana Pawła II 5A lok. 7"). Before a flat marked as such
  * ("m.", "lok."), a slash is the house's own double number: "Marszałkowska 84/92 m. 12".
  */
 readonly class StreetParser
@@ -21,7 +21,7 @@ readonly class StreetParser
     private const string NUMBER = '(\d+[A-Za-z]?(?:-\d+[A-Za-z]?)?)';
     private const string FLAT_MARKER = '\s+(?:m\.?|lok\.?|lokal|mieszk\.?|apt\.?)\s*';
     private const string FLAT_SEPARATOR = '(?:\s*\/\s*|' . self::FLAT_MARKER . ')';
-    // A house number and a flat said as such: the house may be a double number, "84/92".
+    // A house number and a flat marked as such: the house may be a double number, "84/92".
     private const string MARKED_FLAT = '(\d+[A-Za-z]?(?:\s*[-\/]\s*\d+[A-Za-z]?)?)' . self::FLAT_MARKER . '(\w+)';
 
     /**

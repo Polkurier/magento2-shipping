@@ -18,7 +18,7 @@ use Polkurier\Webservice\Enum\Order\CodStatusEnum;
 readonly class MoneyBoxOrderFinder
 {
     public function __construct(
-        private ShipmentFinder $finder,
+        private ShipmentFinder $shipmentFinder,
     ) {}
 
     /**
@@ -27,7 +27,7 @@ readonly class MoneyBoxOrderFinder
     public function numbers(): array
     {
         $numbers = [];
-        foreach ($this->finder->withCodStatus(CodStatusEnum::MoneyBox->value) as $shipment) {
+        foreach ($this->shipmentFinder->withCodStatus(CodStatusEnum::MoneyBox->value) as $shipment) {
             $numbers[] = (string)$shipment->getPolkurierNumber();
         }
 
@@ -35,7 +35,7 @@ readonly class MoneyBoxOrderFinder
     }
 
     /**
-     * Those of the numbers not known here as in the money box.
+     * Those of the given numbers not known here to be in the money box.
      *
      * @param string[] $numbers
      *

@@ -12,9 +12,9 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Polkurier\Shipping\Cron\SynchronizeTask;
 use Polkurier\Shipping\Exception\SynchronizationFailedException;
+use Polkurier\Shipping\Logger\Logger;
 use Polkurier\Shipping\Model\Config\ConfigProvider;
 use Polkurier\Shipping\Model\Sync\Synchronization;
-use Psr\Log\LoggerInterface;
 
 #[CoversClass(SynchronizeTask::class)]
 class SynchronizeTaskTest extends TestCase
@@ -50,7 +50,7 @@ class SynchronizeTaskTest extends TestCase
         $config = $this->createStub(ConfigProvider::class);
         $config->method('isSyncEnabled')->willReturn(true);
         $config->method('hasCredentials')->willReturn(true);
-        $logger = $this->createStub(LoggerInterface::class);
+        $logger = $this->createStub(Logger::class);
         $logger->method('warning')
             ->willReturnCallback(function (string|\Stringable $message, array $context = []): void {
                 $this->logged[] = ['warning', (string)$message, $context];

@@ -3,8 +3,8 @@
  * All Rights Reserved
  */
 /**
- * Deletes the bank account open in the form, once confirmed: with the security PIN where the
- * account locks bank accounts with one, which a window asks for, otherwise by confirming.
+ * Deletes the bank account open in the form, once confirmed. Where the account locks bank accounts
+ * with a security PIN, a window asks for the PIN; otherwise a plain confirmation is enough.
  */
 define([
     'jquery',
@@ -27,7 +27,7 @@ define([
             post = function (pin) {
                 $.mage.dataPost().postData({
                     action: url,
-                    data: {id: id, delete: 1, confirmation_pin: pin || '', form_key: window.FORM_KEY}
+                    data: {id: id, confirmation_pin: pin || '', form_key: window.FORM_KEY}
                 });
             };
 

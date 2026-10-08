@@ -25,7 +25,7 @@ class Edit extends Action implements HttpGetActionInterface
 
     public function __construct(
         Context $context,
-        private readonly CarrierConfigRepositoryInterface $repository,
+        private readonly CarrierConfigRepositoryInterface $carrierConfigRepository,
     ) {
         parent::__construct($context);
     }
@@ -34,17 +34,15 @@ class Edit extends Action implements HttpGetActionInterface
     {
         // Carriers come from Polkurier's list, so there is no new one to open.
         try {
-            $this->repository->get((int)$this->getRequest()->getParam('id'));
+            $this->carrierConfigRepository->get((int)$this->getRequest()->getParam('id'));
         } catch (NoSuchEntityException $e) {
             $this->messageManager->addErrorMessage($e->getMessage());
 
             return $this->resultRedirectFactory->create()->setPath('*/*/index');
         }
 
+        /** @var Page $page */
         $page = $this->resultFactory->create(ResultFactory::TYPE_PAGE);
-        if (!$page instanceof Page) {
-            throw new \LogicException('The admin area renders backend pages.');
-        }
         $page->setActiveMenu('Polkurier_Shipping::carriers');
         $page->getConfig()->getTitle()->prepend((string)__("Carrier settings"));
 

@@ -5,12 +5,11 @@
 -->
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:noNamespaceSchemaLocation="urn:magento:framework:App/etc/routes.xsd">
-    <!-- A neutral name: shoppers' browsers see it -->
     <router id="standard">
         <route id="polkurier_points" frontName="pickup-points">
             <module name="Polkurier_Shipping" />
         </route>
-        <!-- Polkurier's status webhook, given in the Polkurier panel; no shopper sees it -->
+        <!-- Polkurier's status webhook, given in the Polkurier panel -->
         <route id="polkurier_webhook" frontName="polkurier">
             <module name="Polkurier_Shipping" />
         </route>

@@ -13,6 +13,7 @@ use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
+use Polkurier\Shipping\Logger\Logger;
 use Polkurier\Shipping\Model\ResourceModel\Shipment as ShipmentResource;
 use Polkurier\Shipping\Model\Sdk\ShipmentGateway;
 use Polkurier\Shipping\Model\Shipment;
@@ -22,7 +23,6 @@ use Polkurier\Shipping\Model\Shipment\Status\RemoteOrderMatcher;
 use Polkurier\Shipping\Test\Unit\Support\FixedDateTime;
 use Polkurier\Webservice\Response\Order;
 use Polkurier\Webservice\Response\Order\OrderStatusMessage;
-use Psr\Log\NullLogger;
 
 #[CoversClass(DetailsLoader::class)]
 #[AllowMockObjectsWithoutExpectations]
@@ -74,7 +74,7 @@ class DetailsLoaderTest extends TestCase
             $resource,
             $this->createStub(ShipmentGateway::class),
             new FixedDateTime(self::NOW),
-            new NullLogger(),
+            $this->createStub(Logger::class),
         ))->ensure($stored);
 
         self::assertSame([], $loaded['errors']);
@@ -261,7 +261,7 @@ class DetailsLoaderTest extends TestCase
             $resource,
             $gateway,
             new FixedDateTime(self::NOW),
-            new NullLogger(),
+            $this->createStub(Logger::class),
         );
     }
 

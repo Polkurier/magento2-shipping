@@ -13,15 +13,17 @@ use Magento\Framework\TestFramework\Unit\Helper\ObjectManager;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Polkurier\Shipping\Api\Data\PackTemplateInterface;
 use Polkurier\Shipping\Api\Data\SyncableInterface;
 use Polkurier\Shipping\Api\PackTemplateRepositoryInterface;
-use Polkurier\Shipping\Enum\SyncEntityEnum;
+use Polkurier\Shipping\Enum\Sync\SyncEntityEnum;
 use Polkurier\Shipping\Model\PackTemplate;
 use Polkurier\Shipping\Model\PackTemplate\PackTemplateHandler;
-use Polkurier\Shipping\Model\PackTemplateFactory;
+use Polkurier\Shipping\Model\PackTemplate\PackTemplateSyncAdapter;
 use Polkurier\Shipping\Model\ResourceModel\PackTemplate as PackTemplateResource;
+use Polkurier\Shipping\Model\Sdk\ErrorMessageResolver;
+use Polkurier\Shipping\Model\Sync\AdapterInterface;
 use Polkurier\Shipping\Model\Sync\SyncableEntityHandler;
+use Polkurier\Shipping\Model\Sync\SyncEngine;
 use Polkurier\Shipping\Model\Sync\Synchronization;
 use Polkurier\Shipping\Model\Sync\SyncLock;
 use Polkurier\Shipping\Model\Sync\SyncResult;
@@ -39,6 +41,7 @@ class PackTemplateHandlerTest extends TestCase
      */
     private array $log = [];
     private bool $syncRunning = false;
+    private bool $pushFails = false;
 
     /**
      * @var string[] names other templates already have
@@ -92,6 +95,20 @@ class PackTemplateHandlerTest extends TestCase
         self::assertSame('Karton L', $template->getName());
     }
 
+    public function testAPushThatFailsIsReportedWithTheKind(): void
+    {
+        $this->pushFails = true;
+        $template = $this->template();
+
+        try {
+            $this->handler()->save($template, ['name' => 'Karton L']);
+            self::fail('The push failed.');
+        } catch (LocalizedException $e) {
+            self::assertSame('Pack templates: Unreadable.', $e->getMessage());
+        }
+        self::assertSame(['lock polkurier_sync', 'save Karton L', 'unlock polkurier_sync'], $this->log);
+    }
+
     public function testAnEntryNeverSentIsDeletedInMagentoAlone(): void
     {
         $this->handler()->delete($this->template()->setName('Draft'));
@@ -130,24 +147,23 @@ class PackTemplateHandlerTest extends TestCase
 
     private function handler(): PackTemplateHandler
     {
-        $repository = $this->createStub(PackTemplateRepositoryInterface::class);
-        $repository->method('save')
-            ->willReturnCallback(function (PackTemplateInterface $template): PackTemplateInterface {
-                $this->log[] = 'save ' . $template->getName();
-
-                return $template;
-            });
-        $repository->method('delete')->willReturnCallback(function (PackTemplateInterface $template): bool {
-            $this->log[] = 'delete ' . $template->getName();
-
-            return true;
+        $adapter = $this->createStub(PackTemplateSyncAdapter::class);
+        $adapter->method('getEntityType')->willReturn(SyncEntityEnum::PackTemplate);
+        $adapter->method('save')->willReturnCallback(function (PackTemplate $template): void {
+            $this->log[] = 'save ' . $template->getName();
         });
-        $synchronization = $this->createStub(Synchronization::class);
-        $synchronization->method('push')
-            ->willReturnCallback(function (SyncEntityEnum $kind, SyncableInterface $entry): SyncResult {
+        $adapter->method('delete')->willReturnCallback(function (PackTemplate $template): void {
+            $this->log[] = 'delete ' . $template->getName();
+        });
+        $engine = $this->createStub(SyncEngine::class);
+        $engine->method('run')
+            ->willReturnCallback(function (AdapterInterface $adapter, ?SyncableInterface $entry): SyncResult {
                 \assert($entry instanceof PackTemplate);
-                $this->log[] = 'push ' . $kind->value . ' ' . $entry->getName();
-                $result = new SyncResult($kind);
+                if ($this->pushFails) {
+                    throw new \RuntimeException('Unreadable.');
+                }
+                $this->log[] = 'push ' . $adapter->getEntityType()->value . ' ' . $entry->getName();
+                $result = new SyncResult($adapter->getEntityType());
                 $result->pushed++;
 
                 return $result;
@@ -168,9 +184,11 @@ class PackTemplateHandlerTest extends TestCase
         });
 
         return new PackTemplateHandler(
-            $repository,
-            $this->createStub(PackTemplateFactory::class),
-            $synchronization,
+            $this->createStub(PackTemplateRepositoryInterface::class),
+            $adapter,
+            $engine,
+            $this->createStub(Synchronization::class),
+            new ErrorMessageResolver(),
             new FixedDateTime((int)\strtotime('2026-09-30 10:00:00 UTC')),
             new SyncLock($locks),
             NewingObjectManager::factory(SyncResultFactory::class),

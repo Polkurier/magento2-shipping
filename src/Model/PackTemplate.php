@@ -40,7 +40,7 @@ class PackTemplate extends AbstractModel implements PackTemplateInterface
         if (\is_array($services)) {
             $this->setData(self::FIELD_SERVICES, \implode(',', \array_filter(\array_map('strval', $services))));
         }
-        // Left empty in a form: not said, not none.
+        // Left empty in a form: not set, rather than none.
         $tare = $this->getData(self::FIELD_TARE);
         if ($tare !== null && !\is_float($tare)) {
             $tare = \trim(\str_replace(',', '.', (string)$tare));

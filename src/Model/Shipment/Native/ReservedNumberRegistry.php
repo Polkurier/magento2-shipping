@@ -9,9 +9,10 @@ namespace Polkurier\Shipping\Model\Shipment\Native;
 
 use Magento\Framework\ObjectManager\ResetAfterRequestInterface;
 /**
- * Hands the number taken for a Magento shipment to it as Magento makes it, which Magento's ship
- * order service gives no way to pass: expected for the order just before, taken as the shipment
- * is made ({@see \Polkurier\Shipping\Plugin\Sales\ShipmentDocumentFactoryPlugin}).
+ * Passes the number reserved for a Magento shipment to the shipment as Magento creates it;
+ * Magento's ship order service has no way to pass it. The number is registered for the order just
+ * before (expect()) and taken when the shipment is created
+ * ({@see \Polkurier\Shipping\Plugin\Sales\ShipmentDocumentFactoryPlugin}).
  */
 class ReservedNumberRegistry implements ResetAfterRequestInterface
 {
@@ -31,11 +32,6 @@ class ReservedNumberRegistry implements ResetAfterRequestInterface
         unset($this->expected[$orderId]);
 
         return $number;
-    }
-
-    public function forget(int $orderId): void
-    {
-        unset($this->expected[$orderId]);
     }
 
     public function _resetState(): void

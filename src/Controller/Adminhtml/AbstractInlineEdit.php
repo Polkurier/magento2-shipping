@@ -13,22 +13,20 @@ use Magento\Framework\Controller\Result\Json;
 use Magento\Framework\Controller\Result\JsonFactory;
 use Magento\Framework\Exception\LocalizedException;
 use Polkurier\Shipping\Api\Data\SyncableInterface;
-use Polkurier\Shipping\Model\Admin\FlashMessageCollectorFactory;
 use Polkurier\Shipping\Model\Sync\EntityHandlerInterface;
 
 /**
- * Saves the rows edited in a list, each as its form would: sent to Polkurier straight away, and
- * for bank accounts left awaiting confirmation, since a list has no place for the PIN or code.
+ * Saves the rows edited in a list as each row's form would. Rows go to Polkurier straight away,
+ * except bank accounts: they wait for confirmation, since a list has no place for the PIN or code.
  */
 abstract class AbstractInlineEdit extends AbstractAction implements HttpPostActionInterface
 {
     public function __construct(
         Context $context,
-        EntityHandlerInterface $handler,
+        EntityHandlerInterface $entityHandler,
         private readonly JsonFactory $jsonFactory,
-        FlashMessageCollectorFactory $flashMessageCollectorFactory,
     ) {
-        parent::__construct($context, $handler, $flashMessageCollectorFactory);
+        parent::__construct($context, $entityHandler);
     }
 
     public function execute(): Json
@@ -39,14 +37,14 @@ abstract class AbstractInlineEdit extends AbstractAction implements HttpPostActi
                 continue;
             }
             try {
-                $entity = $this->handler->get((int)$id);
-                $this->handler->save($entity, \array_intersect_key($row, \array_flip($this->getEditableFields())));
-                // Saved here either way; Polkurier's refusal, or that it's still waiting for a
-                // confirmation, is what the merchant needs to see.
-                $saved = $this->handler->get((int)$id);
-                if ($saved->getSyncState() === SyncableInterface::STATE_ERROR) {
-                    $messages[] = (string)__('#%1: %2', $id, (string)$saved->getSyncError());
-                } elseif ($saved->getSyncState() === SyncableInterface::STATE_UNCONFIRMED) {
+                $entity = $this->entityHandler->get((int)$id);
+                $editable = \array_intersect_key($row, \array_flip($this->getEditableFields()));
+                $this->entityHandler->save($entity, $editable);
+                // Saved here either way. The merchant needs to see Polkurier's refusal, or that the
+                // entry still awaits confirmation.
+                if ($entity->getSyncState() === SyncableInterface::STATE_ERROR) {
+                    $messages[] = (string)__('#%1: %2', $id, (string)$entity->getSyncError());
+                } elseif ($entity->getSyncState() === SyncableInterface::STATE_UNCONFIRMED) {
                     $messages[] = (string)__(
                         '#%1: Saved in Magento. It goes to Polkurier once you confirm it: '
                         . 'open it and save it with the code or your security PIN.',

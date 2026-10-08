@@ -14,6 +14,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Api\ShipmentRepositoryInterface;
+use Polkurier\Shipping\Logger\Logger;
 use Polkurier\Shipping\Model\ResourceModel\Shipment as ShipmentResource;
 use Polkurier\Shipping\Model\Shipment;
 use Polkurier\Shipping\Model\Shipment\Native\NativeFollowUpService;
@@ -26,7 +27,6 @@ use Polkurier\Shipping\Model\Shipment\Status\RemoteOrderApplier;
 use Polkurier\Shipping\Model\Shipment\Status\RemoteOrderMatcher;
 use Polkurier\Shipping\Test\Unit\Support\FixedDateTime;
 use Polkurier\Shipping\Test\Unit\Support\MemoryLocks;
-use Psr\Log\NullLogger;
 
 #[CoversClass(ReconciliationService::class)]
 #[AllowMockObjectsWithoutExpectations]
@@ -45,10 +45,10 @@ class ReconciliationServiceBatchTest extends TestCase
 
     private ?\Throwable $failure = null;
 
-    public function testTakesUnconfirmedAndInterruptedShipmentsAndCountsTheSettledOnes(): void
+    public function testTakesUnconfirmedAndInterruptedShipments(): void
     {
         $checked = [];
-        $settled = $this->reconciler(
+        $this->reconciler(
             [$this->shipment(1), $this->shipment(2), $this->shipment(3)],
             [1 => ShipmentInterface::STATE_CREATED, 2 => ShipmentInterface::STATE_UNKNOWN],
             $checked,
@@ -65,7 +65,6 @@ class ReconciliationServiceBatchTest extends TestCase
             'One checked in the last five minutes waits its turn.',
         );
         self::assertSame(ReconciliationService::BATCH_SIZE, $this->query[2] ?? null);
-        self::assertSame(1, $settled, 'Adopted counts; still not listed does not.');
         self::assertSame(
             [3 => '2026-09-30 10:00:00'],
             $checked,
@@ -77,7 +76,8 @@ class ReconciliationServiceBatchTest extends TestCase
     {
         $checked = [];
 
-        self::assertSame(0, $this->reconciler([], [], $checked)->reconcilePending());
+        $this->reconciler([], [], $checked)->reconcilePending();
+
         self::assertSame([], $checked);
     }
 
@@ -104,13 +104,12 @@ class ReconciliationServiceBatchTest extends TestCase
         $this->failure = new \LogicException('Unexpected.');
         $checked = [];
 
-        $settled = $this->reconciler(
+        $this->reconciler(
             [$this->shipment(1), $this->shipment(2)],
             [2 => ShipmentInterface::STATE_CREATED],
             $checked,
         )->reconcilePending();
 
-        self::assertSame(1, $settled);
         self::assertSame([1], \array_keys($checked));
     }
 
@@ -185,9 +184,10 @@ class ReconciliationServiceBatchTest extends TestCase
             new OrderLock(new MemoryLocks()),
             $finder,
             $resource,
-            new NullLogger(),
+            $this->createStub(Logger::class),
         ])->onlyMethods(['reconcile'])->getMock();
-        // Each shipment's own reconciliation is ReconciliationServiceTest's.
+        // Each shipment's own reconciliation is
+        // {@see \Polkurier\Shipping\Test\Unit\Model\Shipment\Status\ReconciliationServiceTest}'s.
         $reconciliation->method('reconcile')->willReturnCallback($reconcile);
 
         return $reconciliation;

@@ -7,10 +7,10 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Model\Config\Source;
 
-use Polkurier\Shipping\Enum\WeightLimitEnum;
+use Polkurier\Shipping\Enum\Config\WeightLimitEnum;
 
 /**
- * What packing automatically does with the pack templates' weight limits.
+ * What automatic packing does with the pack templates' weight limits.
  */
 readonly class WeightLimit extends AbstractOptions
 {

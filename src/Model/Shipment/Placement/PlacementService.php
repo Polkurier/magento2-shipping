@@ -11,23 +11,26 @@ use Magento\Framework\Exception\LocalizedException;
 use Magento\Sales\Model\Order;
 use Polkurier\Shipping\Api\Data\ShipmentDraftInterface;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
-use Polkurier\Shipping\Enum\ApiEventEnum;
+use Polkurier\Shipping\Enum\Sdk\ApiEventEnum;
 use Polkurier\Shipping\Exception\PlacementUncertainException;
+use Polkurier\Shipping\Logger\Logger;
 use Polkurier\Shipping\Model\Carrier\CarrierNameProvider;
 use Polkurier\Shipping\Model\Sdk\ApiEventDispatcher;
+use Polkurier\Shipping\Model\Sdk\ApplicationIdProvider;
 use Polkurier\Shipping\Model\Sdk\ErrorMessageResolver;
 use Polkurier\Shipping\Model\Sdk\ShipmentGateway;
+use Polkurier\Shipping\Model\Shipment;
 use Polkurier\Shipping\Model\Shipment\Native\NativeFollowUpService;
 use Polkurier\Shipping\Model\Shipment\Native\NativeShipmentService;
 use Polkurier\Shipping\Model\Shipment\OrderLoader;
 use Polkurier\Shipping\Model\Shipment\OrderLock;
 use Polkurier\Webservice\Request\Order\CreateOrderMessage;
-use Psr\Log\LoggerInterface;
 
 /**
- * Places Polkurier orders. An attempt is recorded before it's sent (AttemptRecorder), one order at
- * a time per Magento order (OrderLock), and never sent again while an earlier one may have gone
- * through unseen.
+ * Places Polkurier orders. An attempt is recorded before it's sent
+ * ({@see \Polkurier\Shipping\Model\Shipment\Placement\AttemptRecorder}), one order at a time per
+ * Magento order ({@see OrderLock}), and never sent again while an earlier one may have gone through
+ * unseen.
  */
 readonly class PlacementService
 {
@@ -35,17 +38,18 @@ readonly class PlacementService
         private OrderLoader $orderLoader,
         private OrderLock $orderLock,
         private DraftValidator $draftValidator,
-        private AttemptRecorder $attempts,
+        private AttemptRecorder $attemptRecorder,
         private ExternalIdService $externalIdService,
-        private CreateOrderMessageMapper $messageMapper,
+        private ApplicationIdProvider $applicationIdProvider,
+        private CreateOrderMessageMapper $createOrderMessageMapper,
         private NativeShipmentService $nativeShipmentService,
-        private ShipmentGateway $gateway,
+        private ShipmentGateway $shipmentGateway,
         private ErrorMessageResolver $errorMessageResolver,
-        private NativeFollowUpService $followUp,
+        private NativeFollowUpService $nativeFollowUpService,
         private CarrierNameProvider $carrierNameProvider,
-        private ApiEventDispatcher $events,
+        private ApiEventDispatcher $apiEventDispatcher,
         private ManualEntrySaver $manualEntrySaver,
-        private LoggerInterface $logger,
+        private Logger $logger,
     ) {}
 
     /**
@@ -60,7 +64,7 @@ readonly class PlacementService
 
     /**
      * Places a Polkurier order for a Magento shipment that Magento is creating itself, as with a
-     * shipping label from Magento's shipment page, or for one it has, whose Polkurier order was
+     * shipping label from Magento's shipment page, or for an existing one whose Polkurier order was
      * cancelled. The order is not shipped here.
      *
      * @param int|null $magentoShipmentId the Magento shipment it's for, null for one being created
@@ -95,81 +99,98 @@ readonly class PlacementService
         // Held from the check for unresolved attempts until the new one is recorded: until then, a
         // second request for the same order (a double click, another tab) would find nothing
         // unresolved and place the order again.
-        $this->orderLock->lock($orderId);
-        try {
-            $this->attempts->assertNothingUnresolved($orderId);
-            $target = $this->target($order, $draft, $shipInMagento, $magentoShipmentId);
-            $this->draftValidator->prepare($draft, $storeId);
-            $notPlaced = $this->attempts->notPlaced($orderId);
-            $externalIds = $this->externalIdService->forAttempt(
-                $order,
-                $notPlaced,
-                $target['shipment_id'] ?? $magentoShipmentId,
-            );
-            $message = $this->messageMapper->map($draft, $storeId, [
-                'application' => $this->externalIdService->getApplicationId(),
-                'id' => $externalIds['id'],
-                'number' => (string)$order->getIncrementId(),
-            ]);
-            $this->draftValidator->assertCarrierTakes($draft->getCarrierCode(), $message->getShipmentType());
-            ['shipment' => $shipment, 'previous' => $previous] = $this->attempts->record(
-                $notPlaced,
-                $order,
-                $draft,
-                $message,
-                $target,
-                $externalIds,
-            );
-        } finally {
-            $this->orderLock->unlock($orderId);
-        }
+        ['message' => $message, 'shipment' => $shipment, 'previous' => $previous] = $this->orderLock->run(
+            $orderId,
+            fn(): array => $this->recordAttempt($orderId, $order, $draft, $shipInMagento, $magentoShipmentId),
+        );
 
         try {
-            $created = $this->gateway->placeOrder($message);
+            $created = $this->shipmentGateway->placeOrder($message);
         } catch (PlacementUncertainException $e) {
             return $this->markUnknown($shipment, $order, $message, $e);
         } catch (LocalizedException $e) {
             if ($this->errorMessageResolver->isTransient($e)) {
-                $this->attempts->failed($shipment, $e->getMessage());
+                $this->attemptRecorder->failed($shipment, $e->getMessage());
             } else {
                 // The same answer every time: the reason is shown, for the shipment to be changed
                 // and placed again.
-                $this->attempts->refused($shipment, $previous);
+                $this->attemptRecorder->refused($shipment, $previous);
             }
 
             throw $e;
         }
 
-        // Once saved as placed, a refresh or the admin may ship it in Magento too: not before this does.
+        // Under the lock: once saved as placed, a refresh or the admin may ship it too, but not
+        // before this does.
         $this->orderLock->run($orderId, function () use ($created, $shipment, $order, $shipInMagento): void {
-            $this->attempts->placed($shipment, $created);
-            $this->followUp->comment($order, __(
+            $this->attemptRecorder->placed($shipment, $created);
+            $this->nativeFollowUpService->comment($order, __(
                 'Polkurier order %1 placed with %2. Waybills: %3.',
                 $shipment->getPolkurierNumber(),
                 $this->carrierNameProvider->get($shipment->getCarrierCode()),
                 \implode(', ', $shipment->getWaybills()) ?: (string)__('not issued yet'),
             ));
             if ($shipInMagento) {
-                $this->followUp->ship($order, $shipment);
+                $this->nativeFollowUpService->ship($order, $shipment);
             }
         });
-        $this->events->dispatch(ApiEventEnum::OrderCreateAfter, $storeId, [
+        $this->apiEventDispatcher->dispatch(ApiEventEnum::OrderCreateAfter, $storeId, [
             'shipment' => $shipment,
             'order' => $order,
             'source' => $shipInMagento ? 'create' : 'label',
             'request' => $message,
             'response' => $created,
         ]);
-        // What was typed in to be kept goes once the shipment is placed, never before.
+        // Entries typed in to be kept are saved once the shipment is placed, never before.
         $this->manualEntrySaver->keep($draft);
 
         return $shipment;
     }
 
     /**
-     * What the Magento shipment ships, checked before anything is placed: no item goes with two
-     * Polkurier orders that stand, as each Magento shipment has at most one, and a new one ships
-     * only what the order has left.
+     * Checks the attempt can be made, and records it.
+     *
+     * @return array{message: CreateOrderMessage, shipment: Shipment, previous: array<string, mixed>|null}
+     * @throws LocalizedException when it can't be made
+     */
+    private function recordAttempt(
+        int $orderId,
+        Order $order,
+        ShipmentDraftInterface $draft,
+        bool $shipInMagento,
+        ?int $magentoShipmentId,
+    ): array {
+        $storeId = (int)$order->getStoreId();
+        $this->attemptRecorder->assertNothingUnresolved($orderId);
+        $target = $this->target($order, $draft, $shipInMagento, $magentoShipmentId);
+        $this->draftValidator->prepare($draft, $storeId);
+        $notPlaced = $this->attemptRecorder->notPlaced($orderId);
+        $externalIds = $this->externalIdService->forAttempt(
+            $order,
+            $notPlaced,
+            $target['shipment_id'] ?? $magentoShipmentId,
+        );
+        $message = $this->createOrderMessageMapper->map($draft, $storeId, [
+            'application' => $this->applicationIdProvider->get(),
+            'id' => $externalIds['id'],
+            'number' => (string)$order->getIncrementId(),
+        ]);
+        $this->draftValidator->assertCarrierTakes($draft->getCarrierCode(), $message->getShipmentType());
+
+        return ['message' => $message] + $this->attemptRecorder->record(
+            $notPlaced,
+            $order,
+            $draft,
+            $message,
+            $target,
+            $externalIds,
+        );
+    }
+
+    /**
+     * What the Magento shipment ships, checked before anything is placed. No item goes with two
+     * standing Polkurier orders, as each Magento shipment has at most one, and a new Magento
+     * shipment ships only what the order has left.
      *
      * @return array{qtys: array<int, float>, shipment_id: int|null, packages: array<int, array<string, mixed>>}
      * @throws LocalizedException
@@ -180,8 +201,8 @@ readonly class PlacementService
         bool $shipInMagento,
         ?int $magentoShipmentId,
     ): array {
-        // Made by the module after Polkurier accepts: checked here, its quantities kept in case it
-        // has to be made later.
+        // Created by the module after Polkurier accepts: checked here, and its quantities are kept
+        // in case it has to be created later.
         if ($shipInMagento) {
             return $this->nativeShipmentService->getTarget($order, $draft);
         }
@@ -211,8 +232,8 @@ readonly class PlacementService
             'order' => $order->getIncrementId(),
             'exception' => $e,
         ]);
-        $this->attempts->unknown($shipment, $e->getMessage());
-        $this->followUp->comment($order, __(
+        $this->attemptRecorder->unknown($shipment, $e->getMessage());
+        $this->nativeFollowUpService->comment($order, __(
             'Polkurier order for %1: Polkurier did not confirm it, and it may or may not have been placed. '
             . 'Reconcile it before sending again.',
             $this->carrierNameProvider->get((string)$message->getCourier()),

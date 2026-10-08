@@ -34,11 +34,11 @@ readonly class ShipmentDetails implements ArgumentInterface
 {
     public function __construct(
         private OptionLabelProvider $optionLabelProvider,
-        private Formatter $format,
+        private Formatter $formatter,
         private SentOrderReader $sentOrderReader,
         private CarrierNameProvider $carrierNameProvider,
         private OrderLoader $orderLoader,
-        private OrderAmountCalculator $amountCalculator,
+        private OrderAmountCalculator $orderAmountCalculator,
         private PackType $packTypes,
         private MagentoShipmentRepository $magentoShipmentRepository,
         private UrlInterface $url,
@@ -113,10 +113,10 @@ readonly class ShipmentDetails implements ArgumentInterface
     }
 
     /**
-     * Parcels Polkurier took as another type than they were sent as, from the order as it
-     * reports it: it changes a type without saying so, e.g. a standard parcel over a carrier's
-     * weight to a non-standard one, and prices it as that. Without Polkurier's copy of the order,
-     * there's nothing to tell.
+     * Parcels Polkurier took as a different type than they were sent as, according to the order as
+     * Polkurier reports it. Polkurier changes a type without saying so, e.g. a standard parcel over
+     * a carrier's weight limit to a non-standard one, and prices it that way. Without Polkurier's
+     * copy of the order, there's nothing to compare.
      *
      * @return string[] one sentence per parcel taken as another type
      */
@@ -157,7 +157,7 @@ readonly class ShipmentDetails implements ArgumentInterface
         $order = $this->orderLink($shipment->getOrderId());
         $magentoShipment = $this->magentoShipmentLink($shipment->getShipmentId());
 
-        return $this->format->rows([
+        return $this->formatter->rows([
             [__('Number'), $shipment->getPolkurierNumber() ?: '—'],
             [__('State'), $this->optionLabelProvider->state($shipment->getState())],
             [__('Carrier'), empty($details['carrier_name'])
@@ -165,7 +165,7 @@ readonly class ShipmentDetails implements ArgumentInterface
                 : (string)$details['carrier_name']],
             [__('Shipment type'), $this->optionLabelProvider->shipmentType($details['shipment_type'] ?? null)],
             [__('Shipment description'), $details['description'] ?? $shipment->getDescription()],
-            [__('Placed'), $this->format->storedTime($shipment->getCreatedAt())],
+            [__('Placed'), $this->formatter->storedTime($shipment->getCreatedAt())],
             [__('Magento order'), $order['label'] ?? '#' . $shipment->getOrderId(), $order['url'] ?? null],
             [
                 __('Magento shipment'),
@@ -185,8 +185,8 @@ readonly class ShipmentDetails implements ArgumentInterface
         $url = (string)($details['tracking_url'] ?? $shipment->getTrackingUrl() ?? '');
         $rows = [
             [__('Status'), $shipment->getStatusLabel() ?: '—'],
-            [__('Status date'), $this->format->storedTime($shipment->getStatusDate())],
-            [__('Delivered'), $this->format->storedTime($shipment->getDeliveredAt())],
+            [__('Status date'), $this->formatter->storedTime($shipment->getStatusDate())],
+            [__('Delivered'), $this->formatter->storedTime($shipment->getDeliveredAt())],
         ];
         foreach ($shipment->getWaybills() as $waybill) {
             $rows[] = [__('Waybill'), $waybill, $url !== '' ? $url : null];
@@ -195,7 +195,7 @@ readonly class ShipmentDetails implements ArgumentInterface
             $rows[] = [__('Waybill'), (string)__('not issued yet')];
         }
 
-        return $this->format->rows($rows);
+        return $this->formatter->rows($rows);
     }
 
     /**
@@ -206,16 +206,16 @@ readonly class ShipmentDetails implements ArgumentInterface
     private function addressRows(?array $address): array
     {
         if ($address === null) {
-            return $this->format->rows([[__('Address'), '—']]);
+            return $this->formatter->rows([[__('Address'), '—']]);
         }
         $point = (string)($address['point_id'] ?? '');
 
-        return $this->format->rows([
+        return $this->formatter->rows([
             [__('Name'), \trim(\implode(', ', \array_filter([$address['company'] ?? '', $address['person'] ?? ''])))],
             [__('Street'), (string)($address['street'] ?? '')],
             [
                 __('City'),
-                $this->format->place(
+                $this->formatter->place(
                     (string)($address['postcode'] ?? ''),
                     (string)($address['city'] ?? ''),
                     $address['country'] ?? null,
@@ -240,7 +240,7 @@ readonly class ShipmentDetails implements ArgumentInterface
         $cod = $details['cod'] ?? null;
         $rows = [];
         if (\is_array($cod) && (float)($cod['amount'] ?? 0) > 0) {
-            $rows[] = [__('Cash on delivery'), $this->format->money((float)$cod['amount'])];
+            $rows[] = [__('Cash on delivery'), $this->formatter->money((float)$cod['amount'])];
             $rows[] = [__('Payout time'), $this->optionLabelProvider->codType($cod['type'] ?? null)];
             $rows[] = [
                 __('Paid out to'),
@@ -256,14 +256,14 @@ readonly class ShipmentDetails implements ArgumentInterface
             $rows[] = [__('Cash on delivery'), (string)__('none')];
         }
         $insurance = (float)($details['insurance'] ?? 0);
-        $rows[] = [__('Insurance'), $insurance > 0 ? $this->format->money($insurance) : (string)__('none')];
+        $rows[] = [__('Insurance'), $insurance > 0 ? $this->formatter->money($insurance) : (string)__('none')];
         $services = (array)($details['services'] ?? []);
         $rows[] = [__('Additional services'), $services === [] ? (string)__('none') : \implode(', ', $services)];
         foreach ((array)($details['additional_fields'] ?? []) as $name => $value) {
             $rows[] = [(string)$name, (string)$value];
         }
 
-        return $this->format->rows($rows);
+        return $this->formatter->rows($rows);
     }
 
     /**
@@ -283,7 +283,7 @@ readonly class ShipmentDetails implements ArgumentInterface
         }
         $window = \trim(($pickup['time_from'] ?? '') . '–' . ($pickup['time_to'] ?? ''), '–');
 
-        return $this->format->rows([
+        return $this->formatter->rows([
             [__('Handover'), $mode],
             empty($pickup['date']) ? null : [
                 __('Collection date'),
@@ -312,14 +312,14 @@ readonly class ShipmentDetails implements ArgumentInterface
         $contents = \count($sent) === \count($packs) ? $sent : [];
         foreach ($packs as $index => $pack) {
             $rows[] = [
-                // An envelope is one by the shipment type alone.
+                // Whether a parcel is an envelope depends on the shipment type alone.
                 $this->optionLabelProvider->packType(
                     ParcelTypeMapper::fromPolkurier($details['shipment_type'] ?? null, $pack['type'] ?? null),
                 ),
-                $this->format->size($pack['length'] ?? null, $pack['width'] ?? null, $pack['height'] ?? null),
-                $this->format->weight((float)($pack['weight'] ?? 0)),
+                $this->formatter->size($pack['length'] ?? null, $pack['width'] ?? null, $pack['height'] ?? null),
+                $this->formatter->weight((float)($pack['weight'] ?? 0)),
                 (string)($pack['amount'] ?? 1),
-                isset($pack['price_gross']) ? $this->format->money((float)$pack['price_gross']) : '—',
+                isset($pack['price_gross']) ? $this->formatter->money((float)$pack['price_gross']) : '—',
                 $this->describeContents((array)($contents[$index][PackInterface::FIELD_ITEMS] ?? []), $products),
             ];
         }
@@ -349,7 +349,7 @@ readonly class ShipmentDetails implements ArgumentInterface
     {
         $order = $this->orderLoader->find($shipment->getOrderId());
 
-        return $order !== null ? $this->amountCalculator->getItems($order) : [];
+        return $order !== null ? $this->orderAmountCalculator->getItems($order) : [];
     }
 
     /**
@@ -389,7 +389,7 @@ readonly class ShipmentDetails implements ArgumentInterface
     }
 
     /**
-     * An item a line: "2 × Mug".
+     * One item per line: "2 × Mug".
      *
      * @param array<int, mixed> $rows the parcel's items: order_item_id and qty
      * @param array<int, array<string, mixed>> $products
@@ -426,24 +426,24 @@ readonly class ShipmentDetails implements ArgumentInterface
             $rows[] = [
                 (string)($item['description'] ?? ''),
                 (string)($item['amount'] ?? 1),
-                $this->format->money((float)($item['value_net'] ?? 0)),
-                $this->format->money((float)($item['value_gross'] ?? 0)),
+                $this->formatter->money((float)($item['value_net'] ?? 0)),
+                $this->formatter->money((float)($item['value_gross'] ?? 0)),
             ];
         }
         $foot = [
             (string)__('Total'),
             '',
-            $this->format->money((float)($details['price_net'] ?? 0)),
-            $this->format->money((float)($details['price_gross'] ?? 0)),
+            $this->formatter->money((float)($details['price_net'] ?? 0)),
+            $this->formatter->money((float)($details['price_gross'] ?? 0)),
         ];
         $notes = [];
         if ((float)($details['rebate_gross'] ?? 0) > 0) {
-            $notes[] = (string)__('Rebate: %1', $this->format->money((float)$details['rebate_gross']));
+            $notes[] = (string)__('Rebate: %1', $this->formatter->money((float)$details['rebate_gross']));
         }
         if (isset($details['is_paid'])) {
             $notes[] = $details['is_paid']
                 ? (string)__('Paid')
-                : (string)__('Unpaid: %1', $this->format->money((float)($details['unpaid_amount'] ?? 0)));
+                : (string)__('Unpaid: %1', $this->formatter->money((float)($details['unpaid_amount'] ?? 0)));
         }
         if (!empty($details['has_invoice'])) {
             $notes[] = (string)__('Invoiced');
@@ -467,7 +467,7 @@ readonly class ShipmentDetails implements ArgumentInterface
         $rows = [];
         foreach ($shipment->getTracking() as $event) {
             $rows[] = [
-                $this->format->polkurierTime($event['date'] ?? null),
+                $this->formatter->polkurierTime($event['date'] ?? null),
                 (string)($event['status'] ?? ''),
                 (string)($event['description'] ?? ''),
                 (string)($event['location'] ?? ''),
@@ -495,11 +495,11 @@ readonly class ShipmentDetails implements ArgumentInterface
             return '';
         }
 
-        return (string)__('Read from Polkurier %1.', $this->format->storedTime($shipment->getDetailsSyncedAt()));
+        return (string)__('Read from Polkurier %1.', $this->formatter->storedTime($shipment->getDetailsSyncedAt()));
     }
 
     /**
-     * The type of each parcel, the packs of several alike counted one by one.
+     * The type of each parcel, with a pack of several identical parcels counted one by one.
      *
      * @param array<int|string, mixed> $packs as sent or as Polkurier reports them
      *

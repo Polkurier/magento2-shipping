@@ -30,7 +30,10 @@ readonly class SenderMapper
         private CoverAddressMessageBuilderFactory $coverAddressMessageBuilderFactory,
     ) {}
 
-    public function fromAddress(AddressInterface $address): OrderAddressMessage
+    /**
+     * An address book entry, handing the parcels over at the point given, or at none.
+     */
+    public function fromAddress(AddressInterface $address, ?string $pointId): OrderAddressMessage
     {
         return $this->fromFields([
             AddressInterface::FIELD_PERSON => $address->getPerson(),
@@ -43,7 +46,7 @@ readonly class SenderMapper
             AddressInterface::FIELD_COUNTRY => $address->getCountry(),
             AddressInterface::FIELD_EMAIL => $address->getEmail(),
             AddressInterface::FIELD_PHONE => $address->getPhone(),
-            AddressInterface::FIELD_POINT_ID => (string)$address->getPointId(),
+            AddressInterface::FIELD_POINT_ID => (string)$pointId,
         ]);
     }
 
@@ -78,51 +81,18 @@ readonly class SenderMapper
     }
 
     /**
-     * The sender handing the parcels over at the point given, or at none.
+     * The store's address or shipping origin, as configured, handing the parcels over at the
+     * point given, or at none; null when neither is used and filled in.
      */
-    public function withPoint(OrderAddressMessage $sender, ?string $pointId): OrderAddressMessage
-    {
-        return $this->fromFields([
-            AddressInterface::FIELD_PERSON => $sender->getPerson(),
-            AddressInterface::FIELD_COMPANY => (string)$sender->getCompany(),
-            AddressInterface::FIELD_STREET => $sender->getStreet(),
-            AddressInterface::FIELD_HOUSE_NUMBER => (string)$sender->getHouseNumber(),
-            AddressInterface::FIELD_FLAT_NUMBER => (string)$sender->getFlatNumber(),
-            AddressInterface::FIELD_CITY => $sender->getCity(),
-            AddressInterface::FIELD_POSTCODE => $sender->getPostcode(),
-            AddressInterface::FIELD_COUNTRY => $sender->getCountry(),
-            AddressInterface::FIELD_EMAIL => $sender->getEmail(),
-            AddressInterface::FIELD_PHONE => $sender->getPhone(),
-            AddressInterface::FIELD_POINT_ID => (string)$pointId,
-        ]);
-    }
-
-    public function fromStore(int $storeId): ?OrderAddressMessage
+    public function fromStore(int $storeId, ?string $pointId = null): ?OrderAddressMessage
     {
         $fromInformation = $this->configProvider->isUseStoreInformationAddress($storeId)
-            ? $this->fromStoreInformation($storeId)
+            ? $this->fromStoreInformation($storeId, $pointId)
             : null;
 
-        return $fromInformation
-            ?? ($this->configProvider->isUseStoreOriginAddress($storeId) ? $this->fromStoreOrigin($storeId) : null);
-    }
+        $useOrigin = $this->configProvider->isUseStoreOriginAddress($storeId);
 
-    /**
-     * The store's address (General > Store Information), with the store's name, phone and the
-     * configured store e-mail, or null when it isn't filled in.
-     */
-    public function fromStoreInformation(int $storeId): ?OrderAddressMessage
-    {
-        return $this->fromStoreAddress('general/store_information', $storeId);
-    }
-
-    /**
-     * The shipping origin (Sales > Shipping Settings > Origin), with the store's name, phone and
-     * the configured store e-mail, or null when it isn't filled in.
-     */
-    public function fromStoreOrigin(int $storeId): ?OrderAddressMessage
-    {
-        return $this->fromStoreAddress('shipping/origin', $storeId);
+        return $fromInformation ?? ($useOrigin ? $this->fromStoreOrigin($storeId, $pointId) : null);
     }
 
     /**
@@ -150,7 +120,25 @@ readonly class SenderMapper
         return $builder->build();
     }
 
-    private function fromStoreAddress(string $prefix, int $storeId): ?OrderAddressMessage
+    /**
+     * The store's address (General > Store Information), with the store's name, phone and the
+     * configured store e-mail, or null when it isn't filled in.
+     */
+    private function fromStoreInformation(int $storeId, ?string $pointId): ?OrderAddressMessage
+    {
+        return $this->fromStoreAddress('general/store_information', $storeId, $pointId);
+    }
+
+    /**
+     * The shipping origin (Sales > Shipping Settings > Origin), with the store's name, phone and
+     * the configured store e-mail, or null when it isn't filled in.
+     */
+    private function fromStoreOrigin(int $storeId, ?string $pointId): ?OrderAddressMessage
+    {
+        return $this->fromStoreAddress('shipping/origin', $storeId, $pointId);
+    }
+
+    private function fromStoreAddress(string $prefix, int $storeId, ?string $pointId): ?OrderAddressMessage
     {
         $street = $this->streetParser->parse([
             $this->value($prefix . '/street_line1', $storeId),
@@ -164,7 +152,6 @@ readonly class SenderMapper
         $name = $this->value('general/store_information/name', $storeId);
         $builder = $this->orderAddressMessageBuilderFactory->create()
             ->person($name)
-            ->company($name)
             ->street($street['street'])
             ->houseNumber((string)$street['house_number'])
             ->city($city)
@@ -175,8 +162,14 @@ readonly class SenderMapper
                 $storeId,
             ))
             ->phone($this->value('general/store_information/phone', $storeId));
+        if ($name !== '') {
+            $builder->company($name);
+        }
         if ($street['flat_number'] !== null) {
             $builder->flatNumber($street['flat_number']);
+        }
+        if ($pointId !== null && $pointId !== '') {
+            $builder->pointId($pointId);
         }
 
         return $builder->build();

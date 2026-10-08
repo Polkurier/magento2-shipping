@@ -55,8 +55,8 @@ class DataProvider extends FormDataProvider
 
         return [(string)$this->request->getParam('ids') => [
             'ids' => \implode(',', $ids),
-            // Booked from an order's Polkurier tab: back to the order afterwards; or to wherever
-            // the booking was started from.
+            // When booked from an order's Polkurier tab, back to the order afterwards; otherwise to
+            // wherever the booking was started from.
             'order_id' => (string)(int)$this->request->getParam('order_id') ?: '',
             'uenc' => (string)$this->request->getParam('uenc'),
             'shipments' => \implode(', ', $numbers),

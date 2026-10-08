@@ -22,7 +22,7 @@ use Polkurier\Webservice\Api\Service\UtilsServiceInterface;
 /**
  * The Polkurier API with the shop's account: the SDK's services, set up as the module uses them
  * (credentials, sandbox, timeouts, logging). Orders placed through orders() are not the module's
- * shipments; place those with ShipmentManagementInterface.
+ * shipments; place those with {@see \Polkurier\Shipping\Api\ShipmentManagementInterface}.
  *
  * @api
  */

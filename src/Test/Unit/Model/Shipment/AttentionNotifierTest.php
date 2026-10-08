@@ -35,7 +35,7 @@ class AttentionNotifierTest extends TestCase
 
     public function testEachShipmentNeedingSomeoneIsNotifiedOnceWithALinkToIt(): void
     {
-        $count = $this->notifier([
+        $this->notifier([
             [
                 'entity_id' => '5',
                 'state' => 'failed',
@@ -56,7 +56,6 @@ class AttentionNotifierTest extends TestCase
             ],
         ])->notify();
 
-        self::assertSame(2, $count);
         self::assertSame([
             "major | Polkurier: a shipment of order #000000008 wasn't placed | It failed on Polkurier's side on "
             . "2026-10-01 07:00:00: Przerwa techniczna. Send it again or discard it; otherwise it's removed on "

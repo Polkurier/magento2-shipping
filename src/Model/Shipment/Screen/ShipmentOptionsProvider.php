@@ -12,6 +12,7 @@ use Polkurier\Shipping\Api\AddressRepositoryInterface;
 use Polkurier\Shipping\Api\BankAccountRepositoryInterface;
 use Polkurier\Shipping\Api\Data\AddressInterface;
 use Polkurier\Shipping\Api\Data\ShipmentDraftInterface;
+use Polkurier\Shipping\Logger\Logger;
 use Polkurier\Shipping\Model\Carrier\CarrierCatalog;
 use Polkurier\Shipping\Model\Carrier\CarrierFeatureResolver;
 use Polkurier\Shipping\Model\Sdk\ErrorMessageResolver;
@@ -19,7 +20,6 @@ use Polkurier\Shipping\Model\Shipment\Placement\SenderMapper;
 use Polkurier\Webservice\Enum\Courier\PointRequirementEnum;
 use Polkurier\Webservice\Exception\Exception as PolkurierException;
 use Polkurier\Webservice\Response\Carrier;
-use Psr\Log\LoggerInterface;
 
 /**
  * The choices a shipment is put together from, for the admin pages that edit shipment options:
@@ -33,12 +33,12 @@ class ShipmentOptionsProvider implements ResetAfterRequestInterface
     private ?string $failure = null;
 
     public function __construct(
-        private readonly CarrierCatalog $catalog,
+        private readonly CarrierCatalog $carrierCatalog,
         private readonly CarrierFeatureResolver $carrierFeatureResolver,
         private readonly AddressRepositoryInterface $addressRepository,
         private readonly BankAccountRepositoryInterface $bankAccountRepository,
         private readonly ErrorMessageResolver $errorMessageResolver,
-        private readonly LoggerInterface $logger,
+        private readonly Logger $logger,
         private readonly SenderMapper $senderMapper,
     ) {}
 
@@ -48,11 +48,11 @@ class ShipmentOptionsProvider implements ResetAfterRequestInterface
     public function getCarriers(): array
     {
         try {
-            return $this->catalog->getCarriers();
+            return $this->carrierCatalog->getCarriers();
         } catch (PolkurierException $e) {
             // The page still opens, so the merchant can see the rest; the reason goes with it.
             if ($this->failure === null) {
-                $this->failure = $this->errorMessageResolver->describe($e);
+                $this->failure = (string)$this->errorMessageResolver->phrase($e);
                 $this->logger->warning(
                     'Polkurier: the carrier list could not be read for a shipment page',
                     ['exception' => $e],

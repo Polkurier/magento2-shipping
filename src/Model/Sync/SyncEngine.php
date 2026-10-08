@@ -10,9 +10,9 @@ namespace Polkurier\Shipping\Model\Sync;
 use Magento\Framework\Stdlib\DateTime as DateFormat;
 use Magento\Framework\Stdlib\DateTime\DateTime;
 use Polkurier\Shipping\Api\Data\SyncableInterface;
+use Polkurier\Shipping\Logger\Logger;
 use Polkurier\Shipping\Model\Sdk\ErrorMessageResolver;
 use Polkurier\Webservice\Exception\Exception as PolkurierException;
-use Psr\Log\LoggerInterface;
 
 /**
  * Two-way synchronization of one kind of entity between Magento and a Polkurier account.
@@ -36,7 +36,7 @@ readonly class SyncEngine
     public function __construct(
         private ErrorMessageResolver $errorMessageResolver,
         private DateTime $dateTime,
-        private LoggerInterface $logger,
+        private Logger $logger,
         private SyncResultFactory $syncResultFactory,
     ) {}
 
@@ -103,7 +103,7 @@ readonly class SyncEngine
                 );
                 $result->created++;
             } catch (\Throwable $e) {
-                $message = $this->errorMessageResolver->describe($e);
+                $message = (string)$this->errorMessageResolver->phrase($e);
                 $this->logger->warning('Polkurier synchronization failed', [
                     'entity' => $adapter->getEntityType()->value,
                     'remote' => (string)$extId,
@@ -327,7 +327,7 @@ readonly class SyncEngine
         \Throwable $e,
         SyncResult $result,
     ): void {
-        $message = $this->errorMessageResolver->describe($e);
+        $message = (string)$this->errorMessageResolver->phrase($e);
         $this->logger->warning('Polkurier synchronization failed', [
             'entity' => $adapter->getEntityType()->value,
             'id' => $local->getId(),
@@ -349,10 +349,10 @@ readonly class SyncEngine
     }
 
     /**
-     * Saving in Magento marks an entry pending, and a change that didn't get through stays in
-     * error or waits for confirmation: those are changed whatever the times say. The times have
-     * a resolution of a second, the same second as the last synchronization for an entry edited
-     * right after it.
+     * Saving in Magento marks an entry pending, and a change that didn't get through stays in error
+     * or waits for confirmation: such entries count as changed whatever the times say. The times
+     * have a resolution of one second, so an entry edited right after the last synchronization may
+     * carry that same second.
      */
     private function isLocallyChanged(SyncableInterface $local): bool
     {

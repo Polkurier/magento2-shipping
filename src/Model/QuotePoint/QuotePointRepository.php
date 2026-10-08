@@ -33,15 +33,15 @@ readonly class QuotePointRepository implements QuotePointRepositoryInterface
 
     public function save(QuotePointInterface $point): void
     {
-        if ($point instanceof QuotePoint) {
-            $this->quotePointResource->save($point);
-        }
+        /** @var QuotePoint $point */
+        $this->quotePointResource->save($point);
     }
 
     public function deleteForQuote(int $quoteId, int $quoteAddressId = 0): void
     {
+        /** @var QuotePoint|null $point */
         $point = $this->getForQuote($quoteId, $quoteAddressId);
-        if ($point instanceof QuotePoint) {
+        if ($point !== null) {
             $this->quotePointResource->delete($point);
         }
     }

@@ -18,8 +18,8 @@ use Polkurier\Shipping\Ui\Component\Control\OnClickScriptBuilder;
 /**
  * "Back" on the shipment details page: to the admin page it was opened from (the shipments grid,
  * the order's Polkurier tab, Magento's shipments grid or shipment page), or the shipments grid.
- * The page it was opened from is kept in the admin session, so actions run on this page, which
- * come back to it, don't lose it.
+ * The page it was opened from is kept in the admin session, so it isn't lost when an action run on
+ * this page comes back to it.
  */
 class BackButton extends AbstractButton
 {

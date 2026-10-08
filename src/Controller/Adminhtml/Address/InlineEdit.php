@@ -12,7 +12,6 @@ use Magento\Framework\Controller\Result\JsonFactory;
 use Polkurier\Shipping\Api\Data\AddressInterface;
 use Polkurier\Shipping\Controller\Adminhtml\AbstractInlineEdit;
 use Polkurier\Shipping\Model\Address\AddressHandler;
-use Polkurier\Shipping\Model\Admin\FlashMessageCollectorFactory;
 
 /**
  * Saves the sender addresses edited in place in their grid.
@@ -23,11 +22,10 @@ class InlineEdit extends AbstractInlineEdit
 
     public function __construct(
         Context $context,
-        AddressHandler $handler,
+        AddressHandler $addressHandler,
         JsonFactory $jsonFactory,
-        FlashMessageCollectorFactory $flashMessageCollectorFactory,
     ) {
-        parent::__construct($context, $handler, $jsonFactory, $flashMessageCollectorFactory);
+        parent::__construct($context, $addressHandler, $jsonFactory);
     }
 
     protected function getEditableFields(): array

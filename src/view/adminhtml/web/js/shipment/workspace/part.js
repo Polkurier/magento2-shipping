@@ -35,7 +35,7 @@ define([
         },
 
         /**
-         * Takes the part's listeners off the form's data and the modals it opened as it goes.
+         * Removes the part's listeners from the form's data, and from the modals it opened, as it goes.
          */
         destroy: function () {
             this.source.off(this.name);
@@ -62,7 +62,7 @@ define([
         },
 
         /**
-         * Opens what fixes a problem the part's section reports on it.
+         * Opens whatever fixes a problem that the part's section reports.
          *
          * @param {Object} issue
          */

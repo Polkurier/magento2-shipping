@@ -13,7 +13,6 @@ use Magento\Framework\App\Action\HttpGetActionInterface;
 use Magento\Framework\Controller\Result\Json;
 use Magento\Framework\Controller\Result\JsonFactory;
 use Polkurier\Shipping\Model\PickupPoint\MapTokenProvider;
-use Polkurier\Webservice\Exception\Exception as PolkurierException;
 
 /**
  * A fresh token for the pickup point map, for a shipment screen or label window whose token is
@@ -26,21 +25,13 @@ class MapToken extends Action implements HttpGetActionInterface
     public function __construct(
         Context $context,
         private readonly JsonFactory $jsonFactory,
-        private readonly MapTokenProvider $tokenProvider,
+        private readonly MapTokenProvider $mapTokenProvider,
     ) {
         parent::__construct($context);
     }
 
     public function execute(): Json
     {
-        try {
-            $token = $this->tokenProvider->getToken();
-            $expires = $this->tokenProvider->getExpiry();
-        } catch (PolkurierException) {
-            $token = '';
-            $expires = 0;
-        }
-
-        return $this->jsonFactory->create()->setData(['token' => $token, 'expires' => $expires]);
+        return $this->jsonFactory->create()->setData($this->mapTokenProvider->getTokenWithExpiry());
     }
 }

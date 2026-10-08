@@ -8,66 +8,69 @@
 
 ## Shipping methods
 
-At the shipping step, customers see every carrier you switched on that their cart qualifies for
-(see [Carriers and prices](carriers-and-prices.md)), each with your label and your price, and
-with its logo in front of the name if you uploaded one. The
-Polkurier name appears nowhere: not in the method list, the order summary, e-mails, the
-customer's account, or the page source.
+At the shipping step, customers see each carrier you switched on that suits their cart. Each
+carrier shows your label, your price and, if you uploaded one, its logo. To change any of these,
+see [Carriers and prices](carriers-and-prices.md).
 
-If Polkurier can't be reached while the methods are loaded, customers still see your domestic
-carriers; nothing waits on Polkurier beyond a list the module keeps cached.
+If Polkurier can't be reached at that moment, your carriers are still offered for addresses in
+Poland.
 
 ## Pickup points
 
-For carriers that deliver to parcel lockers or pickup shops, a **Choose a pickup point** button
-appears in the method's row, in the last column, where Magento names the carrier. It opens a map
-centred on the shipping postcode, where the customer can browse, search and pick a point, and
-selects the method. The chosen point is shown above the button, which lets them pick another. On
-a narrow phone screen, the button's label wraps within the column.
+Carriers that deliver to parcel lockers or pickup shops get a **Choose a pickup point** button in
+their row. The button selects the method and opens a map near the customer's postcode.
 
-The customer can't continue to payment without a point. The point is checked when they move on to
-payment and once more when the order is placed, so a point that has closed or stopped taking
-parcels in the meantime is caught before the order goes through.
+![Shipping methods at checkout, with Choose a pickup point buttons and a chosen point](images/checkout-methods.jpg)
 
-What the map shows can be adjusted on the configuration page, under
+On the map, the customer can browse, search and pick a point. The chosen point then shows above
+the button, and the button lets them pick another one.
+
+![The pickup point map, with a list of points beside it](images/checkout-map.jpg)
+
+- **Lockers and pickup points**: the customer can't continue to payment without choosing a point.
+- **Couriers that can also deliver to a point**: the button is there too, but choosing a point is
+  optional.
+- **A point that has closed or stopped taking parcels** is refused before the order goes through,
+  and the customer is asked to choose another one.
+- **If the map isn't available**, carriers that deliver only to points aren't offered.
+
+What the map shows is set on the configuration page, under
 [Pickup point map](configuration.md#pickup-point-map).
 
 ## Cash on delivery
 
-If the customer picks a carrier that can't collect cash on delivery, your cash on delivery payment
-methods (see **Cash on delivery payment methods** in the
-[configuration](configuration.md#cash-on-delivery)) are hidden for that order.
+Your cash on delivery payment methods are hidden when the customer:
 
-If the carrier can collect it but the pickup point chosen doesn't accept it, the methods are
-hidden too, and a note after the payment methods says that the point doesn't accept cash on
-delivery and that another point lets the customer pay on delivery.
+- picks a carrier that can't collect cash on delivery, or
+- picks a pickup point that doesn't accept it. A note under the payment methods then says that
+  another point lets the customer pay on delivery.
 
-A point that couldn't be checked with Polkurier when it was chosen counts as one that accepts cash
-on delivery. If Polkurier can't be reached at the payment step itself, the payment methods are
-left as they are.
+Which payment methods count as cash on delivery is set in
+[Configuration](configuration.md#cash-on-delivery). If a point couldn't be checked with Polkurier,
+it counts as one that accepts cash on delivery. If Polkurier can't be reached at the payment step,
+the payment methods are left as they are.
 
 ## Multi-address checkout
 
-Customers who ship to several addresses at once (**Check Out with Multiple Addresses** in the
-cart) get the same choice for each address. When a method that delivers to a point is selected
-for an address, a **Choose a pickup point** button appears under it, and the customer can't
-continue until every such address has its point. Each of the resulting orders carries its own
-point. Carrier logos are shown there as well.
+Customers can also ship to several addresses at once (**Check Out with Multiple Addresses** in the
+cart). They get the same choice of carriers and pickup points for each address, and each of the
+resulting orders carries its own point.
 
-This needs the multi-address checkout module, `polkurier/magento2-multishipping` (see
-[Installation](installation.md#multi-address-checkout)).
+This needs the multi-address checkout add-on; see
+[Introduction](introduction.md#multi-address-checkout).
 
 ## After the order is placed
 
-The chosen point is saved with the order and named with its shipping method, for example "Paczkomat
-InPost, pickup point WAW01A (ul. Prosta 1, 00-001 Warszawa)". Customers see it wherever the method
-is shown: on the payment step, in the order, invoice and shipment e-mails, in their account and on
-printed documents; in the multi-address checkout, on the review page too. In the admin it's in
-**Shipping & Handling Information** on the order page, read-only. It's filled in automatically when
-you ship the order, whichever way you do it.
+The chosen point is saved with the order and named after the shipping method, for example
+"Paczkomat InPost, pickup point WAW01A (ul. Prosta 1, 00-001 Warszawa)".
 
-If the customer asks for another point, choose it when you ship the order: the point can be changed
-for each shipment, on the shipment screen or in the shipping label options. The order page only
-shows the point the customer chose.
+- **Customers** see it wherever the shipping method is shown: at the payment step, in the order,
+  invoice and shipment e-mails, in their account and on printed documents.
+- **In the admin**, it's under **Shipping & Handling Information** on the order page. It can't be
+  changed there.
+- **When you ship the order**, the point is filled in on the shipment for you.
+
+If the customer asks for another point, choose it when you ship the order. You can change the point
+for each shipment, on the shipment screen or in the shipping label options.
 
 Next: [Shipping an order](shipping-an-order.md)

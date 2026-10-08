@@ -23,10 +23,10 @@ use Polkurier\Shipping\Model\Shipment\ShipmentFinder;
 use Polkurier\Shipping\Model\ShippingChoice\ShippingChoiceRepository;
 
 /**
- * Keeps the order's shipping what was actually sent: its shipping method, its description and its
- * pickup point follow the carrier and point of its latest placed Polkurier order, so the order
- * page, the order grid, e-mails and the API all show them. The customer's choice is kept on the
- * side (ShippingChoiceRepository) and comes back once no placed Polkurier order is left.
+ * Keeps the order's shipping matching what was actually sent: its shipping method, its description
+ * and its pickup point follow the carrier and point of its latest placed Polkurier order, so the
+ * order page, the order grid, e-mails and the API all show them. The customer's choice is kept on
+ * the side ({@see ShippingChoiceRepository}) and comes back once no placed Polkurier order is left.
  * The shipping amount the customer paid stays as it was.
  *
  * The order is the repository's instance, which a page saving the order later holds too, and only
@@ -36,17 +36,17 @@ readonly class ActualShippingUpdater
 {
     public function __construct(
         private OrderLoader $orderLoader,
-        private ShipmentFinder $finder,
+        private ShipmentFinder $shipmentFinder,
         private ShippingChoiceRepository $shippingChoiceRepository,
         private OrderPointRepositoryInterface $orderPointRepository,
         private SentOrderReader $sentOrderReader,
-        private ScreenDataProvider $screenData,
+        private ScreenDataProvider $screenDataProvider,
         private NativeShipmentService $nativeShipmentService,
         private PointDescriptionBuilder $pointDescriptionBuilder,
         private Emulation $emulation,
         private SalesAttribute $salesAttribute,
         private GridInterface $orderGrid,
-        private NativeFollowUpService $followUp,
+        private NativeFollowUpService $nativeFollowUpService,
     ) {}
 
     public function sync(int $orderId): void
@@ -91,7 +91,7 @@ readonly class ActualShippingUpdater
             $label = $current->getPointLabel();
             $cod = $current->getPointCod();
         } elseif ($point !== '') {
-            $found = $this->screenData->findRecipientPoint($carrier, $point);
+            $found = $this->screenDataProvider->findRecipientPoint($carrier, $point);
             $label = $found ? $found->getAddress() : null;
             $cod = $found?->isCod();
         }
@@ -102,7 +102,7 @@ readonly class ActualShippingUpdater
         } else {
             $this->orderPointRepository->deleteForOrder($orderId);
         }
-        $this->followUp->comment($order, __(
+        $this->nativeFollowUpService->comment($order, __(
             'Shipping changed to what Polkurier order %1 went with: %2. The customer chose: %3.',
             (string)$latest->getPolkurierNumber(),
             $description,
@@ -133,7 +133,7 @@ readonly class ActualShippingUpdater
             $this->orderPointRepository->deleteForOrder($orderId);
         }
         $this->shippingChoiceRepository->deleteForOrder($orderId);
-        $this->followUp->comment(
+        $this->nativeFollowUpService->comment(
             $order,
             __('Shipping back to the customer\'s choice: %1.', (string)$choice->getShippingDescription()),
         );
@@ -165,7 +165,7 @@ readonly class ActualShippingUpdater
 
     private function latestPlaced(int $orderId): ?ShipmentInterface
     {
-        return $this->finder->latestForOrder($orderId, [ShipmentInterface::STATE_CREATED]);
+        return $this->shipmentFinder->latestForOrder($orderId, [ShipmentInterface::STATE_CREATED]);
     }
 
     /**

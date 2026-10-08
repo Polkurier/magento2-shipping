@@ -31,18 +31,19 @@ use Polkurier\Shipping\Model\Shipment\Placement\ManualEntrySaver;
 
 /**
  * What Magento's shipment pages know and the label flow needs, for orders placed with a Polkurier
- * method (NativeLabelService):
+ * method ({@see NativeLabelService}):
  *
  * - whether labels can be made: Magento asks the carrier without saying for which order, so the
  *   pages' canCreateShippingLabel() is answered here for the order's store;
  * - the options posted with the label request, put on the Magento shipment for the carrier
- *   (LabelGenerator::create(), which has both);
- * - the permissions behind the label, on Magento's Save (with a label) and CreateLabel (a label
- *   for a shipment made without, given by its id), which answer the packaging window in JSON and
- *   check only Magento's own: asking for the label places a Polkurier order, so it needs the
- *   permission to place them; and a package's name to keep it under is dropped, with a warning,
- *   without the permission to change the pack templates;
- * - after either, what became of the entries typed in to be kept (TypedInEntrySaver).
+ *   ({@see LabelGenerator::create()}, which has both);
+ * - the permissions behind the label, on Magento's {@see \Magento\Shipping\Controller\Adminhtml\Order\Shipment\Save}
+ *   (with a label) and {@see CreateLabel} (a label for a shipment made without one, given by its
+ *   id). Both answer the packaging window in JSON and check only Magento's own permissions. Asking
+ *   for the label places a Polkurier order, so it needs the permission to place them. Without the
+ *   permission to change the pack templates, the name to keep a package under is dropped, with a
+ *   warning;
+ * - after either, what became of the entries typed in to be kept ({@see ManualEntrySaver}).
  */
 readonly class NativeLabelPagePlugin
 {
@@ -108,7 +109,7 @@ readonly class NativeLabelPagePlugin
         try {
             return (int)$this->shipmentRepository->get($shipmentId)->getOrderId();
         } catch (NoSuchEntityException) {
-            // Magento's action says so.
+            // Magento's action reports the missing shipment.
             return 0;
         }
     }

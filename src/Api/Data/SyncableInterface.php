@@ -17,7 +17,7 @@ interface SyncableInterface
     public const string FIELD_EXT_ID = 'ext_id';
 
     /**
-     * What the merchant tells the entries apart by.
+     * The name the merchant tells the entries apart by.
      */
     public const string FIELD_NAME = 'name';
 

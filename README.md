@@ -15,18 +15,21 @@ Ship your Magento orders with [Polkurier](https://www.polkurier.pl).
 - Print labels and protocols, book courier pickups and follow deliveries.
 - Keep track of cash on delivery and request payouts.
 - Keep sender addresses, bank accounts and pack templates in step with your Polkurier account.
-- Works with the multi-address checkout through `polkurier/magento2-multishipping`; service
-  contracts and events for integrations.
+- Offer pickup points in the multi-address checkout too, with the add-on module
+  `polkurier/magento2-multishipping`.
+- Connect other systems through service contracts and events.
+
+Requires Magento Open Source or Adobe Commerce 2.4.7 or later, and PHP 8.3, 8.4 or 8.5. Install it
+with Composer:
 
 ```bash
 composer require polkurier/magento2-shipping
-bin/magento module:enable Polkurier_Shipping
-bin/magento setup:upgrade
 ```
 
-Requires Magento Open Source or Adobe Commerce 2.4.7 or later, and PHP 8.3, 8.4 or 8.5.
+Then follow the steps in the [developer guide](docs/developer-guide/installation.md).
 
 ## Documentation
 
-- [User guide](docs/user-guide/README.md): installation, configuration and day-to-day use
-- [Developer guide](docs/developer-guide/README.md): how the module works and how to extend it
+- [User guide](docs/user-guide/README.md): setting up and day-to-day use
+- [Developer guide](docs/developer-guide/README.md): installation, how the module works and how to
+  extend it

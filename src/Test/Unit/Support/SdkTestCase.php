@@ -8,6 +8,7 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Test\Unit\Support;
 
 use PHPUnit\Framework\TestCase;
+use Polkurier\Shipping\Logger\Logger;
 use Polkurier\Shipping\Model\Sdk\AccountConfigProvider;
 use Polkurier\Shipping\Model\Sdk\AccountConfigProviderFactory;
 use Polkurier\Shipping\Model\Sdk\PolkurierClient;
@@ -18,11 +19,10 @@ use Polkurier\Webservice\PolkurierWebserviceFactory;
 use Polkurier\Webservice\Serializer\SerializerProvider;
 use Polkurier\Webservice\Testing\RecordingClient;
 use Polkurier\Webservice\Validator\DefaultValidatorRegistryFactory;
-use Psr\Log\NullLogger;
 
 /**
  * Drives the real SDK — validation, serialization, envelope, response mapping — through the
- * SDK's RecordingClient, so a test can assert both what came back and what was sent.
+ * SDK's {@see RecordingClient}, so a test can assert both what came back and what was sent.
  */
 abstract class SdkTestCase extends TestCase
 {
@@ -33,7 +33,9 @@ abstract class SdkTestCase extends TestCase
     {
         $webserviceFactory = $this->createStub(PolkurierWebserviceFactory::class);
         $webserviceFactory->method('create')->willReturnCallback(
-            static fn(array $arguments): PolkurierWebservice => new PolkurierWebservice(...$arguments),
+            static fn(array $arguments): PolkurierWebservice => new PolkurierWebservice(
+                ...[...$arguments, 'clientFactory' => $http],
+            ),
         );
 
         $configProvider = $this->createStub(AccountConfigProvider::class);
@@ -51,8 +53,7 @@ abstract class SdkTestCase extends TestCase
             $configProviderFactory,
             new SerializerProvider(),
             DefaultValidatorRegistryFactory::create(),
-            new NullLogger(),
-            $http,
+            $this->createStub(Logger::class),
         );
     }
 

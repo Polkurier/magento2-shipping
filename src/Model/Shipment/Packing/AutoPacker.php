@@ -12,8 +12,8 @@ use Magento\Sales\Model\Order;
 use Polkurier\Shipping\Api\Data\PackTemplateInterface;
 use Polkurier\Shipping\Api\Data\ShipmentDraftInterface;
 use Polkurier\Shipping\Api\PackTemplateRepositoryInterface;
-use Polkurier\Shipping\Enum\ParcelWeightEnum;
-use Polkurier\Shipping\Enum\WeightLimitEnum;
+use Polkurier\Shipping\Enum\Config\ParcelWeightEnum;
+use Polkurier\Shipping\Enum\Config\WeightLimitEnum;
 use Polkurier\Shipping\Model\Config\ConfigProvider;
 use Polkurier\Shipping\Model\Shipment\Draft;
 use Polkurier\Shipping\Model\Shipment\Draft\ItemFactory;
@@ -40,20 +40,19 @@ use Polkurier\Webservice\Enum\Order\ShipmentTypeEnum;
  * unit never counts as room. Cutting the space this way can miss arrangements a person would find,
  * so now and then a parcel is bigger, or there is one more, than needed; none holds more than fits.
  *
- * The packing margin set for the store is added to every side of every unit first, for products
- * a little bigger than their dimensions say. A product without a weight weighs nothing while
- * packing, and is reported; its parcel takes its template's weight. Otherwise a parcel weighs what
- * the parcel weight setting says: what's in it, or its template's weight. A template's weight is
- * the most its parcel may weigh. Going over it is only pointed out on the shipment screen, or, when
- * the store is set to keep parcels under it,
- * avoided wherever another parcel or a bigger template can take the rest; an item too heavy for
- * every template is still packed by size.
+ * The packing margin set for the store is added to every side of every unit first, for products a
+ * little bigger than their dimensions say. A product without a weight weighs nothing while packing,
+ * and is reported; its parcel takes its template's weight. Otherwise a parcel weighs what the
+ * parcel weight setting says: what's in it, or its template's weight. A template's weight is the
+ * most its parcel may weigh. Going over it is only pointed out on the shipment screen. When the
+ * store is set to keep parcels under it, it's avoided wherever another parcel or a bigger template
+ * can take the rest; an item too heavy for every template is still packed by size.
  */
 readonly class AutoPacker
 {
     public function __construct(
-        private OrderAmountCalculator $amountCalculator,
-        private ItemDimensionsProvider $dimensions,
+        private OrderAmountCalculator $orderAmountCalculator,
+        private ItemDimensionsProvider $itemDimensionsProvider,
         private PackTemplateRepositoryInterface $packTemplateRepository,
         private PackFactory $packFactory,
         private ItemFactory $itemFactory,
@@ -62,8 +61,8 @@ readonly class AutoPacker
     ) {}
 
     /**
-     * Packs a draft's items on request (Pack automatically): what the draft ships, with a word on
-     * the weights the parcels leave out.
+     * Packs a draft's items on request (Pack automatically): what the draft ships, with a notice
+     * about the weights the parcels leave out.
      *
      * @return array{packs: Draft\Pack[], notice: string} the parcels, and what their weights leave out
      * @throws LocalizedException when there's nothing to pack, or nothing to pack it into
@@ -71,7 +70,7 @@ readonly class AutoPacker
     public function packDraft(Order $order, ShipmentDraftInterface $draft): array
     {
         $targetId = $draft->getTargetShipmentId();
-        // A Magento shipment there is carries what it does, which the order counts as shipped.
+        // An existing Magento shipment: pack what it carries, which the order counts as shipped.
         $qtys = $targetId !== null
             ? $this->nativeShipmentService->getShipmentQuantities($order, $targetId)
             : ($this->nativeShipmentService->getQuantities($order, $draft->getItems())
@@ -82,10 +81,11 @@ readonly class AutoPacker
         if ($qtys === []) {
             throw new LocalizedException(__('Everything in this order is shipped already.'));
         }
-        // Repacking the parcels there are keeps to their kind; without any, the items decide.
-        $packed = $draft->getShipmentType() !== ''
-            ? $this->pack($order, $qtys, $draft->getShipmentType())
-            : $this->packByItems($order, $qtys);
+        // Repacking existing parcels keeps their type; without any, the website's default type is
+        // used. Every parcel is of that type, so a shipment never mixes them.
+        $shipmentType = $draft->getShipmentType()
+            ?: $this->configProvider->getDefaultShipmentType((int)$order->getStoreId())->value;
+        $packed = $this->pack($order, $qtys, $shipmentType);
         if ($packed['packs'] === []) {
             throw new LocalizedException($packed['unmeasured'] !== []
                 ? __(
@@ -102,28 +102,11 @@ readonly class AutoPacker
     }
 
     /**
-     * With no parcels to go by: as the parcels of the website go (parcels, envelopes or pallets),
-     * or as given, e.g. what the carrier takes. Every parcel is of that kind, so a shipment never
-     * mixes them: an item no template of the kind takes goes in one of its own size of the kind.
-     *
      * @param array<int, float> $qtys shipped by order item id
-     * @param string|null $shipmentType the kind; the website's when none
+     * @param string|null $shipmentType only templates of this shipment type, e.g. no pallets for boxes;
+     *     an item that no template of the type takes gets a parcel of its own size, of that type
      *
-     * @return array{packs: Draft\Pack[], unmeasured: string[], unweighed: string[], unweighed_own: string[], templates: bool}
-     *     as pack() gives it
-     */
-    public function packByItems(Order $order, array $qtys, ?string $shipmentType = null): array
-    {
-        $kind = $shipmentType ?: $this->configProvider->getDefaultShipmentType((int)$order->getStoreId())->value;
-
-        return $this->pack($order, $qtys, $kind);
-    }
-
-    /**
-     * @param array<int, float> $qtys shipped by order item id
-     * @param string|null $shipmentType only templates of this shipment type, e.g. no pallets for boxes
-     *
-     * @return array{packs: Draft\Pack[], unmeasured: string[], unweighed: string[], unweighed_own: string[], templates: bool}
+     * @return array{packs: Draft\Pack[], unmeasured: string[], unweighed: string[], unweighed_own: string[]}
      *     the parcels, or why there are none: the items without dimensions, or no pack template
      *     with a size; the items without a weight, which the parcels' weights leave out; and of
      *     those, the ones in a parcel of their own size, with no template's weight to take
@@ -131,8 +114,8 @@ readonly class AutoPacker
     public function pack(Order $order, array $qtys, ?string $shipmentType = null): array
     {
         $qtys = \array_filter($qtys, static fn(float $qty): bool => $qty > 0);
-        $items = $this->amountCalculator->getItems($order);
-        $sizes = $this->dimensions->get($order, \array_keys($qtys));
+        $items = $this->orderAmountCalculator->getItems($order);
+        $sizes = $this->itemDimensionsProvider->get($order, \array_keys($qtys));
         $unmeasured = [];
         foreach (\array_keys($qtys) as $id) {
             if (!isset($sizes[$id])) {
@@ -152,7 +135,6 @@ readonly class AutoPacker
                 'unmeasured' => $unmeasured,
                 'unweighed' => $unweighed,
                 'unweighed_own' => [],
-                'templates' => $templates !== [],
             ];
         }
 
@@ -191,8 +173,8 @@ readonly class AutoPacker
                 }
             }
             $pack = $this->toPack($parcel, $parcelWeight);
-            // One of its own size is of the kind packed, so the shipment stays of one kind: the
-            // smallest pallet it stands on, or an envelope.
+            // A parcel of its own size gets the type being packed, so the shipment stays of one
+            // type: the smallest pallet it stands on, or an envelope.
             if ($pack->getTemplateId() === null && $shipmentType === ShipmentTypeEnum::Palette->value) {
                 $pack->setPackType(ParcelTypeMapper::palletFor($pack->getLength(), $pack->getWidth()));
             } elseif ($pack->getTemplateId() === null && $shipmentType === ShipmentTypeEnum::Envelope->value) {
@@ -206,7 +188,6 @@ readonly class AutoPacker
             'unmeasured' => [],
             'unweighed' => $unweighed,
             'unweighed_own' => \array_values($unweighedOwn),
-            'templates' => true,
         ];
     }
 
@@ -266,8 +247,8 @@ readonly class AutoPacker
                 }
             }
             if ($best === null) {
-                // Nothing left fits any template: the biggest unit gets the smallest box it fits by
-                // size, too heavy as it is, or else a parcel of its own size.
+                // Nothing left fits any template: the biggest unit gets the smallest template it
+                // fits by size, even though too heavy, or else a parcel of its own size.
                 $unit = \array_shift($units);
                 $parcels[] = ['template' => $this->smallest($templates, [$unit], false), 'units' => [$unit]];
                 continue;
@@ -468,7 +449,7 @@ readonly class AutoPacker
     }
 
     /**
-     * The smallest template the units can all be packed into, and, unless told otherwise, that
+     * The smallest template the units all fit into and, unless told otherwise, whose weight limit
      * holds what they weigh.
      *
      * @param array<int, array<string, mixed>> $templates smallest first

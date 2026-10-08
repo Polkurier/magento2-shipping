@@ -10,13 +10,13 @@ namespace Polkurier\Shipping\Controller\Adminhtml;
 use Magento\Framework\Controller\Result\Redirect;
 
 /**
- * For the admin actions of the module's grids, rows and buttons: back to the page the action was
- * started from, as the browser names it or as a form opened on the way carried it (the "uenc"
- * parameter), rather than to a page of the action's own choosing. Only when there's none, or it
- * names a page that's gone with the action (a shipment discarded, an entry deleted), the
- * fallback.
+ * For the admin actions of the module's grids, rows and buttons: goes back to the page the action
+ * was started from, rather than to a page of the action's own choosing. That page is the one the
+ * browser names, or the one a form opened on the way carried along (the "uenc" parameter). The
+ * fallback is used only when there's no such page, or when that page is gone with the action (a
+ * shipment discarded, an entry deleted).
  *
- * For controllers extending Magento\Backend\App\Action.
+ * For controllers extending {@see \Magento\Backend\App\Action}.
  */
 trait ReturnsBackTrait
 {
@@ -28,8 +28,8 @@ trait ReturnsBackTrait
     {
         $redirect = $this->resultRedirectFactory->create();
         $referer = (string)$this->_redirect->getRefererUrl();
-        // Only an admin page: Magento's own fallback, for a missing or outside referer, is the site's
-        // base address, which with a custom admin URL is the storefront's.
+        // Only an admin page will do. For a missing or outside referer, Magento falls back to the
+        // site's base address, which with a custom admin URL is the storefront's.
         $admin = \rtrim((string)$this->_backendUrl->getBaseUrl(), '/')
             . '/' . $this->_backendUrl->getAreaFrontName() . '/';
         $usable = \str_starts_with($referer, $admin);

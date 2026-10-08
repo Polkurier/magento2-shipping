@@ -14,6 +14,7 @@ use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Polkurier\Shipping\Api\QuotePointRepositoryInterface;
+use Polkurier\Shipping\Logger\Logger;
 use Polkurier\Shipping\Model\Carrier\CarrierCatalog;
 use Polkurier\Shipping\Model\Carrier\CarrierFeatureResolver;
 use Polkurier\Shipping\Model\Config\ConfigProvider;
@@ -24,7 +25,6 @@ use Polkurier\Webservice\Enum\Courier\PointFunctionEnum;
 use Polkurier\Webservice\Exception\ConnectionException;
 use Polkurier\Webservice\Response\Carrier;
 use Polkurier\Webservice\Response\CourierPoint;
-use Psr\Log\NullLogger;
 
 #[CoversClass(PointSelectionRecorder::class)]
 #[AllowMockObjectsWithoutExpectations]
@@ -223,7 +223,7 @@ class PointSelectionRecorderTest extends TestCase
         $config = $this->createStub(ConfigProvider::class);
         $config->method('getMapPointFunctions')->willReturn([PointFunctionEnum::Collect]);
 
-        return new PointSelectionRecorder($store, $points, $catalog, $features, $config, new NullLogger());
+        return new PointSelectionRecorder($store, $points, $catalog, $features, $config, $this->createStub(Logger::class));
     }
 
     private function quote(): Quote

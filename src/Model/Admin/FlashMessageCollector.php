@@ -12,9 +12,10 @@ use Magento\Framework\Phrase;
 use Polkurier\Webservice\Response\TwoFactorToken;
 
 /**
- * The one message an admin action leaves, however many things it did: what it has to say, in
- * order, shown together at the gravest of their kinds. An action gathers its parts here and sends
- * them once, so the admin gets one flash per action rather than one per row or per step.
+ * Collects everything an admin action has to report into one message, however many things the
+ * action did. The parts are shown together, in order, at the most severe level among them. An
+ * action gathers its parts here and sends them once, so the admin gets one flash per action rather
+ * than one per row or per step.
  */
 class FlashMessageCollector
 {
@@ -50,11 +51,6 @@ class FlashMessageCollector
         return $this->add($text, self::ERROR);
     }
 
-    public function isEmpty(): bool
-    {
-        return $this->parts === [];
-    }
-
     /**
      * Adds the one message, if there is anything to say, and starts over.
      */
@@ -76,8 +72,8 @@ class FlashMessageCollector
     }
 
     /**
-     * Says where a confirmation code went and until when it's valid: where, by the name of the
-     * method Polkurier sent it by (a partly masked phone number or e-mail address).
+     * Says where a confirmation code was sent and until when it's valid. "Where" is the name of the
+     * method Polkurier sent it by: a partly masked phone number or e-mail address.
      */
     public static function codeSent(TwoFactorToken $token): string
     {

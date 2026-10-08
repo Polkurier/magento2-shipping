@@ -22,8 +22,8 @@ use Polkurier\Webservice\Response\Carrier\AdditionalData\Property;
 readonly class CarrierFeatureResolver
 {
     /**
-     * Services for pallets, which the carrier list doesn't report: offered with every carrier that
-     * takes pallets, for pallet shipments, and Polkurier's pricing says which carriers take them.
+     * Services for pallets, which the carrier list doesn't report. They're offered for pallet
+     * shipments with every carrier that takes pallets; Polkurier's pricing says which carriers do.
      */
     public const array PALLET_SERVICES = [
         AdditionalServiceEnum::DangerousGoods,
@@ -45,18 +45,13 @@ readonly class CarrierFeatureResolver
         AdditionalServiceEnum::CheckContent,
     ];
 
-    public function isForeign(Carrier $carrier): bool
-    {
-        return $carrier->isForeignShipments();
-    }
-
     public function isRecipientPointRequired(Carrier $carrier): bool
     {
         return $carrier->getAdditionalData()?->getPointsMap()?->getRecipientPoint() === PointRequirementEnum::Required;
     }
 
     /**
-     * Whether the parcels are handed over at a point, and must be: none, optional or required.
+     * Whether the sender may or must hand the parcels over at a point: none, optional or required.
      */
     public function getSenderPointRequirement(Carrier $carrier): PointRequirementEnum
     {

@@ -34,7 +34,7 @@ class PolkurierOrderColumn extends Column
     public function __construct(
         ContextInterface $context,
         UiComponentFactory $uiComponentFactory,
-        private readonly ShipmentFinder $finder,
+        private readonly ShipmentFinder $shipmentFinder,
         private readonly UrlInterface $url,
         private readonly AuthorizationInterface $authorization,
         private readonly ShipmentState $states,
@@ -100,11 +100,11 @@ class PolkurierOrderColumn extends Column
             return [];
         }
         $states = $this->states->toArray();
-        // A Magento shipment keeps every Polkurier order it has had: the one placed shows, or the
-        // latest.
+        // A Magento shipment keeps every Polkurier order it has had: the placed one is shown, or
+        // else the latest.
         $links = [];
         $holding = [];
-        foreach ($this->finder->linkedTo($magentoShipmentIds) as $shipment) {
+        foreach ($this->shipmentFinder->linkedTo($magentoShipmentIds) as $shipment) {
             $magentoShipmentId = (int)$shipment->getShipmentId();
             if ($holding[$magentoShipmentId] ?? false) {
                 continue;

@@ -19,19 +19,20 @@ use Magento\Shipping\Model\Rate\Result;
 use Magento\Shipping\Model\Tracking\Result\Status;
 use Magento\Shipping\Model\Tracking\Result\StatusFactory;
 use Magento\Store\Model\StoreManagerInterface;
+use Polkurier\Shipping\Logger\Logger;
 use Polkurier\Shipping\Model\CarrierConfig\CarrierConfigProvider;
 use Polkurier\Shipping\Model\Config\Source\PackType;
 use Polkurier\Shipping\Model\Shipment\Native\NativeLabelService;
 use Polkurier\Shipping\Model\Shipment\ShipmentFinder;
-use Psr\Log\LoggerInterface;
 
 /**
  * Magento's carrier for the merchant's Polkurier carriers: an adapter over the module's services.
- * RateCollector prices the checkout rates, ShipmentFinder finds the shipment of a waybill for
- * tracking, and in the admin NativeLabelService creates shipping labels through Magento's packaging popup.
+ * {@see \Polkurier\Shipping\Model\Carrier\RateCollector} prices the checkout rates,
+ * {@see ShipmentFinder} finds the shipment of a waybill for tracking, and in the admin
+ * {@see NativeLabelService} creates shipping labels through Magento's packaging popup.
  *
- * The name "Polkurier" never reaches the storefront: rates carry no carrier title, so Magento's
- * shipping description is the method label alone, and tracking is titled by that label too.
+ * Rates carry no carrier title, so Magento's shipping description is the method label alone, and
+ * tracking is titled by that label too.
  */
 class Polkurier extends AbstractCarrier implements CarrierInterface
 {
@@ -44,7 +45,7 @@ class Polkurier extends AbstractCarrier implements CarrierInterface
     public const string HOME_COUNTRY = 'PL';
 
     /**
-     * What the carrier's shipping methods start with, before the account carrier's code.
+     * The prefix of this carrier's shipping methods, before the account carrier's code.
      */
     public const string METHOD_PREFIX = self::CODE . '_';
 
@@ -92,10 +93,10 @@ class Polkurier extends AbstractCarrier implements CarrierInterface
     public function __construct(
         ScopeConfigInterface $scopeConfig,
         ErrorFactory $rateErrorFactory,
-        LoggerInterface $logger,
+        Logger $logger,
         private readonly RateCollector $rateCollector,
         private readonly StatusFactory $trackStatusFactory,
-        private readonly ShipmentFinder $finder,
+        private readonly ShipmentFinder $shipmentFinder,
         private readonly CarrierConfigProvider $carrierConfigProvider,
         private readonly StoreManagerInterface $storeManager,
         private readonly NativeLabelService $nativeLabelService,
@@ -120,8 +121,8 @@ class Polkurier extends AbstractCarrier implements CarrierInterface
     }
 
     /**
-     * Magento titles the "not available" row it shows for a country outside Ship to Specific
-     * Countries with the carrier's title, which customers must not see: the row goes without one.
+     * For a country outside Ship to Specific Countries, Magento shows a "not available" row titled
+     * with the carrier's title; here that row has no title.
      *
      * @param DataObject $request
      *
@@ -138,13 +139,17 @@ class Polkurier extends AbstractCarrier implements CarrierInterface
     }
 
     /**
-     * @return array<string, string>
+     * @return array<string, string> method labels by carrier code
      */
     public function getAllowedMethods(): array
     {
-        $store = $this->storeManager->getStore($this->getStore());
+        $storeId = (int)$this->storeManager->getStore($this->getStore())->getId();
+        $methods = [];
+        foreach ($this->carrierConfigProvider->getActive() as $code => $config) {
+            $methods[$code] = $config->getLabelForStore($storeId);
+        }
 
-        return $this->rateCollector->getAllowedMethods((int)$store->getId());
+        return $methods;
     }
 
     public function isTrackingAvailable(): bool
@@ -196,7 +201,7 @@ class Polkurier extends AbstractCarrier implements CarrierInterface
     }
 
     /**
-     * Magento's packaging popup asks; sizes are length, width and height only.
+     * Asked by Magento's packaging popup. No girth: sizes are length, width and height only.
      *
      * @param string|null $countyDest
      */
@@ -214,7 +219,7 @@ class Polkurier extends AbstractCarrier implements CarrierInterface
     {
         $status = $this->trackStatusFactory->create();
         $status->setCarrier(self::CODE);
-        $shipment = $this->finder->latestByWaybill((string)$tracking);
+        $shipment = $this->shipmentFinder->latestByWaybill((string)$tracking);
         // The label of the carrier it went with, in the store it was ordered in.
         $status->setCarrierTitle($shipment !== null
             ? $this->carrierConfigProvider->getLabel($shipment->getCarrierCode(), (int)$shipment->getStoreId())

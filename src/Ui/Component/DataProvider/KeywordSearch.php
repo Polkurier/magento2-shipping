@@ -21,7 +21,7 @@ use Magento\Framework\View\Element\UiComponent\DataProvider\FilterApplierInterfa
 readonly class KeywordSearch implements FilterApplierInterface
 {
     /**
-     * The fields searched, by the grid's main table, as its collection names them.
+     * The fields searched, keyed by the grid's main table, named as the grid's collection names them.
      */
     private const array FIELDS = [
         'polkurier_shipment' => [

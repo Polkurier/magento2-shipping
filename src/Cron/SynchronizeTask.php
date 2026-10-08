@@ -8,20 +8,21 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Cron;
 
 use Polkurier\Shipping\Exception\SynchronizationFailedException;
+use Polkurier\Shipping\Logger\Logger;
 use Polkurier\Shipping\Model\Config\ConfigProvider;
 use Polkurier\Shipping\Model\Sync\Synchronization;
-use Psr\Log\LoggerInterface;
 
 /**
  * Hourly synchronization of the address book, bank accounts and pack templates, once the
- * Polkurier credentials are set. The carriers have a daily job of their own (RefreshCarriersTask).
+ * Polkurier credentials are set. The carriers have a daily job of their own
+ * ({@see \Polkurier\Shipping\Cron\RefreshCarriersTask}).
  */
 readonly class SynchronizeTask
 {
     public function __construct(
         private Synchronization $synchronization,
         private ConfigProvider $configProvider,
-        private LoggerInterface $logger,
+        private Logger $logger,
     ) {}
 
     public function execute(): void

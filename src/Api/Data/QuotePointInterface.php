@@ -83,8 +83,8 @@ interface QuotePointInterface
     public function setPointLabel(?string $pointLabel): static;
 
     /**
-     * Whether the point accepts cash on delivery; null when that isn't known, as when Polkurier
-     * couldn't be asked: then it's taken to.
+     * Whether the point accepts cash on delivery. Null when that isn't known, e.g. when Polkurier
+     * couldn't be asked; the point is then assumed to accept it.
      *
      * @return bool|null
      */

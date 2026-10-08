@@ -14,7 +14,6 @@ use Polkurier\Shipping\Controller\Adminhtml\AbstractMassDelete;
 use Polkurier\Shipping\Model\Admin\FlashMessageCollectorFactory;
 use Polkurier\Shipping\Model\PackTemplate\PackTemplateHandler;
 use Polkurier\Shipping\Model\ResourceModel\PackTemplate\CollectionFactory;
-use Polkurier\Shipping\Model\Sync\SyncResultFactory;
 
 /**
  * Deletes the pack templates selected in their grid.
@@ -25,13 +24,12 @@ class MassDelete extends AbstractMassDelete
 
     public function __construct(
         Context $context,
-        PackTemplateHandler $handler,
+        PackTemplateHandler $packTemplateHandler,
         Filter $filter,
         private readonly CollectionFactory $collectionFactory,
         FlashMessageCollectorFactory $flashMessageCollectorFactory,
-        SyncResultFactory $syncResultFactory,
     ) {
-        parent::__construct($context, $handler, $filter, $flashMessageCollectorFactory, $syncResultFactory);
+        parent::__construct($context, $packTemplateHandler, $filter, $flashMessageCollectorFactory);
     }
 
     protected function createCollection(): AbstractDb

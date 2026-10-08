@@ -211,13 +211,8 @@ readonly class ShipmentFinder
             ->setOrder(ShipmentInterface::FIELD_ENTITY_ID, Collection::SORT_ORDER_DESC)
             ->setPageSize(1)
             ->getItems();
-        foreach ($items as $shipment) {
-            if ($shipment instanceof ShipmentInterface) {
-                return $shipment;
-            }
-        }
 
-        return null;
+        return \reset($items) ?: null;
     }
 
     /**
@@ -225,9 +220,8 @@ readonly class ShipmentFinder
      */
     private function all(Collection $collection): array
     {
-        return \array_values(\array_filter(
+        return \array_values(
             $collection->setOrder(ShipmentInterface::FIELD_ENTITY_ID, Collection::SORT_ORDER_ASC)->getItems(),
-            static fn($shipment): bool => $shipment instanceof ShipmentInterface,
-        ));
+        );
     }
 }

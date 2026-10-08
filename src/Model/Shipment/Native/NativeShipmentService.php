@@ -33,23 +33,24 @@ use Polkurier\Shipping\Model\Shipment\Valuation\OrderAmountCalculator;
  *
  * Each Magento shipment goes with one Polkurier order. A Polkurier order either ships items the
  * order has left, in a new Magento shipment, or goes on a Magento shipment that has none, such as
- * one made without a label, or one whose Polkurier order was cancelled (NativeFollowUpService clears it
- * of that order's label, packages and waybills).
+ * one made without a label, or one whose Polkurier order was cancelled
+ * ({@see \Polkurier\Shipping\Model\Shipment\Native\NativeFollowUpService} clears it of that order's
+ * label, packages and waybills).
  */
 readonly class NativeShipmentService
 {
     public function __construct(
         private ShipOrderInterface $shipOrder,
         private ShipmentItemCreationInterfaceFactory $itemCreationFactory,
-        private OrderAmountCalculator $amountCalculator,
+        private OrderAmountCalculator $orderAmountCalculator,
         private ShipmentTrackCreationInterfaceFactory $trackCreationFactory,
         private ShipmentTrackInterfaceFactory $trackFactory,
         private ShipmentTrackRepositoryInterface $trackRepository,
         private ShipmentRepositoryInterface $shipmentRepository,
-        private ShipmentFinder $finder,
+        private ShipmentFinder $shipmentFinder,
         private ConfigProvider $configProvider,
         private CarrierConfigProvider $carrierConfigProvider,
-        private ReservedNumberRegistry $reservedNumbers,
+        private ReservedNumberRegistry $reservedNumberRegistry,
     ) {}
 
     /**
@@ -100,7 +101,7 @@ readonly class NativeShipmentService
     /**
      * The parcels as the packages of the new Magento shipment, in the form Magento's packaging
      * window saves them: one per parcel, with the items put in it. Checked against the quantities
-     * shipped: the parcels can't hold more of an item than the shipment carries.
+     * shipped (assertPacked()).
      *
      * @param PackInterface[] $packs
      * @param array<int, float> $qtys by order item id; empty for everything left
@@ -110,36 +111,8 @@ readonly class NativeShipmentService
      */
     public function getPackages(Order $order, array $packs, array $qtys): array
     {
-        $shippable = $this->amountCalculator->getItems($order);
-        if ($qtys === []) {
-            foreach ($shippable as $id => $item) {
-                if ($item['qty_to_ship'] > 0) {
-                    $qtys[$id] = $item['qty_to_ship'];
-                }
-            }
-        }
-        $packed = [];
-        foreach ($packs as $pack) {
-            foreach ($pack->getItems() as $item) {
-                $id = $item->getOrderItemId();
-                if ($item->getQty() < 0) {
-                    throw new LocalizedException(__('A parcel cannot hold a negative quantity of an item.'));
-                }
-                if ($item->getQty() > 0 && !isset($qtys[$id], $shippable[$id])) {
-                    throw new LocalizedException(__('A parcel holds an item the shipment doesn\'t carry.'));
-                }
-                $packed[$id] = ($packed[$id] ?? 0.0) + $item->getQty() * $pack->getAmount();
-            }
-        }
-        foreach ($packed as $id => $qty) {
-            if ($qty > $qtys[$id] + 0.0001) {
-                throw new LocalizedException(__(
-                    'The parcels hold more of "%1" than the shipment carries.',
-                    $shippable[$id]['name'],
-                ));
-            }
-        }
-
+        $this->assertPacked($order, $packs, $qtys ?: $this->getQuantitiesLeft($order));
+        $shippable = $this->orderAmountCalculator->getItems($order);
         $packages = [];
         foreach ($packs as $pack) {
             $items = [];
@@ -185,6 +158,41 @@ readonly class NativeShipmentService
     }
 
     /**
+     * Checks what the parcels hold against what the shipment carries: no item it doesn't carry,
+     * and no more of one than it does.
+     *
+     * @param PackInterface[] $packs
+     * @param array<int, float> $qtys what the shipment carries, by order item id
+     *
+     * @throws LocalizedException
+     */
+    public function assertPacked(Order $order, array $packs, array $qtys): void
+    {
+        $shippable = $this->orderAmountCalculator->getItems($order);
+        $packed = [];
+        foreach ($packs as $pack) {
+            foreach ($pack->getItems() as $item) {
+                $id = $item->getOrderItemId();
+                if ($item->getQty() < 0) {
+                    throw new LocalizedException(__('A parcel cannot hold a negative quantity of an item.'));
+                }
+                if ($item->getQty() > 0 && !isset($qtys[$id], $shippable[$id])) {
+                    throw new LocalizedException(__('A parcel holds an item the shipment doesn\'t carry.'));
+                }
+                $packed[$id] = ($packed[$id] ?? 0.0) + $item->getQty() * $pack->getAmount();
+            }
+        }
+        foreach ($packed as $id => $qty) {
+            if ($qty > ($qtys[$id] ?? 0.0) + 0.0001) {
+                throw new LocalizedException(__(
+                    'The parcels hold more of "%1" than the shipment carries.',
+                    $shippable[$id]['name'],
+                ));
+            }
+        }
+    }
+
+    /**
      * The order's Magento shipments without a Polkurier order of their own, by id, with the
      * cancelled Polkurier order a new one would replace, if any.
      *
@@ -203,7 +211,7 @@ readonly class NativeShipmentService
             return [];
         }
         // Oldest first: what a new Polkurier order replaces is the latest cancelled one.
-        foreach ($this->finder->linkedTo(\array_keys($shipments)) as $polkurier) {
+        foreach ($this->shipmentFinder->linkedTo(\array_keys($shipments)) as $polkurier) {
             $id = (int)$polkurier->getShipmentId();
             if (\in_array($polkurier->getState(), ShipmentInterface::LIVE_STATES, true)) {
                 unset($shipments[$id]);
@@ -260,7 +268,7 @@ readonly class NativeShipmentService
     public function getQuantitiesLeft(Order $order): array
     {
         $qtys = [];
-        foreach ($this->amountCalculator->getItems($order) as $id => $item) {
+        foreach ($this->orderAmountCalculator->getItems($order) as $id => $item) {
             if ($item['qty_to_ship'] > 0) {
                 $qtys[$id] = (float)$item['qty_to_ship'];
             }
@@ -282,7 +290,7 @@ readonly class NativeShipmentService
         if ($items === []) {
             return [];
         }
-        $shippable = $this->amountCalculator->getItems($order);
+        $shippable = $this->orderAmountCalculator->getItems($order);
         $qtys = [];
         foreach ($items as $item) {
             $id = $item->getOrderItemId();
@@ -342,7 +350,7 @@ readonly class NativeShipmentService
             // The number the Polkurier order was sent with, taken for this shipment beforehand.
             $number = $shipment->getReservedShipmentNumber();
             if ($number !== null) {
-                $this->reservedNumbers->expect((int)$order->getEntityId(), $number);
+                $this->reservedNumberRegistry->expect((int)$order->getEntityId(), $number);
             }
             try {
                 $shipmentId = (int)$this->shipOrder->execute(
@@ -354,7 +362,8 @@ readonly class NativeShipmentService
                     $tracks,
                 );
             } finally {
-                $this->reservedNumbers->forget((int)$order->getEntityId());
+                // Cleared if Magento didn't take it, so no other shipment gets it.
+                $this->reservedNumberRegistry->take((int)$order->getEntityId());
             }
             $magentoShipment = $packages !== [] ? $this->shipmentRepository->get($shipmentId) : null;
             if ($magentoShipment instanceof MagentoShipmentModel) {
@@ -395,7 +404,7 @@ readonly class NativeShipmentService
     public function release(int $magentoShipmentId): void
     {
         $waybills = [];
-        foreach ($this->finder->linkedTo([$magentoShipmentId]) as $replaced) {
+        foreach ($this->shipmentFinder->linkedTo([$magentoShipmentId]) as $replaced) {
             if (!\in_array($replaced->getState(), ShipmentInterface::LIVE_STATES, true)) {
                 $waybills = \array_merge($waybills, $replaced->getWaybills());
             }
@@ -448,7 +457,7 @@ readonly class NativeShipmentService
     }
 
     /**
-     * Removes the Polkurier tracks of those of the waybills the shipment has; its other tracks stay.
+     * Removes the shipment's Polkurier tracks for the given waybills; its other tracks stay.
      *
      * @param string[] $waybills
      */

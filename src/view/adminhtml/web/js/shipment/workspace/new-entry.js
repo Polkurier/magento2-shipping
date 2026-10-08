@@ -20,7 +20,8 @@ define([
             template: 'Polkurier_Shipping/shipment/workspace/new-entry',
             // The choice whose "new" shows the fields.
             choiceField: '',
-            // Shown only while these are as given too, e.g. paid out to a bank account.
+            // Also shown only while these fields have the given values, e.g. paid out to a bank
+            // account.
             alsoWhen: {},
             fields: [],
             keepField: '',

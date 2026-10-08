@@ -21,11 +21,11 @@ use Magento\Store\Model\StoreManagerInterface;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use Polkurier\Shipping\Logger\Logger;
 use Polkurier\Shipping\Model\Carrier\CarrierLogoStorage;
 use Polkurier\Shipping\Model\CarrierConfig;
 use Polkurier\Shipping\Model\CarrierConfig\CarrierConfigProvider;
 use Polkurier\Shipping\Plugin\Quote\ShippingMethodLogoPlugin;
-use Psr\Log\NullLogger;
 
 #[CoversClass(ShippingMethodLogoPlugin::class)]
 #[CoversClass(CarrierLogoStorage::class)]
@@ -128,7 +128,7 @@ class ShippingMethodLogoPluginTest extends TestCase
             $this->createStub(UploaderFactory::class),
             $this->createStub(Filesystem::class),
             $this->storeManager(),
-            new NullLogger(),
+            $this->createStub(Logger::class),
         );
     }
 

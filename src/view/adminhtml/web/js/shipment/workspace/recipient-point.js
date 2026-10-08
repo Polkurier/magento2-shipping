@@ -79,7 +79,7 @@ define([
         },
 
         /**
-         * A missing point is chosen as it's changed.
+         * A missing point is chosen the same way as a point is changed.
          */
         fix: function () {
             this.change();

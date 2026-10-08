@@ -13,7 +13,7 @@ use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Notification\NotifierInterface;
 use Polkurier\Shipping\Api\CarrierConfigRepositoryInterface;
 use Polkurier\Shipping\Api\Data\CarrierConfigInterface;
-use Polkurier\Shipping\Enum\PricingModelEnum;
+use Polkurier\Shipping\Enum\CarrierConfig\PricingModelEnum;
 use Polkurier\Shipping\Model\Carrier\CarrierCatalog;
 use Polkurier\Shipping\Model\Carrier\CarrierNameProvider;
 use Polkurier\Shipping\Model\CarrierConfigFactory;
@@ -32,10 +32,10 @@ use Polkurier\Webservice\Response\Carrier;
 readonly class CarrierConfigSynchronizer
 {
     public function __construct(
-        private CarrierCatalog $catalog,
+        private CarrierCatalog $carrierCatalog,
         private CarrierConfigProvider $carrierConfigProvider,
-        private CarrierConfigRepositoryInterface $repository,
-        private CarrierConfigFactory $configFactory,
+        private CarrierConfigRepositoryInterface $carrierConfigRepository,
+        private CarrierConfigFactory $carrierConfigFactory,
         private CarrierConfigResource $resource,
         private ErrorMessageResolver $errorMessageResolver,
         private NotifierInterface $notifier,
@@ -44,13 +44,13 @@ readonly class CarrierConfigSynchronizer
 
     /**
      * @return int how many carriers the account offers
-     * @throws LocalizedException when Polkurier can't be asked, as said by ErrorMessageResolver
+     * @throws LocalizedException when Polkurier can't be asked, as said by {@see ErrorMessageResolver}
      * @throws CouldNotSaveException
      */
     public function synchronize(): int
     {
         try {
-            $carriers = $this->catalog->refreshAccountCarriers();
+            $carriers = $this->carrierCatalog->refreshAccountCarriers();
         } catch (PolkurierException $e) {
             throw $this->errorMessageResolver->exception($e);
         }
@@ -58,7 +58,7 @@ readonly class CarrierConfigSynchronizer
         $existing = $this->carrierConfigProvider->getAll();
         $last = \array_reduce($existing, static fn(int $max, $config): int => \max($max, $config->getSortOrder()), 0);
 
-        // The account's carriers change over time: they're told about, except on the first read.
+        // The account's carriers change over time: changes are reported, except on the first read.
         $added = [];
         $revoked = [];
         // All rows or none: a failure halfway would leave carriers neither offered nor withdrawn.
@@ -92,7 +92,7 @@ readonly class CarrierConfigSynchronizer
             if ($existing !== [] && !($existing[$code] ?? null)?->isAvailable()) {
                 $added[] = CarrierNameProvider::nameOr($carrier->getName(), $code);
             }
-            $config = $existing[$code] ?? $this->configFactory->create()
+            $config = $existing[$code] ?? $this->carrierConfigFactory->create()
                 ->setCarrierCode($code)
                 // A new carrier goes to the end of the list, where the merchant can drag it from.
                 ->setSortOrder($last += CarrierSortOrderUpdater::STEP)
@@ -101,19 +101,19 @@ readonly class CarrierConfigSynchronizer
                 ->setPriceInfo([]);
             $config->setCarrierName($carrier->getName());
             $config->setAvailable(true);
-            $this->repository->save($config);
+            $this->carrierConfigRepository->save($config);
         }
         foreach ($existing as $code => $config) {
             if (!isset($carriers[$code]) && $config->isAvailable()) {
-                $this->repository->save($config->setAvailable(false));
+                $this->carrierConfigRepository->save($config->setAvailable(false));
                 $revoked[] = CarrierNameProvider::nameOr($config->getCarrierName(), $code);
             }
         }
     }
 
     /**
-     * Into the admin's notifications: carriers the account gained, which wait switched off for
-     * their prices, and those it lost, which are gone from checkout and shipping.
+     * Adds to the admin's notifications the carriers the account gained, which wait switched off
+     * for their prices, and those it lost, which are gone from checkout and shipping.
      *
      * @param string[] $added
      * @param string[] $revoked

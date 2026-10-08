@@ -6,26 +6,26 @@
 
 [Developer guide](README.md) › Talking to Polkurier
 
-The module never builds HTTP requests itself. It uses the SDK's service interfaces
-(`Polkurier\Webservice\Api\Service\*Interface`), and only those, so the SDK's facade and client
-classes stay out of the module's code. If you need something the module doesn't do yet, go through
-the same services.
+The module never builds HTTP requests itself. It uses only the SDK's service interfaces
+(`Polkurier\Webservice\Api\Service\*Interface`). If you need something the module doesn't do, go
+through the same services.
 
 ## One client for the account
 
-The module works with one Polkurier account for the whole installation, and an SDK service reads
-its configuration once, when it's constructed. Injecting a service directly into a class would
-build it with whatever credentials were saved at the time, and keep them after they change.
+The module works with one Polkurier account for the whole installation. An SDK service reads its
+configuration once, when it's constructed, so a service injected directly would keep the
+credentials saved at that time.
 
-`Model\Sdk\PolkurierClient` solves this. It builds one SDK client for the account when it's first
-needed, keeps it for the request, and hands out its services:
+[`Model\Sdk\PolkurierClient`](../../src/Model/Sdk/PolkurierClient.php) (public interface
+[`Api\PolkurierClientInterface`](../../src/Api/PolkurierClientInterface.php)) instead builds one SDK
+client for the account when it's first needed, keeps it for the request, and hands out its services:
 
 ```php
-public function __construct(private readonly PolkurierClient $client) {}
+public function __construct(private readonly PolkurierClient $polkurierClient) {}
 
 public function execute(): void
 {
-    $carriers = $this->client->courier()->availableCarriers();
+    $carriers = $this->polkurierClient->courier()->availableCarriers();
 }
 ```
 
@@ -42,117 +42,99 @@ public function execute(): void
 | `system()` | service information, the carriers' current notices, coupon validation |
 | `twoFactorToken()` | sending two-factor codes |
 
-The methods take no store: every store uses the same account. `PolkurierClient::reset()` drops the
-cached client, so the next call builds it again; `Observer\CredentialsChangedObserver` calls it when the
-configuration is saved.
-
-The client builds the SDK through Magento's generated factories. Its configuration comes from
-`Model\Sdk\AccountConfigProvider`, the SDK's `ConfigProviderInterface`, which reads the account
-settings from the default scope. The serializer and validator are preferences in `etc/di.xml`
-(`Model\Sdk\SerializerProvider`, `Model\Sdk\Validator`).
+The methods take no store: every store uses the same account. Saving the configuration resets the
+client ([`PolkurierClient::reset()`](../../src/Model/Sdk/PolkurierClient.php)), so the next call
+uses the new credentials. The client's configuration comes from
+[`Model\Sdk\AccountConfigProvider`](../../src/Model/Sdk/AccountConfigProvider.php), the SDK's
+`Polkurier\Webservice\Api\ConfigProviderInterface`, which reads the account settings from the
+default scope.
 
 ## The shipment gateway
 
 The shipment side of the module (placing, cancelling, reconciling, statuses, labels and protocols,
-prices, collection times and collective pickups) doesn't use the client directly. It goes through
-`Model\Sdk\ShipmentGateway`, which sends the SDK's request message and returns its answer, but
-lets no SDK exception through: a refusal or failure becomes a `LocalizedException` with the reason
-described.
+prices, collection times and collective pickups) goes through
+[`Model\Sdk\ShipmentGateway`](../../src/Model/Sdk/ShipmentGateway.php). It lets no SDK exception
+through: a refusal or failure becomes a `Magento\Framework\Exception\LocalizedException` that
+describes the reason.
 
-Placing an order is the one call where a failure may hide a success. When the request may have
-arrived but no answer came back (a timeout while waiting, a dropped connection), the answer can't
-be read, or Polkurier reports an unexpected failure of the kind that can follow a saved order,
-`placeOrder()` throws `Exception\PlacementUncertainException` instead, and the shipment is marked
-for reconciliation rather than failed. A refusal for a stated reason (the parcel's size, the
-carrier's terms, the account's funds) and a connection that failed before the request went out (no
-host, no connection, no TLS handshake, a timeout while connecting) fail the shipment at once, so it
-can be corrected and sent again. The rest of the module (checkout, synchronization, cash on
-delivery) uses the client and handles the SDK's exceptions as below.
+Placing an order is the one call where a failure may hide a success:
+
+```
+placeOrder()
+├── accepted ................................ CreatedOrderMessage
+├── may have arrived: no readable answer, ... PlacementUncertainException: the shipment is
+│   or a failure that can follow a saved      marked for reconciliation rather than failed
+│   order
+└── refused for a stated reason, or the ..... LocalizedException: the shipment fails at
+    connection failed before sending          once, so it can be corrected and sent again
+```
+
+[`Exception\PlacementUncertainException`](../../src/Exception/PlacementUncertainException.php) is a
+`Magento\Framework\Exception\LocalizedException` too.
 
 ## Caching
 
-A few things change rarely and are needed often, so they're cached, for the account, in the
-module's own cache type, `polkurier` (`Model\Cache\Type`, declared in `etc/cache.xml`). It's a
-line of its own under **System > Cache Management**: switched off there, nothing is kept and
-everything is asked of Polkurier each time. Magento leaves a new cache type switched off, so
-`Setup\Patch\Data\EnableCacheTypePatch` switches it on when the module is installed. Each entry
-also carries the tag of its kind, `Enum\CacheTagEnum` (carriers, points, map token,
-notices, account answers, recent failures), and `Type::cleanTags()` removes one kind without the
-others:
+Frequent lookups are cached per account in the module's own cache type, `polkurier`
+([`Model\Cache\Type`](../../src/Model/Cache/Type.php)). It has its own line under **System > Cache
+Management** and is switched on when the module is installed. When it's switched off, every lookup
+asks Polkurier.
 
-- `Model\Carrier\CarrierCatalog`: the account's carriers and what each supports. `getCarriers()`
-  narrows them to the *Available carriers* of the configuration, and everything that offers
-  carriers uses it; only the refresh of the carrier settings and the *Available carriers* field
-  itself use `getAccountCarriers()`, the whole list. The rule itself (nothing selected means all)
-  is `Model\Carrier\AvailableCarrierFilter`, which also narrows `CarrierConfigProvider::getActive()` and the
-  admin's carriers list: checkout offers domestic carriers from their settings when the list
-  can't be read, so the settings need it too;
-- `Model\PickupPoint\MapTokenProvider`: the token the pickup point map needs, kept a little less
-  long than it's valid. A failed or empty answer is kept for 90 seconds, since checkout asks for
-  the token with every rate estimate.
-- `Model\Carrier\CarrierNoticeProvider`: the carriers' notices shown on the shipment screen.
-- `Model\Sdk\AccountCache`: small answers about the account asked for when an admin page opens,
-  such as whether bank account changes need the PIN (15 minutes). The money box settings on the
-  payout form are always read live, since they fill in where the money goes.
+It holds the account's carriers and what each supports (for a day), pickup points looked up by id
+(for a day), the pickup point map's token, the carriers' notices, small answers about the account
+(15 minutes) and recent failures. Each kind has its own tag
+([`Enum\Cache\CacheTagEnum`](../../src/Enum/Cache/CacheTagEnum.php)), and
+[`Type::cleanTags()`](../../src/Model/Cache/Type.php) removes one kind and keeps the others.
 
-Every entry's key comes from `Model\Sdk\AccountCacheKey`: the account's customer ID and sandbox
-flag, so changing the credentials or switching to the sandbox never serves the old account's
-entries. The carrier list is also keyed by the SDK version, since a list cached by an earlier SDK
-may no longer fit its classes. Saving the carrier settings (`Observer\CredentialsChangedObserver`)
-cleans every kind that belongs to the account (`CacheTagEnum::ofAccount()`): all but the points,
-which are the same whatever the account. A carrier refresh cleans the carriers, the notices and
-the recent failures.
+Entries are keyed by account, so changing the credentials never serves the old account's entries.
+Saving the carrier settings cleans every kind that belongs to the account: all but the pickup
+points, which are the same for any account.
 
-When the carrier list can't be fetched, the failure is kept for the rest of the request and for
-90 seconds in the cache, and reported as `Exception\RecentFailureException` without asking again.
-Checkout asks for the list several times per step, and would otherwise wait out the timeout each
-time.
+The carrier list and the pickup points looked up by id go through the cache like this:
 
-Pickup points (`CarrierCatalog::findPoint()`) are cached one by one as they're looked up, for a
-day (`POINT_LIFETIME`), since a point hardly ever moves or closes; an id with no point is
-remembered as long. Under their own tag, `CacheTagEnum::Points`, they
-outlast the daily carrier refresh. A point isn't asked for while the carrier
-list failed a moment ago, nor for 90 seconds after a point lookup Polkurier didn't answer
-(`ErrorMessageResolver::isTransient()`); a refusal of one point doesn't hold up the next.
+```
+the carrier list, or a pickup point by id
+├── in the cache ..................................... the cached answer, a point not found too
+├── failed in the last 90 seconds .................... RecentFailureException, Polkurier not asked
+└── otherwise, Polkurier is asked
+    ├── it answers ................................... cached for a day
+    └── it fails ..................................... the failure kept for 90 seconds, and thrown
+```
 
-On the storefront every request to Polkurier waits at most 5 seconds, whatever **Request timeout**
-says (`AccountConfigProvider`'s `maxTimeout`, set in `etc/frontend/di.xml`): a customer would
-rather go on without a check than wait. This includes the status webhook's reading of the order.
+[`Exception\RecentFailureException`](../../src/Exception/RecentFailureException.php) carries the
+original failure's message, already worded for the merchant. A point isn't looked up while the
+carrier list is failing either. For a point, only a failure to answer is kept: a refused point says
+nothing of the next one. So checkout, which asks for the list several times per step, doesn't wait
+out the timeout each time.
+
+On the storefront, every request to Polkurier waits at most 5 seconds, whatever **Request timeout**
+says. The limit is [`AccountConfigProvider`](../../src/Model/Sdk/AccountConfigProvider.php)'s
+`maxTimeout`, set in `etc/frontend/di.xml`. It also applies when the status webhook reads the order.
 
 ## What a carrier supports
 
-`Model\Carrier\CarrierFeatureResolver` answers every "can this carrier…" question from the carrier list:
-pickup points (none, optional, required) and which point providers the map should show, cash on
-delivery, insurance and whether it's required with cash on delivery, shipment types, collection
-dates and times, drop-off, additional services and carrier-specific fields. Use it rather than
-checking carrier codes; the checkout, both shipping pages and the draft builder all do.
+[`Model\Carrier\CarrierFeatureResolver`](../../src/Model/Carrier/CarrierFeatureResolver.php) answers
+every "can this carrier…" question from the carrier list: pickup points (none, optional, required)
+and their providers, cash on delivery, insurance, shipment types, collection dates and times,
+drop-off, additional services and carrier-specific fields. Use it rather than checking carrier
+codes.
 
 ## Errors
 
-SDK calls throw subclasses of `Polkurier\Webservice\Exception\Exception`. The module catches them
-by class where the difference matters:
+SDK calls throw subclasses of `Polkurier\Webservice\Exception\Exception`. The module's services
+don't let them through: they throw `Magento\Framework\Exception\LocalizedException` with a message
+for the admin, so callers only ever see Magento exceptions.
 
-- validation errors are shown per field on the shipment screen;
-- connection errors and unreadable answers, where the outcome of a change is unknown, lead to
-  reconciliation (see [Shipments](shipments.md#reconciliation)); for placing an order, the
-  shipment gateway sorts them out;
-- everything else is caught as the base class.
+When you call the SDK yourself,
+[`Model\Sdk\ErrorMessageResolver`](../../src/Model/Sdk/ErrorMessageResolver.php) gives you the same
+handling. `phrase()` turns any failure into a message for the admin. `isTransient()` tells whether
+sending the same request again may get a different answer; it also looks through a
+`Magento\Framework\Exception\LocalizedException` to the failure behind it. Transient failures are
+a failed connection, an unreadable answer, and the codes Polkurier uses when it's down or busy
+(`UNKNOWN_ERROR`, `MAINTENANCE_MODE`, `TOO_MANY_REQUESTS`, `INTERNAL_SERVER_ERROR`). Most refusals
+aren't.
 
-`Model\Sdk\ErrorMessageResolver::describe()` turns any of them into a message for the admin, including the
-fields a validation error is about. Service methods throw `LocalizedException` with that message,
-so controllers and other callers only ever see Magento exceptions.
-
-`ErrorMessageResolver::isTransient()` tells whether asking again, unchanged, may get another answer; the
-shipment screen offers **Try again** for prices and collection dates only then. It looks through
-the `LocalizedException` to the SDK failure. A failed connection or unreadable answer qualifies, and
-so do the codes for a Polkurier that is down or busy (`UNKNOWN_ERROR`, `MAINTENANCE_MODE`,
-`TOO_MANY_REQUESTS`, `INTERNAL_SERVER_ERROR`). Every other code is a refusal of the request as it
-is, and so is every uncoded refusal unless its wording says it passes ("spróbuj ponownie",
-"chwilowo", "za chwilę", "później", an overload) or gives no reason. Most refusals are uncoded:
-`ADDITIONAL_SERVICE_UNAVAILABLE` is used for weekend delivery only, and the carriers' own refusals
-of a service, a size or a configuration arrive with code 0, worded by the carrier.
-
-Don't let an SDK exception escape into checkout. The carrier and the pickup point code log the
-error and carry on without Polkurier: no rates for carriers it can't vouch for, or no point check.
+No SDK exception escapes into checkout. When Polkurier can't be asked, the carrier and the pickup
+point code log the error and carry on without it: they offer no rates for carriers the module can't
+vouch for, or skip the point check.
 
 Next: [Configuration](configuration.md)

@@ -13,33 +13,28 @@ use Magento\Sales\Api\ShipmentRepositoryInterface as MagentoShipmentRepository;
 use Magento\Sales\Model\Order;
 use Magento\SalesSequence\Model\Manager as SequenceManager;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
-use Polkurier\Shipping\Enum\ExternalOrderIdEnum;
+use Polkurier\Shipping\Enum\Config\ExternalOrderIdEnum;
 use Polkurier\Shipping\Model\Config\ConfigProvider;
-use Polkurier\Shipping\Model\Sdk\ApplicationIdProvider;
-use Polkurier\Shipping\Model\Shipment\Native\ReservedNumberRegistry;
 
 /**
- * What a Polkurier order is identified by as the shop's: the installation's application id and,
- * as configured, the number of the Magento shipment it goes with or of the Magento order.
+ * The number that, with the installation's application id
+ * ({@see \Polkurier\Shipping\Model\Sdk\ApplicationIdProvider}), identifies a Polkurier order as the
+ * shop's. As configured, it's the number of the Magento shipment the order goes with, or of the
+ * Magento order.
  *
  * The Magento shipment a new Polkurier order makes doesn't exist while the order is placed, so its
  * number is taken from Magento's numbering beforehand and given to it once it's created
- * ({@see ReservedNumberRegistry}). An attempt sent again keeps the number it took. A refused
- * attempt keeps nothing, and leaves a gap in the shipment numbers.
+ * ({@see \Polkurier\Shipping\Model\Shipment\Native\ReservedNumberRegistry}). An attempt sent again
+ * keeps the number it took. A refused attempt keeps nothing, and leaves a gap in the shipment
+ * numbers.
  */
 readonly class ExternalIdService
 {
     public function __construct(
         private ConfigProvider $configProvider,
-        private ApplicationIdProvider $applicationIdProvider,
-        private MagentoShipmentRepository $magentoShipments,
+        private MagentoShipmentRepository $magentoShipmentRepository,
         private SequenceManager $sequenceManager,
     ) {}
-
-    public function getApplicationId(): string
-    {
-        return $this->applicationIdProvider->get();
-    }
 
     /**
      * @param ShipmentInterface|null $attempt the order's earlier attempt that is sent again, if any
@@ -57,7 +52,7 @@ readonly class ExternalIdService
         if ($magentoShipmentId !== null) {
             try {
                 return [
-                    'id' => (string)$this->magentoShipments->get($magentoShipmentId)->getIncrementId(),
+                    'id' => (string)$this->magentoShipmentRepository->get($magentoShipmentId)->getIncrementId(),
                     'reserved' => null,
                 ];
             } catch (NoSuchEntityException $e) {

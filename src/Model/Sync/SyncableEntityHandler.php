@@ -8,11 +8,9 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Model\Sync;
 
 use Magento\Framework\Exception\LocalizedException;
-use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Framework\Stdlib\DateTime\DateTime;
 use Polkurier\Shipping\Api\Data\SyncableInterface;
-use Polkurier\Shipping\Enum\FormMemoryEnum;
-use Polkurier\Shipping\Enum\SyncEntityEnum;
+use Polkurier\Shipping\Model\Sdk\ErrorMessageResolver;
 
 /**
  * Admin editing of one kind of synchronized entity: a change is saved locally, marked for
@@ -27,24 +25,19 @@ abstract readonly class SyncableEntityHandler implements EntityHandlerInterface
     use EditsSyncableEntriesTrait;
 
     public function __construct(
+        private PushableAdapterInterface $adapter,
+        private SyncEngine $syncEngine,
         private Synchronization $synchronization,
+        private ErrorMessageResolver $errorMessageResolver,
         protected DateTime $dateTime,
-        protected SyncLock $syncLock,
+        private SyncLock $syncLock,
         private SyncResultFactory $syncResultFactory,
     ) {}
 
-    /**
-     * @throws NoSuchEntityException
-     */
-    abstract public function get(int $id): SyncableInterface;
-
-    abstract public function create(): SyncableInterface;
-
-    abstract public function getMenuId(): string;
-
-    abstract public function getLabel(): string;
-
-    abstract public function getFormMemory(): FormMemoryEnum;
+    public function create(): SyncableInterface
+    {
+        return $this->adapter->createLocal();
+    }
 
     /**
      * @param array<string, mixed> $data
@@ -55,30 +48,30 @@ abstract readonly class SyncableEntityHandler implements EntityHandlerInterface
     {
         return $this->syncLock->run(function () use ($entity, $data): SyncResult {
             $this->applyFormData($entity, $data);
-            $this->store($entity);
+            $this->adapter->save($entity);
 
-            return $this->synchronization->push($this->getEntityType(), $entity);
+            return $this->push($entity);
         });
     }
 
     /**
      * @throws LocalizedException
      */
-    public function delete(SyncableInterface $entity, array $confirmation = []): SyncResult
+    public function delete(SyncableInterface $entity, ?string $pin = null): SyncResult
     {
         return $this->syncLock->run(function () use ($entity): SyncResult {
             if ($entity->getExtId() === null) {
                 // Never sent to Polkurier: nothing to delete there.
-                $this->remove($entity);
-                $result = $this->syncResultFactory->create(['entityType' => $this->getEntityType()]);
+                $this->adapter->delete($entity);
+                $result = $this->syncResultFactory->create(['entityType' => $this->adapter->getEntityType()]);
                 $result->deleted++;
 
                 return $result;
             }
             $entity->setDeletedAt($this->now())->setSyncState(SyncableInterface::STATE_PENDING);
-            $this->store($entity);
+            $this->adapter->save($entity);
 
-            return $this->synchronization->push($this->getEntityType(), $entity);
+            return $this->push($entity);
         });
     }
 
@@ -88,21 +81,24 @@ abstract readonly class SyncableEntityHandler implements EntityHandlerInterface
      */
     public function synchronize(): array
     {
-        return $this->synchronization->synchronize([$this->getEntityType()]);
+        return $this->synchronization->synchronize([$this->adapter->getEntityType()]);
     }
 
     /**
+     * Sends the entry just changed, and nothing else: no other entry is read or changed on either
+     * side.
+     *
      * @throws LocalizedException
      */
-    abstract protected function store(SyncableInterface $entity): void;
-
-    /**
-     * @throws LocalizedException
-     */
-    abstract protected function remove(SyncableInterface $entity): void;
-
-    /**
-     * The kind of entry this handler saves.
-     */
-    abstract protected function getEntityType(): SyncEntityEnum;
+    private function push(SyncableInterface $entity): SyncResult
+    {
+        try {
+            return $this->syncEngine->run($this->adapter, $entity);
+        } catch (\Exception $e) {
+            throw new LocalizedException(
+                __('%1: %2', $this->adapter->getEntityType()->label(), $this->errorMessageResolver->phrase($e)),
+                $e,
+            );
+        }
+    }
 }

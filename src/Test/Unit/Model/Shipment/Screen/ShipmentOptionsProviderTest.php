@@ -15,6 +15,7 @@ use Polkurier\Shipping\Api\BankAccountRepositoryInterface;
 use Polkurier\Shipping\Api\Data\AddressInterface;
 use Polkurier\Shipping\Api\Data\BankAccountInterface;
 use Polkurier\Shipping\Api\Data\ShipmentDraftInterface;
+use Polkurier\Shipping\Logger\Logger;
 use Polkurier\Shipping\Model\Carrier\CarrierCatalog;
 use Polkurier\Shipping\Model\Carrier\CarrierFeatureResolver;
 use Polkurier\Shipping\Model\Sdk\ErrorMessageResolver;
@@ -24,7 +25,6 @@ use Polkurier\Webservice\Exception\ConnectionException;
 use Polkurier\Webservice\Request\Order\OrderAddressMessage;
 use Polkurier\Webservice\Response\Carrier;
 use Polkurier\Webservice\Serializer\SerializerProvider;
-use Psr\Log\LoggerInterface;
 
 #[CoversClass(ShipmentOptionsProvider::class)]
 #[AllowMockObjectsWithoutExpectations]
@@ -290,7 +290,7 @@ class ShipmentOptionsProviderTest extends TestCase
                 return $carriers ?? ['DPD' => new Carrier('DPD', 'DPD', false)];
             });
         }
-        $logger = $this->createStub(LoggerInterface::class);
+        $logger = $this->createStub(Logger::class);
         $logger->method('warning')->willReturnCallback(function (string $message): void {
             $this->logged[] = $message;
         });

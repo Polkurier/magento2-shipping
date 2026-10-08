@@ -11,9 +11,9 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Polkurier\Shipping\Cron\RefreshCarriersTask;
+use Polkurier\Shipping\Logger\Logger;
 use Polkurier\Shipping\Model\CarrierConfig\CarrierConfigSynchronizer;
 use Polkurier\Shipping\Model\Config\ConfigProvider;
-use Psr\Log\LoggerInterface;
 
 #[CoversClass(RefreshCarriersTask::class)]
 class RefreshCarriersTaskTest extends TestCase
@@ -26,7 +26,7 @@ class RefreshCarriersTaskTest extends TestCase
         (new RefreshCarriersTask(
             $carriers,
             $this->config(true, true),
-            $this->createStub(LoggerInterface::class),
+            $this->createStub(Logger::class),
         ))->execute();
     }
 
@@ -50,7 +50,7 @@ class RefreshCarriersTaskTest extends TestCase
         (new RefreshCarriersTask(
             $carriers,
             $this->config($enabled, $credentials),
-            $this->createStub(LoggerInterface::class),
+            $this->createStub(Logger::class),
         ))->execute();
     }
 
@@ -59,7 +59,7 @@ class RefreshCarriersTaskTest extends TestCase
         $failure = new \RuntimeException('Timed out');
         $carriers = $this->createStub(CarrierConfigSynchronizer::class);
         $carriers->method('synchronize')->willThrowException($failure);
-        $logger = $this->createMock(LoggerInterface::class);
+        $logger = $this->createMock(Logger::class);
         $logger->expects(self::once())
             ->method('warning')
             ->with('Polkurier carrier list refresh failed', ['exception' => $failure]);

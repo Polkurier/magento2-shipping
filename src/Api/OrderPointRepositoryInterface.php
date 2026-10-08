@@ -35,13 +35,6 @@ interface OrderPointRepositoryInterface
     public function getForOrders(array $orderIds): array;
 
     /**
-     * @param \Polkurier\Shipping\Api\Data\OrderPointInterface $point
-     *
-     * @return void
-     */
-    public function save(OrderPointInterface $point): void;
-
-    /**
      * Sets the order's point, replacing the one it has.
      *
      * @param int $orderId
@@ -73,7 +66,7 @@ interface OrderPointRepositoryInterface
      * @param \Polkurier\Shipping\Api\Data\QuotePointInterface $quotePoint
      * @param int $orderId
      *
-     * @return \Polkurier\Shipping\Api\Data\OrderPointInterface
+     * @return void
      */
-    public function copyFromQuote(QuotePointInterface $quotePoint, int $orderId): OrderPointInterface;
+    public function copyFromQuote(QuotePointInterface $quotePoint, int $orderId): void;
 }

@@ -14,14 +14,16 @@ use Magento\Ui\Component\MassAction\Filter;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use Polkurier\Shipping\Api\Data\SyncableInterface;
+use Polkurier\Shipping\Controller\Adminhtml\AbstractDelete;
 use Polkurier\Shipping\Controller\Adminhtml\AbstractInlineEdit;
 use Polkurier\Shipping\Controller\Adminhtml\AbstractMassDelete;
 use Polkurier\Shipping\Controller\Adminhtml\AbstractSave;
+use Polkurier\Shipping\Controller\Adminhtml\Bankaccount\Delete;
 use Polkurier\Shipping\Controller\Adminhtml\Bankaccount\InlineEdit;
 use Polkurier\Shipping\Controller\Adminhtml\Bankaccount\Save;
 use Polkurier\Shipping\Controller\Adminhtml\Packtemplate\MassDelete;
-use Polkurier\Shipping\Enum\FormMemoryEnum;
-use Polkurier\Shipping\Enum\SyncEntityEnum;
+use Polkurier\Shipping\Enum\Adminhtml\FormMemoryEnum;
+use Polkurier\Shipping\Enum\Sync\SyncEntityEnum;
 use Polkurier\Shipping\Model\Admin\FormActions;
 use Polkurier\Shipping\Model\BankAccount;
 use Polkurier\Shipping\Model\BankAccount\BankAccountHandler;
@@ -29,12 +31,11 @@ use Polkurier\Shipping\Model\PackTemplate;
 use Polkurier\Shipping\Model\PackTemplate\PackTemplateHandler;
 use Polkurier\Shipping\Model\ResourceModel\PackTemplate\CollectionFactory;
 use Polkurier\Shipping\Model\Sync\SyncResult;
-use Polkurier\Shipping\Model\Sync\SyncResultFactory;
 use Polkurier\Shipping\Test\Unit\Support\AdminActionTestCase;
-use Polkurier\Shipping\Test\Unit\Support\NewingObjectManager;
 
 #[CoversClass(AbstractSave::class)]
 #[CoversClass(Save::class)]
+#[CoversClass(AbstractDelete::class)]
 #[CoversClass(AbstractMassDelete::class)]
 #[CoversClass(AbstractInlineEdit::class)]
 #[AllowMockObjectsWithoutExpectations]
@@ -94,19 +95,15 @@ class SyncableEntityActionsTest extends AdminActionTestCase
     public function testTheFormsDeleteIsConfirmedWithThePinTypedThere(): void
     {
         // Posted by the form's Delete button, never carried in the address bar.
-        $this->post = ['delete' => '1', 'id' => '3', BankAccountHandler::FIELD_CONFIRMATION_PIN => '2342'];
+        $this->params = ['id' => '3', BankAccountHandler::FIELD_CONFIRMATION_PIN => 'from the query'];
+        $this->post = ['id' => '3', BankAccountHandler::FIELD_CONFIRMATION_PIN => '2342'];
         $handler = $this->bankAccounts($this->account(3));
         $handler->expects(self::once())->method('delete')
-            ->with(self::anything(), [BankAccountHandler::FIELD_CONFIRMATION_PIN => '2342'])
+            ->with(self::anything(), '2342')
             ->willThrowException(new LocalizedException(__('Polkurier did not delete bank account Firmowe.')));
 
-        $this->save($handler)->execute();
+        (new Delete($this->context(), $handler))->execute();
 
-        self::assertSame(
-            ['*/*/edit', ['id' => 3]],
-            $this->redirect,
-            'Back to the form, where the PIN can be typed again.',
-        );
         self::assertSame(['Polkurier did not delete bank account Firmowe.'], $this->messages['error']);
     }
 
@@ -134,7 +131,6 @@ class SyncableEntityActionsTest extends AdminActionTestCase
             $filter,
             $collections,
             $this->flashMessageCollectorFactory(),
-            NewingObjectManager::factory(SyncResultFactory::class),
         ))->execute();
 
         self::assertSame(
@@ -165,7 +161,6 @@ class SyncableEntityActionsTest extends AdminActionTestCase
             $filter,
             $collections,
             $this->flashMessageCollectorFactory(),
-            NewingObjectManager::factory(SyncResultFactory::class),
         ))->execute();
 
         self::assertSame(['warning' => [
@@ -186,7 +181,6 @@ class SyncableEntityActionsTest extends AdminActionTestCase
             $this->context(),
             $handler,
             $this->jsonFactory(),
-            $this->flashMessageCollectorFactory(),
         ))->execute();
 
         self::assertTrue($this->json['error'] ?? false);
@@ -218,7 +212,7 @@ class SyncableEntityActionsTest extends AdminActionTestCase
             $this->persisted = $data;
         });
 
-        return new Save($this->context(), $handler, $persistor, $this->flashMessageCollectorFactory());
+        return new Save($this->context(), $handler, $persistor);
     }
 
     /**

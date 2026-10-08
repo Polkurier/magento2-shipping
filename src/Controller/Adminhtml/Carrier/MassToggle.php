@@ -31,7 +31,7 @@ class MassToggle extends Action implements HttpPostActionInterface
         Context $context,
         private readonly Filter $filter,
         private readonly CollectionFactory $collectionFactory,
-        private readonly CarrierConfigRepositoryInterface $repository,
+        private readonly CarrierConfigRepositoryInterface $carrierConfigRepository,
     ) {
         parent::__construct($context);
     }
@@ -43,7 +43,7 @@ class MassToggle extends Action implements HttpPostActionInterface
         try {
             /** @var CarrierConfigInterface $config */
             foreach ($this->filter->getCollection($this->collectionFactory->create()) as $config) {
-                $this->repository->save($config->setActive(!$config->isActive()));
+                $this->carrierConfigRepository->save($config->setActive(!$config->isActive()));
                 $config->isActive() ? $enabled++ : $disabled++;
             }
             $this->messageManager->addSuccessMessage(__('%1 enabled, %2 disabled.', $enabled, $disabled));

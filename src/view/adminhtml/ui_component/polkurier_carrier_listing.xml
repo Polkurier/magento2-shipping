@@ -89,7 +89,7 @@
             <argument name="data" xsi:type="array">
                 <item name="config" xsi:type="array">
                     <item name="sortUrl" xsi:type="url" path="polkurier/carrier/arrange"/>
-                    <!-- Enabled carriers come first, and a row stays among those enabled or not like it -->
+                    <!-- Enabled carriers come first; a row stays in its group, enabled or disabled -->
                     <item name="groupBy" xsi:type="string">active</item>
                 </item>
             </argument>

@@ -3,10 +3,10 @@
  * All Rights Reserved
  */
 /**
- * The data of a form Polkurier saves only once confirmed (a bank account, a payout). Saving asks
- * for the confirmation first, in a modal: the confirmation code, which Polkurier is asked to send
- * right then, or the security PIN, where the account locks the form's entries with one. The form is
- * saved once it's given; cancelled, nothing is.
+ * The data of a form Polkurier saves only once confirmed (a bank account, a payout). Saving first
+ * asks for the confirmation in a modal: either the confirmation code, which Polkurier is asked to
+ * send right then, or the security PIN, where the account locks the form's entries with one. The
+ * form is saved once it's given; if the modal is cancelled, nothing is saved.
  */
 define([
     'jquery',
@@ -21,14 +21,15 @@ define([
     return Provider.extend({
         defaults: {
             confirmation: {
-                // Below "data": where the code is asked for, and what says the PIN is asked instead.
+                // Paths below "data": the URL that sends the code, and the flag that asks for the PIN
+                // instead.
                 codeUrl: 'urls.send_code',
                 pinLocked: '',
-                // Below "data": where what's typed in, and the code's token, go.
+                // Paths below "data" that receive what's typed in and the code's token.
                 codeField: 'two_factor_code',
                 tokenField: 'two_factor_token',
                 pinField: '',
-                // The PIN asked for beside the code, when it may be locked with one too.
+                // Also asks for the PIN beside the code, when the entry may be locked with one too.
                 optionalPin: false,
                 optionalPinNote: '',
                 title: ''
@@ -52,7 +53,8 @@ define([
         },
 
         /**
-         * Has Polkurier send the code, then asks for it; in the modal open, when sent again.
+         * Has Polkurier send the code, then asks for it. When the code is sent again, the open modal
+         * is reused.
          *
          * @param {Object} [options]
          * @param {jQuery|null} dialog
@@ -100,8 +102,8 @@ define([
         },
 
         /**
-         * The modal asking for the code or the PIN; confirmed, the form is saved with it. One for
-         * the page, filled in each time.
+         * Opens the modal asking for the code or the PIN; once confirmed, the form is saved with it.
+         * The page has one such modal, filled in each time.
          *
          * @param {Object} [options]
          * @param {{code: Boolean, pin: Boolean, sent: String}} what

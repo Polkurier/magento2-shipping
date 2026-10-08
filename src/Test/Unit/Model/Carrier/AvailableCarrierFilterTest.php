@@ -25,8 +25,6 @@ class AvailableCarrierFilterTest extends TestCase
             ['DPD' => 1, 'INPOST_PACZKOMAT' => 3],
             $available->filter(['DPD' => 1, 'DHL' => 2, 'INPOST_PACZKOMAT' => 3]),
         );
-        self::assertTrue($available->isAvailable('DPD'));
-        self::assertFalse($available->isAvailable('DHL'));
         self::assertSame(['DPD', 'INPOST_PACZKOMAT'], $available->getCodes());
     }
 
@@ -35,7 +33,6 @@ class AvailableCarrierFilterTest extends TestCase
         $available = $this->available([]);
 
         self::assertSame(['DPD' => 1, 'DHL' => 2], $available->filter(['DPD' => 1, 'DHL' => 2]));
-        self::assertTrue($available->isAvailable('DHL'));
         self::assertNull($available->getCodes());
     }
 

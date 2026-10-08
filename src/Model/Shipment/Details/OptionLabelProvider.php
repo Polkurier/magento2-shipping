@@ -16,8 +16,8 @@ use Polkurier\Shipping\Model\Config\Source\ShipmentState;
 use Polkurier\Shipping\Model\Config\Source\ShipmentType;
 
 /**
- * The names of the codes a shipment's details are made of, from the module's option lists. A code
- * without a name is shown as it is.
+ * Names for the codes in a shipment's details, from the module's option lists. A code without a
+ * name is shown as it is.
  */
 readonly class OptionLabelProvider
 {

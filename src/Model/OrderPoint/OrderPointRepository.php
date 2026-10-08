@@ -51,12 +51,6 @@ readonly class OrderPointRepository implements OrderPointRepositoryInterface
         return $points;
     }
 
-    public function save(OrderPointInterface $point): void
-    {
-        /** @var OrderPoint $point */
-        $this->orderPointResource->save($point);
-    }
-
     public function replaceForOrder(
         int $orderId,
         string $methodCode,
@@ -64,34 +58,29 @@ readonly class OrderPointRepository implements OrderPointRepositoryInterface
         ?string $pointLabel,
         ?bool $pointCod,
     ): void {
-        $point = $this->getForOrder($orderId);
-        if ($point === null) {
-            $point = $this->orderPointFactory->create()->setOrderId($orderId);
-            $point->isObjectNew(true);
-        }
+        /** @var OrderPoint $point */
+        $point = $this->getForOrder($orderId) ?? $this->orderPointFactory->create()->setOrderId($orderId);
         $point->setMethodCode($methodCode)->setPointId($pointId)->setPointLabel($pointLabel)->setPointCod($pointCod);
-        $this->save($point);
+        $this->orderPointResource->save($point);
     }
 
     public function deleteForOrder(int $orderId): void
     {
+        /** @var OrderPoint|null $point */
         $point = $this->getForOrder($orderId);
-        if ($point instanceof OrderPoint) {
+        if ($point !== null) {
             $this->orderPointResource->delete($point);
         }
     }
 
-    public function copyFromQuote(QuotePointInterface $quotePoint, int $orderId): OrderPointInterface
+    public function copyFromQuote(QuotePointInterface $quotePoint, int $orderId): void
     {
-        $point = $this->orderPointFactory->create()
-            ->setOrderId($orderId)
-            ->setMethodCode($quotePoint->getMethodCode())
-            ->setPointId($quotePoint->getPointId())
-            ->setPointLabel($quotePoint->getPointLabel())
-            ->setPointCod($quotePoint->getPointCod());
-        $point->isObjectNew(true);
-        $this->save($point);
-
-        return $point;
+        $this->replaceForOrder(
+            $orderId,
+            $quotePoint->getMethodCode(),
+            $quotePoint->getPointId(),
+            $quotePoint->getPointLabel(),
+            $quotePoint->getPointCod(),
+        );
     }
 }

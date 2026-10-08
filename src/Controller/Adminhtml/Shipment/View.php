@@ -24,8 +24,8 @@ class View extends Action implements HttpGetActionInterface
     public const string ADMIN_RESOURCE = 'Polkurier_Shipping::shipments';
 
     /**
-     * Opened from the admin's notifications too, whose links are made outside the session: no URL
-     * key. The page only shows; the ACL still applies.
+     * Also opened from the admin's notifications, whose links are made outside the session and so
+     * have no URL key. The page only displays data, and the ACL still applies.
      *
      * @var string[]
      */
@@ -48,10 +48,8 @@ class View extends Action implements HttpGetActionInterface
             return $this->resultRedirectFactory->create()->setPath('*/*/index');
         }
 
+        /** @var Page $page */
         $page = $this->resultFactory->create(ResultFactory::TYPE_PAGE);
-        if (!$page instanceof Page) {
-            throw new \LogicException('The admin area renders backend pages.');
-        }
         $page->setActiveMenu('Polkurier_Shipping::shipments');
         $page->getConfig()->getTitle()->prepend((string)__(
             'Shipment details %1',

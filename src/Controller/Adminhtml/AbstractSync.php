@@ -22,11 +22,11 @@ abstract class AbstractSync extends AbstractAction implements HttpPostActionInte
 {
     public function __construct(
         Context $context,
-        EntityHandlerInterface $handler,
+        EntityHandlerInterface $entityHandler,
         private readonly ConfigProvider $configProvider,
-        FlashMessageCollectorFactory $flashMessageCollectorFactory,
+        private readonly FlashMessageCollectorFactory $flashMessageCollectorFactory,
     ) {
-        parent::__construct($context, $handler, $flashMessageCollectorFactory);
+        parent::__construct($context, $entityHandler);
     }
 
     public function execute(): Redirect
@@ -37,11 +37,25 @@ abstract class AbstractSync extends AbstractAction implements HttpPostActionInte
             return $this->returnBack('*/*/index');
         }
         try {
-            $this->reportSync($this->handler->synchronize());
+            $this->reportSync($this->entityHandler->synchronize());
         } catch (LocalizedException $e) {
             $this->messageManager->addErrorMessage($e->getMessage());
         }
 
         return $this->returnBack('*/*/index');
+    }
+
+    /**
+     * Reports a full synchronization as one message, with one line per kind.
+     *
+     * @param string[] $lines
+     */
+    private function reportSync(array $lines): void
+    {
+        $flash = $this->flashMessageCollectorFactory->create();
+        foreach ($lines as $line) {
+            $flash->notice($line);
+        }
+        $flash->send($this->messageManager);
     }
 }

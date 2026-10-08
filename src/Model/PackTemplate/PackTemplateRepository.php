@@ -28,7 +28,7 @@ use Polkurier\Shipping\Model\ResourceModel\PackTemplate\CollectionFactory;
 readonly class PackTemplateRepository implements PackTemplateRepositoryInterface
 {
     public function __construct(
-        private PackTemplateFactory $entityFactory,
+        private PackTemplateFactory $packTemplateFactory,
         private ResourceModel $resource,
         private CollectionFactory $collectionFactory,
         private CollectionProcessorInterface $collectionProcessor,
@@ -37,7 +37,7 @@ readonly class PackTemplateRepository implements PackTemplateRepositoryInterface
 
     public function get(int $id): PackTemplateInterface
     {
-        $entity = $this->entityFactory->create();
+        $entity = $this->packTemplateFactory->create();
         $this->resource->load($entity, $id);
         if (!$entity->getId()) {
             throw new NoSuchEntityException(__('The pack template with id "%1" does not exist.', $id));

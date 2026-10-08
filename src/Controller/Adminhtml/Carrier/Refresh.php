@@ -27,7 +27,7 @@ class Refresh extends Action implements HttpPostActionInterface
 
     public function __construct(
         Context $context,
-        private readonly CarrierConfigSynchronizer $synchronizer,
+        private readonly CarrierConfigSynchronizer $carrierConfigSynchronizer,
         private readonly ConfigProvider $configProvider,
     ) {
         parent::__construct($context);
@@ -41,7 +41,7 @@ class Refresh extends Action implements HttpPostActionInterface
             return $this->returnBack('*/*/index');
         }
         try {
-            $count = $this->synchronizer->synchronize();
+            $count = $this->carrierConfigSynchronizer->synchronize();
             $this->messageManager->addSuccessMessage(__('The account offers %1 carriers.', $count));
         } catch (LocalizedException $e) {
             $this->messageManager->addErrorMessage($e->getMessage());

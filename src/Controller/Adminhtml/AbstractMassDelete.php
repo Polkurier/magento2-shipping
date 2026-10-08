@@ -14,11 +14,8 @@ use Magento\Framework\Data\Collection\AbstractDb;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Ui\Component\MassAction\Filter;
 use Polkurier\Shipping\Api\Data\SyncableInterface;
-use Polkurier\Shipping\Model\Admin\FlashMessageCollector;
 use Polkurier\Shipping\Model\Admin\FlashMessageCollectorFactory;
 use Polkurier\Shipping\Model\Sync\EntityHandlerInterface;
-use Polkurier\Shipping\Model\Sync\SyncResult;
-use Polkurier\Shipping\Model\Sync\SyncResultFactory;
 
 /**
  * Deletes the entries selected in the grid of a list synchronized with Polkurier, saying which were refused.
@@ -27,31 +24,31 @@ abstract class AbstractMassDelete extends AbstractAction implements HttpPostActi
 {
     public function __construct(
         Context $context,
-        EntityHandlerInterface $handler,
+        EntityHandlerInterface $entityHandler,
         private readonly Filter $filter,
-        FlashMessageCollectorFactory $flashMessageCollectorFactory,
-        private readonly SyncResultFactory $syncResultFactory,
+        private readonly FlashMessageCollectorFactory $flashMessageCollectorFactory,
     ) {
-        parent::__construct($context, $handler, $flashMessageCollectorFactory);
+        parent::__construct($context, $entityHandler);
     }
 
     /**
-     * Each entry on its own: one that Polkurier refuses to delete doesn't keep the others. All of
-     * it is told in one message.
+     * Deletes each entry on its own, so one that Polkurier refuses to delete doesn't stop the
+     * others. The outcome is reported in one message.
      */
     public function execute(): Redirect
     {
         $deleted = 0;
         $refused = [];
-        $synced = null;
+        $failed = 0;
+        $errors = [];
         $flash = $this->flashMessageCollectorFactory->create();
         try {
             /** @var SyncableInterface $entity */
             foreach ($this->filter->getCollection($this->createCollection()) as $entity) {
                 try {
-                    $result = $this->handler->delete($entity);
-                    $synced ??= $this->syncResultFactory->create(['entityType' => $result->entityType]);
-                    $synced->add($result);
+                    $result = $this->entityHandler->delete($entity);
+                    $failed += $result->failed;
+                    $errors = \array_merge($errors, $result->errors);
                     $deleted++;
                 } catch (LocalizedException $e) {
                     $refused[] = $e->getMessage();
@@ -63,11 +60,11 @@ abstract class AbstractMassDelete extends AbstractAction implements HttpPostActi
         if ($deleted > 0 || $refused === []) {
             $flash->success(__('%1 deleted.', $deleted));
         }
-        if ($synced !== null && $synced->failed > 0) {
+        if ($failed > 0) {
             $flash->warning(__(
                 'Polkurier hasn\'t deleted %1 of them yet: %2 They\'re tried again with the next synchronization.',
-                $synced->failed,
-                $this->reasons($synced),
+                $failed,
+                \implode(' ', \array_unique($errors)),
             ));
         }
         if ($refused !== []) {

@@ -11,8 +11,8 @@ use Polkurier\Shipping\Api\AddressRepositoryInterface;
 use Polkurier\Shipping\Api\Data\AddressInterface;
 use Polkurier\Shipping\Api\Data\SyncableInterface;
 use Polkurier\Shipping\Api\PolkurierClientInterface;
-use Polkurier\Shipping\Enum\ApiEventEnum;
-use Polkurier\Shipping\Enum\SyncEntityEnum;
+use Polkurier\Shipping\Enum\Sdk\ApiEventEnum;
+use Polkurier\Shipping\Enum\Sync\SyncEntityEnum;
 use Polkurier\Shipping\Model\AddressFactory;
 use Polkurier\Shipping\Model\ResourceModel\Address\CollectionFactory;
 use Polkurier\Shipping\Model\Sdk\ApiEventDispatcher;
@@ -29,12 +29,12 @@ readonly class AddressSyncAdapter implements PushableAdapterInterface
     use MatchedByNameTrait;
 
     public function __construct(
-        private PolkurierClientInterface $client,
-        private AddressBookMapper $mapper,
+        private PolkurierClientInterface $polkurierClient,
+        private AddressBookMapper $addressBookMapper,
         private CollectionFactory $collectionFactory,
         private AddressFactory $addressFactory,
-        private AddressRepositoryInterface $repository,
-        private ApiEventDispatcher $events,
+        private AddressRepositoryInterface $addressRepository,
+        private ApiEventDispatcher $apiEventDispatcher,
     ) {}
 
     public function getEntityType(): SyncEntityEnum
@@ -45,9 +45,10 @@ readonly class AddressSyncAdapter implements PushableAdapterInterface
     public function fetchRemote(): array
     {
         $remote = [];
-        foreach ($this->client->addresses()->getAddresses(new GetMessage(AddressTypeEnum::Sender)) as $address) {
+        $addresses = $this->polkurierClient->addresses()->getAddresses(new GetMessage(AddressTypeEnum::Sender));
+        foreach ($addresses as $address) {
             if ($address->getId() !== null) {
-                $remote[$address->getId()] = $this->mapper->normalize($address);
+                $remote[$address->getId()] = $this->addressBookMapper->normalize($address);
             }
         }
 
@@ -69,31 +70,31 @@ readonly class AddressSyncAdapter implements PushableAdapterInterface
     public function applyRemote(SyncableInterface $local, array $remote): void
     {
         /** @var AddressInterface $local */
-        $this->mapper->apply($remote, $local);
+        $this->addressBookMapper->apply($remote, $local);
     }
 
     public function push(SyncableInterface $local): array
     {
         /** @var AddressInterface $local */
-        $request = $this->mapper->toSaveMessage($local);
+        $request = $this->addressBookMapper->toSaveMessage($local);
         $isNew = $local->getExtId() === null;
-        $response = $this->client->addresses()->saveAddress($request);
-        $this->events->dispatch(ApiEventEnum::AddressSaveAfter, null, [
+        $response = $this->polkurierClient->addresses()->saveAddress($request);
+        $this->apiEventDispatcher->dispatch(ApiEventEnum::AddressSaveAfter, null, [
             'address' => $local,
             'is_new' => $isNew,
             'request' => $request,
             'response' => $response,
         ]);
 
-        return $this->mapper->normalize($response);
+        return $this->addressBookMapper->normalize($response);
     }
 
     public function deleteRemote(SyncableInterface $local): void
     {
         /** @var AddressInterface $local */
-        $request = $this->mapper->toDeleteMessage($local);
-        if ($this->client->addresses()->deleteAddress($request)) {
-            $this->events->dispatch(
+        $request = $this->addressBookMapper->toDeleteMessage($local);
+        if ($this->polkurierClient->addresses()->deleteAddress($request)) {
+            $this->apiEventDispatcher->dispatch(
                 ApiEventEnum::AddressDeleteAfter,
                 null,
                 ['address' => $local, 'request' => $request],
@@ -104,12 +105,12 @@ readonly class AddressSyncAdapter implements PushableAdapterInterface
     public function save(SyncableInterface $local): void
     {
         /** @var AddressInterface $local */
-        $this->repository->save($local);
+        $this->addressRepository->save($local);
     }
 
     public function delete(SyncableInterface $local): void
     {
         /** @var AddressInterface $local */
-        $this->repository->delete($local);
+        $this->addressRepository->delete($local);
     }
 }

@@ -12,8 +12,8 @@ use Magento\Framework\Lock\LockManagerInterface;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Polkurier\Shipping\Api\Data\SyncableInterface;
-use Polkurier\Shipping\Enum\SyncEntityEnum;
+use Polkurier\Shipping\Enum\Sync\SyncEntityEnum;
+use Polkurier\Shipping\Logger\Logger;
 use Polkurier\Shipping\Model\Address\AddressSyncAdapter;
 use Polkurier\Shipping\Model\BankAccount\BankAccountSyncAdapter;
 use Polkurier\Shipping\Model\PackTemplate\PackTemplateSyncAdapter;
@@ -23,9 +23,6 @@ use Polkurier\Shipping\Model\Sync\SyncEngine;
 use Polkurier\Shipping\Model\Sync\Synchronization;
 use Polkurier\Shipping\Model\Sync\SyncLock;
 use Polkurier\Shipping\Model\Sync\SyncResult;
-use Polkurier\Shipping\Model\Sync\SyncResultFactory;
-use Polkurier\Shipping\Test\Unit\Support\NewingObjectManager;
-use Psr\Log\NullLogger;
 
 #[CoversClass(Synchronization::class)]
 #[CoversClass(SyncResult::class)]
@@ -39,11 +36,6 @@ class SynchronizationTest extends TestCase
      */
     private array $ran = [];
     private bool $busy = false;
-
-    /**
-     * @var array<int, SyncableInterface|null>
-     */
-    private array $only = [];
 
     /**
      * @var SyncEntityEnum[]
@@ -95,22 +87,6 @@ class SynchronizationTest extends TestCase
         self::assertSame(['lock polkurier_sync', 'unlock polkurier_sync'], $this->lockLog);
     }
 
-    public function testAnEntrySavedInTheAdminIsPushedAloneUnderTheLock(): void
-    {
-        $entry = $this->createStub(SyncableInterface::class);
-
-        $result = $this->synchronization()->push(SyncEntityEnum::PackTemplate, $entry);
-
-        self::assertSame([SyncEntityEnum::PackTemplate], $this->ran);
-        self::assertSame([$entry], $this->only);
-        self::assertSame(
-            SyncEntityEnum::PackTemplate,
-            $result->entityType,
-            'What became of it, to report with the rest of the action.',
-        );
-        self::assertSame(['lock polkurier_sync', 'unlock polkurier_sync'], $this->lockLog);
-    }
-
     public function testAKindThatFailsDoesNotKeepTheOthersFromTheirRun(): void
     {
         $this->failing = [SyncEntityEnum::Address];
@@ -156,9 +132,8 @@ class SynchronizationTest extends TestCase
     {
         $engine = $this->createStub(SyncEngine::class);
         $engine->method('run')
-            ->willReturnCallback(function (AdapterInterface $adapter, ?SyncableInterface $only = null): SyncResult {
+            ->willReturnCallback(function (AdapterInterface $adapter): SyncResult {
                 $this->ran[] = $adapter->getEntityType();
-                $this->only[] = $only;
                 if (\in_array($adapter->getEntityType(), $this->failing, true)) {
                     throw new \RuntimeException('Unreadable.');
                 }
@@ -170,8 +145,7 @@ class SynchronizationTest extends TestCase
             $engine,
             new ErrorMessageResolver(),
             new SyncLock($this->locks()),
-            new NullLogger(),
-            NewingObjectManager::factory(SyncResultFactory::class),
+            $this->createStub(Logger::class),
             $this->adapter(AddressSyncAdapter::class, SyncEntityEnum::Address),
             $this->adapter(BankAccountSyncAdapter::class, SyncEntityEnum::BankAccount),
             $this->adapter(PackTemplateSyncAdapter::class, SyncEntityEnum::PackTemplate),

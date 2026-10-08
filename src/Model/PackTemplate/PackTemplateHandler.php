@@ -12,11 +12,11 @@ use Magento\Framework\Stdlib\DateTime\DateTime;
 use Polkurier\Shipping\Api\Data\PackTemplateInterface;
 use Polkurier\Shipping\Api\Data\SyncableInterface;
 use Polkurier\Shipping\Api\PackTemplateRepositoryInterface;
-use Polkurier\Shipping\Enum\FormMemoryEnum;
-use Polkurier\Shipping\Enum\SyncEntityEnum;
-use Polkurier\Shipping\Model\PackTemplateFactory;
+use Polkurier\Shipping\Enum\Adminhtml\FormMemoryEnum;
 use Polkurier\Shipping\Model\ResourceModel\PackTemplate as PackTemplateResource;
+use Polkurier\Shipping\Model\Sdk\ErrorMessageResolver;
 use Polkurier\Shipping\Model\Sync\SyncableEntityHandler;
+use Polkurier\Shipping\Model\Sync\SyncEngine;
 use Polkurier\Shipping\Model\Sync\Synchronization;
 use Polkurier\Shipping\Model\Sync\SyncLock;
 use Polkurier\Shipping\Model\Sync\SyncResultFactory;
@@ -27,30 +27,30 @@ use Polkurier\Shipping\Model\Sync\SyncResultFactory;
 readonly class PackTemplateHandler extends SyncableEntityHandler
 {
     public function __construct(
-        private PackTemplateRepositoryInterface $repository,
-        private PackTemplateFactory $factory,
+        private PackTemplateRepositoryInterface $packTemplateRepository,
+        PackTemplateSyncAdapter $packTemplateSyncAdapter,
+        SyncEngine $syncEngine,
         Synchronization $synchronization,
+        ErrorMessageResolver $errorMessageResolver,
         DateTime $dateTime,
         SyncLock $syncLock,
         SyncResultFactory $syncResultFactory,
         private PackTemplateResource $resource,
     ) {
-        parent::__construct($synchronization, $dateTime, $syncLock, $syncResultFactory);
+        parent::__construct(
+            $packTemplateSyncAdapter,
+            $syncEngine,
+            $synchronization,
+            $errorMessageResolver,
+            $dateTime,
+            $syncLock,
+            $syncResultFactory,
+        );
     }
 
     public function get(int $id): SyncableInterface
     {
-        return $this->repository->get($id);
-    }
-
-    public function create(): SyncableInterface
-    {
-        return $this->factory->create();
-    }
-
-    public function getMenuId(): string
-    {
-        return 'Polkurier_Shipping::pack_templates';
+        return $this->packTemplateRepository->get($id);
     }
 
     public function getLabel(): string
@@ -61,23 +61,6 @@ readonly class PackTemplateHandler extends SyncableEntityHandler
     public function getFormMemory(): FormMemoryEnum
     {
         return FormMemoryEnum::PackTemplate;
-    }
-
-    protected function store(SyncableInterface $entity): void
-    {
-        /** @var PackTemplateInterface $entity */
-        $this->repository->save($entity);
-    }
-
-    protected function remove(SyncableInterface $entity): void
-    {
-        /** @var PackTemplateInterface $entity */
-        $this->repository->delete($entity);
-    }
-
-    protected function getEntityType(): SyncEntityEnum
-    {
-        return SyncEntityEnum::PackTemplate;
     }
 
     protected function assertUniqueName(SyncableInterface $entity): void

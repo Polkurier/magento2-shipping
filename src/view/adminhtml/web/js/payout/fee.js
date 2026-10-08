@@ -3,9 +3,9 @@
  * All Rights Reserved
  */
 /**
- * The payout's fee, atop the payout form, with what the money box has to pay out: asked of
- * Polkurier again whenever what it depends on changes (the orders paid out and how), a moment
- * after the last change.
+ * The payout's fee, shown atop the payout form with what the money box has to pay out. Polkurier
+ * is asked again a moment after the last change to what the fee depends on (the orders paid out,
+ * and how).
  */
 define([
     'uiComponent',
@@ -30,7 +30,7 @@ define([
             this.loading = ko.observable(false);
             this.error = ko.observable('');
             this.fee = ko.observable(null);
-            // Numbers typed in that aren't known here as in the money box.
+            // Numbers typed in that this shop doesn't know to be in the money box.
             this.unknown = ko.observable('');
             this.requests = request();
             const refresh = _.debounce(this.refresh.bind(this), 600);

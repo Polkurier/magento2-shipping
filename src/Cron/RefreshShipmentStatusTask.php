@@ -22,7 +22,7 @@ readonly class RefreshShipmentStatusTask
 
     public function execute(): void
     {
-        // As every job asking Polkurier: switched on, and not before the account is configured.
+        // Like every job that calls Polkurier: only when switched on and the account is configured.
         if (!$this->configProvider->isStatusSyncEnabled() || !$this->configProvider->hasCredentials()) {
             return;
         }

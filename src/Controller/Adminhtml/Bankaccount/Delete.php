@@ -9,11 +9,10 @@ namespace Polkurier\Shipping\Controller\Adminhtml\Bankaccount;
 
 use Magento\Backend\App\Action\Context;
 use Polkurier\Shipping\Controller\Adminhtml\AbstractDelete;
-use Polkurier\Shipping\Model\Admin\FlashMessageCollectorFactory;
 use Polkurier\Shipping\Model\BankAccount\BankAccountHandler;
 
 /**
- * Deletes a bank account, here and, with the next synchronization, in Polkurier.
+ * Deletes a bank account in Polkurier, then here, with the PIN given on its form where needed.
  */
 class Delete extends AbstractDelete
 {
@@ -21,9 +20,8 @@ class Delete extends AbstractDelete
 
     public function __construct(
         Context $context,
-        BankAccountHandler $handler,
-        FlashMessageCollectorFactory $flashMessageCollectorFactory,
+        BankAccountHandler $bankAccountHandler,
     ) {
-        parent::__construct($context, $handler, $flashMessageCollectorFactory);
+        parent::__construct($context, $bankAccountHandler);
     }
 }

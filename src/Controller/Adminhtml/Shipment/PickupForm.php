@@ -21,10 +21,8 @@ class PickupForm extends Action implements HttpGetActionInterface
 
     public function execute(): Page
     {
+        /** @var Page $page */
         $page = $this->resultFactory->create(ResultFactory::TYPE_PAGE);
-        if (!$page instanceof Page) {
-            throw new \LogicException('The admin area renders backend pages.');
-        }
         $page->setActiveMenu('Polkurier_Shipping::shipments');
         $page->getConfig()->getTitle()->prepend((string)__('Book a collective pickup'));
 

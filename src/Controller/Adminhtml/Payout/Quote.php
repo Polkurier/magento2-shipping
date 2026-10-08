@@ -15,7 +15,7 @@ use Polkurier\Shipping\Model\Payout\PayoutManager;
 use Polkurier\Webservice\Enum\MoneyBox\MoneyBoxPayoutTypeEnum;
 
 /**
- * What a payout as filled in would cost. Moves nothing.
+ * What the payout, as filled in, would cost. Moves no money.
  */
 class Quote extends AbstractJsonAction
 {
@@ -41,7 +41,7 @@ class Quote extends AbstractJsonAction
 
         return [
             'available' => $this->payoutManager->getAvailableBalance(),
-            // Polkurier leaves out what it can't pay out without saying so.
+            // Polkurier silently leaves out what it can't pay out.
             'unknown' => $this->moneyBoxOrderFinder->unknown($numbers),
             'fee' => $fee->getFee(),
             'fee_net' => $fee->getFeeNett(),

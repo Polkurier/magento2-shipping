@@ -7,10 +7,10 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Model\Config\Source;
 
-use Polkurier\Shipping\Enum\CartValueEnum;
+use Polkurier\Shipping\Enum\Config\CartValueEnum;
 
 /**
- * The cart value price tiers by subtotal are compared against.
+ * The cart value that subtotal price tiers are compared against.
  */
 readonly class CartValue extends AbstractOptions
 {

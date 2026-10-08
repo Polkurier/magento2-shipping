@@ -15,7 +15,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use Polkurier\Shipping\Api\CarrierConfigRepositoryInterface;
 use Polkurier\Shipping\Api\Data\CarrierConfigInterface;
 use Polkurier\Shipping\Controller\Adminhtml\Carrier\Save;
-use Polkurier\Shipping\Enum\FormMemoryEnum;
+use Polkurier\Shipping\Enum\Adminhtml\FormMemoryEnum;
 use Polkurier\Shipping\Model\Admin\FormActions;
 use Polkurier\Shipping\Model\CarrierConfig\CarrierConfigHydrator;
 use Polkurier\Shipping\Test\Unit\Support\AdminActionTestCase;

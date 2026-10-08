@@ -93,8 +93,9 @@ readonly class PointSelectionRecorder
                     throw new InputException(__('The chosen pickup point is not available. Choose another one.'));
                 }
                 // The same as the map shows after choosing: the address, the point's id beside it.
+                $town = \trim($point->getZip() . ' ' . $point->getCity());
                 $label = $point->getAddress()
-                    ?: \trim($point->getStreet() . ' ' . $point->getZip() . ' ' . $point->getCity());
+                    ?: \implode(', ', \array_filter([\trim((string)$point->getStreet()), $town]));
                 $cod = $point->isCod();
             } catch (RecentFailureException) {
                 // Logged when it failed.

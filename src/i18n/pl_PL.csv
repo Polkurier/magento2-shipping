@@ -49,7 +49,7 @@
 "Cash on delivery payout time","Termin wypłaty pobrania"
 "Cash on delivery paid out to","Pobranie wypłacane na"
 "Shipment description","Opis przesyłki"
-"%s is replaced with the order number. Polkurier keeps up to 30 characters.","%s zostaje zastąpione numerem zamówienia. Polkurier zachowuje do 30 znaków."
+"%s is replaced with the order number; without %s, every shipment gets this text as it is. Polkurier keeps up to 30 characters.","%s zostaje zastąpione numerem zamówienia; bez %s każda przesyłka dostaje ten tekst bez zmian. Polkurier zachowuje do 30 znaków."
 "Pickup point map","Mapa punktów odbioru"
 "Initial latitude","Początkowa szerokość geograficzna"
 "Initial longitude","Początkowa długość geograficzna"

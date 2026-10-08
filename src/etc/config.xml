@@ -42,7 +42,7 @@
                     <default_additional_services />
                     <default_cover_address />
                     <insure_by_default>0</insure_by_default>
-                    <description_format>%s</description_format>
+                    <description_format>#%s</description_format>
                 </shipment_defaults>
                 <sender>
                     <use_store_information_address>0</use_store_information_address>

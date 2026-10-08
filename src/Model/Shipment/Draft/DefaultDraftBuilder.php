@@ -72,7 +72,7 @@ readonly class DefaultDraftBuilder
         $draft->setCarrierCode((string)$carrierCode);
         $draft->setShipmentType($this->getShipmentType($carrier, $storeId));
         $draft->setDescription(
-            \sprintf($this->configProvider->getDescriptionFormat($storeId), $order->getIncrementId()),
+            self::description($this->configProvider->getDescriptionFormat($storeId), (string)$order->getIncrementId()),
         );
         $sender = $this->addressRepository->getDefaultSenderAddress();
         $senderId = $sender?->getId();
@@ -325,5 +325,14 @@ readonly class DefaultDraftBuilder
         }
 
         return null;
+    }
+
+    /**
+     * The description from its pattern: every "%s" becomes the order number, and any other "%" is
+     * kept as typed. A pattern without "%s" is the description of every shipment.
+     */
+    private static function description(string $format, string $orderNumber): string
+    {
+        return \str_replace('%s', $orderNumber, $format);
     }
 }

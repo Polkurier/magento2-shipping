@@ -86,8 +86,9 @@ shipment page alike. You can change all of them for each shipment.
   for what its items are worth. With carriers that require insurance for cash on delivery,
   shipments with cash on delivery are always insured.
 - **Shipment description**: the text in the shipment's description field. `%s` stands for the
-  order number. Polkurier keeps up to 30 characters. The default is the order number alone, which
-  makes the shipment easy to find in the Polkurier panel. Can be set per store view.
+  order number; without `%s`, every shipment gets the text as it is. Polkurier keeps up to 30
+  characters. The default, `#%s`, gives `#000000032`, which makes the shipment easy to find in the
+  Polkurier panel. Can be set per store view.
 
 ### Sender
 

@@ -38,6 +38,15 @@ class DefaultDraftBuilderTest extends TestCase
 {
     private int $packings = 0;
 
+    public function testTheDescriptionPutsTheOrderNumberWhereThePatternHasPercentS(): void
+    {
+        $describe = new \ReflectionMethod(DefaultDraftBuilder::class, 'description');
+
+        self::assertSame('#000000032', $describe->invoke(null, '#%s', '000000032'));
+        self::assertSame('Sklep', $describe->invoke(null, 'Sklep', '000000032'));
+        self::assertSame('50% 000000032', $describe->invoke(null, '50% %s', '000000032'));
+    }
+
     public function testANewShipmentStartsPackedAutomatically(): void
     {
         [$packs, $estimated] = $this->createPacks(true);

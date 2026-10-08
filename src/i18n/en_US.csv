@@ -49,7 +49,7 @@
 "Cash on delivery payout time","Cash on delivery payout time"
 "Cash on delivery paid out to","Cash on delivery paid out to"
 "Shipment description","Shipment description"
-"%s is replaced with the order number. Polkurier keeps up to 30 characters.","%s is replaced with the order number. Polkurier keeps up to 30 characters."
+"%s is replaced with the order number; without %s, every shipment gets this text as it is. Polkurier keeps up to 30 characters.","%s is replaced with the order number; without %s, every shipment gets this text as it is. Polkurier keeps up to 30 characters."
 "Pickup point map","Pickup point map"
 "Initial latitude","Initial latitude"
 "Initial longitude","Initial longitude"

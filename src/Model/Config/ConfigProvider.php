@@ -315,11 +315,11 @@ readonly class ConfigProvider
     }
 
     /**
-     * sprintf-style format of the shipment description; %s is the order increment id.
+     * The shipment description's pattern: "%s" in it stands for the order increment id.
      */
     public function getDescriptionFormat(?int $storeId = null): string
     {
-        return (string)$this->value(self::XML_PATH_DESCRIPTION_FORMAT, $storeId) ?: '%s';
+        return (string)$this->value(self::XML_PATH_DESCRIPTION_FORMAT, $storeId) ?: '#%s';
     }
 
     /**

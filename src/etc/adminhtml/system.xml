@@ -141,7 +141,7 @@
                     <field id="description_format" translate="label comment" type="text" sortOrder="100"
                            showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
                         <label>Shipment description</label>
-                        <comment>%s is replaced with the order number. Polkurier keeps up to 30 characters.</comment>
+                        <comment>%s is replaced with the order number; without %s, every shipment gets this text as it is. Polkurier keeps up to 30 characters.</comment>
                     </field>
                 </group>
                 <group id="sender" translate="label" sortOrder="21" showInDefault="1" showInWebsite="1">

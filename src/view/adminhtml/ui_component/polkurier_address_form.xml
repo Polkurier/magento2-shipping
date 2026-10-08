@@ -39,7 +39,7 @@
         <settings>
             <submitUrl path="*/*/save"/>
         </settings>
-        <dataProvider class="Polkurier\Shipping\Ui\Component\Form\Address\DataProviderVirtual"
+        <dataProvider class="Polkurier\Shipping\Ui\Component\Form\Address\DataProvider"
                       name="polkurier_address_form_data_source">
             <settings>
                 <requestFieldName>id</requestFieldName>
@@ -161,7 +161,7 @@
                 </validation>
             </settings>
         </field>
-        <field name="point_id" formElement="input">
+        <field name="point_id" formElement="input" component="Polkurier_Shipping/js/form/element/point">
             <settings>
                 <label translate="true">Sender drop-off point</label>
                 <dataType>text</dataType>

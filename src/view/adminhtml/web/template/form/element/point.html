@@ -1,0 +1,23 @@
+<!--
+ ~ Copyright (c) 2026 Polkurier.pl
+ ~ All Rights Reserved
+-->
+<!-- A point's id with "Choose on map" next to it -->
+<div class="polkurier-point-input">
+    <input class="admin__control-text" type="text"
+           data-bind="
+               event: {change: userChanges},
+               value: value,
+               hasFocus: focused,
+               valueUpdate: valueUpdate,
+               attr: {
+                   name: inputName,
+                   placeholder: placeholder,
+                   'aria-describedby': noticeId,
+                   id: uid,
+                   disabled: disabled
+               }"/>
+    <button type="button" class="action-default" if="canChoose()" click="choose" disable="disabled">
+        <span translate="'Choose on map'"></span>
+    </button>
+</div>

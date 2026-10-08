@@ -250,6 +250,8 @@ define(['mage/translate', 'Polkurier_Shipping/js/shipment/workspace/rules'], fun
                         type: 'text',
                         map: true,
                         mapSearch: state.senderPostcode,
+                        // Points that take parcels for sending.
+                        mapFunctions: ['send'],
                         visible: function () {
                             return senderPoint() !== 'NONE';
                         },

@@ -209,7 +209,8 @@ define([
                     this.set('sender_point_id', pointId);
                     this.set('sender_point_label', pointsMap.describe(point));
                     this.set('sender_point_label_id', pointId);
-                }.bind(this)
+                }.bind(this),
+                ['send']
             );
         },
 

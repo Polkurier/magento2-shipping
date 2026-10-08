@@ -112,7 +112,7 @@ define([
                                 config.pointLabels[pointId] = pointsMap.describe(point);
                             }
                             box.val(pointId).trigger('change');
-                        });
+                        }, field.mapFunctions);
                     }));
             }
         }

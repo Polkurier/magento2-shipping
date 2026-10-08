@@ -141,18 +141,24 @@ define(['mage/translate', 'Magento_Ui/js/modal/alert'], function ($t, alert) {
          * @param {String[]} providers the carrier's point providers
          * @param {String} searchQuery where the map should start: the postcode, e.g. "00-001"
          * @param {Function} onChoose called with the point's id and the point
+         * @param {String[]} [functions] only points that do these, e.g. ['send'] for drop-off points
          */
-        open: function (map, providers, searchQuery, onChoose) {
+        open: function (map, providers, searchQuery, onChoose, functions) {
             freshToken(map).then(function () {
                 return loadWidget(map.baseUrl);
             }).then(function (target) {
                 // The providers array is made in the iframe, so it has the widget's built-ins too.
-                const instance = new target.POLKURIER.PointsMap({
+                const options = {
                     token: map.token,
                     baseUrl: map.baseUrl,
                     providers: target.Array.from(providers || []),
                     searchQuery: searchQuery
-                });
+                };
+
+                if (functions && functions.length) {
+                    options.functions = target.Array.from(functions);
+                }
+                const instance = new target.POLKURIER.PointsMap(options);
 
                 instance.on('dialog:closed', function () {
                     showFrame(false);

@@ -42,13 +42,12 @@
     </type>
 
     <!-- Address, bank account and pack template forms, each with a collection of its own -->
-    <virtualType name="Polkurier\Shipping\Ui\Component\Form\Address\DataProviderVirtual"
-                 type="Polkurier\Shipping\Ui\Component\Form\SyncableEntityDataProvider">
+    <type name="Polkurier\Shipping\Ui\Component\Form\Address\DataProvider">
         <arguments>
             <argument name="collection" xsi:type="object" shared="false">Polkurier\Shipping\Model\ResourceModel\Address\Collection</argument>
             <argument name="entityHandler" xsi:type="object">Polkurier\Shipping\Model\Address\AddressHandler</argument>
         </arguments>
-    </virtualType>
+    </type>
     <type name="Polkurier\Shipping\Ui\Component\Form\BankAccount\DataProvider">
         <arguments>
             <argument name="collection" xsi:type="object" shared="false">Polkurier\Shipping\Model\ResourceModel\BankAccount\Collection</argument>

@@ -15,8 +15,9 @@ use Magento\Framework\Controller\Result\JsonFactory;
 use Polkurier\Shipping\Model\PickupPoint\MapTokenProvider;
 
 /**
- * A fresh token for the pickup point map, for a shipment screen or label window whose token is
- * gone or about to run out.
+ * A fresh token for the pickup point map: for a shipment screen or label window whose token is
+ * gone or about to run out, and for the address form's drop-off point, which asks for one when the
+ * map opens.
  */
 class MapToken extends Action implements HttpGetActionInterface
 {
@@ -28,6 +29,14 @@ class MapToken extends Action implements HttpGetActionInterface
         private readonly MapTokenProvider $mapTokenProvider,
     ) {
         parent::__construct($context);
+    }
+
+    /**
+     * Also for choosing an address's drop-off point.
+     */
+    protected function _isAllowed(): bool
+    {
+        return parent::_isAllowed() || $this->_authorization->isAllowed('Polkurier_Shipping::addresses');
     }
 
     public function execute(): Json

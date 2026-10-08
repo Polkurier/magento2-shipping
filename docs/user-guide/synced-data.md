@@ -20,7 +20,9 @@ Your sender addresses: where couriers collect parcels, and what's printed as the
 - **Name**, **Company**, **Street**, **House number**, **Flat number**, **Postcode**, **City**,
   **Province**, **Country**, **Phone**, **E-mail**: the address itself.
 - **Sender drop-off point**: the point where you usually drop off parcels, for carriers that let
-  you send from a point.
+  you send from a point. **Choose on map** shows the points that take parcels for sending, of every
+  carrier that takes them at points, starting at the address's postcode. With a point here, new
+  shipments from this address start as dropped off there.
 - **Default sender**: chosen for new shipments. Mark just one address. If several are marked, the
   first one found is used.
 - **Can be a cover address**: the address may be printed on labels instead of the real sender,

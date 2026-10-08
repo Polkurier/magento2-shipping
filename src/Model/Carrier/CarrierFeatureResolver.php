@@ -143,11 +143,6 @@ readonly class CarrierFeatureResolver
         return $this->getSenderPointRequirement($carrier) === PointRequirementEnum::Required;
     }
 
-    public function isDropOffDefault(Carrier $carrier): bool
-    {
-        return (bool)$carrier->getAdditionalData()?->getPickup()?->getNoCourierOrder()?->isDefault();
-    }
-
     /**
      * The additional services the carrier sells, as the codes a shipment is placed with.
      *

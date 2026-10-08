@@ -33,7 +33,6 @@ class CarrierFeatureResolverTest extends TestCase
             self::assertFalse($features->isPickupTimeRequired($carrier));
             self::assertFalse($features->isPickupDateSupported($carrier));
             self::assertFalse($features->isDropOffAvailable($carrier));
-            self::assertFalse($features->isDropOffDefault($carrier));
             self::assertFalse($features->isRecipientPointAllowed($carrier));
         }
     }

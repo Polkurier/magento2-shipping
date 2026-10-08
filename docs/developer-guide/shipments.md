@@ -69,7 +69,8 @@ on delivery, insurance, cover address, services, handover (courier, drop-off or 
 pickup, with an optional date and time window), carrier-specific fields, and whether the customer is
 e-mailed once it's placed (`notify_customer`, see [The Magento shipment](#the-magento-shipment)). A carrier whose
 `points_map.sender_point` is `REQUIRED` takes parcels only at points: its handover is always
-drop-off, whatever the draft says.
+drop-off, whatever the draft says. The default draft is also dropped off when the sender address
+has a drop-off point and the carrier takes parcels at points; otherwise a courier collects it.
 
 The default draft comes from the order, its pickup point and the module's settings, narrowed to what
 the carrier supports; `getDefaultDraft()` returns it. The shipment screen, Magento's label flow and

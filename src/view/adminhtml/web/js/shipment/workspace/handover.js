@@ -91,6 +91,7 @@ define([
                 modes = [];
 
             this.watchCollective(data);
+            this.followSenderAndCarrier(data, features);
             _.each(labels, function (label, value) {
                 if (rules.handoverOffered(value, features, this.collective())) {
                     modes.push({value: value, label: label, id: 'polkurier-handover-' + value});
@@ -137,6 +138,32 @@ define([
                 this.days([]);
                 this.forgetDate();
             }
+        },
+
+        /**
+         * Another sender, carrier or drop-off point starts from the default handover again
+         * (rules.defaultHandover()).
+         *
+         * @param {Object} data
+         * @param {Object} features
+         */
+        followSenderAndCarrier: function (data, features) {
+            // The sender's point comes with the sender, and may be set after it.
+            const key = [data.carrier_code, data.sender_address_id, data.sender_point_id].map(function (value) {
+                return String(value || '');
+            }).join('|');
+
+            if (this.senderAndCarrier !== undefined && this.senderAndCarrier !== key) {
+                const mode = rules.defaultHandover(features, String(data.sender_point_id || ''));
+
+                if (mode !== data.pickup_mode) {
+                    this.senderAndCarrier = key;
+                    this.set('pickup_mode', mode);
+
+                    return;
+                }
+            }
+            this.senderAndCarrier = key;
         },
 
         retry: function () {

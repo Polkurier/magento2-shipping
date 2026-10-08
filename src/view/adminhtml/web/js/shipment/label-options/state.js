@@ -271,6 +271,13 @@ define([
             },
 
             /**
+             * @returns {String} the handover to start from for the chosen carrier and sender
+             */
+            defaultHandover: function () {
+                return rules.defaultHandover(rules.featuresOf(state.carrier()), values.sender_point_id || '');
+            },
+
+            /**
              * @returns {String} the drop-off point of the chosen sender address, '' without one
              */
             senderAddressPoint: function () {

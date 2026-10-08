@@ -306,6 +306,10 @@ define([
             ) {
                 values.sender_point_id = state.senderAddressPoint();
             }
+            // Another sender or carrier starts from the default handover again.
+            if (senderBefore !== values.sender_address_id || carrierBefore !== values.carrier_code) {
+                values.pickup_mode = state.defaultHandover();
+            }
             if (carrierBefore !== values.carrier_code || section.normalizes) {
                 state.normalize();
             }

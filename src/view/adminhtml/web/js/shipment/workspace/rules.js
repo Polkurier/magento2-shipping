@@ -59,8 +59,25 @@ define(['mage/translate'], function ($t) {
      * @returns {Boolean}
      */
     function senderPointUsed(requirement, dropOff, mode) {
-        return (requirement || 'NONE') !== 'NONE'
-            && (mode === 'drop_off' || (requirement === 'REQUIRED' && dropOff === false));
+        return (requirement || 'NONE') !== 'NONE' && (mode === 'drop_off' || requirement === 'REQUIRED');
+    }
+
+    /**
+     * Whether a way of handing the parcels over is offered for the carrier: a carrier that takes
+     * parcels only at points has them dropped off, and a collective pickup needs a carrier that
+     * books one.
+     *
+     * @param {String} mode courier, drop_off or multi
+     * @param {Object} features featuresOf() the carrier
+     * @param {Boolean|undefined} collective whether these parcels can go with a collective pickup
+     * @returns {Boolean}
+     */
+    function handoverOffered(mode, features, collective) {
+        if (features.sender_point === 'REQUIRED') {
+            return mode === 'drop_off';
+        }
+
+        return (mode !== 'drop_off' || features.drop_off !== false) && (mode !== 'multi' || collective !== false);
     }
 
     /**
@@ -462,6 +479,7 @@ define(['mage/translate'], function ($t) {
         draft: draft,
         newSenderLacking: newSenderLacking,
         senderPointUsed: senderPointUsed,
+        handoverOffered: handoverOffered,
         filled: filled,
         amount: amount,
         money: money,

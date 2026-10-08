@@ -85,11 +85,10 @@ readonly class DraftValidator
     }
 
     /**
-     * Keeps the sender's drop-off point only for a carrier that takes parcels at points, and only
-     * when the parcels are dropped off, or when the carrier takes them only at points and doesn't
-     * offer drop-off as a choice. A carrier that takes parcels only at points must get a point, or
-     * it would refuse the shipment later. A carrier list that can't be read leaves the point as it
-     * is.
+     * A carrier that takes parcels only at points gets them dropped off, at a point that must be
+     * given, or it would refuse the shipment later. Other carriers keep the sender's drop-off point
+     * only when the parcels are dropped off. A carrier list that can't be read leaves both as they
+     * are.
      *
      * @throws LocalizedException
      */
@@ -103,14 +102,13 @@ readonly class DraftValidator
         if ($carrier === null) {
             return;
         }
+        // No courier collects for a carrier that takes parcels only at points.
+        if ($this->carrierFeatureResolver->isDropOffOnly($carrier)) {
+            $draft->setPickupMode(ShipmentDraftInterface::PICKUP_DROP_OFF);
+        }
         $requirement = $this->carrierFeatureResolver->getSenderPointRequirement($carrier);
-        $used = $requirement !== PointRequirementEnum::None && (
-            $draft->getPickupMode() === ShipmentDraftInterface::PICKUP_DROP_OFF
-            || (
-                $requirement === PointRequirementEnum::Required
-                && !$this->carrierFeatureResolver->isDropOffAvailable($carrier)
-            )
-        );
+        $used = $requirement !== PointRequirementEnum::None
+            && $draft->getPickupMode() === ShipmentDraftInterface::PICKUP_DROP_OFF;
         if (!$used) {
             $draft->setSenderPointId(null);
         } elseif ($requirement === PointRequirementEnum::Required && $draft->getSenderPointId() === null) {

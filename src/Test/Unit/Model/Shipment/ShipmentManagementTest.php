@@ -599,6 +599,26 @@ class ShipmentManagementTest extends SdkTestCase
         self::assertSame([], $this->saved, 'Nothing is recorded, nothing sent.');
     }
 
+    public function testACarrierThatTakesParcelsOnlyAtPointsHasThemDroppedOffNeverCollected(): void
+    {
+        $this->http->willAnswerWith(self::success([
+            'order_number' => 'POL0008',
+            'label' => ['WB-888'],
+            'price_net' => 10.0,
+            'price_gross' => 12.3,
+        ]));
+        $this->senderPoint = PointRequirementEnum::Required;
+
+        $this->placing()->forNativeShipment(
+            self::ORDER_ID,
+            $this->draft()->setSenderPointId('U16880214')->setPickupMode(ShipmentDraftInterface::PICKUP_COURIER),
+        );
+
+        $data = $this->http->lastPayload()['data'];
+        self::assertSame('U16880214', $data['sender']['point_id'] ?? null);
+        self::assertTrue((bool)($data['pickup']['nocourierorder'] ?? false));
+    }
+
     public function testADropOffPointGoesOnlyToACarrierThatTakesParcelsAtPoints(): void
     {
         $this->http->willAnswerWith(self::success([

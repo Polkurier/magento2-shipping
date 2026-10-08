@@ -134,6 +134,15 @@ readonly class CarrierFeatureResolver
         return (bool)$carrier->getAdditionalData()?->getPickup()?->getNoCourierOrder()?->isAvailable();
     }
 
+    /**
+     * Whether the parcels can only be handed over at a point (point-to-point and point-to-courier
+     * services): no courier collects them.
+     */
+    public function isDropOffOnly(Carrier $carrier): bool
+    {
+        return $this->getSenderPointRequirement($carrier) === PointRequirementEnum::Required;
+    }
+
     public function isDropOffDefault(Carrier $carrier): bool
     {
         return (bool)$carrier->getAdditionalData()?->getPickup()?->getNoCourierOrder()?->isDefault();

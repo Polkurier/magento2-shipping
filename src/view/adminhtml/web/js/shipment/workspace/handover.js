@@ -92,13 +92,17 @@ define([
 
             this.watchCollective(data);
             _.each(labels, function (label, value) {
-                if ((value !== 'drop_off' || features.drop_off !== false)
-                    && (value !== 'multi' || this.collective() !== false)
-                ) {
+                if (rules.handoverOffered(value, features, this.collective())) {
                     modes.push({value: value, label: label, id: 'polkurier-handover-' + value});
                 }
             }, this);
             this.modes(modes);
+            if (features.sender_point === 'REQUIRED' && data.pickup_mode !== 'drop_off') {
+                // A carrier that takes parcels only at points: no courier collects them.
+                this.set('pickup_mode', 'drop_off');
+
+                return;
+            }
             if (data.pickup_mode === 'multi' && this.collective() === false) {
                 // No longer possible for these parcels: a courier collects them, as by default.
                 this.set('pickup_mode', 'courier');

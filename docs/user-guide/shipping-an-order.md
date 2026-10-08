@@ -109,6 +109,9 @@ to it, how the parcels reach the carrier:
 - **A courier collects them later, with other shipments**: booked later for many shipments at once
   (see [Collective pickups](managing-shipments.md#collective-pickups)).
 
+Carriers that take parcels only at points, such as UPS Access Point Punkt-Punkt, offer only **I drop
+them off at a point**.
+
 ### Recipient
 
 Name, address, phone and e-mail, with **Change** to correct them. For pickup point carriers, the

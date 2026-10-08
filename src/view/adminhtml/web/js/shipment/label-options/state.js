@@ -324,7 +324,7 @@ define([
                     values.pickup_mode = 'courier';
                 }
                 // A carrier that takes parcels only at points: they're dropped off there.
-                if (c.sender_point === 'REQUIRED' && c.drop_off) {
+                if (c.sender_point === 'REQUIRED') {
                     values.pickup_mode = 'drop_off';
                 }
                 if (!c.pickup_date) {

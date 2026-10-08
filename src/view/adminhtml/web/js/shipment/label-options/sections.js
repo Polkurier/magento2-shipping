@@ -233,7 +233,7 @@ define(['mage/translate', 'Polkurier_Shipping/js/shipment/workspace/rules'], fun
                         label: $t('Handover'),
                         type: 'select',
                         filter: function (value) {
-                            return value !== 'drop_off' || (carrier() && carrier().drop_off);
+                            return rules.handoverOffered(value, rules.featuresOf(carrier()));
                         }
                     },
                     // The dates and windows Polkurier offers for the carrier.

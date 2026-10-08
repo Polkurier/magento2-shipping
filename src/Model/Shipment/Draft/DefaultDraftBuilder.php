@@ -155,10 +155,14 @@ readonly class DefaultDraftBuilder
             $carrier === null || \in_array(AdditionalServiceEnum::CoverSenderAddress, $offered, true),
         ));
 
-        // Dropped off where the carrier's default says, or at the sender's drop-off point.
+        // Dropped off for a carrier that takes parcels only at points, where the carrier's default
+        // says, or at the sender's drop-off point.
         $draft->setPickupMode(
-            $carrier !== null && $this->carrierFeatureResolver->isDropOffAvailable($carrier)
+            $carrier !== null && (
+                $this->carrierFeatureResolver->isDropOffOnly($carrier)
+                || $this->carrierFeatureResolver->isDropOffAvailable($carrier)
                 && ($this->carrierFeatureResolver->isDropOffDefault($carrier) || $draft->getSenderPointId() !== null)
+            )
                 ? ShipmentDraftInterface::PICKUP_DROP_OFF
                 : ShipmentDraftInterface::PICKUP_COURIER,
         );

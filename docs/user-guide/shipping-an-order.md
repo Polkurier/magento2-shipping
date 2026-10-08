@@ -16,8 +16,7 @@ Information**. Polkurier buttons show only on orders placed with a Polkurier del
 
 ## Two ways to ship
 
-You can also use Magento's own **Ship** button. Both ways can be on at the same time (see
-[Configuration](configuration.md#shipments)).
+You can also use Magento's own **Ship** button, which opens Magento's shipment page.
 
 | | Polkurier shipment screen | Magento's shipment page |
 |---|---|---|
@@ -28,11 +27,10 @@ You can also use Magento's own **Ship** button. Both ways can be on at the same 
 | Label | printed from the Polkurier shipment | stored with the Magento shipment |
 | Part of the order | under **Items to ship** | choose the quantities to ship |
 
-If **Shipping labels on Magento's shipment page** is off, **Ship** opens the Polkurier shipment
-screen too.
-
 Either way you get a Polkurier order and a shipped Magento order, with the waybill numbers as
-tracking numbers. A comment on the order gives the Polkurier order number.
+tracking numbers. A comment on the order gives the Polkurier order number. On Magento's shipment
+page you can also save the shipment without a label and add its Polkurier order later (see
+[A shipment without a label](#a-shipment-without-a-label)).
 
 ## On the Polkurier shipment screen
 
@@ -49,8 +47,14 @@ what was there. If something is missing, such as a pickup point, a collection da
 size, nothing is sent: each section with a problem turns red, and **Fix** takes you to it.
 
 When Polkurier accepts the shipment, the Polkurier order's page opens and the Magento order is
-shipped. The customer gets Magento's shipment e-mail if **Send the shipment e-mail to the
-customer** is on.
+shipped.
+
+**Email the customer about the shipment**, under the price, sends Magento's shipment e-mail once
+Polkurier has accepted the shipment and the Magento shipment is created; if the result is unclear,
+once the order is found placed. It's unticked to start with, as on Magento's shipment page. It
+isn't offered when the Polkurier order goes on a Magento shipment the customer was already
+e-mailed about, or when Magento's shipment e-mails are off (**Stores > Configuration > Sales >
+Sales Emails > Shipment**).
 
 If Polkurier refuses the shipment (a missing phone number, a parcel too big for the carrier, a
 date the courier doesn't come on), you see the reason. Everything you entered stays: fix it and
@@ -127,8 +131,8 @@ Below the parcels is the price. If another carrier is cheaper, **Switch** change
 1. Click **Ship** on the order page. Magento's **New Shipment** page opens.
 2. Check the **Polkurier shipping label** section. **Change** edits a line; **Apply** keeps the
    change.
-3. Choose the quantities to ship. **Create Shipping Label** is always ticked: the label is what
-   places the Polkurier order.
+3. Choose the quantities to ship and tick **Create Shipping Label**: the label is what places the
+   Polkurier order. Tick **Email Copy of Shipment** to e-mail the customer.
 4. Click **Submit Shipment**. Magento's packaging window opens.
 5. Add a package for each parcel and put the items in it. Enter its weight (kg) and size (cm), and
    pick its parcel type as the package type. Picking one of your pack templates in the **Pack
@@ -151,7 +155,7 @@ and weights before saving. Envelopes, pallets and parcels can't be mixed in one 
 told when you save, before anything is sent.
 
 When Polkurier accepts the shipment, the Magento shipment is created with the waybills as
-tracking numbers. **Print Shipping Label** gives you the Polkurier label, and the **Polkurier
+tracking numbers, and Magento sends the e-mail if it was ticked. **Print Shipping Label** gives you the Polkurier label, and the **Polkurier
 order** column on the order's Shipments tab opens the Polkurier shipment (see
 [Managing shipments](managing-shipments.md)).
 
@@ -160,7 +164,17 @@ from the Polkurier shipment, or click **Create Shipping Label** on the Magento s
 the label, without placing a new order.
 
 If Polkurier refuses the shipment, the reason shows in the packaging window and nothing is
-created. Change the options or packages and try again.
+created or e-mailed. Change the options or packages and try again.
+
+### A shipment without a label
+
+Without **Create Shipping Label**, **Submit Shipment** saves the Magento shipment as Magento does,
+with no Polkurier order, and e-mails the customer if **Email Copy of Shipment** is ticked. That
+lets you tell the customer the order is being prepared before anything is sent with Polkurier.
+
+The Polkurier order is added later from the shipment's page, with **Create Shipping Label** or
+**Add a Polkurier order** (see
+[A Magento shipment without a Polkurier order](managing-shipments.md#a-magento-shipment-without-a-polkurier-order)).
 
 ### Before your first label
 

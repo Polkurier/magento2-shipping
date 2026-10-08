@@ -10,9 +10,9 @@ namespace Polkurier\Shipping\Model\Shipment;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Stdlib\DateTime\DateTime;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
-use Polkurier\Shipping\Model\Config\ConfigProvider;
 use Polkurier\Shipping\Model\Sdk\ShipmentGateway;
 use Polkurier\Shipping\Model\Shipment\Status\StatusRefreshService;
+use Polkurier\Webservice\Enum\Order\LabelFileFormatEnum;
 use Polkurier\Webservice\Request\Order\GetDocumentMessage;
 
 /**
@@ -27,29 +27,27 @@ readonly class DocumentService
 {
     public function __construct(
         private ShipmentGateway $shipmentGateway,
-        private ConfigProvider $configProvider,
         private DateTime $dateTime,
         private StatusRefreshService $statusRefreshService,
     ) {}
 
     /**
      * @param ShipmentInterface[] $shipments
-     * @param bool $pdf a PDF whatever label format is configured, as Magento stores labels as PDF
+     * @param LabelFileFormatEnum|null $format a label printer's language, or null for PDF
      *
      * @return array{file_name: string, content: string, content_type: string, left_out: string[]}
      * @throws LocalizedException
      */
-    public function getLabels(array $shipments, bool $pdf = false): array
+    public function getLabels(array $shipments, ?LabelFileFormatEnum $format = null): array
     {
-        [$storeId, $numbers, $leftOut] = $this->numbers($shipments);
-        $format = $pdf ? null : $this->configProvider->getLabelFormat($storeId);
+        [$numbers, $leftOut] = $this->numbers($shipments);
 
-        $document = $this->shipmentGateway->getLabel(new GetDocumentMessage($numbers, $format));
-        [$extension, $contentType] = $format === null ? ['pdf', 'application/pdf'] : ['txt', 'text/plain'];
+        $content = $this->labelContent($numbers, $format);
+        [$extension, $contentType] = self::fileType($content);
 
         return [
             'file_name' => $this->fileName('labels', $numbers, $extension),
-            'content' => $document->getDecodedFile(),
+            'content' => $content,
             'content_type' => $contentType,
             'left_out' => $leftOut,
         ];
@@ -63,7 +61,7 @@ readonly class DocumentService
      */
     public function getProtocol(array $shipments): array
     {
-        [, $numbers, $leftOut] = $this->numbers($shipments);
+        [$numbers, $leftOut] = $this->numbers($shipments);
         $document = $this->shipmentGateway->getProtocol(new GetDocumentMessage($numbers));
 
         return [
@@ -77,8 +75,7 @@ readonly class DocumentService
     /**
      * @param ShipmentInterface[] $shipments
      *
-     * @return array{0: int|null, 1: string[], 2: string[]} the store of the first shipment, whose
-     *     label format applies, the order numbers, and why any were left out
+     * @return array{0: string[], 1: string[]} the order numbers, and why any were left out
      * @throws LocalizedException
      */
     private function numbers(array $shipments): array
@@ -101,7 +98,7 @@ readonly class DocumentService
             ));
         }
 
-        return [\reset($placed)->getStoreId(), \array_map('strval', \array_keys($placed)), $leftOut];
+        return [\array_map('strval', \array_keys($placed)), $leftOut];
     }
 
     /**
@@ -146,5 +143,46 @@ readonly class DocumentService
                 : (string)$this->dateTime->date('Ymd-His'),
             $extension,
         );
+    }
+
+    /**
+     * The labels as one file. Polkurier merges several orders' labels into one PDF and applies a
+     * printer language to one order at a time, so for a printer language each order is asked for
+     * alone and the answers are joined. A carrier without that language answers in its own format
+     * (a PDF, or a GIF for UPS); when any order does, all of them are asked for again as one PDF.
+     *
+     * @param string[] $numbers
+     */
+    private function labelContent(array $numbers, ?LabelFileFormatEnum $format): string
+    {
+        if ($format === null || \count($numbers) === 1) {
+            return $this->shipmentGateway->getLabel(new GetDocumentMessage($numbers, $format))->getDecodedFile();
+        }
+        $parts = [];
+        foreach ($numbers as $number) {
+            $part = $this->shipmentGateway->getLabel(new GetDocumentMessage([$number], $format))->getDecodedFile();
+            if (self::fileType($part)[0] !== 'txt') {
+                return $this->shipmentGateway->getLabel(new GetDocumentMessage($numbers))->getDecodedFile();
+            }
+            $parts[] = \rtrim($part, "\r\n");
+        }
+
+        return \implode("\n", $parts) . "\n";
+    }
+
+    /**
+     * The file's extension and content type, read from its first bytes: Polkurier's answer doesn't
+     * say which format it is in.
+     *
+     * @return array{string, string}
+     */
+    private static function fileType(string $content): array
+    {
+        return match (true) {
+            \str_starts_with($content, '%PDF') => ['pdf', 'application/pdf'],
+            \str_starts_with($content, 'GIF8') => ['gif', 'image/gif'],
+            \str_starts_with($content, "\x89PNG") => ['png', 'image/png'],
+            default => ['txt', 'text/plain'],
+        };
     }
 }

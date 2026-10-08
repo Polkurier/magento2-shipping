@@ -66,4 +66,20 @@ class DraftHydratorTest extends TestCase
         self::assertSame('6110', $data['new_bank_account_number']);
         self::assertFalse($hydrator->fromArray(['sender_address_id' => '7'])->isNewSender());
     }
+
+    public function testTheCustomerIsEmailedOnlyWhenTicked(): void
+    {
+        $draftFactory = $this->createStub(DraftFactory::class);
+        $draftFactory->method('create')->willReturnCallback(static fn(): Draft => new Draft());
+        $hydrator = new DraftHydrator(
+            $draftFactory,
+            $this->createStub(PackFactory::class),
+            $this->createStub(ItemFactory::class),
+        );
+
+        self::assertTrue($hydrator->fromArray(['notify_customer' => '1'])->isNotifyCustomer());
+        self::assertFalse($hydrator->fromArray(['notify_customer' => '0'])->isNotifyCustomer());
+        self::assertFalse($hydrator->fromArray([])->isNotifyCustomer());
+        self::assertTrue($hydrator->toArray((new Draft())->setNotifyCustomer(true))['notify_customer']);
+    }
 }

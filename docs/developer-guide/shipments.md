@@ -66,7 +66,8 @@ A shipment starts as a draft
 merchant can decide about it. Carrier, description, sender, recipient and pickup point, parcels
 ([`Api\Data\ShipmentDraft\PackInterface`](../../src/Api/Data/ShipmentDraft/PackInterface.php)), cash
 on delivery, insurance, cover address, services, handover (courier, drop-off or a later collective
-pickup, with an optional date and time window) and carrier-specific fields.
+pickup, with an optional date and time window), carrier-specific fields, and whether the customer is
+e-mailed once it's placed (`notify_customer`, see [The Magento shipment](#the-magento-shipment)).
 
 The default draft comes from the order, its pickup point and the module's settings, narrowed to what
 the carrier supports; `getDefaultDraft()` returns it. The shipment screen, Magento's label flow and
@@ -172,8 +173,22 @@ itself, and an unclear answer throws instead of returning the `unknown` shipment
 
 A placed shipment ships the Magento order through Magento's own
 `Magento\Sales\Api\ShipOrderInterface`, with one track per waybill, titled with the order's shipping
-description and carrying the carrier code `polkurier`. The customer is notified if
-`labels/notify_customer` is on.
+description and carrying the carrier code `polkurier`.
+
+The customer's e-mail is the last step, once the Magento shipment is linked
+([`Model\Shipment\Native\NativeFollowUpService::ship()`](../../src/Model/Shipment/Native/NativeFollowUpService.php));
+`ShipOrderInterface` itself never notifies. Magento's
+`Magento\Sales\Model\Order\Email\Sender\ShipmentSender` sends it when all of these hold:
+
+- the draft's `notify_customer` is true (false by default, as on Magento's New Shipment page);
+- the Polkurier order is `created`; one `pending`, `unknown`, `failed` or `cancelled` e-mails
+  nobody, and one found placed by reconciliation e-mails then;
+- no e-mail about that Magento shipment was sent or asked for (its `send_email` and `email_sent`
+  are empty), so a replacement on the same shipment doesn't e-mail again;
+- the store sends shipment e-mails (`sales_email/shipment/enabled`).
+
+A failure to send is logged; the shipment stands. A Magento shipment created later, by the status
+refresh or **Create Magento shipment**, follows the same rules with the choice stored with the draft.
 
 The draft's `items`
 ([`Api\Data\ShipmentDraft\ItemInterface`](../../src/Api/Data/ShipmentDraft/ItemInterface.php):
@@ -317,7 +332,11 @@ signature, and 503 when the refresh failed.
 - **Labels and protocols.**
   [`Model\Shipment\DocumentService`](../../src/Model/Shipment/DocumentService.php) fetches them for
   one or more shipments, in one document. With more than one, it refreshes each first and leaves out
-  those that aren't placed, listing why under `left_out`.
+  those that aren't placed, listing why under `left_out`. Labels are PDF unless a
+  `Polkurier\Webservice\Enum\Order\LabelFileFormatEnum` is given; the admin's `polkurier/shipment/label`
+  takes it as the `format` parameter, from the **Print label** button's list on the shipment details
+  page and the **Print labels** submenu of the shipment grids
+  ([`Model\Config\Source\LabelFormat`](../../src/Model/Config/Source/LabelFormat.php) lists them).
 - **Collective pickups.**
   [`Model\Shipment\PickupService`](../../src/Model/Shipment/PickupService.php) loads the collection
   windows for a sender, carrier and date, and books collective pickups for shipments placed with

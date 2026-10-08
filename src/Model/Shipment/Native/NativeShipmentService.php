@@ -23,7 +23,6 @@ use Polkurier\Shipping\Api\Data\ShipmentDraftInterface;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Model\Carrier\Polkurier;
 use Polkurier\Shipping\Model\CarrierConfig\CarrierConfigProvider;
-use Polkurier\Shipping\Model\Config\ConfigProvider;
 use Polkurier\Shipping\Model\Shipment\ShipmentFinder;
 use Polkurier\Shipping\Model\Shipment\Valuation\OrderAmountCalculator;
 
@@ -48,7 +47,6 @@ readonly class NativeShipmentService
         private ShipmentTrackRepositoryInterface $trackRepository,
         private ShipmentRepositoryInterface $shipmentRepository,
         private ShipmentFinder $shipmentFinder,
-        private ConfigProvider $configProvider,
         private CarrierConfigProvider $carrierConfigProvider,
         private ReservedNumberRegistry $reservedNumberRegistry,
     ) {}
@@ -319,7 +317,7 @@ readonly class NativeShipmentService
     /**
      * Puts the Polkurier order on the Magento shipment given, or ships the quantities given (or
      * whatever is left), or, when everything is shipped, goes on the latest shipment without a
-     * Polkurier order.
+     * Polkurier order. The customer isn't e-mailed here.
      *
      * @param array<int, float> $qtys by order item id; empty for everything left
      * @param array<int, array<string, mixed>> $packages of a new Magento shipment, see getPackages()
@@ -353,10 +351,12 @@ readonly class NativeShipmentService
                 $this->reservedNumberRegistry->expect((int)$order->getEntityId(), $number);
             }
             try {
+                // Never with the customer's e-mail: that goes last, once everything else is done
+                // ({@see \Polkurier\Shipping\Model\Shipment\Native\NativeFollowUpService::ship()}).
                 $shipmentId = (int)$this->shipOrder->execute(
                     (int)$order->getEntityId(),
                     $items,
-                    $this->configProvider->isNotifyCustomer((int)$order->getStoreId()),
+                    false,
                     false,
                     null,
                     $tracks,
@@ -394,6 +394,15 @@ readonly class NativeShipmentService
         }
 
         return $targetId;
+    }
+
+    /**
+     * Whether the customer can still be e-mailed about the Magento shipment: no e-mail about it was
+     * sent, or asked for (Magento's asynchronous sending queues it).
+     */
+    public static function isEmailOpen(MagentoShipmentModel $magentoShipment): bool
+    {
+        return !$magentoShipment->getSendEmail() && !$magentoShipment->getEmailSent();
     }
 
     /**

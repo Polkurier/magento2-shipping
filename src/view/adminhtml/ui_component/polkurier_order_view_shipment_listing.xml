@@ -51,12 +51,12 @@
         <filterSearch name="fulltext"/>
         <filters name="listing_filters"/>
         <!-- As on the shipments grid; each takes this order's shipments only -->
-        <massaction name="listing_massaction">
+        <massaction name="listing_massaction" component="Magento_Ui/js/grid/tree-massactions">
             <action name="label" class="Polkurier\Shipping\Ui\Component\Listing\Shipment\OrderScopedMassAction">
                 <settings>
-                    <url path="polkurier/shipment/label"/>
                     <type>label</type>
                     <label translate="true">Print labels</label>
+                    <actions class="Polkurier\Shipping\Ui\Component\Listing\Shipment\LabelFormatActions"/>
                 </settings>
             </action>
             <action name="protocol" class="Polkurier\Shipping\Ui\Component\Listing\Shipment\OrderScopedMassAction">

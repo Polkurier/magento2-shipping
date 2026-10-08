@@ -15,8 +15,11 @@ use Magento\Sales\Api\Data\ShipmentInterface as MagentoShipmentInterface;
 use Magento\Sales\Api\OrderStatusHistoryRepositoryInterface;
 use Magento\Sales\Api\ShipmentCommentRepositoryInterface;
 use Magento\Sales\Api\ShipmentRepositoryInterface as MagentoShipmentRepository;
+use Magento\Sales\Helper\Data as SalesData;
 use Magento\Sales\Model\Order;
+use Magento\Sales\Model\Order\Email\Sender\ShipmentSender;
 use Magento\Sales\Model\Order\Shipment as MagentoShipmentModel;
+use Polkurier\Shipping\Api\Data\ShipmentDraftInterface;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Api\ShipmentRepositoryInterface;
 use Polkurier\Shipping\Enum\Sdk\ApiEventEnum;
@@ -45,11 +48,16 @@ readonly class NativeFollowUpService
         private ApiEventDispatcher $apiEventDispatcher,
         private Logger $logger,
         private CarrierNameProvider $carrierNameProvider,
+        private ShipmentSender $shipmentSender,
+        private SalesData $salesData,
     ) {}
 
     /**
      * Ships the Magento order with the Polkurier order's waybills. A failure is recorded on the
      * shipment, to be tried again, rather than thrown.
+     *
+     * The customer's e-mail about the Magento shipment goes last, once the Magento shipment is
+     * linked, and only for a placed Polkurier order (notifyCustomer()).
      *
      * @return string|null why the Magento shipment could not be created, or null
      */
@@ -65,8 +73,6 @@ readonly class NativeFollowUpService
             );
             $this->shipmentRepository->save($shipment->setShipmentId($shipmentId));
             $this->remarkLinked($shipment);
-
-            return null;
         } catch (\Throwable $e) {
             $this->logger->error('Polkurier order placed but the Magento shipment failed', [
                 'order' => $order->getIncrementId(),
@@ -78,6 +84,42 @@ readonly class NativeFollowUpService
             $this->shipmentRepository->save($shipment);
 
             return $e->getMessage();
+        }
+        $this->notifyCustomer($order, $shipment);
+
+        return null;
+    }
+
+    /**
+     * Sends the customer Magento's e-mail about the Magento shipment, when it was asked for with the
+     * Polkurier order ({@see ShipmentDraftInterface::FIELD_NOTIFY_CUSTOMER}). Only for a placed order,
+     * while no e-mail about that shipment was sent or asked for, and while the store sends shipment
+     * e-mails: pending, unclear, refused and cancelled orders e-mail nobody. A failure is logged; the
+     * shipment stands either way.
+     */
+    private function notifyCustomer(Order $order, ShipmentInterface $shipment): void
+    {
+        $storeId = (int)$order->getStoreId();
+        $magentoShipmentId = $shipment->getShipmentId();
+        if ($shipment->getState() !== ShipmentInterface::STATE_CREATED
+            || $magentoShipmentId === null
+            || empty($shipment->getDraft()[ShipmentDraftInterface::FIELD_NOTIFY_CUSTOMER])
+            || !$this->salesData->canSendNewShipmentEmail($storeId)
+        ) {
+            return;
+        }
+        try {
+            $magentoShipment = $this->magentoShipmentRepository->get($magentoShipmentId);
+            if ($magentoShipment instanceof MagentoShipmentModel
+                && NativeShipmentService::isEmailOpen($magentoShipment)
+            ) {
+                $this->shipmentSender->send($magentoShipment);
+            }
+        } catch (\Throwable $e) {
+            $this->logger->error('Magento shipment created but the e-mail to the customer failed', [
+                'order' => $order->getIncrementId(),
+                'exception' => $e,
+            ]);
         }
     }
 

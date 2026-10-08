@@ -42,12 +42,12 @@
         <exportButton name="export_button"/>
         <filterSearch name="fulltext"/>
         <filters name="listing_filters"/>
-        <massaction name="listing_massaction">
+        <massaction name="listing_massaction" component="Magento_Ui/js/grid/tree-massactions">
             <action name="label">
                 <settings>
-                    <url path="polkurier/shipment/label"/>
                     <type>label</type>
                     <label translate="true">Print labels</label>
+                    <actions class="Polkurier\Shipping\Ui\Component\Listing\Shipment\LabelFormatActions"/>
                 </settings>
             </action>
             <action name="protocol">

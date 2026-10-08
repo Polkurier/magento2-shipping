@@ -11,7 +11,6 @@ use Magento\Framework\AuthorizationInterface;
 use Magento\Sales\Model\Order;
 use Magento\Shipping\Block\Adminhtml\View;
 use Polkurier\Shipping\Model\Carrier\Polkurier;
-use Polkurier\Shipping\Model\Config\ConfigProvider;
 use Polkurier\Shipping\Model\Shipment\Native\NativeShipmentService;
 use Polkurier\Shipping\Model\Shipment\ShipmentFinder;
 
@@ -31,7 +30,6 @@ readonly class ShipmentViewPlugin
 
     public function __construct(
         private AuthorizationInterface $authorization,
-        private ConfigProvider $configProvider,
         private NativeShipmentService $nativeShipmentService,
         private ShipmentFinder $shipmentFinder,
     ) {}
@@ -61,7 +59,6 @@ readonly class ShipmentViewPlugin
             ]);
         }
         if (!$this->authorization->isAllowed('Polkurier_Shipping::shipment_create')
-            || !$this->configProvider->isShipmentScreenEnabled((int)$order->getStoreId())
             || !isset($this->nativeShipmentService->getFreeShipments($order)[(int)$shipment->getId()])
         ) {
             return [$layout];

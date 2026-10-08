@@ -56,10 +56,6 @@ scope. The admin shows each setting down to the scope in the table.
 | `cod/cod_payment_methods` | `getCodPaymentMethods()` | website |
 | `cod/default_cod_type`, `cod/default_cod_refund_type` | `getDefaultCodType()`, `getDefaultCodReturnType()` | website |
 | `shipment_defaults/description_format` | `getDescriptionFormat()` | store view |
-| `labels/label_format` | `getLabelFormat()` | website |
-| `labels/notify_customer` | `isNotifyCustomer()` | website |
-| `labels/native_labels` | `isNativeLabelsEnabled()` | website |
-| `labels/shipment_screen` | `isShipmentScreenEnabled()` | website |
 | `map/default_latitude`, `map/default_longitude`, `map/default_zoom` | `getMapLatitude()` … | store view |
 | `map/show_list`, `map/show_search_input` | `isMapShowList()`, `isMapShowSearch()` | store view |
 | `map/required_point_functions` | `getMapPointFunctions()` | website |
@@ -68,7 +64,7 @@ Magento's standard carrier settings (`sallowspecific`, `specificcountry`, `showm
 `specificerrmsg`, `sort_order`) are read by Magento itself.
 
 Getters that return choices return enums, the SDK's (`getDefaultShipmentType()`,
-`getDefaultCodType()`, `getLabelFormat()` and so on) or the module's own in
+`getDefaultCodType()`, `getDefaultCodReturnType()` and so on) or the module's own in
 [`Enum\Config`](../../src/Enum/Config) (`getTierCartValue()`, `getExternalOrderId()`,
 `getParcelWeight()`, `getWeightLimit()`), so you never compare raw strings.
 

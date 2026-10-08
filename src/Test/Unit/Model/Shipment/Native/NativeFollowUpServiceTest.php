@@ -11,7 +11,9 @@ use Magento\Sales\Api\Data\ShipmentCommentInterfaceFactory;
 use Magento\Sales\Api\OrderStatusHistoryRepositoryInterface;
 use Magento\Sales\Api\ShipmentCommentRepositoryInterface;
 use Magento\Sales\Api\ShipmentRepositoryInterface;
+use Magento\Sales\Helper\Data as SalesData;
 use Magento\Sales\Model\Order;
+use Magento\Sales\Model\Order\Email\Sender\ShipmentSender;
 use Magento\Sales\Model\Order\Shipment as MagentoShipment;
 use Magento\Sales\Model\Order\Shipment\Track;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
@@ -138,6 +140,8 @@ class NativeFollowUpServiceTest extends TestCase
             $this->createStub(ApiEventDispatcher::class),
             $logger,
             $this->createStub(CarrierNameProvider::class),
+            $this->createStub(ShipmentSender::class),
+            $this->createStub(SalesData::class),
         );
     }
 

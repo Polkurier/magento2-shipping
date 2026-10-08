@@ -10,7 +10,9 @@ namespace Polkurier\Shipping\Ui\Component\Form\Shipment;
 use Magento\Framework\App\RequestInterface;
 use Magento\Framework\Pricing\PriceCurrencyInterface;
 use Magento\Framework\UrlInterface;
+use Magento\Sales\Helper\Data as SalesData;
 use Magento\Sales\Model\Order;
+use Magento\Sales\Model\Order\Shipment as MagentoShipment;
 use Polkurier\Shipping\Api\AddressRepositoryInterface;
 use Polkurier\Shipping\Api\Data\AddressInterface;
 use Polkurier\Shipping\Api\Data\ShipmentDraft\ItemInterface;
@@ -73,6 +75,7 @@ class DataProvider extends FormDataProvider
         private readonly PackType $packTypes,
         private readonly RetriableShipmentFinder $retriableShipmentFinder,
         private readonly ConfigProvider $configProvider,
+        private readonly SalesData $salesData,
         array $meta = [],
         array $data = [],
     ) {
@@ -176,6 +179,10 @@ class DataProvider extends FormDataProvider
         // replaces: the chosen shipment or, with nothing left to ship, the latest without a
         // Polkurier order.
         $data['replacing'] = $data['can_ship'] ? null : $this->getReplaced($order, $targetId);
+        // The customer's e-mail, for a new Magento shipment or one nobody was e-mailed about yet,
+        // while the store sends shipment e-mails.
+        $data['notify_offered'] = ($data['can_ship'] || ($data['replacing']['email_open'] ?? false))
+            && $this->salesData->canSendNewShipmentEmail($storeId);
         $data[ShipmentDraftInterface::FIELD_ITEMS] = $this->getItems(
             $order,
             (array)($data[ShipmentDraftInterface::FIELD_ITEMS] ?? []),
@@ -295,9 +302,10 @@ class DataProvider extends FormDataProvider
     /**
      * The Magento shipment a Polkurier order goes on: the one chosen or, when the order has nothing
      * left to ship, the latest without a Polkurier order. Comes with the cancelled Polkurier order
-     * it replaces and what the shipment carries; null when there is none.
+     * it replaces, what the shipment carries, and whether its customer can still be e-mailed about
+     * it; null when there is none.
      *
-     * @return array{increment_id: string, replaces: string|null, shipment_value: float, worth: array{products: float, order_total: float, whole: bool, value: float}, qtys: array<int, float>}|null
+     * @return array{increment_id: string, replaces: string|null, shipment_value: float, worth: array{products: float, order_total: float, whole: bool, value: float}, qtys: array<int, float>, email_open: bool}|null
      */
     private function getReplaced(Order $order, ?int $targetId): ?array
     {
@@ -309,8 +317,15 @@ class DataProvider extends FormDataProvider
         $qtys = $this->nativeShipmentService->getShipmentQuantities($order, $id);
 
         $worth = $this->orderAmountCalculator->getShipmentWorth($order, $qtys);
+        $magentoShipment = $order->getShipmentsCollection()->getItemById($id);
 
-        return $free[$id] + ['shipment_value' => $worth['value'], 'worth' => $worth, 'qtys' => $qtys];
+        return $free[$id] + [
+            'shipment_value' => $worth['value'],
+            'worth' => $worth,
+            'qtys' => $qtys,
+            'email_open' => $magentoShipment instanceof MagentoShipment
+                && NativeShipmentService::isEmailOpen($magentoShipment),
+        ];
     }
 
     /**

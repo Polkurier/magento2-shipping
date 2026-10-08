@@ -50,9 +50,15 @@ abstract class AbstractButton implements ButtonProviderInterface
         return $this->shipment()?->getState() === ShipmentInterface::STATE_CREATED;
     }
 
-    protected function actionUrl(string $action): string
+    /**
+     * @param array<string, string> $params besides the shipment's id
+     */
+    protected function actionUrl(string $action, array $params = []): string
     {
-        return $this->url->getUrl('polkurier/shipment/' . $action, ['id' => (int)$this->shipment()?->getId()]);
+        return $this->url->getUrl(
+            'polkurier/shipment/' . $action,
+            ['id' => (int)$this->shipment()?->getId()] + $params,
+        );
     }
 
     /**

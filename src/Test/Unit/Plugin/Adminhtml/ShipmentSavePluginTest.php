@@ -7,104 +7,69 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Test\Unit\Plugin\Adminhtml;
 
-use Magento\Backend\Model\View\Result\Redirect;
-use Magento\Backend\Model\View\Result\RedirectFactory;
-use Magento\Framework\App\RequestInterface;
+use Magento\Framework\Message\Collection;
 use Magento\Framework\Message\ManagerInterface;
-use Magento\Sales\Api\OrderRepositoryInterface;
-use Magento\Sales\Model\Order;
+use Magento\Framework\Message\MessageInterface;
 use Magento\Shipping\Controller\Adminhtml\Order\Shipment\Save;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Polkurier\Shipping\Model\Config\ConfigProvider;
 use Polkurier\Shipping\Model\Shipment\Native\NativeLabelService;
-use Polkurier\Shipping\Model\Shipment\OrderLoader;
 use Polkurier\Shipping\Plugin\Adminhtml\ShipmentSavePlugin;
 
 #[CoversClass(ShipmentSavePlugin::class)]
 #[AllowMockObjectsWithoutExpectations]
 class ShipmentSavePluginTest extends TestCase
 {
-    /** @var string[] */
-    private array $errors = [];
-    /** @var array{0: string, 1: array<string, mixed>}|null */
-    private ?array $redirect = null;
+    /** @var string[] the messages left, in order */
+    private array $messages = [];
 
-    public function testWithTheLabelMagentoGoesOn(): void
+    public function testASaveWithoutAnUnreadyLabelKeepsMagentosMessage(): void
     {
-        self::assertSame('saved', $this->save(['create_shipping_label' => '1'], 'polkurier_inpost_paczkomat'));
+        self::assertSame('saved', $this->save(null));
+        self::assertSame(['The shipment has been created.'], $this->messages);
     }
 
-    public function testWithoutItAPolkurierOrderIsntShipped(): void
+    public function testAnUnreadyLabelReplacesMagentosMessage(): void
     {
-        self::assertNotSame('saved', $this->save([], 'polkurier_inpost_paczkomat'));
-        self::assertSame(['adminhtml/order_shipment/new', ['order_id' => 9]], $this->redirect);
-        self::assertStringStartsWith(
-            'Order #000000009 ships with a Polkurier order, so its shipment is created with a shipping label',
-            $this->errors[0],
-        );
+        self::assertSame('saved', $this->save('PK123'));
+        self::assertCount(2, $this->messages);
+        self::assertSame('Other', $this->messages[0]);
+        self::assertStringStartsWith('The shipment has been created with Polkurier order PK123', $this->messages[1]);
     }
 
-    public function testWithMagentosLabelsOffItPointsToTheShipmentScreen(): void
+    private function save(?string $unready): mixed
     {
-        self::assertNotSame('saved', $this->save([], 'polkurier_inpost_paczkomat', labels: false));
-        self::assertStringContainsString('use Ship on the order page', $this->errors[0]);
-    }
+        $this->messages = $unready === null
+            ? ['The shipment has been created.']
+            : ['The shipment has been created. You created the shipping label.', 'Other'];
+        $taken = [];
+        foreach ($this->messages as $text) {
+            $message = $this->createStub(MessageInterface::class);
+            $message->method('getText')->willReturn($text);
+            $taken[] = $message;
+        }
+        $collection = $this->createStub(Collection::class);
+        $collection->method('getItems')->willReturnCallback(function () use ($taken): array {
+            $this->messages = [];
 
-    public function testAnOrderOfAnotherCarrierIsLeftAlone(): void
-    {
-        self::assertSame('saved', $this->save([], 'flatrate_flatrate'));
-    }
-
-    public function testNothingIsStoppedWhenTheModuleShipsNothingItself(): void
-    {
-        self::assertSame('saved', $this->save([], 'polkurier_inpost_paczkomat', labels: false, screen: false));
-    }
-
-    /**
-     * @param array<string, mixed> $shipment the form's shipment fields
-     */
-    private function save(array $shipment, string $method, bool $labels = true, bool $screen = true): mixed
-    {
-        $request = $this->createStub(RequestInterface::class);
-        $request->method('getParam')->willReturnMap([['shipment', [], $shipment], ['order_id', null, '9']]);
-        $controller = $this->createStub(Save::class);
-        $controller->method('getRequest')->willReturn($request);
-
-        $order = $this->createStub(Order::class);
-        $order->method('getShippingMethod')->willReturn($method);
-        $order->method('getIncrementId')->willReturn('000000009');
-        $order->method('getStoreId')->willReturn(1);
-        $orders = $this->createStub(OrderRepositoryInterface::class);
-        $orders->method('get')->willReturn($order);
-
-        $config = $this->createStub(ConfigProvider::class);
-        $config->method('isNativeLabelsEnabled')->willReturn($labels);
-        $config->method('isShipmentScreenEnabled')->willReturn($screen);
-
-        $messages = $this->createStub(ManagerInterface::class);
-        $messages->method('addErrorMessage')->willReturnCallback(function ($message) use ($messages) {
-            $this->errors[] = (string)$message;
-
-            return $messages;
+            return $taken;
         });
-        $redirect = $this->createStub(Redirect::class);
-        $redirect->method('setPath')->willReturnCallback(function (string $path, array $params = []) use ($redirect) {
-            $this->redirect = [$path, $params];
+        $manager = $this->createStub(ManagerInterface::class);
+        $manager->method('getMessages')->willReturn($collection);
+        $manager->method('addMessage')->willReturnCallback(function (MessageInterface $message) use ($manager) {
+            $this->messages[] = (string)$message->getText();
 
-            return $redirect;
+            return $manager;
         });
-        $redirects = $this->createStub(RedirectFactory::class);
-        $redirects->method('create')->willReturn($redirect);
+        $manager->method('addNoticeMessage')->willReturnCallback(function ($message) use ($manager) {
+            $this->messages[] = (string)$message;
 
-        return (new ShipmentSavePlugin(
-            new OrderLoader($orders),
-            $config,
-            $messages,
-            $redirects,
-            $this->createStub(NativeLabelService::class),
-        ))
-            ->aroundExecute($controller, static fn(): string => 'saved');
+            return $manager;
+        });
+        $labels = $this->createStub(NativeLabelService::class);
+        $labels->method('takeUnreadyLabel')->willReturn($unready);
+
+        return (new ShipmentSavePlugin($manager, $labels))->afterExecute($this->createStub(Save::class), 'saved');
     }
 }

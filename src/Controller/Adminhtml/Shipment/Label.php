@@ -16,9 +16,11 @@ use Magento\Framework\App\ResponseInterface;
 use Magento\Framework\Controller\ResultInterface;
 use Magento\Framework\Exception\LocalizedException;
 use Polkurier\Shipping\Model\Shipment\DocumentService;
+use Polkurier\Webservice\Enum\Order\LabelFileFormatEnum;
 
 /**
- * Downloads the labels of one shipment (by id) or of the shipments selected in a grid, as one file.
+ * Downloads the labels of one shipment (by id) or of the shipments selected in a grid, as one file:
+ * a PDF, or in the label printer language given as "format" (a {@see LabelFileFormatEnum} value).
  */
 class Label extends AbstractShipmentAction implements HttpGetActionInterface, HttpPostActionInterface
 {
@@ -36,7 +38,10 @@ class Label extends AbstractShipmentAction implements HttpGetActionInterface, Ht
     public function execute(): ResponseInterface|ResultInterface
     {
         try {
-            $document = $this->documentService->getLabels($this->getSelectedShipments());
+            $document = $this->documentService->getLabels(
+                $this->getSelectedShipments(),
+                LabelFileFormatEnum::tryFrom((string)$this->getRequest()->getParam('format')),
+            );
             // These show on the next page, since this request answers with the file.
             foreach ($document['left_out'] as $message) {
                 $this->messageManager->addWarningMessage($message);

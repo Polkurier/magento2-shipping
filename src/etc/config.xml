@@ -60,12 +60,6 @@
                     <default_cod_type>S</default_cod_type>
                     <default_cod_refund_type>BA</default_cod_refund_type>
                 </cod>
-                <labels>
-                    <label_format />
-                    <native_labels>1</native_labels>
-                    <notify_customer>1</notify_customer>
-                    <shipment_screen>1</shipment_screen>
-                </labels>
                 <map>
                     <default_latitude>52.2297</default_latitude>
                     <default_longitude>21.0122</default_longitude>

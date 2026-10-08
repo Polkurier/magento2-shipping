@@ -3,8 +3,10 @@
  * All Rights Reserved
  */
 /**
- * The foot of the side column: the price with the chosen carrier, and a cheaper carrier if there
- * is one. The shipment is placed with the page's button. If something is missing, placing marks
+ * The foot of the side column: the price with the chosen carrier, a cheaper carrier if there is
+ * one, and whether the customer is e-mailed about the Magento shipment once the Polkurier order is
+ * placed (offered only when nobody was e-mailed about it yet). The shipment is placed with the
+ * page's button. If something is missing, placing marks
  * it in the sections instead of sending an order Polkurier would refuse.
  *
  * Whenever something that affects the price changes, it asks Polkurier again, once things settle,
@@ -50,6 +52,13 @@ define([
             this.retryable = ko.observable(false);
             this.carrierName = ko.observable('');
             this.cheaper = ko.observable(null);
+            this.notifyOffered = ko.observable(false);
+            this.notifyCustomer = ko.observable(false);
+            this.notifyCustomer.subscribe(function (notify) {
+                if (notify !== Boolean(this.source.get('data.notify_customer'))) {
+                    this.source.set('data.notify_customer', notify);
+                }
+            }, this);
             this.lastPayload = null;
             // Only the answer to the latest price request counts.
             this.prices = request();
@@ -84,6 +93,8 @@ define([
             let best = null;
 
             this.carrierName(data.carrier_code ? (carriers[data.carrier_code] || {}).name || data.carrier_code : '');
+            this.notifyOffered(Boolean(data.notify_offered));
+            this.notifyCustomer(Boolean(data.notify_customer));
             this.publishIssues();
             this.price(chosen ? {
                 gross: rules.money(chosen.gross, currency),

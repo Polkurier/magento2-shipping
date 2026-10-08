@@ -136,22 +136,6 @@ These settings decide the sender address when you haven't marked a default one u
   Polkurier contract.
 - **Cash on delivery paid out to**: **Bank account**, **Polkurier money box** or **Postal order**.
 
-### Labels and Magento shipments
-
-- **Label format**: PDF, or a format for thermal label printers (ZPL at 203 or 300 dpi, EPL,
-  Datamax). It applies to labels printed from **Polkurier > Sales > Shipments** and the shipment
-  details page. Labels stored with Magento shipments are always PDF.
-- **Shipping labels on Magento's shipment page**: lets **Create Shipping Label** on Magento's New
-  Shipment page place the Polkurier shipment, for orders placed with a Polkurier method.
-- **Send the shipment e-mail to the customer**: whether Magento's usual "your order has shipped"
-  e-mail goes out when the module ships an order. On Magento's shipment page, the page's own
-  **Email Copy of Shipment** checkbox decides instead.
-- **Polkurier shipment screen**: adds a **Ship with Polkurier** button to the page of an order
-  placed with a Polkurier method.
-
-Both ways of shipping are on by default and can be used side by side. See
-[Shipping an order](shipping-an-order.md) for how they differ.
-
 ## Pickup point map
 
 - **Initial latitude**, **Initial longitude** and **Initial zoom**: where the map opens when the

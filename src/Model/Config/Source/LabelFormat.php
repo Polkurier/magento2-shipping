@@ -10,7 +10,8 @@ namespace Polkurier\Shipping\Model\Config\Source;
 use Polkurier\Webservice\Enum\Order\LabelFileFormatEnum;
 
 /**
- * Label formats. PDF is what the API returns when none is asked for.
+ * The formats labels are printed in: PDF, which the API returns when none is asked for, or the
+ * language of a label printer.
  */
 readonly class LabelFormat extends AbstractOptions
 {

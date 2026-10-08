@@ -21,7 +21,6 @@ use PHPUnit\Framework\TestCase;
 use Polkurier\Shipping\Api\Data\ShipmentDraftInterface;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Logger\Logger;
-use Polkurier\Shipping\Model\Config\ConfigProvider;
 use Polkurier\Shipping\Model\Shipment\DocumentService;
 use Polkurier\Shipping\Model\Shipment\Draft;
 use Polkurier\Shipping\Model\Shipment\Draft\DefaultDraftBuilder;
@@ -66,7 +65,10 @@ class NativeLabelServiceTest extends TestCase
      */
     private ?array $qtys = null;
 
-    private bool $labelsOn = true;
+    /**
+     * Magento's "Email Copy of Shipment", as its Save puts it on the order.
+     */
+    private bool $emailCopy = false;
 
     public function testPackagesAreCheckedAgainstWhatTheShipmentCarries(): void
     {
@@ -170,21 +172,22 @@ class NativeLabelServiceTest extends TestCase
         self::assertSame('Jan Kowalski', $this->placed()->getRecipientPerson(), 'The recipient is the order\'s.');
     }
 
-    public function testNoOrderIsPlacedWhereLabelsAreOffForTheOrdersStore(): void
+    public function testANewShipmentKeepsMagentosEmailChoice(): void
     {
-        $this->labelsOn = false;
-        $this->management->expects(self::never())->method('forNativeShipment');
+        $this->emailCopy = true;
 
-        $this->expectException(LocalizedException::class);
         $this->label()->request($this->labelRequest($this->magentoShipment(null), []));
+
+        self::assertTrue($this->placed()->isNotifyCustomer(), 'For a Magento shipment made later, if it comes to it.');
     }
 
-    public function testAskedWithoutAStoreLabelsAreAvailableForThePagesToDecide(): void
+    public function testALabelForAShipmentMadeBeforeEmailsNobody(): void
     {
-        $this->labelsOn = false;
+        $this->emailCopy = true;
 
-        self::assertTrue($this->label()->isAvailable(null));
-        self::assertFalse($this->label()->isAvailable(1));
+        $this->label()->request($this->labelRequest($this->magentoShipment(31), []));
+
+        self::assertFalse($this->placed()->isNotifyCustomer());
     }
 
     public function testAShipmentWithAPolkurierOrderGetsItsLabelWithoutPlacingAnother(): void
@@ -269,6 +272,7 @@ class NativeLabelServiceTest extends TestCase
         $order = $this->createStub(Order::class);
         $order->method('getEntityId')->willReturn(42);
         $order->method('getStoreId')->willReturn(1);
+        $order->method('getCustomerNoteNotify')->willReturnCallback(fn(): bool => $this->emailCopy);
         $shipment = $this->createMock(MagentoShipmentModel::class);
         $shipment->method('getId')->willReturn($id);
         $shipment->method('getOrder')->willReturn($order);
@@ -302,9 +306,6 @@ class NativeLabelServiceTest extends TestCase
 
     private function label(?NativeShipmentService $nativeShipmentService = null): NativeLabelService
     {
-        $config = $this->createStub(ConfigProvider::class);
-        $config->method('isNativeLabelsEnabled')->willReturnCallback(fn(?int $storeId): bool => $this->labelsOn);
-
         $draftFactory = $this->createStub(DraftFactory::class);
         $draftFactory->method('create')->willReturnCallback(static fn(): Draft => new Draft());
         $packFactory = $this->createStub(PackFactory::class);
@@ -333,7 +334,6 @@ class NativeLabelServiceTest extends TestCase
         $tracks->method('create')->willReturnCallback(fn(): Track => $this->createStub(Track::class));
 
         return new NativeLabelService(
-            $config,
             new NativeLabelPackageMapper($packFactory, $this->itemFactory(), MagentoMeasures::carrierHelper()),
             $this->management,
             $builder,

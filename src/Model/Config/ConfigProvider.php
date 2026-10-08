@@ -20,7 +20,6 @@ use Polkurier\Webservice\Enum\Http\ApiMethodEnum;
 use Polkurier\Webservice\Enum\Order\AdditionalServiceEnum;
 use Polkurier\Webservice\Enum\Order\CodReturnTypeEnum;
 use Polkurier\Webservice\Enum\Order\CodTypeEnum;
-use Polkurier\Webservice\Enum\Order\LabelFileFormatEnum;
 use Polkurier\Webservice\Enum\Order\ShipmentTypeEnum;
 
 /**
@@ -65,10 +64,6 @@ readonly class ConfigProvider
     public const string XML_PATH_DEFAULT_COD_TYPE = 'carriers/polkurier/cod/default_cod_type';
     public const string XML_PATH_DEFAULT_COD_RETURN_TYPE = 'carriers/polkurier/cod/default_cod_refund_type';
     public const string XML_PATH_DESCRIPTION_FORMAT = 'carriers/polkurier/shipment_defaults/description_format';
-    public const string XML_PATH_LABEL_FORMAT = 'carriers/polkurier/labels/label_format';
-    public const string XML_PATH_NOTIFY_CUSTOMER = 'carriers/polkurier/labels/notify_customer';
-    public const string XML_PATH_NATIVE_LABELS = 'carriers/polkurier/labels/native_labels';
-    public const string XML_PATH_SHIPMENT_SCREEN = 'carriers/polkurier/labels/shipment_screen';
     public const string XML_PATH_COD_PAYMENT_METHODS = 'carriers/polkurier/cod/cod_payment_methods';
     public const string XML_PATH_MAP_LATITUDE = 'carriers/polkurier/map/default_latitude';
     public const string XML_PATH_MAP_LONGITUDE = 'carriers/polkurier/map/default_longitude';
@@ -325,35 +320,6 @@ readonly class ConfigProvider
     public function getDescriptionFormat(?int $storeId = null): string
     {
         return (string)$this->value(self::XML_PATH_DESCRIPTION_FORMAT, $storeId) ?: '%s';
-    }
-
-    /**
-     * Null means PDF, which the API returns when no printer language is asked for.
-     */
-    public function getLabelFormat(?int $storeId = null): ?LabelFileFormatEnum
-    {
-        return LabelFileFormatEnum::tryFrom((string)$this->value(self::XML_PATH_LABEL_FORMAT, $storeId));
-    }
-
-    /**
-     * Whether Magento's own shipment page creates shipping labels by placing Polkurier orders.
-     */
-    public function isNativeLabelsEnabled(?int $storeId = null): bool
-    {
-        return $this->flag(self::XML_PATH_NATIVE_LABELS, $storeId);
-    }
-
-    /**
-     * Whether orders get the module's own shipment screen.
-     */
-    public function isShipmentScreenEnabled(?int $storeId = null): bool
-    {
-        return $this->flag(self::XML_PATH_SHIPMENT_SCREEN, $storeId);
-    }
-
-    public function isNotifyCustomer(?int $storeId = null): bool
-    {
-        return $this->flag(self::XML_PATH_NOTIFY_CUSTOMER, $storeId);
     }
 
     /**

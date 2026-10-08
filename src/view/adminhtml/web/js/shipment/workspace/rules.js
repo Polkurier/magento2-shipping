@@ -103,6 +103,8 @@ define(['mage/translate'], function ($t) {
             picked.packs_estimated = data.packs_estimated;
             picked.target_shipment_id = data.target_shipment_id;
             picked.shipping_included = data.shipping_included ? 1 : 0;
+            // Only where it's offered: a Magento shipment nobody was e-mailed about.
+            picked.notify_customer = data.notify_offered && data.notify_customer ? 1 : 0;
         }
 
         return picked;

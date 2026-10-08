@@ -75,7 +75,9 @@ The buttons on the details page and the **Actions** in a row depend on the shipm
 
 For a placed shipment:
 
-- **Print label** downloads the shipping label, in the **Label format** you configured.
+- **Print label** downloads the shipping label as a PDF. On the details page, the arrow next to it
+  offers the formats of thermal label printers: ZPL (203 or 300 dpi), EPL and Datamax. A carrier
+  that can't print in the chosen format sends its own, usually a PDF; the file is named to match.
 - **Print handover protocol** downloads the protocol the courier signs when collecting.
 - **Update status** asks Polkurier for the current delivery and cash on delivery status, and the
   carrier's scans.
@@ -97,7 +99,7 @@ For a shipment that wasn't placed, see [When a shipment isn't placed](#when-a-sh
 Tick the shipments in the list, or on an order's **Polkurier** tab, and pick from the **Actions**
 menu:
 
-- **Print labels**: one file with all their labels.
+- **Print labels**: one file with all their labels, as a PDF or in a label printer's format.
 - **Print handover protocol**: one protocol for all of them.
 - **Update statuses**.
 - **Book a collective pickup** (see [Collective pickups](#collective-pickups)).
@@ -156,7 +158,7 @@ To send the parcel again, open that Magento shipment and either:
 
 The new Polkurier order goes on the same Magento shipment, and its waybills become the tracking
 numbers. A Magento shipment has only one active Polkurier order. Cancelled ones stay listed on the
-order's **Polkurier** tab.
+order's **Polkurier** tab. The customer isn't e-mailed again about the shipment.
 
 ## When a shipment isn't placed
 
@@ -180,10 +182,17 @@ its details page, for the order's latest attempt, while the order still has some
 
 ## A Magento shipment without a Polkurier order
 
-A Magento shipment can be created without a Polkurier order, for example through another
-integration. Once the order has nothing left to ship, that shipment's page has an **Add a
-Polkurier order** button. It opens the shipment screen and places the Polkurier order on that
-shipment.
+A Magento shipment can be created without a Polkurier order: saved on Magento's shipment page
+without **Create Shipping Label**, or made through another integration. Its page has two ways to
+add the Polkurier order, which then goes on that shipment with its items:
+
+- **Create Shipping Label**, with Magento's packaging window;
+- **Add a Polkurier order**, which opens the Polkurier shipment screen.
+
+Neither e-mails the customer by itself. On the shipment screen, **Email the customer about the
+shipment** is offered while the customer hasn't been e-mailed about that shipment. Otherwise,
+Magento's **Send Tracking Information** on the shipment's page sends the e-mail with the new
+tracking numbers.
 
 ## On Magento's shipment page
 

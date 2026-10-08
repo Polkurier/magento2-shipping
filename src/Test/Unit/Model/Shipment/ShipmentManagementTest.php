@@ -20,7 +20,9 @@ use Magento\Sales\Api\OrderRepositoryInterface;
 use Magento\Sales\Api\OrderStatusHistoryRepositoryInterface;
 use Magento\Sales\Api\ShipmentCommentRepositoryInterface;
 use Magento\Sales\Api\ShipmentRepositoryInterface as MagentoShipmentRepository;
+use Magento\Sales\Helper\Data as SalesData;
 use Magento\Sales\Model\Order;
+use Magento\Sales\Model\Order\Email\Sender\ShipmentSender;
 use Magento\Sales\Model\Order\Shipment as MagentoShipmentModel;
 use Magento\Sales\Model\Order\Shipment\Comment as ShipmentComment;
 use Magento\SalesSequence\Model\Manager as SequenceManager;
@@ -187,6 +189,24 @@ class ShipmentManagementTest extends SdkTestCase
      */
     private int $nextShipmentNumber = 77;
 
+    /**
+     * The customer e-mails sent about Magento shipments, as "Magento shipment id: state of the
+     * Polkurier order, Magento shipment it's linked to" when sent.
+     *
+     * @var string[]
+     */
+    private array $emails = [];
+
+    /**
+     * Whether Magento's shipments were e-mailed about already.
+     */
+    private bool $emailSent = false;
+
+    /**
+     * Magento's "Sales Emails > Shipment > Enabled".
+     */
+    private bool $shipmentEmails = true;
+
     public function testAnOrderOfAnotherCarrierIsNotPlaced(): void
     {
         $this->shippingMethod = 'flatrate_flatrate';
@@ -326,6 +346,130 @@ class ShipmentManagementTest extends SdkTestCase
         self::assertSame(1, $this->http->requestCount(), 'Nothing is sent to Polkurier again.');
     }
 
+    public function testTheCustomerIsEmailedOnceThePlacedOrderHasItsMagentoShipment(): void
+    {
+        $this->http->willAnswerWith(self::success(['order_number' => '18015-1001', 'label' => ['WB-111']]));
+        $this->nativeShipmentService->method('ship')->willReturn(55);
+
+        $this->management()->create(self::ORDER_ID, $this->draft()->setNotifyCustomer(true));
+
+        self::assertSame(['55: created, linked'], $this->emails);
+    }
+
+    public function testTheCustomerIsNotEmailedWhenTheMerchantSaidNo(): void
+    {
+        $this->http->willAnswerWith(self::success(['order_number' => '18015-1001', 'label' => ['WB-111']]));
+        $this->nativeShipmentService->method('ship')->willReturn(55);
+
+        $this->management()->create(self::ORDER_ID, $this->draft()->setNotifyCustomer(false));
+
+        self::assertSame([], $this->emails);
+    }
+
+    public function testWithoutAChoiceNobodyIsEmailed(): void
+    {
+        $this->http->willAnswerWith(self::success(['order_number' => '18015-1001', 'label' => ['WB-111']]));
+        $this->nativeShipmentService->method('ship')->willReturn(55);
+
+        $this->management()->create(self::ORDER_ID, $this->draft());
+
+        self::assertSame([], $this->emails);
+    }
+
+    public function testNobodyIsEmailedWhileTheStoreSendsNoShipmentEmails(): void
+    {
+        $this->http->willAnswerWith(self::success(['order_number' => '18015-1001', 'label' => ['WB-111']]));
+        $this->nativeShipmentService->method('ship')->willReturn(55);
+        $this->shipmentEmails = false;
+
+        $this->management()->create(self::ORDER_ID, $this->draft()->setNotifyCustomer(true));
+
+        self::assertSame([], $this->emails);
+    }
+
+    public function testAMagentoShipmentAlreadyEmailedAboutIsNotEmailedAgain(): void
+    {
+        $this->http->willAnswerWith(self::success(['order_number' => '18015-1001', 'label' => ['WB-111']]));
+        $this->nativeShipmentService->method('ship')->willReturn(56);
+        $this->emailSent = true;
+
+        $this->management()->create(self::ORDER_ID, $this->draft()->setNotifyCustomer(true));
+
+        self::assertSame([], $this->emails);
+    }
+
+    public function testARefusedOrderEmailsNobody(): void
+    {
+        $this->http->willAnswerWith((string)\json_encode([
+            'status' => 'error',
+            'response' => 'Błędne dane odbiorcy',
+            'status_code' => 26,
+            'error_code' => 'VALIDATION_ERROR',
+        ]));
+
+        try {
+            $this->management()->create(self::ORDER_ID, $this->draft()->setNotifyCustomer(true));
+            self::fail('Expected Polkurier to refuse.');
+        } catch (LocalizedException) {
+            self::assertSame([], $this->emails);
+        }
+    }
+
+    public function testAnUnclearOrderEmailsNobodyUntilItIsFoundPlaced(): void
+    {
+        $this->http = new RecordingClient('<html><body>502 Bad Gateway</body></html>', 502);
+
+        $shipment = $this->management()->create(self::ORDER_ID, $this->draft()->setNotifyCustomer(true));
+
+        self::assertSame(ShipmentInterface::STATE_UNKNOWN, $shipment->getState());
+        self::assertSame([], $this->emails);
+
+        $this->onlyShipment()->setData('created_at', \gmdate('Y-m-d H:i:s', \time() - 60));
+        $this->http = new RecordingClient();
+        $this->http->willAnswerWith(self::success($this->orderList([
+            $this->remoteOrder('POL0007', 'Zam. 000000042', '00-001', '600700800', 2),
+        ])));
+        $this->nativeShipmentService->method('ship')->willReturn(56);
+
+        $this->management()->reconcile((int)$shipment->getId());
+
+        self::assertSame(['56: created, linked'], $this->emails, 'Once found placed, as chosen when sent.');
+    }
+
+    public function testAMagentoShipmentThatFailsEmailsNobodyUntilItIsCreated(): void
+    {
+        $this->http->willAnswerWith(self::success(['order_number' => '18015-1001', 'label' => ['WB-111']]));
+        $attempts = 0;
+        $this->nativeShipmentService->method('ship')->willReturnCallback(function () use (&$attempts): int {
+            if (++$attempts === 1) {
+                throw new \RuntimeException('The order is on hold');
+            }
+
+            return 57;
+        });
+
+        $shipment = $this->management()->create(self::ORDER_ID, $this->draft()->setNotifyCustomer(true));
+
+        self::assertSame([], $this->emails);
+
+        $this->management()->shipOrder((int)$shipment->getId());
+
+        self::assertSame(['57: created, linked'], $this->emails);
+    }
+
+    public function testAFailingEmailLeavesTheShipmentAsItIs(): void
+    {
+        $this->http->willAnswerWith(self::success(['order_number' => '18015-1001', 'label' => ['WB-111']]));
+        $this->nativeShipmentService->method('ship')->willReturn(55);
+        $this->clearingFails = true;
+
+        $shipment = $this->management()->create(self::ORDER_ID, $this->draft()->setNotifyCustomer(true));
+
+        self::assertSame([], $this->emails);
+        self::assertSame(55, $shipment->getShipmentId());
+        self::assertNull($shipment->getLastError());
+    }
+
     public function testForAShippingLabelTheOrderIsPlacedWithoutShippingInMagento(): void
     {
         $this->http->willAnswerWith(self::success([
@@ -338,10 +482,11 @@ class ShipmentManagementTest extends SdkTestCase
         ]));
         $this->nativeShipmentService->expects(self::never())->method('ship');
 
-        $shipment = $this->placing()->forNativeShipment(self::ORDER_ID, $this->draft());
+        $shipment = $this->placing()->forNativeShipment(self::ORDER_ID, $this->draft()->setNotifyCustomer(true));
 
         self::assertSame(ShipmentInterface::STATE_CREATED, $shipment->getState());
         self::assertNull($shipment->getShipmentId(), 'Magento links its shipment once it is saved.');
+        self::assertSame([], $this->emails, 'Magento e-mails as its own page says.');
         $events = $this->events->of(ApiEventEnum::OrderCreateAfter);
         self::assertCount(1, $events);
         self::assertSame('label', $events[0]['source']);
@@ -1364,6 +1509,8 @@ class ShipmentManagementTest extends SdkTestCase
             $events,
             $this->createStub(Logger::class),
             $this->carrierNames(),
+            $this->shipmentSender(),
+            $this->salesData(),
         );
 
         return [
@@ -1583,6 +1730,8 @@ class ShipmentManagementTest extends SdkTestCase
                 'entity_id' => $id,
                 'order_id' => self::ORDER_ID,
                 'increment_id' => '000000009',
+                'send_email' => $this->emailSent ? 1 : null,
+                'email_sent' => $this->emailSent ? 1 : null,
             ]);
         });
         $repository->method('save')->willReturnCallback(
@@ -1594,6 +1743,38 @@ class ShipmentManagementTest extends SdkTestCase
         );
 
         return $repository;
+    }
+
+    private function salesData(): SalesData
+    {
+        $salesData = $this->createStub(SalesData::class);
+        $salesData->method('canSendNewShipmentEmail')->willReturnCallback(fn(): bool => $this->shipmentEmails);
+
+        return $salesData;
+    }
+
+    /**
+     * Records each e-mail with what the Polkurier order was when it went.
+     */
+    private function shipmentSender(): ShipmentSender
+    {
+        $sender = $this->createStub(ShipmentSender::class);
+        $sender->method('send')->willReturnCallback(function (MagentoShipmentModel $magentoShipment): bool {
+            $linked = \array_values(\array_filter(
+                $this->saved,
+                static fn(Shipment $shipment): bool => $shipment->getShipmentId() === (int)$magentoShipment->getEntityId(),
+            ));
+            $this->emails[] = \sprintf(
+                '%d: %s, %s',
+                $magentoShipment->getEntityId(),
+                $linked !== [] ? $linked[0]->getState() : 'none',
+                $linked !== [] ? 'linked' : 'unlinked',
+            );
+
+            return true;
+        });
+
+        return $sender;
     }
 
     private function repository(): ShipmentRepositoryInterface

@@ -14,16 +14,12 @@ use Magento\Framework\Controller\Result\JsonFactory;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Framework\Message\ManagerInterface;
 use Magento\Sales\Api\ShipmentRepositoryInterface;
-use Magento\Sales\Model\Order;
 use Magento\Sales\Model\Order\Shipment;
-use Magento\Shipping\Block\Adminhtml\Create\Items;
-use Magento\Shipping\Block\Adminhtml\View\Form;
 use Magento\Shipping\Controller\Adminhtml\Order\Shipment\CreateLabel;
 use Magento\Shipping\Model\Shipping\LabelGenerator;
 use Polkurier\Shipping\Controller\Adminhtml\Packtemplate\Save as PackTemplateSave;
 use Polkurier\Shipping\Controller\Adminhtml\Shipment\Save as ShipmentSave;
 use Polkurier\Shipping\Model\Carrier\Polkurier;
-use Polkurier\Shipping\Model\Config\ConfigProvider;
 use Polkurier\Shipping\Model\Shipment\Native\NativeLabelPackageMapper;
 use Polkurier\Shipping\Model\Shipment\Native\NativeLabelService;
 use Polkurier\Shipping\Model\Shipment\OrderLoader;
@@ -33,8 +29,6 @@ use Polkurier\Shipping\Model\Shipment\Placement\ManualEntrySaver;
  * What Magento's shipment pages know and the label flow needs, for orders placed with a Polkurier
  * method ({@see NativeLabelService}):
  *
- * - whether labels can be made: Magento asks the carrier without saying for which order, so the
- *   pages' canCreateShippingLabel() is answered here for the order's store;
  * - the options posted with the label request, put on the Magento shipment for the carrier
  *   ({@see LabelGenerator::create()}, which has both);
  * - the permissions behind the label, on Magento's {@see \Magento\Shipping\Controller\Adminhtml\Order\Shipment\Save}
@@ -49,7 +43,6 @@ readonly class NativeLabelPagePlugin
 {
     public function __construct(
         private OrderLoader $orderLoader,
-        private ConfigProvider $configProvider,
         private ManualEntrySaver $manualEntrySaver,
         private ShipmentRepositoryInterface $shipmentRepository,
         private AuthorizationInterface $authorization,
@@ -78,15 +71,6 @@ readonly class NativeLabelPagePlugin
         $this->manualEntrySaver->takeOutcome()->send($this->messageManager);
 
         return $result;
-    }
-
-    public function afterCanCreateShippingLabel(Items|Form $subject, bool $result): bool
-    {
-        $order = $subject->getOrder();
-
-        return $order instanceof Order && Polkurier::isOrderOf($order)
-            ? $result && $this->configProvider->isNativeLabelsEnabled((int)$order->getStoreId())
-            : $result;
     }
 
     public function beforeCreate(LabelGenerator $subject, Shipment $shipment, RequestInterface $request): null

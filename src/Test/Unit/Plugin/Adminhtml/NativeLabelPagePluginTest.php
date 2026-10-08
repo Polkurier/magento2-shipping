@@ -18,8 +18,6 @@ use Magento\Sales\Api\OrderRepositoryInterface;
 use Magento\Sales\Api\ShipmentRepositoryInterface;
 use Magento\Sales\Model\Order;
 use Magento\Sales\Model\Order\Shipment;
-use Magento\Shipping\Block\Adminhtml\Create\Items;
-use Magento\Shipping\Block\Adminhtml\View\Form;
 use Magento\Shipping\Controller\Adminhtml\Order\Shipment\CreateLabel;
 use Magento\Shipping\Controller\Adminhtml\Order\Shipment\Save;
 use Magento\Shipping\Model\Shipping\LabelGenerator;
@@ -27,7 +25,6 @@ use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Polkurier\Shipping\Model\Admin\FlashMessageCollector;
-use Polkurier\Shipping\Model\Config\ConfigProvider;
 use Polkurier\Shipping\Model\Shipment\Native\NativeLabelPackageMapper;
 use Polkurier\Shipping\Model\Shipment\Native\NativeLabelService;
 use Polkurier\Shipping\Model\Shipment\OrderLoader;
@@ -38,8 +35,6 @@ use Polkurier\Shipping\Plugin\Adminhtml\NativeLabelPagePlugin;
 #[AllowMockObjectsWithoutExpectations]
 class NativeLabelPagePluginTest extends TestCase
 {
-    private bool $labelsOn = true;
-
     private ?FlashMessageCollector $flashMessageCollector = null;
 
     /** @var array<string, mixed> the request's params */
@@ -121,28 +116,6 @@ class NativeLabelPagePluginTest extends TestCase
         self::assertSame(['"Tuba" was saved to pack templates.'], $this->successes);
     }
 
-    public function testLabelsCanBeMadeForAPolkurierOrderOnlyWhereTheyreOnForItsStore(): void
-    {
-        self::assertTrue(
-            $this->plugin([])->afterCanCreateShippingLabel(
-                $this->block(Items::class, 'polkurier_inpost_paczkomat'),
-                true,
-            ),
-        );
-
-        $this->labelsOn = false;
-        self::assertFalse(
-            $this->plugin([])->afterCanCreateShippingLabel(
-                $this->block(Form::class, 'polkurier_inpost_paczkomat'),
-                true,
-            ),
-        );
-        self::assertTrue(
-            $this->plugin([])->afterCanCreateShippingLabel($this->block(Items::class, 'flatrate_flatrate'), true),
-            'Another carrier\'s answer stands.',
-        );
-    }
-
     public function testTheOptionsPostedGoOnTheMagentoShipment(): void
     {
         $this->params = [NativeLabelService::OPTIONS_PARAM => ['carrier_code' => 'DPD']];
@@ -197,8 +170,6 @@ class NativeLabelPagePluginTest extends TestCase
         $shipment->method('getOrderId')->willReturn(9);
         $shipments = $this->createStub(ShipmentRepositoryInterface::class);
         $shipments->method('get')->willReturn($shipment);
-        $config = $this->createStub(ConfigProvider::class);
-        $config->method('isNativeLabelsEnabled')->willReturnCallback(fn(): bool => $this->labelsOn);
         $saver = $this->createStub(ManualEntrySaver::class);
         $saver->method('takeOutcome')->willReturnCallback(
             fn(): FlashMessageCollector => $this->flashMessageCollector ?? new FlashMessageCollector(),
@@ -231,7 +202,6 @@ class NativeLabelPagePluginTest extends TestCase
 
         return new NativeLabelPagePlugin(
             new OrderLoader($orders),
-            $config,
             $saver,
             $shipments,
             $authorization,
@@ -261,16 +231,5 @@ class NativeLabelPagePluginTest extends TestCase
         $order->method('getStoreId')->willReturn(1);
 
         return $order;
-    }
-
-    /**
-     * @param class-string<Items|Form> $class
-     */
-    private function block(string $class, string $method): Items|Form
-    {
-        $block = $this->createStub($class);
-        $block->method('getOrder')->willReturn($this->order($method));
-
-        return $block;
     }
 }

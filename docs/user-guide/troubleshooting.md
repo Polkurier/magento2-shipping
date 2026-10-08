@@ -60,8 +60,7 @@ customer can pick another carrier or point.
 ## Shipping
 
 **No "Create Shipping Label" checkbox on the New Shipment page.** Magento shows it only for
-carriers that create labels. Check that the order was placed with a Polkurier method, and that
-**Shipping labels on Magento's shipment page** is on for the order's website.
+carriers that create labels. Check that the order was placed with a Polkurier method.
 
 **"Shipping labels can't be created. Verify that the store information and settings are
 complete".** This message comes from Magento, not Polkurier. Fill in the store name and phone

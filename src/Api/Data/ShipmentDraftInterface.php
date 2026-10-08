@@ -132,6 +132,11 @@ interface ShipmentDraftInterface
     public const string FIELD_TARGET_SHIPMENT_ID = 'target_shipment_id';
 
     /**
+     * Whether the customer gets Magento's shipment e-mail once the Polkurier order is placed.
+     */
+    public const string FIELD_NOTIFY_CUSTOMER = 'notify_customer';
+
+    /**
      * @return string
      */
     public function getCarrierCode(): string;
@@ -637,4 +642,21 @@ interface ShipmentDraftInterface
      * @return $this
      */
     public function setTargetShipmentId(?int $targetShipmentId): static;
+
+    /**
+     * Whether the customer gets Magento's shipment e-mail, as the last step once the Polkurier order
+     * is placed. Not sent while the order isn't placed, when the Magento shipment it goes on was
+     * e-mailed about already, or when the store sends no shipment e-mails. False by default, as on
+     * Magento's New Shipment page.
+     *
+     * @return bool
+     */
+    public function isNotifyCustomer(): bool;
+
+    /**
+     * @param bool $notify
+     *
+     * @return $this
+     */
+    public function setNotifyCustomer(bool $notify): static;
 }

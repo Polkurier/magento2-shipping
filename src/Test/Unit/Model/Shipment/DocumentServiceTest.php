@@ -12,7 +12,6 @@ use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
-use Polkurier\Shipping\Model\Config\ConfigProvider;
 use Polkurier\Shipping\Model\Sdk\ShipmentGateway;
 use Polkurier\Shipping\Model\Shipment\DocumentService;
 use Polkurier\Shipping\Model\Shipment\Status\StatusRefreshService;
@@ -26,12 +25,11 @@ use Polkurier\Webservice\Response\Order\DocumentMessage;
 class DocumentServiceTest extends TestCase
 {
     private ?GetDocumentMessage $asked = null;
-    private ?LabelFileFormatEnum $format = null;
 
     /**
-     * @var array<int|null> the stores the label format was read for
+     * @var GetDocumentMessage[] every request, in order
      */
-    private array $formatStores = [];
+    private array $askedAll = [];
 
     /**
      * @var array<int, string|null> the state each shipment, by id, is in at Polkurier: null for
@@ -56,7 +54,6 @@ class DocumentServiceTest extends TestCase
 
         self::assertSame(['18015-2865', '18015-2866'], $this->asked?->getOrderNo());
         self::assertNull($this->asked->getFileFormat());
-        self::assertSame([1], $this->formatStores, 'The first shipment\'s store says the label format.');
         self::assertSame([
             'file_name' => 'polkurier-labels-20260930-100000.pdf',
             'content' => '%PDF-1.4',
@@ -115,18 +112,52 @@ class DocumentServiceTest extends TestCase
         }
     }
 
-    public function testAPrinterFormatMakesATextFileUnlessMagentoWantsAPdf(): void
+    public function testAPrinterFormatMakesATextFileAndNoneAPdf(): void
     {
-        $this->format = LabelFileFormatEnum::Zpl;
         $documents = $this->documents();
 
-        $zpl = $documents->getLabels([$this->shipment('18015-2865', 1)]);
+        $zpl = $documents->getLabels([$this->shipment('18015-2865', 1)], LabelFileFormatEnum::Zpl);
         self::assertSame(LabelFileFormatEnum::Zpl, $this->asked?->getFileFormat());
         self::assertSame(['polkurier-labels-18015-2865.txt', 'text/plain'], [$zpl['file_name'], $zpl['content_type']]);
 
-        $pdf = $documents->getLabels([$this->shipment('18015-2865', 1)], true);
+        $pdf = $documents->getLabels([$this->shipment('18015-2865', 1)]);
         self::assertNull($this->asked->getFileFormat());
         self::assertSame('application/pdf', $pdf['content_type']);
+    }
+
+    public function testAPdfAnswerToAPrinterFormatIsServedAsAPdf(): void
+    {
+        $zpl = $this->documents(['18015-2865'])
+            ->getLabels([$this->shipment('18015-2865', 1)], LabelFileFormatEnum::Zpl);
+
+        self::assertSame(['polkurier-labels-18015-2865.pdf', 'application/pdf'], [$zpl['file_name'], $zpl['content_type']]);
+    }
+
+    public function testSeveralOrdersInAPrinterLanguageAreAskedForOneByOneAndJoined(): void
+    {
+        $zpl = $this->documents()->getLabels(
+            [$this->shipment('18015-2865', 1, id: 1), $this->shipment('18015-2866', 1, id: 2)],
+            LabelFileFormatEnum::Zpl,
+        );
+
+        self::assertSame(
+            [['18015-2865'], ['18015-2866']],
+            \array_map(fn(GetDocumentMessage $m): array => $m->getOrderNo(), $this->askedAll),
+        );
+        self::assertSame("^XA^FD18015-2865^FS^XZ\n^XA^FD18015-2866^FS^XZ\n", $zpl['content']);
+        self::assertSame('text/plain', $zpl['content_type']);
+    }
+
+    public function testSeveralOrdersBecomeOnePdfWhenACarrierHasNoSuchPrinterLanguage(): void
+    {
+        $file = $this->documents(['18015-2866'])->getLabels(
+            [$this->shipment('18015-2865', 1, id: 1), $this->shipment('18015-2866', 1, id: 2)],
+            LabelFileFormatEnum::Epl,
+        );
+
+        self::assertSame(['18015-2865', '18015-2866'], $this->asked?->getOrderNo());
+        self::assertNull($this->asked->getFileFormat());
+        self::assertSame(['%PDF-1.4', 'application/pdf'], [$file['content'], $file['content_type']]);
     }
 
     public function testTheProtocolIsNamedAfterItsOnlyOrder(): void
@@ -147,22 +178,23 @@ class DocumentServiceTest extends TestCase
         }
     }
 
-    private function documents(): DocumentService
+    /**
+     * @param string[] $pdfFor orders whose carrier answers a printer language with a PDF
+     */
+    private function documents(array $pdfFor = []): DocumentService
     {
         $gateway = $this->createStub(ShipmentGateway::class);
-        $answer = function (GetDocumentMessage $message): DocumentMessage {
+        $answer = function (GetDocumentMessage $message) use ($pdfFor): DocumentMessage {
             $this->asked = $message;
+            $this->askedAll[] = $message;
+            $orders = $message->getOrderNo();
+            $printer = $message->getFileFormat() !== null && \count($orders) === 1
+                && !\in_array($orders[0], $pdfFor, true);
 
-            return new DocumentMessage(\base64_encode('%PDF-1.4'));
+            return new DocumentMessage(\base64_encode($printer ? '^XA^FD' . $orders[0] . '^FS^XZ' : '%PDF-1.4'));
         };
         $gateway->method('getLabel')->willReturnCallback($answer);
         $gateway->method('getProtocol')->willReturnCallback($answer);
-        $config = $this->createStub(ConfigProvider::class);
-        $config->method('getLabelFormat')->willReturnCallback(function (?int $storeId): ?LabelFileFormatEnum {
-            $this->formatStores[] = $storeId;
-
-            return $this->format;
-        });
 
         $refresh = $this->createStub(StatusRefreshService::class);
         $refresh->method('refresh')->willReturnCallback(function (int $id): ShipmentInterface {
@@ -179,7 +211,6 @@ class DocumentServiceTest extends TestCase
 
         return new DocumentService(
             $gateway,
-            $config,
             new FixedDateTime((int)\strtotime('2026-09-30 10:00:00 UTC')),
             $refresh,
         );

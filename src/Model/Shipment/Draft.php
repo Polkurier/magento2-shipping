@@ -455,6 +455,16 @@ class Draft extends DataObject implements ShipmentDraftInterface
         return $this->setData(self::FIELD_TARGET_SHIPMENT_ID, $targetShipmentId);
     }
 
+    public function isNotifyCustomer(): bool
+    {
+        return (bool)$this->getData(self::FIELD_NOTIFY_CUSTOMER);
+    }
+
+    public function setNotifyCustomer(bool $notify): static
+    {
+        return $this->setData(self::FIELD_NOTIFY_CUSTOMER, $notify);
+    }
+
     private function nullableString(string $field): ?string
     {
         $value = $this->getData($field);

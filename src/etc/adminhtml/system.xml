@@ -211,31 +211,6 @@
                         <source_model>Polkurier\Shipping\Model\Config\Source\CodReturnType</source_model>
                     </field>
                 </group>
-                <group id="labels" translate="label" sortOrder="24" showInDefault="1" showInWebsite="1">
-                    <label>Labels and Magento shipments</label>
-                    <field id="label_format" translate="label" type="select" sortOrder="110"
-                           showInDefault="1" showInWebsite="1" canRestore="1">
-                        <label>Label format</label>
-                        <source_model>Polkurier\Shipping\Model\Config\Source\LabelFormat</source_model>
-                    </field>
-                    <field id="native_labels" translate="label comment" type="select" sortOrder="130"
-                           showInDefault="1" showInWebsite="1" canRestore="1">
-                        <label>Shipping labels on Magento's shipment page</label>
-                        <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
-                        <comment>"Create Shipping Label" on Magento's New Shipment page places the Polkurier order for these methods.</comment>
-                    </field>
-                    <field id="notify_customer" translate="label" type="select" sortOrder="120"
-                           showInDefault="1" showInWebsite="1" canRestore="1">
-                        <label>Send the shipment e-mail to the customer</label>
-                        <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
-                    </field>
-                    <field id="shipment_screen" translate="label comment" type="select" sortOrder="140"
-                           showInDefault="1" showInWebsite="1" canRestore="1">
-                        <label>Polkurier shipment screen</label>
-                        <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
-                        <comment>Adds a "Ship with Polkurier" button to orders placed with these methods.</comment>
-                    </field>
-                </group>
 
                 <group id="map" translate="label" sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="1">
                     <label>Pickup point map</label>

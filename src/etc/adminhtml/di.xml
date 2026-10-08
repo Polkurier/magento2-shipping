@@ -9,21 +9,14 @@
     <type name="Magento\Sales\Block\Adminhtml\Order\View">
         <plugin name="polkurier_order_view_buttons" type="Polkurier\Shipping\Plugin\Adminhtml\OrderViewPlugin" />
     </type>
-    <!-- Magento's shipment page: a Polkurier order's shipment isn't saved without its Polkurier order -->
+    <!-- Magento's shipment page: the message about a shipment whose label isn't ready yet -->
     <type name="Magento\Shipping\Controller\Adminhtml\Order\Shipment\Save">
-        <plugin name="polkurier_shipment_save_needs_order"
-                type="Polkurier\Shipping\Plugin\Adminhtml\ShipmentSavePlugin" />
+        <plugin name="polkurier_shipment_save_message" type="Polkurier\Shipping\Plugin\Adminhtml\ShipmentSavePlugin" />
         <plugin name="polkurier_native_label_page" type="Polkurier\Shipping\Plugin\Adminhtml\NativeLabelPagePlugin" />
     </type>
-    <!-- Magento's shipment pages: a Polkurier label requires the permissions behind it, labels are
-         enabled per order, and the posted options reach the carrier -->
+    <!-- Magento's shipment pages: a Polkurier label requires the permissions behind it, and the posted
+         options reach the carrier -->
     <type name="Magento\Shipping\Controller\Adminhtml\Order\Shipment\CreateLabel">
-        <plugin name="polkurier_native_label_page" type="Polkurier\Shipping\Plugin\Adminhtml\NativeLabelPagePlugin" />
-    </type>
-    <type name="Magento\Shipping\Block\Adminhtml\Create\Items">
-        <plugin name="polkurier_native_label_page" type="Polkurier\Shipping\Plugin\Adminhtml\NativeLabelPagePlugin" />
-    </type>
-    <type name="Magento\Shipping\Block\Adminhtml\View\Form">
         <plugin name="polkurier_native_label_page" type="Polkurier\Shipping\Plugin\Adminhtml\NativeLabelPagePlugin" />
     </type>
     <type name="Magento\Shipping\Model\Shipping\LabelGenerator">

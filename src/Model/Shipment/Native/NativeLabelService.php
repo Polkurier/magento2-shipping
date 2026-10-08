@@ -19,7 +19,6 @@ use Polkurier\Shipping\Api\Data\ShipmentDraftInterface;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Logger\Logger;
 use Polkurier\Shipping\Model\Carrier\Polkurier;
-use Polkurier\Shipping\Model\Config\ConfigProvider;
 use Polkurier\Shipping\Model\Shipment\DocumentService;
 use Polkurier\Shipping\Model\Shipment\Draft\DefaultDraftBuilder;
 use Polkurier\Shipping\Model\Shipment\Draft\DraftHydrator;
@@ -113,7 +112,6 @@ class NativeLabelService implements ResetAfterRequestInterface
     private ?string $unreadyLabel = null;
 
     public function __construct(
-        private readonly ConfigProvider $configProvider,
         private readonly NativeLabelPackageMapper $nativeLabelPackageMapper,
         private readonly PlacementService $placementService,
         private readonly DefaultDraftBuilder $defaultDraftBuilder,
@@ -127,17 +125,6 @@ class NativeLabelService implements ResetAfterRequestInterface
     ) {}
 
     /**
-     * Whether labels are on for the store. Without a store, as Magento's shipment pages and label
-     * generator ask the carrier, the answer is yes: the order is known only in
-     * {@see \Polkurier\Shipping\Plugin\Adminhtml\NativeLabelPagePlugin}, which answers for it, and
-     * request() checks again.
-     */
-    public function isAvailable(?int $storeId): bool
-    {
-        return $storeId === null || $this->configProvider->isNativeLabelsEnabled($storeId);
-    }
-
-    /**
      * Answers Magento's label request: one entry with every waybill and the label covering them.
      *
      * @throws LocalizedException when no order could be placed
@@ -149,11 +136,6 @@ class NativeLabelService implements ResetAfterRequestInterface
             throw new LocalizedException(__('The shipment to create a label for is missing.'));
         }
         $order = $magentoShipment->getOrder();
-        if (!$this->configProvider->isNativeLabelsEnabled((int)$order->getStoreId())) {
-            throw new LocalizedException(__(
-                'Shipping labels on Magento\'s shipment page are turned off for this store.',
-            ));
-        }
 
         $magentoShipmentId = $magentoShipment->getId() ? (int)$magentoShipment->getId() : null;
         $shipment = $magentoShipmentId !== null
@@ -216,6 +198,10 @@ class NativeLabelService implements ResetAfterRequestInterface
         if ($packs !== []) {
             $draft->setPacks($packs);
         }
+        // Magento's "Email Copy of Shipment" for a shipment being created, which Magento sends once
+        // it's saved; kept for one created later, should Polkurier not confirm the order now. A
+        // label for a shipment made before has no such choice: nothing is sent.
+        $draft->setNotifyCustomer(!$magentoShipment->getId() && (bool)$order->getCustomerNoteNotify());
 
         return $draft;
     }
@@ -260,7 +246,7 @@ class NativeLabelService implements ResetAfterRequestInterface
     private function fetchLabel(ShipmentInterface $shipment): ?string
     {
         try {
-            $content = $this->documentService->getLabels([$shipment], true)['content'];
+            $content = $this->documentService->getLabels([$shipment])['content'];
         } catch (LocalizedException $e) {
             $this->logger->warning('Polkurier label not available for the Magento shipment', [
                 'polkurier_number' => $shipment->getPolkurierNumber(),

@@ -7,8 +7,9 @@
  *
  * Every group of options is a one-line summary, edited in place with its Change button. The values
  * live in hidden fields of the shipment form, which Magento sends along when it asks the carrier
- * for the label. Changing the carrier drops what the new one does not support. "Create Shipping
- * Label" starts ticked, so the shipment is created with its Polkurier order.
+ * for the label. Changing the carrier drops what the new one does not support. With "Create
+ * Shipping Label" ticked, the label places the Polkurier order; without it, the shipment is saved
+ * without one, as Magento saves it, and gets its Polkurier order later from its own page.
  *
  * When the order ships in parts, cash on delivery follows the quantities shipped: their worth, or,
  * for the shipment carrying the rest, everything left to collect. The insurance follows them too.
@@ -121,20 +122,6 @@ define([
         $(document).on('change', '#create_shipping_label', toggle);
         // Redrawn once typing pauses, not with every key.
         $(document).on('change keyup', state.ITEM_INPUT, _.debounce(followQuantities, 150));
-        // A shipment of a Polkurier order needs its Polkurier order, so the label can't be left out.
-        // The box is clicked, not set, so Magento's own handler runs too. Magento unticks it when
-        // the packaging window is closed or the label is refused, and redraws the items part (with
-        // a fresh, unticked box) as quantities change. So the box is hidden for good, and ticked
-        // whenever it appears and again right before a submit. The server refuses a shipment
-        // without it all the same (Polkurier\Shipping\Plugin\Adminhtml\ShipmentSavePlugin).
-        function keepLabel() {
-            const box = document.getElementById('create_shipping_label');
-
-            if (box && !box.checked) {
-                box.click();
-            }
-        }
-
         /**
          * Sends the options with the label request, which on a shipment's own page has no shipment
          * form to take them from.
@@ -226,17 +213,6 @@ define([
         blockWhileWrong();
         if (config.existingShipment) {
             sendWithLabelRequest();
-        } else {
-            $('body').addClass('polkurier-label-kept');
-            keepLabel();
-            new MutationObserver(keepLabel).observe(document.body, {childList: true, subtree: true});
-            // In the capture phase, so it runs before the button's own handler opens the packaging
-            // window.
-            document.addEventListener('click', function (event) {
-                if ($(event.target).closest('.submit-button').length) {
-                    keepLabel();
-                }
-            }, true);
         }
         render();
         followQuantities();

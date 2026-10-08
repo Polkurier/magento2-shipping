@@ -93,6 +93,7 @@ readonly class DraftHydrator
             static fn($value): bool => \is_scalar($value),
         )));
         $draft->setTargetShipmentId(self::nullableInt($data, ShipmentDraftInterface::FIELD_TARGET_SHIPMENT_ID));
+        $draft->setNotifyCustomer(self::flag($data, ShipmentDraftInterface::FIELD_NOTIFY_CUSTOMER));
 
         $packs = [];
         foreach ((array)($data[ShipmentDraftInterface::FIELD_PACKS] ?? []) as $row) {

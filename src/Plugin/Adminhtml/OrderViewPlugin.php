@@ -10,24 +10,18 @@ namespace Polkurier\Shipping\Plugin\Adminhtml;
 use Magento\Framework\AuthorizationInterface;
 use Magento\Sales\Block\Adminhtml\Order\View;
 use Polkurier\Shipping\Model\Carrier\Polkurier;
-use Polkurier\Shipping\Model\Config\ConfigProvider;
 
 /**
  * Opens the Polkurier shipment screen from the page of an order placed with a Polkurier method,
- * with a "Ship with Polkurier" button. Orders of other carriers get nothing.
+ * with a "Ship with Polkurier" button. Orders of other carriers get nothing. Magento's Ship button
+ * keeps leading to Magento's shipment page, where labels are created.
  *
- * Magento's Ship button keeps leading to Magento's shipment page, where labels are created, unless
- * labels there are turned off. Then Ship itself opens the shipment screen, and no second button is
- * added.
- *
- * The button stays while the order has items left to ship, or has a Magento shipment without a
- * Polkurier order.
+ * The button shows while the order has items left to ship.
  */
 readonly class OrderViewPlugin
 {
     public function __construct(
         private AuthorizationInterface $authorization,
-        private ConfigProvider $configProvider,
     ) {}
 
     /**
@@ -50,22 +44,15 @@ readonly class OrderViewPlugin
         if (!$order->canShip()) {
             return [$layout];
         }
-        $storeId = (int)$order->getStoreId();
-        if (!$this->configProvider->isShipmentScreenEnabled($storeId)) {
-            return [$layout];
-        }
-        $url = $subject->getUrl('polkurier/shipment/create', ['order_id' => $order->getId()]);
-
-        if (!$this->configProvider->isNativeLabelsEnabled($storeId)) {
-            $subject->updateButton('order_ship', 'onclick', \sprintf("setLocation('%s')", $url));
-        } else {
-            // Placed next to Magento's "Ship" by {@see \Polkurier\Shipping\Plugin\Adminhtml\ShipButtonPositionPlugin}.
-            $subject->addButton(ShipButtonPositionPlugin::BUTTON, [
-                'label' => __('Ship with Polkurier'),
-                'onclick' => \sprintf("setLocation('%s')", $url),
-                'class' => 'ship',
-            ]);
-        }
+        // Placed next to Magento's "Ship" by {@see \Polkurier\Shipping\Plugin\Adminhtml\ShipButtonPositionPlugin}.
+        $subject->addButton(ShipButtonPositionPlugin::BUTTON, [
+            'label' => __('Ship with Polkurier'),
+            'onclick' => \sprintf(
+                "setLocation('%s')",
+                $subject->getUrl('polkurier/shipment/create', ['order_id' => $order->getId()]),
+            ),
+            'class' => 'ship',
+        ]);
 
         return [$layout];
     }

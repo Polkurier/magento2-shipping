@@ -27,7 +27,6 @@ use PHPUnit\Framework\TestCase;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Model\CarrierConfig;
 use Polkurier\Shipping\Model\CarrierConfig\CarrierConfigProvider;
-use Polkurier\Shipping\Model\Config\ConfigProvider;
 use Polkurier\Shipping\Model\ResourceModel\Shipment\Collection;
 use Polkurier\Shipping\Model\ResourceModel\Shipment\CollectionFactory;
 use Polkurier\Shipping\Model\Shipment;
@@ -278,13 +277,14 @@ class NativeShipmentServiceTest extends TestCase
         ], [5 => 1.0]);
     }
 
-    public function testMagentoShipsOnlyTheQuantitiesGiven(): void
+    public function testMagentoShipsOnlyTheQuantitiesGivenAndEmailsNobody(): void
     {
         $shipOrder = $this->createMock(ShipOrderInterface::class);
         $shipOrder->expects(self::once())->method('execute')->with(
             42,
             self::callback(static fn(array $items): bool => \count($items) === 1
                 && $items[0]->getOrderItemId() === 5 && $items[0]->getQty() === 1.0),
+            false,
         )->willReturn('77');
         $shipment = $this->createStub(ShipmentInterface::class);
         $shipment->method('getWaybills')->willReturn(['WB-1']);
@@ -312,6 +312,17 @@ class NativeShipmentServiceTest extends TestCase
 
         self::assertSame('000000077', $seen);
         self::assertNull($this->reservedNumbers->take(42), 'Not left for another shipment.');
+    }
+
+    public function testACustomerCanBeEmailedAboutAShipmentNobodyEmailedAbout(): void
+    {
+        $shipment = $this->getMockBuilder(MagentoShipmentModel::class)->disableOriginalConstructor()
+            ->onlyMethods([])->getMock();
+
+        self::assertTrue(NativeShipmentService::isEmailOpen($shipment));
+        self::assertTrue(NativeShipmentService::isEmailOpen($shipment->setData(['send_email' => '0'])));
+        self::assertFalse(NativeShipmentService::isEmailOpen($shipment->setData(['send_email' => '1'])), 'Queued.');
+        self::assertFalse(NativeShipmentService::isEmailOpen($shipment->setData(['email_sent' => '1'])), 'Sent.');
     }
 
     protected function setUp(): void
@@ -414,7 +425,6 @@ class NativeShipmentServiceTest extends TestCase
             $trackRepository,
             $magentoRepository,
             new ShipmentFinder($collections),
-            $this->createStub(ConfigProvider::class),
             $this->carrierConfigs(),
             $this->reservedNumbers,
         );

@@ -99,6 +99,8 @@ readonly class DefaultDraftBuilder
         // Packed automatically: the screen asks to check the parcels.
         $draft->setPacksEstimated($estimated);
         $draft->setAdditionalFields([]);
+        // As on Magento's New Shipment page: unticked.
+        $draft->setNotifyCustomer(false);
 
         // A shipment of the whole order collects and is insured for the full amount. When the order
         // ships in parts, each part collects and is insured for its products, plus the shipping and

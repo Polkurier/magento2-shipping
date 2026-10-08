@@ -14,7 +14,8 @@ use Polkurier\Shipping\Ui\Component\MassAction\AllowedAction;
  * filters, and the tab's order is a parameter of the grid's URL, not a filter, so "Select All"
  * would reach every order's shipments. Instead, the order goes with the action's URL, and the
  * action takes that order's shipments only
- * ({@see \Polkurier\Shipping\Controller\Adminhtml\Shipment\RequestedShipments}).
+ * ({@see \Polkurier\Shipping\Controller\Adminhtml\Shipment\RequestedShipments}). So does each entry of an
+ * action's submenu.
  */
 class OrderScopedMassAction extends AllowedAction
 {
@@ -22,10 +23,24 @@ class OrderScopedMassAction extends AllowedAction
     {
         parent::prepare();
         $orderId = (int)$this->getContext()->getRequestParam('order_id');
-        $config = (array)$this->getData('config');
-        if ($orderId && \is_string($config['url'] ?? null)) {
-            $config['url'] = \rtrim($config['url'], '/') . '/order_id/' . $orderId . '/';
-            $this->setData('config', $config);
+        if (!$orderId) {
+            return;
         }
+        $scoped = static fn(string $url): string => \rtrim($url, '/') . '/order_id/' . $orderId . '/';
+        $config = (array)$this->getData('config');
+        if (\is_string($config['url'] ?? null)) {
+            $config['url'] = $scoped($config['url']);
+        }
+        $actions = $config['actions'] ?? null;
+        $actions = $actions instanceof \JsonSerializable ? $actions->jsonSerialize() : $actions;
+        if (\is_array($actions)) {
+            foreach ($actions as $key => $action) {
+                if (\is_string($action['url'] ?? null)) {
+                    $actions[$key]['url'] = $scoped($action['url']);
+                }
+            }
+            $config['actions'] = $actions;
+        }
+        $this->setData('config', $config);
     }
 }

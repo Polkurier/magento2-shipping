@@ -159,9 +159,7 @@ class Polkurier extends AbstractCarrier implements CarrierInterface
 
     public function isShippingLabelsAvailable(): bool
     {
-        $store = $this->getStore();
-
-        return $this->nativeLabelService->isAvailable($store === null || $store === '' ? null : (int)$store);
+        return true;
     }
 
     /**

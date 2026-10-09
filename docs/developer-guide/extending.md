@@ -60,9 +60,10 @@ Smaller messages without a builder (an id, a delete) are created directly.
 
 ## Calling Polkurier from your own code
 
-[`Api\PolkurierClientInterface`](../../src/Api/PolkurierClientInterface.php) hands out the SDK's
-services for the account the module is connected to, with its credentials, sandbox setting, timeouts
-and logging:
+[`Api\PolkurierClientInterface`](../../src/Api/PolkurierClientInterface.php) hands out every
+service of the SDK for the account the module is connected to, with its credentials, sandbox
+setting, timeouts and logging, including those the module doesn't use itself, such as `invoices()`,
+`payments()` and `tickets()`:
 
 ```php
 $point = $this->polkurierClient->courier()->getCourierPoint('WAW195M', ['INPOST_PACZKOMAT']);

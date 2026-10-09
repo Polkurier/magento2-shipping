@@ -11,14 +11,19 @@ use Magento\Framework\ObjectManager\ResetAfterRequestInterface;
 use Polkurier\Shipping\Api\PolkurierClientInterface;
 use Polkurier\Shipping\Logger\Logger;
 use Polkurier\Webservice\Api\Service\AccountServiceInterface;
+use Polkurier\Webservice\Api\Service\AccountVerificationServiceInterface;
 use Polkurier\Webservice\Api\Service\AddressesServiceInterface;
 use Polkurier\Webservice\Api\Service\BankAccountsServiceInterface;
 use Polkurier\Webservice\Api\Service\CourierServiceInterface;
 use Polkurier\Webservice\Api\Service\GeoServiceInterface;
+use Polkurier\Webservice\Api\Service\InvoicesServiceInterface;
+use Polkurier\Webservice\Api\Service\KnowledgeBaseServiceInterface;
 use Polkurier\Webservice\Api\Service\MoneyBoxServiceInterface;
 use Polkurier\Webservice\Api\Service\OrdersServiceInterface;
 use Polkurier\Webservice\Api\Service\PackTemplatesServiceInterface;
+use Polkurier\Webservice\Api\Service\PaymentsServiceInterface;
 use Polkurier\Webservice\Api\Service\SystemServiceInterface;
+use Polkurier\Webservice\Api\Service\TicketsServiceInterface;
 use Polkurier\Webservice\Api\Service\TwoFactorTokenServiceInterface;
 use Polkurier\Webservice\Api\Service\UtilsServiceInterface;
 use Polkurier\Webservice\Api\Validation\ValidatorInterface;
@@ -81,14 +86,9 @@ class PolkurierClient implements PolkurierClientInterface, ResetAfterRequestInte
         return $this->client()->geo();
     }
 
-    public function utils(): UtilsServiceInterface
+    public function twoFactorToken(): TwoFactorTokenServiceInterface
     {
-        return $this->client()->utils();
-    }
-
-    public function moneyBox(): MoneyBoxServiceInterface
-    {
-        return $this->client()->moneyBox();
+        return $this->client()->twoFactorToken();
     }
 
     public function system(): SystemServiceInterface
@@ -96,9 +96,39 @@ class PolkurierClient implements PolkurierClientInterface, ResetAfterRequestInte
         return $this->client()->system();
     }
 
-    public function twoFactorToken(): TwoFactorTokenServiceInterface
+    public function utils(): UtilsServiceInterface
     {
-        return $this->client()->twoFactorToken();
+        return $this->client()->utils();
+    }
+
+    public function accountVerification(): AccountVerificationServiceInterface
+    {
+        return $this->client()->accountVerification();
+    }
+
+    public function invoices(): InvoicesServiceInterface
+    {
+        return $this->client()->invoices();
+    }
+
+    public function payments(): PaymentsServiceInterface
+    {
+        return $this->client()->payments();
+    }
+
+    public function tickets(): TicketsServiceInterface
+    {
+        return $this->client()->tickets();
+    }
+
+    public function knowledgeBase(): KnowledgeBaseServiceInterface
+    {
+        return $this->client()->knowledgeBase();
+    }
+
+    public function moneyBox(): MoneyBoxServiceInterface
+    {
+        return $this->client()->moneyBox();
     }
 
     /**

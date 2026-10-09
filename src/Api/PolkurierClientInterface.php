@@ -8,21 +8,26 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Api;
 
 use Polkurier\Webservice\Api\Service\AccountServiceInterface;
+use Polkurier\Webservice\Api\Service\AccountVerificationServiceInterface;
 use Polkurier\Webservice\Api\Service\AddressesServiceInterface;
 use Polkurier\Webservice\Api\Service\BankAccountsServiceInterface;
 use Polkurier\Webservice\Api\Service\CourierServiceInterface;
 use Polkurier\Webservice\Api\Service\GeoServiceInterface;
+use Polkurier\Webservice\Api\Service\InvoicesServiceInterface;
+use Polkurier\Webservice\Api\Service\KnowledgeBaseServiceInterface;
 use Polkurier\Webservice\Api\Service\MoneyBoxServiceInterface;
 use Polkurier\Webservice\Api\Service\OrdersServiceInterface;
 use Polkurier\Webservice\Api\Service\PackTemplatesServiceInterface;
+use Polkurier\Webservice\Api\Service\PaymentsServiceInterface;
 use Polkurier\Webservice\Api\Service\SystemServiceInterface;
+use Polkurier\Webservice\Api\Service\TicketsServiceInterface;
 use Polkurier\Webservice\Api\Service\TwoFactorTokenServiceInterface;
 use Polkurier\Webservice\Api\Service\UtilsServiceInterface;
 
 /**
- * The Polkurier API with the shop's account: the SDK's services, set up as the module uses them
- * (credentials, sandbox, timeouts, logging). Orders placed through orders() are not the module's
- * shipments; place those with {@see \Polkurier\Shipping\Api\ShipmentManagementInterface}.
+ * The Polkurier API with the shop's account: every service of the SDK, set up as the module uses
+ * them (credentials, sandbox, timeouts, logging). Orders placed through orders() are not the
+ * module's shipments; place those with {@see \Polkurier\Shipping\Api\ShipmentManagementInterface}.
  *
  * @api
  */
@@ -42,11 +47,21 @@ interface PolkurierClientInterface
 
     public function geo(): GeoServiceInterface;
 
-    public function utils(): UtilsServiceInterface;
-
-    public function moneyBox(): MoneyBoxServiceInterface;
+    public function twoFactorToken(): TwoFactorTokenServiceInterface;
 
     public function system(): SystemServiceInterface;
 
-    public function twoFactorToken(): TwoFactorTokenServiceInterface;
+    public function utils(): UtilsServiceInterface;
+
+    public function accountVerification(): AccountVerificationServiceInterface;
+
+    public function invoices(): InvoicesServiceInterface;
+
+    public function payments(): PaymentsServiceInterface;
+
+    public function tickets(): TicketsServiceInterface;
+
+    public function knowledgeBase(): KnowledgeBaseServiceInterface;
+
+    public function moneyBox(): MoneyBoxServiceInterface;
 }

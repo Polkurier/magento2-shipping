@@ -61,13 +61,20 @@ How **Outcome unknown** is settled is in
 ![A shipment's details page with Cancel, Update status, Print handover protocol and Print label](images/shipment-details.jpg)
 
 Besides what the list shows, it has the sender and recipient, the services and handover, the items
-shipped, what each parcel holds, and what Polkurier charges for each item, with whether it's paid
-and invoiced. The status history lists every scan the carrier reported, newest first.
+shipped, what each parcel holds, and what Polkurier charges for each item. Under the Polkurier
+order, **Order value** is what Polkurier charges for the shipment, **Amount to pay** what's still
+due of it, and **Invoiced** whether it's invoiced. **Carrier tracking** lists every scan the carrier
+reported, newest first.
 
 If Polkurier treated a parcel as another type than it was sent as (for example a standard parcel
 over the carrier's weight limit as non-standard), the page says so; it's priced as that type.
 
-For a shipment whose result is unclear, the page shows the order as it was sent.
+For a shipment whose result is unclear, the page shows the order as it was sent. Where Polkurier's
+copy of the order leaves something empty, such as some carriers' extra fields, the page shows what
+was sent, marked **(as sent)**.
+
+For parcels dropped off, **Handover to the carrier** shows the drop-off point: the sender address's
+point, or any of the carrier's points.
 
 ## Actions on a shipment
 

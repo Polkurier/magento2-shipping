@@ -93,9 +93,11 @@ readonly class Formatter
     }
 
     /**
-     * @param array<int, array<int, mixed>|null> $rows [label, value, url?]; null rows are left out
+     * @param array<int, array<int, mixed>|null> $rows [label, value, url?, as sent?]; null rows are
+     *        left out. "As sent" marks a value Polkurier's copy of the order leaves empty, shown as it
+     *        was sent
      *
-     * @return array<int, array<string, string>>
+     * @return array<int, array<string, string|bool>>
      */
     public function rows(array $rows): array
     {
@@ -109,6 +111,7 @@ readonly class Formatter
                 'label' => (string)$row[0],
                 'value' => $value !== '' ? $value : self::NONE,
                 'url' => (string)($row[2] ?? ''),
+                'as_sent' => (bool)($row[3] ?? false),
             ];
         }
 

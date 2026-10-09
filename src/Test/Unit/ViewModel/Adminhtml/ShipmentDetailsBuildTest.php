@@ -129,30 +129,44 @@ class ShipmentDetailsBuildTest extends TestCase
             ],
             'price_net' => 14.5,
             'price_gross' => 17.84,
+            'unpaid_amount' => 0.0,
             'is_paid' => true,
+            'has_invoice' => false,
         ], shipmentId: 31, lastError: null);
 
         $view = $this->view(order: true)->build($shipment);
 
         self::assertSame('Shipment details 711400-4', $view['title']);
-        self::assertSame([], $view['notes'], 'Nothing to say of a shipment read as it was sent.');
+        self::assertSame(
+            ['Values marked "as sent" are empty in Polkurier\'s copy of the order, and are shown as they were sent.'],
+            $view['notes'],
+        );
         self::assertSame('Read from Polkurier 2026-10-06T08:00:00+00:00.', $view['synced']);
         self::assertSame(['Shipment', 'Addresses', 'Services and handover'], \array_column($view['sections'], 'title'));
         self::assertSame(
-            ['Items shipped', 'Parcels', 'Cost', 'Status history'],
+            ['Items shipped', 'Parcels', 'Cost', 'Carrier tracking'],
             \array_column($view['tables'], 'title'),
         );
         self::assertSame(
-            ['label' => 'Number', 'value' => '711400-4', 'url' => ''],
+            ['label' => 'Number', 'value' => '711400-4', 'url' => '', 'as_sent' => false],
             $this->row($view, 'Polkurier order', 'Number'),
         );
         self::assertSame('Placed', $this->row($view, 'Polkurier order', 'State')['value']);
-        self::assertSame('DPD Classic', $this->row($view, 'Polkurier order', 'Carrier')['value']);
+        self::assertSame('DPD Classic', $this->row($view, 'Delivery', 'Carrier')['value']);
+        self::assertSame(
+            ['Carrier', 'Shipment type', 'Shipment description', 'Status'],
+            \array_slice(\array_column($view['sections'][0]['items'][1]['rows'], 'label'), 0, 4),
+            'The delivery starts with who carries what.',
+        );
+        self::assertSame('17.84 PLN', $this->row($view, 'Polkurier order', 'Order value')['value']);
+        self::assertSame('0.00 PLN', $this->row($view, 'Polkurier order', 'Amount to pay')['value']);
+        self::assertSame('No', $this->row($view, 'Polkurier order', 'Invoiced')['value']);
         self::assertSame(
             [
                 'label' => 'Magento order',
                 'value' => '#000000052',
                 'url' => 'https://shop.example.com/admin/sales/order/view/order_id/29/',
+                'as_sent' => false,
             ],
             $this->row($view, 'Polkurier order', 'Magento order'),
         );
@@ -161,6 +175,7 @@ class ShipmentDetailsBuildTest extends TestCase
                 'label' => 'Magento shipment',
                 'value' => '#000000031',
                 'url' => 'https://shop.example.com/admin/sales/shipment/view/shipment_id/31/',
+                'as_sent' => false,
             ],
             $this->row($view, 'Polkurier order', 'Magento shipment'),
         );
@@ -169,17 +184,29 @@ class ShipmentDetailsBuildTest extends TestCase
                 'label' => 'Waybill',
                 'value' => '0000123456789',
                 'url' => 'https://tracktrace.dpd.com.pl/parcelDetails?p1=0000123456789',
+                'as_sent' => false,
             ],
             $this->row($view, 'Delivery', 'Waybill'),
         );
         self::assertSame('Sklep Sp. z o.o., Jan Kowalski', $this->row($view, 'Sender', 'Name')['value']);
+        self::assertFalse($this->row($view, 'Sender', 'Name')['as_sent']);
+        // Polkurier's copy leaves the recipient's point and the services empty: shown as sent.
+        self::assertSame(
+            ['label' => 'Pickup point', 'value' => 'KRA01M', 'url' => '', 'as_sent' => true],
+            $this->row($view, 'Recipient', 'Pickup point'),
+        );
+        self::assertSame(
+            ['label' => 'Additional services', 'value' => 'SMS notification when dispatched', 'url' => '', 'as_sent' => true],
+            $this->row($view, 'Services', 'Additional services'),
+        );
         self::assertSame('149.99 PLN', $this->row($view, 'Services', 'Cash on delivery')['value']);
+        self::assertFalse($this->row($view, 'Services', 'Cash on delivery')['as_sent'], 'Polkurier\'s own value.');
         self::assertSame(
             'Bank account: 61109010140000071219812874',
             $this->row($view, 'Services', 'Paid out to')['value'],
         );
         self::assertSame('Awaiting collection', $this->row($view, 'Services', 'COD status')['value']);
-        self::assertSame('DPD-PU-1', $this->row($view, 'Handover to the carrier', 'Pickup number')['value']);
+        self::assertSame('DPD-PU-1', $this->row($view, 'Handover to the carrier', 'Collection number')['value']);
         self::assertSame(
             [['Standard', '40 × 30 × 20 cm', '2.5 kg', '1', '17.84 PLN', '2 × Mug']],
             $view['tables'][1]['rows'],
@@ -208,7 +235,7 @@ class ShipmentDetailsBuildTest extends TestCase
         self::assertSame('', $view['synced']);
         self::assertSame(['Shipment', 'Addresses', 'Services and handover'], \array_column($view['sections'], 'title'));
         self::assertSame(
-            ['Items shipped', 'Parcels', 'Status history'],
+            ['Items shipped', 'Parcels', 'Carrier tracking'],
             \array_column($view['tables'], 'title'),
             'No cost before Polkurier priced it.',
         );
@@ -216,22 +243,26 @@ class ShipmentDetailsBuildTest extends TestCase
         self::assertSame('Outcome unknown', $this->row($view, 'Polkurier order', 'State')['value']);
         self::assertSame(
             'DPD Classic',
-            $this->row($view, 'Polkurier order', 'Carrier')['value'],
+            $this->row($view, 'Delivery', 'Carrier')['value'],
             'Named by the carrier settings.',
         );
-        self::assertSame('Parcel', $this->row($view, 'Polkurier order', 'Shipment type')['value']);
-        self::assertSame('Order #000000052', $this->row($view, 'Polkurier order', 'Shipment description')['value']);
+        self::assertSame('Parcel', $this->row($view, 'Delivery', 'Shipment type')['value']);
+        self::assertSame('Order #000000052', $this->row($view, 'Delivery', 'Shipment description')['value']);
         self::assertSame(
-            ['label' => 'Magento order', 'value' => '#29', 'url' => ''],
+            ['label' => 'Magento order', 'value' => '#29', 'url' => '', 'as_sent' => false],
             $this->row($view, 'Polkurier order', 'Magento order'),
             'An order that is gone links nowhere.',
         );
         self::assertSame(
-            ['label' => 'Magento shipment', 'value' => 'none yet', 'url' => ''],
+            ['label' => 'Magento shipment', 'value' => 'none yet', 'url' => '', 'as_sent' => false],
             $this->row($view, 'Polkurier order', 'Magento shipment'),
         );
         self::assertSame('Prosta 20/5', $this->row($view, 'Sender', 'Street')['value']);
         self::assertSame('KRA01M', $this->row($view, 'Recipient', 'Pickup point')['value']);
+        self::assertFalse(
+            $this->row($view, 'Recipient', 'Pickup point')['as_sent'],
+            'All of it is as sent, which the note says.',
+        );
         self::assertSame(
             'SMS notification when dispatched',
             $this->row($view, 'Services', 'Additional services')['value'],
@@ -242,6 +273,47 @@ class ShipmentDetailsBuildTest extends TestCase
             $this->row($view, 'Handover to the carrier', 'Collection date')['value'],
         );
         self::assertSame('There is no Polkurier order to follow.', $view['tables'][2]['empty']);
+        self::assertNotContains(
+            'Order value',
+            \array_column($view['sections'][0]['items'][0]['rows'], 'label'),
+            'Not known before Polkurier is read.',
+        );
+    }
+
+    public function testParcelsDroppedOffShowWhereUnderTheHandover(): void
+    {
+        $dropOff = ['no_courier_order' => true, 'multi_pickup' => false, 'pickup_number' => 'DPD-PU-2'];
+        $atPoint = $this->view(order: true)->build($this->shipment(ShipmentInterface::STATE_CREATED, '711400-12', [
+            'sender' => ['person' => 'Jan Kowalski', 'point_id' => 'PL63197', 'point_label' => 'Kiosk, Prosta 1'],
+            'pickup' => $dropOff,
+        ], shipmentId: 31, lastError: null));
+
+        self::assertSame('Dropped off at a point', $this->row($atPoint, 'Handover to the carrier', 'Handover')['value']);
+        self::assertSame(
+            ['label' => 'Drop-off point', 'value' => 'PL63197 — Kiosk, Prosta 1', 'url' => '', 'as_sent' => false],
+            $this->row($atPoint, 'Handover to the carrier', 'Drop-off point'),
+        );
+        self::assertNotContains(
+            'Pickup point',
+            \array_column($atPoint['sections'][1]['items'][0]['rows'], 'label'),
+            'The sender\'s point is where the parcels go, not a point of the sender\'s address.',
+        );
+
+        self::assertNotContains(
+            'Collection number',
+            \array_column($atPoint['sections'][2]['items'][1]['rows'], 'label'),
+            'Nothing is collected.',
+        );
+
+        $anyPoint = $this->view(order: true)->build($this->shipment(ShipmentInterface::STATE_CREATED, '711400-15', [
+            'sender' => ['person' => 'Jan Kowalski', 'point_id' => null],
+            'pickup' => $dropOff,
+        ], shipmentId: 31, lastError: null));
+
+        self::assertSame(
+            'any of the carrier\'s points',
+            $this->row($anyPoint, 'Handover to the carrier', 'Drop-off point')['value'],
+        );
     }
 
     /**
@@ -249,7 +321,7 @@ class ShipmentDetailsBuildTest extends TestCase
      *
      * @param array<string, mixed> $view
      *
-     * @return array<string, string>
+     * @return array<string, string|bool>
      */
     private function row(array $view, string $item, string $label): array
     {

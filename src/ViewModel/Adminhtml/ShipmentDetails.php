@@ -53,37 +53,54 @@ readonly class ShipmentDetails implements ArgumentInterface
     {
         $details = $shipment->getDetails();
         $fromPolkurier = $details !== [];
+        $sent = $this->sentOrderReader->read((string)$shipment->getRequest());
+        $asSent = [];
         if (!$fromPolkurier) {
-            $details = $this->sentOrderReader->read((string)$shipment->getRequest());
+            $details = $sent;
+        } else {
+            // Polkurier's copy leaves some of what was sent empty, depending on the carrier.
+            $details = self::fillGaps($details, $sent, '', $asSent);
         }
 
         $sections = [
             [
                 'title' => (string)__('Shipment'),
                 'items' => [
-                    ['title' => (string)__('Polkurier order'), 'rows' => $this->orderRows($shipment, $details)],
-                    ['title' => (string)__('Delivery'), 'rows' => $this->deliveryRows($shipment, $details)],
+                    [
+                        'title' => (string)__('Polkurier order'),
+                        'rows' => $this->orderRows($shipment, $details),
+                    ],
+                    [
+                        'title' => (string)__('Delivery'),
+                        'rows' => $this->deliveryRows($shipment, $details, $asSent),
+                    ],
                 ],
             ],
             [
                 'title' => (string)__('Addresses'),
                 'items' => \array_values(\array_filter([
-                    ['title' => (string)__('Sender'), 'rows' => $this->addressRows($details['sender'] ?? null)],
-                    ['title' => (string)__('Recipient'), 'rows' => $this->addressRows($details['recipient'] ?? null)],
+                    [
+                        'title' => (string)__('Sender'),
+                        'rows' => $this->addressRows($details['sender'] ?? null, 'sender', $asSent),
+                    ],
+                    [
+                        'title' => (string)__('Recipient'),
+                        'rows' => $this->addressRows($details['recipient'] ?? null, 'recipient', $asSent),
+                    ],
                     empty($details['cover_address']) ? null
                         : [
                             'title' => (string)__('Sender on the label'),
-                            'rows' => $this->addressRows($details['cover_address']),
+                            'rows' => $this->addressRows($details['cover_address'], 'cover_address', $asSent),
                         ],
                 ])),
             ],
             [
                 'title' => (string)__('Services and handover'),
                 'items' => [
-                    ['title' => (string)__('Services'), 'rows' => $this->serviceRows($details)],
+                    ['title' => (string)__('Services'), 'rows' => $this->serviceRows($details, $asSent)],
                     [
                         'title' => (string)__('Handover to the carrier'),
-                        'rows' => $this->pickupRows($shipment, $details),
+                        'rows' => $this->pickupRows($shipment, $details, $asSent),
                     ],
                 ],
             ],
@@ -102,6 +119,12 @@ readonly class ShipmentDetails implements ArgumentInterface
                 $fromPolkurier
                     ? null
                     : (string)__('Polkurier has not been read for this order yet: shown as it was sent.'),
+                $asSent === []
+                    ? null
+                    : (string)__(
+                        'Values marked "as sent" are empty in Polkurier\'s copy of the order, '
+                        . 'and are shown as they were sent.',
+                    ),
                 $shipment->getLastError() ? (string)__('Last error: %1', $shipment->getLastError()) : null,
                 ...$this->describePackChanges($shipment),
             ])),
@@ -150,7 +173,7 @@ readonly class ShipmentDetails implements ArgumentInterface
     /**
      * @param array<string, mixed> $details
      *
-     * @return array<int, array<string, string>>
+     * @return array<int, array<string, string|bool>>
      */
     private function orderRows(ShipmentInterface $shipment, array $details): array
     {
@@ -160,12 +183,21 @@ readonly class ShipmentDetails implements ArgumentInterface
         return $this->formatter->rows([
             [__('Number'), $shipment->getPolkurierNumber() ?: '—'],
             [__('State'), $this->optionLabelProvider->state($shipment->getState())],
-            [__('Carrier'), empty($details['carrier_name'])
-                ? $this->carrierNameProvider->get($shipment->getCarrierCode())
-                : (string)$details['carrier_name']],
-            [__('Shipment type'), $this->optionLabelProvider->shipmentType($details['shipment_type'] ?? null)],
-            [__('Shipment description'), $details['description'] ?? $shipment->getDescription()],
             [__('Placed'), $this->formatter->storedTime($shipment->getCreatedAt())],
+            // What Polkurier charges for the order, and how much of it is still due: known once
+            // Polkurier's copy is read.
+            !isset($details['price_gross']) ? null : [
+                __('Order value'),
+                $this->formatter->money((float)$details['price_gross']),
+            ],
+            !isset($details['unpaid_amount']) ? null : [
+                __('Amount to pay'),
+                $this->formatter->money((float)$details['unpaid_amount']),
+            ],
+            !isset($details['has_invoice']) ? null : [
+                __('Invoiced'),
+                $details['has_invoice'] ? (string)__('Yes') : (string)__('No'),
+            ],
             [__('Magento order'), $order['label'] ?? '#' . $shipment->getOrderId(), $order['url'] ?? null],
             [
                 __('Magento shipment'),
@@ -177,13 +209,29 @@ readonly class ShipmentDetails implements ArgumentInterface
 
     /**
      * @param array<string, mixed> $details
+     * @param array<string, true> $asSent
      *
-     * @return array<int, array<string, string>>
+     * @return array<int, array<string, string|bool>>
      */
-    private function deliveryRows(ShipmentInterface $shipment, array $details): array
+    private function deliveryRows(ShipmentInterface $shipment, array $details, array $asSent): array
     {
         $url = (string)($details['tracking_url'] ?? $shipment->getTrackingUrl() ?? '');
         $rows = [
+            [__('Carrier'), empty($details['carrier_name'])
+                ? $this->carrierNameProvider->get($shipment->getCarrierCode())
+                : (string)$details['carrier_name']],
+            [
+                __('Shipment type'),
+                $this->optionLabelProvider->shipmentType($details['shipment_type'] ?? null),
+                null,
+                self::isSent($asSent, 'shipment_type'),
+            ],
+            [
+                __('Shipment description'),
+                $details['description'] ?? $shipment->getDescription(),
+                null,
+                self::isSent($asSent, 'description'),
+            ],
             [__('Status'), $shipment->getStatusLabel() ?: '—'],
             [__('Status date'), $this->formatter->storedTime($shipment->getStatusDate())],
             [__('Delivered'), $this->formatter->storedTime($shipment->getDeliveredAt())],
@@ -200,19 +248,27 @@ readonly class ShipmentDetails implements ArgumentInterface
 
     /**
      * @param array<string, mixed>|null $address
+     * @param string $key the address's key in the details
+     * @param array<string, true> $asSent
      *
-     * @return array<int, array<string, string>>
+     * @return array<int, array<string, string|bool>>
      */
-    private function addressRows(?array $address): array
+    private function addressRows(?array $address, string $key, array $asSent): array
     {
         if ($address === null) {
             return $this->formatter->rows([[__('Address'), '—']]);
         }
-        $point = (string)($address['point_id'] ?? '');
+        // The sender's point is where the parcels are dropped off: shown with the handover.
+        $point = $key === 'sender' ? '' : (string)($address['point_id'] ?? '');
 
         return $this->formatter->rows([
-            [__('Name'), \trim(\implode(', ', \array_filter([$address['company'] ?? '', $address['person'] ?? ''])))],
-            [__('Street'), (string)($address['street'] ?? '')],
+            [
+                __('Name'),
+                \trim(\implode(', ', \array_filter([$address['company'] ?? '', $address['person'] ?? '']))),
+                null,
+                self::isSent($asSent, $key . '.company', $key . '.person'),
+            ],
+            [__('Street'), (string)($address['street'] ?? ''), null, self::isSent($asSent, $key . '.street')],
             [
                 __('City'),
                 $this->formatter->place(
@@ -220,34 +276,51 @@ readonly class ShipmentDetails implements ArgumentInterface
                     (string)($address['city'] ?? ''),
                     $address['country'] ?? null,
                 ),
+                null,
+                self::isSent($asSent, $key . '.postcode', $key . '.city', $key . '.country'),
             ],
-            [__('Phone'), (string)($address['phone'] ?? '')],
-            [__('E-mail'), (string)($address['email'] ?? '')],
+            [__('Phone'), (string)($address['phone'] ?? ''), null, self::isSent($asSent, $key . '.phone')],
+            [__('E-mail'), (string)($address['email'] ?? ''), null, self::isSent($asSent, $key . '.email')],
             $point === '' ? null : [
                 __('Pickup point'),
                 \trim($point . (!empty($address['point_label']) ? ' — ' . $address['point_label'] : '')),
+                null,
+                self::isSent($asSent, $key . '.point_id', $key . '.point_label'),
             ],
         ]);
     }
 
     /**
      * @param array<string, mixed> $details
+     * @param array<string, true> $asSent
      *
-     * @return array<int, array<string, string>>
+     * @return array<int, array<string, string|bool>>
      */
-    private function serviceRows(array $details): array
+    private function serviceRows(array $details, array $asSent): array
     {
         $cod = $details['cod'] ?? null;
         $rows = [];
         if (\is_array($cod) && (float)($cod['amount'] ?? 0) > 0) {
-            $rows[] = [__('Cash on delivery'), $this->formatter->money((float)$cod['amount'])];
-            $rows[] = [__('Payout time'), $this->optionLabelProvider->codType($cod['type'] ?? null)];
+            $rows[] = [
+                __('Cash on delivery'),
+                $this->formatter->money((float)$cod['amount']),
+                null,
+                self::isSent($asSent, 'cod.amount'),
+            ];
+            $rows[] = [
+                __('Payout time'),
+                $this->optionLabelProvider->codType($cod['type'] ?? null),
+                null,
+                self::isSent($asSent, 'cod.type'),
+            ];
             $rows[] = [
                 __('Paid out to'),
                 \trim(
                     $this->optionLabelProvider->codReturnType($cod['return_type'] ?? null)
                     . (!empty($cod['bank_account']) ? ': ' . $cod['bank_account'] : ''),
                 ),
+                null,
+                self::isSent($asSent, 'cod.return_type', 'cod.bank_account'),
             ];
             if (!empty($cod['status'])) {
                 $rows[] = [__('COD status'), $this->optionLabelProvider->codStatus($cod['status'])];
@@ -256,11 +329,21 @@ readonly class ShipmentDetails implements ArgumentInterface
             $rows[] = [__('Cash on delivery'), (string)__('none')];
         }
         $insurance = (float)($details['insurance'] ?? 0);
-        $rows[] = [__('Insurance'), $insurance > 0 ? $this->formatter->money($insurance) : (string)__('none')];
+        $rows[] = [
+            __('Insurance'),
+            $insurance > 0 ? $this->formatter->money($insurance) : (string)__('none'),
+            null,
+            self::isSent($asSent, 'insurance'),
+        ];
         $services = (array)($details['services'] ?? []);
-        $rows[] = [__('Additional services'), $services === [] ? (string)__('none') : \implode(', ', $services)];
+        $rows[] = [
+            __('Additional services'),
+            $services === [] ? (string)__('none') : \implode(', ', $services),
+            null,
+            self::isSent($asSent, 'services'),
+        ];
         foreach ((array)($details['additional_fields'] ?? []) as $name => $value) {
-            $rows[] = [(string)$name, (string)$value];
+            $rows[] = [(string)$name, (string)$value, null, self::isSent($asSent, 'additional_fields.' . $name)];
         }
 
         return $this->formatter->rows($rows);
@@ -268,28 +351,49 @@ readonly class ShipmentDetails implements ArgumentInterface
 
     /**
      * @param array<string, mixed> $details
+     * @param array<string, true> $asSent
      *
-     * @return array<int, array<string, string>>
+     * @return array<int, array<string, string|bool>>
      */
-    private function pickupRows(ShipmentInterface $shipment, array $details): array
+    private function pickupRows(ShipmentInterface $shipment, array $details, array $asSent): array
     {
         $pickup = \is_array($details['pickup'] ?? null) ? $details['pickup'] : [];
+        $dropOff = null;
         if (!empty($pickup['multi_pickup']) || $shipment->isMultiPickup()) {
             $mode = (string)__('Collected later, together with other shipments');
         } elseif (!empty($pickup['no_courier_order'])) {
             $mode = (string)__('Dropped off at a point');
+            $sender = \is_array($details['sender'] ?? null) ? $details['sender'] : [];
+            $point = (string)($sender['point_id'] ?? '');
+            $dropOff = [
+                __('Drop-off point'),
+                $point === ''
+                    ? (string)__('any of the carrier\'s points')
+                    : \trim($point . (!empty($sender['point_label']) ? ' — ' . $sender['point_label'] : '')),
+                null,
+                self::isSent($asSent, 'sender.point_id', 'sender.point_label'),
+            ];
         } else {
             $mode = (string)__('A courier collects them');
         }
         $window = \trim(($pickup['time_from'] ?? '') . '–' . ($pickup['time_to'] ?? ''), '–');
 
         return $this->formatter->rows([
-            [__('Handover'), $mode],
+            [__('Handover'), $mode, null, self::isSent($asSent, 'pickup.multi_pickup', 'pickup.no_courier_order')],
+            $dropOff,
             empty($pickup['date']) ? null : [
                 __('Collection date'),
                 \trim($pickup['date'] . ($window !== '' ? ', ' . $window : '')),
+                null,
+                self::isSent($asSent, 'pickup.date', 'pickup.time_from', 'pickup.time_to'),
             ],
-            empty($pickup['pickup_number']) ? null : [__('Pickup number'), (string)$pickup['pickup_number']],
+            // The carrier's reference for the collection it booked; parcels dropped off aren't collected.
+            $dropOff !== null || empty($pickup['pickup_number']) ? null : [
+                __('Collection number'),
+                (string)$pickup['pickup_number'],
+                null,
+                self::isSent($asSent, 'pickup.pickup_number'),
+            ],
             $shipment->isMultiPickup() ? [
                 __('Collective pickup booked'),
                 $shipment->isPickupBooked() ? (string)__('Yes') : (string)__('No'),
@@ -440,14 +544,6 @@ readonly class ShipmentDetails implements ArgumentInterface
         if ((float)($details['rebate_gross'] ?? 0) > 0) {
             $notes[] = (string)__('Rebate: %1', $this->formatter->money((float)$details['rebate_gross']));
         }
-        if (isset($details['is_paid'])) {
-            $notes[] = $details['is_paid']
-                ? (string)__('Paid')
-                : (string)__('Unpaid: %1', $this->formatter->money((float)($details['unpaid_amount'] ?? 0)));
-        }
-        if (!empty($details['has_invoice'])) {
-            $notes[] = (string)__('Invoiced');
-        }
 
         return [
             'title' => (string)__('Cost'),
@@ -475,7 +571,7 @@ readonly class ShipmentDetails implements ArgumentInterface
         }
 
         return [
-            'title' => (string)__('Status history'),
+            'title' => (string)__('Carrier tracking'),
             'columns' => [
                 (string)__('Date'),
                 (string)__('Status'),
@@ -485,7 +581,7 @@ readonly class ShipmentDetails implements ArgumentInterface
             'rows' => $rows,
             'empty' => $shipment->getPolkurierNumber() === null
                 ? (string)__('There is no Polkurier order to follow.')
-                : (string)__('The carrier has not reported any scans yet.'),
+                : (string)__('No scans from the carrier yet.'),
         ];
     }
 
@@ -496,6 +592,63 @@ readonly class ShipmentDetails implements ArgumentInterface
         }
 
         return (string)__('Read from Polkurier %1.', $this->formatter->storedTime($shipment->getDetailsSyncedAt()));
+    }
+
+    /**
+     * Polkurier's copy of the order, with what it leaves empty (null, "" or no entries) taken from the
+     * order as it was sent. Values Polkurier holds always stay, even where they differ from what was
+     * sent. Parcels are compared separately ({@see self::describePackChanges()}).
+     *
+     * @param array<string, mixed> $copy
+     * @param array<string, mixed> $sent
+     * @param array<string, true> $asSent the paths taken from what was sent, e.g. "recipient.email"
+     *
+     * @param-out array<string, true> $asSent
+     * @return array<string, mixed>
+     */
+    private static function fillGaps(array $copy, array $sent, string $prefix, array &$asSent): array
+    {
+        foreach ($sent as $key => $value) {
+            $path = $prefix . $key;
+            if ($path === 'packs' || self::isEmpty($value)) {
+                continue;
+            }
+            $own = $copy[$key] ?? null;
+            if (self::isEmpty($own)) {
+                $copy[$key] = $value;
+                $asSent[$path] = true;
+            } elseif (\is_array($own) && \is_array($value) && !\array_is_list($own) && !\array_is_list($value)) {
+                $copy[$key] = self::fillGaps($own, $value, $path . '.', $asSent);
+            }
+        }
+
+        return $copy;
+    }
+
+    private static function isEmpty(mixed $value): bool
+    {
+        return $value === null || $value === '' || $value === [];
+    }
+
+    /**
+     * Whether any of the paths, anything under them, or what holds them was taken from what was sent.
+     *
+     * @param array<string, true> $asSent
+     */
+    private static function isSent(array $asSent, string ...$paths): bool
+    {
+        foreach (\array_keys($asSent) as $taken) {
+            foreach ($paths as $path) {
+                if ($taken === $path
+                    || \str_starts_with($taken, $path . '.')
+                    || \str_starts_with($path, $taken . '.')
+                ) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     /**

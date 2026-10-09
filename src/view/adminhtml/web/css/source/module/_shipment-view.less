@@ -1,0 +1,70 @@
+// /**
+//  * Copyright (c) 2026 Polkurier.pl
+//  * Licensed under the MIT License, see LICENSE.md
+//  */
+/* The Polkurier shipment details page: the admin's page sections, with their items side by side. */
+
+.polkurier-view__items {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(32rem, 1fr));
+    gap: 2rem 3rem;
+}
+
+/* The admin's clearfix would take grid cells. */
+.polkurier-view__items::before,
+.polkurier-view__items::after {
+    display: none;
+}
+
+.polkurier-view__items .admin__page-section-item {
+    float: none;
+    width: auto;
+    margin: 0;
+}
+
+.polkurier-view .admin__table-secondary th {
+    width: 40%;
+}
+
+/* A value Polkurier's copy of the order leaves empty, shown as it was sent. */
+.polkurier-view__as-sent {
+    color: @color-gray40;
+    font-style: italic;
+}
+
+/* When the page was read from Polkurier, on the left of the buttons bar, level with the buttons. */
+.polkurier-view__sync {
+    float: left;
+    /* The height of the bar's buttons. */
+    line-height: 4.6rem;
+    color: @color-gray43;
+}
+
+.polkurier-view__sync-updating::before {
+    content: '';
+    display: inline-block;
+    width: 1rem;
+    height: 1rem;
+    margin-right: .6rem;
+    vertical-align: -.1rem;
+    border: 2px solid @color-gray80;
+    border-top-color: @color-gray43;
+    border-radius: 50%;
+    animation: polkurier-spin 1s linear infinite;
+}
+
+@keyframes polkurier-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.polkurier-view__note {
+    margin-top: 1rem;
+    color: @color-gray43;
+}
+
+/* A cell of several lines, such as a parcel's contents, keeps its line breaks. */
+.polkurier-view .admin__table-primary td {
+    white-space: pre-line;
+}

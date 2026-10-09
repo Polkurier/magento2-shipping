@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<!--
+ ~ Copyright (c) 2026 Polkurier.pl
+ ~ Licensed under the MIT License, see LICENSE.md
+-->
+<page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
+    <body>
+        <!-- Inside the shipment form, so its hidden fields are sent with the label request -->
+        <referenceContainer name="extra_shipment_info">
+            <block class="Magento\Backend\Block\Template" name="polkurier_label_options"
+                   template="Polkurier_Shipping::shipment/label-options.phtml">
+                <arguments>
+                    <argument name="view_model" xsi:type="object">Polkurier\Shipping\ViewModel\Adminhtml\LabelOptions</argument>
+                </arguments>
+            </block>
+        </referenceContainer>
+    </body>
+</page>

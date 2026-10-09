@@ -1,0 +1,21 @@
+<!--
+ ~ Copyright (c) 2026 Polkurier.pl
+ ~ Licensed under the MIT License, see LICENSE.md
+-->
+<div class="admin__fieldset polkurier-section__wide polkurier-fields" if="inputs().length">
+    <!-- ko foreach: inputs -->
+    <div class="admin__field" css="_required: required">
+        <label class="admin__field-label"
+               data-bind="attr: {for: 'polkurier-field-' + $index()}"><span text="label"></span></label>
+        <div class="admin__field-control">
+            <input class="admin__control-text" type="text"
+                   data-bind="value: value,
+                              attr: {id: 'polkurier-field-' + $index(),
+                                     'aria-required': required ? 'true' : 'false',
+                                     'aria-describedby': description ? 'polkurier-field-note-' + $index() : null}"/>
+            <div class="admin__field-note" if="description"
+                 data-bind="attr: {id: 'polkurier-field-note-' + $index()}"><span text="description"></span></div>
+        </div>
+    </div>
+    <!-- /ko -->
+</div>

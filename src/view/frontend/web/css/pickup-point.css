@@ -1,0 +1,31 @@
+/**
+ * Copyright (c) 2026 Polkurier.pl
+ * Licensed under the MIT License, see LICENSE.md
+ */
+/* The pickup point, in the carrier's cell of its delivery method's row. */
+.pickup-point-choice .selected-point {
+    margin-bottom: 4px;
+    overflow-wrap: anywhere;
+}
+
+/* A narrow cell on a phone: the button's label wraps rather than widening the table. */
+.pickup-point-choice .action-show-map {
+    max-width: 100%;
+    white-space: normal;
+}
+
+/* A small button: it sits in its method's row, beside the method's own details. */
+.action.primary.action-show-map {
+    font-size: 1.2rem;
+    line-height: 1.4rem;
+    padding: 4px 10px;
+}
+
+/* The carrier's logo in front of the method name. */
+.shipping-method-logo {
+    display: inline-block;
+    max-width: 60px;
+    max-height: 24px;
+    margin-right: 8px;
+    vertical-align: middle;
+}

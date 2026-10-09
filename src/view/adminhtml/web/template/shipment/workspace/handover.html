@@ -1,0 +1,50 @@
+<!--
+ ~ Copyright (c) 2026 Polkurier.pl
+ ~ Licensed under the MIT License, see LICENSE.md
+-->
+<div class="polkurier-section__part polkurier-handover">
+    <div class="polkurier-muted" translate="'Handover to the carrier'"></div>
+    <!-- ko foreach: modes -->
+    <div class="admin__field-option polkurier-handover__option">
+        <input type="radio" class="admin__control-radio" name="polkurier-handover"
+               data-bind="attr: {id: id, value: value}, checked: $parent.mode"/>
+        <label class="admin__field-label" data-bind="attr: {for: id}, text: label"></label>
+        <!-- ko if: value === 'courier' && $parent.showDates() -->
+        <div class="polkurier-handover__dates">
+            <!-- ko if: $parent.days().length -->
+            <select class="admin__control-select"
+                    data-bind="options: $parent.days, optionsText: 'label', optionsValue: 'value', value: $parent.date,
+                               disable: $parent.loading, css: {'_error': $parent.dateMissing},
+                               attr: {'aria-label': $t('Collection date'),
+                                      'aria-invalid': $parent.dateMissing() ? 'true' : 'false'}"></select>
+            <!-- ko if: $parent.windows().length -->
+            <select class="admin__control-select"
+                    data-bind="options: $parent.windows, optionsText: 'label', optionsValue: 'value',
+                               value: $parent.window, disable: $parent.loading, css: {'_error': $parent.windowMissing},
+                               attr: {'aria-label': $t('Collection time'),
+                                      'aria-invalid': $parent.windowMissing() ? 'true' : 'false'}"></select>
+            <!-- /ko -->
+            <span class="polkurier-muted polkurier-handover__any-time" ifnot="$parent.windows().length"
+                  translate="'Any time that day'"></span>
+            <!-- /ko -->
+            <div class="polkurier-muted" if="$parent.loading" translate="'Reading the collection dates…'"></div>
+            <div data-bind="css: {'polkurier-text-error': $parent.failed, 'polkurier-muted': !$parent.failed()}"
+                 if="$parent.message">
+                <span text="$parent.message"></span>
+                <!-- ko if: $parent.retryable -->
+                <button type="button" class="polkurier-link" data-bind="click: $parent.retry.bind($parent)">
+                    <span translate="'Try again'"></span>
+                </button>
+                <!-- /ko -->
+            </div>
+        </div>
+        <!-- /ko -->
+        <!-- ko if: value === 'drop_off' && $parent.pointShown() -->
+        <!-- ko template: {name: 'Polkurier_Shipping/shipment/workspace/drop-off-point', data: $parent} --><!-- /ko -->
+        <!-- /ko -->
+    </div>
+    <!-- /ko -->
+    <!-- ko if: pointAlone -->
+    <!-- ko template: {name: 'Polkurier_Shipping/shipment/workspace/drop-off-point', data: $data} --><!-- /ko -->
+    <!-- /ko -->
+</div>

@@ -1,0 +1,41 @@
+<?php
+/**
+ * Copyright (c) 2026 Polkurier.pl
+ * Licensed under the MIT License, see LICENSE.md
+ */
+declare(strict_types=1);
+
+/** @var \Magento\Backend\Block\Template $block */
+/** @var \Magento\Framework\Escaper $escaper */
+/** @var \Polkurier\Shipping\ViewModel\Adminhtml\ActualShipping $viewModel */
+$viewModel = $block->getData('view_model');
+$order = $block->getData('order');
+if (!$order instanceof \Magento\Sales\Model\Order) {
+    return;
+}
+$shipmentId = (int)$block->getData('shipment_id');
+$shipped = $shipmentId ? $viewModel->forShipment($order, $shipmentId) : $viewModel->forOrder($order);
+$choice = $viewModel->getCustomerChoice($order);
+?>
+<?php if ($choice !== null): ?>
+    <p class="polkurier-customer-choice">
+        <?= $escaper->escapeHtml(__('Chosen by the customer')) ?>:
+        <?= $escaper->escapeHtml($choice) ?>
+    </p>
+<?php endif; ?>
+<?php foreach ($shipped as $entry): ?>
+    <?php if (!$entry['changed']) {
+        continue;
+    } ?>
+    <p class="polkurier-shipped-with">
+        <?= $escaper->escapeHtml(__('Shipped with')) ?>:
+        <strong><?= $escaper->escapeHtml($entry['carrier']) ?></strong>
+        <?php if ($entry['point'] !== ''): ?>
+            <br/><?= $escaper->escapeHtml(__('Pickup point')) ?>:
+            <strong><?= $escaper->escapeHtml($entry['point']) ?></strong>
+            <?php if ($entry['point_label'] !== ''): ?>
+                <br/><?= $escaper->escapeHtml($entry['point_label']) ?>
+            <?php endif; ?>
+        <?php endif; ?>
+    </p>
+<?php endforeach; ?>

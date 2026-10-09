@@ -1,0 +1,48 @@
+<?xml version="1.0"?>
+<!--
+ ~ Copyright (c) 2026 Polkurier.pl
+ ~ Licensed under the MIT License, see LICENSE.md
+-->
+<form xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Ui:etc/ui_configuration.xsd">
+    <argument name="data" xsi:type="array">
+        <item name="js_config" xsi:type="array">
+            <item name="provider" xsi:type="string">polkurier_shipment_view.polkurier_shipment_view_data_source</item>
+        </item>
+        <item name="template" xsi:type="string">templates/form/collapsible</item>
+    </argument>
+    <settings>
+        <namespace>polkurier_shipment_view</namespace>
+        <dataScope>data</dataScope>
+        <deps>
+            <dep>polkurier_shipment_view.polkurier_shipment_view_data_source</dep>
+        </deps>
+        <buttons>
+            <button name="back" class="Polkurier\Shipping\Ui\Component\Form\ShipmentView\BackButton"/>
+            <button name="reconcile" class="Polkurier\Shipping\Ui\Component\Form\ShipmentView\ReconcileButton"/>
+            <button name="send_again" class="Polkurier\Shipping\Ui\Component\Form\ShipmentView\SendAgainButton"/>
+            <button name="discard" class="Polkurier\Shipping\Ui\Component\Form\ShipmentView\DiscardButton"/>
+            <button name="link" class="Polkurier\Shipping\Ui\Component\Form\ShipmentView\LinkButton"/>
+            <button name="cancel" class="Polkurier\Shipping\Ui\Component\Form\ShipmentView\CancelButton"/>
+            <button name="ship" class="Polkurier\Shipping\Ui\Component\Form\ShipmentView\ShipButton"/>
+            <button name="protocol" class="Polkurier\Shipping\Ui\Component\Form\ShipmentView\ProtocolButton"/>
+            <button name="label" class="Polkurier\Shipping\Ui\Component\Form\ShipmentView\LabelButton"/>
+        </buttons>
+    </settings>
+    <dataSource name="polkurier_shipment_view_data_source">
+        <argument name="data" xsi:type="array">
+            <item name="js_config" xsi:type="array">
+                <item name="component" xsi:type="string">Magento_Ui/js/form/provider</item>
+            </item>
+        </argument>
+        <aclResource>Polkurier_Shipping::shipments</aclResource>
+        <dataProvider class="Polkurier\Shipping\Ui\Component\Form\ShipmentView\DataProvider"
+                      name="polkurier_shipment_view_data_source">
+            <settings>
+                <requestFieldName>id</requestFieldName>
+                <primaryFieldName>entity_id</primaryFieldName>
+            </settings>
+        </dataProvider>
+    </dataSource>
+    <container name="details" component="Polkurier_Shipping/js/shipment/view" sortOrder="10"/>
+</form>

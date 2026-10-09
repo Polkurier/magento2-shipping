@@ -1,0 +1,24 @@
+<?php
+/**
+ * Copyright (c) 2026 Polkurier.pl
+ * Licensed under the MIT License, see LICENSE.md
+ */
+declare(strict_types=1);
+
+/** @var \Magento\Backend\Block\Template $block */
+/** @var \Magento\Framework\Escaper $escaper */
+/** @var \Polkurier\Shipping\ViewModel\Adminhtml\OrderPickupPoint $viewModel */
+$viewModel = $block->getData('view_model');
+$order = $block->getData('order');
+$point = $order instanceof \Magento\Sales\Model\Order ? $viewModel->getPoint($order) : null;
+if ($point === null) {
+    return;
+}
+?>
+<p class="polkurier-order-point">
+    <?= $escaper->escapeHtml(__('Pickup point')) ?>:
+    <strong><?= $escaper->escapeHtml($point->getPointId()) ?></strong>
+    <?php if ($point->getPointLabel()): ?>
+        <br/><?= $escaper->escapeHtml($point->getPointLabel()) ?>
+    <?php endif; ?>
+</p>

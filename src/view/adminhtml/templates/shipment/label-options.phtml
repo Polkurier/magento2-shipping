@@ -1,0 +1,61 @@
+<?php
+/**
+ * Copyright (c) 2026 Polkurier.pl
+ * Licensed under the MIT License, see LICENSE.md
+ */
+declare(strict_types=1);
+
+/** @var \Magento\Backend\Block\Template $block */
+/** @var \Magento\Framework\Escaper $escaper */
+/** @var \Polkurier\Shipping\ViewModel\Adminhtml\LabelOptions $viewModel */
+$viewModel = $block->getData('view_model');
+if (!$viewModel->isPolkurierOrder()) {
+    return;
+}
+?>
+<?php // The packaging window's pack templates and units, whenever the page has the window. ?>
+<script type="text/x-magento-init">
+    {
+        "*": {
+            "Polkurier_Shipping/js/shipment/packaging-setup": <?= /* @noEscape */ $viewModel->getPackagingConfig() ?>
+        }
+    }
+</script>
+<?php if (!$viewModel->isAvailable()) {
+    return;
+} ?>
+<section class="admin__page-section polkurier-label-options" data-role="polkurier-label-options">
+    <div class="admin__page-section-title">
+        <span class="title"><?= $escaper->escapeHtml(__('Polkurier shipping label')) ?></span>
+    </div>
+    <div class="admin__page-section-content">
+        <p class="polkurier-label-options__note" data-role="off">
+            <?= $escaper->escapeHtml(__(
+                'Without "Create Shipping Label" below, '
+                . 'the shipment is created without a Polkurier order.',
+            )) ?>
+        </p>
+        <?php if (($failed = $viewModel->getFailedAttempt()) !== null): ?>
+            <div class="message message-notice notice"><div><?= $escaper->escapeHtml($failed) ?></div></div>
+        <?php endif; ?>
+        <div data-role="on">
+            <p class="polkurier-label-options__note">
+                <?= $escaper->escapeHtml($viewModel->isForExistingShipment()
+                    ? __(
+                        'Placed with "Create Shipping Label" on this page, for this shipment\'s items, '
+                        . 'using the parcels you pack then.',
+                    )
+                    : __('Placed with the shipment, using the parcels you pack in the next step.')) ?>
+            </p>
+            <dl class="polkurier-label-options__summary" data-role="summary"></dl>
+        </div>
+        <div data-role="inputs"></div>
+    </div>
+</section>
+<script type="text/x-magento-init">
+    {
+        "[data-role=polkurier-label-options]": {
+            "Polkurier_Shipping/js/shipment/label-options": <?= /* @noEscape */ $viewModel->getJsConfig() ?>
+        }
+    }
+</script>

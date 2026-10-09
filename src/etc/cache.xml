@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<!--
+ ~ Copyright (c) 2026 Polkurier.pl
+ ~ Licensed under the MIT License, see LICENSE.md
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:Cache/etc/cache.xsd">
+    <type name="polkurier" translate="label,description" instance="Polkurier\Shipping\Model\Cache\Type">
+        <label>Polkurier</label>
+        <description>Carriers, pickup points and the map token read from Polkurier.</description>
+    </type>
+</config>

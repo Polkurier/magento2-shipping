@@ -1,0 +1,33 @@
+<!--
+ ~ Copyright (c) 2026 Polkurier.pl
+ ~ Licensed under the MIT License, see LICENSE.md
+-->
+<div class="polkurier-summary">
+    <div class="polkurier-summary__price" data-bind="css: {'_loading': quoting}">
+        <span class="polkurier-muted" data-bind="text: carrierName() || $t('No carrier chosen')"></span>
+        <!-- ko if: price -->
+        <strong class="polkurier-summary__gross" data-bind="text: price().net + ' ' + $t('net')"></strong>
+        <span class="polkurier-muted" data-bind="text: price().gross + ' ' + $t('gross')"></span>
+        <!-- /ko -->
+        <!-- ko ifnot: price -->
+        <span data-bind="css: {'polkurier-text-error': failed() && !quoting(),
+                               'polkurier-muted': !failed() || quoting()},
+                         text: quoting() ? $t('Updating prices…') : (message() || $t('No price yet'))"></span>
+        <button type="button" class="polkurier-link" if="retryable() && !quoting()" click="retry">
+            <span translate="'Try again'"></span>
+        </button>
+        <!-- /ko -->
+    </div>
+    <div class="message message-notice polkurier-summary__cheaper" if="cheaper">
+        <span text="cheaper().text"></span>
+        <button type="button" class="polkurier-link" click="useCheaper">
+            <span translate="'Switch'"></span>
+        </button>
+    </div>
+    <div class="admin__field-option" if="notifyOffered">
+        <input type="checkbox" class="admin__control-checkbox" id="polkurier-notify-customer"
+               data-bind="checked: notifyCustomer"/>
+        <label class="admin__field-label" for="polkurier-notify-customer"
+               translate="'Email the customer about the shipment'"></label>
+    </div>
+</div>

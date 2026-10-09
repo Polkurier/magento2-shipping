@@ -1,0 +1,94 @@
+// /**
+//  * Copyright (c) 2026 Polkurier.pl
+//  * Licensed under the MIT License, see LICENSE.md
+//  */
+.polkurier-label-options__note {
+    margin-bottom: 1rem;
+    color: @color-very-dark-gray;
+}
+
+.polkurier-label-options__summary {
+    display: grid;
+    grid-template-columns: max-content 1fr;
+    gap: .6rem 2rem;
+    align-items: center;
+    margin: 0;
+}
+
+.polkurier-label-options__summary dt {
+    font-weight: 600;
+}
+
+.polkurier-label-options__summary dd {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .3rem 1rem;
+    margin: 0;
+}
+
+/* Why the line is red, on a line of its own under it */
+.polkurier-label-options__why {
+    flex-basis: 100%;
+    color: @color-tomato-brick;
+}
+
+.polkurier-label-options__edit {
+    // The text sits high in its line, so the padding below it is a little smaller.
+    padding: .3rem .9rem .2rem;
+    font-size: 1.2rem;
+}
+
+.polkurier-label-options__warning > span {
+    color: @color-tomato-brick;
+}
+
+/* A group being edited, in its line: its name level with the top of its fields */
+.polkurier-label-options__summary dt.polkurier-label-options__editing {
+    align-self: start;
+    padding-top: 1.3rem;
+}
+
+/* A group being edited, in its line */
+.polkurier-label-options__form {
+    flex-basis: 100%;
+    max-width: 64rem;
+    margin: 0;
+    padding: 1.2rem 1.5rem;
+    border: 1px solid @color-gray89;
+    background: @color-white;
+}
+
+.polkurier-label-options__form .admin__field {
+    margin-bottom: 1.2rem;
+}
+
+.polkurier-label-options__actions {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+.polkurier-label-options__form .admin__field-option {
+    margin-bottom: .6rem;
+}
+
+.polkurier-label-options__point {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1rem;
+}
+
+.polkurier-label-options__point .admin__control-text {
+    max-width: 20rem;
+}
+
+/* The pack template choice, a column before the package type in Magento's packaging window. */
+#packaging_window .polkurier-pack-template {
+    width: auto;
+}
+
+.polkurier-packaging-note {
+    margin-bottom: 1.5rem;
+}

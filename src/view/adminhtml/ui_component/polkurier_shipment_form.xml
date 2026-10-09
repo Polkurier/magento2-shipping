@@ -1,0 +1,752 @@
+<?xml version="1.0"?>
+<!--
+ ~ Copyright (c) 2026 Polkurier.pl
+ ~ Licensed under the MIT License, see LICENSE.md
+-->
+<form xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Ui:etc/ui_configuration.xsd">
+    <argument name="data" xsi:type="array">
+        <item name="js_config" xsi:type="array">
+            <item name="provider" xsi:type="string">polkurier_shipment_form.polkurier_shipment_form_data_source</item>
+        </item>
+        <item name="label" xsi:type="string" translate="true">Polkurier shipment</item>
+        <item name="template" xsi:type="string">templates/form/collapsible</item>
+    </argument>
+    <settings>
+        <namespace>polkurier_shipment_form</namespace>
+        <dataScope>data</dataScope>
+        <deps>
+            <dep>polkurier_shipment_form.polkurier_shipment_form_data_source</dep>
+        </deps>
+        <buttons>
+            <button name="back" class="Polkurier\Shipping\Ui\Component\Form\Shipment\BackToOrderButton"/>
+            <button name="save" class="Polkurier\Shipping\Ui\Component\Form\Shipment\PlaceButtonVirtual"/>
+        </buttons>
+    </settings>
+    <dataSource name="polkurier_shipment_form_data_source">
+        <argument name="data" xsi:type="array">
+            <item name="js_config" xsi:type="array">
+                <item name="component" xsi:type="string">Polkurier_Shipping/js/shipment/workspace/provider</item>
+            </item>
+        </argument>
+        <settings>
+            <submitUrl path="polkurier/shipment/save"/>
+        </settings>
+        <aclResource>Polkurier_Shipping::shipment_create</aclResource>
+        <dataProvider class="Polkurier\Shipping\Ui\Component\Form\Shipment\DataProvider"
+                      name="polkurier_shipment_form_data_source">
+            <settings>
+                <requestFieldName>order_id</requestFieldName>
+                <primaryFieldName>order_id</primaryFieldName>
+            </settings>
+        </dataProvider>
+    </dataSource>
+    <container name="workspace" sortOrder="10">
+        <argument name="data" xsi:type="array">
+            <item name="config" xsi:type="array">
+                <item name="template" xsi:type="string">Polkurier_Shipping/shipment/workspace/column</item>
+                <item name="additionalClasses" xsi:type="string">polkurier-workspace</item>
+            </item>
+        </argument>
+        <container name="main" sortOrder="10">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="template" xsi:type="string">Polkurier_Shipping/shipment/workspace/column</item>
+                    <item name="additionalClasses" xsi:type="string">polkurier-workspace__main</item>
+                </item>
+            </argument>
+            <container name="shipment_section" component="Polkurier_Shipping/js/shipment/workspace/section"
+                       sortOrder="10">
+                <argument name="data" xsi:type="array">
+                    <item name="config" xsi:type="array">
+                        <item name="label" xsi:type="string" translate="true">Shipment</item>
+                        <item name="additionalClasses" xsi:type="string">polkurier-section polkurier-section--shipment</item>
+                        <!-- The parts of the section that the checks in rules.js report on -->
+                        <item name="cards" xsi:type="array">
+                            <item name="0" xsi:type="string">carrier</item>
+                            <item name="1" xsi:type="string">fields</item>
+                        </item>
+                        <!-- Where the checks' problems are fixed -->
+                        <item name="fixModals" xsi:type="array">
+                            <item name="carrier" xsi:type="string">carrier_modal</item>
+                        </item>
+                    </item>
+                </argument>
+                <container name="details" component="Polkurier_Shipping/js/shipment/workspace/shipment-details"
+                           sortOrder="10">
+                    <argument name="data" xsi:type="array">
+                        <item name="config" xsi:type="array">
+                            <item name="carrierModal" xsi:type="string">carrier_modal</item>
+                            <item name="shipmentModal" xsi:type="string">shipment_modal</item>
+                        </item>
+                    </argument>
+                </container>
+                <container name="additional_fields" component="Polkurier_Shipping/js/shipment/additional-fields"
+                           sortOrder="30">
+                    <argument name="data" xsi:type="array">
+                        <item name="config" xsi:type="array">
+                            <item name="template" xsi:type="string">Polkurier_Shipping/shipment/additional-fields</item>
+                            <item name="additionalClasses" xsi:type="string">polkurier-section__wide</item>
+                        </item>
+                    </argument>
+                </container>
+            </container>
+            <container name="items_section" component="Polkurier_Shipping/js/shipment/workspace/section" sortOrder="15">
+                <argument name="data" xsi:type="array">
+                    <item name="config" xsi:type="array">
+                        <item name="label" xsi:type="string" translate="true">Items to ship</item>
+                        <item name="additionalClasses" xsi:type="string">polkurier-section polkurier-section--items</item>
+                        <!-- The parts of the section that the checks in rules.js report on -->
+                        <item name="cards" xsi:type="array">
+                            <item name="0" xsi:type="string">items</item>
+                        </item>
+                    </item>
+                </argument>
+                <container name="items" component="Polkurier_Shipping/js/shipment/workspace/items"
+                           sortOrder="10"></container>
+            </container>
+            <container name="extras_section" component="Polkurier_Shipping/js/shipment/workspace/section"
+                       sortOrder="20">
+                <argument name="data" xsi:type="array">
+                    <item name="config" xsi:type="array">
+                        <item name="label" xsi:type="string" translate="true">Additional services</item>
+                        <item name="additionalClasses" xsi:type="string">polkurier-section polkurier-section--extras</item>
+                        <!-- The parts of the section that the checks in rules.js report on -->
+                        <item name="cards" xsi:type="array">
+                            <item name="0" xsi:type="string">cod</item>
+                            <item name="1" xsi:type="string">extras</item>
+                        </item>
+                        <!-- Where the checks' problems are fixed -->
+                        <item name="fixModals" xsi:type="array">
+                            <item name="cod" xsi:type="string">cod_modal</item>
+                            <item name="extras" xsi:type="string">insurance_modal</item>
+                        </item>
+                    </item>
+                </argument>
+                <container name="extras" component="Polkurier_Shipping/js/shipment/workspace/extras" sortOrder="10">
+                    <argument name="data" xsi:type="array">
+                        <item name="config" xsi:type="array">
+                            <item name="codModal" xsi:type="string">cod_modal</item>
+                            <item name="insuranceModal" xsi:type="string">insurance_modal</item>
+                        </item>
+                    </argument>
+                </container>
+            </container>
+            <container name="sender_section" component="Polkurier_Shipping/js/shipment/workspace/section"
+                       sortOrder="30">
+                <argument name="data" xsi:type="array">
+                    <item name="config" xsi:type="array">
+                        <item name="label" xsi:type="string" translate="true">Sender</item>
+                        <item name="actionLabel" xsi:type="string" translate="true">Change</item>
+                        <item name="action" xsi:type="string">${ $.ns }.${ $.ns }.sender_modal</item>
+                        <item name="additionalClasses" xsi:type="string">polkurier-section polkurier-section--sender</item>
+                        <!-- The parts of the section that the checks in rules.js report on -->
+                        <item name="cards" xsi:type="array">
+                            <item name="0" xsi:type="string">sender</item>
+                            <item name="1" xsi:type="string">handover</item>
+                        </item>
+                        <!-- Where the checks' problems are fixed -->
+                        <item name="fixModals" xsi:type="array">
+                            <item name="sender" xsi:type="string">sender_modal</item>
+                        </item>
+                    </item>
+                </argument>
+                <container name="sender" component="Polkurier_Shipping/js/shipment/workspace/address" sortOrder="10">
+                    <argument name="data" xsi:type="array">
+                        <item name="config" xsi:type="array">
+                            <item name="kind" xsi:type="string">sender</item>
+                        </item>
+                    </argument>
+                </container>
+                <container name="handover" component="Polkurier_Shipping/js/shipment/workspace/handover"
+                           sortOrder="20"></container>
+            </container>
+            <container name="recipient_section" component="Polkurier_Shipping/js/shipment/workspace/section"
+                       sortOrder="40">
+                <argument name="data" xsi:type="array">
+                    <item name="config" xsi:type="array">
+                        <item name="label" xsi:type="string" translate="true">Recipient</item>
+                        <item name="actionLabel" xsi:type="string" translate="true">Change</item>
+                        <item name="action" xsi:type="string">${ $.ns }.${ $.ns }.recipient_modal</item>
+                        <item name="additionalClasses" xsi:type="string">polkurier-section polkurier-section--recipient</item>
+                        <!-- The parts of the section that the checks in rules.js report on -->
+                        <item name="cards" xsi:type="array">
+                            <item name="0" xsi:type="string">recipient</item>
+                        </item>
+                        <!-- Where the checks' problems are fixed -->
+                        <item name="fixModals" xsi:type="array">
+                            <item name="recipient" xsi:type="string">recipient_modal</item>
+                        </item>
+                    </item>
+                </argument>
+                <container name="recipient" component="Polkurier_Shipping/js/shipment/workspace/address" sortOrder="10">
+                    <argument name="data" xsi:type="array">
+                        <item name="config" xsi:type="array">
+                            <item name="kind" xsi:type="string">recipient</item>
+                        </item>
+                    </argument>
+                </container>
+                <container name="point" component="Polkurier_Shipping/js/shipment/workspace/recipient-point"
+                           sortOrder="20">
+                    <argument name="data" xsi:type="array">
+                        <item name="config" xsi:type="array">
+                            <item name="recipientModal" xsi:type="string">recipient_modal</item>
+                        </item>
+                    </argument>
+                </container>
+            </container>
+        </container>
+        <container name="side" sortOrder="20">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="template" xsi:type="string">Polkurier_Shipping/shipment/workspace/column</item>
+                    <item name="additionalClasses" xsi:type="string">polkurier-workspace__side</item>
+                </item>
+            </argument>
+            <container name="parcels_section" component="Polkurier_Shipping/js/shipment/workspace/section"
+                       sortOrder="10">
+                <argument name="data" xsi:type="array">
+                    <item name="config" xsi:type="array">
+                        <item name="label" xsi:type="string" translate="true">Parcels</item>
+                        <item name="additionalClasses" xsi:type="string">polkurier-section polkurier-section--parcels</item>
+                        <!-- The parts of the section that the checks in rules.js report on -->
+                        <item name="cards" xsi:type="array">
+                            <item name="0" xsi:type="string">parcels</item>
+                        </item>
+                        <!-- Where the checks' problems are fixed -->
+                        <item name="fixParts" xsi:type="array">
+                            <item name="parcels" xsi:type="string">parcels</item>
+                        </item>
+                    </item>
+                </argument>
+                <container name="parcels" component="Polkurier_Shipping/js/shipment/workspace/parcels"
+                           sortOrder="10"></container>
+            </container>
+            <container name="summary" component="Polkurier_Shipping/js/shipment/workspace/summary" sortOrder="20">
+                <argument name="data" xsi:type="array">
+                    <item name="config" xsi:type="array">
+                        <item name="modals" xsi:type="array">
+                            <item name="0" xsi:type="string">carrier_modal</item>
+                            <item name="1" xsi:type="string">shipment_modal</item>
+                            <item name="2" xsi:type="string">sender_modal</item>
+                            <item name="3" xsi:type="string">recipient_modal</item>
+                            <item name="4" xsi:type="string">cod_modal</item>
+                            <item name="5" xsi:type="string">insurance_modal</item>
+                        </item>
+                    </item>
+                </argument>
+            </container>
+        </container>
+    </container>
+    <modal name="carrier_modal">
+        <settings>
+            <options>
+                <option name="title" xsi:type="string" translate="true">Choose a carrier</option>
+                <option name="type" xsi:type="string">popup</option>
+                <option name="modalClass" xsi:type="string">polkurier-workspace-modal polkurier-carrier-modal</option>
+                <option name="buttons" xsi:type="array">
+                    <item name="0" xsi:type="array">
+                        <item name="text" xsi:type="string" translate="true">Cancel</item>
+                        <item name="class" xsi:type="string">action-secondary</item>
+                        <item name="actions" xsi:type="array">
+                            <item name="0" xsi:type="string">actionCancel</item>
+                        </item>
+                    </item>
+                </option>
+            </options>
+        </settings>
+        <fieldset name="carrier" sortOrder="10">
+            <settings>
+                <label translate="true">Carrier</label>
+            </settings>
+            <field name="carrier_code" formElement="select"
+                   component="Polkurier_Shipping/js/shipment/workspace/carrier-picker" sortOrder="10">
+                <argument name="data" xsi:type="array">
+                    <item name="config" xsi:type="array">
+                        <item name="modal" xsi:type="string">${ $.ns }.${ $.ns }.carrier_modal</item>
+                    </item>
+                </argument>
+                <settings>
+                    <label translate="true">Carrier</label>
+                    <elementTmpl>Polkurier_Shipping/shipment/workspace/carrier-picker</elementTmpl>
+                    <dataType>text</dataType>
+                    <dataScope>carrier_code</dataScope>
+                    <validation><rule name="required-entry" xsi:type="boolean">true</rule></validation>
+                </settings>
+                <formElements>
+                    <select>
+                        <settings>
+                            <options/>
+                        </settings>
+                    </select>
+                </formElements>
+            </field>
+        </fieldset>
+    </modal>
+    <modal name="shipment_modal">
+        <settings>
+            <options>
+                <option name="title" xsi:type="string" translate="true">Shipment description</option>
+                <option name="type" xsi:type="string">popup</option>
+                <option name="modalClass" xsi:type="string">polkurier-workspace-modal</option>
+                <option name="buttons" xsi:type="array">
+                    <item name="0" xsi:type="array">
+                        <item name="text" xsi:type="string" translate="true">Cancel</item>
+                        <item name="class" xsi:type="string">action-secondary</item>
+                        <item name="actions" xsi:type="array">
+                            <item name="0" xsi:type="string">actionCancel</item>
+                        </item>
+                    </item>
+                    <item name="1" xsi:type="array">
+                        <item name="text" xsi:type="string" translate="true">Done</item>
+                        <item name="class" xsi:type="string">action-primary</item>
+                        <item name="actions" xsi:type="array">
+                            <item name="0" xsi:type="string">actionDone</item>
+                        </item>
+                    </item>
+                </option>
+            </options>
+        </settings>
+        <fieldset name="shipment" sortOrder="10">
+            <settings>
+                <label translate="true">Shipment description</label>
+            </settings>
+            <field name="description" formElement="input" sortOrder="20">
+                <settings>
+                    <label translate="true">Description</label>
+                    <dataType>text</dataType>
+                    <dataScope>description</dataScope>
+                    <validation><rule name="required-entry" xsi:type="boolean">true</rule></validation>
+                    <notice translate="true">Printed on the label; up to 30 characters. It starts as the order number, as the shipment description format in the configuration says.</notice>
+                </settings>
+            </field>
+        </fieldset>
+    </modal>
+    <modal name="sender_modal">
+        <settings>
+            <options>
+                <option name="title" xsi:type="string" translate="true">Sender address</option>
+                <option name="type" xsi:type="string">popup</option>
+                <option name="modalClass" xsi:type="string">polkurier-workspace-modal</option>
+                <option name="buttons" xsi:type="array">
+                    <item name="0" xsi:type="array">
+                        <item name="text" xsi:type="string" translate="true">Cancel</item>
+                        <item name="class" xsi:type="string">action-secondary</item>
+                        <item name="actions" xsi:type="array">
+                            <item name="0" xsi:type="string">actionCancel</item>
+                        </item>
+                    </item>
+                    <item name="1" xsi:type="array">
+                        <item name="text" xsi:type="string" translate="true">Done</item>
+                        <item name="class" xsi:type="string">action-primary</item>
+                        <item name="actions" xsi:type="array">
+                            <item name="0" xsi:type="string">actionDone</item>
+                        </item>
+                    </item>
+                </option>
+            </options>
+        </settings>
+        <fieldset name="sender" sortOrder="10">
+            <settings>
+                <label translate="true">Sender address</label>
+            </settings>
+            <field name="sender_address_id" formElement="select"
+                   component="Polkurier_Shipping/js/shipment/workspace/sender-picker" sortOrder="10">
+                <argument name="data" xsi:type="array">
+                    <item name="config" xsi:type="array">
+                        <item name="modal" xsi:type="string">${ $.ns }.${ $.ns }.sender_modal</item>
+                    </item>
+                </argument>
+                <settings>
+                    <label translate="true">Sender</label>
+                    <elementTmpl>Polkurier_Shipping/shipment/workspace/sender-picker</elementTmpl>
+                    <dataType>text</dataType>
+                    <dataScope>sender_address_id</dataScope>
+                </settings>
+                <formElements>
+                    <select>
+                        <settings>
+                            <options/>
+                        </settings>
+                    </select>
+                </formElements>
+            </field>
+            <!-- A sender typed in for the shipment, kept for later if asked -->
+            <container name="new_sender" component="Polkurier_Shipping/js/shipment/workspace/new-entry" sortOrder="20">
+                <argument name="data" xsi:type="array">
+                    <item name="config" xsi:type="array">
+                        <item name="choiceField" xsi:type="string">sender_address_id</item>
+                        <item name="intro" xsi:type="string" translate="true">The shipment is sent from this address. Polkurier needs all but the company and the flat number.</item>
+                        <item name="fields" xsi:type="array">
+                        <item name="0" xsi:type="array">
+                            <item name="name" xsi:type="string">new_sender_person</item>
+                            <item name="label" xsi:type="string" translate="true">Name</item>
+                            <item name="required" xsi:type="boolean">true</item>
+                        </item>
+                        <item name="1" xsi:type="array">
+                            <item name="name" xsi:type="string">new_sender_company</item>
+                            <item name="label" xsi:type="string" translate="true">Company</item>
+                        </item>
+                        <item name="2" xsi:type="array">
+                            <item name="name" xsi:type="string">new_sender_street</item>
+                            <item name="label" xsi:type="string" translate="true">Street</item>
+                            <item name="required" xsi:type="boolean">true</item>
+                        </item>
+                        <item name="3" xsi:type="array">
+                            <item name="name" xsi:type="string">new_sender_house_number</item>
+                            <item name="label" xsi:type="string" translate="true">House number</item>
+                            <item name="required" xsi:type="boolean">true</item>
+                        </item>
+                        <item name="4" xsi:type="array">
+                            <item name="name" xsi:type="string">new_sender_flat_number</item>
+                            <item name="label" xsi:type="string" translate="true">Flat number</item>
+                        </item>
+                        <item name="5" xsi:type="array">
+                            <item name="name" xsi:type="string">new_sender_postcode</item>
+                            <item name="label" xsi:type="string" translate="true">Postcode</item>
+                            <item name="required" xsi:type="boolean">true</item>
+                        </item>
+                        <item name="6" xsi:type="array">
+                            <item name="name" xsi:type="string">new_sender_city</item>
+                            <item name="label" xsi:type="string" translate="true">City</item>
+                            <item name="required" xsi:type="boolean">true</item>
+                        </item>
+                        <item name="7" xsi:type="array">
+                            <item name="name" xsi:type="string">new_sender_country</item>
+                            <item name="label" xsi:type="string" translate="true">Country</item>
+                            <item name="notice" xsi:type="string" translate="true">Its two-letter code; PL if left empty.</item>
+                        </item>
+                        <item name="8" xsi:type="array">
+                            <item name="name" xsi:type="string">new_sender_phone</item>
+                            <item name="label" xsi:type="string" translate="true">Phone</item>
+                            <item name="required" xsi:type="boolean">true</item>
+                            <item name="type" xsi:type="string">tel</item>
+                        </item>
+                        <item name="9" xsi:type="array">
+                            <item name="name" xsi:type="string">new_sender_email</item>
+                            <item name="label" xsi:type="string" translate="true">E-mail</item>
+                            <item name="required" xsi:type="boolean">true</item>
+                            <item name="type" xsi:type="string">email</item>
+                        </item>
+                        </item>
+                        <item name="keepField" xsi:type="string">keep_new_sender</item>
+                        <item name="nameField" xsi:type="string">new_sender_name</item>
+                        <item name="keepLabel" xsi:type="string" translate="true">Save to your addresses for later shipments</item>
+                        <item name="nameLabel" xsi:type="string" translate="true">Saved as</item>
+                        <item name="nameNotice" xsi:type="string" translate="true">If left empty: the company or the name, and the city. Saved once the shipment is placed.</item>
+                    </item>
+                </argument>
+            </container>
+        </fieldset>
+    </modal>
+    <modal name="recipient_modal">
+        <settings>
+            <options>
+                <option name="title" xsi:type="string" translate="true">Recipient</option>
+                <option name="type" xsi:type="string">popup</option>
+                <option name="modalClass" xsi:type="string">polkurier-workspace-modal</option>
+                <option name="buttons" xsi:type="array">
+                    <item name="0" xsi:type="array">
+                        <item name="text" xsi:type="string" translate="true">Cancel</item>
+                        <item name="class" xsi:type="string">action-secondary</item>
+                        <item name="actions" xsi:type="array">
+                            <item name="0" xsi:type="string">actionCancel</item>
+                        </item>
+                    </item>
+                    <item name="1" xsi:type="array">
+                        <item name="text" xsi:type="string" translate="true">Done</item>
+                        <item name="class" xsi:type="string">action-primary</item>
+                        <item name="actions" xsi:type="array">
+                            <item name="0" xsi:type="string">actionDone</item>
+                        </item>
+                    </item>
+                </option>
+            </options>
+        </settings>
+        <fieldset name="recipient" sortOrder="20">
+            <settings>
+                <label translate="true">Recipient</label>
+            </settings>
+            <field name="recipient_person" formElement="input" sortOrder="10">
+                <settings>
+                    <label translate="true">Name</label>
+                    <dataType>text</dataType>
+                    <dataScope>recipient_person</dataScope>
+                    <validation><rule name="required-entry" xsi:type="boolean">true</rule></validation>
+                </settings>
+            </field>
+            <field name="recipient_company" formElement="input" sortOrder="20">
+                <settings>
+                    <label translate="true">Company</label>
+                    <dataType>text</dataType>
+                    <dataScope>recipient_company</dataScope>
+                </settings>
+            </field>
+            <field name="recipient_street" formElement="input" sortOrder="30">
+                <settings>
+                    <label translate="true">Street</label>
+                    <dataType>text</dataType>
+                    <dataScope>recipient_street</dataScope>
+                </settings>
+            </field>
+            <field name="recipient_house_number" formElement="input" sortOrder="40">
+                <settings>
+                    <label translate="true">House number</label>
+                    <dataType>text</dataType>
+                    <dataScope>recipient_house_number</dataScope>
+                </settings>
+            </field>
+            <field name="recipient_flat_number" formElement="input" sortOrder="50">
+                <settings>
+                    <label translate="true">Flat number</label>
+                    <dataType>text</dataType>
+                    <dataScope>recipient_flat_number</dataScope>
+                </settings>
+            </field>
+            <field name="recipient_postcode" formElement="input" sortOrder="60">
+                <settings>
+                    <label translate="true">Postcode</label>
+                    <dataType>text</dataType>
+                    <dataScope>recipient_postcode</dataScope>
+                    <validation><rule name="required-entry" xsi:type="boolean">true</rule></validation>
+                </settings>
+            </field>
+            <field name="recipient_city" formElement="input" sortOrder="70">
+                <settings>
+                    <label translate="true">City</label>
+                    <dataType>text</dataType>
+                    <dataScope>recipient_city</dataScope>
+                    <validation><rule name="required-entry" xsi:type="boolean">true</rule></validation>
+                </settings>
+            </field>
+            <field name="recipient_country" formElement="select" sortOrder="80">
+                <settings>
+                    <label translate="true">Country</label>
+                    <dataType>text</dataType>
+                    <dataScope>recipient_country</dataScope>
+                    <validation><rule name="required-entry" xsi:type="boolean">true</rule></validation>
+                </settings>
+                <formElements>
+                    <select>
+                        <settings>
+                            <options class="Magento\Directory\Model\Config\Source\Country"/>
+                        </settings>
+                    </select>
+                </formElements>
+            </field>
+            <field name="recipient_phone" formElement="input" sortOrder="90">
+                <settings>
+                    <label translate="true">Phone</label>
+                    <dataType>text</dataType>
+                    <dataScope>recipient_phone</dataScope>
+                    <validation><rule name="required-entry" xsi:type="boolean">true</rule></validation>
+                </settings>
+            </field>
+            <field name="recipient_email" formElement="input" sortOrder="100">
+                <settings>
+                    <label translate="true">E-mail</label>
+                    <dataType>text</dataType>
+                    <dataScope>recipient_email</dataScope>
+                    <validation>
+                        <rule name="validate-email" xsi:type="boolean">true</rule>
+                        <rule name="required-entry" xsi:type="boolean">true</rule>
+                    </validation>
+                </settings>
+            </field>
+            <field name="recipient_point_id" formElement="input" component="Polkurier_Shipping/js/shipment/point"
+                   sortOrder="110">
+                <settings>
+                    <label translate="true">Pickup point</label>
+                    <dataType>text</dataType>
+                    <dataScope>recipient_point_id</dataScope>
+                    <notice translate="true">The point the customer chose in checkout, if any.</notice>
+                    <imports><link name="visible">${ $.provider }:data.features.point_allowed</link></imports>
+                </settings>
+            </field>
+        </fieldset>
+    </modal>
+    <modal name="cod_modal">
+        <settings>
+            <options>
+                <option name="title" xsi:type="string" translate="true">Cash on delivery</option>
+                <option name="type" xsi:type="string">popup</option>
+                <option name="modalClass" xsi:type="string">polkurier-workspace-modal</option>
+                <option name="buttons" xsi:type="array">
+                    <item name="0" xsi:type="array">
+                        <item name="text" xsi:type="string" translate="true">Cancel</item>
+                        <item name="class" xsi:type="string">action-secondary</item>
+                        <item name="actions" xsi:type="array">
+                            <item name="0" xsi:type="string">actionCancel</item>
+                        </item>
+                    </item>
+                    <item name="1" xsi:type="array">
+                        <item name="text" xsi:type="string" translate="true">Done</item>
+                        <item name="class" xsi:type="string">action-primary</item>
+                        <item name="actions" xsi:type="array">
+                            <item name="0" xsi:type="string">actionDone</item>
+                        </item>
+                    </item>
+                </option>
+            </options>
+        </settings>
+        <fieldset name="cod" sortOrder="40">
+            <settings>
+                <label translate="true">Cash on delivery</label>
+                <imports><link name="visible">${ $.provider }:data.features.cod</link></imports>
+            </settings>
+            <field name="cod_amount" formElement="input" sortOrder="10">
+                <settings>
+                    <label translate="true">Amount to collect</label>
+                    <dataType>number</dataType>
+                    <dataScope>cod_amount</dataScope>
+                    <validation>
+                        <rule name="validate-number" xsi:type="boolean">true</rule>
+                        <rule name="validate-zero-or-greater" xsi:type="boolean">true</rule>
+                    </validation>
+                    <notice translate="true">0 or empty: no cash on delivery.</notice>
+                </settings>
+            </field>
+            <field name="cod_type" formElement="select" sortOrder="20">
+                <settings>
+                    <label translate="true">Payout time</label>
+                    <dataType>text</dataType>
+                    <dataScope>cod_type</dataScope>
+                </settings>
+                <formElements>
+                    <select>
+                        <settings>
+                            <options class="Polkurier\Shipping\Model\Config\Source\CodType"/>
+                        </settings>
+                    </select>
+                </formElements>
+            </field>
+            <field name="cod_return_type" formElement="select" sortOrder="30">
+                <settings>
+                    <label translate="true">Paid out to</label>
+                    <dataType>text</dataType>
+                    <dataScope>cod_return_type</dataScope>
+                    <!-- The bank account, only for cash on delivery paid out to a bank account. -->
+                    <switcherConfig>
+                        <enabled>true</enabled>
+                        <rules>
+                            <rule name="0">
+                                <value>BA</value>
+                                <actions>
+                                    <action name="0">
+                                        <target>${ $.parentName }.cod_bank_account_id</target>
+                                        <callback>show</callback>
+                                    </action>
+                                </actions>
+                            </rule>
+                            <rule name="1">
+                                <value>MB</value>
+                                <actions>
+                                    <action name="0">
+                                        <target>${ $.parentName }.cod_bank_account_id</target>
+                                        <callback>hide</callback>
+                                    </action>
+                                </actions>
+                            </rule>
+                            <rule name="2">
+                                <value>PO</value>
+                                <actions>
+                                    <action name="0">
+                                        <target>${ $.parentName }.cod_bank_account_id</target>
+                                        <callback>hide</callback>
+                                    </action>
+                                </actions>
+                            </rule>
+                        </rules>
+                    </switcherConfig>
+                </settings>
+                <formElements>
+                    <select>
+                        <settings>
+                            <options class="Polkurier\Shipping\Model\Config\Source\CodReturnType"/>
+                        </settings>
+                    </select>
+                </formElements>
+            </field>
+            <field name="cod_bank_account_id" formElement="select" sortOrder="40">
+                <settings>
+                    <label translate="true">Bank account</label>
+                    <dataType>text</dataType>
+                    <dataScope>cod_bank_account_id</dataScope>
+                </settings>
+                <formElements>
+                    <select>
+                        <settings>
+                            <options/>
+                        </settings>
+                    </select>
+                </formElements>
+            </field>
+            <!-- An account typed in for the shipment, kept for later if asked -->
+            <container name="new_bank_account" component="Polkurier_Shipping/js/shipment/workspace/new-entry"
+                       sortOrder="50">
+                <argument name="data" xsi:type="array">
+                    <item name="config" xsi:type="array">
+                        <item name="choiceField" xsi:type="string">cod_bank_account_id</item>
+                        <item name="alsoWhen" xsi:type="array">
+                            <item name="cod_return_type" xsi:type="string">BA</item>
+                        </item>
+                        <item name="fields" xsi:type="array">
+                            <item name="0" xsi:type="array">
+                                <item name="name" xsi:type="string">new_bank_account_number</item>
+                                <item name="label" xsi:type="string" translate="true">Account number</item>
+                                <item name="required" xsi:type="boolean">true</item>
+                            </item>
+                        </item>
+                        <item name="keepField" xsi:type="string">keep_new_bank_account</item>
+                        <item name="nameField" xsi:type="string">new_bank_account_name</item>
+                        <item name="keepLabel" xsi:type="string" translate="true">Save to your bank accounts for later shipments</item>
+                        <item name="nameLabel" xsi:type="string" translate="true">Saved as</item>
+                        <item name="nameNotice" xsi:type="string" translate="true">If left empty: "Account ending" and its last four digits. Saved once the shipment is placed; Polkurier takes it once you confirm it with the code or your security PIN.</item>
+                    </item>
+                </argument>
+            </container>
+        </fieldset>
+    </modal>
+    <modal name="insurance_modal">
+        <settings>
+            <options>
+                <option name="title" xsi:type="string" translate="true">Insurance</option>
+                <option name="type" xsi:type="string">popup</option>
+                <option name="modalClass" xsi:type="string">polkurier-workspace-modal</option>
+                <option name="buttons" xsi:type="array">
+                    <item name="0" xsi:type="array">
+                        <item name="text" xsi:type="string" translate="true">Cancel</item>
+                        <item name="class" xsi:type="string">action-secondary</item>
+                        <item name="actions" xsi:type="array">
+                            <item name="0" xsi:type="string">actionCancel</item>
+                        </item>
+                    </item>
+                    <item name="1" xsi:type="array">
+                        <item name="text" xsi:type="string" translate="true">Done</item>
+                        <item name="class" xsi:type="string">action-primary</item>
+                        <item name="actions" xsi:type="array">
+                            <item name="0" xsi:type="string">actionDone</item>
+                        </item>
+                    </item>
+                </option>
+            </options>
+        </settings>
+        <fieldset name="insurance" sortOrder="10">
+            <settings>
+                <label translate="true">Insurance</label>
+            </settings>
+            <field name="insurance_amount" formElement="input" sortOrder="10">
+                <settings>
+                    <label translate="true">Declared value</label>
+                    <dataType>number</dataType>
+                    <dataScope>insurance_amount</dataScope>
+                    <validation>
+                        <rule name="validate-number" xsi:type="boolean">true</rule>
+                        <rule name="validate-zero-or-greater" xsi:type="boolean">true</rule>
+                    </validation>
+                    <notice translate="true">0 or empty: no insurance.</notice>
+                </settings>
+            </field>
+        </fieldset>
+    </modal>
+</form>

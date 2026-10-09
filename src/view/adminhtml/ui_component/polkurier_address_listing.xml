@@ -1,0 +1,269 @@
+<?xml version="1.0"?>
+<!--
+ ~ Copyright (c) 2026 Polkurier.pl
+ ~ Licensed under the MIT License, see LICENSE.md
+-->
+<listing xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Ui:etc/ui_configuration.xsd">
+    <argument name="data" xsi:type="array">
+        <item name="js_config" xsi:type="array">
+            <item name="provider" xsi:type="string">polkurier_address_listing.polkurier_address_listing_data_source</item>
+        </item>
+    </argument>
+    <settings>
+        <buttons>
+            <button name="add">
+                <url path="polkurier/address/edit"/>
+                <class>primary</class>
+                <label translate="true">Add address</label>
+            </button>
+            <button name="sync" class="Polkurier\Shipping\Ui\Component\Listing\Address\SyncButtonVirtual"/>
+        </buttons>
+        <spinner>polkurier_address_listing_columns</spinner>
+        <deps>
+            <dep>polkurier_address_listing.polkurier_address_listing_data_source</dep>
+        </deps>
+    </settings>
+    <dataSource name="polkurier_address_listing_data_source" component="Magento_Ui/js/grid/provider">
+        <settings>
+            <storageConfig>
+                <param name="indexField" xsi:type="string">address_id</param>
+            </storageConfig>
+            <updateUrl path="mui/index/render"/>
+        </settings>
+        <aclResource>Polkurier_Shipping::addresses</aclResource>
+        <dataProvider class="Polkurier\Shipping\Ui\Component\DataProvider\GridDataProviderVirtual"
+                      name="polkurier_address_listing_data_source">
+            <settings>
+                <requestFieldName>id</requestFieldName>
+                <primaryFieldName>address_id</primaryFieldName>
+            </settings>
+        </dataProvider>
+    </dataSource>
+    <listingToolbar name="listing_top">
+        <bookmark name="bookmarks"/>
+        <columnsControls name="columns_controls"/>
+        <filterSearch name="fulltext"/>
+        <filters name="listing_filters"/>
+        <massaction name="listing_massaction">
+            <action name="delete">
+                <settings>
+                    <url path="polkurier/address/massDelete"/>
+                    <type>delete</type>
+                    <label translate="true">Delete</label>
+                    <confirm>
+                        <title translate="true">Delete addresses</title>
+                        <message translate="true">The addresses are deleted here and in Polkurier.</message>
+                    </confirm>
+                </settings>
+            </action>
+        </massaction>
+        <paging name="listing_paging"/>
+    </listingToolbar>
+    <columns name="polkurier_address_listing_columns">
+        <settings>
+            <editorConfig>
+                <param name="clientConfig" xsi:type="array">
+                    <item name="saveUrl" xsi:type="url" path="polkurier/address/inlineEdit"/>
+                    <item name="validateBeforeSave" xsi:type="boolean">false</item>
+                </param>
+                <param name="indexField" xsi:type="string">address_id</param>
+                <param name="enabled" xsi:type="boolean">true</param>
+                <param name="selectProvider" xsi:type="string">polkurier_address_listing.polkurier_address_listing.polkurier_address_listing_columns.ids</param>
+            </editorConfig>
+            <childDefaults>
+                <param name="fieldAction" xsi:type="array">
+                    <item name="provider" xsi:type="string">polkurier_address_listing.polkurier_address_listing.polkurier_address_listing_columns_editor</item>
+                    <item name="target" xsi:type="string">startEdit</item>
+                    <item name="params" xsi:type="array">
+                        <item name="0" xsi:type="string">${ $.$data.rowIndex }</item>
+                        <item name="1" xsi:type="boolean">true</item>
+                    </item>
+                </param>
+            </childDefaults>
+        </settings>
+        <selectionsColumn name="ids">
+            <settings>
+                <indexField>address_id</indexField>
+            </settings>
+        </selectionsColumn>
+        <column name="address_id">
+            <settings>
+                <label translate="true">ID</label>
+                <filter>textRange</filter>
+                <visible>false</visible>
+            </settings>
+        </column>
+        <column name="name">
+            <settings>
+                <label translate="true">Label</label>
+                <filter>text</filter>
+                <editor>
+                    <validation>
+                        <rule name="required-entry" xsi:type="boolean">true</rule>
+                    </validation>
+                    <editorType>text</editorType>
+                </editor>
+            </settings>
+        </column>
+        <column name="person">
+            <settings>
+                <label translate="true">Name</label>
+                <filter>text</filter>
+                <editor>
+                    <validation>
+                        <rule name="required-entry" xsi:type="boolean">true</rule>
+                    </validation>
+                    <editorType>text</editorType>
+                </editor>
+            </settings>
+        </column>
+        <column name="company">
+            <settings>
+                <label translate="true">Company</label>
+                <filter>text</filter>
+                <editor>
+                    <editorType>text</editorType>
+                </editor>
+            </settings>
+        </column>
+        <column name="street">
+            <settings>
+                <label translate="true">Street</label>
+                <filter>text</filter>
+                <editor>
+                    <validation>
+                        <rule name="required-entry" xsi:type="boolean">true</rule>
+                    </validation>
+                    <editorType>text</editorType>
+                </editor>
+            </settings>
+        </column>
+        <column name="house_number">
+            <settings>
+                <label translate="true">House number</label>
+                <filter>text</filter>
+                <editor>
+                    <validation>
+                        <rule name="required-entry" xsi:type="boolean">true</rule>
+                    </validation>
+                    <editorType>text</editorType>
+                </editor>
+            </settings>
+        </column>
+        <column name="postcode">
+            <settings>
+                <label translate="true">Postcode</label>
+                <filter>text</filter>
+                <editor>
+                    <validation>
+                        <rule name="required-entry" xsi:type="boolean">true</rule>
+                    </validation>
+                    <editorType>text</editorType>
+                </editor>
+            </settings>
+        </column>
+        <column name="city">
+            <settings>
+                <label translate="true">City</label>
+                <filter>text</filter>
+                <editor>
+                    <validation>
+                        <rule name="required-entry" xsi:type="boolean">true</rule>
+                    </validation>
+                    <editorType>text</editorType>
+                </editor>
+            </settings>
+        </column>
+        <column name="phone">
+            <settings>
+                <label translate="true">Phone</label>
+                <filter>text</filter>
+                <editor>
+                    <validation>
+                        <rule name="required-entry" xsi:type="boolean">true</rule>
+                    </validation>
+                    <editorType>text</editorType>
+                </editor>
+            </settings>
+        </column>
+        <column name="email">
+            <settings>
+                <label translate="true">E-mail</label>
+                <filter>text</filter>
+                <editor>
+                    <validation>
+                        <rule name="required-entry" xsi:type="boolean">true</rule>
+                        <rule name="validate-email" xsi:type="boolean">true</rule>
+                    </validation>
+                    <editorType>text</editorType>
+                </editor>
+            </settings>
+        </column>
+        <column name="is_default" component="Magento_Ui/js/grid/columns/select">
+            <settings>
+                <label translate="true">Default sender</label>
+                <options class="Magento\Config\Model\Config\Source\Yesno"/>
+                <filter>select</filter>
+                <dataType>select</dataType>
+                <editor>
+                    <editorType>select</editorType>
+                </editor>
+            </settings>
+        </column>
+        <column name="is_cover" component="Magento_Ui/js/grid/columns/select">
+            <settings>
+                <label translate="true">Can be a cover address</label>
+                <options class="Magento\Config\Model\Config\Source\Yesno"/>
+                <filter>select</filter>
+                <dataType>select</dataType>
+                <editor>
+                    <editorType>select</editorType>
+                </editor>
+            </settings>
+        </column>
+        <column name="sync_state" component="Magento_Ui/js/grid/columns/select">
+            <settings>
+                <label translate="true">Synchronization</label>
+                <options class="Polkurier\Shipping\Model\Config\Source\SyncState"/>
+                <filter>select</filter>
+                <dataType>select</dataType>
+            </settings>
+        </column>
+        <column name="sync_error">
+            <settings>
+                <label translate="true">Sync error</label>
+                <filter>text</filter>
+                <visible>false</visible>
+            </settings>
+        </column>
+        <column name="synced_at" class="Magento\Ui\Component\Listing\Columns\Date"
+                component="Magento_Ui/js/grid/columns/date">
+            <settings>
+                <label translate="true">Last synchronized</label>
+                <filter>dateRange</filter>
+                <dataType>date</dataType>
+            </settings>
+        </column>
+        <column name="ext_id">
+            <settings>
+                <label translate="true">Polkurier ID</label>
+                <filter>text</filter>
+                <visible>false</visible>
+            </settings>
+        </column>
+        <actionsColumn name="actions" class="Polkurier\Shipping\Ui\Component\Listing\Column\EditActionsColumn">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="editUrlPath" xsi:type="string">polkurier/address/edit</item>
+                    <item name="deleteUrlPath" xsi:type="string">polkurier/address/delete</item>
+                    <item name="deleteMessage" xsi:type="string" translate="true">Delete this address here and in Polkurier?</item>
+                </item>
+            </argument>
+            <settings>
+                <indexField>address_id</indexField>
+                <label translate="true">Actions</label>
+            </settings>
+        </actionsColumn>
+    </columns>
+</listing>

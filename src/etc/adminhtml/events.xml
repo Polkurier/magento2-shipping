@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<!--
+ ~ Copyright (c) 2026 Polkurier.pl
+ ~ Licensed under the MIT License, see LICENSE.md
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:Event/etc/events.xsd">
+    <!-- New credentials may mean another account: forget what was cached for the old one -->
+    <event name="admin_system_config_changed_section_carriers">
+        <observer name="polkurier_credentials_changed"
+                  instance="Polkurier\Shipping\Observer\Adminhtml\CredentialsChangedObserver" />
+    </event>
+    <!-- An order created in the admin has no way to pick a point: the merchant sets it in the
+         Polkurier shipment form instead. -->
+    <event name="sales_model_service_quote_submit_before">
+        <observer name="polkurier_validate_pickup_point" disabled="true" />
+    </event>
+    <!-- Shipping labels from Magento's packaging popup -->
+    <event name="sales_order_shipment_save_before">
+        <observer name="polkurier_prepare_labelled_shipment"
+                  instance="Polkurier\Shipping\Observer\Adminhtml\PrepareLabelledShipmentObserver" />
+    </event>
+    <event name="sales_order_shipment_save_after">
+        <observer name="polkurier_link_labelled_shipment"
+                  instance="Polkurier\Shipping\Observer\Adminhtml\LinkLabelledShipmentObserver" />
+    </event>
+</config>

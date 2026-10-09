@@ -1,0 +1,81 @@
+<?xml version="1.0"?>
+<!--
+ ~ Copyright (c) 2026 Polkurier.pl
+ ~ Licensed under the MIT License, see LICENSE.md
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Store:etc/config.xsd">
+    <default>
+        <carriers>
+            <polkurier>
+                <model>Polkurier\Shipping\Model\Carrier\Polkurier</model>
+                <active>0</active>
+                <title>Polkurier</title>
+                <sallowspecific>0</sallowspecific>
+                <showmethod>0</showmethod>
+                <specificerrmsg>This shipping method is not available.</specificerrmsg>
+                <sort_order>10</sort_order>
+                <checkout>
+                    <tier_cart_value>gross</tier_cart_value>
+                </checkout>
+                <general>
+                    <sandbox_mode>1</sandbox_mode>
+                    <timeout>30</timeout>
+                    <external_order_id>order</external_order_id>
+                    <!-- Empty: made from the encryption key, see
+                         Polkurier\Shipping\Model\Sdk\ApplicationIdProvider. -->
+                    <application_id />
+                    <!-- Empty: the SDK chooses between production and sandbox. -->
+                    <api_url />
+                </general>
+                <logging>
+                    <failed_requests>1</failed_requests>
+                    <!-- Every method that changes something on the Polkurier account. -->
+                    <methods>create_order,cancel_order,accept_order_individual_pricing,pickup_courier,create_multi_order_pickup,create_money_box_payout,cancel_money_box_payout,save_address,delete_address,save_bank_account,delete_bank_account,save_pack_template,delete_pack_template,save_account_settings,save_payer_address,change_password,change_phone_pin,change_default_courier,change_default_sender_point,accept_regulations,save_phone_number,delete_phone_number,register_account_verification,register_payment,two_factor_token_register,two_factor_token_resend,two_factor_token_verify,two_factor_token_change_transport_method,create_ticket,create_ticket_message,set_ticket_status,set_ticket_read_state,save_contact_form,register_fcm_token,unregister_fcm_token</methods>
+                    <personal_data>0</personal_data>
+                    <files>0</files>
+                    <!-- Empty: var/log/polkurier/files. -->
+                    <files_directory />
+                </logging>
+                <shipment_defaults>
+                    <default_shipment_type>box</default_shipment_type>
+                    <default_additional_services />
+                    <default_cover_address />
+                    <insure_by_default>0</insure_by_default>
+                    <description_format>#%s</description_format>
+                </shipment_defaults>
+                <sender>
+                    <use_store_information_address>0</use_store_information_address>
+                    <use_store_origin_address>1</use_store_origin_address>
+                    <default_sender_email>general</default_sender_email>
+                </sender>
+                <packing>
+                    <pack_new_shipments>1</pack_new_shipments>
+                    <packing_margin>0</packing_margin>
+                    <weight_limit>warn</weight_limit>
+                    <parcel_weight>products</parcel_weight>
+                </packing>
+                <cod>
+                    <cod_payment_methods>cashondelivery</cod_payment_methods>
+                    <default_cod_type>S</default_cod_type>
+                    <default_cod_refund_type>BA</default_cod_refund_type>
+                </cod>
+                <map>
+                    <default_latitude>52.2297</default_latitude>
+                    <default_longitude>21.0122</default_longitude>
+                    <default_zoom>13</default_zoom>
+                    <show_list>1</show_list>
+                    <show_search_input>1</show_search_input>
+                    <required_point_functions>collect</required_point_functions>
+                    <!-- Empty: production or sandbox, following the API's mode. -->
+                    <url />
+                </map>
+                <sync>
+                    <enabled>1</enabled>
+                    <status_enabled>1</status_enabled>
+                    <status_schedule>*/30 * * * *</status_schedule>
+                </sync>
+            </polkurier>
+        </carriers>
+    </default>
+</config>

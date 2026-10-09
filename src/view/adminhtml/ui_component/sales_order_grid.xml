@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<!--
+ ~ Copyright (c) 2026 Polkurier.pl
+ ~ Licensed under the MIT License, see LICENSE.md
+-->
+<listing xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Ui:etc/ui_configuration.xsd">
+    <!-- Magento's orders list: a filter by shipping carrier. The Polkurier menu opens the list with
+         it set to Polkurier (Polkurier\Shipping\Plugin\Adminhtml\OrderGridFilterPlugin,
+         js/grid/carrier-filter.js). -->
+    <container name="carrier_filter_from_url">
+        <argument name="data" xsi:type="array">
+            <item name="config" xsi:type="array">
+                <item name="component" xsi:type="string">Polkurier_Shipping/js/grid/carrier-filter</item>
+            </item>
+        </argument>
+    </container>
+    <listingToolbar name="listing_top">
+        <filters name="listing_filters">
+            <filterSelect name="shipping_carrier" provider="${ $.parentName }">
+                <settings>
+                    <options class="Polkurier\Shipping\Model\Config\Source\ShippingCarrier"/>
+                    <caption translate="true">All</caption>
+                    <label translate="true">Shipping carrier</label>
+                    <dataScope>shipping_carrier</dataScope>
+                </settings>
+            </filterSelect>
+        </filters>
+    </listingToolbar>
+</listing>

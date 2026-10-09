@@ -1,0 +1,114 @@
+<?xml version="1.0"?>
+<!--
+ ~ Copyright (c) 2026 Polkurier.pl
+ ~ Licensed under the MIT License, see LICENSE.md
+-->
+<form xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Ui:etc/ui_configuration.xsd">
+    <argument name="data" xsi:type="array">
+        <item name="js_config" xsi:type="array">
+            <item name="provider" xsi:type="string">polkurier_bank_account_form.polkurier_bank_account_form_data_source</item>
+        </item>
+        <item name="label" xsi:type="string" translate="true">Bank account</item>
+        <item name="template" xsi:type="string">templates/form/collapsible</item>
+    </argument>
+    <settings>
+        <namespace>polkurier_bank_account_form</namespace>
+        <dataScope>data</dataScope>
+        <deps>
+            <dep>polkurier_bank_account_form.polkurier_bank_account_form_data_source</dep>
+        </deps>
+        <buttons>
+            <button name="back">
+                <url path="*/*/index"/>
+                <class>back</class>
+                <label translate="true">Back</label>
+            </button>
+            <button name="delete" class="Polkurier\Shipping\Ui\Component\Form\BankAccount\DeleteButton"/>
+            <button name="save_and_continue"
+                    class="Polkurier\Shipping\Ui\Component\Form\BankAccount\SaveAndContinueButtonVirtual"/>
+            <button name="save" class="Polkurier\Shipping\Ui\Component\Control\SaveButton"/>
+        </buttons>
+    </settings>
+    <dataSource name="polkurier_bank_account_form_data_source">
+        <argument name="data" xsi:type="array">
+            <item name="js_config" xsi:type="array">
+                <item name="component" xsi:type="string">Polkurier_Shipping/js/form/confirmed-provider</item>
+                <!-- Saved once confirmed with the code Polkurier sends then, or with the security PIN
+                     where the account locks bank accounts with one -->
+                <item name="confirmation" xsi:type="array">
+                    <item name="pinLocked" xsi:type="string">pin_locked</item>
+                    <item name="pinField" xsi:type="string">confirmation_pin</item>
+                    <item name="title" xsi:type="string" translate="true">Confirm the bank account</item>
+                </item>
+            </item>
+        </argument>
+        <settings>
+            <submitUrl path="*/*/save"/>
+        </settings>
+        <dataProvider class="Polkurier\Shipping\Ui\Component\Form\BankAccount\DataProvider"
+                      name="polkurier_bank_account_form_data_source">
+            <settings>
+                <requestFieldName>id</requestFieldName>
+                <primaryFieldName>id</primaryFieldName>
+            </settings>
+        </dataProvider>
+    </dataSource>
+    <!-- Above the fields: saving asks for the confirmation (js/form/confirmed-provider) -->
+    <container name="confirmation_note" sortOrder="5">
+        <argument name="data" xsi:type="array">
+            <item name="config" xsi:type="array">
+                <item name="component" xsi:type="string">Magento_Ui/js/form/components/html</item>
+                <item name="additionalClasses" xsi:type="string">polkurier-form-note</item>
+                <item name="content" xsi:type="string" translate="true">Polkurier takes a new or changed bank account only once you confirm it: saving sends you a code to enter, or asks for your security PIN.</item>
+            </item>
+        </argument>
+    </container>
+    <fieldset name="general" sortOrder="10">
+        <settings>
+            <label/>
+        </settings>
+        <field name="id" formElement="input">
+            <settings>
+                <dataType>text</dataType>
+                <visible>false</visible>
+                <dataScope>id</dataScope>
+            </settings>
+        </field>
+        <field name="name" formElement="input">
+            <settings>
+                <label translate="true">Account name</label>
+                <dataType>text</dataType>
+                <dataScope>name</dataScope>
+                <validation><rule name="required-entry" xsi:type="boolean">true</rule></validation>
+            </settings>
+        </field>
+        <field name="number" formElement="input">
+            <settings>
+                <label translate="true">Account number</label>
+                <dataType>text</dataType>
+                <dataScope>number</dataScope>
+                <validation><rule name="required-entry" xsi:type="boolean">true</rule></validation>
+                <notice translate="true">IBAN or Polish account number (26 digits).</notice>
+            </settings>
+        </field>
+        <field name="is_default" formElement="checkbox">
+            <settings>
+                <label translate="true">Default</label>
+                <dataType>boolean</dataType>
+                <dataScope>is_default</dataScope>
+            </settings>
+            <formElements>
+                <checkbox>
+                    <settings>
+                        <valueMap>
+                            <map name="false" xsi:type="string">0</map>
+                            <map name="true" xsi:type="string">1</map>
+                        </valueMap>
+                        <prefer>toggle</prefer>
+                    </settings>
+                </checkbox>
+            </formElements>
+        </field>
+    </fieldset>
+</form>

@@ -1,0 +1,171 @@
+<?xml version="1.0"?>
+<!--
+ ~ Copyright (c) 2026 Polkurier.pl
+ ~ Licensed under the MIT License, see LICENSE.md
+-->
+<listing xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Ui:etc/ui_configuration.xsd">
+    <argument name="data" xsi:type="array">
+        <item name="js_config" xsi:type="array">
+            <item name="provider" xsi:type="string">polkurier_carrier_listing.polkurier_carrier_listing_data_source</item>
+        </item>
+    </argument>
+    <settings>
+        <buttons>
+            <button name="refresh" class="Polkurier\Shipping\Ui\Component\Listing\Carrier\RefreshButtonVirtual"/>
+        </buttons>
+        <spinner>polkurier_carrier_listing_columns</spinner>
+        <deps>
+            <dep>polkurier_carrier_listing.polkurier_carrier_listing_data_source</dep>
+        </deps>
+    </settings>
+    <dataSource name="polkurier_carrier_listing_data_source" component="Magento_Ui/js/grid/provider">
+        <settings>
+            <storageConfig>
+                <param name="indexField" xsi:type="string">config_id</param>
+            </storageConfig>
+            <updateUrl path="mui/index/render"/>
+        </settings>
+        <aclResource>Polkurier_Shipping::carriers</aclResource>
+        <dataProvider class="Magento\Framework\View\Element\UiComponent\DataProvider\DataProvider"
+                      name="polkurier_carrier_listing_data_source">
+            <settings>
+                <requestFieldName>id</requestFieldName>
+                <primaryFieldName>config_id</primaryFieldName>
+            </settings>
+        </dataProvider>
+    </dataSource>
+    <listingToolbar name="listing_top">
+        <bookmark name="bookmarks"/>
+        <columnsControls name="columns_controls"/>
+        <filters name="listing_filters"/>
+        <massaction name="listing_massaction">
+            <action name="toggle">
+                <settings>
+                    <url path="polkurier/carrier/massToggle"/>
+                    <type>toggle</type>
+                    <label translate="true">Enable / disable</label>
+                </settings>
+            </action>
+        </massaction>
+        <!-- Every carrier on one page, so that any row can be dragged anywhere -->
+        <paging name="listing_paging">
+            <settings>
+                <pageSize>200</pageSize>
+            </settings>
+        </paging>
+    </listingToolbar>
+    <columns name="polkurier_carrier_listing_columns">
+        <settings>
+            <editorConfig>
+                <param name="clientConfig" xsi:type="array">
+                    <item name="saveUrl" xsi:type="url" path="polkurier/carrier/inlineEdit"/>
+                    <item name="validateBeforeSave" xsi:type="boolean">false</item>
+                </param>
+                <param name="indexField" xsi:type="string">config_id</param>
+                <param name="enabled" xsi:type="boolean">true</param>
+                <param name="selectProvider" xsi:type="string">polkurier_carrier_listing.polkurier_carrier_listing.polkurier_carrier_listing_columns.ids</param>
+            </editorConfig>
+            <childDefaults>
+                <!-- The list is always in checkout order, which dragging the rows sets -->
+                <param name="sortable" xsi:type="boolean">false</param>
+                <param name="fieldAction" xsi:type="array">
+                    <item name="provider" xsi:type="string">polkurier_carrier_listing.polkurier_carrier_listing.polkurier_carrier_listing_columns_editor</item>
+                    <item name="target" xsi:type="string">startEdit</item>
+                    <item name="params" xsi:type="array">
+                        <item name="0" xsi:type="string">${ $.$data.rowIndex }</item>
+                        <item name="1" xsi:type="boolean">true</item>
+                    </item>
+                </param>
+            </childDefaults>
+        </settings>
+        <selectionsColumn name="ids">
+            <settings>
+                <indexField>config_id</indexField>
+            </settings>
+        </selectionsColumn>
+        <!-- The handle carriers are dragged by, to put them in the order checkout offers them -->
+        <column name="position" component="Polkurier_Shipping/js/grid/columns/drag-handle" sortOrder="0">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="sortUrl" xsi:type="url" path="polkurier/carrier/arrange"/>
+                    <!-- Enabled carriers come first; a row stays in its group, enabled or disabled -->
+                    <item name="groupBy" xsi:type="string">active</item>
+                </item>
+            </argument>
+        </column>
+        <column name="config_id">
+            <settings>
+                <label translate="true">ID</label>
+                <filter>textRange</filter>
+                <visible>false</visible>
+            </settings>
+        </column>
+        <column name="carrier_name">
+            <settings>
+                <label translate="true">Carrier</label>
+                <filter>text</filter>
+            </settings>
+        </column>
+        <column name="custom_label">
+            <settings>
+                <label translate="true">Label in checkout</label>
+                <filter>text</filter>
+                <editor>
+                    <editorType>text</editorType>
+                </editor>
+            </settings>
+        </column>
+        <column name="logo" class="Polkurier\Shipping\Ui\Component\Listing\Carrier\LogoColumn"
+                component="Magento_Ui/js/grid/columns/thumbnail">
+            <settings>
+                <label translate="true">Logo</label>
+                <hasPreview>1</hasPreview>
+                <sortable>false</sortable>
+            </settings>
+        </column>
+        <column name="active" component="Magento_Ui/js/grid/columns/select">
+            <settings>
+                <label translate="true">Enabled</label>
+                <options class="Magento\Config\Model\Config\Source\Yesno"/>
+                <filter>select</filter>
+                <dataType>select</dataType>
+                <editor>
+                    <editorType>select</editorType>
+                </editor>
+            </settings>
+        </column>
+        <column name="pricing_model" component="Magento_Ui/js/grid/columns/select">
+            <settings>
+                <label translate="true">Pricing</label>
+                <options class="Polkurier\Shipping\Model\Config\Source\PricingModel"/>
+                <filter>select</filter>
+                <dataType>select</dataType>
+            </settings>
+        </column>
+        <column name="price">
+            <settings>
+                <label translate="true">Fixed price</label>
+                <sortable>false</sortable>
+                <editor>
+                    <validation>
+                        <rule name="validate-number" xsi:type="boolean">true</rule>
+                        <rule name="validate-zero-or-greater" xsi:type="boolean">true</rule>
+                    </validation>
+                    <editorType>text</editorType>
+                </editor>
+            </settings>
+        </column>
+        <actionsColumn name="actions" class="Polkurier\Shipping\Ui\Component\Listing\Column\EditActionsColumn">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <item name="editUrlPath" xsi:type="string">polkurier/carrier/edit</item>
+                </item>
+            </argument>
+            <settings>
+                <indexField>config_id</indexField>
+                <label translate="true">Actions</label>
+            </settings>
+        </actionsColumn>
+    </columns>
+</listing>

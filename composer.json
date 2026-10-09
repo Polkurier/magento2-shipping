@@ -1,0 +1,48 @@
+{
+    "name": "polkurier/magento2-shipping",
+    "description": "Module for integrating Polkurier service with Magento 2 platform",
+    "type": "magento2-module",
+    "license": "MIT",
+    "config": {
+        "sort-packages": true
+    },
+    "version": "1.0.0",
+    "require": {
+        "php": "~8.3.0||~8.4.0||~8.5.0",
+        "composer-runtime-api": "^2",
+        "magento/framework": "^103.0.7",
+        "magento/module-backend": "^102.0.7",
+        "magento/module-catalog": "^104.0.7",
+        "magento/module-checkout": "^100.4.7",
+        "magento/module-config": "^101.2.7",
+        "magento/module-directory": "^100.4.7",
+        "magento/module-eav": "^102.1.7",
+        "magento/module-media-storage": "^100.4.6",
+        "magento/module-payment": "^100.4.7",
+        "magento/module-quote": "^101.2.7",
+        "magento/module-sales": "^103.0.7",
+        "magento/module-sales-sequence": "^100.4",
+        "magento/module-shipping": "^100.4.7",
+        "magento/module-store": "^101.1.7",
+        "magento/module-ui": "^101.2.7",
+        "monolog/monolog": "^2.7||^3.6",
+        "polkurier/polkurier-sdk": "^2.0",
+        "psr/http-message": "^1.1||^2.0",
+        "psr/log": "^2||^3",
+        "symfony/cache": "^6.4||^7.0",
+        "symfony/serializer": "^7.2"
+    },
+    "suggest": {
+        "magento/module-cron": "Runs the synchronization and the shipment status updates on schedule",
+        "magento/module-csp": "Allows the pickup point map under a Content Security Policy",
+        "polkurier/magento2-multishipping": "Pickup points in Magento's multi-address checkout"
+    },
+    "autoload": {
+        "files": [
+            "src/registration.php"
+        ],
+        "psr-4": {
+            "Polkurier\\Shipping\\": "src/"
+        }
+    }
+}

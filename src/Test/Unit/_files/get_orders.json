@@ -1,0 +1,114 @@
+{
+    "status": "success",
+    "response": {
+        "totalrows": 1,
+        "totalpages": 1,
+        "currentpage": 1,
+        "pagesize": 20,
+        "result": [
+            {
+                "number": "12345-678",
+                "date": "2026-06-20T10:59:43+02:00",
+                "description": "Books",
+                "courier": "DPD",
+                "courier_name": "DPD",
+                "shipmenttype": "box",
+                "status": "Dostarczone",
+                "status_code": "D",
+                "status_date": "2026-06-25T17:20:00+02:00",
+                "delivered_date": "2026-06-25T09:00:00+02:00",
+                "insurance": 420,
+                "url": "https://tracking.example/6211000015757",
+                "price_net": 119,
+                "price_gross": 146.37,
+                "rebate_net": 0,
+                "rebate_gross": 0,
+                "vat_rate": 23,
+                "is_paid": true,
+                "has_invoice": true,
+                "unpaid_amount": 0,
+                "label": [
+                    "6211000015757"
+                ],
+                "waybills": [
+                    {
+                        "number": "6211000015757",
+                        "is_default": true
+                    }
+                ],
+                "sender": {
+                    "person": "Jan Nadawca",
+                    "street": "Testowa 1",
+                    "streetname": "Testowa",
+                    "housenumber": "1",
+                    "postcode": "98-270",
+                    "city": "Złoczew",
+                    "country": "PL",
+                    "point_id": "",
+                    "point": null,
+                    "email": "jan@example.com",
+                    "phone": "600100200"
+                },
+                "recipient": {
+                    "person": "Anna Odbiorca",
+                    "street": "Długa 5",
+                    "streetname": "Długa",
+                    "housenumber": "5",
+                    "postcode": "00-001",
+                    "city": "Warszawa",
+                    "country": "PL",
+                    "point_id": "",
+                    "point": null,
+                    "email": "anna@example.com",
+                    "phone": "600300400"
+                },
+                "cover_address": null,
+                "COD": {
+                    "codtype": "S",
+                    "codamount": 420,
+                    "status": "PAID",
+                    "return_cod": "BA",
+                    "return_details": []
+                },
+                "pickup": {
+                    "pickupdate": "2026-06-21",
+                    "pickuptimefrom": "10:00",
+                    "pickuptimeto": "14:00",
+                    "nocourierorder": false,
+                    "multiPickup": false,
+                    "pickup_number": null
+                },
+                "courierservice": [
+                    "Pobranie (COD)",
+                    "Ubezpieczenie przesyłki"
+                ],
+                "packs": [
+                    {
+                        "length": 175,
+                        "width": 67,
+                        "height": 47,
+                        "weight": 15,
+                        "amount": 1,
+                        "type": "ST",
+                        "price_net": 89,
+                        "price_gross": 109.47
+                    }
+                ],
+                "items": [
+                    {
+                        "description": "Paczka nr 1",
+                        "amount": 1,
+                        "price_net": 89,
+                        "value_nett": 89,
+                        "value_gross": 109.47,
+                        "type": "PACK",
+                        "service_id": null
+                    }
+                ],
+                "external_application_id": null,
+                "external_order_id": null,
+                "external_order_number": ""
+            }
+        ]
+    }
+}

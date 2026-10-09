@@ -1,0 +1,331 @@
+<?xml version="1.0"?>
+<!--
+ ~ Copyright (c) 2026 Polkurier.pl
+ ~ Licensed under the MIT License, see LICENSE.md
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Config:etc/system_file.xsd">
+    <system>
+        <section id="carriers">
+            <group id="polkurier" translate="label" sortOrder="1000"
+                   showInDefault="1" showInWebsite="1" showInStore="1">
+                <label>Polkurier</label>
+                <!-- What Magento asks of every carrier, kept at its carrier paths (carriers/polkurier/*) -->
+                <group id="checkout" translate="label" sortOrder="5"
+                       showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Shipping method in checkout</label>
+                    <field id="active" translate="label" type="select" sortOrder="10"
+                           showInDefault="1" showInWebsite="1" canRestore="1">
+                        <label>Enabled</label>
+                        <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                        <config_path>carriers/polkurier/active</config_path>
+                    </field>
+                    <field id="title" translate="label comment" type="text" sortOrder="20"
+                           showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                        <label>Title</label>
+                        <comment>Admin only. Customers see each carrier's own label.</comment>
+                        <config_path>carriers/polkurier/title</config_path>
+                    </field>
+                    <field id="sallowspecific" translate="label" type="select" sortOrder="30"
+                           showInDefault="1" showInWebsite="1" canRestore="1">
+                        <label>Ship to Applicable Countries</label>
+                        <frontend_class>shipping-applicable-country</frontend_class>
+                        <source_model>Magento\Shipping\Model\Config\Source\Allspecificcountries</source_model>
+                        <config_path>carriers/polkurier/sallowspecific</config_path>
+                    </field>
+                    <field id="specificcountry" translate="label" type="multiselect" sortOrder="31"
+                           showInDefault="1" showInWebsite="1">
+                        <label>Ship to Specific Countries</label>
+                        <source_model>Magento\Directory\Model\Config\Source\Country</source_model>
+                        <can_be_empty>1</can_be_empty>
+                        <config_path>carriers/polkurier/specificcountry</config_path>
+                    </field>
+                    <field id="showmethod" translate="label" type="select" sortOrder="32"
+                           showInDefault="1" showInWebsite="1" canRestore="1">
+                        <label>Show Method if Not Applicable</label>
+                        <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                        <config_path>carriers/polkurier/showmethod</config_path>
+                    </field>
+                    <field id="specificerrmsg" translate="label" type="textarea" sortOrder="33"
+                           showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                        <label>Displayed Error Message</label>
+                        <config_path>carriers/polkurier/specificerrmsg</config_path>
+                    </field>
+                    <field id="sort_order" translate="label" type="text" sortOrder="34"
+                           showInDefault="1" showInWebsite="1" canRestore="1">
+                        <label>Sort Order</label>
+                        <validate>validate-number</validate>
+                        <config_path>carriers/polkurier/sort_order</config_path>
+                    </field>
+                    <field id="tier_cart_value" translate="label comment" type="select" sortOrder="40"
+                           showInDefault="1" showInWebsite="1" canRestore="1">
+                        <label>Cart value for price tiers</label>
+                        <source_model>Polkurier\Shipping\Model\Config\Source\CartValue</source_model>
+                        <comment>The cart value, after discounts, that price tiers by subtotal are compared with.</comment>
+                    </field>
+                </group>
+
+                <group id="general" translate="label" sortOrder="10" showInDefault="1">
+                    <label>Polkurier account</label>
+                    <field id="customer_id" translate="label" type="obscure" sortOrder="10" showInDefault="1">
+                        <label>Customer ID</label>
+                        <backend_model>Magento\Config\Model\Config\Backend\Encrypted</backend_model>
+                    </field>
+                    <field id="api_token" translate="label" type="obscure" sortOrder="20" showInDefault="1">
+                        <label>API token</label>
+                        <backend_model>Magento\Config\Model\Config\Backend\Encrypted</backend_model>
+                    </field>
+                    <field id="sandbox_mode" translate="label comment" type="select" sortOrder="30"
+                           showInDefault="1" canRestore="1">
+                        <label>Sandbox</label>
+                        <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                        <comment>Polkurier's test environment. Ask api@polkurier.pl for access.</comment>
+                    </field>
+                    <field id="test_connection" translate="button_label" sortOrder="40" showInDefault="1">
+                        <button_label>Test connection</button_label>
+                        <frontend_model>Polkurier\Shipping\Block\Adminhtml\System\Config\TestConnection</frontend_model>
+                    </field>
+                    <field id="timeout" translate="label" type="text" sortOrder="50" showInDefault="1" canRestore="1">
+                        <label>Request timeout (seconds)</label>
+                        <validate>validate-digits validate-greater-than-zero</validate>
+                    </field>
+                    <field id="external_order_id" translate="label" type="select" sortOrder="60"
+                           showInDefault="1" canRestore="1">
+                        <label>Identify orders to Polkurier by</label>
+                        <source_model>Polkurier\Shipping\Model\Config\Source\ExternalOrderId</source_model>
+                    </field>
+                    <field id="application_id" translate="label comment" type="text" sortOrder="70"
+                           showInDefault="1" canRestore="1">
+                        <label>Installation ID</label>
+                        <frontend_model>Polkurier\Shipping\Block\Adminhtml\System\Config\InstallationId</frontend_model>
+                        <backend_model>Polkurier\Shipping\Model\Config\Backend\ApplicationId</backend_model>
+                        <comment>Leave empty. Change it only on a copy of this shop, such as a staging copy, that uses the same Polkurier account.</comment>
+                    </field>
+                    <field id="available_carriers" translate="label comment" type="multiselect" sortOrder="80"
+                           showInDefault="1">
+                        <label>Available carriers</label>
+                        <source_model>Polkurier\Shipping\Model\Config\Source\AccountCarrier</source_model>
+                        <can_be_empty>1</can_be_empty>
+                        <comment>The carriers you work with. Nothing selected: all of the account's carriers.</comment>
+                    </field>
+                </group>
+
+                <group id="shipment_defaults" translate="label" sortOrder="20"
+                       showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>New shipments</label>
+                    <field id="default_shipment_type" translate="label comment" type="select" sortOrder="10"
+                           showInDefault="1" showInWebsite="1" canRestore="1">
+                        <label>Parcels go as</label>
+                        <source_model>Polkurier\Shipping\Model\Config\Source\ShipmentType</source_model>
+                        <comment>The kind of parcels new shipments start with.</comment>
+                    </field>
+                    <field id="default_additional_services" translate="label comment" type="multiselect" sortOrder="50"
+                           showInDefault="1" showInWebsite="1" canRestore="1">
+                        <label>Additional services selected by default</label>
+                        <source_model>Polkurier\Shipping\Model\Config\Source\AdditionalService</source_model>
+                        <can_be_empty>1</can_be_empty>
+                        <comment>Only those the chosen carrier offers are preselected.</comment>
+                    </field>
+                    <field id="default_cover_address" translate="label comment" type="select" sortOrder="55"
+                           showInDefault="1" showInWebsite="1" canRestore="1">
+                        <label>Another sender on the label by default</label>
+                        <source_model>Polkurier\Shipping\Model\Config\Source\CoverAddress</source_model>
+                        <comment>Printed on the label as the sender, for carriers that offer it.</comment>
+                    </field>
+                    <field id="insure_by_default" translate="label comment" type="select" sortOrder="60"
+                           showInDefault="1" showInWebsite="1" canRestore="1">
+                        <label>Insure for the order total by default</label>
+                        <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                        <comment>Shipments with cash on delivery are insured anyway where the carrier requires it.</comment>
+                    </field>
+                    <field id="description_format" translate="label comment" type="text" sortOrder="100"
+                           showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                        <label>Shipment description</label>
+                        <comment>%s is replaced with the order number; without %s, every shipment gets this text as it is. Polkurier keeps up to 30 characters.</comment>
+                    </field>
+                </group>
+                <group id="sender" translate="label" sortOrder="21" showInDefault="1" showInWebsite="1">
+                    <label>Sender</label>
+                    <field id="use_store_information_address" translate="label comment" type="select" sortOrder="25"
+                           showInDefault="1" showInWebsite="1" canRestore="1">
+                        <label>Fall back to the store's address</label>
+                        <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                        <comment>Used when no default sender address is set. Comes before the shipping origin.</comment>
+                    </field>
+                    <field id="use_store_origin_address" translate="label comment" type="select" sortOrder="30"
+                           showInDefault="1" showInWebsite="1" canRestore="1">
+                        <label>Fall back to the shipping origin</label>
+                        <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                        <comment>Used when no default sender address is set.</comment>
+                    </field>
+                    <field id="default_sender_email" translate="label" type="select" sortOrder="40"
+                           showInDefault="1" showInWebsite="1" canRestore="1">
+                        <label>Sender e-mail with the store's addresses</label>
+                        <source_model>Magento\Config\Model\Config\Source\Email\Identity</source_model>
+                    </field>
+                </group>
+                <group id="packing" translate="label" sortOrder="22" showInDefault="1" showInWebsite="1">
+                    <label>Parcels</label>
+                    <field id="parcel_weight" translate="label comment" type="select" sortOrder="63"
+                           showInDefault="1" showInWebsite="1" canRestore="1">
+                        <label>Parcel weight</label>
+                        <source_model>Polkurier\Shipping\Model\Config\Source\ParcelWeight</source_model>
+                        <comment>The weight sent for parcels made from pack templates.</comment>
+                    </field>
+                    <field id="pack_new_shipments" translate="label comment" type="select" sortOrder="64"
+                           showInDefault="1" showInWebsite="1" canRestore="1">
+                        <label>Pack new shipments automatically</label>
+                        <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                        <comment>Pack the items into your pack templates when a shipment is started. No: one parcel of the default template.</comment>
+                    </field>
+                    <field id="packing_margin" translate="label comment" type="text" sortOrder="65"
+                           showInDefault="1" showInWebsite="1" canRestore="1">
+                        <label>Packing margin (cm)</label>
+                        <validate>validate-number validate-zero-or-greater</validate>
+                        <comment>Added to each product dimension when packing automatically.</comment>
+                    </field>
+                    <field id="weight_limit" translate="label comment" type="select" sortOrder="66"
+                           showInDefault="1" showInWebsite="1" canRestore="1">
+                        <label>Pack template weight limits</label>
+                        <source_model>Polkurier\Shipping\Model\Config\Source\WeightLimit</source_model>
+                        <comment>How automatic packing treats the pack templates' maximum weight.</comment>
+                    </field>
+                </group>
+                <group id="cod" translate="label" sortOrder="23" showInDefault="1" showInWebsite="1">
+                    <label>Cash on delivery</label>
+                    <field id="cod_payment_methods" translate="label comment" type="multiselect" sortOrder="70"
+                           showInDefault="1" showInWebsite="1" canRestore="1">
+                        <label>Cash on delivery payment methods</label>
+                        <source_model>Magento\Payment\Model\Config\Source\Allmethods</source_model>
+                        <can_be_empty>1</can_be_empty>
+                        <comment>Orders paid with these are shipped with cash on delivery.</comment>
+                    </field>
+                    <field id="default_cod_type" translate="label" type="select" sortOrder="80"
+                           showInDefault="1" showInWebsite="1" canRestore="1">
+                        <label>Cash on delivery payout time</label>
+                        <source_model>Polkurier\Shipping\Model\Config\Source\CodType</source_model>
+                    </field>
+                    <field id="default_cod_refund_type" translate="label" type="select" sortOrder="90"
+                           showInDefault="1" showInWebsite="1" canRestore="1">
+                        <label>Cash on delivery paid out to</label>
+                        <source_model>Polkurier\Shipping\Model\Config\Source\CodReturnType</source_model>
+                    </field>
+                </group>
+
+                <group id="map" translate="label" sortOrder="30" showInDefault="1" showInWebsite="1" showInStore="1">
+                    <label>Pickup point map</label>
+                    <field id="default_latitude" translate="label" type="text" sortOrder="10"
+                           showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                        <label>Initial latitude</label>
+                        <validate>validate-number</validate>
+                    </field>
+                    <field id="default_longitude" translate="label" type="text" sortOrder="20"
+                           showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                        <label>Initial longitude</label>
+                        <validate>validate-number</validate>
+                    </field>
+                    <field id="default_zoom" translate="label" type="text" sortOrder="30"
+                           showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                        <label>Initial zoom</label>
+                        <validate>validate-digits</validate>
+                    </field>
+                    <field id="show_list" translate="label" type="select" sortOrder="40"
+                           showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                        <label>Show the list of points</label>
+                        <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    </field>
+                    <field id="show_search_input" translate="label" type="select" sortOrder="50"
+                           showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
+                        <label>Show the search field</label>
+                        <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    </field>
+                    <field id="required_point_functions" translate="label comment" type="multiselect" sortOrder="60"
+                           showInDefault="1" showInWebsite="1" canRestore="1">
+                        <label>Show only points that</label>
+                        <source_model>Polkurier\Shipping\Model\Config\Source\PointFunction</source_model>
+                        <can_be_empty>1</can_be_empty>
+                    </field>
+                </group>
+
+                <group id="sync" translate="label" sortOrder="40" showInDefault="1">
+                    <label>Synchronization</label>
+                    <field id="enabled" translate="label comment" type="select" sortOrder="10"
+                           showInDefault="1" canRestore="1">
+                        <label>Synchronize with Polkurier on schedule</label>
+                        <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                        <comment>Carriers daily; addresses, bank accounts and pack templates hourly.</comment>
+                    </field>
+                    <field id="status_enabled" translate="label" type="select" sortOrder="20"
+                           showInDefault="1" canRestore="1">
+                        <label>Update shipment statuses on schedule</label>
+                        <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    </field>
+                    <field id="status_schedule" translate="label comment" type="select" sortOrder="30"
+                           showInDefault="1" canRestore="1">
+                        <label>Update shipment statuses</label>
+                        <source_model>Polkurier\Shipping\Model\Config\Source\StatusSchedule</source_model>
+                        <comment>More often means more requests to Polkurier.</comment>
+                        <depends>
+                            <field id="status_enabled">1</field>
+                        </depends>
+                    </field>
+                    <field id="webhook_secret" translate="label" type="obscure" sortOrder="40" showInDefault="1">
+                        <label>Status webhook secret</label>
+                        <backend_model>Magento\Config\Model\Config\Backend\Encrypted</backend_model>
+                        <comment>
+                            <model>Polkurier\Shipping\Model\Config\Comment\WebhookUrl</model>
+                        </comment>
+                    </field>
+                </group>
+
+                <group id="logging" translate="label comment" sortOrder="50" showInDefault="1">
+                    <label>Logging</label>
+                    <comment>Logs go to var/log/polkurier, one file a month. Tokens, PINs and codes are always hidden.</comment>
+                    <field id="failed_requests" translate="label" type="select" sortOrder="10"
+                           showInDefault="1" canRestore="1">
+                        <label>Log failed requests</label>
+                        <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                    </field>
+                    <field id="methods" translate="label comment" type="multiselect" sortOrder="20"
+                           showInDefault="1" canRestore="1">
+                        <label>Log all traffic of</label>
+                        <source_model>Polkurier\Shipping\Model\Config\Source\ApiMethod</source_model>
+                        <can_be_empty>1</can_be_empty>
+                        <comment>Successful requests and answers of these API methods are logged too.</comment>
+                        <depends>
+                            <field id="failed_requests">1</field>
+                        </depends>
+                    </field>
+                    <field id="personal_data" translate="label comment" type="select" sortOrder="30"
+                           showInDefault="1" canRestore="1">
+                        <label>Log personal data</label>
+                        <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                        <comment>No: names, addresses, phone numbers and bank accounts are hidden in the log.</comment>
+                        <depends>
+                            <field id="failed_requests">1</field>
+                        </depends>
+                    </field>
+                    <field id="files" translate="label comment" type="select" sortOrder="40"
+                           showInDefault="1" canRestore="1">
+                        <label>Save files</label>
+                        <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
+                        <comment>Saves labels, protocols and other files from logged requests. No: only their size is logged.</comment>
+                        <depends>
+                            <field id="failed_requests">1</field>
+                        </depends>
+                    </field>
+                    <field id="files_directory" translate="label comment" type="text" sortOrder="50"
+                           showInDefault="1" canRestore="1">
+                        <label>Save files in</label>
+                        <backend_model>Polkurier\Shipping\Model\Config\Backend\LogFilesDirectory</backend_model>
+                        <comment>Empty: var/log/polkurier/files. Must be outside pub.</comment>
+                        <depends>
+                            <field id="failed_requests">1</field>
+                            <field id="files">1</field>
+                        </depends>
+                    </field>
+                </group>
+            </group>
+        </section>
+    </system>
+</config>

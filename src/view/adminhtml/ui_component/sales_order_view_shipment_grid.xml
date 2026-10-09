@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<!--
+ ~ Copyright (c) 2026 Polkurier.pl
+ ~ Licensed under the MIT License, see LICENSE.md
+-->
+<listing xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Ui:etc/ui_configuration.xsd">
+    <!-- The order's Shipments tab: the Polkurier order of each shipment, linked to its details -->
+    <columns name="sales_order_shipment_columns">
+        <!-- Right after the selection column and the shipment number: Magento inserts a column with a
+             sortOrder at that position, and the admin's saved column order still applies over it -->
+        <column name="polkurier_order"
+                class="Polkurier\Shipping\Ui\Component\Listing\SalesShipment\PolkurierOrderColumn"
+                sortOrder="2">
+            <argument name="data" xsi:type="array">
+                <item name="config" xsi:type="array">
+                    <!-- The links are the cell's own; a click on them must not open the Magento shipment -->
+                    <item name="fieldAction" xsi:type="boolean">false</item>
+                </item>
+            </argument>
+            <settings>
+                <label translate="true">Polkurier order</label>
+                <bodyTmpl>ui/grid/cells/html</bodyTmpl>
+                <sortable>false</sortable>
+            </settings>
+        </column>
+    </columns>
+</listing>

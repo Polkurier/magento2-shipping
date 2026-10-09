@@ -1,0 +1,210 @@
+<?xml version="1.0"?>
+<!--
+ ~ Copyright (c) 2026 Polkurier.pl
+ ~ Licensed under the MIT License, see LICENSE.md
+-->
+<form xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+      xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Ui:etc/ui_configuration.xsd">
+    <argument name="data" xsi:type="array">
+        <item name="js_config" xsi:type="array">
+            <item name="provider" xsi:type="string">polkurier_address_form.polkurier_address_form_data_source</item>
+        </item>
+        <item name="label" xsi:type="string" translate="true">Address</item>
+        <item name="template" xsi:type="string">templates/form/collapsible</item>
+    </argument>
+    <settings>
+        <namespace>polkurier_address_form</namespace>
+        <dataScope>data</dataScope>
+        <deps>
+            <dep>polkurier_address_form.polkurier_address_form_data_source</dep>
+        </deps>
+        <buttons>
+            <button name="back">
+                <url path="*/*/index"/>
+                <class>back</class>
+                <label translate="true">Back</label>
+            </button>
+            <button name="delete" class="Polkurier\Shipping\Ui\Component\Form\Address\DeleteButtonVirtual"/>
+            <button name="save_and_continue"
+                    class="Polkurier\Shipping\Ui\Component\Form\Address\SaveAndContinueButtonVirtual"/>
+            <button name="save" class="Polkurier\Shipping\Ui\Component\Control\SaveButton"/>
+        </buttons>
+    </settings>
+    <dataSource name="polkurier_address_form_data_source">
+        <argument name="data" xsi:type="array">
+            <item name="js_config" xsi:type="array">
+                <item name="component" xsi:type="string">Magento_Ui/js/form/provider</item>
+            </item>
+        </argument>
+        <settings>
+            <submitUrl path="*/*/save"/>
+        </settings>
+        <dataProvider class="Polkurier\Shipping\Ui\Component\Form\Address\DataProvider"
+                      name="polkurier_address_form_data_source">
+            <settings>
+                <requestFieldName>id</requestFieldName>
+                <primaryFieldName>id</primaryFieldName>
+            </settings>
+        </dataProvider>
+    </dataSource>
+    <fieldset name="general">
+        <settings>
+            <label/>
+        </settings>
+        <field name="id" formElement="input">
+            <settings>
+                <dataType>text</dataType>
+                <visible>false</visible>
+                <dataScope>id</dataScope>
+            </settings>
+        </field>
+        <field name="name" formElement="input">
+            <settings>
+                <label translate="true">Label</label>
+                <dataType>text</dataType>
+                <dataScope>name</dataScope>
+                <validation><rule name="required-entry" xsi:type="boolean">true</rule></validation>
+            </settings>
+        </field>
+        <field name="person" formElement="input">
+            <settings>
+                <label translate="true">Name</label>
+                <dataType>text</dataType>
+                <dataScope>person</dataScope>
+                <validation><rule name="required-entry" xsi:type="boolean">true</rule></validation>
+            </settings>
+        </field>
+        <field name="company" formElement="input">
+            <settings>
+                <label translate="true">Company</label>
+                <dataType>text</dataType>
+                <dataScope>company</dataScope>
+            </settings>
+        </field>
+        <field name="street" formElement="input">
+            <settings>
+                <label translate="true">Street</label>
+                <dataType>text</dataType>
+                <dataScope>street</dataScope>
+                <validation><rule name="required-entry" xsi:type="boolean">true</rule></validation>
+            </settings>
+        </field>
+        <field name="house_number" formElement="input">
+            <settings>
+                <label translate="true">House number</label>
+                <dataType>text</dataType>
+                <dataScope>house_number</dataScope>
+                <validation><rule name="required-entry" xsi:type="boolean">true</rule></validation>
+            </settings>
+        </field>
+        <field name="flat_number" formElement="input">
+            <settings>
+                <label translate="true">Flat number</label>
+                <dataType>text</dataType>
+                <dataScope>flat_number</dataScope>
+            </settings>
+        </field>
+        <field name="postcode" formElement="input">
+            <settings>
+                <label translate="true">Postcode</label>
+                <dataType>text</dataType>
+                <dataScope>postcode</dataScope>
+                <validation><rule name="required-entry" xsi:type="boolean">true</rule></validation>
+            </settings>
+        </field>
+        <field name="city" formElement="input">
+            <settings>
+                <label translate="true">City</label>
+                <dataType>text</dataType>
+                <dataScope>city</dataScope>
+                <validation><rule name="required-entry" xsi:type="boolean">true</rule></validation>
+            </settings>
+        </field>
+        <field name="province" formElement="input">
+            <settings>
+                <label translate="true">Province</label>
+                <dataType>text</dataType>
+                <dataScope>province</dataScope>
+            </settings>
+        </field>
+        <field name="country" formElement="select">
+            <settings>
+                <label translate="true">Country</label>
+                <dataType>text</dataType>
+                <dataScope>country</dataScope>
+                <validation><rule name="required-entry" xsi:type="boolean">true</rule></validation>
+            </settings>
+            <formElements>
+                <select>
+                    <settings>
+                        <options class="Magento\Directory\Model\Config\Source\Country"/>
+                    </settings>
+                </select>
+            </formElements>
+        </field>
+        <field name="phone" formElement="input">
+            <settings>
+                <label translate="true">Phone</label>
+                <dataType>text</dataType>
+                <dataScope>phone</dataScope>
+                <validation><rule name="required-entry" xsi:type="boolean">true</rule></validation>
+            </settings>
+        </field>
+        <field name="email" formElement="input">
+            <settings>
+                <label translate="true">E-mail</label>
+                <dataType>text</dataType>
+                <dataScope>email</dataScope>
+                <validation>
+                    <rule name="validate-email" xsi:type="boolean">true</rule>
+                    <rule name="required-entry" xsi:type="boolean">true</rule>
+                </validation>
+            </settings>
+        </field>
+        <field name="point_id" formElement="input" component="Polkurier_Shipping/js/form/element/point">
+            <settings>
+                <label translate="true">Sender drop-off point</label>
+                <dataType>text</dataType>
+                <dataScope>point_id</dataScope>
+                <notice translate="true">For carriers that take parcels dropped off at a point.</notice>
+            </settings>
+        </field>
+        <field name="is_default" formElement="checkbox">
+            <settings>
+                <label translate="true">Default sender</label>
+                <dataType>boolean</dataType>
+                <dataScope>is_default</dataScope>
+            </settings>
+            <formElements>
+                <checkbox>
+                    <settings>
+                        <valueMap>
+                            <map name="false" xsi:type="string">0</map>
+                            <map name="true" xsi:type="string">1</map>
+                        </valueMap>
+                        <prefer>toggle</prefer>
+                    </settings>
+                </checkbox>
+            </formElements>
+        </field>
+        <field name="is_cover" formElement="checkbox">
+            <settings>
+                <label translate="true">Can be a cover address</label>
+                <dataType>boolean</dataType>
+                <dataScope>is_cover</dataScope>
+                <notice translate="true">Returns can be sent here instead of to the sender.</notice>
+            </settings>
+            <formElements>
+                <checkbox>
+                    <settings>
+                        <valueMap>
+                            <map name="false" xsi:type="string">0</map>
+                            <map name="true" xsi:type="string">1</map>
+                        </valueMap>
+                        <prefer>toggle</prefer>
+                    </settings>
+                </checkbox>
+            </formElements>
+        </field>
+    </fieldset>
+</form>

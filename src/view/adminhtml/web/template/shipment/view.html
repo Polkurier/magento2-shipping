@@ -1,0 +1,106 @@
+<!--
+ ~ Copyright (c) 2026 Polkurier.pl
+ ~ Licensed under the MIT License, see LICENSE.md
+-->
+<div class="polkurier-view">
+    <!-- ko foreach: view.errors -->
+    <div class="message message-warning"><span text="$data"></span></div>
+    <!-- /ko -->
+    <!-- ko foreach: view.notes -->
+    <div class="message message-notice"><span text="$data"></span></div>
+    <!-- /ko -->
+
+    <!-- ko foreach: view.sections -->
+    <section class="admin__page-section">
+        <div class="admin__page-section-title">
+            <span class="title" text="title"></span>
+        </div>
+        <div class="admin__page-section-content polkurier-view__items">
+            <!-- ko foreach: items -->
+            <div class="admin__page-section-item">
+                <div class="admin__page-section-item-title">
+                    <span class="title" text="title"></span>
+                </div>
+                <div class="admin__page-section-item-content">
+                    <table class="admin__table-secondary">
+                        <tbody>
+                        <!-- ko foreach: rows -->
+                        <tr>
+                            <th text="label"></th>
+                            <td>
+                                <!-- ko if: url -->
+                                <a data-bind="attr: {href: url}, text: value"></a>
+                                <!-- /ko -->
+                                <!-- ko ifnot: url -->
+                                <span text="value"></span>
+                                <!-- /ko -->
+                                <!-- ko if: as_sent -->
+                                <span class="polkurier-view__as-sent" translate="'(as sent)'"></span>
+                                <!-- /ko -->
+                            </td>
+                        </tr>
+                        <!-- /ko -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <!-- /ko -->
+        </div>
+    </section>
+    <!-- /ko -->
+
+    <!-- ko foreach: view.tables -->
+    <section class="admin__page-section">
+        <div class="admin__page-section-title">
+            <span class="title" text="title"></span>
+        </div>
+        <div class="admin__page-section-content">
+            <!-- ko if: rows.length -->
+            <div class="admin__table-wrapper">
+                <table class="data-table admin__table-primary">
+                    <thead>
+                    <tr class="headings">
+                        <!-- ko foreach: columns -->
+                        <th><span text="$data"></span></th>
+                        <!-- /ko -->
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <!-- ko foreach: rows -->
+                    <tr>
+                        <!-- ko foreach: $data -->
+                        <td text="$data"></td>
+                        <!-- /ko -->
+                    </tr>
+                    <!-- /ko -->
+                    </tbody>
+                    <!-- ko if: $data.foot -->
+                    <tfoot>
+                    <tr>
+                        <!-- ko foreach: foot -->
+                        <td><strong text="$data"></strong></td>
+                        <!-- /ko -->
+                    </tr>
+                    </tfoot>
+                    <!-- /ko -->
+                </table>
+            </div>
+            <p class="polkurier-view__note" if="$data.note" text="note"></p>
+            <!-- /ko -->
+            <!-- ko ifnot: rows.length -->
+            <p class="polkurier-view__note" text="empty"></p>
+            <!-- /ko -->
+        </div>
+    </section>
+    <!-- /ko -->
+
+    <!-- When the page was read from Polkurier, moved to the left of the buttons bar -->
+    <div class="polkurier-view__sync" afterRender="placeSync">
+        <!-- ko if: updating -->
+        <span class="polkurier-view__sync-updating" translate="'Updating from Polkurier…'"></span>
+        <!-- /ko -->
+        <!-- ko ifnot: updating -->
+        <span text="view.synced"></span>
+        <!-- /ko -->
+    </div>
+</div>

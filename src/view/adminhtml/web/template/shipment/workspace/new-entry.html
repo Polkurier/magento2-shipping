@@ -1,0 +1,29 @@
+<!--
+ ~ Copyright (c) 2026 Polkurier.pl
+ ~ Licensed under the MIT License, see LICENSE.md
+-->
+<div class="admin__fieldset polkurier-new-entry" if="shown">
+    <p class="polkurier-muted" if="intro" text="intro"></p>
+    <!-- ko foreach: rows -->
+    <div class="admin__field" css="{_required: required, _error: missing}">
+        <label class="admin__field-label" attr="{for: id}"><span text="label"></span></label>
+        <div class="admin__field-control">
+            <input class="admin__control-text"
+                   attr="{id: id, type: type, maxlength: maxlength, 'aria-required': required ? 'true' : 'false'}"
+                   data-bind="textInput: value"/>
+            <div class="admin__field-note" if="$data.notice" text="$data.notice"></div>
+        </div>
+    </div>
+    <!-- /ko -->
+    <div class="admin__field admin__field-option polkurier-new-entry__keep">
+        <input type="checkbox" class="admin__control-checkbox" attr="{id: ids.keep}" data-bind="checked: keep"/>
+        <label class="admin__field-label" attr="{for: ids.keep}" text="keepLabel"></label>
+    </div>
+    <div class="admin__field" if="keep">
+        <label class="admin__field-label" attr="{for: ids.name}"><span text="nameLabel"></span></label>
+        <div class="admin__field-control">
+            <input class="admin__control-text" type="text" attr="{id: ids.name}" data-bind="textInput: keptName"/>
+            <div class="admin__field-note" if="nameNotice" text="nameNotice"></div>
+        </div>
+    </div>
+</div>

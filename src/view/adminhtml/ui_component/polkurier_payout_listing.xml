@@ -1,0 +1,104 @@
+<?xml version="1.0"?>
+<!--
+ ~ Copyright (c) 2026 Polkurier.pl
+ ~ Licensed under the MIT License, see LICENSE.md
+-->
+<listing xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Ui:etc/ui_configuration.xsd">
+    <argument name="data" xsi:type="array">
+        <item name="js_config" xsi:type="array">
+            <item name="provider" xsi:type="string">polkurier_payout_listing.polkurier_payout_listing_data_source</item>
+        </item>
+    </argument>
+    <settings>
+        <buttons>
+            <button name="payout">
+                <url path="polkurier/payout/request"/>
+                <class>primary</class>
+                <label translate="true">Request a payout</label>
+                <aclResource>Polkurier_Shipping::payout_request</aclResource>
+            </button>
+        </buttons>
+        <spinner>polkurier_payout_listing_columns</spinner>
+        <deps>
+            <dep>polkurier_payout_listing.polkurier_payout_listing_data_source</dep>
+        </deps>
+    </settings>
+    <dataSource name="polkurier_payout_listing_data_source" component="Magento_Ui/js/grid/provider">
+        <settings>
+            <storageConfig>
+                <param name="indexField" xsi:type="string">number</param>
+            </storageConfig>
+            <updateUrl path="mui/index/render"/>
+        </settings>
+        <aclResource>Polkurier_Shipping::payouts</aclResource>
+        <dataProvider class="Polkurier\Shipping\Ui\Component\Listing\Payout\DataProvider"
+                      name="polkurier_payout_listing_data_source">
+            <settings>
+                <requestFieldName>number</requestFieldName>
+                <primaryFieldName>number</primaryFieldName>
+            </settings>
+        </dataProvider>
+    </dataSource>
+    <listingToolbar name="listing_top">
+        <bookmark name="bookmarks"/>
+        <columnsControls name="columns_controls"/>
+        <paging name="listing_paging"/>
+    </listingToolbar>
+    <columns name="polkurier_payout_listing_columns">
+        <column name="number">
+            <settings>
+                <label translate="true">Payout</label>
+                <sortable>false</sortable>
+            </settings>
+        </column>
+        <column name="date">
+            <settings>
+                <label translate="true">Requested</label>
+                <sortable>false</sortable>
+            </settings>
+        </column>
+        <column name="amount">
+            <settings>
+                <label translate="true">Amount</label>
+                <sortable>false</sortable>
+            </settings>
+        </column>
+        <column name="fee">
+            <settings>
+                <label translate="true">Fee</label>
+                <sortable>false</sortable>
+            </settings>
+        </column>
+        <column name="paid_amount">
+            <settings>
+                <label translate="true">Paid out</label>
+                <sortable>false</sortable>
+            </settings>
+        </column>
+        <column name="bank_account_number">
+            <settings>
+                <label translate="true">Account</label>
+                <sortable>false</sortable>
+            </settings>
+        </column>
+        <column name="items_count">
+            <settings>
+                <label translate="true">Shipments</label>
+                <sortable>false</sortable>
+            </settings>
+        </column>
+        <column name="status">
+            <settings>
+                <label translate="true">Status</label>
+                <sortable>false</sortable>
+            </settings>
+        </column>
+        <actionsColumn name="actions" class="Polkurier\Shipping\Ui\Component\Listing\Payout\ActionsColumn">
+            <settings>
+                <indexField>number</indexField>
+                <label translate="true">Actions</label>
+            </settings>
+        </actionsColumn>
+    </columns>
+</listing>

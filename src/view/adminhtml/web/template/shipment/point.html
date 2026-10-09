@@ -1,0 +1,11 @@
+<!--
+ ~ Copyright (c) 2026 Polkurier.pl
+ ~ Licensed under the MIT License, see LICENSE.md
+-->
+<div class="polkurier-point">
+    <input class="admin__control-text" type="text"
+           data-bind="value: value, hasFocus: focused, attr: {name: inputName, id: uid, disabled: disabled}"/>
+    <button type="button" class="action-secondary" if="canChoose()" click="chooseOnMap">
+        <span translate="'Choose on map'"></span>
+    </button>
+</div>

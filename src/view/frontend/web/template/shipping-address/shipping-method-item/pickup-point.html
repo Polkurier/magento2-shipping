@@ -1,0 +1,16 @@
+<!--
+ ~ Copyright (c) 2026 Polkurier.pl
+ ~ Licensed under the MIT License, see LICENSE.md
+-->
+<!-- ko if: element.hasMap(method) -->
+<div class="pickup-point-choice">
+    <div class="selected-point">
+        <span text="element.getPointLabel(method.method_code)"></span>
+    </div>
+    <button type="button"
+            class="action primary action-show-map"
+            click="function () { element.openMap(method); }">
+        <span translate="'Choose a pickup point'"></span>
+    </button>
+</div>
+<!-- /ko -->

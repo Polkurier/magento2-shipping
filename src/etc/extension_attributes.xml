@@ -1,0 +1,22 @@
+<?xml version="1.0"?>
+<!--
+ ~ Copyright (c) 2026 Polkurier.pl
+ ~ Licensed under the MIT License, see LICENSE.md
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:Api/etc/extension_attributes.xsd">
+    <!-- The pickup point chosen in checkout, sent along with the shipping method -->
+    <extension_attributes for="Magento\Checkout\Api\Data\ShippingInformationInterface">
+        <attribute code="pickup_point_id" type="string" />
+    </extension_attributes>
+    <!-- The carrier's logo, shown next to the method in checkout -->
+    <extension_attributes for="Magento\Quote\Api\Data\ShippingMethodInterface">
+        <attribute code="method_logo" type="string" />
+    </extension_attributes>
+    <!-- The order's pickup point, and the shipping the customer chose -->
+    <extension_attributes for="Magento\Sales\Api\Data\OrderInterface">
+        <attribute code="polkurier_point" type="Polkurier\Shipping\Api\Data\OrderPointInterface" />
+        <!-- The shipping the customer chose, once the order's shipping follows its Polkurier order -->
+        <attribute code="polkurier_shipping_choice" type="Polkurier\Shipping\Api\Data\ShippingChoiceInterface" />
+    </extension_attributes>
+</config>

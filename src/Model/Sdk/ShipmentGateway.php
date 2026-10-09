@@ -1,0 +1,259 @@
+<?php
+/**
+ * Copyright (c) 2026 Polkurier.pl
+ * Licensed under the MIT License, see LICENSE.md
+ */
+declare(strict_types=1);
+
+namespace Polkurier\Shipping\Model\Sdk;
+
+use Magento\Framework\Exception\LocalizedException;
+use Polkurier\Shipping\Api\PolkurierClientInterface;
+use Polkurier\Shipping\Exception\PlacementUncertainException;
+use Polkurier\Webservice\Enum\Http\ApiErrorCodeEnum;
+use Polkurier\Webservice\Exception\ConnectionException;
+use Polkurier\Webservice\Exception\Exception as PolkurierException;
+use Polkurier\Webservice\Exception\MalformedResponseException;
+use Polkurier\Webservice\Exception\WebserviceException;
+use Polkurier\Webservice\Request\Courier\GetPickupTimeMessage;
+use Polkurier\Webservice\Request\Order\CreateOrderMessage;
+use Polkurier\Webservice\Request\Order\GetDocumentMessage;
+use Polkurier\Webservice\Request\Order\GetOrdersMessage;
+use Polkurier\Webservice\Request\Order\GetStatusMessage;
+use Polkurier\Webservice\Request\Order\MultiPickupAvailabilityRequestMessage;
+use Polkurier\Webservice\Request\Order\MultiPickupRequestMessage;
+use Polkurier\Webservice\Request\Order\OrderIdMessage;
+use Polkurier\Webservice\Response\Courier\PickupTimeMessage;
+use Polkurier\Webservice\Response\Order\CancellationMessage;
+use Polkurier\Webservice\Response\Order\CreatedOrderMessage;
+use Polkurier\Webservice\Response\Order\DocumentMessage;
+use Polkurier\Webservice\Response\Order\MultiPickupResultMessage;
+use Polkurier\Webservice\Response\Order\OrderListMessage;
+use Polkurier\Webservice\Response\Order\OrderStatusMessage;
+use Polkurier\Webservice\Response\Order\ValuationMessage;
+
+/**
+ * The Polkurier calls the shipment side of the module makes, over
+ * {@see \Polkurier\Shipping\Model\Sdk\PolkurierClient}, in the module's terms. Requests and answers
+ * are the SDK's messages, but no SDK exception gets past: a refusal or failure is a
+ * {@see \Magento\Framework\Exception\LocalizedException} describing it for the merchant, and placing
+ * an order that may have gone through anyway is a {@see PlacementUncertainException}.
+ */
+readonly class ShipmentGateway
+{
+    /**
+     * The one refusal without an error code that Polkurier gives after an order may already be
+     * saved: a failure while saving it, or right after. Every other uncoded refusal (validation,
+     * the carrier's checks, prices, funds, collective pickup) comes before anything is saved.
+     */
+    private const string FATAL_PREFIX = 'Wystąpił nieoczekiwany błąd';
+
+    /**
+     * get_status's refusal, without an error code, for a cancelled order.
+     */
+    private const string CANCELLED_ORDER = 'Zamówienie anulowane';
+
+    /**
+     * cURL errors that mean the request never reached Polkurier: no proxy or host found, no
+     * connection, no TLS handshake.
+     */
+    private const array NOT_SENT_CURL_ERRORS = [5, 6, 7, 35];
+
+    public function __construct(
+        private PolkurierClientInterface $polkurierClient,
+        private ErrorMessageResolver $errorMessageResolver,
+    ) {}
+
+    /**
+     * @throws PlacementUncertainException when the order may have been placed nonetheless
+     * @throws LocalizedException when it certainly wasn't
+     */
+    public function placeOrder(CreateOrderMessage $message): CreatedOrderMessage
+    {
+        try {
+            return $this->polkurierClient->orders()->createOrder($message);
+        } catch (PolkurierException $e) {
+            if ($this->mayHaveBeenPlaced($e)) {
+                throw new PlacementUncertainException($this->errorMessageResolver->phrase($e), $e);
+            }
+
+            throw $this->errorMessageResolver->exception($e);
+        }
+    }
+
+    /**
+     * @throws LocalizedException
+     */
+    public function cancelOrder(OrderIdMessage $message): CancellationMessage
+    {
+        return $this->call(fn(): CancellationMessage => $this->polkurierClient->orders()->cancelOrder($message));
+    }
+
+    /**
+     * @throws LocalizedException
+     */
+    public function findOrders(GetOrdersMessage $message): OrderListMessage
+    {
+        return $this->call(fn(): OrderListMessage => $this->polkurierClient->orders()->getOrders($message));
+    }
+
+    /**
+     * @throws LocalizedException
+     */
+    public function getStatus(string $number, bool $tracking): OrderStatusMessage
+    {
+        return $this->call(fn(): OrderStatusMessage => $this->polkurierClient->orders()->getStatus(
+            new GetStatusMessage($number, tracking: $tracking),
+        ));
+    }
+
+    /**
+     * Whether the order itself is cancelled, as get_status tells: it refuses a cancelled order, and
+     * answers for a live one. The order listing reports a cancelled waybill of a live order with the
+     * same status code as a cancelled order. Null when Polkurier can't be asked, or refuses for
+     * another reason.
+     */
+    public function isCancelled(string $number): ?bool
+    {
+        try {
+            $this->polkurierClient->orders()->getStatus(new GetStatusMessage($number));
+
+            return false;
+        } catch (WebserviceException $e) {
+            $answer = $e->getErrorMessage()->getResponse();
+
+            return \is_string($answer) && \trim($answer) === self::CANCELLED_ORDER ? true : null;
+        } catch (PolkurierException) {
+            return null;
+        }
+    }
+
+    /**
+     * @throws LocalizedException
+     */
+    public function getLabel(GetDocumentMessage $message): DocumentMessage
+    {
+        return $this->call(fn(): DocumentMessage => $this->polkurierClient->orders()->getLabel($message));
+    }
+
+    /**
+     * @throws LocalizedException
+     */
+    public function getProtocol(GetDocumentMessage $message): DocumentMessage
+    {
+        return $this->call(fn(): DocumentMessage => $this->polkurierClient->orders()->getProtocol($message));
+    }
+
+    /**
+     * What each carrier would charge for the order, one quote per carrier.
+     *
+     * @return ValuationMessage[]
+     * @throws LocalizedException
+     */
+    public function valuate(CreateOrderMessage $message): array
+    {
+        return $this->call(fn(): array => $this->polkurierClient->orders()->orderValuation($message));
+    }
+
+    /**
+     * @return PickupTimeMessage[]
+     * @throws LocalizedException
+     */
+    public function getPickupTimes(GetPickupTimeMessage $message): array
+    {
+        return $this->call(fn(): array => $this->polkurierClient->courier()->getCourierPickupTime($message));
+    }
+
+    /**
+     * Whether a shipment can be collected with others, as Polkurier answers for its carrier and
+     * parcels. Also false when Polkurier can't tell.
+     *
+     * @throws LocalizedException
+     */
+    public function isMultiPickupAvailable(MultiPickupAvailabilityRequestMessage $message): bool
+    {
+        return $this->call(
+            fn(): bool => $this->polkurierClient->orders()->isMultiPickupAvailable($message)->isAvailable(),
+        );
+    }
+
+    /**
+     * @throws LocalizedException
+     */
+    public function bookMultiPickup(MultiPickupRequestMessage $message): MultiPickupResultMessage
+    {
+        return $this->call(
+            fn(): MultiPickupResultMessage => $this->polkurierClient->orders()->createMultiOrderPickup($message),
+        );
+    }
+
+    /**
+     * @template T
+     *
+     * @param callable(): T $request
+     *
+     * @return T
+     * @throws LocalizedException
+     */
+    private function call(callable $request): mixed
+    {
+        try {
+            return $request();
+        } catch (PolkurierException $e) {
+            throw $this->errorMessageResolver->exception($e);
+        }
+    }
+
+    /**
+     * Placing an order isn't idempotent, so an order is taken as possibly placed unless the
+     * failure says it can't have been: a request that never left, or a refusal with a reason that
+     * Polkurier only gives before saving anything. An answer lost or unreadable, UNKNOWN_ERROR, the
+     * fatal refusal (FATAL_PREFIX) and a refusal with no reason at all may hide a placed order.
+     */
+    private function mayHaveBeenPlaced(PolkurierException $e): bool
+    {
+        if ($e instanceof ConnectionException) {
+            return !$this->wasNotSent($e);
+        }
+        if ($e instanceof MalformedResponseException) {
+            return true;
+        }
+        if (!$e instanceof WebserviceException) {
+            return false;
+        }
+        $error = $e->getErrorMessage();
+        $code = (string)$error->getErrorCode();
+        if ($code === ApiErrorCodeEnum::UnknownError->value) {
+            return true;
+        }
+        if ($code !== '') {
+            return false;
+        }
+        $reason = \trim(\is_string($error->getResponse()) ? $error->getResponse() : '');
+
+        return $reason === '' || \str_starts_with($reason, self::FATAL_PREFIX);
+    }
+
+    /**
+     * Whether the connection failed before the request went out, so Polkurier can't have received
+     * it. A timeout counts only while connecting; one while waiting for the answer may follow a
+     * placed order.
+     */
+    private function wasNotSent(ConnectionException $e): bool
+    {
+        $message = $e->getMessage();
+        $previous = $e->getPrevious();
+        $errno = $previous !== null && \method_exists($previous, 'getHandlerContext')
+            ? (int)($previous->getHandlerContext()['errno'] ?? 0)
+            : 0;
+        if ($errno === 0 && \preg_match('/cURL error (\d+):/', $message, $match)) {
+            $errno = (int)$match[1];
+        }
+
+        return \in_array($errno, self::NOT_SENT_CURL_ERRORS, true)
+            || ($errno === 28 && (
+                \str_contains($message, 'Connection timed out')
+                || \str_contains($message, 'Resolving timed out')
+            ));
+    }
+}

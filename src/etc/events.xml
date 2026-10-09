@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<!--
+ ~ Copyright (c) 2026 Polkurier.pl
+ ~ Licensed under the MIT License, see LICENSE.md
+-->
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="urn:magento:framework:Event/etc/events.xsd">
+    <event name="sales_model_service_quote_submit_before">
+        <observer name="polkurier_validate_pickup_point"
+                  instance="Polkurier\Shipping\Observer\Checkout\ValidatePickupPointObserver" />
+        <observer name="polkurier_describe_pickup_point"
+                  instance="Polkurier\Shipping\Observer\Checkout\DescribePickupPointObserver" />
+    </event>
+    <event name="sales_model_service_quote_submit_success">
+        <observer name="polkurier_copy_pickup_point"
+                  instance="Polkurier\Shipping\Observer\Checkout\CopyPickupPointToOrderObserver" />
+    </event>
+    <!-- The order's shipping follows the carrier and point its Polkurier order went with -->
+    <event name="polkurier_shipment_save_after">
+        <observer name="polkurier_follow_shipment_carrier"
+                  instance="Polkurier\Shipping\Observer\Sales\FollowShipmentCarrierObserver" />
+    </event>
+    <event name="payment_method_is_active">
+        <observer name="polkurier_restrict_cash_on_delivery"
+                  instance="Polkurier\Shipping\Observer\Checkout\RestrictCashOnDeliveryObserver" />
+    </event>
+</config>

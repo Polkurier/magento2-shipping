@@ -15,25 +15,20 @@ use Polkurier\Shipping\Model\ResourceModel\Shipment as ShipmentResource;
 use Polkurier\Shipping\Model\Sdk\ShipmentGateway;
 use Polkurier\Shipping\Model\Shipment as ShipmentModel;
 use Polkurier\Shipping\Model\Shipment\Status\RemoteOrderApplier;
-use Polkurier\Shipping\Model\Shipment\Status\RemoteOrderMatcher;
+use Polkurier\Shipping\Model\Shipment\Status\StatusRefreshService;
 
 /**
- * Gets what the shipment details page shows: the local copy of the Polkurier order and the
- * carrier's scans, read from Polkurier only when they're missing or the scans may have moved on.
+ * Keeps what the shipment details page shows up to date: the local copy of the Polkurier order and
+ * the carrier's scans. The page shows what is stored at once, and has them read from Polkurier in
+ * the background each time it opens, unless nothing about the order changes any more.
  *
- * Opening the page changes nothing but the cached scans. An order copy that's missing is read for
- * the page only; the status refresh, by the cron or the Refresh button, is what stores it and acts
- * on it, for example by shipping the Magento order.
+ * The copy is read and stored by a status refresh, which also acts on what it reads, for example by
+ * shipping the Magento order.
  */
 readonly class DetailsLoader
 {
-    /**
-     * How long the scans of a shipment still on its way are trusted before being read again.
-     */
-    public const int TRACKING_LIFETIME_MINUTES = 60;
-
     public function __construct(
-        private RemoteOrderMatcher $remoteOrderMatcher,
+        private StatusRefreshService $statusRefreshService,
         private RemoteOrderApplier $remoteOrderApplier,
         private ShipmentResource $shipmentResource,
         private ShipmentGateway $shipmentGateway,
@@ -42,20 +37,33 @@ readonly class DetailsLoader
     ) {}
 
     /**
-     * @return array{shipment: ShipmentInterface, errors: string[]} the shipment as stored now, and
-     *         why a missing part could not be read
+     * Whether refresh() has anything to read: the shipment has a Polkurier order, and its copy is
+     * missing, or its copy or scans may have moved on since.
      */
-    public function ensure(ShipmentInterface $shipment): array
+    public function needsRefresh(ShipmentInterface $shipment): bool
     {
-        $errors = [];
-        if ($shipment->getPolkurierNumber() === null) {
-            return ['shipment' => $shipment, 'errors' => $errors];
+        return $shipment->getPolkurierNumber() !== null
+            && ($this->isCopyStale($shipment) || $this->isTrackingStale($shipment));
+    }
+
+    /**
+     * Reads from Polkurier and stores what needsRefresh() finds missing or stale. Either part may
+     * fail without stopping the other.
+     *
+     * @return array{shipment: ShipmentInterface|null, errors: string[]} the shipment as stored after,
+     *         or null when nothing could be read; and why a part could not be read
+     */
+    public function refresh(ShipmentInterface $shipment): array
+    {
+        if (!$this->needsRefresh($shipment)) {
+            return ['shipment' => $shipment, 'errors' => []];
         }
-        if ($shipment->getDetails() === []) {
+        $errors = [];
+        $read = false;
+        if ($this->isCopyStale($shipment)) {
             try {
-                $remote = $this->remoteOrderMatcher->findByNumber((string)$shipment->getPolkurierNumber());
-                $shipment = clone $shipment;
-                $this->remoteOrderApplier->apply($remote, $shipment);
+                $shipment = $this->statusRefreshService->refresh((int)$shipment->getId());
+                $read = true;
             } catch (LocalizedException $e) {
                 $errors[] = $e->getMessage();
             } catch (\Throwable $e) {
@@ -66,6 +74,7 @@ readonly class DetailsLoader
         if ($this->isTrackingStale($shipment)) {
             try {
                 $this->refreshTracking($shipment);
+                $read = true;
             } catch (LocalizedException $e) {
                 $errors[] = $e->getMessage();
             } catch (\Throwable $e) {
@@ -74,7 +83,7 @@ readonly class DetailsLoader
             }
         }
 
-        return ['shipment' => $shipment, 'errors' => $errors];
+        return ['shipment' => $read ? $shipment : null, 'errors' => $errors];
     }
 
     /**
@@ -102,19 +111,15 @@ readonly class DetailsLoader
         ]);
     }
 
+    private function isCopyStale(ShipmentInterface $shipment): bool
+    {
+        return $shipment->getDetails() === []
+            || $shipment->getState() === ShipmentInterface::STATE_CREATED && !$shipment->isFinal();
+    }
+
     private function isTrackingStale(ShipmentInterface $shipment): bool
     {
-        if ($shipment->getState() !== ShipmentInterface::STATE_CREATED) {
-            return false;
-        }
-        $syncedAt = $shipment->getTrackingSyncedAt();
-        if ($syncedAt === null) {
-            return true;
-        }
-        if ($shipment->isFinal()) {
-            return false;
-        }
-
-        return \strtotime($syncedAt . ' UTC') < $this->dateTime->gmtTimestamp() - self::TRACKING_LIFETIME_MINUTES * 60;
+        return $shipment->getState() === ShipmentInterface::STATE_CREATED
+            && ($shipment->getTrackingSyncedAt() === null || !$shipment->isFinal());
     }
 }

@@ -301,7 +301,14 @@ date, cash on delivery status and price, and a full local copy of the order (`de
 waybills become new tracks on the Magento shipment, followed by the customer's e-mail if it waited
 for them (see [The Magento shipment](#the-magento-shipment)), and a `created` shipment without a
 Magento shipment gets another try at one. The carrier's scans are read separately, for the details
-page and the manual **Update status**.
+page and **Update status** in the grids.
+
+The details page shows the stored copy and scans at once, then refreshes them in the background
+through `polkurier/shipment/refreshDetails`
+([`Model\Shipment\Details\DetailsLoader`](../../src/Model/Shipment/Details/DetailsLoader.php)): a
+copy that's missing, or of a shipment on its way (`created` and not final), is read and stored by
+`refreshStatus()`, and so are its scans, each time the page opens. The buttons bar shows when the
+copy was read, and the update while it runs.
 
 Times Polkurier reports are in Polish time
 ([`Model\Sdk\PolkurierTimeZone::ZONE`](../../src/Model/Sdk/PolkurierTimeZone.php)). The status and

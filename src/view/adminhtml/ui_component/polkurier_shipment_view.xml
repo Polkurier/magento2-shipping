@@ -25,7 +25,6 @@
             <button name="link" class="Polkurier\Shipping\Ui\Component\Form\ShipmentView\LinkButton"/>
             <button name="cancel" class="Polkurier\Shipping\Ui\Component\Form\ShipmentView\CancelButton"/>
             <button name="ship" class="Polkurier\Shipping\Ui\Component\Form\ShipmentView\ShipButton"/>
-            <button name="refresh" class="Polkurier\Shipping\Ui\Component\Form\ShipmentView\RefreshButton"/>
             <button name="protocol" class="Polkurier\Shipping\Ui\Component\Form\ShipmentView\ProtocolButton"/>
             <button name="label" class="Polkurier\Shipping\Ui\Component\Form\ShipmentView\LabelButton"/>
         </buttons>

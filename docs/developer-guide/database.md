@@ -106,7 +106,7 @@ adding one (see [Placing](shipments.md#placing)). A request refused as it stands
 | `last_error` | why the last action failed, or a warning such as probable duplicates |
 
 The stored request, the order copy and the scans contain the recipient's personal data. If your
-data retention policy requires it, clear them for old shipments; the details page reads the order
-from Polkurier again when its copy is missing.
+data retention policy requires it, clear them for old shipments; opening the details page reads the
+order from Polkurier and stores its copy again.
 
 Next: [Checkout](checkout.md)

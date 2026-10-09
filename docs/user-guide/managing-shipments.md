@@ -58,13 +58,17 @@ How **Outcome unknown** is settled is in
 
 **Details** in a shipment's row opens everything about it on one page.
 
-![A shipment's details page with Cancel, Update status, Print handover protocol and Print label](images/shipment-details.jpg)
+![A shipment's details page: when it was read from Polkurier, Back, Cancel, Print handover protocol and Print label, then the Polkurier order, the delivery and the addresses](images/shipment-details.jpg)
 
 Besides what the list shows, it has the sender and recipient, the services and handover, the items
 shipped, what each parcel holds, and what Polkurier charges for each item. Under the Polkurier
 order, **Order value** is what Polkurier charges for the shipment, **Amount to pay** what's still
 due of it, and **Invoiced** whether it's invoiced. **Carrier tracking** lists every scan the carrier
 reported, newest first.
+
+The page shows the saved data at once, and updates itself from Polkurier each time it opens, unless
+the shipment is finished. The bar with the buttons says when it was last read from Polkurier, and
+shows the update while it runs.
 
 If Polkurier treated a parcel as another type than it was sent as (for example a standard parcel
 over the carrier's weight limit as non-standard), the page says so; it's priced as that type.
@@ -86,8 +90,8 @@ For a placed shipment:
   offers the formats of thermal label printers: ZPL (203 or 300 dpi), EPL and Datamax. A carrier
   that can't print in the chosen format sends its own, usually a PDF; the file is named to match.
 - **Print handover protocol** downloads the protocol the courier signs when collecting.
-- **Update status** asks Polkurier for the current delivery and cash on delivery status, and the
-  carrier's scans.
+- **Update status**, in a row's **Actions**, asks Polkurier for the current delivery and cash on
+  delivery status, and the carrier's scans. The details page does this itself.
 - **Cancel** cancels it in Polkurier (see [Cancelling](#cancelling)). This can't be undone.
 - **Create Magento shipment** shows when the Magento order isn't shipped yet (see
   [When the Magento shipment is missing](#when-the-magento-shipment-is-missing)).

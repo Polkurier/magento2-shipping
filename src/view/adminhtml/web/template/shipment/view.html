@@ -94,5 +94,13 @@
     </section>
     <!-- /ko -->
 
-    <p class="polkurier-view__note" if="view.synced" text="view.synced"></p>
+    <!-- When the page was read from Polkurier, moved to the left of the buttons bar -->
+    <div class="polkurier-view__sync" afterRender="placeSync">
+        <!-- ko if: updating -->
+        <span class="polkurier-view__sync-updating" translate="'Updating from Polkurier…'"></span>
+        <!-- /ko -->
+        <!-- ko ifnot: updating -->
+        <span text="view.synced"></span>
+        <!-- /ko -->
+    </div>
 </div>

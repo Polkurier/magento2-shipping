@@ -9,6 +9,7 @@ namespace Polkurier\Shipping\Ui\Component\Form\ShipmentView;
 
 use Magento\Framework\App\RequestInterface;
 use Magento\Framework\Exception\NoSuchEntityException;
+use Magento\Framework\UrlInterface;
 use Polkurier\Shipping\Api\ShipmentRepositoryInterface;
 use Polkurier\Shipping\Model\ResourceModel\Shipment\CollectionFactory;
 use Polkurier\Shipping\Model\Shipment\Details\DetailsLoader;
@@ -16,8 +17,9 @@ use Polkurier\Shipping\Ui\Component\Form\FormDataProvider;
 use Polkurier\Shipping\ViewModel\Adminhtml\ShipmentDetails;
 
 /**
- * The shipment details page: fills in the local copy of the Polkurier order if it's missing,
- * then hands the page its sections.
+ * The shipment details page: its sections from what is stored, and whether the page should have
+ * them read from Polkurier in the background
+ * ({@see \Polkurier\Shipping\Controller\Adminhtml\Shipment\RefreshDetails}).
  */
 class DataProvider extends FormDataProvider
 {
@@ -34,6 +36,7 @@ class DataProvider extends FormDataProvider
         private readonly ShipmentRepositoryInterface $shipmentRepository,
         private readonly DetailsLoader $detailsLoader,
         private readonly ShipmentDetails $shipmentDetails,
+        private readonly UrlInterface $url,
         array $meta = [],
         array $data = [],
     ) {
@@ -49,8 +52,14 @@ class DataProvider extends FormDataProvider
         } catch (NoSuchEntityException) {
             return [];
         }
-        $loaded = $this->detailsLoader->ensure($shipment);
 
-        return [$id => ['view' => $this->shipmentDetails->build($loaded['shipment'], $loaded['errors'])]];
+        return [
+            $id => [
+                'view' => $this->shipmentDetails->build($shipment),
+                'state' => $shipment->getState(),
+                'refresh' => $this->detailsLoader->needsRefresh($shipment),
+                'urls' => ['refresh' => $this->url->getUrl('polkurier/shipment/refreshDetails', ['id' => $id])],
+            ],
+        ];
     }
 }

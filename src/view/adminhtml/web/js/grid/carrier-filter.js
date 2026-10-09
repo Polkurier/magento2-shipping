@@ -1,6 +1,6 @@
 /**
  * Copyright (c) 2026 Polkurier.pl
- * All Rights Reserved
+ * Licensed under the MIT License, see LICENSE.md
  */
 /**
  * When Magento's orders list is opened with /carrier/<code>/ in its URL, as the Polkurier menu

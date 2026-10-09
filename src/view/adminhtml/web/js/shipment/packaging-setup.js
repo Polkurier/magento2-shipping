@@ -1,6 +1,6 @@
 /**
  * Copyright (c) 2026 Polkurier.pl
- * All Rights Reserved
+ * Licensed under the MIT License, see LICENSE.md
  */
 /**
  * Sets up Magento's packaging window on the shipment pages of a Polkurier order, with or without

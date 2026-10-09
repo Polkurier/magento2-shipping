@@ -1,6 +1,6 @@
 /**
  * Copyright (c) 2026 Polkurier.pl
- * All Rights Reserved
+ * Licensed under the MIT License, see LICENSE.md
  */
 /**
  * Opens the pickup point map in a dialog; shared by the regular and the multi-address checkout.

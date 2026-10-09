@@ -1,6 +1,6 @@
 /**
  * Copyright (c) 2026 Polkurier.pl
- * All Rights Reserved
+ * Licensed under the MIT License, see LICENSE.md
  */
 /**
  * How the parcels get to the carrier: a courier collecting them, on a date and in a window read

@@ -1,6 +1,6 @@
 /**
  * Copyright (c) 2026 Polkurier.pl
- * All Rights Reserved
+ * Licensed under the MIT License, see LICENSE.md
  */
 /**
  * A text field shown only for some choices of the form (./shown-when).

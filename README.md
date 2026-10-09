@@ -1,6 +1,6 @@
 <!--
  ~ Copyright (c) 2026 Polkurier.pl
- ~ All Rights Reserved
+ ~ Licensed under the MIT License, see LICENSE.md
 -->
 # Polkurier for Magento 2
 
@@ -33,3 +33,7 @@ Then follow the steps in the [developer guide](docs/developer-guide/installation
 - [User guide](docs/user-guide/README.md): setting up and day-to-day use
 - [Developer guide](docs/developer-guide/README.md): installation, how the module works and how to
   extend it
+
+## License
+
+MIT, see [LICENSE.md](LICENSE.md).

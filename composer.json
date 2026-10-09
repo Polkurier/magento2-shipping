@@ -2,9 +2,7 @@
     "name": "polkurier/magento2-shipping",
     "description": "Module for integrating Polkurier service with Magento 2 platform",
     "type": "magento2-module",
-    "license": [
-        "proprietary"
-    ],
+    "license": "MIT",
     "config": {
         "sort-packages": true
     },

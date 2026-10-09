@@ -239,6 +239,7 @@
 "Polkurier order %1 is invoiced, so it can't be cancelled.","Polkurier order %1 is invoiced, so it can't be cancelled."
 "Polkurier order %1 is with the carrier, so it can't be cancelled.","Polkurier order %1 is with the carrier, so it can't be cancelled."
 "Polkurier reports order %1 as cancelled.","Polkurier reports order %1 as cancelled."
+"Polkurier reports order %1 as cancelled, but couldn't confirm it. It is checked again with the next status update.","Polkurier reports order %1 as cancelled, but couldn't confirm it. It is checked again with the next status update."
 "Polkurier has confirmed freight order %1, so it can't be cancelled.","Polkurier has confirmed freight order %1, so it can't be cancelled."
 "Only a shipment whose outcome is unknown can be linked by hand.","Only a shipment whose outcome is unknown can be linked by hand."
 "Polkurier order %1 was not placed by this shop for this shipment, so it can't be linked to it.","Polkurier order %1 was not placed by this shop for this shipment, so it can't be linked to it."

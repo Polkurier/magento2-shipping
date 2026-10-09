@@ -1649,7 +1649,11 @@ class ShipmentManagementTest extends SdkTestCase
             $this->applicationId(),
             NewingObjectManager::factory(GetOrdersMessageBuilderFactory::class),
         );
-        $snapshot = new RemoteOrderApplier($clock);
+        // Polkurier's get_status, which confirms a cancellation, as a stub: the client answers every
+        // call with the same body.
+        $confirmation = $this->createStub(ShipmentGateway::class);
+        $confirmation->method('isCancelled')->willReturn(true);
+        $snapshot = new RemoteOrderApplier($clock, $confirmation);
         $age = new ShipmentAgeChecker($clock);
         $orderLock = new OrderLock($this->locks);
         $orders = new OrderLoader($orderRepository);

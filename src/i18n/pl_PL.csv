@@ -239,6 +239,7 @@
 "Polkurier order %1 is invoiced, so it can't be cancelled.","Zamówienie Polkurier %1 zostało zafakturowane, więc nie można go anulować."
 "Polkurier order %1 is with the carrier, so it can't be cancelled.","Zamówienie Polkurier %1 jest już u przewoźnika, więc nie można go anulować."
 "Polkurier reports order %1 as cancelled.","Polkurier podaje, że zamówienie %1 jest anulowane."
+"Polkurier reports order %1 as cancelled, but couldn't confirm it. It is checked again with the next status update.","Polkurier podaje, że zamówienie %1 jest anulowane, ale nie potwierdził tego. Zostanie to sprawdzone ponownie przy następnej aktualizacji statusu."
 "Polkurier has confirmed freight order %1, so it can't be cancelled.","Polkurier potwierdził zamówienie spedycyjne %1, więc nie można go anulować."
 "Only a shipment whose outcome is unknown can be linked by hand.","Ręcznie powiązać można tylko przesyłkę o nieznanym wyniku."
 "Polkurier order %1 was not placed by this shop for this shipment, so it can't be linked to it.","Zamówienie Polkurier %1 nie zostało złożone przez ten sklep dla tej przesyłki, więc nie można go z nią powiązać."

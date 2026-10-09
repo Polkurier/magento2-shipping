@@ -7,11 +7,13 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Test\Unit\Model\Shipment\Status;
 
+use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\TestFramework\Unit\Helper\ObjectManager;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
+use Polkurier\Shipping\Model\Sdk\ShipmentGateway;
 use Polkurier\Shipping\Model\Shipment;
 use Polkurier\Shipping\Model\Shipment\Status\RemoteOrderApplier;
 use Polkurier\Shipping\Test\Unit\Support\FixedDateTime;
@@ -56,7 +58,7 @@ class RemoteOrderApplierTest extends SdkTestCase
 
         self::assertSame(
             $final,
-            (new RemoteOrderApplier(new FixedDateTime((int)\strtotime(self::NOW . ' UTC'))))->isFinal($shipment),
+            $this->applier(new FixedDateTime((int)\strtotime(self::NOW . ' UTC')))->isFinal($shipment),
         );
     }
 
@@ -66,7 +68,7 @@ class RemoteOrderApplierTest extends SdkTestCase
             ->setState(ShipmentInterface::STATE_UNKNOWN)
             ->setTrackingUrl('https://kept.example');
 
-        (new RemoteOrderApplier(new FixedDateTime((int)\strtotime(self::NOW . ' UTC'))))
+        $this->applier(new FixedDateTime((int)\strtotime(self::NOW . ' UTC')))
             ->apply($this->order(), $shipment);
 
         self::assertSame(ShipmentInterface::STATE_CREATED, $shipment->getState(), 'Found, so placed after all.');
@@ -91,17 +93,49 @@ class RemoteOrderApplierTest extends SdkTestCase
         ));
         $shipment = $this->shipment()->setState(ShipmentInterface::STATE_CREATED);
 
-        (new RemoteOrderApplier(new FixedDateTime()))->apply($this->order($json), $shipment);
+        $this->applier(new FixedDateTime())->apply($this->order($json), $shipment);
 
         self::assertSame(ShipmentInterface::STATE_CANCELLED, $shipment->getState());
         self::assertTrue($shipment->isFinal());
+    }
+
+    public function testAWaybillCancelledOnALiveOrderLeavesTheShipmentPlaced(): void
+    {
+        $json = (string)\json_encode(\array_replace_recursive(
+            \json_decode(self::fixture('get_orders.json'), true),
+            ['response' => ['result' => [['status_code' => 'A', 'status' => 'Anulowane', 'COD' => null]]]],
+        ));
+        $shipment = $this->shipment()->setState(ShipmentInterface::STATE_CREATED);
+
+        $this->applier(new FixedDateTime(), cancelled: false)->apply($this->order($json), $shipment);
+
+        self::assertSame(ShipmentInterface::STATE_CREATED, $shipment->getState(), 'get_status answers for it.');
+        self::assertFalse($shipment->isFinal());
+    }
+
+    public function testACancellationPolkurierCantConfirmChangesNothingYet(): void
+    {
+        $json = (string)\json_encode(\array_replace_recursive(
+            \json_decode(self::fixture('get_orders.json'), true),
+            ['response' => ['result' => [['status_code' => 'A', 'status' => 'Anulowane', 'COD' => null]]]],
+        ));
+        $shipment = $this->shipment()->setState(ShipmentInterface::STATE_CREATED);
+
+        try {
+            $this->applier(new FixedDateTime(), cancelled: null)->apply($this->order($json), $shipment);
+            self::fail('Checked again with the next update.');
+        } catch (LocalizedException $e) {
+            self::assertStringStartsWith('Polkurier reports order 12345-678 as cancelled', $e->getMessage());
+        }
+        self::assertSame(ShipmentInterface::STATE_CREATED, $shipment->getState());
+        self::assertNull($shipment->getStatusCode(), 'Nothing applied.');
     }
 
     public function testACancelledShipmentIsFinished(): void
     {
         $shipment = $this->shipment()->setState(ShipmentInterface::STATE_CANCELLED)->setStatusCode('OC');
 
-        self::assertTrue((new RemoteOrderApplier(new FixedDateTime()))->isFinal($shipment));
+        self::assertTrue($this->applier(new FixedDateTime())->isFinal($shipment));
     }
 
     private function shipment(): Shipment
@@ -120,5 +154,13 @@ class RemoteOrderApplierTest extends SdkTestCase
             ->orders()
             ->getOrders(new GetOrdersMessage(searchPhrase: '12345-678'))
             ->getResult()[0];
+    }
+
+    private function applier(FixedDateTime $clock, ?bool $cancelled = true): RemoteOrderApplier
+    {
+        $gateway = $this->createStub(ShipmentGateway::class);
+        $gateway->method('isCancelled')->willReturn($cancelled);
+
+        return new RemoteOrderApplier($clock, $gateway);
     }
 }

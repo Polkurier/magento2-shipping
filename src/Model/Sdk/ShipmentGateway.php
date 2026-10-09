@@ -49,6 +49,11 @@ readonly class ShipmentGateway
     private const string FATAL_PREFIX = 'Wystąpił nieoczekiwany błąd';
 
     /**
+     * get_status's refusal, without an error code, for a cancelled order.
+     */
+    private const string CANCELLED_ORDER = 'Zamówienie anulowane';
+
+    /**
      * cURL errors that mean the request never reached Polkurier: no proxy or host found, no
      * connection, no TLS handshake.
      */
@@ -100,6 +105,27 @@ readonly class ShipmentGateway
         return $this->call(fn(): OrderStatusMessage => $this->polkurierClient->orders()->getStatus(
             new GetStatusMessage($number, tracking: $tracking),
         ));
+    }
+
+    /**
+     * Whether the order itself is cancelled, as get_status tells: it refuses a cancelled order, and
+     * answers for a live one. The order listing reports a cancelled waybill of a live order with the
+     * same status code as a cancelled order. Null when Polkurier can't be asked, or refuses for
+     * another reason.
+     */
+    public function isCancelled(string $number): ?bool
+    {
+        try {
+            $this->polkurierClient->orders()->getStatus(new GetStatusMessage($number));
+
+            return false;
+        } catch (WebserviceException $e) {
+            $answer = $e->getErrorMessage()->getResponse();
+
+            return \is_string($answer) && \trim($answer) === self::CANCELLED_ORDER ? true : null;
+        } catch (PolkurierException) {
+            return null;
+        }
     }
 
     /**

@@ -8,6 +8,7 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Test\Unit\Model\Shipment\Status;
 
 use PHPUnit\Framework\Attributes\CoversClass;
+use Polkurier\Shipping\Model\Sdk\ShipmentGateway;
 use Polkurier\Shipping\Model\Shipment\Status\RemoteOrderApplier;
 use Polkurier\Shipping\Test\Unit\Support\FixedDateTime;
 use Polkurier\Shipping\Test\Unit\Support\SdkTestCase;
@@ -26,7 +27,7 @@ class RemoteOrderApplierDetailsTest extends SdkTestCase
             ->getOrders(new GetOrdersMessage(orderNo: '12345-678'))
             ->getResult()[0];
 
-        $details = (new RemoteOrderApplier(new FixedDateTime()))->fromOrder($order);
+        $details = (new RemoteOrderApplier(new FixedDateTime(), $this->createStub(ShipmentGateway::class)))->fromOrder($order);
 
         self::assertSame('12345-678', $details['number']);
         self::assertSame('2026-06-20 10:59:43', $details['date']);
@@ -70,7 +71,7 @@ class RemoteOrderApplierDetailsTest extends SdkTestCase
         ]));
         $status = $this->clientPool($http)->orders()->getStatus(new GetStatusMessage('12345-678', tracking: true));
 
-        $tracking = (new RemoteOrderApplier(new FixedDateTime()))->tracking($status);
+        $tracking = (new RemoteOrderApplier(new FixedDateTime(), $this->createStub(ShipmentGateway::class)))->tracking($status);
 
         self::assertSame(['2026-06-25 09:00:00', '2026-06-24 08:00:00'], \array_column($tracking, 'date'));
         self::assertSame('Warszawa', $tracking[0]['location']);
@@ -106,7 +107,7 @@ class RemoteOrderApplierDetailsTest extends SdkTestCase
         ]));
         $status = $this->clientPool($http)->orders()->getStatus(new GetStatusMessage('12345-678', tracking: true));
 
-        $tracking = (new RemoteOrderApplier(new FixedDateTime()))->tracking($status);
+        $tracking = (new RemoteOrderApplier(new FixedDateTime(), $this->createStub(ShipmentGateway::class)))->tracking($status);
 
         self::assertSame('Przygotowana przez Nadawcę, oczekuje na odbiór', $tracking[0]['description']);
         self::assertSame('', $tracking[0]['location']);

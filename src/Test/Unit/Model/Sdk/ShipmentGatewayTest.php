@@ -17,8 +17,14 @@ use Polkurier\Shipping\Model\Sdk\ErrorMessageResolver;
 use Polkurier\Shipping\Model\Sdk\PolkurierClient;
 use Polkurier\Shipping\Model\Sdk\ShipmentGateway;
 use Polkurier\Webservice\Api\Service\OrdersServiceInterface;
+use Polkurier\Webservice\Enum\Http\ResponseStatusEnum;
 use Polkurier\Webservice\Exception\ConnectionException;
+use Polkurier\Webservice\Exception\WebserviceException;
+use Polkurier\Webservice\Http\Response\ErrorMessage;
 use Polkurier\Webservice\Request\Order\CreateOrderMessage;
+use Polkurier\Webservice\Response\Order\OrderStatusMessage;
+use Psr\Http\Message\RequestInterface;
+use Psr\Http\Message\ResponseInterface;
 
 #[CoversClass(ShipmentGateway::class)]
 #[AllowMockObjectsWithoutExpectations]
@@ -60,5 +66,49 @@ class ShipmentGatewayTest extends TestCase
         } catch (LocalizedException $e) {
             self::assertSame($uncertain, $e instanceof PlacementUncertainException);
         }
+    }
+
+    /**
+     * @return array<string, array{\Closure(self): (OrderStatusMessage|\Throwable), ?bool}>
+     */
+    public static function statusAnswers(): array
+    {
+        $refusal = static fn(string $reason): \Closure => static fn(self $test): \Throwable => new WebserviceException(
+            new ErrorMessage(ResponseStatusEnum::Error, $reason),
+            $test->createStub(RequestInterface::class),
+            $test->createStub(ResponseInterface::class),
+        );
+
+        return [
+            'a status: a live order' => [
+                static fn(self $test): OrderStatusMessage => $test->createStub(OrderStatusMessage::class),
+                false,
+            ],
+            'refused as cancelled' => [$refusal('Zamówienie anulowane'), true],
+            'refused otherwise' => [$refusal('Brak zamówienia 711400-27'), null],
+            'not reached' => [
+                static fn(): \Throwable => new ConnectionException('cURL error 7: Failed to connect'),
+                null,
+            ],
+        ];
+    }
+
+    /**
+     * @param \Closure(self): (OrderStatusMessage|\Throwable) $answer
+     */
+    #[DataProvider('statusAnswers')]
+    public function testGetStatusTellsACancelledOrderFromALiveOne(\Closure $answer, ?bool $cancelled): void
+    {
+        $orders = $this->createStub(OrdersServiceInterface::class);
+        $result = $answer($this);
+        if ($result instanceof \Throwable) {
+            $orders->method('getStatus')->willThrowException($result);
+        } else {
+            $orders->method('getStatus')->willReturn($result);
+        }
+        $client = $this->createStub(PolkurierClient::class);
+        $client->method('orders')->willReturn($orders);
+
+        self::assertSame($cancelled, (new ShipmentGateway($client, new ErrorMessageResolver()))->isCancelled('711400-27'));
     }
 }

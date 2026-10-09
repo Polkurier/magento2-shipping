@@ -7,9 +7,11 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Model\Shipment\Status;
 
+use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Stdlib\DateTime as DateFormat;
 use Magento\Framework\Stdlib\DateTime\DateTime;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
+use Polkurier\Shipping\Model\Sdk\ShipmentGateway;
 use Polkurier\Webservice\Enum\Order\CodStatusEnum;
 use Polkurier\Webservice\Enum\Order\OrderStatusCodeEnum;
 use Polkurier\Webservice\Response\BaseAddress;
@@ -36,10 +38,16 @@ readonly class RemoteOrderApplier
 
     public function __construct(
         private DateTime $dateTime,
+        private ShipmentGateway $shipmentGateway,
     ) {}
 
+    /**
+     * @throws LocalizedException when Polkurier reports the order cancelled, and can't confirm it
+     */
     public function apply(Order $order, ShipmentInterface $shipment): void
     {
+        $cancelled = $order->getStatusCode() === OrderStatusCodeEnum::Canceled->value
+            && $this->isCancelled($order, $shipment);
         $waybills = [];
         foreach ($order->getWaybills() as $waybill) {
             $waybills[] = $waybill->getNumber();
@@ -65,12 +73,36 @@ readonly class RemoteOrderApplier
             ShipmentInterface::STATE_PENDING,
             ShipmentInterface::STATE_FAILED,
         ];
-        if ($order->getStatusCode() === OrderStatusCodeEnum::Canceled->value) {
+        if ($cancelled) {
             $shipment->setState(ShipmentInterface::STATE_CANCELLED);
         } elseif (\in_array($shipment->getState(), $notConfirmed, true)) {
             $shipment->setState(ShipmentInterface::STATE_CREATED);
         }
         $shipment->setIsFinal($this->isFinal($shipment));
+    }
+
+    /**
+     * Whether an order the listing reports as cancelled is: the listing reports a cancelled waybill
+     * of a live order alike.
+     *
+     * @throws LocalizedException
+     */
+    private function isCancelled(Order $order, ShipmentInterface $shipment): bool
+    {
+        if ($shipment->getState() === ShipmentInterface::STATE_CANCELLED) {
+            return true;
+        }
+        $number = (string)($order->getNumber() ?? $shipment->getPolkurierNumber());
+        $cancelled = $this->shipmentGateway->isCancelled($number);
+        if ($cancelled === null) {
+            throw new LocalizedException(__(
+                'Polkurier reports order %1 as cancelled, but couldn\'t confirm it. '
+                . 'It is checked again with the next status update.',
+                $number,
+            ));
+        }
+
+        return $cancelled;
     }
 
     /**

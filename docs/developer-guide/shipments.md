@@ -367,7 +367,11 @@ signature, and 503 when the refresh failed.
   Magento shipment: the shipment and its items stay, but its label, `packages` and the cancelled
   order's tracks are removed, so another Polkurier order can go on it. A failure there is logged
   and the cancellation stands. A refresh that finds the order cancelled in the Polkurier panel does
-  the same.
+  the same. The order listing reports a cancelled waybill of a live order with the same `A`, so
+  before taking an order as cancelled,
+  [`Model\Shipment\Status\RemoteOrderApplier`](../../src/Model/Shipment/Status/RemoteOrderApplier.php)
+  asks `get_status`, which refuses a cancelled order and answers for a live one. When it can't
+  tell, nothing is applied, and the next refresh tries again.
 - **Labels and protocols.**
   [`Model\Shipment\DocumentService`](../../src/Model/Shipment/DocumentService.php) fetches them for
   one or more shipments, in one document. With more than one, it refreshes them first and leaves

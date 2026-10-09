@@ -46,8 +46,9 @@ The module adds a **Polkurier** menu to the admin. Its settings are under **Stor
 ### Multi-address checkout
 
 Pickup points in **Check Out with Multiple Addresses** come with a separate add-on,
-`polkurier/magento2-multishipping` ([installation](../developer-guide/installation.md#multi-address-checkout)).
-Without it, that checkout still works, but customers can't choose a pickup point in it.
+`polkurier/magento2-multishipping`
+([installation](../developer-guide/installation.md#multi-address-checkout)). Without it, that
+checkout still works, but customers can't choose a pickup point in it.
 
 ## Several websites
 

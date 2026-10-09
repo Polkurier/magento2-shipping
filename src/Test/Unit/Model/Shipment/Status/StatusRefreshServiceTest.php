@@ -97,11 +97,18 @@ class StatusRefreshServiceTest extends TestCase
         self::assertSame(['save'], $this->happened);
     }
 
-    public function testNewWaybillsGoOnTheMagentoShipment(): void
+    public function testNewWaybillsGoOnTheMagentoShipmentAndThenTheCustomerMayBeEmailed(): void
     {
         $this->refresh(11, ['waybills' => ['W1', 'W2']])->refresh(5);
 
-        self::assertSame(['save', 'tracks 11: W1, W2'], $this->happened);
+        self::assertSame(['save', 'tracks 11: W1, W2', 'notify 11'], $this->happened);
+    }
+
+    public function testWithoutNewWaybillsTheCustomerIsNotEmailedHere(): void
+    {
+        $this->refresh(11, ['waybills' => ['W1']])->refresh(5);
+
+        self::assertSame(['save'], $this->happened);
     }
 
     public function testWhatPolkurierSaidIsKeptWhenAddingTheWaybillsFailsAfterwards(): void
@@ -230,6 +237,11 @@ class StatusRefreshServiceTest extends TestCase
                 $this->happened[] = $inPolkurier ? 'cancelled in Polkurier' : 'cancelled here';
 
                 return $this->createStub(Order::class);
+            },
+        );
+        $followUp->method('notifyCustomer')->willReturnCallback(
+            function (Order $order, ShipmentInterface $shipment): void {
+                $this->happened[] = 'notify ' . $shipment->getShipmentId();
             },
         );
         $followUp->method('ship')->willReturnCallback(function () use ($shipError): ?string {

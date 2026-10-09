@@ -66,6 +66,10 @@ define([
             this.mode.subscribe(function (mode) {
                 if (mode && mode !== this.get('pickup_mode')) {
                     this.set('pickup_mode', mode);
+                    // Collected from the sender: no drop-off point, which would show here unused.
+                    if (mode !== 'drop_off' && rules.filled(this.get('sender_point_id'))) {
+                        this.set('sender_point_id', '');
+                    }
                 }
             }, this);
             this.date.subscribe(function (date) {
@@ -141,16 +145,17 @@ define([
         },
 
         /**
-         * Another sender, carrier or drop-off point starts from the default handover again
-         * (rules.defaultHandover()).
+         * Another sender or carrier starts from the default handover again (rules.defaultHandover()).
+         * A drop-off point chosen or removed here keeps the handover as it is.
          *
          * @param {Object} data
          * @param {Object} features
          */
         followSenderAndCarrier: function (data, features) {
-            // The sender's point comes with the sender, and may be set after it.
-            const key = [data.carrier_code, data.sender_address_id, data.sender_point_id].map(function (value) {
-                return String(value || '');
+            // The sender and carrier pickers set the sender's point along with the sender or the
+            // carrier, before the debounced refresh reads it.
+            const key = [data.carrier_code, data.sender_address_id].map(function (value) {
+                return String(value === null || value === undefined ? '' : value);
             }).join('|');
 
             if (this.senderAndCarrier !== undefined && this.senderAndCarrier !== key) {

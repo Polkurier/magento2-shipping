@@ -37,6 +37,25 @@ readonly class RequestedShipments
     }
 
     /**
+     * The shipment ids the request names in "ids": a comma-separated list, or a list of such lists.
+     * Anything else in it is ignored.
+     *
+     * @return int[]
+     */
+    public function getIds(RequestInterface $request): array
+    {
+        $param = $request->getParam('ids');
+        $ids = [];
+        foreach (\is_array($param) ? $param : [$param] as $value) {
+            if (\is_scalar($value)) {
+                \array_push($ids, ...\array_map('intval', \explode(',', (string)$value)));
+            }
+        }
+
+        return \array_values(\array_filter($ids));
+    }
+
+    /**
      * The shipments named by ids, selected in a grid, or the one named by id.
      *
      * @return ShipmentInterface[]
@@ -44,7 +63,7 @@ readonly class RequestedShipments
      */
     public function getSelected(RequestInterface $request): array
     {
-        $ids = \array_filter(\array_map('intval', \explode(',', (string)$request->getParam('ids'))));
+        $ids = $this->getIds($request);
         // Sent from an order's Polkurier tab
         // ({@see \Polkurier\Shipping\Ui\Component\Listing\Shipment\OrderScopedMassAction}): that
         // order's shipments only, whatever else the selection says.

@@ -12,6 +12,7 @@ use Magento\Framework\App\Action\HttpPostActionInterface;
 use Magento\Framework\Controller\Result\Redirect;
 use Magento\Framework\Exception\LocalizedException;
 use Polkurier\Shipping\Api\ShipmentManagementInterface;
+use Polkurier\Shipping\Model\RequestParam;
 
 /**
  * Links a shipment whose outcome is unknown to the Polkurier order the merchant names.
@@ -31,7 +32,7 @@ class Adopt extends AbstractShipmentAction implements HttpPostActionInterface
     public function execute(): Redirect
     {
         $shipment = $this->getShipment();
-        $number = \trim((string)$this->getRequest()->getParam('polkurier_number'));
+        $number = \trim(RequestParam::string($this->getRequest(), 'polkurier_number'));
         if ($shipment !== null && $number !== '') {
             try {
                 $shipment = $this->shipmentManagement->adopt((int)$shipment->getId(), $number);

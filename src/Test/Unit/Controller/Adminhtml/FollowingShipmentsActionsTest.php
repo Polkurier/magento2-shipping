@@ -56,6 +56,25 @@ class FollowingShipmentsActionsTest extends AdminActionTestCase
         self::assertCount(1, $this->messages['error']);
     }
 
+    public function testIdsSentAsAListAreNotCarriedBackToTheForm(): void
+    {
+        $this->params = [
+            'ids' => ['4', '5'],
+            'pickup_date' => '2026-10-07',
+            'pickup_time_from' => '14:00',
+            'pickup_time_to' => '11:00',
+        ];
+
+        (new Pickup(
+            $this->context(),
+            $this->requested([]),
+            $this->createStub(PickupService::class),
+            $this->flashMessageCollectorFactory(),
+        ))->execute();
+
+        self::assertSame(['*/*/pickupForm', []], $this->redirect);
+    }
+
     public function testAPickupBookedForSomeSaysWhichAndWhyNotTheRest(): void
     {
         $this->params = ['pickup_date' => '2026-10-07', 'pickup_time_from' => '11:00', 'pickup_time_to' => '14:00'];

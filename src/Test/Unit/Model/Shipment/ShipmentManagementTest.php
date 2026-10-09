@@ -457,6 +457,32 @@ class ShipmentManagementTest extends SdkTestCase
         self::assertSame(['57: created, linked'], $this->emails);
     }
 
+    public function testTheCustomerIsEmailedOnceTheWaybillsAreIssued(): void
+    {
+        $this->http->willAnswerWith(self::success(['order_number' => '18015-1001', 'label' => []]));
+        $this->nativeShipmentService->method('ship')->willReturn(55);
+
+        $shipment = $this->management()->create(self::ORDER_ID, $this->draft()->setNotifyCustomer(true));
+
+        self::assertSame(55, $shipment->getShipmentId());
+        self::assertSame([], $this->emails, 'No waybill to track yet.');
+
+        $this->http->willAnswerWith(self::success($this->orderList([
+            $this->remoteOrder('18015-1001', 'Zam. 000000042', '00-001', '600700800', 2),
+        ])));
+        $this->management()->refreshStatus((int)$shipment->getId());
+
+        self::assertSame(['55: created, linked'], $this->emails);
+
+        $this->http->willAnswerWith(self::success($this->orderList([
+            ['waybills' => [['number' => 'WB-2', 'is_default' => false]]]
+                + $this->remoteOrder('18015-1001', 'Zam. 000000042', '00-001', '600700800', 2),
+        ])));
+        $this->management()->refreshStatus((int)$shipment->getId());
+
+        self::assertSame(['55: created, linked'], $this->emails, 'Never twice.');
+    }
+
     public function testAFailingEmailLeavesTheShipmentAsItIs(): void
     {
         $this->http->willAnswerWith(self::success(['order_number' => '18015-1001', 'label' => ['WB-111']]));
@@ -566,6 +592,38 @@ class ShipmentManagementTest extends SdkTestCase
             'It is reconciled later.',
         );
         self::assertSame([], $this->events->of(ApiEventEnum::OrderCreateAfter));
+    }
+
+    public function testAnUnconfirmedLabelForAnExistingMagentoShipmentGoesOnItOnceFound(): void
+    {
+        $this->http->willAnswerWith(
+            '{"status":"error","status_code":1,"error_code":"UNKNOWN_ERROR","response":"Nieznany błąd"}',
+        );
+
+        try {
+            $this->placing()->forNativeShipment(self::ORDER_ID, $this->draft(), 9);
+            self::fail('Expected the label to be refused.');
+        } catch (LocalizedException $e) {
+            self::assertStringContainsString('the Magento shipment is completed once it is found', $e->getMessage());
+        }
+
+        $shipment = $this->onlyShipment();
+        self::assertSame(9, $shipment->getTargetShipmentId());
+        self::assertSame([], $shipment->getShipItems(), 'It takes no items: they are on the shipment.');
+
+        $shipment->setData('created_at', \gmdate('Y-m-d H:i:s', \time() - 60));
+        $this->http = new RecordingClient();
+        $this->http->willAnswerWith(self::success($this->orderList([
+            $this->remoteOrder('POL0007', 'Zam. 000000042', '00-001', '600700800', 2),
+        ])));
+        $this->nativeShipmentService->expects(self::once())->method('ship')->willReturnCallback(
+            static fn(Order $order, ShipmentInterface $placed, array $qtys, ?int $targetId): int => (int)$targetId,
+        );
+
+        $shipment = $this->management()->reconcile((int)$shipment->getId());
+
+        self::assertSame(ShipmentInterface::STATE_CREATED, $shipment->getState());
+        self::assertSame(9, $shipment->getShipmentId(), 'On the Magento shipment it was placed for.');
     }
 
     public function testALabelForAMagentoShipmentWithAStandingPolkurierOrderIsRefusedBeforeAnythingIsPlaced(): void
@@ -1531,6 +1589,7 @@ class ShipmentManagementTest extends SdkTestCase
             $this->carrierNames(),
             $this->shipmentSender(),
             $this->salesData(),
+            $this->createStub(ScopeConfigInterface::class),
         );
 
         return [
@@ -1790,6 +1849,8 @@ class ShipmentManagementTest extends SdkTestCase
                 $linked !== [] ? $linked[0]->getState() : 'none',
                 $linked !== [] ? 'linked' : 'unlinked',
             );
+            // As Magento marks it.
+            $this->emailSent = true;
 
             return true;
         });

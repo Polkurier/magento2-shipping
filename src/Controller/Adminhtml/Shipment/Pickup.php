@@ -13,6 +13,7 @@ use Magento\Framework\App\ActionInterface;
 use Magento\Framework\Controller\Result\Redirect;
 use Magento\Framework\Exception\LocalizedException;
 use Polkurier\Shipping\Model\Admin\FlashMessageCollectorFactory;
+use Polkurier\Shipping\Model\RequestParam;
 use Polkurier\Shipping\Model\Shipment\PickupService;
 
 /**
@@ -34,9 +35,9 @@ class Pickup extends AbstractShipmentAction implements HttpPostActionInterface
 
     public function execute(): Redirect
     {
-        $date = (string)$this->getRequest()->getParam('pickup_date');
-        $from = (string)$this->getRequest()->getParam('pickup_time_from');
-        $to = (string)$this->getRequest()->getParam('pickup_time_to');
+        $date = RequestParam::string($this->getRequest(), 'pickup_date');
+        $from = RequestParam::string($this->getRequest(), 'pickup_time_from');
+        $to = RequestParam::string($this->getRequest(), 'pickup_time_to');
         try {
             PickupService::window($date, $from, $to);
         } catch (LocalizedException $e) {
@@ -44,10 +45,10 @@ class Pickup extends AbstractShipmentAction implements HttpPostActionInterface
 
             // Back to the form, with the shipments chosen.
             return $this->resultRedirectFactory->create()->setPath('*/*/pickupForm', \array_filter([
-                'ids' => (string)$this->getRequest()->getParam('ids'),
+                'ids' => RequestParam::string($this->getRequest(), 'ids') ?: null,
                 'order_id' => (int)$this->getRequest()->getParam('order_id') ?: null,
                 ActionInterface::PARAM_NAME_URL_ENCODED
-                    => (string)$this->getRequest()->getParam(ActionInterface::PARAM_NAME_URL_ENCODED) ?: null,
+                    => RequestParam::string($this->getRequest(), ActionInterface::PARAM_NAME_URL_ENCODED) ?: null,
             ]));
         }
         $flash = $this->flashMessageCollectorFactory->create();

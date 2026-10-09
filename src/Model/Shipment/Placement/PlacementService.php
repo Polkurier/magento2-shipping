@@ -78,10 +78,10 @@ readonly class PlacementService
     ): ShipmentInterface {
         $shipment = $this->place($orderId, $draft, false, $magentoShipmentId);
         if ($shipment->getState() !== ShipmentInterface::STATE_CREATED) {
-            // Magento would save a shipment without tracking; it is created once the order is reconciled.
+            // Magento would save a shipment without tracking; it is completed once the order is reconciled.
             throw new LocalizedException(__(
                 'Polkurier did not confirm the order, and it may or may not have been placed. '
-                . 'It is checked automatically; the Magento shipment is created once it is found.',
+                . 'It is checked automatically; the Magento shipment is completed once it is found.',
             ));
         }
 
@@ -165,11 +165,7 @@ readonly class PlacementService
         $target = $this->target($order, $draft, $shipInMagento, $magentoShipmentId);
         $this->draftValidator->prepare($draft, $storeId);
         $notPlaced = $this->attemptRecorder->notPlaced($orderId);
-        $externalIds = $this->externalIdService->forAttempt(
-            $order,
-            $notPlaced,
-            $target['shipment_id'] ?? $magentoShipmentId,
-        );
+        $externalIds = $this->externalIdService->forAttempt($order, $notPlaced, $target['shipment_id']);
         $message = $this->createOrderMessageMapper->map($draft, $storeId, [
             'application' => $this->applicationIdProvider->get(),
             'id' => $externalIds['id'],
@@ -207,7 +203,10 @@ readonly class PlacementService
             return $this->nativeShipmentService->getTarget($order, $draft);
         }
         if ($magentoShipmentId !== null) {
+            // An existing one, recorded so that an order found placed later goes on it.
             $this->nativeShipmentService->assertFree($order, $magentoShipmentId);
+
+            return ['qtys' => [], 'shipment_id' => $magentoShipmentId, 'packages' => []];
         }
         // A Magento shipment being created is checked by Magento against what the order has left,
         // and its items already count as shipped on the order: they're taken as they are.

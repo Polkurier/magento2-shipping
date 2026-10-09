@@ -6,7 +6,8 @@
 /**
  * A drop-off point's id, typed in or chosen on the pickup point map, which starts at the form's
  * postcode and shows only points that take parcels for sending.
- * The map, where its token comes from, and the providers it shows come with the field's config.
+ * The map, where its token comes from, and the providers it shows come with the field's config;
+ * without a map, the id can only be typed in.
  */
 define([
     'Magento_Ui/js/form/element/abstract',

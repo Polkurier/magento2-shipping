@@ -327,12 +327,12 @@ define([
                 } else if (c.insurance_with_cod && filled(values.cod_amount) && !filled(values.insurance_amount)) {
                     values.insurance_amount = Number(values.cod_amount).toFixed(2);
                 }
-                if (values.pickup_mode === 'drop_off' && !c.drop_off) {
-                    values.pickup_mode = 'courier';
-                }
-                // A carrier that takes parcels only at points: they're dropped off there.
+                // A carrier that takes parcels only at points: they're dropped off there, whatever
+                // else it says.
                 if (c.sender_point === 'REQUIRED') {
                     values.pickup_mode = 'drop_off';
+                } else if (values.pickup_mode === 'drop_off' && !c.drop_off) {
+                    values.pickup_mode = 'courier';
                 }
                 if (!c.pickup_date) {
                     values.pickup_date = values.pickup_time_from = values.pickup_time_to = '';

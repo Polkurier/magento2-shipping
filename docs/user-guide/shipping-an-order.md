@@ -50,11 +50,12 @@ When Polkurier accepts the shipment, the Polkurier order's page opens and the Ma
 shipped.
 
 **Email the customer about the shipment**, under the price, sends Magento's shipment e-mail once
-Polkurier has accepted the shipment and the Magento shipment is created; if the result is unclear,
-once the order is found placed. It's unticked to start with, as on Magento's shipment page. It
-isn't offered when the Polkurier order goes on a Magento shipment the customer was already
-e-mailed about, or when Magento's shipment e-mails are off (**Stores > Configuration > Sales >
-Sales Emails > Shipment**).
+Polkurier has accepted the shipment and the Magento shipment has its tracking numbers; if the result
+is unclear, once the order is found placed. A carrier that issues its waybills later gets them on
+the Magento shipment with a status update, and the e-mail goes then. It's unticked to start with, as
+on Magento's shipment page. It isn't offered when the Polkurier order goes on a Magento shipment the
+customer was already e-mailed about, or when Magento's shipment e-mails are off (**Stores >
+Configuration > Sales > Sales Emails > Shipment**).
 
 If Polkurier refuses the shipment (a missing phone number, a parcel too big for the carrier, a
 date the courier doesn't come on), you see the reason. Everything you entered stays: fix it and
@@ -159,10 +160,10 @@ window opens. **Pack automatically**, next to **Add Package**, packs them again.
 and weights before saving. Envelopes, pallets and parcels can't be mixed in one shipment; you're
 told when you save, before anything is sent.
 
-When Polkurier accepts the shipment, the Magento shipment is created with the waybills as
-tracking numbers, and Magento sends the e-mail if it was ticked. **Print Shipping Label** gives you the Polkurier label, and the **Polkurier
-order** column on the order's Shipments tab opens the Polkurier shipment (see
-[Managing shipments](managing-shipments.md)).
+When Polkurier accepts the shipment, the Magento shipment is created with the waybills as tracking
+numbers, and Magento sends the e-mail if it was ticked. **Print Shipping Label** gives you the
+Polkurier label, and the **Polkurier order** column on the order's Shipments tab opens the Polkurier
+shipment (see [Managing shipments](managing-shipments.md)).
 
 If the label isn't ready yet, the shipment is still created and you're told. Print the label later
 from the Polkurier shipment, or click **Create Shipping Label** on the Magento shipment: it fetches
@@ -177,9 +178,14 @@ Without **Create Shipping Label**, **Submit Shipment** saves the Magento shipmen
 with no Polkurier order, and e-mails the customer if **Email Copy of Shipment** is ticked. That
 lets you tell the customer the order is being prepared before anything is sent with Polkurier.
 
-The Polkurier order is added later from the shipment's page, with **Create Shipping Label** or
-**Add a Polkurier order** (see
-[A Magento shipment without a Polkurier order](managing-shipments.md#a-magento-shipment-without-a-polkurier-order)).
+While the order has a Polkurier order whose result is unclear, or one placed whose Magento shipment
+isn't created yet, a shipment without a label isn't saved and you're told why: that Polkurier
+order's Magento shipment is created automatically, from the items the order has left. Once it's
+settled, the rest of the order can be shipped.
+
+The Polkurier order is added later from the shipment's page, with **Create Shipping Label** or **Add
+a Polkurier order** (see [A Magento shipment without a Polkurier
+order](managing-shipments.md#a-magento-shipment-without-a-polkurier-order)).
 
 ### Before your first label
 
@@ -300,8 +306,11 @@ you place a shipment
 If more than one is found, cancel the ones you don't need in the Polkurier panel. They're named in
 a comment on the order and under **Last error**.
 
-On Magento's shipment page, an unclear result creates no Magento shipment yet. Once the Polkurier
-order is found, the order is shipped automatically. Don't create the label again meanwhile.
+On Magento's New Shipment page, an unclear result creates no Magento shipment yet. Once the
+Polkurier order is found, the order is shipped automatically. With **Create Shipping Label** on an
+existing Magento shipment, the Polkurier order found goes on that shipment, with its waybills as
+tracking numbers. Until then, a new label for the order is refused, and so is a shipment without a
+label (see [A shipment without a label](#a-shipment-without-a-label)).
 
 The automatic check needs Magento's cron to run.
 

@@ -202,8 +202,12 @@ readonly class CreateOrderMessageMapper
      */
     private function mapSender(ShipmentDraftInterface $draft, int $storeId): OrderAddressMessage
     {
-        // The point the parcels are handed over at is the shipment's, whichever the sender is.
-        $pointId = $draft->getSenderPointId();
+        // The point the parcels are handed over at is the shipment's, whichever the sender is. It
+        // counts only when they're dropped off: a courier or a collective pickup collects them from
+        // the sender, so a point left in the draft stays out.
+        $pointId = $draft->getPickupMode() === ShipmentDraftInterface::PICKUP_DROP_OFF
+            ? $draft->getSenderPointId()
+            : null;
         if ($draft->isNewSender()) {
             $sender = $this->senderMapper->fromFields(
                 [AddressInterface::FIELD_POINT_ID => (string)$pointId] + $this->newSender($draft),
@@ -293,12 +297,8 @@ readonly class CreateOrderMessageMapper
 
     private function mapPickup(ShipmentDraftInterface $draft): ?PickupMessage
     {
-        // Handed over at a drop-off point, so no courier comes. Stated explicitly, since otherwise
+        // Dropped off, at a point or not, so no courier comes. Stated explicitly, since otherwise
         // Polkurier books a courier for some point carriers when the order is placed.
-        if ($draft->getSenderPointId() !== null) {
-            return $this->pickupMessageBuilderFactory->create()->noCourierOrder(true)->build();
-        }
-
         return match ($draft->getPickupMode()) {
             ShipmentDraftInterface::PICKUP_DROP_OFF => $this->pickupMessageBuilderFactory->create()
                 ->noCourierOrder(true)

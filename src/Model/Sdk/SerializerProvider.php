@@ -7,6 +7,7 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Model\Sdk;
 
+use Composer\InstalledVersions;
 use Magento\Framework\App\Filesystem\DirectoryList;
 use Magento\Framework\Filesystem\DirectoryList as Directories;
 use Polkurier\Webservice\Serializer\SerializerConfigFactory;
@@ -17,8 +18,10 @@ use Symfony\Component\Serializer\Normalizer\DenormalizerInterface;
 use Symfony\Component\Serializer\SerializerInterface;
 
 /**
- * The SDK serializer, with its mapping metadata cached under var/cache so that
- * `bin/magento cache:flush` clears it along with the rest.
+ * The SDK serializer, with its mapping metadata cached as PHP files under var/cache/polkurier, one
+ * folder per installed SDK version, so an SDK update starts with a fresh cache. Neither
+ * `bin/magento cache:flush` nor the Cache Management page clears these files; deleting
+ * var/cache/polkurier does.
  *
  * Built lazily: reading the mapping metadata is the SDK's biggest start-up cost, and most
  * requests never talk to the API.
@@ -26,6 +29,8 @@ use Symfony\Component\Serializer\SerializerInterface;
 class SerializerProvider implements SerializerProviderInterface
 {
     public const string CACHE_DIRECTORY = 'polkurier';
+
+    private const string SDK_PACKAGE = 'polkurier/polkurier-sdk';
 
     private ?SerializerProviderInterface $inner = null;
 
@@ -41,7 +46,7 @@ class SerializerProvider implements SerializerProviderInterface
         $this->inner ??= $this->sdkSerializerProviderFactory->create([
             'config' => $this->serializerConfigFactory->create([
                 'metadataCache' => $this->phpFilesAdapterFactory->create([
-                    'namespace' => self::CACHE_DIRECTORY,
+                    'namespace' => $this->cacheNamespace(),
                     'defaultLifetime' => 0,
                     'directory' => $this->directoryList->getPath(DirectoryList::CACHE) . '/' . self::CACHE_DIRECTORY,
                 ]),
@@ -50,5 +55,21 @@ class SerializerProvider implements SerializerProviderInterface
         ]);
 
         return $this->inner->getSerializer();
+    }
+
+    /**
+     * The metadata of an earlier SDK may no longer fit its classes, so each version has its own.
+     */
+    private function cacheNamespace(): string
+    {
+        try {
+            $version = InstalledVersions::getVersion(self::SDK_PACKAGE)
+                . '-' . InstalledVersions::getReference(self::SDK_PACKAGE);
+        } catch (\OutOfBoundsException) {
+            $version = '';
+        }
+
+        // The characters a cache namespace may have.
+        return self::CACHE_DIRECTORY . '-' . \preg_replace('/[^-+_.A-Za-z0-9]/', '_', $version);
     }
 }

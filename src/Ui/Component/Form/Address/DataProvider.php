@@ -66,31 +66,36 @@ class DataProvider extends SyncableEntityDataProvider
     public function getMeta(): array
     {
         $meta = parent::getMeta();
-        $meta['general']['children']['point_id']['arguments']['data']['config'] = [
-            'map' => [
-                'baseUrl' => $this->configProvider->getMapUrl() . '/',
-                'tokenUrl' => $this->url->getUrl('polkurier/shipment/mapToken'),
-            ],
-            'providers' => $this->senderPointProviders(),
-        ];
+        $providers = $this->senderPointProviders();
+        // No carrier takes parcels at points: there's nothing to choose on the map, which would
+        // show every provider given none.
+        $meta['general']['children']['point_id']['arguments']['data']['config'] = $providers === []
+            ? ['providers' => []]
+            : [
+                'map' => [
+                    'baseUrl' => $this->configProvider->getMapUrl() . '/',
+                    'tokenUrl' => $this->url->getUrl('polkurier/shipment/mapToken'),
+                ],
+                'providers' => $providers ?? [],
+            ];
 
         return $meta;
     }
 
     /**
-     * The point providers of every carrier that takes parcels at points; none when the carrier list
+     * The point providers of every carrier that takes parcels at points; null when the carrier list
      * can't be read, which leaves the map showing all of them.
      *
-     * @return string[]
+     * @return string[]|null
      */
-    private function senderPointProviders(): array
+    private function senderPointProviders(): ?array
     {
         try {
             $carriers = $this->carrierCatalog->getCarriers();
         } catch (PolkurierException $e) {
             $this->logger->warning('Carrier list unavailable for the drop-off point map', ['exception' => $e]);
 
-            return [];
+            return null;
         }
         $providers = [];
         foreach ($carriers as $carrier) {

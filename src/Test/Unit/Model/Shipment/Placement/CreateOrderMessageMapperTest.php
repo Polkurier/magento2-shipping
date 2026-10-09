@@ -261,10 +261,10 @@ class CreateOrderMessageMapperTest extends TestCase
     public function testTheShipmentsDropOffPointGoesWithTheSender(): void
     {
         $withPoint = $this->mapper()
-            ->map($this->draft()->setSenderAddressId(7)->setSenderPointId('U16880214'), 1)
+            ->map($this->droppedOff()->setSenderAddressId(7)->setSenderPointId('U16880214'), 1)
             ->getSender();
-        $fromStore = $this->mapper()->map($this->draft()->setSenderPointId('U16880214'), 1)->getSender();
-        $without = $this->mapper()->map($this->draft()->setSenderAddressId(7), 1)->getSender();
+        $fromStore = $this->mapper()->map($this->droppedOff()->setSenderPointId('U16880214'), 1)->getSender();
+        $without = $this->mapper()->map($this->droppedOff()->setSenderAddressId(7), 1)->getSender();
 
         self::assertSame(
             ['U16880214', 'U16880214', null],
@@ -275,10 +275,42 @@ class CreateOrderMessageMapperTest extends TestCase
 
     public function testParcelsHandedOverAtAPointBookNoCourier(): void
     {
-        $pickup = $this->payload($this->mapper()->map($this->draft()->setSenderPointId('U16880214'), 1))['pickup'];
+        $pickup = $this->payload(
+            $this->mapper()->map($this->droppedOff()->setSenderPointId('U16880214'), 1),
+        )['pickup'];
 
         self::assertTrue($pickup['nocourierorder']);
         self::assertArrayNotHasKey('pickupdate', \array_filter($pickup, static fn($v) => $v !== null));
+    }
+
+    public function testAPointLeftInTheDraftIsNotSentWhenACourierCollects(): void
+    {
+        $courier = $this->mapper()->map(
+            $this->draft()->setSenderAddressId(7)->setSenderPointId('U16880214')->setPickupDate('2026-10-01'),
+            1,
+        );
+        $collective = $this->mapper()->map(
+            $this->draft()->setSenderPointId('U16880214')->setPickupMode(ShipmentDraftInterface::PICKUP_MULTI),
+            1,
+        );
+
+        self::assertSame([null, null], [$courier->getSender()->getPointId(), $collective->getSender()->getPointId()]);
+        self::assertSame(
+            [false, '2026-10-01'],
+            [$courier->getPickup()?->isNoCourierOrder(), $courier->getPickup()?->getPickupDate()?->format('Y-m-d')],
+        );
+        self::assertSame(
+            [false, true],
+            [$collective->getPickup()?->isNoCourierOrder(), $collective->getPickup()?->isMultiPickup()],
+        );
+    }
+
+    public function testParcelsDroppedOffWithoutAPointBookNoCourier(): void
+    {
+        $message = $this->mapper()->map($this->droppedOff(), 1);
+
+        self::assertTrue($message->getPickup()?->isNoCourierOrder());
+        self::assertNull($message->getSender()->getPointId());
     }
 
     public function testTheCoverAddressSwitchesTheServiceOnBySendingItself(): void
@@ -396,6 +428,11 @@ class CreateOrderMessageMapperTest extends TestCase
             ->setServices([])
             ->setAdditionalFields([])
             ->setPickupMode(ShipmentDraftInterface::PICKUP_COURIER);
+    }
+
+    private function droppedOff(): Draft
+    {
+        return $this->draft()->setPickupMode(ShipmentDraftInterface::PICKUP_DROP_OFF);
     }
 
     /**

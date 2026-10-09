@@ -15,6 +15,7 @@ use Magento\Framework\App\Response\Http\FileFactory;
 use Magento\Framework\App\ResponseInterface;
 use Magento\Framework\Controller\ResultInterface;
 use Magento\Framework\Exception\LocalizedException;
+use Polkurier\Shipping\Model\RequestParam;
 use Polkurier\Shipping\Model\Shipment\DocumentService;
 use Polkurier\Webservice\Enum\Order\LabelFileFormatEnum;
 
@@ -40,7 +41,7 @@ class Label extends AbstractShipmentAction implements HttpGetActionInterface, Ht
         try {
             $document = $this->documentService->getLabels(
                 $this->getSelectedShipments(),
-                LabelFileFormatEnum::tryFrom((string)$this->getRequest()->getParam('format')),
+                LabelFileFormatEnum::tryFrom(RequestParam::string($this->getRequest(), 'format')),
             );
             // These show on the next page, since this request answers with the file.
             foreach ($document['left_out'] as $message) {

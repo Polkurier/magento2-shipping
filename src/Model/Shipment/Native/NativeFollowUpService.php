@@ -7,6 +7,7 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Model\Shipment\Native;
 
+use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Framework\Phrase;
 use Magento\Sales\Api\Data\OrderStatusHistoryInterface;
 use Magento\Sales\Api\Data\ShipmentCommentInterface;
@@ -36,6 +37,11 @@ use Polkurier\Shipping\Model\Shipment\ShipmentFinder;
  */
 readonly class NativeFollowUpService
 {
+    /**
+     * Magento's setting for sending sales e-mails from its cron job rather than at once.
+     */
+    private const string ASYNC_SENDING = 'sales_email/general/async_sending';
+
     public function __construct(
         private OrderLoader $orderLoader,
         private ShipmentRepositoryInterface $shipmentRepository,
@@ -50,6 +56,7 @@ readonly class NativeFollowUpService
         private CarrierNameProvider $carrierNameProvider,
         private ShipmentSender $shipmentSender,
         private SalesData $salesData,
+        private ScopeConfigInterface $scopeConfig,
     ) {}
 
     /**
@@ -57,7 +64,7 @@ readonly class NativeFollowUpService
      * shipment, to be tried again, rather than thrown.
      *
      * The customer's e-mail about the Magento shipment goes last, once the Magento shipment is
-     * linked, and only for a placed Polkurier order (notifyCustomer()).
+     * linked, and only for a placed Polkurier order with waybills (notifyCustomer()).
      *
      * @return string|null why the Magento shipment could not be created, or null
      */
@@ -92,17 +99,20 @@ readonly class NativeFollowUpService
 
     /**
      * Sends the customer Magento's e-mail about the Magento shipment, when it was asked for with the
-     * Polkurier order ({@see ShipmentDraftInterface::FIELD_NOTIFY_CUSTOMER}). Only for a placed order,
-     * while no e-mail about that shipment was sent or asked for, and while the store sends shipment
-     * e-mails: pending, unclear, refused and cancelled orders e-mail nobody. A failure is logged; the
+     * Polkurier order ({@see ShipmentDraftInterface::FIELD_NOTIFY_CUSTOMER}). Only for a placed order
+     * whose waybills are on the Magento shipment, while no e-mail about that shipment was sent or asked
+     * for, and while the store sends shipment e-mails: pending, unclear, refused and cancelled orders
+     * e-mail nobody, and an order whose carrier issues its waybills later e-mails once they're added
+     * ({@see \Polkurier\Shipping\Model\Shipment\Status\StatusRefreshService}). A failure is logged; the
      * shipment stands either way.
      */
-    private function notifyCustomer(Order $order, ShipmentInterface $shipment): void
+    public function notifyCustomer(Order $order, ShipmentInterface $shipment): void
     {
         $storeId = (int)$order->getStoreId();
         $magentoShipmentId = $shipment->getShipmentId();
         if ($shipment->getState() !== ShipmentInterface::STATE_CREATED
             || $magentoShipmentId === null
+            || $shipment->getWaybills() === []
             || empty($shipment->getDraft()[ShipmentDraftInterface::FIELD_NOTIFY_CUSTOMER])
             || !$this->salesData->canSendNewShipmentEmail($storeId)
         ) {
@@ -110,10 +120,19 @@ readonly class NativeFollowUpService
         }
         try {
             $magentoShipment = $this->magentoShipmentRepository->get($magentoShipmentId);
-            if ($magentoShipment instanceof MagentoShipmentModel
-                && NativeShipmentService::isEmailOpen($magentoShipment)
+            if (!$magentoShipment instanceof MagentoShipmentModel
+                || !NativeShipmentService::isEmailOpen($magentoShipment)
             ) {
-                $this->shipmentSender->send($magentoShipment);
+                return;
+            }
+            // False also when Magento's asynchronous sending queues it; only otherwise did it fail.
+            if (!$this->shipmentSender->send($magentoShipment)
+                && !$this->scopeConfig->isSetFlag(self::ASYNC_SENDING)
+            ) {
+                $this->logger->warning('Magento shipment created but the e-mail to the customer was not sent', [
+                    'order' => $order->getIncrementId(),
+                    'shipment' => $magentoShipment->getIncrementId(),
+                ]);
             }
         } catch (\Throwable $e) {
             $this->logger->error('Magento shipment created but the e-mail to the customer failed', [

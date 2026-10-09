@@ -42,8 +42,8 @@ label in the order's store. The carrier also implements Magento's label hooks, d
 
 Prices are the merchant's own. Each carrier has a pricing model, and each model has a calculator
 ([`Model\Carrier\Pricing\PriceCalculatorInterface`](../../src/Model/Carrier/Pricing/PriceCalculatorInterface.php)).
-A calculator gets the carrier's settings, the cart's subtotal and its total weight in kilograms,
-and returns a price or `null` for "not offered".
+A calculator gets the carrier's settings, the cart's subtotal and its total weight in kilograms, and
+returns a price or `null` for "not offered".
 
 | Pricing model | Calculator |
 |---|---|

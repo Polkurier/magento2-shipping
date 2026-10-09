@@ -26,7 +26,8 @@ use Polkurier\Webservice\Response\Order;
 
 /**
  * Brings placed shipments up to date with Polkurier, and catches the Magento side up with them:
- * the Magento shipment if it failed before, the waybills Polkurier issued since.
+ * the Magento shipment if it failed before, the waybills Polkurier issued since, and the customer's
+ * e-mail that waited for them.
  *
  * The scheduled run and the admin's "Update statuses" take the batch checked longest ago.
  * Everything that decides whether a shipment is due is in the query, and every shipment taken is
@@ -146,12 +147,15 @@ readonly class StatusRefreshService
         }
 
         if ($shipment->getShipmentId() !== null && \array_diff($shipment->getWaybills(), $before) !== []) {
+            $order = $this->orderLoader->get($shipment->getOrderId());
             $this->nativeShipmentService->addTracks(
-                $this->orderLoader->get($shipment->getOrderId()),
+                $order,
                 $shipment->getShipmentId(),
                 $shipment,
                 $shipment->getWaybills(),
             );
+            // The customer's e-mail, when asked for, waits for the waybills.
+            $this->nativeFollowUpService->notifyCustomer($order, $shipment);
         }
 
         return $shipment;

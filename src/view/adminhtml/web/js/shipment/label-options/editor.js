@@ -260,8 +260,14 @@ define([
             const senderBefore = values.sender_address_id,
                 senderPointBefore = values.sender_point_id,
                 carrierBefore = values.carrier_code,
+                pickupModeBefore = values.pickup_mode,
                 insuranceBefore = values.insurance_amount,
-                codBefore = values.cod_amount;
+                codBefore = values.cod_amount,
+                // The options start as the page gives them, numbers among them; the fields give strings.
+                same = function (before, after) {
+                    return String(before === null || before === undefined ? '' : before)
+                        === String(after === null || after === undefined ? '' : after);
+                };
 
             section.fields.forEach(function (definition) {
                 const fields = form.find('[name=' + definition.name + ']');
@@ -290,27 +296,32 @@ define([
                     }).get()
                     : fields.val();
             });
-            if (String(insuranceBefore || '') !== String(values.insurance_amount || '')) {
+            const senderOrCarrierChanged = !same(senderBefore, values.sender_address_id)
+                || !same(carrierBefore, values.carrier_code);
+
+            if (!same(insuranceBefore, values.insurance_amount)) {
                 state.insuranceSetByHand();
             }
-            if (String(codBefore || '') !== String(values.cod_amount || '')) {
+            if (!same(codBefore, values.cod_amount)) {
                 state.codSetByHand();
             }
-            if (carrierBefore !== values.carrier_code) {
+            // Collected from the sender: no drop-off point, which would show in the summary unused.
+            if (!same(pickupModeBefore, values.pickup_mode) && values.pickup_mode !== 'drop_off') {
+                values.sender_point_id = '';
+            }
+            if (!same(carrierBefore, values.carrier_code)) {
                 state.swapPoint(carrierBefore, values.carrier_code);
             }
             // Another sender, or carrier, hands the parcels over at its own drop-off point,
             // unless one was just chosen.
-            if ((senderBefore !== values.sender_address_id || carrierBefore !== values.carrier_code)
-                && String(senderPointBefore || '') === String(values.sender_point_id || '')
-            ) {
+            if (senderOrCarrierChanged && same(senderPointBefore, values.sender_point_id)) {
                 values.sender_point_id = state.senderAddressPoint();
             }
             // Another sender or carrier starts from the default handover again.
-            if (senderBefore !== values.sender_address_id || carrierBefore !== values.carrier_code) {
+            if (senderOrCarrierChanged) {
                 values.pickup_mode = state.defaultHandover();
             }
-            if (carrierBefore !== values.carrier_code || section.normalizes) {
+            if (!same(carrierBefore, values.carrier_code) || section.normalizes) {
                 state.normalize();
             }
         }

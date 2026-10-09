@@ -623,7 +623,10 @@ define(['mage/translate'], function ($t) {
             ) {
                 add('pickup_time_from', 'handover', $t('This carrier needs a collection time window.'));
             }
-            if (data.pickup_mode === 'drop_off' && features.drop_off === false) {
+            // A carrier that takes parcels only at points has them dropped off, whatever else it says.
+            if (data.pickup_mode === 'drop_off' && features.drop_off === false
+                && features.sender_point !== 'REQUIRED'
+            ) {
                 add('pickup_mode', 'handover', $t('This carrier does not take parcels dropped off at a point.'));
             }
             if (cod > 0 && features.cod === false) {

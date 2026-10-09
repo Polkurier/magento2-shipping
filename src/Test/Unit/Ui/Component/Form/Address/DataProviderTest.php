@@ -50,6 +50,17 @@ class DataProviderTest extends TestCase
         $config = $this->pointConfig($this->provider(new PolkurierException('down')));
 
         self::assertSame([], $config['providers']);
+        self::assertArrayHasKey('map', $config, 'The map is offered, showing every provider.');
+    }
+
+    public function testWithoutACarrierTakingParcelsAtPointsNoMapIsOffered(): void
+    {
+        $config = $this->pointConfig($this->provider([
+            self::carrier('DPD', PointRequirementEnum::None, ['DPD_PICKUP']),
+        ]));
+
+        self::assertArrayNotHasKey('map', $config, 'An empty provider list would show every provider.');
+        self::assertSame([], $config['providers']);
     }
 
     /**

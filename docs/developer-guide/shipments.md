@@ -67,17 +67,18 @@ merchant can decide about it. Carrier, description, sender, recipient and pickup
 ([`Api\Data\ShipmentDraft\PackInterface`](../../src/Api/Data/ShipmentDraft/PackInterface.php)), cash
 on delivery, insurance, cover address, services, handover (courier, drop-off or a later collective
 pickup, with an optional date and time window), carrier-specific fields, and whether the customer is
-e-mailed once it's placed (`notify_customer`, see [The Magento shipment](#the-magento-shipment)). A carrier whose
-`points_map.sender_point` is `REQUIRED` takes parcels only at points: its handover is always
-drop-off, whatever the draft says. The default draft is also dropped off when the sender address
-has a drop-off point and the carrier takes parcels at points; otherwise a courier collects it.
+e-mailed once it's placed (`notify_customer`, see [The Magento shipment](#the-magento-shipment)). A
+carrier whose `points_map.sender_point` is `REQUIRED` takes parcels only at points: its handover is
+always drop-off, whatever the draft says. The default draft is also dropped off when the sender
+address has a drop-off point and the carrier takes parcels at points; otherwise a courier collects
+it.
 
 The default draft comes from the order, its pickup point and the module's settings, narrowed to what
 the carrier supports; `getDefaultDraft()` returns it. The shipment screen, Magento's label flow and
 the service contract all build it with
 [`Model\Shipment\Draft\DefaultDraftBuilder::createFromOrder()`](../../src/Model/Shipment/Draft/DefaultDraftBuilder.php),
-so a plugin there changes every new shipment (see
-[Extending the module](extending.md#changing-the-default-shipment)).
+so a plugin there changes every new shipment (see [Extending the
+module](extending.md#changing-the-default-shipment)).
 
 **Shipment type.** It follows from the parcels; it isn't chosen. Each parcel is a standard,
 non-standard or long parcel, an envelope (`ENV`), or a pallet by its size: `VP` 60 × 40, `PPAL`
@@ -186,12 +187,16 @@ The customer's e-mail is the last step, once the Magento shipment is linked
 - the draft's `notify_customer` is true (false by default, as on Magento's New Shipment page);
 - the Polkurier order is `created`; one `pending`, `unknown`, `failed` or `cancelled` e-mails
   nobody, and one found placed by reconciliation e-mails then;
+- the Polkurier order has waybills, as tracks on the Magento shipment; for a carrier that issues
+  them later, the e-mail goes when the status refresh adds them;
 - no e-mail about that Magento shipment was sent or asked for (its `send_email` and `email_sent`
   are empty), so a replacement on the same shipment doesn't e-mail again;
 - the store sends shipment e-mails (`sales_email/shipment/enabled`).
 
-A failure to send is logged; the shipment stands. A Magento shipment created later, by the status
-refresh or **Create Magento shipment**, follows the same rules with the choice stored with the draft.
+A failure to send is logged, as is `ShipmentSender::send()` returning false while Magento's
+asynchronous sending (`sales_email/general/async_sending`) is off; the shipment stands. A Magento
+shipment created later, by the status refresh or **Create Magento shipment**, follows the same rules
+with the choice stored with the draft.
 
 The draft's `items`
 ([`Api\Data\ShipmentDraft\ItemInterface`](../../src/Api/Data/ShipmentDraft/ItemInterface.php):
@@ -289,9 +294,10 @@ The reconciliation job also tidies up and warns:
 
 `refreshStatus()` reads the order from the account and stores its waybills, delivery status and
 date, cash on delivery status and price, and a full local copy of the order (`details`). New
-waybills become new tracks on the Magento shipment, and a `created` shipment without a Magento
-shipment gets another try at one. The carrier's scans are read separately, for the details page and
-the manual **Update status**.
+waybills become new tracks on the Magento shipment, followed by the customer's e-mail if it waited
+for them (see [The Magento shipment](#the-magento-shipment)), and a `created` shipment without a
+Magento shipment gets another try at one. The carrier's scans are read separately, for the details
+page and the manual **Update status**.
 
 Times Polkurier reports are in Polish time
 ([`Model\Sdk\PolkurierTimeZone::ZONE`](../../src/Model/Sdk/PolkurierTimeZone.php)). The status and
@@ -340,6 +346,8 @@ signature, and 503 when the refresh failed.
   takes it as the `format` parameter, from the **Print label** button's list on the shipment details
   page and the **Print labels** submenu of the shipment grids
   ([`Model\Config\Source\LabelFormat`](../../src/Model/Config/Source/LabelFormat.php) lists them).
+  In a printer language each order is fetched alone, up to
+  `DocumentService::MAX_PRINTER_LANGUAGE_ORDERS` orders per request.
 - **Collective pickups.**
   [`Model\Shipment\PickupService`](../../src/Model/Shipment/PickupService.php) loads the collection
   windows for a sender, carrier and date, and books collective pickups for shipments placed with

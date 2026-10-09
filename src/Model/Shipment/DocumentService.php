@@ -25,6 +25,12 @@ use Polkurier\Webservice\Request\Order\GetDocumentMessage;
  */
 readonly class DocumentService
 {
+    /**
+     * The most orders whose labels are fetched in a printer language at once: Polkurier is asked for
+     * each order alone.
+     */
+    public const int MAX_PRINTER_LANGUAGE_ORDERS = 50;
+
     public function __construct(
         private ShipmentGateway $shipmentGateway,
         private DateTime $dateTime,
@@ -40,9 +46,14 @@ readonly class DocumentService
      */
     public function getLabels(array $shipments, ?LabelFileFormatEnum $format = null): array
     {
-        [$numbers, $leftOut] = $this->numbers($shipments);
+        [$numbers, $leftOut] = $this->numbers($shipments, $format);
 
-        $content = $this->labelContent($numbers, $format);
+        if ($format === null || \count($numbers) === 1) {
+            $content = $this->label($numbers, $format);
+        } else {
+            [$content, $numbers, $failed] = $this->printerLabels($numbers, $format);
+            $leftOut = [...$leftOut, ...$failed];
+        }
         [$extension, $contentType] = self::fileType($content);
 
         return [
@@ -74,11 +85,13 @@ readonly class DocumentService
 
     /**
      * @param ShipmentInterface[] $shipments
+     * @param LabelFileFormatEnum|null $format the printer language labels are asked for in, which
+     *     limits their number to {@see self::MAX_PRINTER_LANGUAGE_ORDERS}
      *
      * @return array{0: string[], 1: string[]} the order numbers, and why any were left out
      * @throws LocalizedException
      */
-    private function numbers(array $shipments): array
+    private function numbers(array $shipments, ?LabelFileFormatEnum $format = null): array
     {
         $placed = [];
         foreach ($shipments as $shipment) {
@@ -89,6 +102,14 @@ readonly class DocumentService
         }
         if ($placed === []) {
             throw new LocalizedException(__('None of the selected shipments is a placed Polkurier order.'));
+        }
+        if ($format !== null && \count($placed) > self::MAX_PRINTER_LANGUAGE_ORDERS) {
+            throw new LocalizedException(__(
+                'Labels in %1 can be printed for up to %2 orders at a time. '
+                . 'Select fewer orders, or print them as PDF.',
+                $format->value,
+                self::MAX_PRINTER_LANGUAGE_ORDERS,
+            ));
         }
         $leftOut = \count($placed) > 1 ? $this->leaveOutUnplaced($placed) : [];
         if ($placed === []) {
@@ -146,28 +167,67 @@ readonly class DocumentService
     }
 
     /**
-     * The labels as one file. Polkurier merges several orders' labels into one PDF and applies a
-     * printer language to one order at a time, so for a printer language each order is asked for
-     * alone and the answers are joined. A carrier without that language answers in its own format
-     * (a PDF, or a GIF for UPS); when any order does, all of them are asked for again as one PDF.
-     *
      * @param string[] $numbers
+     *
+     * @throws LocalizedException
      */
-    private function labelContent(array $numbers, ?LabelFileFormatEnum $format): string
+    private function label(array $numbers, ?LabelFileFormatEnum $format): string
     {
-        if ($format === null || \count($numbers) === 1) {
-            return $this->shipmentGateway->getLabel(new GetDocumentMessage($numbers, $format))->getDecodedFile();
-        }
-        $parts = [];
-        foreach ($numbers as $number) {
-            $part = $this->shipmentGateway->getLabel(new GetDocumentMessage([$number], $format))->getDecodedFile();
-            if (self::fileType($part)[0] !== 'txt') {
-                return $this->shipmentGateway->getLabel(new GetDocumentMessage($numbers))->getDecodedFile();
-            }
-            $parts[] = \rtrim($part, "\r\n");
+        $content = $this->shipmentGateway->getLabel(new GetDocumentMessage($numbers, $format))->getDecodedFile();
+        if ($content === '') {
+            throw new LocalizedException(__('Polkurier returned no label for %1.', \implode(', ', $numbers)));
         }
 
-        return \implode("\n", $parts) . "\n";
+        return $content;
+    }
+
+    /**
+     * The labels of several orders in a printer language, as one file. Polkurier merges several
+     * orders' labels into one PDF and applies a printer language to one order at a time, so each
+     * order is asked for alone and the answers are joined as received. An order Polkurier fails or
+     * answers with nothing is left out. A carrier without that language answers in its own format
+     * (a PDF, or a GIF for UPS); when any order does, the orders not left out are asked for again
+     * as one PDF.
+     *
+     * @param string[] $numbers
+     *
+     * @return array{string, string[], string[]} the file, the orders in it, and why any were left out
+     * @throws LocalizedException the first order's error, when every order fails
+     */
+    private function printerLabels(array $numbers, LabelFileFormatEnum $format): array
+    {
+        $content = '';
+        $joined = [];
+        $failed = [];
+        $leftOut = [];
+        $firstError = null;
+        foreach ($numbers as $number) {
+            try {
+                $part = $this->label([$number], $format);
+            } catch (LocalizedException $e) {
+                $firstError ??= $e;
+                $failed[] = $number;
+                $leftOut[] = (string)__('Polkurier order %1 was left out: %2', $number, $e->getMessage());
+                continue;
+            }
+            if (self::fileType($part)[0] !== 'txt') {
+                $kept = \array_values(\array_diff($numbers, $failed));
+
+                return [$this->label($kept, null), $kept, $leftOut];
+            }
+            // Each part as received (Datamax lines end in a CR alone), with a line break between
+            // parts only where the one before doesn't end in one.
+            if ($content !== '' && !\in_array(\substr($content, -1), ["\r", "\n"], true)) {
+                $content .= "\n";
+            }
+            $content .= $part;
+            $joined[] = $number;
+        }
+        if ($joined === [] && $firstError !== null) {
+            throw $firstError;
+        }
+
+        return [$content, $joined, $leftOut];
     }
 
     /**
@@ -178,10 +238,15 @@ readonly class DocumentService
      */
     private static function fileType(string $content): array
     {
+        // A UTF-8 byte order mark and whitespace before the format's signature don't count.
+        $head = \substr($content, 0, 1024);
+        $head = \ltrim(\str_starts_with($head, "\xEF\xBB\xBF") ? \substr($head, 3) : $head);
+
         return match (true) {
-            \str_starts_with($content, '%PDF') => ['pdf', 'application/pdf'],
-            \str_starts_with($content, 'GIF8') => ['gif', 'image/gif'],
-            \str_starts_with($content, "\x89PNG") => ['png', 'image/png'],
+            \str_starts_with($head, '%PDF') => ['pdf', 'application/pdf'],
+            \str_starts_with($head, 'GIF8') => ['gif', 'image/gif'],
+            \str_starts_with($head, "\x89PNG") => ['png', 'image/png'],
+            \str_starts_with($head, "\xFF\xD8\xFF") => ['jpg', 'image/jpeg'],
             default => ['txt', 'text/plain'],
         };
     }

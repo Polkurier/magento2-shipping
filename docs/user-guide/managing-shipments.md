@@ -99,7 +99,8 @@ For a shipment that wasn't placed, see [When a shipment isn't placed](#when-a-sh
 Tick the shipments in the list, or on an order's **Polkurier** tab, and pick from the **Actions**
 menu:
 
-- **Print labels**: one file with all their labels, as a PDF or in a label printer's format.
+- **Print labels**: one file with all their labels, as a PDF or in a label printer's format. A label
+  printer's format takes up to 50 orders at a time.
 - **Print handover protocol**: one protocol for all of them.
 - **Update statuses**.
 - **Book a collective pickup** (see [Collective pickups](#collective-pickups)).

@@ -7,6 +7,7 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Test\Unit\Model\Shipment\Native;
 
+use Magento\Framework\App\Config\ScopeConfigInterface;
 use Magento\Sales\Api\Data\ShipmentCommentInterfaceFactory;
 use Magento\Sales\Api\OrderStatusHistoryRepositoryInterface;
 use Magento\Sales\Api\ShipmentCommentRepositoryInterface;
@@ -19,6 +20,7 @@ use Magento\Sales\Model\Order\Shipment\Track;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use Polkurier\Shipping\Api\Data\ShipmentDraftInterface;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Api\ShipmentRepositoryInterface as PolkurierShipments;
 use Polkurier\Shipping\Logger\Logger;
@@ -41,6 +43,61 @@ class NativeFollowUpServiceTest extends TestCase
 
     private MagentoShipment $magentoShipment;
     private bool $failing = false;
+
+    /**
+     * What Magento's sender answers: true when it sent the e-mail.
+     */
+    private bool $sent = true;
+
+    /**
+     * Magento's asynchronous sending of sales e-mails.
+     */
+    private bool $async = false;
+
+    public function testTheChosenEmailGoesOnceThePlacedOrderHasItsWaybills(): void
+    {
+        $this->followUp([])->notifyCustomer($this->order(42), $this->placed(['WB-1']));
+
+        self::assertSame(['send 56'], $this->log);
+    }
+
+    public function testTheChosenEmailWaitsForTheWaybills(): void
+    {
+        $this->followUp([])->notifyCustomer($this->order(42), $this->placed([]));
+
+        self::assertSame([], $this->log);
+    }
+
+    public function testAMagentoShipmentEmailedAboutAlreadyIsNotEmailedAgain(): void
+    {
+        $this->magentoShipment->setData('email_sent', 1);
+
+        $this->followUp([])->notifyCustomer($this->order(42), $this->placed(['WB-1']));
+
+        self::assertSame([], $this->log);
+    }
+
+    public function testAnEmailMagentoCouldNotSendIsLogged(): void
+    {
+        $this->sent = false;
+
+        $this->followUp([])->notifyCustomer($this->order(42), $this->placed(['WB-1']));
+
+        self::assertSame(
+            ['send 56', 'warning Magento shipment created but the e-mail to the customer was not sent'],
+            $this->log,
+        );
+    }
+
+    public function testAnEmailQueuedForMagentosCronIsNotAFailure(): void
+    {
+        $this->sent = false;
+        $this->async = true;
+
+        $this->followUp([])->notifyCustomer($this->order(42), $this->placed(['WB-1']));
+
+        self::assertSame(['send 56'], $this->log);
+    }
 
     public function testTheShipmentStaysWithoutTheCancelledOrdersLabelPackagesAndWaybills(): void
     {
@@ -127,6 +184,21 @@ class NativeFollowUpServiceTest extends TestCase
         $logger->method('error')->willReturnCallback(function (string|\Stringable $message): void {
             $this->log[] = 'error ' . $message;
         });
+        $logger->method('warning')->willReturnCallback(function (string|\Stringable $message): void {
+            $this->log[] = 'warning ' . $message;
+        });
+        $sender = $this->createStub(ShipmentSender::class);
+        $sender->method('send')->willReturnCallback(function (MagentoShipment $shipment): bool {
+            $this->log[] = 'send ' . $shipment->getId();
+
+            return $this->sent;
+        });
+        $salesData = $this->createStub(SalesData::class);
+        $salesData->method('canSendNewShipmentEmail')->willReturn(true);
+        $scopeConfig = $this->createStub(ScopeConfigInterface::class);
+        $scopeConfig->method('isSetFlag')->willReturnCallback(
+            fn(string $path): bool => $path === 'sales_email/general/async_sending' && $this->async,
+        );
 
         return new NativeFollowUpService(
             $this->createStub(OrderLoader::class),
@@ -140,8 +212,9 @@ class NativeFollowUpServiceTest extends TestCase
             $this->createStub(ApiEventDispatcher::class),
             $logger,
             $this->createStub(CarrierNameProvider::class),
-            $this->createStub(ShipmentSender::class),
-            $this->createStub(SalesData::class),
+            $sender,
+            $salesData,
+            $scopeConfig,
         );
     }
 
@@ -149,6 +222,19 @@ class NativeFollowUpServiceTest extends TestCase
     {
         $shipment = $this->getMockBuilder(Shipment::class)->disableOriginalConstructor()->onlyMethods([])->getMock();
         $shipment->setData(['state' => $state, 'shipment_id' => 56, 'waybills' => 'WB-1'])->setId($id);
+
+        return $shipment;
+    }
+
+    /**
+     * A placed Polkurier order on Magento shipment 56, with the customer's e-mail chosen.
+     *
+     * @param string[] $waybills
+     */
+    private function placed(array $waybills): Shipment
+    {
+        $shipment = $this->polkurier(7, ShipmentInterface::STATE_CREATED);
+        $shipment->setWaybills($waybills)->setDraft([ShipmentDraftInterface::FIELD_NOTIFY_CUSTOMER => true]);
 
         return $shipment;
     }

@@ -197,16 +197,19 @@ define([
                 this.source.set('data.sender_point_id', this.senderAddressPoint());
             }
             const carriers = this.source.get('data.carriers') || {},
-                carrier = carriers[code] || null;
+                carrier = carriers[code] || null,
+                features = rules.featuresOf(carrier);
 
-            this.source.set('data.features', rules.featuresOf(carrier));
-            // Parcels can't be dropped off with a carrier that only collects them, and must be with
-            // one that takes them only at points.
-            if (carrier && !carrier.drop_off && this.source.get('data.pickup_mode') === 'drop_off') {
-                this.source.set('data.pickup_mode', 'courier');
-            }
-            if (carrier && carrier.sender_point === 'REQUIRED' && carrier.drop_off) {
-                this.source.set('data.pickup_mode', 'drop_off');
+            this.source.set('data.features', features);
+            // Parcels must be dropped off with a carrier that takes them only at points, and can't
+            // be with one that only collects them.
+            if (carrier && (features.sender_point === 'REQUIRED'
+                || (!carrier.drop_off && this.source.get('data.pickup_mode') === 'drop_off'))
+            ) {
+                this.source.set(
+                    'data.pickup_mode',
+                    rules.defaultHandover(features, String(this.source.get('data.sender_point_id') || ''))
+                );
             }
         }
     });

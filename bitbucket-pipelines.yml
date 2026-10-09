@@ -1,0 +1,17 @@
+# Every change on main (a release or a hotfix) is merged back into develop.
+image: atlassian/default-image:4
+
+pipelines:
+  branches:
+    main:
+      - step:
+          name: Merge main into develop
+          clone:
+            depth: full
+          script:
+            - git config user.name "Bitbucket Pipelines"
+            - git config user.email "commits-noreply@bitbucket.org"
+            - git fetch origin "+refs/heads/develop:refs/remotes/origin/develop"
+            - git checkout -B develop origin/develop
+            - git merge --no-ff -m "Merge branch 'main' into develop" "$BITBUCKET_COMMIT"
+            - git push origin develop

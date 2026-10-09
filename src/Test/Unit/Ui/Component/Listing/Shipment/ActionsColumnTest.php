@@ -8,6 +8,7 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Test\Unit\Ui\Component\Listing\Shipment;
 
 use Magento\Framework\AuthorizationInterface;
+use Magento\Framework\TestFramework\Unit\Helper\ObjectManager;
 use Magento\Framework\UrlInterface;
 use Magento\Framework\View\Element\UiComponent\ContextInterface;
 use Magento\Framework\View\Element\UiComponent\Processor;
@@ -16,7 +17,9 @@ use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
+use Polkurier\Shipping\Model\Shipment;
 use Polkurier\Shipping\Model\Shipment\Screen\RetriableShipmentFinder;
+use Polkurier\Shipping\Model\ShipmentFactory;
 use Polkurier\Shipping\Ui\Component\Listing\Shipment\ActionsColumn;
 
 #[CoversClass(ActionsColumn::class)]
@@ -36,6 +39,11 @@ class ActionsColumnTest extends TestCase
         self::assertTrue($actions['refresh']['post']);
         self::assertSame('polkurier/shipment/cancel id=5 order_id=29', $actions['cancel']['href']);
         self::assertArrayHasKey('confirm', $actions['cancel']);
+    }
+
+    public function testAParcelTheCarrierHasIsntOfferedForCancelling(): void
+    {
+        self::assertArrayNotHasKey('cancel', $this->actions(ShipmentInterface::STATE_CREATED, statusCode: 'WP'));
     }
 
     public function testAPlacedOrderWithoutItsMagentoShipmentCanCreateIt(): void
@@ -98,6 +106,7 @@ class ActionsColumnTest extends TestCase
         ?int $shipmentId = null,
         bool $canSendAgain = true,
         bool $onOrderPage = false,
+        ?string $statusCode = null,
     ): array {
         $context = $this->createStub(ContextInterface::class);
         $context->method('getProcessor')->willReturn($this->createStub(Processor::class));
@@ -121,6 +130,7 @@ class ActionsColumnTest extends TestCase
             $url,
             $authorization,
             $sendAgain,
+            $this->shipmentFactory(),
             [],
             [
                 'name' => 'actions',
@@ -134,8 +144,23 @@ class ActionsColumnTest extends TestCase
             'state' => $state,
             'shipment_id' => $shipmentId,
             'polkurier_number' => '711400-27',
+            'carrier_code' => 'DPD',
+            'status_code' => $statusCode,
         ]]]]);
 
         return $source['data']['items'][0]['actions'];
+    }
+
+    private function shipmentFactory(): ShipmentFactory
+    {
+        $factory = $this->createStub(ShipmentFactory::class);
+        $factory->method('create')->willReturnCallback(function (array $arguments): Shipment {
+            /** @var Shipment $shipment */
+            $shipment = (new ObjectManager($this))->getObject(Shipment::class);
+
+            return $shipment->setData($arguments['data']);
+        });
+
+        return $factory;
     }
 }

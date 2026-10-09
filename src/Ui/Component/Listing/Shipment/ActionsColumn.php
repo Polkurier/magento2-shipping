@@ -13,7 +13,9 @@ use Magento\Framework\View\Element\UiComponent\ContextInterface;
 use Magento\Framework\View\Element\UiComponentFactory;
 use Magento\Ui\Component\Listing\Columns\Column;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
+use Polkurier\Shipping\Model\Shipment\CancellationRule;
 use Polkurier\Shipping\Model\Shipment\Screen\RetriableShipmentFinder;
+use Polkurier\Shipping\Model\ShipmentFactory;
 use Polkurier\Shipping\Ui\Component\ShipmentConfirmationProvider;
 
 /**
@@ -31,6 +33,7 @@ class ActionsColumn extends Column
         private readonly UrlInterface $url,
         private readonly AuthorizationInterface $authorization,
         private readonly RetriableShipmentFinder $retriableShipmentFinder,
+        private readonly ShipmentFactory $shipmentFactory,
         array $components = [],
         array $data = [],
     ) {
@@ -90,7 +93,9 @@ class ActionsColumn extends Column
                             'post' => true,
                         ];
                     }
-                    if ($this->authorization->isAllowed('Polkurier_Shipping::shipment_cancel')) {
+                    if ($this->authorization->isAllowed('Polkurier_Shipping::shipment_cancel')
+                        && CancellationRule::refusal($this->shipmentFactory->create(['data' => $item])) === null
+                    ) {
                         $actions['cancel'] = [
                             'href' => $this->url->getUrl('polkurier/shipment/cancel', $params),
                             'label' => __('Cancel'),

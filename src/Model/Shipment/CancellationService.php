@@ -17,7 +17,7 @@ use Polkurier\Shipping\Model\Shipment\Native\NativeFollowUpService;
 use Polkurier\Webservice\Request\Order\OrderIdMessage;
 
 /**
- * Cancels placed Polkurier orders. The Magento shipment stays, without the order's label, packages
+ * Cancels placed Polkurier orders that {@see CancellationRule} lets go. The Magento shipment stays, without the order's label, packages
  * and waybills, for another Polkurier order to go on it
  * ({@see NativeFollowUpService::clearShipment()}).
  */
@@ -38,10 +38,11 @@ readonly class CancellationService
     public function cancel(int $shipmentId): ShipmentInterface
     {
         $shipment = $this->shipmentRepository->get($shipmentId);
-        $number = $shipment->getPolkurierNumber();
-        if ($number === null || $shipment->getState() !== ShipmentInterface::STATE_CREATED) {
-            throw new LocalizedException(__('Only a placed Polkurier order can be cancelled.'));
+        $refusal = CancellationRule::refusal($shipment);
+        if ($refusal !== null) {
+            throw new LocalizedException($refusal);
         }
+        $number = (string)$shipment->getPolkurierNumber();
         $request = new OrderIdMessage($number);
         $result = $this->shipmentGateway->cancelOrder($request);
         if (!$result->isCancelled()) {

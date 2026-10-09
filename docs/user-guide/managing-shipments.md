@@ -157,9 +157,10 @@ any that weren't.
 
 ## Cancelling
 
-**Cancel** cancels the Polkurier order, as long as the carrier hasn't collected the parcel yet. A
-Polkurier order cancelled in the Polkurier panel is treated the same once its status is next
-updated.
+**Cancel** cancels the Polkurier order. It's offered as the Polkurier panel offers it: not once the
+carrier has the parcel, not for an invoiced order, and not for a freight order Polkurier has
+confirmed. Polkurier may still refuse, and says why. A Polkurier order cancelled in the Polkurier
+panel is treated the same once its status is next updated.
 
 The Magento shipment stays, with its items, but loses the cancelled order's label, packages and
 tracking numbers. The order's comments say which shipment was cleared.

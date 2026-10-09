@@ -357,11 +357,17 @@ signature, and 503 when the refresh failed.
 
 ## Other operations
 
-- **Cancelling.** `cancel()` cancels a `created` shipment on the account, then clears its Magento
-  shipment: the shipment and its items stay, but its label, `packages` and the cancelled order's
-  tracks are removed, so another Polkurier order can go on it. A failure there is logged and the
-  cancellation stands. A refresh that finds the order cancelled in the Polkurier panel does the
-  same.
+- **Cancelling.** `cancel()` cancels a `created` shipment on the account, if
+  [`Model\Shipment\CancellationRule`](../../src/Model/Shipment/CancellationRule.php) lets it go
+  (the same rule decides whether **Cancel** is offered). The rule follows the Polkurier panel as far
+  as the stored order tells: not with the carrier (`WP`, `D`, `Z`, `W`), not reported cancelled
+  (`A`, which Polkurier also reports for a cancelled waybill), not invoiced, and not a confirmed
+  freight order. The panel also keeps cancelling open for an order under the account's own carrier
+  agreement, which the API doesn't report, so such an order is refused here. Then it clears the
+  Magento shipment: the shipment and its items stay, but its label, `packages` and the cancelled
+  order's tracks are removed, so another Polkurier order can go on it. A failure there is logged
+  and the cancellation stands. A refresh that finds the order cancelled in the Polkurier panel does
+  the same.
 - **Labels and protocols.**
   [`Model\Shipment\DocumentService`](../../src/Model/Shipment/DocumentService.php) fetches them for
   one or more shipments, in one document. With more than one, it refreshes them first and leaves

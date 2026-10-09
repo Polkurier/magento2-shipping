@@ -60,6 +60,8 @@ interface ShipmentManagementInterface
 
     /**
      * Links a shipment whose outcome is unknown to the Polkurier order the merchant identified.
+     * Only an order this installation placed for the shipment can be linked: it carries the
+     * installation's external_application_id and the shipment's external_order_id.
      *
      * @param int $shipmentId
      * @param string $polkurierNumber

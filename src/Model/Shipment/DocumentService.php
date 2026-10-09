@@ -19,7 +19,7 @@ use Polkurier\Webservice\Request\Order\GetDocumentMessage;
  * Labels and handover protocols for Polkurier orders. Several orders of one account come back as
  * one document.
  *
- * When there are several, each is read from Polkurier first; those Polkurier no longer has as
+ * When there are several, they are read from Polkurier first; those Polkurier no longer has as
  * placed are left out and named. This is because Polkurier silently leaves labels it can't print
  * out of the file, and a protocol with one number it doesn't know fails as a whole.
  */
@@ -123,7 +123,7 @@ readonly class DocumentService
     }
 
     /**
-     * Reads each order from Polkurier, as a status refresh does (which also clears those cancelled
+     * Reads the orders from Polkurier, as a status refresh does (which also clears those cancelled
      * there), and drops those Polkurier no longer has as placed.
      *
      * @param array<string, ShipmentInterface> $placed by Polkurier number
@@ -133,16 +133,22 @@ readonly class DocumentService
      */
     private function leaveOutUnplaced(array &$placed): array
     {
+        $refreshed = $this->statusRefreshService->refreshMany(\array_values(\array_map(
+            static fn(ShipmentInterface $shipment): int => (int)$shipment->getId(),
+            $placed,
+        )));
         $leftOut = [];
         foreach ($placed as $number => $shipment) {
-            try {
-                $state = $this->statusRefreshService->refresh((int)$shipment->getId())->getState();
-            } catch (LocalizedException $e) {
-                $leftOut[] = (string)__('Polkurier order %1 was left out: %2', $number, $e->getMessage());
+            $result = $refreshed[(int)$shipment->getId()];
+            if ($result instanceof LocalizedException) {
+                $leftOut[] = (string)__('Polkurier order %1 was left out: %2', $number, $result->getMessage());
                 unset($placed[$number]);
                 continue;
             }
-            if ($state !== ShipmentInterface::STATE_CREATED) {
+            if ($result instanceof \Throwable) {
+                throw $result;
+            }
+            if ($result->getState() !== ShipmentInterface::STATE_CREATED) {
                 $leftOut[] = (string)__('Polkurier order %1 was left out: it was cancelled in Polkurier.', $number);
                 unset($placed[$number]);
             }

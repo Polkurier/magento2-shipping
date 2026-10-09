@@ -614,7 +614,8 @@ class ShipmentManagementTest extends SdkTestCase
         $shipment->setData('created_at', \gmdate('Y-m-d H:i:s', \time() - 60));
         $this->http = new RecordingClient();
         $this->http->willAnswerWith(self::success($this->orderList([
-            $this->remoteOrder('POL0007', 'Zam. 000000042', '00-001', '600700800', 2),
+            ['external_order_id' => '000000009']
+                + $this->remoteOrder('POL0007', 'Zam. 000000042', '00-001', '600700800', 2),
         ])));
         $this->nativeShipmentService->expects(self::once())->method('ship')->willReturnCallback(
             static fn(Order $order, ShipmentInterface $placed, array $qtys, ?int $targetId): int => (int)$targetId,
@@ -1172,7 +1173,8 @@ class ShipmentManagementTest extends SdkTestCase
         self::assertSame($shipment, $events[0]['shipment']);
         $payload = $this->http->lastPayload();
         self::assertSame('get_orders', $payload['apimethod']);
-        self::assertSame('DPD', $payload['data']['courier']);
+        self::assertSame('magento2-0123456789ab', $payload['data']['external_application_id']);
+        self::assertSame('000000077', $payload['data']['external_order_id']);
         self::assertTrue($payload['data']['packs']);
     }
 
@@ -1262,36 +1264,113 @@ class ShipmentManagementTest extends SdkTestCase
         self::assertCount(1, $this->events->of(ApiEventEnum::OrderCreateAfter));
     }
 
-    public function testAnOrderSentWithTheShopsIdsIsLookedUpByThem(): void
+    public function testAnOrderSentWithTheShopsIdsIsLookedUpByThemAlone(): void
+    {
+        $shipment = $this->unknownShipment(createdMinutesAgo: 20);
+        $this->http->willAnswerWith(self::success($this->orderList([])));
+
+        $shipment = $this->management()->reconcile((int)$shipment->getId());
+
+        self::assertSame(1, $this->http->requestCount(), 'Not looked for on the rest of the account.');
+        $data = $this->http->lastPayload()['data'];
+        self::assertSame('magento2-0123456789ab', $data['external_application_id']);
+        self::assertSame('000000077', $data['external_order_id']);
+        self::assertArrayNotHasKey('courier', $data);
+        self::assertSame(ShipmentInterface::STATE_FAILED, $shipment->getState());
+    }
+
+    public function testAnOrderWithoutTheShopsIdsIsNeverTakenForTheShipment(): void
     {
         $shipment = $this->unknownShipment();
-        $this->repository()->save($shipment->setExternalOrderId('000000077'));
+        $this->http->willAnswerWith(self::success($this->orderList([
+            ['external_application_id' => 'magento2-ba9876543210']
+                + $this->remoteOrder('POL0007', 'Zam. 000000042', '00-001', '600700800', 2),
+            ['external_order_id' => '000000078']
+                + $this->remoteOrder('POL0008', 'Zam. 000000042', '00-001', '600700800', 2),
+        ])));
+        $this->nativeShipmentService->expects(self::never())->method('ship');
+
+        $shipment = $this->management()->reconcile((int)$shipment->getId());
+
+        self::assertSame(ShipmentInterface::STATE_UNKNOWN, $shipment->getState(), 'Listed whatever the filter.');
+        self::assertNull($shipment->getPolkurierNumber());
+    }
+
+    public function testAShipmentSentWithoutTheShopsIdsIsNotLookedFor(): void
+    {
+        $shipment = $this->unknownShipment(createdMinutesAgo: 20);
+        $this->repository()->save($shipment->setExternalOrderId(null));
+
+        $shipment = $this->management()->reconcile((int)$shipment->getId());
+
+        self::assertSame(0, $this->http->requestCount());
+        self::assertSame(ShipmentInterface::STATE_FAILED, $shipment->getState());
+    }
+
+    public function testAnOrderThisShopPlacedForTheShipmentIsLinkedByHand(): void
+    {
+        $shipment = $this->unknownShipment();
         $this->http->willAnswerWith(self::success($this->orderList([
             $this->remoteOrder('POL0007', 'Zam. 000000042', '00-001', '600700800', 2),
         ])));
         $this->nativeShipmentService->method('ship')->willReturn(56);
 
-        $shipment = $this->management()->reconcile((int)$shipment->getId());
+        $shipment = $this->management()->adopt((int)$shipment->getId(), 'POL0007');
 
+        self::assertSame(ShipmentInterface::STATE_CREATED, $shipment->getState());
         self::assertSame('POL0007', $shipment->getPolkurierNumber());
-        self::assertSame(1, $this->http->requestCount(), 'Found by its ids at once.');
-        $data = $this->http->lastPayload()['data'];
-        self::assertSame('magento2-0123456789ab', $data['external_application_id']);
-        self::assertSame('000000077', $data['external_order_id']);
-        self::assertArrayNotHasKey('courier', $data);
     }
 
-    public function testAnOrderNotFoundByTheShopsIdsIsLookedForAsBefore(): void
+    public function testAnOrderPlacedElsewhereIsNotLinkedByHand(): void
     {
-        $shipment = $this->unknownShipment(createdMinutesAgo: 20);
-        $this->repository()->save($shipment->setExternalOrderId('000000077'));
-        $this->http->willAnswerWith(self::success($this->orderList([])));
+        $foreign = [
+            'in the Polkurier panel' => ['external_application_id' => null, 'external_order_id' => null],
+            'by another shop' => ['external_application_id' => 'magento2-ba9876543210'],
+            'for another shipment' => ['external_order_id' => '000000078'],
+        ];
+        foreach ($foreign as $where => $ids) {
+            $shipment = $this->unknownShipment();
+            $this->http->willAnswerWith(self::success($this->orderList([
+                $ids + $this->remoteOrder('POL0007', 'Zam. 000000042', '00-001', '600700800', 2),
+            ])));
 
-        $shipment = $this->management()->reconcile((int)$shipment->getId());
+            try {
+                $this->management()->adopt((int)$shipment->getId(), 'POL0007');
+                self::fail('Placed ' . $where . '.');
+            } catch (LocalizedException $e) {
+                self::assertSame(
+                    'Polkurier order POL0007 was not placed by this shop for this shipment, '
+                    . 'so it can\'t be linked to it.',
+                    $e->getMessage(),
+                );
+            }
+            $shipment = $this->repository()->get((int)$shipment->getId());
+            self::assertSame(ShipmentInterface::STATE_UNKNOWN, $shipment->getState(), $where);
+            self::assertNull($shipment->getPolkurierNumber(), $where);
+        }
+    }
 
-        self::assertSame(2, $this->http->requestCount(), 'Polkurier may not have kept the ids.');
-        self::assertSame('DPD', $this->http->lastPayload()['data']['courier']);
-        self::assertSame(ShipmentInterface::STATE_FAILED, $shipment->getState());
+    public function testSeveralPlacedShipmentsAreReadFromOneListOfTheShopsOrders(): void
+    {
+        $first = $this->placedShipment();
+        $second = $this->placedShipment('18015-1002');
+        $this->http->willAnswerWith(self::success($this->orderList([
+            $this->remoteOrder('18015-1000', 'Zam. 000000041', '00-001', '600700800', 1),
+            $this->remoteOrder('18015-1002', 'Zam. 000000042', '00-001', '600700800', 1),
+            $this->remoteOrder('18015-1001', 'Zam. 000000042', '00-001', '600700800', 1),
+        ])));
+
+        $results = $this->services()['refresh']->refreshMany([(int)$first->getId(), (int)$second->getId()]);
+
+        self::assertSame(1, $this->http->requestCount());
+        $data = $this->http->lastPayload()['data'];
+        self::assertSame('magento2-0123456789ab', $data['external_application_id']);
+        self::assertArrayNotHasKey('external_order_id', $data);
+        self::assertTrue($data['packs'] && $data['items'], 'Read as by its number.');
+        self::assertSame(
+            [(int)$first->getId() => ['WB-18015-1001'], (int)$second->getId() => ['WB-18015-1002']],
+            \array_map(static fn(ShipmentInterface $shipment): array => $shipment->getWaybills(), $results),
+        );
     }
 
     public function testReconcilingPrefersALiveOrderToAnEarlierCancelledOne(): void
@@ -1392,6 +1471,7 @@ class ShipmentManagementTest extends SdkTestCase
             ->setRecipientPostcode('00-001')
             ->setRecipientPhone('600700800')
             ->setPackCount(2)
+            ->setExternalOrderId('000000077')
             ->setWaybills([]);
         $shipment->setData('created_at', \gmdate('Y-m-d H:i:s', \time() - $createdMinutesAgo * 60));
         $this->repository()->save($shipment);
@@ -1399,16 +1479,16 @@ class ShipmentManagementTest extends SdkTestCase
         return $shipment;
     }
 
-    private function placedShipment(): Shipment
+    private function placedShipment(string $number = '18015-1001'): Shipment
     {
         $shipment = $this->newShipment()
             ->setOrderId(self::ORDER_ID)
             ->setStoreId(1)
             ->setState(ShipmentInterface::STATE_CREATED)
-            ->setPolkurierNumber('18015-1001')
+            ->setPolkurierNumber($number)
             ->setShipmentId(56)
             ->setCarrierCode('DPD')
-            ->setWaybills(['WB-18015-1001']);
+            ->setWaybills(['WB-' . $number]);
         $this->repository()->save($shipment);
 
         return $shipment;
@@ -1486,6 +1566,8 @@ class ShipmentManagementTest extends SdkTestCase
             'packs' => [
                 ['length' => 30, 'width' => 20, 'height' => 10, 'weight' => 2.5, 'type' => 'ST', 'amount' => $packs],
             ],
+            'external_application_id' => 'magento2-0123456789ab',
+            'external_order_id' => '000000077',
         ];
     }
 

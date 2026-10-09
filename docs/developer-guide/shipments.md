@@ -10,8 +10,9 @@ A shipment is a Polkurier order placed for a Magento order. Its whole life goes 
 contract, [`Api\ShipmentManagementInterface`](../../src/Api/ShipmentManagementInterface.php): the
 default draft, placing, reconciling, adopting, refreshing the status, shipping the Magento order and
 cancelling. The admin controllers use it, so a plugin there sees everything an admin or integration
-asks for. Scheduled runs and Magento's label flow don't go through it (see
-[Following a shipment](#following-a-shipment) and [Shipping labels in Magento](magento-labels.md)).
+asks for. Scheduled runs, status updates of several shipments at once and Magento's label flow
+don't go through it (see [Following a shipment](#following-a-shipment) and
+[Shipping labels in Magento](magento-labels.md)).
 Requests reach Polkurier through the shipment gateway (see
 [Talking to Polkurier](talking-to-polkurier.md#the-shipment-gateway)).
 
@@ -256,14 +257,14 @@ Every order is sent with the shop's own ids, which reconciliation uses to find i
   (`reserved_shipment_number`), and the shipment gets it once it's made;
 - `external_order_number` is the order's number.
 
-Polkurier stores the ids as given (up to 50 characters, not unique, never checked) and may fail to
-keep them without saying so. So reconciliation looks for orders on the account with the attempt's
-ids, or, failing that, for the same carrier from the day before to the day after. A match must have
-the same description, recipient postcode, phone and number of parcels, and not be held by another
-shipment:
+Polkurier stores the ids as given (up to 50 characters, not unique, never checked). Reconciliation
+looks only for orders with the attempt's ids, so an order placed in the Polkurier panel, or by
+another shop on the account, is never taken for it. Since the ids aren't unique, a match must also
+have the same carrier, description, recipient postcode, phone and number of parcels, and not be
+held by another shipment:
 
 ```
-orders on the account that match
+orders with the attempt's ids that match
 ├── one or more not cancelled ....................... the earliest adopted: created
 ├── only cancelled ones ............................. the earliest linked: cancelled
 ├── only ones listed without their parcels .......... unknown, their numbers in last_error
@@ -279,7 +280,10 @@ Orders listed without their parcels can't be told apart well enough, so they're 
 by hand.
 
 `adopt()` links an `unknown` shipment to a Polkurier order number given by the caller, for
-integrations that know it. A cancelled order linked this way is linked as `cancelled`, as above.
+integrations that know it. The order must carry the installation's `external_application_id` and the
+shipment's `external_order_id`, and no other shipment may hold it; any other order is refused, and a
+shipment without an `external_order_id` can't be linked. A cancelled order linked this way is linked
+as `cancelled`, as above.
 
 ## Shipments that need attention
 
@@ -317,10 +321,23 @@ finished and weren't checked since the previous run, least recently checked firs
 run. **Update statuses** on the shipments grid takes the same shipments however recently they were
 checked, even with the status sync off.
 
-The scheduled jobs and **Update statuses** call
+Several shipments are refreshed together, by `StatusRefreshService::refreshMany()`: the scheduled
+run, **Update statuses** on the shipments grid and in the grids' **Actions** menu, and labels or a
+protocol for several shipments. Their orders are read in as few calls as it takes:
+
+- the installation's orders are listed with `get_orders` by `external_application_id`, from a day
+  before the oldest shipment to a day after the newest, until every order is found;
+- when the first page shows the list to be at least as many pages as there are shipments, the
+  listing stops after it;
+- an order not on the pages listed is read by its number, as `refreshStatus()` reads it.
+
+Each order is then applied as `refreshStatus()` applies it, under the same lock. A shipment that
+fails doesn't stop the others.
+
+These and the scheduled reconciliation call
 [`Model\Shipment\Status\StatusRefreshService`](../../src/Model/Shipment/Status/StatusRefreshService.php)
 and [`Model\Shipment\Status\ReconciliationService`](../../src/Model/Shipment/Status/ReconciliationService.php)
-directly, so a plugin on the service contract doesn't see each shipment of a scheduled run.
+directly, so a plugin on the service contract doesn't see each shipment they handle.
 
 ### The status webhook
 
@@ -340,8 +357,8 @@ signature, and 503 when the refresh failed.
   same.
 - **Labels and protocols.**
   [`Model\Shipment\DocumentService`](../../src/Model/Shipment/DocumentService.php) fetches them for
-  one or more shipments, in one document. With more than one, it refreshes each first and leaves out
-  those that aren't placed, listing why under `left_out`. Labels are PDF unless a
+  one or more shipments, in one document. With more than one, it refreshes them first and leaves
+  out those that aren't placed, listing why under `left_out`. Labels are PDF unless a
   `Polkurier\Webservice\Enum\Order\LabelFileFormatEnum` is given; the admin's `polkurier/shipment/label`
   takes it as the `format` parameter, from the **Print label** button's list on the shipment details
   page and the **Print labels** submenu of the shipment grids

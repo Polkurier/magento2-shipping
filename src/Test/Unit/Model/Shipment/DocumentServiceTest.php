@@ -39,7 +39,7 @@ class DocumentServiceTest extends TestCase
     private array $remoteStates = [];
 
     /**
-     * @var int[] the shipments read from Polkurier
+     * @var array<int, int[]> the shipments read from Polkurier, by call
      */
     private array $refreshed = [];
 
@@ -52,9 +52,9 @@ class DocumentServiceTest extends TestCase
     public function testLabelsAreOnePdfOfThePlacedOrdersEachOnce(): void
     {
         $file = $this->documents()->getLabels([
-            $this->shipment('18015-2865', 1),
-            $this->shipment('18015-2866', 2),
-            $this->shipment('18015-2865', 1),
+            $this->shipment('18015-2865', 1, id: 1),
+            $this->shipment('18015-2866', 2, id: 2),
+            $this->shipment('18015-2865', 1, id: 1),
             $this->shipment(null, 1, ShipmentInterface::STATE_UNKNOWN),
             $this->shipment('18015-2867', 1, ShipmentInterface::STATE_CANCELLED),
         ]);
@@ -83,7 +83,7 @@ class DocumentServiceTest extends TestCase
             $this->shipment('711400-99', 1, id: 3),
         ]);
 
-        self::assertSame([1, 2, 3], $this->refreshed);
+        self::assertSame([[1, 2, 3]], $this->refreshed, 'Read together.');
         self::assertSame(
             ['711400-24'],
             $this->asked?->getOrderNo(),
@@ -362,16 +362,19 @@ class DocumentServiceTest extends TestCase
         $gateway->method('getProtocol')->willReturnCallback($answer);
 
         $refresh = $this->createStub(StatusRefreshService::class);
-        $refresh->method('refresh')->willReturnCallback(function (int $id): ShipmentInterface {
-            $this->refreshed[] = $id;
-            $state = \array_key_exists($id, $this->remoteStates)
-                ? $this->remoteStates[$id]
-                : ShipmentInterface::STATE_CREATED;
-            if ($state === null) {
-                throw new LocalizedException(__('Polkurier has no order number %1 on this account.', '711400-99'));
+        $refresh->method('refreshMany')->willReturnCallback(function (array $ids): array {
+            $this->refreshed[] = $ids;
+            $results = [];
+            foreach ($ids as $id) {
+                $state = \array_key_exists($id, $this->remoteStates)
+                    ? $this->remoteStates[$id]
+                    : ShipmentInterface::STATE_CREATED;
+                $results[$id] = $state === null
+                    ? new LocalizedException(__('Polkurier has no order number %1 on this account.', '711400-99'))
+                    : $this->shipment('711400-' . $id, 1, $state, $id);
             }
 
-            return $this->shipment('711400-' . $id, 1, $state, $id);
+            return $results;
         });
 
         return new DocumentService(

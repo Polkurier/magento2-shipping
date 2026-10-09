@@ -8,6 +8,7 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Test\Unit\Model\Shipment\Status;
 
 use Magento\Framework\Exception\LocalizedException;
+use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Framework\Phrase;
 use Magento\Framework\TestFramework\Unit\Helper\ObjectManager;
 use Magento\Sales\Model\Order;
@@ -176,6 +177,49 @@ class StatusRefreshServiceTest extends TestCase
         self::assertSame([], $this->happened);
     }
 
+    public function testOrdersListedTogetherAreAppliedAsEachWouldBeAndTheRestReadByNumber(): void
+    {
+        $results = $this->many(listed: ['711400-6', '711400-8'])->refreshMany([6, 7, 8]);
+
+        self::assertSame([
+            'list 711400-6, 711400-7, 711400-8',
+            'apply 711400-6 to 6',
+            'find 711400-7',
+            'apply 711400-7 to 7',
+            'apply 711400-8 to 8',
+        ], $this->happened);
+        self::assertSame([6, 7, 8], \array_keys($results));
+        foreach ($results as $id => $shipment) {
+            self::assertInstanceOf(ShipmentInterface::class, $shipment);
+            self::assertSame('2026-10-06 10:00:00', $shipment->getStatusCheckedAt(), 'Shipment ' . $id);
+        }
+    }
+
+    public function testAShipmentThatFailsDoesNotStopTheOthers(): void
+    {
+        $results = $this->many(listed: ['711400-9'], unknown: ['711400-6'], failing: ['711400-7'])
+            ->refreshMany([4, 5, 6, 7, 8, 9]);
+
+        self::assertSame([4, 5, 6, 7, 8, 9], \array_keys($results), 'In the order given.');
+        self::assertSame(
+            [
+                4 => 'No such shipment.',
+                5 => 'This shipment has no Polkurier order to read.',
+                6 => 'Polkurier has no order number 711400-6 on this account.',
+                7 => 'Unexpected.',
+            ],
+            \array_map(
+                static fn(\Throwable $e): string => $e->getMessage(),
+                \array_filter($results, static fn($result): bool => $result instanceof \Throwable),
+            ),
+        );
+        self::assertInstanceOf(LocalizedException::class, $results[6]);
+        self::assertNotInstanceOf(LocalizedException::class, $results[7], 'Passed on as it is.');
+        self::assertInstanceOf(ShipmentInterface::class, $results[8]);
+        self::assertInstanceOf(ShipmentInterface::class, $results[9]);
+        self::assertSame('list 711400-6, 711400-7, 711400-8, 711400-9', $this->happened[0], 'Without those not read.');
+    }
+
     /**
      * @param array{waybills?: string[], delivered?: string, state?: string} $remote what Polkurier
      *     says, as {@see RemoteOrderApplier} would apply it
@@ -266,6 +310,83 @@ class StatusRefreshServiceTest extends TestCase
             $format,
             new OrderLock(new MemoryLocks()),
             $age,
+            $this->createStub(ShipmentFinder::class),
+            $this->createStub(ShipmentResource::class),
+            $this->createStub(ConfigProvider::class),
+            $this->createStub(Logger::class),
+        );
+    }
+
+    /**
+     * Shipments 6 and up placed as Polkurier order 711400-<id>; 4 doesn't exist and 5 has no
+     * Polkurier order.
+     *
+     * @param string[] $listed the orders Polkurier lists together
+     * @param string[] $unknown the orders Polkurier doesn't find by their numbers
+     * @param string[] $failing the orders that fail unexpectedly once applied
+     */
+    private function many(array $listed, array $unknown = [], array $failing = []): StatusRefreshService
+    {
+        $repository = $this->createStub(ShipmentRepositoryInterface::class);
+        $repository->method('get')->willReturnCallback(function (int $id): ShipmentInterface {
+            if ($id === 4) {
+                throw new NoSuchEntityException(__('No such shipment.'));
+            }
+            /** @var Shipment $shipment */
+            $shipment = (new ObjectManager($this))->getObject(Shipment::class);
+
+            return $shipment->setId($id)->setOrderId(29)->setState(ShipmentInterface::STATE_CREATED)
+                ->setPolkurierNumber($id === 5 ? null : '711400-' . $id)->setShipmentId(11)->setWaybills(['W1']);
+        });
+        $repository->method('save')->willReturnArgument(0);
+        $remote = function (string $number): RemoteOrder {
+            $order = $this->createStub(RemoteOrder::class);
+            $order->method('getNumber')->willReturn($number);
+
+            return $order;
+        };
+        $matcher = $this->createStub(RemoteOrderMatcher::class);
+        $matcher->method('findByNumbers')->willReturnCallback(
+            function (array $shipments) use ($listed, $remote): array {
+                $this->happened[] = 'list ' . \implode(', ', \array_map(
+                    static fn(ShipmentInterface $shipment): string => (string)$shipment->getPolkurierNumber(),
+                    $shipments,
+                ));
+
+                return \array_combine($listed, \array_map($remote, $listed));
+            },
+        );
+        $matcher->method('findByNumber')->willReturnCallback(
+            function (string $number) use ($unknown, $remote): RemoteOrder {
+                $this->happened[] = 'find ' . $number;
+                if (\in_array($number, $unknown, true)) {
+                    throw new LocalizedException(__('Polkurier has no order number %1 on this account.', $number));
+                }
+
+                return $remote($number);
+            },
+        );
+        $applier = $this->createStub(RemoteOrderApplier::class);
+        $applier->method('apply')->willReturnCallback(
+            function (RemoteOrder $order, ShipmentInterface $shipment) use ($failing): void {
+                if (\in_array($order->getNumber(), $failing, true)) {
+                    throw new \LogicException('Unexpected.');
+                }
+                $this->happened[] = 'apply ' . $order->getNumber() . ' to ' . $shipment->getId();
+            },
+        );
+
+        return new StatusRefreshService(
+            $repository,
+            $matcher,
+            $applier,
+            $this->createStub(NativeShipmentService::class),
+            $this->createStub(NativeFollowUpService::class),
+            $this->createStub(OrderLoader::class),
+            new FixedDateTime((int)\strtotime('2026-10-06 10:00:00 UTC')),
+            $this->createStub(Formatter::class),
+            new OrderLock(new MemoryLocks()),
+            $this->createStub(ShipmentAgeChecker::class),
             $this->createStub(ShipmentFinder::class),
             $this->createStub(ShipmentResource::class),
             $this->createStub(ConfigProvider::class),

@@ -19,20 +19,20 @@ use Polkurier\Webservice\Request\Order\GetOrdersMessage;
 use Polkurier\Webservice\Response\Order;
 
 /**
- * Looks for a Polkurier order whose creation went unanswered.
+ * Finds this installation's orders on the Polkurier account: the one an unanswered attempt may have
+ * placed, and the ones the shop holds the numbers of.
  *
- * An order sent with the shop's own ids (the installation's application id, and the Magento
- * shipment's or order's number) is looked up by them first. They aren't unique, and Polkurier may
- * not have kept them, so the match is strict all the same, and heuristic without them: the same
- * carrier, placed from the day before the attempt to the day after (Polkurier filters by date
- * only), with the same description (by default it carries the Magento increment id), recipient
- * postcode and phone, and the same number of parcels, and not adopted by another shipment. An
- * order Polkurier lists without its parcels can't be told apart that well: it's only a possible
- * match, never adopted automatically.
+ * Every order the module places carries the installation's application id and the shipment's
+ * external order id (the Magento shipment's or order's number). An unanswered attempt's order is
+ * looked up by them alone, so an order placed some other way, in the Polkurier panel or by another
+ * shop on the account, is never taken for it. The ids aren't unique, e.g. an order's number goes
+ * with each of its shipments, so a match must also have the same carrier, description, recipient
+ * postcode and phone, and number of parcels, and not be held by another shipment. An order
+ * Polkurier lists without its parcels can't be told apart that well: it's only a possible match,
+ * never adopted automatically.
  */
 readonly class RemoteOrderMatcher
 {
-    public const int WINDOW_DAYS = 1;
     public const int MAX_PAGES = 5;
 
     private const string SURE = 'sure';
@@ -54,25 +54,26 @@ readonly class RemoteOrderMatcher
      */
     public function findCandidates(ShipmentInterface $shipment): array
     {
-        // Sent with the shop's own ids, it's found by them; Polkurier may have failed to keep
-        // them without saying so, so not finding it that way proves nothing.
-        $found = $this->findByExternalIds($shipment);
-        if ($found[self::SURE] !== [] || $found[self::POSSIBLE] !== []) {
+        $found = [self::SURE => [], self::POSSIBLE => []];
+        $externalOrderId = $shipment->getExternalOrderId();
+        if ($externalOrderId === null) {
             return $found;
         }
-        $createdAt = new \DateTimeImmutable(
-            (string)($shipment->getCreatedAt() ?: '@' . $this->dateTime->gmtTimestamp()),
-            new \DateTimeZone('UTC'),
-        );
+        $orders = $this->findOrders(fn(GetOrdersMessageBuilder $builder) => $builder
+            ->externalApplicationId($this->applicationIdProvider->get())
+            ->externalOrderId($externalOrderId));
+        foreach ($orders as $order) {
+            $match = $order->getNumber() !== null ? $this->match($shipment, $order) : self::NO_MATCH;
+            if ($match !== self::NO_MATCH) {
+                $found[$match][] = $order;
+            }
+        }
 
-        return $this->findMatching($shipment, static fn(GetOrdersMessageBuilder $builder) => $builder
-            ->courier($shipment->getCarrierCode())
-            ->dateFrom($createdAt->modify('-' . self::WINDOW_DAYS . ' day'))
-            ->dateTo($createdAt->modify('+' . self::WINDOW_DAYS . ' day')));
+        return $this->unclaimed($shipment, $found);
     }
 
     /**
-     * Reads one order by its Polkurier number, e.g. to adopt it by hand.
+     * Reads one order by its Polkurier number, e.g. to refresh the shipment that holds it.
      *
      * @throws LocalizedException when there is no such order, or Polkurier can't be asked
      */
@@ -90,6 +91,84 @@ readonly class RemoteOrderMatcher
         }
 
         throw new LocalizedException(__('Polkurier has no order number %1 on this account.', $number));
+    }
+
+    /**
+     * Reads the orders of several shipments at once, from the list of this installation's orders
+     * placed from the day before the first shipment to the day after the last. The list is read
+     * page after page until every order is found, unless its first page shows that it takes as
+     * many calls as reading the orders one by one. The orders not found on the pages read are left
+     * to {@see self::findByNumber()}: those of a single shipment, those listed later, and the rest
+     * when Polkurier fails to list a page.
+     *
+     * @param ShipmentInterface[] $shipments
+     *
+     * @return array<string, Order> the orders found, by number
+     */
+    public function findByNumbers(array $shipments): array
+    {
+        $wanted = [];
+        $placedAt = [];
+        foreach ($shipments as $shipment) {
+            $number = $shipment->getPolkurierNumber();
+            if ($number !== null) {
+                $wanted[$number] = true;
+                $placedAt[] = $this->timestamp($shipment);
+            }
+        }
+        $count = \count($wanted);
+        if ($count < 2) {
+            return [];
+        }
+        $from = new \DateTimeImmutable('@' . (\min($placedAt) - 86400));
+        $to = new \DateTimeImmutable('@' . (\max($placedAt) + 86400));
+        $found = [];
+        for ($page = 1; $wanted !== []; $page++) {
+            try {
+                $list = $this->shipmentGateway->findOrders($this->getOrdersMessageBuilderFactory->create()
+                    ->externalApplicationId($this->applicationIdProvider->get())
+                    ->dateFrom($from)
+                    ->dateTo($to)
+                    ->pageSize(GetOrdersMessage::MAX_PAGE_SIZE)
+                    ->page($page)
+                    ->packs(true)
+                    ->items(true)
+                    ->build());
+            } catch (LocalizedException) {
+                break;
+            }
+            foreach ($list->getResult() as $order) {
+                $number = (string)$order->getNumber();
+                if (isset($wanted[$number])) {
+                    $found[$number] = $order;
+                    unset($wanted[$number]);
+                }
+            }
+            if ($page >= $list->getTotalPages() || ($page === 1 && $list->getTotalPages() >= $count)) {
+                break;
+            }
+        }
+
+        return $found;
+    }
+
+    /**
+     * Whether this installation placed the order for the shipment: the order carries the
+     * installation's application id and the shipment's external order id.
+     */
+    public function isPlacedFor(ShipmentInterface $shipment, Order $order): bool
+    {
+        return $shipment->getExternalOrderId() !== null
+            && $order->getExternalApplicationId() === $this->applicationIdProvider->get()
+            && $order->getExternalOrderId() === $shipment->getExternalOrderId();
+    }
+
+    /**
+     * Whether another shipment already holds the order.
+     */
+    public function isHeldByAnother(ShipmentInterface $shipment, Order $order): bool
+    {
+        return $this->getAdoptedNumbers((int)$shipment->getId(), [$order]) !== [];
     }
 
     /**
@@ -111,46 +190,6 @@ readonly class RemoteOrderMatcher
         }
 
         return $found;
-    }
-
-    /**
-     * The orders Polkurier lists with the ids the shipment was sent with, that match it as well:
-     * the ids aren't unique, e.g. an order's number goes with each of its shipments.
-     *
-     * @return array{sure: Order[], possible: Order[]}
-     * @throws LocalizedException
-     */
-    private function findByExternalIds(ShipmentInterface $shipment): array
-    {
-        $externalOrderId = $shipment->getExternalOrderId();
-        if ($externalOrderId === null) {
-            return [self::SURE => [], self::POSSIBLE => []];
-        }
-
-        return $this->findMatching($shipment, fn(GetOrdersMessageBuilder $builder) => $builder
-            ->externalApplicationId($this->applicationIdProvider->get())
-            ->externalOrderId($externalOrderId));
-    }
-
-    /**
-     * The orders the search finds that match the shipment, and no other shipment holds.
-     *
-     * @param callable(GetOrdersMessageBuilder): GetOrdersMessageBuilder $filter
-     *
-     * @return array{sure: Order[], possible: Order[]}
-     * @throws LocalizedException
-     */
-    private function findMatching(ShipmentInterface $shipment, callable $filter): array
-    {
-        $found = [self::SURE => [], self::POSSIBLE => []];
-        foreach ($this->findOrders($filter) as $order) {
-            $match = $order->getNumber() !== null ? $this->match($shipment, $order) : self::NO_MATCH;
-            if ($match !== self::NO_MATCH) {
-                $found[$match][] = $order;
-            }
-        }
-
-        return $this->unclaimed($shipment, $found);
     }
 
     /**
@@ -183,7 +222,8 @@ readonly class RemoteOrderMatcher
      */
     private function match(ShipmentInterface $shipment, Order $order): string
     {
-        if ($order->getCourier() !== $shipment->getCarrierCode()
+        if (!$this->isPlacedFor($shipment, $order)
+            || $order->getCourier() !== $shipment->getCarrierCode()
             || \trim((string)$order->getDescription()) !== \trim($shipment->getDescription())
             || self::postcode($order->getRecipient()->getPostcode())
                 !== self::postcode((string)$shipment->getRecipientPostcode())
@@ -201,6 +241,18 @@ readonly class RemoteOrderMatcher
             $packs === 0 => self::POSSIBLE,
             default => self::NO_MATCH,
         };
+    }
+
+    /**
+     * When the shipment was placed, or now for one not saved yet.
+     */
+    private function timestamp(ShipmentInterface $shipment): int
+    {
+        $createdAt = $shipment->getCreatedAt();
+
+        return $createdAt
+            ? (new \DateTimeImmutable($createdAt, new \DateTimeZone('UTC')))->getTimestamp()
+            : $this->dateTime->gmtTimestamp();
     }
 
     private static function postcode(string $postcode): string

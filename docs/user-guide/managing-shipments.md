@@ -88,7 +88,8 @@ For a placed shipment:
 For a shipment whose outcome is unknown, **Reconcile** looks for it in your Polkurier account
 straight away. If it finds an order that may be the shipment but can't be sure, it names it. If
 that's the right one, open the shipment's details and use **Link to a Polkurier order** with its
-number.
+number. Only an order this shop placed for that shipment can be linked, not one placed in the
+Polkurier panel or by another shop, and not one already linked to another shipment.
 
 For a shipment that wasn't placed, see [When a shipment isn't placed](#when-a-shipment-isnt-placed).
 

@@ -46,6 +46,11 @@ class StatusRefreshServiceBatchTest extends TestCase
      */
     private array $stored = [];
 
+    /**
+     * @var array<int, int[]> the shipments refreshed, by call
+     */
+    private array $refreshedTogether = [];
+
     private ?\Throwable $failure = null;
     private int $interval = 30;
 
@@ -74,6 +79,7 @@ class StatusRefreshServiceBatchTest extends TestCase
 
         self::assertSame(['refreshed' => 1, 'failed' => 1], $result, 'However recently checked.');
         self::assertSame([null, StatusRefreshService::BATCH_SIZE], $this->query);
+        self::assertSame([[5, 7]], $this->refreshedTogether);
     }
 
     public function testAShipmentWhoseRefreshFailsIsStillMarkedAsChecked(): void
@@ -130,15 +136,19 @@ class StatusRefreshServiceBatchTest extends TestCase
             },
         );
 
-        $refresh = function (int $id): ShipmentInterface {
-            if ($id === 7) {
-                if (isset($this->stored[7])) {
+        $refresh = function (array $ids): array {
+            $this->refreshedTogether[] = $ids;
+            $results = [];
+            foreach ($ids as $id) {
+                if ($id === 7 && isset($this->stored[7])) {
                     $this->stored[7]['status_checked_at'] = '2026-09-29 12:00:00';
                 }
-                throw $this->failure ?? new LocalizedException(__('Polkurier is not answering.'));
+                $results[$id] = $id === 7
+                    ? $this->failure ?? new LocalizedException(__('Polkurier is not answering.'))
+                    : $this->shipment($id);
             }
 
-            return $this->shipment($id);
+            return $results;
         };
         // The whole row written back, whichever way it is saved.
         $writeBack = function (Shipment $shipment): void {
@@ -189,10 +199,10 @@ class StatusRefreshServiceBatchTest extends TestCase
             $resource,
             $config,
             $this->createStub(Logger::class),
-        ])->onlyMethods(['refresh'])->getMock();
-        // Each shipment's own refresh is
+        ])->onlyMethods(['refreshMany'])->getMock();
+        // Refreshing the shipments is
         // {@see \Polkurier\Shipping\Test\Unit\Model\Shipment\Status\StatusRefreshServiceTest}'s.
-        $refresher->method('refresh')->willReturnCallback($refresh);
+        $refresher->method('refreshMany')->willReturnCallback($refresh);
 
         return $refresher;
     }

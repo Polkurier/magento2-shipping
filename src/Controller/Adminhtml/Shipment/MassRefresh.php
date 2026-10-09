@@ -12,8 +12,8 @@ use Magento\Framework\App\Action\HttpPostActionInterface;
 use Magento\Framework\Controller\Result\Redirect;
 use Magento\Framework\Exception\LocalizedException;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
-use Polkurier\Shipping\Api\ShipmentManagementInterface;
 use Polkurier\Shipping\Model\Admin\FlashMessageCollectorFactory;
+use Polkurier\Shipping\Model\Shipment\Status\StatusRefreshService;
 
 /**
  * Reads the current state of the selected placed Polkurier orders.
@@ -25,7 +25,7 @@ class MassRefresh extends AbstractShipmentAction implements HttpPostActionInterf
     public function __construct(
         Context $context,
         RequestedShipments $requestedShipments,
-        private readonly ShipmentManagementInterface $shipmentManagement,
+        private readonly StatusRefreshService $statusRefreshService,
         private readonly FlashMessageCollectorFactory $flashMessageCollectorFactory,
     ) {
         parent::__construct($context, $requestedShipments);
@@ -37,15 +37,19 @@ class MassRefresh extends AbstractShipmentAction implements HttpPostActionInterf
         $failed = [];
         $flash = $this->flashMessageCollectorFactory->create();
         try {
+            $placed = [];
             foreach ($this->getSelectedShipments() as $shipment) {
-                if ($shipment->getState() !== ShipmentInterface::STATE_CREATED) {
-                    continue;
+                if ($shipment->getState() === ShipmentInterface::STATE_CREATED) {
+                    $placed[(int)$shipment->getId()] = $shipment;
                 }
-                try {
-                    $this->shipmentManagement->refreshStatus((int)$shipment->getId());
+            }
+            foreach ($this->statusRefreshService->refreshMany(\array_keys($placed)) as $shipmentId => $result) {
+                if ($result instanceof LocalizedException) {
+                    $failed[] = $placed[$shipmentId]->getPolkurierNumber() . ': ' . $result->getMessage();
+                } elseif ($result instanceof \Throwable) {
+                    throw $result;
+                } else {
                     $refreshed++;
-                } catch (LocalizedException $e) {
-                    $failed[] = $shipment->getPolkurierNumber() . ': ' . $e->getMessage();
                 }
             }
         } catch (LocalizedException $e) {

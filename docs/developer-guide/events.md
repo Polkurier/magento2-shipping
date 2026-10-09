@@ -51,7 +51,7 @@ that were sent and received.
   | `create` | placed from the shipment screen or your own code |
   | `label` | placed for a label on Magento's shipment page; the Magento shipment is saved right after the event, so `shipment_id` isn't set yet |
   | `reconcile` | an unconfirmed attempt, found on the account later |
-  | `adopt` | an unconfirmed attempt, linked by hand to a given order number |
+  | `adopt` | an unconfirmed attempt, linked by hand to its order, given by number |
 
   For `reconcile` and `adopt` there's no `request` or `response`, since the answer never arrived.
   Nothing is dispatched while the outcome is still unknown, or for a refused order.

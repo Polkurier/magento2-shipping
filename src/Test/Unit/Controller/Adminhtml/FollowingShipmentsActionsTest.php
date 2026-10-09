@@ -20,6 +20,7 @@ use Polkurier\Shipping\Controller\Adminhtml\Shipment\RequestedShipments;
 use Polkurier\Shipping\Model\Shipment\Details\DetailsLoader;
 use Polkurier\Shipping\Model\Shipment\PickupService;
 use Polkurier\Shipping\Model\Shipment\Placement\FailedShipmentManager;
+use Polkurier\Shipping\Model\Shipment\Status\StatusRefreshService;
 use Polkurier\Shipping\Test\Unit\Support\AdminActionTestCase;
 
 /**
@@ -115,16 +116,13 @@ class FollowingShipmentsActionsTest extends AdminActionTestCase
         self::assertArrayNotHasKey('success', $this->messages);
     }
 
-    public function testUpdatingStatusesTakesThePlacedShipmentsAndSaysWhichFailed(): void
+    public function testUpdatingStatusesTakesThePlacedShipmentsTogetherAndSaysWhichFailed(): void
     {
-        $management = $this->createStub(ShipmentManagementInterface::class);
-        $management->method('refreshStatus')->willReturnCallback(function (int $id): ShipmentInterface {
-            if ($id === 6) {
-                throw new LocalizedException(__('Polkurier is not answering.'));
-            }
-
-            return $this->shipment($id, ShipmentInterface::STATE_CREATED, '711400-' . $id);
-        });
+        $refresher = $this->createMock(StatusRefreshService::class);
+        $refresher->expects(self::once())->method('refreshMany')->with([4, 6])->willReturn([
+            4 => $this->shipment(4, ShipmentInterface::STATE_CREATED, '711400-4'),
+            6 => new LocalizedException(__('Polkurier is not answering.')),
+        ]);
         $selected = [
             $this->shipment(4, ShipmentInterface::STATE_CREATED, '711400-4'),
             $this->shipment(5, ShipmentInterface::STATE_FAILED, null),
@@ -134,7 +132,7 @@ class FollowingShipmentsActionsTest extends AdminActionTestCase
         (new MassRefresh(
             $this->context(),
             $this->requested($selected),
-            $management,
+            $refresher,
             $this->flashMessageCollectorFactory(),
         ))->execute();
 

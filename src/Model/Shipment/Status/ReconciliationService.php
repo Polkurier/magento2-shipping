@@ -24,7 +24,7 @@ use Polkurier\Webservice\Response\Order;
 
 /**
  * Settles attempts whose outcome is unknown: finds the Polkurier order they placed, if any, or
- * links the one the merchant names. What counts as a match is
+ * links the one the merchant names, if they placed it. What counts as a match is
  * {@see \Polkurier\Shipping\Model\Shipment\Status\RemoteOrderMatcher}'s.
  *
  * The scheduled run (reconcilePending()) takes shipments whose outcome is unknown, and pending ones
@@ -112,7 +112,9 @@ readonly class ReconciliationService
     }
 
     /**
-     * Links a shipment whose outcome is unknown to a Polkurier order the merchant identified.
+     * Links a shipment whose outcome is unknown to a Polkurier order the merchant identified. Only
+     * an order this installation placed for the shipment, and no other shipment holds, is linked: one
+     * placed in the Polkurier panel, or by another shop on the account, is refused.
      *
      * @throws LocalizedException
      */
@@ -122,7 +124,20 @@ readonly class ReconciliationService
         if ($shipment->getState() !== ShipmentInterface::STATE_UNKNOWN) {
             throw new LocalizedException(__('Only a shipment whose outcome is unknown can be linked by hand.'));
         }
+        if ($shipment->getExternalOrderId() === null) {
+            throw new LocalizedException(__(
+                'This shipment was sent without this shop\'s IDs, '
+                . 'so no Polkurier order can be linked to it by hand.',
+            ));
+        }
         $remote = $this->remoteOrderMatcher->findByNumber(\trim($polkurierNumber));
+        if (!$this->remoteOrderMatcher->isPlacedFor($shipment, $remote)) {
+            throw new LocalizedException(__(
+                'Polkurier order %1 was not placed by this shop for this shipment, '
+                . 'so it can\'t be linked to it.',
+                $remote->getNumber(),
+            ));
+        }
 
         return $this->orderLock->run($shipment->getOrderId(), function () use (
             $shipmentId,
@@ -131,6 +146,13 @@ readonly class ReconciliationService
             $shipment = $this->shipmentRepository->get($shipmentId);
             if ($shipment->getState() !== ShipmentInterface::STATE_UNKNOWN) {
                 throw new LocalizedException(__('Only a shipment whose outcome is unknown can be linked by hand.'));
+            }
+            // Sibling shipments of one Magento order may carry the same ids.
+            if ($this->remoteOrderMatcher->isHeldByAnother($shipment, $remote)) {
+                throw new LocalizedException(__(
+                    'Polkurier order %1 is already linked to another shipment.',
+                    $remote->getNumber(),
+                ));
             }
 
             return $this->link($shipment, $remote);

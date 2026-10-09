@@ -84,17 +84,54 @@ readonly class StatusRefreshService
     public function refresh(int $shipmentId): ShipmentInterface
     {
         $shipment = $this->shipmentRepository->get($shipmentId);
-        $number = $shipment->getPolkurierNumber();
-        if ($number === null) {
-            throw new LocalizedException(__('This shipment has no Polkurier order to read.'));
-        }
-        $remote = $this->remoteOrderMatcher->findByNumber($number);
 
-        // Applied once: a webhook and the scheduled update may refresh it at the same time.
-        return $this->orderLock->run($shipment->getOrderId(), fn(): ShipmentInterface => $this->apply(
-            $this->shipmentRepository->get($shipmentId),
-            $remote,
-        ));
+        return $this->update($shipment, $this->remoteOrderMatcher->findByNumber(self::number($shipment)));
+    }
+
+    /**
+     * Refreshes several shipments as refresh() does each. Their orders are read from Polkurier
+     * together where that takes fewer calls:
+     * {@see \Polkurier\Shipping\Model\Shipment\Status\RemoteOrderMatcher::findByNumbers()}.
+     * A shipment that fails doesn't stop the others.
+     *
+     * @param int[] $shipmentIds
+     *
+     * @return array<int, ShipmentInterface|\Throwable> by shipment id, in the order given: the
+     *     shipment refreshed, or the error that stopped it, a LocalizedException unless unexpected
+     */
+    public function refreshMany(array $shipmentIds): array
+    {
+        $failed = [];
+        $shipments = [];
+        $numbers = [];
+        foreach (\array_unique($shipmentIds) as $shipmentId) {
+            try {
+                $shipment = $this->shipmentRepository->get($shipmentId);
+                $numbers[$shipmentId] = self::number($shipment);
+                $shipments[$shipmentId] = $shipment;
+            } catch (\Throwable $e) {
+                $failed[$shipmentId] = $e;
+            }
+        }
+        $listed = $this->remoteOrderMatcher->findByNumbers($shipments);
+        $results = [];
+        foreach ($shipmentIds as $shipmentId) {
+            if (isset($failed[$shipmentId])) {
+                $results[$shipmentId] = $failed[$shipmentId];
+                continue;
+            }
+            $number = $numbers[$shipmentId];
+            try {
+                $results[$shipmentId] = $this->update(
+                    $shipments[$shipmentId],
+                    $listed[$number] ?? $this->remoteOrderMatcher->findByNumber($number),
+                );
+            } catch (\Throwable $e) {
+                $results[$shipmentId] = $e;
+            }
+        }
+
+        return $results;
     }
 
     /**
@@ -110,6 +147,29 @@ readonly class StatusRefreshService
             $shipment->getOrderId(),
             fn(): ShipmentInterface => $this->ship($this->shipmentRepository->get($shipmentId)),
         );
+    }
+
+    /**
+     * @throws LocalizedException
+     */
+    private static function number(ShipmentInterface $shipment): string
+    {
+        return $shipment->getPolkurierNumber()
+            ?? throw new LocalizedException(__('This shipment has no Polkurier order to read.'));
+    }
+
+    /**
+     * @throws LocalizedException
+     */
+    private function update(ShipmentInterface $shipment, Order $remote): ShipmentInterface
+    {
+        $shipmentId = (int)$shipment->getId();
+
+        // Applied once: a webhook and the scheduled update may refresh it at the same time.
+        return $this->orderLock->run($shipment->getOrderId(), fn(): ShipmentInterface => $this->apply(
+            $this->shipmentRepository->get($shipmentId),
+            $remote,
+        ));
     }
 
     /**
@@ -192,19 +252,22 @@ readonly class StatusRefreshService
             : null;
         $refreshed = 0;
         $failed = 0;
-        foreach ($this->shipmentFinder->dueForStatusCheck($checkedBefore, self::BATCH_SIZE) as $shipment) {
-            try {
-                $this->refresh((int)$shipment->getId());
+        $shipmentIds = \array_map(
+            static fn(ShipmentInterface $shipment): int => (int)$shipment->getId(),
+            $this->shipmentFinder->dueForStatusCheck($checkedBefore, self::BATCH_SIZE),
+        );
+        foreach ($this->refreshMany($shipmentIds) as $shipmentId => $result) {
+            if (!$result instanceof \Throwable) {
                 $refreshed++;
-            } catch (\Throwable $e) {
-                $failed++;
-                $this->logger->warning('Polkurier status refresh failed', [
-                    'shipment' => $shipment->getId(),
-                    'exception' => $e,
-                ]);
-                // Only the check time: the row loaded here is older than what the check may have saved.
-                $this->shipmentResource->markChecked((int)$shipment->getId(), (string)$this->dateTime->gmtDate());
+                continue;
             }
+            $failed++;
+            $this->logger->warning('Polkurier status refresh failed', [
+                'shipment' => $shipmentId,
+                'exception' => $result,
+            ]);
+            // Only the check time: the row loaded for the batch is older than what the check may have saved.
+            $this->shipmentResource->markChecked($shipmentId, (string)$this->dateTime->gmtDate());
         }
 
         return ['refreshed' => $refreshed, 'failed' => $failed];

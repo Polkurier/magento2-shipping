@@ -94,6 +94,49 @@ class ReconciliationServiceTest extends TestCase
         self::assertSame(['find 711400-99'], $this->happened);
     }
 
+    public function testAnOrderThisShopDidNotPlaceForTheShipmentIsNotLinked(): void
+    {
+        try {
+            $this->reconciliation(ShipmentInterface::STATE_UNKNOWN, ShipmentInterface::STATE_CREATED, own: false)
+                ->adopt(5, '711400-27');
+            self::fail('Placed in the Polkurier panel, or by another shop on the account.');
+        } catch (LocalizedException $e) {
+            self::assertSame(
+                'Polkurier order 711400-27 was not placed by this shop for this shipment, '
+                . 'so it can\'t be linked to it.',
+                $e->getMessage(),
+            );
+        }
+        self::assertSame(['find 711400-27'], $this->happened, 'Nothing is saved.');
+    }
+
+    public function testAShipmentSentWithoutTheShopsIdsCanNotBeLinked(): void
+    {
+        try {
+            $this->reconciliation(ShipmentInterface::STATE_UNKNOWN, ShipmentInterface::STATE_CREATED, ids: false)
+                ->adopt(5, '711400-27');
+            self::fail('No order can be told to be its own.');
+        } catch (LocalizedException $e) {
+            self::assertSame(
+                'This shipment was sent without this shop\'s IDs, so no Polkurier order can be linked to it by hand.',
+                $e->getMessage(),
+            );
+        }
+        self::assertSame([], $this->happened, 'Refused before asking Polkurier.');
+    }
+
+    public function testAnOrderAnotherShipmentHoldsIsNotLinked(): void
+    {
+        try {
+            $this->reconciliation(ShipmentInterface::STATE_UNKNOWN, ShipmentInterface::STATE_CREATED, held: true)
+                ->adopt(5, '711400-27');
+            self::fail('Another shipment of the same Magento order carries the same ids.');
+        } catch (LocalizedException $e) {
+            self::assertSame('Polkurier order 711400-27 is already linked to another shipment.', $e->getMessage());
+        }
+        self::assertSame(['find 711400-27'], $this->happened, 'Nothing is saved.');
+    }
+
     public function testAShipmentLinkedMeanwhileIsNotLinkedAgain(): void
     {
         try {
@@ -138,6 +181,8 @@ class ReconciliationServiceTest extends TestCase
 
     /**
      * @param string|null $meanwhile the state another request left it in by the time the lock is taken
+     * @param bool $own whether the order found carries the ids the shipment was sent with
+     * @param bool $ids whether the shipment was sent with the shop's ids
      */
     private function reconciliation(
         string $state,
@@ -145,10 +190,13 @@ class ReconciliationServiceTest extends TestCase
         bool $found = true,
         ?string $meanwhile = null,
         bool $old = true,
+        bool $own = true,
+        bool $ids = true,
+        bool $held = false,
     ): ReconciliationService {
         $reads = 0;
         $repository = $this->createStub(ShipmentRepositoryInterface::class);
-        $repository->method('get')->willReturnCallback(function () use ($state, $meanwhile, &$reads): Shipment {
+        $repository->method('get')->willReturnCallback(function () use ($state, $meanwhile, $ids, &$reads): Shipment {
             /** @var Shipment $shipment */
             $shipment = (new ObjectManager($this))->getObject(Shipment::class);
 
@@ -156,6 +204,7 @@ class ReconciliationServiceTest extends TestCase
                 ->setId(5)
                 ->setOrderId(29)
                 ->setState($reads++ > 0 && $meanwhile !== null ? $meanwhile : $state)
+                ->setExternalOrderId($ids ? '000000042' : null)
                 ->setLastError('No answer');
         });
         $repository->method('save')->willReturnCallback(function (ShipmentInterface $shipment): ShipmentInterface {
@@ -175,8 +224,13 @@ class ReconciliationServiceTest extends TestCase
                 throw new LocalizedException(__('Polkurier has no order number %1 on this account.', $number));
             }
 
-            return $this->createStub(RemoteOrder::class);
+            $order = $this->createStub(RemoteOrder::class);
+            $order->method('getNumber')->willReturn($number);
+
+            return $order;
         });
+        $reconciler->method('isPlacedFor')->willReturn($own);
+        $reconciler->method('isHeldByAnother')->willReturn($held);
         $snapshot = $this->createStub(RemoteOrderApplier::class);
         $snapshot->method('apply')->willReturnCallback(
             static function (RemoteOrder $order, ShipmentInterface $shipment) use ($remoteState): void {

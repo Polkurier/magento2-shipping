@@ -54,7 +54,7 @@
         </column>
         <column name="date">
             <settings>
-                <label translate="true">Requested</label>
+                <label translate="true">Requested on</label>
                 <sortable>false</sortable>
             </settings>
         </column>

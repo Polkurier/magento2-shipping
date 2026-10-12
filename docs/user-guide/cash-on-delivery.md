@@ -43,7 +43,7 @@ with the delivery status.
 | In the money box | Polkurier has it, in your money box |
 | Payout pending | a payout of the money is being processed |
 | Paid out | paid out to you |
-| Settled | settled with Polkurier in another way |
+| COD settled | settled with Polkurier in another way |
 | Compensation | offset against a compensation |
 
 ## Payouts

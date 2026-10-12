@@ -33,7 +33,7 @@ Polkurier delivery method. It uses the **Shipping carrier** filter, which is als
 | Polkurier order | the order number in your Polkurier account |
 | Created | when the shipment was placed |
 | Carrier | the carrier it goes with |
-| State | where it stands with Polkurier (see below) |
+| Order state | where it stands with Polkurier (see below) |
 | Waybills | the carrier's tracking numbers, linked to the carrier's tracking page |
 | Delivery status, Status date | the latest status the carrier reported |
 | Cash on delivery, COD status | the amount to collect and where the money is (see [Cash on delivery](cash-on-delivery.md#following-the-money)) |
@@ -41,7 +41,7 @@ Polkurier delivery method. It uses the **Shipping carrier** filter, which is als
 | Collective pickup, Pickup booked | whether it waits for a collective pickup, and whether that's booked |
 | Last error | why the last action on it failed, if it did |
 
-The **State**:
+The **Order state**:
 
 ```
 Sending ............ being placed right now

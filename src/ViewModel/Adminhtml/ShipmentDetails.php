@@ -64,7 +64,7 @@ readonly class ShipmentDetails implements ArgumentInterface
 
         $sections = [
             [
-                'title' => (string)__('Shipment'),
+                'title' => (string)__('Order and delivery'),
                 'items' => [
                     [
                         'title' => (string)__('Polkurier order'),
@@ -77,7 +77,7 @@ readonly class ShipmentDetails implements ArgumentInterface
                 ],
             ],
             [
-                'title' => (string)__('Addresses'),
+                'title' => (string)__('Sender and recipient'),
                 'items' => \array_values(\array_filter([
                     [
                         'title' => (string)__('Sender'),
@@ -182,7 +182,7 @@ readonly class ShipmentDetails implements ArgumentInterface
 
         return $this->formatter->rows([
             [__('Number'), $shipment->getPolkurierNumber() ?: '—'],
-            [__('State'), $this->optionLabelProvider->state($shipment->getState())],
+            [__('Order state'), $this->optionLabelProvider->state($shipment->getState())],
             [__('Placed'), $this->formatter->storedTime($shipment->getCreatedAt())],
             // What Polkurier charges for the order, and how much of it is still due: known once
             // Polkurier's copy is read.
@@ -232,7 +232,7 @@ readonly class ShipmentDetails implements ArgumentInterface
                 null,
                 self::isSent($asSent, 'description'),
             ],
-            [__('Status'), $shipment->getStatusLabel() ?: '—'],
+            [__('Delivery status'), $shipment->getStatusLabel() ?: '—'],
             [__('Status date'), $this->formatter->storedTime($shipment->getStatusDate())],
             [__('Delivered'), $this->formatter->storedTime($shipment->getDeliveredAt())],
         ];

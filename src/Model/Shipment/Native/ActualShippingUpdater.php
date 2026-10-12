@@ -103,7 +103,7 @@ readonly class ActualShippingUpdater
             $this->orderPointRepository->deleteForOrder($orderId);
         }
         $this->nativeFollowUpService->comment($order, __(
-            'Shipping changed to what Polkurier order %1 went with: %2. The customer chose: %3.',
+            'Shipping method changed to what was actually sent (Polkurier order %1). Sent: %2. Customer\'s choice: %3.',
             (string)$latest->getPolkurierNumber(),
             $description,
             (string)$this->shippingChoiceRepository->getForOrder($orderId)?->getShippingDescription(),
@@ -135,7 +135,10 @@ readonly class ActualShippingUpdater
         $this->shippingChoiceRepository->deleteForOrder($orderId);
         $this->nativeFollowUpService->comment(
             $order,
-            __('Shipping back to the customer\'s choice: %1.', (string)$choice->getShippingDescription()),
+            __(
+                'Shipping method changed back to the customer\'s choice: %1.',
+                (string)$choice->getShippingDescription(),
+            ),
         );
     }
 

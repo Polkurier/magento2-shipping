@@ -96,7 +96,7 @@
         </column>
         <column name="name">
             <settings>
-                <label translate="true">Label</label>
+                <label translate="true">Display name</label>
                 <filter>text</filter>
                 <editor>
                     <validation>

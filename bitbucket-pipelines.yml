@@ -1,4 +1,9 @@
-# Every change on main (a release or a hotfix) is merged back into develop.
+# Every change on main (a release or a hotfix) is merged back into develop through a pull request,
+# as develop takes no direct pushes. The pull request is merged right away; one that can't be
+# (a conflict, a merge check) stays open for a person to finish.
+#
+# MERGE_BACK_TOKEN: a secured repository variable holding a repository access token that can
+# create and merge pull requests.
 image: atlassian/default-image:4
 
 pipelines:
@@ -9,9 +14,31 @@ pipelines:
           clone:
             depth: full
           script:
-            - git config user.name "Bitbucket Pipelines"
-            - git config user.email "commits-noreply@bitbucket.org"
-            - git fetch origin "+refs/heads/develop:refs/remotes/origin/develop"
-            - git checkout -B develop origin/develop
-            - git merge --no-ff -m "Merge branch 'main' into develop" "$BITBUCKET_COMMIT"
-            - git push origin develop
+            - |
+              set -eo pipefail
+              git fetch origin "+refs/heads/develop:refs/remotes/origin/develop"
+              if git merge-base --is-ancestor "$BITBUCKET_COMMIT" origin/develop; then
+                echo "develop already has main."
+                exit 0
+              fi
+              api="https://api.bitbucket.org/2.0/repositories/$BITBUCKET_REPO_FULL_NAME/pullrequests"
+              auth="Authorization: Bearer $MERGE_BACK_TOKEN"
+              id=$(curl -sS --fail-with-body -G -H "$auth" "$api" \
+                --data-urlencode 'q=source.branch.name="main" AND destination.branch.name="develop" AND state="OPEN"' \
+                | python3 -c 'import json, sys; v = json.load(sys.stdin)["values"]; print(v[0]["id"] if v else "")')
+              if [ -z "$id" ]; then
+                id=$(curl -sS --fail-with-body -H "$auth" -H "Content-Type: application/json" "$api" -d '{
+                  "title": "Merge main into develop",
+                  "source": {"branch": {"name": "main"}},
+                  "destination": {"branch": {"name": "develop"}},
+                  "close_source_branch": false
+                }' | python3 -c 'import json, sys; print(json.load(sys.stdin)["id"])')
+              fi
+              if ! curl -sS --fail-with-body -H "$auth" -H "Content-Type: application/json" "$api/$id/merge" -d '{
+                "merge_strategy": "merge_commit",
+                "message": "Merge branch '\''main'\'' into develop",
+                "close_source_branch": false
+              }' > /dev/null; then
+                echo "Couldn't merge it, finish it by hand: https://bitbucket.org/$BITBUCKET_REPO_FULL_NAME/pull-requests/$id"
+                exit 1
+              fi

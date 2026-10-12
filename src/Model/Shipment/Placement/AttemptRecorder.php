@@ -80,8 +80,8 @@ readonly class AttemptRecorder
             }
 
             throw new LocalizedException(__(
-                'An earlier Polkurier order for this order got no answer and may exist. '
-                . 'Reconcile it in the Polkurier section of the order first.',
+                'Polkurier hasn\'t confirmed an earlier attempt for this order, so it may exist: %1',
+                (string)$earlier->getLastError() ?: (string)__('It is checked again automatically.'),
             ));
         }
     }
@@ -167,7 +167,7 @@ readonly class AttemptRecorder
     }
 
     /**
-     * Polkurier didn't confirm it: it may exist, and is never sent again until it's reconciled.
+     * Polkurier didn't confirm it: it may exist, and is never sent again until it's looked up in Polkurier.
      */
     public function unknown(ShipmentInterface $shipment, string $reason): void
     {

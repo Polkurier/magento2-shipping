@@ -67,6 +67,16 @@ class ActualShippingUpdaterTest extends TestCase
         ], $this->log);
     }
 
+    public function testAtPlacingTheChangeIsLeftToThePlacedOrdersOwnNote(): void
+    {
+        $this->placed = $this->shipment('INPOST_PACZKOMAT', 'KRA235M');
+
+        $this->service()->sync(15, false);
+
+        self::assertSame('polkurier_INPOST_PACZKOMAT', $this->order->getShippingMethod());
+        self::assertNotContains('comment', $this->log);
+    }
+
     public function testShippingAsTheOrderSaysChangesNothing(): void
     {
         $this->placed = $this->shipment('DHL_POINT', '4515215');

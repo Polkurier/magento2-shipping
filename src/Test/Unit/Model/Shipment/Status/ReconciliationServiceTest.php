@@ -50,7 +50,7 @@ class ReconciliationServiceTest extends TestCase
         self::assertSame([
             'find 711400-27',
             'save',
-            'comment: Polkurier order 711400-27 linked by hand after an unconfirmed request.',
+            'placed by hand: 711400-27',
             'ship',
             'linked by adopt',
         ], $this->happened);
@@ -65,8 +65,7 @@ class ReconciliationServiceTest extends TestCase
         self::assertSame([
             'find 711400-27',
             'save',
-            'comment: Polkurier order 711400-27 linked by hand after an unconfirmed request, already cancelled in '
-            . 'Polkurier. The order can be shipped again.',
+            'comment: Linked with Polkurier order 711400-27, cancelled in the Polkurier panel.',
         ], $this->happened);
     }
 
@@ -243,6 +242,11 @@ class ReconciliationServiceTest extends TestCase
         $followUp->method('comment')->willReturnCallback(function (Order $order, Phrase $comment): void {
             $this->happened[] = 'comment: ' . $comment;
         });
+        $followUp->method('notePlaced')->willReturnCallback(
+            function (Order $order, ShipmentInterface $shipment, bool $byHand): void {
+                $this->happened[] = ($byHand ? 'placed by hand: ' : 'placed: ') . $shipment->getPolkurierNumber();
+            },
+        );
         $followUp->method('ship')->willReturnCallback(function (): ?string {
             $this->happened[] = 'ship';
 

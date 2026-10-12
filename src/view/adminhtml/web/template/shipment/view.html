@@ -29,7 +29,8 @@
                             <th text="label"></th>
                             <td>
                                 <!-- ko if: url -->
-                                <a data-bind="attr: {href: url}, text: value"></a>
+                                <a data-bind="attr: {href: url, target: external ? '_blank' : null,
+                                                     rel: external ? 'noopener' : null}, text: value"></a>
                                 <!-- /ko -->
                                 <!-- ko ifnot: url -->
                                 <span text="value"></span>

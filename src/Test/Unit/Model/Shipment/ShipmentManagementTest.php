@@ -14,6 +14,7 @@ use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Framework\Lock\LockManagerInterface;
 use Magento\Framework\TestFramework\Unit\Helper\ObjectManager;
+use Magento\SalesSequence\Model\Manager as SequenceManager;
 use Magento\Sales\Api\Data\ShipmentCommentInterfaceFactory;
 use Magento\Sales\Api\Data\ShipmentInterface as MagentoShipmentInterface;
 use Magento\Sales\Api\OrderRepositoryInterface;
@@ -25,7 +26,6 @@ use Magento\Sales\Model\Order;
 use Magento\Sales\Model\Order\Email\Sender\ShipmentSender;
 use Magento\Sales\Model\Order\Shipment as MagentoShipmentModel;
 use Magento\Sales\Model\Order\Shipment\Comment as ShipmentComment;
-use Magento\SalesSequence\Model\Manager as SequenceManager;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -51,16 +51,17 @@ use Polkurier\Shipping\Model\Sdk\ErrorMessageResolver;
 use Polkurier\Shipping\Model\Sdk\ShipmentGateway;
 use Polkurier\Shipping\Model\Sdk\Validator;
 use Polkurier\Shipping\Model\Shipment;
+use Polkurier\Shipping\Model\ShipmentFactory;
 use Polkurier\Shipping\Model\Shipment\CancellationService;
 use Polkurier\Shipping\Model\Shipment\Details\Formatter;
 use Polkurier\Shipping\Model\Shipment\Draft;
+use Polkurier\Shipping\Model\Shipment\DraftFactory;
 use Polkurier\Shipping\Model\Shipment\Draft\DefaultDraftBuilder;
 use Polkurier\Shipping\Model\Shipment\Draft\DraftHydrator;
 use Polkurier\Shipping\Model\Shipment\Draft\Item;
 use Polkurier\Shipping\Model\Shipment\Draft\ItemFactory;
 use Polkurier\Shipping\Model\Shipment\Draft\Pack;
 use Polkurier\Shipping\Model\Shipment\Draft\PackFactory;
-use Polkurier\Shipping\Model\Shipment\DraftFactory;
 use Polkurier\Shipping\Model\Shipment\Native\NativeFollowUpService;
 use Polkurier\Shipping\Model\Shipment\Native\NativeShipmentService;
 use Polkurier\Shipping\Model\Shipment\OrderLoader;
@@ -80,7 +81,7 @@ use Polkurier\Shipping\Model\Shipment\Status\ReconciliationService;
 use Polkurier\Shipping\Model\Shipment\Status\RemoteOrderApplier;
 use Polkurier\Shipping\Model\Shipment\Status\RemoteOrderMatcher;
 use Polkurier\Shipping\Model\Shipment\Status\StatusRefreshService;
-use Polkurier\Shipping\Model\ShipmentFactory;
+use Polkurier\Shipping\Model\ShippingChoice\ShippingChoiceRepository;
 use Polkurier\Shipping\Test\Unit\Support\FixedDateTime;
 use Polkurier\Shipping\Test\Unit\Support\NewingObjectManager;
 use Polkurier\Shipping\Test\Unit\Support\RecordingEventManager;
@@ -255,7 +256,10 @@ class ShipmentManagementTest extends SdkTestCase
         self::assertSame(12.3, $shipment->getPriceGross());
         self::assertSame(55, $shipment->getShipmentId());
         self::assertSame(
-            ['55: Polkurier order 18015-1001, with DPD, goes with this shipment. Waybills: WB-111, WB-222.'],
+            ['55: Linked with Polkurier order 18015-1001. Carrier: DPD. Waybills: '
+                . '<a href="https://track.example/WB-111" class="polkurier-external" target="_blank" rel="noopener">'
+                . 'WB-111</a>, <a href="https://track.example/WB-111" class="polkurier-external" target="_blank" '
+                . 'rel="noopener">WB-222</a>.'],
             $this->remarks,
         );
         self::assertSame('https://track.example/WB-111', $shipment->getTrackingUrl());
@@ -1019,11 +1023,12 @@ class ShipmentManagementTest extends SdkTestCase
 
         try {
             $this->management()->create(self::ORDER_ID, $this->draft());
-            self::fail('A second attempt must wait for reconciliation.');
+            self::fail('A second attempt must wait until the first is found or not.');
         } catch (LocalizedException $e) {
-            self::assertStringContainsString('Reconcile', $e->getMessage());
+            self::assertStringContainsString('hasn\'t confirmed an earlier attempt', $e->getMessage());
         }
-        self::assertSame(1, $http->requestCount(), 'Nothing was sent the second time.');
+        self::assertSame(2, $http->requestCount(), 'The second time, only the first was looked up.');
+        self::assertStringNotContainsString('create_order', (string)$http->lastRequest()?->getBody());
         self::assertSame([], $this->events->dispatched, 'Nothing is reported before the outcome is known.');
     }
 
@@ -1041,12 +1046,15 @@ class ShipmentManagementTest extends SdkTestCase
         self::assertSame([], $this->saved);
     }
 
-    public function testAnAttemptStillBeingSentAfterTwoMinutesIsOneToReconcile(): void
+    public function testAnAttemptStillBeingSentAfterTwoMinutesIsOneToLookUp(): void
     {
         $pending = $this->unknownShipment()->setState(ShipmentInterface::STATE_PENDING);
         $pending->setData('created_at', '2026-09-30 09:59:00');
 
-        $reasonAt = ['2026-09-30 10:00:00' => 'being placed right now', '2026-09-30 10:03:00' => 'Reconcile it'];
+        $reasonAt = [
+            '2026-09-30 10:00:00' => 'being placed right now',
+            '2026-09-30 10:03:00' => 'interrupted before an answer',
+        ];
         foreach ($reasonAt as $now => $reason) {
             $this->now = (int)\strtotime($now . ' UTC');
             try {
@@ -1056,7 +1064,8 @@ class ShipmentManagementTest extends SdkTestCase
                 self::assertStringContainsString($reason, $e->getMessage());
             }
         }
-        self::assertSame(0, $this->http->requestCount());
+        self::assertSame(1, $this->http->requestCount(), 'Only the interrupted one was looked up, once old enough.');
+        self::assertStringNotContainsString('create_order', (string)$this->http->lastRequest()?->getBody());
     }
 
     public function testTheOrderIsFreeAgainOncePlacedOrRefused(): void
@@ -1087,15 +1096,14 @@ class ShipmentManagementTest extends SdkTestCase
         self::assertSame(56, $shipment->getShipmentId(), 'Still linked: the shipment shows what it replaces.');
         self::assertSame(
             [
-                'Polkurier order 18015-1001 cancelled. Magento shipment #000000009 stays, '
-                . 'without its label and tracking numbers, for another Polkurier order.',
+                'Polkurier order 18015-1001 cancelled. Magento shipment #000000009 kept, '
+                . 'without label and tracking numbers.',
             ],
             $comments->getArrayCopy(),
         );
         self::assertSame(
             [
-                '56: Polkurier order 18015-1001 cancelled. Its label and tracking numbers were removed; '
-                . 'another Polkurier order can be placed on this shipment.',
+                '56: Polkurier order 18015-1001 cancelled. Label and tracking numbers removed.',
             ],
             $this->remarks,
             'An internal remark on the shipment too.',
@@ -1133,8 +1141,8 @@ class ShipmentManagementTest extends SdkTestCase
         self::assertSame(56, $shipment->getShipmentId());
         self::assertSame(
             [
-                'Polkurier order 18015-1001 was cancelled in Polkurier. Magento shipment #000000009 stays, '
-                . 'without its label and tracking numbers, for another Polkurier order.',
+                'Polkurier order 18015-1001 cancelled in the Polkurier panel. Magento shipment #000000009 kept, '
+                . 'without label and tracking numbers.',
             ],
             $comments->getArrayCopy(),
         );
@@ -1676,6 +1684,20 @@ class ShipmentManagementTest extends SdkTestCase
             $this->shipmentSender(),
             $this->salesData(),
             $this->createStub(ScopeConfigInterface::class),
+            $this->createStub(ShippingChoiceRepository::class),
+        );
+        $reconciliation = new ReconciliationService(
+            $this->repository(),
+            $reconciler,
+            $snapshot,
+            $age,
+            $followUp,
+            $orders,
+            $clock,
+            $orderLock,
+            $finder,
+            $this->createStub(ShipmentResource::class),
+            $this->createStub(Logger::class),
         );
 
         return [
@@ -1710,24 +1732,12 @@ class ShipmentManagementTest extends SdkTestCase
                 $gateway,
                 new ErrorMessageResolver(),
                 $followUp,
-                $this->carrierNames(),
                 $events,
                 $this->manualEntrySaver ?? $this->createStub(ManualEntrySaver::class),
+                $reconciliation,
                 $this->createStub(Logger::class),
             ),
-            'reconciliation' => new ReconciliationService(
-                $this->repository(),
-                $reconciler,
-                $snapshot,
-                $age,
-                $followUp,
-                $orders,
-                $clock,
-                $orderLock,
-                $finder,
-                $this->createStub(ShipmentResource::class),
-                $this->createStub(Logger::class),
-            ),
+            'reconciliation' => $reconciliation,
             'refresh' => new StatusRefreshService(
                 $this->repository(),
                 $reconciler,

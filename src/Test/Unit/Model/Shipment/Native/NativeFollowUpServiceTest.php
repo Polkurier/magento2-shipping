@@ -31,6 +31,7 @@ use Polkurier\Shipping\Model\Shipment\Native\NativeFollowUpService;
 use Polkurier\Shipping\Model\Shipment\Native\NativeShipmentService as NativeShipments;
 use Polkurier\Shipping\Model\Shipment\OrderLoader;
 use Polkurier\Shipping\Model\Shipment\ShipmentFinder;
+use Polkurier\Shipping\Model\ShippingChoice\ShippingChoiceRepository;
 
 #[CoversClass(NativeFollowUpService::class)]
 #[AllowMockObjectsWithoutExpectations]
@@ -215,6 +216,7 @@ class NativeFollowUpServiceTest extends TestCase
             $sender,
             $salesData,
             $scopeConfig,
+            $this->createStub(ShippingChoiceRepository::class),
         );
     }
 

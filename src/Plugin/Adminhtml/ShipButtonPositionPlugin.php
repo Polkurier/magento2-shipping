@@ -13,8 +13,8 @@ use Magento\Backend\Block\Widget\Button\Toolbar;
 use Magento\Framework\View\Element\AbstractBlock;
 
 /**
- * Puts the order page's "Ship with Polkurier" button right after Magento's "Ship" (which an order
- * with the button has, unless the admin may not ship), or else last.
+ * Puts the order page's "Ship with Polkurier" button right after Magento's "Ship", or last when the
+ * page has no "Ship": everything is shipped, or the admin may not ship.
  *
  * Magento doesn't sort the order page's buttons: they share one sort order and keep the order they
  * were added in. Some are added late: with Inventory, a block of its own reworks "Ship". The page's

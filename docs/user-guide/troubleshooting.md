@@ -81,8 +81,9 @@ Sales > Shipments**, or through the **Polkurier order** column on the order's Sh
 also click **Create Shipping Label** on the Magento shipment later. That fetches the label of the
 existing Polkurier shipment; it doesn't place a new one.
 
-**"An earlier Polkurier order for this order got no answer and may exist".** An earlier attempt is
-still unclear. Wait for the automatic check, or click **Reconcile** on that shipment. See
+**"Polkurier hasn't confirmed an earlier attempt for this order, so it may exist".** An earlier
+attempt is still unclear, and wasn't found when you placed this one. It's looked up again
+automatically; place the shipment once it's settled. See
 [When the result is unclear](shipping-an-order.md#when-the-result-is-unclear).
 
 **The street was split wrongly.** On the shipment screen, correct the street, house number and flat

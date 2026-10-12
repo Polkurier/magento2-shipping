@@ -237,7 +237,8 @@ readonly class ShipmentDetails implements ArgumentInterface
             [__('Delivered'), $this->formatter->storedTime($shipment->getDeliveredAt())],
         ];
         foreach ($shipment->getWaybills() as $waybill) {
-            $rows[] = [__('Waybill'), $waybill, $url !== '' ? $url : null];
+            // The carrier's tracking page, in a new tab.
+            $rows[] = [__('Waybill'), $waybill, $url !== '' ? $url : null, false, true];
         }
         if ($shipment->getWaybills() === []) {
             $rows[] = [__('Waybill'), (string)__('not issued yet')];

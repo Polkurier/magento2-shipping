@@ -70,7 +70,7 @@ readonly class CarrierNoticeProvider
         foreach ($messages as $message) {
             $notices[] = [
                 'carrier' => $message->getCourier(),
-                'html' => $this->escaper->escapeHtml($message->getMessage(), self::ALLOWED_TAGS),
+                'html' => self::inNewTab($this->escaper->escapeHtml($message->getMessage(), self::ALLOWED_TAGS)),
                 'severity' => match ($message->getSeverity()) {
                     CourierMessageSeverityEnum::Success => 'success',
                     CourierMessageSeverityEnum::Danger => 'error',
@@ -87,5 +87,14 @@ readonly class CarrierNoticeProvider
         );
 
         return $notices;
+    }
+
+    /**
+     * Links in a notice lead to Polkurier's or a carrier's pages, so they open in a new tab. The
+     * escaper keeps no target of their own.
+     */
+    private static function inNewTab(string $html): string
+    {
+        return \str_replace('<a ', '<a target="_blank" rel="noopener" ', $html);
     }
 }

@@ -134,18 +134,18 @@ filled up to.
 
 ## Placing
 
-Placing is never retried blindly: an earlier attempt whose outcome isn't known is reconciled first.
+Placing is never retried blindly: an earlier attempt whose outcome isn't known is reconciled first
+(`ReconciliationService::settleForOrder()`), and placing goes ahead only once it's settled.
 [`Model\Shipment\Placement\PlacementService`](../../src/Model/Shipment/Placement/PlacementService.php)
 checks this under the order's lock (see [One change at a time](#one-change-at-a-time)), so a double
 click can't place twice:
 
 ```
 create()
-├── an earlier attempt for the order is unknown ............. refused: reconcile it first
-├── an earlier attempt is pending
-│   ├── for 2 minutes or less ............................... refused: wait and reload
-│   └── for longer: cut off ................................. marked unknown, refused:
-│                                                             reconcile it first
+├── an earlier attempt is unknown, or pending for longer than 2 minutes
+│   ├── reconciled now: placed, cancelled or not placed ..... goes ahead
+│   └── still unknown ....................................... refused, with its last error
+├── an earlier attempt is pending for 2 minutes or less ...... refused: wait and reload
 ├── the draft or its items can't be sent .................... refused, nothing saved
 └── saved as pending with the serialized request: the order's failed shipment, or a new one
         │
@@ -168,7 +168,8 @@ attempt reuses it.
   attempt is kept. The reason is thrown as a `Magento\Framework\Exception\LocalizedException`.
 - **No clear answer**: an answer lost or unreadable, or an error that doesn't say the order was
   refused. The module can't know whether the shipment exists, and sending it again could create a
-  duplicate. The order gets a comment, and nothing else happens until it's reconciled.
+  duplicate. Nothing else happens until it's reconciled, and the order is noted only with the
+outcome.
 
 Magento's label flow places without shipping the Magento order, since Magento creates the shipment
 itself, and an unclear answer throws instead of returning the `unknown` shipment (see
@@ -236,7 +237,9 @@ An order's shipping method, description and pickup point (`polkurier_order_point
 customer chose. The first change keeps the customer's choice, available as the order's
 `polkurier_shipping_choice` extension attribute (see
 [Service contracts](service-contracts.md#order-data)). When no `created` shipment is left, the
-choice is put back on the order. Each change adds a comment to the order's history.
+choice is put back on the order. A shipment placed or found notes the customer's choice in its own
+comment on the order (`NativeFollowUpService::notePlaced()`), while it differs; any other change
+adds a comment of its own.
 
 ## Reconciliation
 

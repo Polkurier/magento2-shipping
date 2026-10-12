@@ -49,7 +49,12 @@ readonly class ActualShippingUpdater
         private NativeFollowUpService $nativeFollowUpService,
     ) {}
 
-    public function sync(int $orderId): void
+    /**
+     * @param bool $note whether the change is noted on the order: not when a Polkurier order has just
+     *     been placed or found, whose own note says what the customer chose
+     *     ({@see NativeFollowUpService::notePlaced()})
+     */
+    public function sync(int $orderId, bool $note = true): void
     {
         $order = $this->orderLoader->findForPolkurier($orderId);
         if ($order === null) {
@@ -59,7 +64,7 @@ readonly class ActualShippingUpdater
         $latest = $this->latestPlaced($orderId);
         if ($latest === null) {
             if ($choice !== null) {
-                $this->restore($order);
+                $this->restore($order, $note);
             }
 
             return;
@@ -74,7 +79,7 @@ readonly class ActualShippingUpdater
         if ($choice !== null && $carrier === Polkurier::methodCodeOf((string)$choice->getShippingMethod())
             && $point === (string)$choice->getPointId()
         ) {
-            $this->restore($order);
+            $this->restore($order, $note);
 
             return;
         }
@@ -102,18 +107,20 @@ readonly class ActualShippingUpdater
         } else {
             $this->orderPointRepository->deleteForOrder($orderId);
         }
-        $this->nativeFollowUpService->comment($order, __(
-            'Shipping method changed to what was actually sent (Polkurier order %1). Sent: %2. Customer\'s choice: %3.',
-            (string)$latest->getPolkurierNumber(),
-            $description,
-            (string)$this->shippingChoiceRepository->getForOrder($orderId)?->getShippingDescription(),
-        ));
+        if ($note) {
+            $this->nativeFollowUpService->comment($order, __(
+                'Shipping method changed to: %1 (Polkurier order %2). Customer\'s choice: %3.',
+                $description,
+                (string)$latest->getPolkurierNumber(),
+                (string)$this->shippingChoiceRepository->getForOrder($orderId)?->getShippingDescription(),
+            ));
+        }
     }
 
     /**
      * Puts the customer's choice back.
      */
-    private function restore(Order $order): void
+    private function restore(Order $order, bool $note): void
     {
         $orderId = (int)$order->getEntityId();
         $choice = $this->shippingChoiceRepository->getForOrder($orderId);
@@ -133,13 +140,12 @@ readonly class ActualShippingUpdater
             $this->orderPointRepository->deleteForOrder($orderId);
         }
         $this->shippingChoiceRepository->deleteForOrder($orderId);
-        $this->nativeFollowUpService->comment(
-            $order,
-            __(
+        if ($note) {
+            $this->nativeFollowUpService->comment($order, __(
                 'Shipping method changed back to the customer\'s choice: %1.',
                 (string)$choice->getShippingDescription(),
-            ),
-        );
+            ));
+        }
     }
 
     private function write(Order $order, string $method, string $description): void

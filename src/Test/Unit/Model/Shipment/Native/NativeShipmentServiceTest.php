@@ -162,6 +162,21 @@ class NativeShipmentServiceTest extends TestCase
         self::assertSame(['qtys' => [5 => 1.0], 'shipment_id' => null, 'packages' => []], $target);
     }
 
+    public function testAPolkurierOrderCanBePlacedWhileItemsAreLeftOrAShipmentHasNone(): void
+    {
+        $this->linked = [$this->polkurier(10, 3, ShipmentInterface::STATE_CREATED)];
+        $service = $this->magentoShipment();
+
+        self::assertTrue($service->canPlaceFor($this->order(canShip: true, shipments: [3 => '000000003'])));
+        self::assertFalse($service->canPlaceFor($this->order(canShip: false, shipments: [3 => '000000003'])));
+
+        $this->linked = [$this->polkurier(10, 3, ShipmentInterface::STATE_CANCELLED)];
+        self::assertTrue(
+            $this->magentoShipment()->canPlaceFor($this->order(canShip: false, shipments: [3 => '000000003'])),
+            'The cancelled Polkurier order\'s Magento shipment takes a new one.',
+        );
+    }
+
     public function testWithNothingLeftTheOrderGoesOnTheLatestShipmentWithoutAPolkurierOrder(): void
     {
         $this->linked = [

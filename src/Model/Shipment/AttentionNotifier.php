@@ -188,8 +188,8 @@ readonly class AttentionNotifier
             default => [
                 (string)__('Polkurier: a shipment of order #%1 got no answer', $order),
                 (string)__(
-                    'Polkurier didn\'t answer when it was placed, on %1, and it hasn\'t been settled since: %2. '
-                    . 'Reconcile it, or link it to its Polkurier order by hand.',
+                    'Polkurier didn\'t answer when it was placed, on %1, and it hasn\'t been found since: %2. '
+                    . 'If you know its Polkurier order, link it by hand on the shipment\'s details page.',
                     $when,
                     $reason,
                 ),

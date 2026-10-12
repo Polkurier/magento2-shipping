@@ -108,8 +108,10 @@ packages, if `packing/pack_new_shipments` is on.
 
 ## The order page
 
-**Ship with Polkurier** shows while the order can be shipped, next to Magento's **Ship**, which opens
-Magento's page.
+**Ship with Polkurier** shows while a Polkurier order can be placed
+(`NativeShipmentService::canPlaceFor()`): items are left to ship, or a Magento shipment has no
+Polkurier order of its own. It sits next to Magento's **Ship**, which opens Magento's page, or last
+when everything is shipped.
 
 ## Requirements Magento adds
 

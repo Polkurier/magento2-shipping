@@ -25,7 +25,8 @@ interface ShipmentInterface
     public const string STATE_CREATED = 'created';
 
     /**
-     * Sent, but no answer arrived: it may or may not exist in Polkurier. Reconcile before retrying.
+     * Sent, but no answer arrived: it may or may not exist in Polkurier, which is checked before it is
+     * sent again.
      */
     public const string STATE_UNKNOWN = 'unknown';
 

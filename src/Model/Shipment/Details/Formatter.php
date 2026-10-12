@@ -93,7 +93,7 @@ readonly class Formatter
     }
 
     /**
-     * @param array<int, array<int, mixed>|null> $rows [label, value, url?, as sent?]; null rows are
+     * @param array<int, array<int, mixed>|null> $rows [label, value, url?, as sent?, external url?]; null rows are
      *        left out. "As sent" marks a value Polkurier's copy of the order leaves empty, shown as it
      *        was sent
      *
@@ -112,6 +112,7 @@ readonly class Formatter
                 'value' => $value !== '' ? $value : self::NONE,
                 'url' => (string)($row[2] ?? ''),
                 'as_sent' => (bool)($row[3] ?? false),
+                'external' => (bool)($row[4] ?? false),
             ];
         }
 

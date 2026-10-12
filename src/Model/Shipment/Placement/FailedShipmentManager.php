@@ -83,7 +83,7 @@ readonly class FailedShipmentManager
             throw new LocalizedException(__('Only a shipment that wasn\'t placed can be discarded.'));
         }
         $this->remove($shipment, __(
-            'The %1 shipment that wasn\'t placed was discarded.',
+            'Unplaced shipment discarded. Carrier: %1.',
             $this->carrierNameProvider->get($shipment->getCarrierCode()),
         ));
 
@@ -104,8 +104,7 @@ readonly class FailedShipmentManager
         $removed = 0;
         foreach ($this->shipmentFinder->failedBefore($before) as $shipment) {
             $this->remove($shipment, __(
-                'The %1 shipment that wasn\'t placed was removed, %2 hours after it was last tried. '
-                . 'Why it wasn\'t placed: %3',
+                'Unplaced shipment removed %2 hours after the last attempt. Carrier: %1. Reason: %3',
                 $this->carrierNameProvider->get($shipment->getCarrierCode()),
                 self::LIFETIME_HOURS,
                 \rtrim((string)$shipment->getLastError(), '. '),

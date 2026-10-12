@@ -191,6 +191,15 @@ readonly class NativeShipmentService
     }
 
     /**
+     * Whether a Polkurier order can be placed for the order: it has items left to ship, or a Magento
+     * shipment without a Polkurier order of its own, such as one whose Polkurier order was cancelled.
+     */
+    public function canPlaceFor(Order $order): bool
+    {
+        return $order->canShip() || $this->getFreeShipments($order) !== [];
+    }
+
+    /**
      * The order's Magento shipments without a Polkurier order of their own, by id, with the
      * cancelled Polkurier order a new one would replace, if any.
      *

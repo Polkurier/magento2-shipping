@@ -38,7 +38,7 @@ Click **Edit** on a carrier:
   InPost". They also see it in e-mails, on their order page and as the title of the tracking
   numbers. Leave it empty to use the carrier's own name.
 - **Label per store view** gives the carrier another name in one store view, for example in
-  English. Click **Add a store view label**, pick the store view and type the label. Other store
+  English. Click **Add a store view label**, pick the store view and type the name. Other store
   views use the label above.
 - **Logo in checkout** is shown in front of the carrier's name at checkout. Click **Upload** and
   choose a JPG, PNG, GIF or WebP file of about 60 × 30 pixels. To remove it, click the bin icon on

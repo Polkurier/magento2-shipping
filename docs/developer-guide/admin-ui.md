@@ -42,13 +42,19 @@ both.
 | Order page | the customer's pickup point and the carrier the parcels went with, under the shipping method | blocks `polkurier_order_point`, `polkurier_shipped_with` |
 | | a **Polkurier** tab with the order's shipments in every state, including those not placed | `polkurier_order_view_shipment_listing` |
 | | a **Polkurier order** column in the Shipments tab | `sales_order_view_shipment_grid` |
-| | **Ship with Polkurier**, after **Ship** | plugin `polkurier_order_view_buttons` |
+| | **Ship with Polkurier**, after **Ship**, while a Polkurier order can be placed | plugin `polkurier_order_view_buttons` |
+| | waybills in the module's comments opening the carrier's tracking page in a new tab | plugin `polkurier_external_comment_links` |
 | Shipment page | the label options, and every Polkurier order the shipment has had | blocks `polkurier_label_options`, `polkurier_shipment_orders` |
 | | **Add a Polkurier order**, or **Polkurier order** when it has one | plugin `polkurier_shipment_view_buttons` |
 | New Shipment page | the label options (see [Shipping labels in Magento](magento-labels.md)) | block `polkurier_label_options` |
 
 On an order shipped with another carrier, the point, the **Polkurier order** column and the buttons
 don't show.
+
+Links to other sites open in a new tab: waybills on the details page and in the grids, links in
+carrier notices, and waybills in the module's order and shipment comments. Magento drops a comment
+link's `target`, so [`Plugin\Adminhtml\ExternalCommentLinksPlugin`](../../src/Plugin/Adminhtml/ExternalCommentLinksPlugin.php)
+adds it back to links of the `polkurier-external` class once Magento has escaped the comment.
 
 ## Permissions
 
@@ -60,7 +66,7 @@ Polkurier_Shipping::root       the Polkurier menu
 ├── ::sales                    the Sales menu; its Orders item is Magento's orders list,
 │   │                          under Magento_Sales::sales_order
 │   ├── ::shipments            viewing shipments, labels and protocols; refreshing statuses
-│   │   ├── ::shipment_create  placing, reconciling, adopting and shipping; collective pickups;
+│   │   ├── ::shipment_create  placing, adopting and shipping; collective pickups;
 │   │   │                      labels on Magento's shipment pages
 │   │   └── ::shipment_cancel  cancelling shipments
 │   └── ::payouts              viewing payouts

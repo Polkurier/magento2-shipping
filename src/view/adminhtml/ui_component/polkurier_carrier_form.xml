@@ -47,7 +47,7 @@
     </dataSource>
     <fieldset name="general">
         <settings>
-            <label translate="true">Checkout</label>
+            <label translate="true">At checkout</label>
         </settings>
         <field name="id" formElement="input">
             <settings>
@@ -99,7 +99,7 @@
                 </field>
                 <field name="store_label" formElement="input" sortOrder="20">
                     <settings>
-                        <label translate="true">Label</label>
+                        <label translate="true">Display name</label>
                         <dataType>text</dataType>
                         <dataScope>label</dataScope>
                         <validation><rule name="required-entry" xsi:type="boolean">true</rule></validation>

@@ -17,7 +17,6 @@ use Polkurier\Shipping\Api\ShipmentManagementInterface;
 use Polkurier\Shipping\Controller\Adminhtml\Shipment\AbstractShipmentAction;
 use Polkurier\Shipping\Controller\Adminhtml\Shipment\Adopt;
 use Polkurier\Shipping\Controller\Adminhtml\Shipment\Cancel;
-use Polkurier\Shipping\Controller\Adminhtml\Shipment\Reconcile;
 use Polkurier\Shipping\Controller\Adminhtml\Shipment\RequestedShipments;
 use Polkurier\Shipping\Controller\Adminhtml\Shipment\Ship;
 use Polkurier\Shipping\Test\Unit\Support\AdminActionTestCase;
@@ -27,7 +26,6 @@ use Polkurier\Shipping\Test\Unit\Support\AdminActionTestCase;
  * the one its unanswered creation placed, cancelling it, and creating its Magento shipment.
  */
 #[CoversClass(Adopt::class)]
-#[CoversClass(Reconcile::class)]
 #[CoversClass(Cancel::class)]
 #[CoversClass(Ship::class)]
 #[AllowMockObjectsWithoutExpectations]
@@ -40,7 +38,6 @@ class OneShipmentActionsTest extends AdminActionTestCase
     {
         return [
             'adopt' => [Adopt::class, 'adopt'],
-            'reconcile' => [Reconcile::class, 'reconcile'],
             'cancel' => [Cancel::class, 'cancel'],
             'ship' => [Ship::class, 'shipOrder'],
         ];
@@ -69,36 +66,6 @@ class OneShipmentActionsTest extends AdminActionTestCase
 
         self::assertSame([], $this->messages);
         self::assertSame(['sales/order/view', ['order_id' => 29]], $this->redirect);
-    }
-
-    public function testAFoundPolkurierOrderIsLinked(): void
-    {
-        $this->params = ['id' => '41'];
-        $management = $this->createMock(ShipmentManagementInterface::class);
-        $management->expects(self::once())->method('reconcile')->with(41)
-            ->willReturn($this->shipment(ShipmentInterface::STATE_CREATED, '711400-27'));
-
-        (new Reconcile($this->context(), $this->requested(), $management))->execute();
-
-        self::assertSame(['Polkurier order 711400-27 found and linked.'], $this->messages['success']);
-        self::assertSame(['polkurier/shipment/index', []], $this->redirect, 'Without an order, back to the shipments.');
-    }
-
-    public function testAPolkurierOrderNotFoundYetIsANotice(): void
-    {
-        $this->params = ['id' => '41'];
-        $management = $this->createStub(ShipmentManagementInterface::class);
-        $management->method('reconcile')
-            ->willReturn($this->shipment(
-                ShipmentInterface::STATE_UNKNOWN,
-                null,
-                'No Polkurier order matches it yet: try again later.',
-            ));
-
-        (new Reconcile($this->context(), $this->requested(), $management))->execute();
-
-        self::assertSame(['No Polkurier order matches it yet: try again later.'], $this->messages['notice']);
-        self::assertArrayNotHasKey('success', $this->messages);
     }
 
     public function testACancelledPolkurierOrderIsReported(): void

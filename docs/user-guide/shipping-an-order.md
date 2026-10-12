@@ -240,7 +240,7 @@ parts stacked flat. Give a bundle its own dimensions if its parts pack tighter t
 
 Ship only the quantities that go out now, on either screen. Each part gets its own Magento
 shipment and Polkurier order. **Ship with Polkurier** stays on the order page while anything is
-left to ship.
+left to ship, or while a Magento shipment has no Polkurier order, such as after a cancellation.
 
 **Cash on delivery** collects what the items in the part are worth, with tax and after discounts.
 The part that ships everything still left collects everything left, shipping included. No part
@@ -277,7 +277,8 @@ template you have becomes the default.
 
 You can send the parcels with another carrier, or to another pickup point, than the customer
 chose. The order then shows what the parcels actually went with, and keeps the customer's choice
-under **Chosen by the customer**. The shipping amount the customer paid doesn't change. If you
+under **Chosen by the customer**. The order's comment about the Polkurier order names the
+customer's choice too. The shipping amount the customer paid doesn't change. If you
 cancel that Polkurier order and the order has no other placed one, the customer's choice comes
 back.
 
@@ -285,8 +286,8 @@ back.
 
 Now and then Polkurier gives no clear answer, for example when the connection drops at the wrong
 moment. The shipment may or may not have been placed. It's never simply sent again, since that
-could create a second shipment you'd pay for. You can't place another one for the order until it's
-settled.
+could create a second shipment you'd pay for. The module looks it up in your Polkurier account by
+itself, and placing another one for the order looks it up first too.
 
 ```
 you place a shipment
@@ -296,15 +297,15 @@ you place a shipment
 └── no clear answer .................. Outcome unknown
     │
     │  your Polkurier account is checked every 10 minutes,
-    │  or straight away with Reconcile in the shipment's row
+    │  and before another shipment is placed for the order
     │
     ├── found ........................ Placed, and the Magento order is shipped
     ├── found more than once ......... the earliest kept, the others named on the order
     └── not found after 15 minutes ... Not placed: ship the order again
 ```
 
-If more than one is found, cancel the ones you don't need in the Polkurier panel. They're named in
-a comment on the order and under **Last error**.
+If more than one is found, the others are named in a comment on the order and under **Last
+error**, as possible duplicates. Verify them in the Polkurier panel.
 
 On Magento's New Shipment page, an unclear result creates no Magento shipment yet. Once the
 Polkurier order is found, the order is shipped automatically. With **Create Shipping Label** on an

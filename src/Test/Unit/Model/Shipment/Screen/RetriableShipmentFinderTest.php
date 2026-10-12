@@ -105,9 +105,7 @@ class RetriableShipmentFinderTest extends TestCase
             $orders->method('getForPolkurier')->willReturn($order);
         }
         $magentoShipment = $this->createStub(NativeShipmentService::class);
-        $magentoShipment->method('getFreeShipments')->willReturn(
-            \array_fill_keys($free, ['increment_id' => '000000009', 'replaces' => null]),
-        );
+        $magentoShipment->method('canPlaceFor')->willReturn($canShip || $free !== []);
 
         return new RetriableShipmentFinder(
             $this->createStub(ShipmentRepositoryInterface::class),

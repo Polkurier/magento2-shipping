@@ -66,8 +66,8 @@ class Save extends Action implements HttpPostActionInterface
         if ($shipment->getState() === ShipmentInterface::STATE_UNKNOWN) {
             $this->messageManager->addWarningMessage(__(
                 'Polkurier did not confirm the order, so it may or may not have been placed. '
-                . 'It will not be sent again until it is reconciled: '
-                . 'use "Reconcile" in the Polkurier section of the order. (%1)',
+                . 'It\'s looked up in Polkurier automatically, and the order\'s Polkurier section shows the outcome. '
+                . '(%1)',
                 (string)$shipment->getLastError(),
             ));
         } else {

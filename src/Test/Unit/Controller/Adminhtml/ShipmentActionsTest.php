@@ -118,7 +118,7 @@ class ShipmentActionsTest extends AdminActionTestCase
         ], $this->messages['warning']);
     }
 
-    public function testAnUnconfirmedShipmentOpensWithAWarningToReconcileIt(): void
+    public function testAnUnconfirmedShipmentOpensWithAWarningThatItsLookedUp(): void
     {
         $this->post = ['order_id' => '29'];
         $management = $this->createStub(ShipmentManagementInterface::class);
@@ -128,7 +128,7 @@ class ShipmentActionsTest extends AdminActionTestCase
         $this->save($management)->execute();
 
         self::assertSame(['*/*/view', ['id' => 41]], $this->redirect);
-        self::assertStringContainsString('use "Reconcile"', $this->messages['warning'][0]);
+        self::assertStringContainsString('looked up in Polkurier automatically', $this->messages['warning'][0]);
         self::assertStringEndsWith('(Timed out.)', $this->messages['warning'][0]);
         self::assertArrayNotHasKey('success', $this->messages);
     }

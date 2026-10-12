@@ -22,12 +22,14 @@ use Polkurier\Shipping\Model\Shipment\OrderLoader;
 use Polkurier\Shipping\Model\Shipment\OrderLock;
 use Polkurier\Shipping\Model\Shipment\ShipmentAgeChecker;
 use Polkurier\Shipping\Model\Shipment\ShipmentFinder;
+use Polkurier\Webservice\Enum\Order\OrderStatusCodeEnum;
 use Polkurier\Webservice\Response\Order;
 
 /**
  * Brings placed shipments up to date with Polkurier, and catches the Magento side up with them:
  * the Magento shipment if it failed before, the waybills Polkurier issued since, and the customer's
- * e-mail that waited for them.
+ * e-mail that waited for them. The order's history notes the waybills issued later, a return and an
+ * exception; the Magento shipment's, a delivery.
  *
  * The scheduled run and the admin's "Update statuses" take the batch checked longest ago.
  * Everything that decides whether a shipment is due is in the query, and every shipment taken is
@@ -37,6 +39,14 @@ use Polkurier\Webservice\Response\Order;
 readonly class StatusRefreshService
 {
     public const int BATCH_SIZE = 200;
+
+    /**
+     * Statuses noted on the order when a parcel reaches them: someone usually has to act.
+     */
+    private const array NOTED_STATUSES = [
+        OrderStatusCodeEnum::Return->value,
+        OrderStatusCodeEnum::Exception->value,
+    ];
 
     public function __construct(
         private ShipmentRepositoryInterface $shipmentRepository,
@@ -181,14 +191,24 @@ readonly class StatusRefreshService
         $before = $shipment->getWaybills();
         $wasDelivered = $shipment->getDeliveredAt() !== null;
         $wasCancelled = $shipment->getState() === ShipmentInterface::STATE_CANCELLED;
+        $statusBefore = $shipment->getStatusCode();
         $this->remoteOrderApplier->apply($remote, $shipment);
         $shipment->setLastError(null)->setStatusCheckedAt((string)$this->dateTime->gmtDate());
         $this->shipmentRepository->save($shipment);
         if (!$wasDelivered && $shipment->getDeliveredAt() !== null) {
             $this->nativeFollowUpService->remark($shipment->getShipmentId(), __(
-                'Polkurier order %1 delivered (%2).',
+                'Polkurier order %1 delivered: %2.',
                 $number,
                 $this->formatter->storedTime($shipment->getDeliveredAt()),
+            ));
+        }
+        if ($shipment->getStatusCode() !== $statusBefore
+            && \in_array($shipment->getStatusCode(), self::NOTED_STATUSES, true)
+        ) {
+            $this->nativeFollowUpService->comment($this->orderLoader->get($shipment->getOrderId()), __(
+                'Polkurier order %1 status: %2.',
+                $number,
+                $shipment->getStatusLabel() ?: (string)$shipment->getStatusCode(),
             ));
         }
         if (!$wasCancelled && $shipment->getState() === ShipmentInterface::STATE_CANCELLED) {
@@ -214,6 +234,11 @@ readonly class StatusRefreshService
                 $shipment,
                 $shipment->getWaybills(),
             );
+            $this->nativeFollowUpService->comment($order, __(
+                'Waybills issued for Polkurier order %1: %2.',
+                $number,
+                $this->nativeFollowUpService->waybillList($shipment),
+            ));
             // The customer's e-mail, when asked for, waits for the waybills.
             $this->nativeFollowUpService->notifyCustomer($order, $shipment);
         }

@@ -33,7 +33,7 @@ Polkurier delivery method. It uses the **Shipping carrier** filter, which is als
 | Polkurier order | the order number in your Polkurier account |
 | Created | when the shipment was placed |
 | Carrier | the carrier it goes with |
-| State | where it stands with Polkurier (see below) |
+| Order state | where it stands with Polkurier (see below) |
 | Waybills | the carrier's tracking numbers, linked to the carrier's tracking page |
 | Delivery status, Status date | the latest status the carrier reported |
 | Cash on delivery, COD status | the amount to collect and where the money is (see [Cash on delivery](cash-on-delivery.md#following-the-money)) |
@@ -41,7 +41,7 @@ Polkurier delivery method. It uses the **Shipping carrier** filter, which is als
 | Collective pickup, Pickup booked | whether it waits for a collective pickup, and whether that's booked |
 | Last error | why the last action on it failed, if it did |
 
-The **State**:
+The **Order state**:
 
 ```
 Sending ............ being placed right now
@@ -96,11 +96,12 @@ For a placed shipment:
 - **Create Magento shipment** shows when the Magento order isn't shipped yet (see
   [When the Magento shipment is missing](#when-the-magento-shipment-is-missing)).
 
-For a shipment whose outcome is unknown, **Reconcile** looks for it in your Polkurier account
-straight away. If it finds an order that may be the shipment but can't be sure, it names it. If
-that's the right one, open the shipment's details and use **Link to a Polkurier order** with its
-number. Only an order this shop placed for that shipment can be linked, not one placed in the
-Polkurier panel or by another shop, and not one already linked to another shipment.
+A shipment whose outcome is unknown is looked up in your Polkurier account automatically (see [When
+the result is unclear](shipping-an-order.md#when-the-result-is-unclear)). If the module finds an
+order that may be the shipment but can't be sure, it names it under **Last error**. If that's the
+right one, open the shipment's details and use **Link to a Polkurier order** with its number. Only
+an order this shop placed for that shipment can be linked, not one placed in the Polkurier panel or
+by another shop, and not one already linked to another shipment.
 
 For a shipment that wasn't placed, see [When a shipment isn't placed](#when-a-shipment-isnt-placed).
 
@@ -127,6 +128,12 @@ With **Update shipment statuses on schedule** on, each placed shipment is follow
 finished, as often as **Update shipment statuses** says. With the status webhook set up (see
 [Configuration](configuration.md#synchronization)), each change shows up straight away. **Update
 statuses** above the list updates every unfinished shipment at once, even with the schedule off.
+
+An update notes on the order when waybills are issued later, and when a parcel is being returned or
+the carrier reports an exception, since someone usually has to act on those. Waybills in comments
+link to the carrier's tracking page. A delivery is noted
+on the Magento shipment. Other status changes aren't noted: they show on the shipment's details
+page and in the lists.
 
 A shipment is finished when it's:
 
@@ -165,10 +172,14 @@ panel is treated the same once its status is next updated.
 The Magento shipment stays, with its items, but loses the cancelled order's label, packages and
 tracking numbers. The order's comments say which shipment was cleared.
 
-To send the parcel again, open that Magento shipment and either:
+To send the parcel again, either:
 
-- click **Create Shipping Label** and pack the parcels in Magento's packaging window; or
-- click **Add a Polkurier order** to use the Polkurier shipment screen.
+- on that Magento shipment's page, click **Create Shipping Label** and pack the parcels in Magento's
+  packaging window;
+- on that Magento shipment's page, click **Add a Polkurier order** to use the Polkurier shipment
+  screen; or
+- on the order page, click **Ship with Polkurier**. With nothing else left to ship, the new
+  Polkurier order goes on the latest Magento shipment without one.
 
 The new Polkurier order goes on the same Magento shipment, and its waybills become the tracking
 numbers. A Magento shipment has only one active Polkurier order. Cancelled ones stay listed on the

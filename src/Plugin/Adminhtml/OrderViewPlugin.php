@@ -10,18 +10,22 @@ namespace Polkurier\Shipping\Plugin\Adminhtml;
 use Magento\Framework\AuthorizationInterface;
 use Magento\Sales\Block\Adminhtml\Order\View;
 use Polkurier\Shipping\Model\Carrier\Polkurier;
+use Polkurier\Shipping\Model\Shipment\Native\NativeShipmentService;
 
 /**
  * Opens the Polkurier shipment screen from the page of an order placed with a Polkurier method,
  * with a "Ship with Polkurier" button. Orders of other carriers get nothing. Magento's Ship button
  * keeps leading to Magento's shipment page, where labels are created.
  *
- * The button shows while the order has items left to ship.
+ * The button shows while a Polkurier order can be placed: the order has items left to ship, or a
+ * Magento shipment without a Polkurier order of its own, such as one whose Polkurier order was
+ * cancelled. With nothing left to ship, the new Polkurier order goes on the latest such shipment.
  */
 readonly class OrderViewPlugin
 {
     public function __construct(
         private AuthorizationInterface $authorization,
+        private NativeShipmentService $nativeShipmentService,
     ) {}
 
     /**
@@ -39,9 +43,9 @@ readonly class OrderViewPlugin
         ) {
             return [$layout];
         }
-        // Alongside Magento's Ship only. A Polkurier order for a Magento shipment made without one
-        // is added from that shipment's page ({@see \Polkurier\Shipping\Plugin\Adminhtml\ShipmentViewPlugin}).
-        if (!$order->canShip()) {
+        // A particular Magento shipment gets its Polkurier order from that shipment's page too
+        // ({@see \Polkurier\Shipping\Plugin\Adminhtml\ShipmentViewPlugin}).
+        if (!$this->nativeShipmentService->canPlaceFor($order)) {
             return [$layout];
         }
         // Placed next to Magento's "Ship" by {@see \Polkurier\Shipping\Plugin\Adminhtml\ShipButtonPositionPlugin}.

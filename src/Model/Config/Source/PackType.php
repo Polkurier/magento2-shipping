@@ -21,7 +21,7 @@ readonly class PackType extends AbstractOptions
         return [
             PackTypeEnum::Standard->value => (string)__('Standard'),
             PackTypeEnum::NonStandard->value => (string)__('Non-standard'),
-            PackTypeEnum::Long->value => (string)__('Long'),
+            PackTypeEnum::Long->value => (string)__('Long parcel'),
             ParcelTypeMapper::ENVELOPE => (string)__('Envelope'),
             PackTypeEnum::QuarterPalette->value => (string)__('Quarter pallet 60 × 40'),
             PackTypeEnum::HalfPalette->value => (string)__('Half pallet 80 × 60'),

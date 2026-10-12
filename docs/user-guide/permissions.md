@@ -13,8 +13,8 @@ Resources**. The module's permissions are under **Polkurier**:
   - **Sales**: the Sales menu. Its **Orders** item opens Magento's orders list, so it also needs
     Magento's own **Sales > Operations > Orders**.
     - **Shipments**: see shipments, print labels and protocols, update statuses.
-      - **Create shipments**: place shipments (on either page), reconcile unclear ones, create
-        missing Magento shipments and book collective pickups.
+      - **Create shipments**: place shipments (on either page), link unclear ones to their Polkurier
+        order, create missing Magento shipments and book collective pickups.
       - **Cancel shipments**: cancel shipments in Polkurier.
     - **Cash on delivery payouts**: see payouts.
       - **Request payouts**: request and cancel payouts.

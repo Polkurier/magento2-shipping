@@ -16,7 +16,7 @@ Your sender addresses: where couriers collect parcels, and what's printed as the
 
 ![The Addresses list](images/addresses.jpg)
 
-- **Label**: your own name for the address, shown in lists.
+- **Display name**: your own name for the address, shown in lists.
 - **Name**, **Company**, **Street**, **House number**, **Flat number**, **Postcode**, **City**,
   **Province**, **Country**, **Phone**, **E-mail**: the address itself.
 - **Sender drop-off point**: the point where you usually drop off parcels, for carriers that let

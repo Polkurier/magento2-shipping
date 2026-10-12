@@ -19,7 +19,6 @@
         </deps>
         <buttons>
             <button name="back" class="Polkurier\Shipping\Ui\Component\Form\ShipmentView\BackButton"/>
-            <button name="reconcile" class="Polkurier\Shipping\Ui\Component\Form\ShipmentView\ReconcileButton"/>
             <button name="send_again" class="Polkurier\Shipping\Ui\Component\Form\ShipmentView\SendAgainButton"/>
             <button name="discard" class="Polkurier\Shipping\Ui\Component\Form\ShipmentView\DiscardButton"/>
             <button name="link" class="Polkurier\Shipping\Ui\Component\Form\ShipmentView\LinkButton"/>

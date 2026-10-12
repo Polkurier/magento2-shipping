@@ -66,7 +66,7 @@ class StatusRefreshServiceTest extends TestCase
         $this->refresh(11, ['delivered' => '2026-10-06 09:00:00'])->refresh(5);
 
         self::assertSame(
-            ['save', 'remark 11: Polkurier order 711400-27 delivered (2026-10-06 09:00:00).'],
+            ['save', 'remark 11: Polkurier order 711400-27 delivered: 2026-10-06 09:00:00.'],
             $this->happened,
         );
 
@@ -102,7 +102,35 @@ class StatusRefreshServiceTest extends TestCase
     {
         $this->refresh(11, ['waybills' => ['W1', 'W2']])->refresh(5);
 
-        self::assertSame(['save', 'tracks 11: W1, W2', 'notify 11'], $this->happened);
+        self::assertSame(
+            [
+                'save',
+                'tracks 11: W1, W2',
+                'comment: Waybills issued for Polkurier order 711400-27: W1, W2.',
+                'notify 11',
+            ],
+            $this->happened,
+        );
+    }
+
+    public function testAReturnOrAnExceptionIsNotedOnTheOrderOnce(): void
+    {
+        $this->refresh(11, ['status' => ['Z', 'Zwrot do nadawcy']])->refresh(5);
+
+        self::assertSame(
+            ['save', 'comment: Polkurier order 711400-27 status: Zwrot do nadawcy.'],
+            $this->happened,
+        );
+
+        $this->happened = [];
+        $this->refresh(11, ['status' => ['Z', 'Zwrot do nadawcy']], statusBefore: 'Z')->refresh(5);
+
+        self::assertSame(['save'], $this->happened, 'Still being returned: noted already.');
+
+        $this->happened = [];
+        $this->refresh(11, ['status' => ['WP', 'W drodze']])->refresh(5);
+
+        self::assertSame(['save'], $this->happened, 'Other statuses are not noted.');
     }
 
     public function testWithoutNewWaybillsTheCustomerIsNotEmailedHere(): void
@@ -224,6 +252,7 @@ class StatusRefreshServiceTest extends TestCase
      * @param array{waybills?: string[], delivered?: string, state?: string} $remote what Polkurier
      *     says, as {@see RemoteOrderApplier} would apply it
      * @param \Throwable|null $tracksError what adding the waybills to the Magento shipment throws
+     * @param string|null $statusBefore the status code the shipment had before
      */
     private function refresh(
         ?int $magentoShipmentId,
@@ -234,10 +263,12 @@ class StatusRefreshServiceTest extends TestCase
         string $state = ShipmentInterface::STATE_CREATED,
         bool $old = true,
         ?\Throwable $tracksError = null,
+        ?string $statusBefore = null,
     ): StatusRefreshService {
         $this->shipment = (new ObjectManager($this))->getObject(Shipment::class);
         $this->shipment->setId(5)->setOrderId(29)->setState($state)->setPolkurierNumber($number)
             ->setShipmentId($magentoShipmentId)->setWaybills(['W1'])->setDeliveredAt($deliveredBefore)
+            ->setStatusCode($statusBefore)
             ->setLastError('The Magento shipment could not be created');
         $repository = $this->createStub(ShipmentRepositoryInterface::class);
         $repository->method('get')->willReturn($this->shipment);
@@ -259,6 +290,9 @@ class StatusRefreshServiceTest extends TestCase
                 if (isset($remote['state'])) {
                     $shipment->setState($remote['state']);
                 }
+                if (isset($remote['status'])) {
+                    $shipment->setStatusCode($remote['status'][0])->setStatusLabel($remote['status'][1]);
+                }
             },
         );
         $magentoShipment = $this->createStub(NativeShipmentService::class);
@@ -273,6 +307,12 @@ class StatusRefreshServiceTest extends TestCase
         $followUp = $this->createStub(NativeFollowUpService::class);
         $orderLoader = $this->createStub(OrderLoader::class);
         $orderLoader->method('get')->willReturn($this->createStub(Order::class));
+        $followUp->method('waybillList')->willReturnCallback(
+            static fn(ShipmentInterface $shipment): string => \implode(', ', $shipment->getWaybills()),
+        );
+        $followUp->method('comment')->willReturnCallback(function (Order $order, Phrase $comment): void {
+            $this->happened[] = 'comment: ' . $comment;
+        });
         $followUp->method('remark')->willReturnCallback(function (?int $id, Phrase $remark): void {
             $this->happened[] = 'remark ' . $id . ': ' . $remark;
         });

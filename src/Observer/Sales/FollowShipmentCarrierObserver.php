@@ -39,7 +39,8 @@ readonly class FollowShipmentCarrierObserver implements ObserverInterface
             return;
         }
         try {
-            $this->actualShippingUpdater->sync($shipment->getOrderId());
+            // Placed or found: its own note on the order says what the customer chose.
+            $this->actualShippingUpdater->sync($shipment->getOrderId(), $is !== ShipmentInterface::STATE_CREATED);
         } catch (\Throwable $e) {
             $this->logger->error('The order\'s shipping was not brought in line with its Polkurier order', [
                 'order_id' => $shipment->getOrderId(),

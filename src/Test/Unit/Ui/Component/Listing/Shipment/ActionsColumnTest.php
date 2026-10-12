@@ -79,10 +79,10 @@ class ActionsColumnTest extends TestCase
         );
     }
 
-    public function testOneWithoutAnAnswerIsReconciled(): void
+    public function testOneWithoutAnAnswerIsOnlyLookedAt(): void
     {
-        self::assertSame(['view', 'order', 'reconcile'], \array_keys($this->actions(ShipmentInterface::STATE_UNKNOWN)));
-        self::assertSame(['view', 'order', 'reconcile'], \array_keys($this->actions(ShipmentInterface::STATE_PENDING)));
+        self::assertSame(['view', 'order'], \array_keys($this->actions(ShipmentInterface::STATE_UNKNOWN)));
+        self::assertSame(['view', 'order'], \array_keys($this->actions(ShipmentInterface::STATE_PENDING)));
     }
 
     public function testACancelledOneIsOnlyLookedAt(): void
@@ -93,7 +93,7 @@ class ActionsColumnTest extends TestCase
     public function testOnTheOrdersPageItsOrderIsntLinked(): void
     {
         self::assertSame(
-            ['view', 'reconcile'],
+            ['view'],
             \array_keys($this->actions(ShipmentInterface::STATE_UNKNOWN, onOrderPage: true)),
         );
     }

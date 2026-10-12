@@ -14,7 +14,6 @@ use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Enum\Sdk\ApiEventEnum;
 use Polkurier\Shipping\Exception\PlacementUncertainException;
 use Polkurier\Shipping\Logger\Logger;
-use Polkurier\Shipping\Model\Carrier\CarrierNameProvider;
 use Polkurier\Shipping\Model\Sdk\ApiEventDispatcher;
 use Polkurier\Shipping\Model\Sdk\ApplicationIdProvider;
 use Polkurier\Shipping\Model\Sdk\ErrorMessageResolver;
@@ -24,6 +23,7 @@ use Polkurier\Shipping\Model\Shipment\Native\NativeFollowUpService;
 use Polkurier\Shipping\Model\Shipment\Native\NativeShipmentService;
 use Polkurier\Shipping\Model\Shipment\OrderLoader;
 use Polkurier\Shipping\Model\Shipment\OrderLock;
+use Polkurier\Shipping\Model\Shipment\Status\ReconciliationService;
 use Polkurier\Webservice\Request\Order\CreateOrderMessage;
 
 /**
@@ -46,9 +46,9 @@ readonly class PlacementService
         private ShipmentGateway $shipmentGateway,
         private ErrorMessageResolver $errorMessageResolver,
         private NativeFollowUpService $nativeFollowUpService,
-        private CarrierNameProvider $carrierNameProvider,
         private ApiEventDispatcher $apiEventDispatcher,
         private ManualEntrySaver $manualEntrySaver,
+        private ReconciliationService $reconciliationService,
         private Logger $logger,
     ) {}
 
@@ -78,7 +78,7 @@ readonly class PlacementService
     ): ShipmentInterface {
         $shipment = $this->place($orderId, $draft, false, $magentoShipmentId);
         if ($shipment->getState() !== ShipmentInterface::STATE_CREATED) {
-            // Magento would save a shipment without tracking; it is completed once the order is reconciled.
+            // Magento would save a shipment without tracking; it is completed once the order is found.
             throw new LocalizedException(__(
                 'Polkurier did not confirm the order, and it may or may not have been placed. '
                 . 'It is checked automatically; the Magento shipment is completed once it is found.',
@@ -96,6 +96,9 @@ readonly class PlacementService
     ): ShipmentInterface {
         $order = $this->orderLoader->getForPolkurier($orderId);
         $storeId = (int)$order->getStoreId();
+        // An earlier attempt Polkurier didn't confirm is looked up first: found placed, cancelled
+        // or not placed, it no longer holds this one back.
+        $this->reconciliationService->settleForOrder($orderId);
         // Held from the check for unresolved attempts until the new one is recorded: until then, a
         // second request for the same order (a double click, another tab) would find nothing
         // unresolved and place the order again.
@@ -107,7 +110,7 @@ readonly class PlacementService
         try {
             $created = $this->shipmentGateway->placeOrder($message);
         } catch (PlacementUncertainException $e) {
-            return $this->markUnknown($shipment, $order, $message, $e);
+            return $this->markUnknown($shipment, $order, $e);
         } catch (LocalizedException $e) {
             if ($this->errorMessageResolver->isTransient($e)) {
                 $this->attemptRecorder->failed($shipment, $e->getMessage());
@@ -124,12 +127,7 @@ readonly class PlacementService
         // before this does.
         $this->orderLock->run($orderId, function () use ($created, $shipment, $order, $shipInMagento): void {
             $this->attemptRecorder->placed($shipment, $created);
-            $this->nativeFollowUpService->comment($order, __(
-                'Polkurier order %1 placed with %2. Waybills: %3.',
-                $shipment->getPolkurierNumber(),
-                $this->carrierNameProvider->get($shipment->getCarrierCode()),
-                \implode(', ', $shipment->getWaybills()) ?: (string)__('not issued yet'),
-            ));
+            $this->nativeFollowUpService->notePlaced($order, $shipment);
             if ($shipInMagento) {
                 $this->nativeFollowUpService->ship($order, $shipment);
             }
@@ -219,24 +217,19 @@ readonly class PlacementService
     }
 
     /**
-     * The order may exist. It is never sent again blindly: it has to be reconciled first.
+     * The order may exist. It is never sent again blindly: it's looked up in Polkurier first.
      */
     private function markUnknown(
         ShipmentInterface $shipment,
         Order $order,
-        CreateOrderMessage $message,
         PlacementUncertainException $e,
     ): ShipmentInterface {
         $this->logger->warning('Polkurier create_order outcome unknown', [
             'order' => $order->getIncrementId(),
             'exception' => $e,
         ]);
+        // Not noted on the order: it's settled automatically, and the outcome is noted then.
         $this->attemptRecorder->unknown($shipment, $e->getMessage());
-        $this->nativeFollowUpService->comment($order, __(
-            'Polkurier order for %1: Polkurier did not confirm it, and it may or may not have been placed. '
-            . 'Reconcile it before sending again.',
-            $this->carrierNameProvider->get((string)$message->getCourier()),
-        ));
 
         return $shipment;
     }

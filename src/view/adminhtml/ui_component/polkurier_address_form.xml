@@ -60,7 +60,7 @@
         </field>
         <field name="name" formElement="input">
             <settings>
-                <label translate="true">Label</label>
+                <label translate="true">Display name</label>
                 <dataType>text</dataType>
                 <dataScope>name</dataScope>
                 <validation><rule name="required-entry" xsi:type="boolean">true</rule></validation>

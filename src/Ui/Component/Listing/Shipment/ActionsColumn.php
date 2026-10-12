@@ -131,16 +131,6 @@ class ActionsColumn extends Column
                         ];
                     }
                     break;
-                case ShipmentInterface::STATE_UNKNOWN:
-                case ShipmentInterface::STATE_PENDING:
-                    if ($this->authorization->isAllowed('Polkurier_Shipping::shipment_create')) {
-                        $actions['reconcile'] = [
-                            'href' => $this->url->getUrl('polkurier/shipment/reconcile', $params),
-                            'label' => __('Reconcile'),
-                            'post' => true,
-                        ];
-                    }
-                    break;
             }
             $item[$this->getData('name')] = $actions;
         }

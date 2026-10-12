@@ -6,6 +6,11 @@
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
     <!-- Order view: the Ship button opens the Polkurier shipment form for Polkurier orders -->
+    <!-- Order and shipment comments: the module's links to other sites open in a new tab -->
+    <type name="Magento\Sales\Helper\Admin">
+        <plugin name="polkurier_external_comment_links"
+                type="Polkurier\Shipping\Plugin\Adminhtml\ExternalCommentLinksPlugin" />
+    </type>
     <type name="Magento\Sales\Block\Adminhtml\Order\View">
         <plugin name="polkurier_order_view_buttons" type="Polkurier\Shipping\Plugin\Adminhtml\OrderViewPlugin" />
     </type>

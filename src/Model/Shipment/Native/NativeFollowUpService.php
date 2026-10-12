@@ -29,6 +29,7 @@ use Polkurier\Shipping\Model\Carrier\CarrierNameProvider;
 use Polkurier\Shipping\Model\Sdk\ApiEventDispatcher;
 use Polkurier\Shipping\Model\Shipment\OrderLoader;
 use Polkurier\Shipping\Model\Shipment\ShipmentFinder;
+use Polkurier\Shipping\Model\ShippingChoice\ShippingChoiceRepository;
 
 /**
  * What follows on the Magento side once a Polkurier order is known: the Magento order's shipment
@@ -41,6 +42,11 @@ readonly class NativeFollowUpService
      * Magento's setting for sending sales e-mails from its cron job rather than at once.
      */
     private const string ASYNC_SENDING = 'sales_email/general/async_sending';
+
+    /**
+     * Class of the links in comments that lead outside the admin.
+     */
+    public const string EXTERNAL_LINK = 'polkurier-external';
 
     public function __construct(
         private OrderLoader $orderLoader,
@@ -57,6 +63,7 @@ readonly class NativeFollowUpService
         private ShipmentSender $shipmentSender,
         private SalesData $salesData,
         private ScopeConfigInterface $scopeConfig,
+        private ShippingChoiceRepository $shippingChoiceRepository,
     ) {}
 
     /**
@@ -185,27 +192,21 @@ readonly class NativeFollowUpService
             $shipment->getShipmentId(),
             $inPolkurier
                 ? __(
-                    'Polkurier order %1 was cancelled in Polkurier. Its label and tracking numbers were removed; '
-                    . 'another Polkurier order can be placed on this shipment.',
+                    'Polkurier order %1 cancelled in the Polkurier panel. Label and tracking numbers removed.',
                     $number,
                 )
-                : __(
-                    'Polkurier order %1 cancelled. Its label and tracking numbers were removed; '
-                    . 'another Polkurier order can be placed on this shipment.',
-                    $number,
-                ),
+                : __('Polkurier order %1 cancelled. Label and tracking numbers removed.', $number),
         );
         $this->comment($order, match (true) {
             $inPolkurier && $cleared !== null => __(
-                'Polkurier order %1 was cancelled in Polkurier. '
-                . 'Magento shipment #%2 stays, without its label and tracking numbers, for another Polkurier order.',
+                'Polkurier order %1 cancelled in the Polkurier panel. '
+                . 'Magento shipment #%2 kept, without label and tracking numbers.',
                 $number,
                 $cleared,
             ),
-            $inPolkurier => __('Polkurier order %1 was cancelled in Polkurier.', $number),
+            $inPolkurier => __('Polkurier order %1 cancelled in the Polkurier panel.', $number),
             $cleared !== null => __(
-                'Polkurier order %1 cancelled. '
-                . 'Magento shipment #%2 stays, without its label and tracking numbers, for another Polkurier order.',
+                'Polkurier order %1 cancelled. Magento shipment #%2 kept, without label and tracking numbers.',
                 $number,
                 $cleared,
             ),
@@ -256,10 +257,73 @@ readonly class NativeFollowUpService
     public function remarkLinked(ShipmentInterface $shipment): void
     {
         $this->remark($shipment->getShipmentId(), __(
-            'Polkurier order %1, with %2, goes with this shipment. Waybills: %3.',
+            'Linked with Polkurier order %1. Carrier: %2. Waybills: %3.',
             (string)$shipment->getPolkurierNumber(),
             $this->carrierNameProvider->get($shipment->getCarrierCode()),
-            \implode(', ', $shipment->getWaybills()) ?: (string)__('not issued yet'),
+            $this->waybillList($shipment),
+        ));
+    }
+
+    /**
+     * Notes a placed Polkurier order on the order: its number, carrier and waybills, and what the
+     * customer chose when it went with another carrier or point ({@see ActualShippingUpdater}).
+     *
+     * @param bool $byHand linked by hand to an unconfirmed attempt rather than placed or found; noted
+     *     as linked, as on the Magento shipment
+     */
+    public function notePlaced(Order $order, ShipmentInterface $shipment, bool $byHand = false): void
+    {
+        $number = (string)$shipment->getPolkurierNumber();
+        $carrier = $this->carrierNameProvider->get($shipment->getCarrierCode());
+        $waybills = $this->waybillList($shipment);
+        $choice = $this->shippingChoiceRepository->getForOrder((int)$order->getEntityId())?->getShippingDescription();
+        if ($choice === null || $choice === '') {
+            $this->comment($order, $byHand
+                ? __('Linked with Polkurier order %1. Carrier: %2. Waybills: %3.', $number, $carrier, $waybills)
+                : __('Polkurier order %1 placed. Carrier: %2. Waybills: %3.', $number, $carrier, $waybills));
+
+            return;
+        }
+        $this->comment($order, $byHand
+            ? __(
+                'Linked with Polkurier order %1. Carrier: %2. Waybills: %3. Customer\'s choice: %4.',
+                $number,
+                $carrier,
+                $waybills,
+                $choice,
+            )
+            : __(
+                'Polkurier order %1 placed. Carrier: %2. Waybills: %3. Customer\'s choice: %4.',
+                $number,
+                $carrier,
+                $waybills,
+                $choice,
+            ));
+    }
+
+    /**
+     * The waybills as comments show them: each linked to the carrier's tracking page, when Polkurier
+     * gave one. Magento keeps links in order and shipment comments, but only some of their
+     * attributes: the class lets the page open them in a new tab
+     * ({@see \Polkurier\Shipping\Plugin\Adminhtml\ExternalCommentLinksPlugin}).
+     *
+     * @param string[]|null $waybills some of the shipment's, or all of them
+     */
+    public function waybillList(ShipmentInterface $shipment, ?array $waybills = null): string
+    {
+        $waybills ??= $shipment->getWaybills();
+        if ($waybills === []) {
+            return (string)__('not issued yet');
+        }
+        $url = (string)$shipment->getTrackingUrl();
+
+        return \implode(', ', \array_map(
+            static fn(string $waybill): string => $url === '' ? $waybill : \sprintf(
+                '<a href="%s" class="' . self::EXTERNAL_LINK . '" target="_blank" rel="noopener">%s</a>',
+                \htmlspecialchars($url, \ENT_QUOTES),
+                \htmlspecialchars($waybill, \ENT_QUOTES),
+            ),
+            $waybills,
         ));
     }
 

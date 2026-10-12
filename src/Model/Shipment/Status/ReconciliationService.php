@@ -27,7 +27,10 @@ use Polkurier\Webservice\Response\Order;
  * links the one the merchant names, if they placed it. What counts as a match is
  * {@see \Polkurier\Shipping\Model\Shipment\Status\RemoteOrderMatcher}'s.
  *
- * The scheduled run (reconcilePending()) takes shipments whose outcome is unknown, and pending ones
+ * It runs on its own, never at the merchant's request: before another attempt for the order is
+ * placed (settleForOrder()), and on schedule (reconcilePending()).
+ *
+ * The scheduled run takes shipments whose outcome is unknown, and pending ones
  * old enough that their request must have been interrupted, least recently checked first, like
  * the status refresh: found orders are adopted, and orders still missing after a while are marked
  * as not placed.
@@ -72,6 +75,29 @@ readonly class ReconciliationService
                 ]);
                 // Only the check time: the row loaded here is older than what the check may have saved.
                 $this->shipmentResource->markChecked((int)$shipment->getId(), (string)$this->dateTime->gmtDate());
+            }
+        }
+    }
+
+    /**
+     * Settles the order's earlier attempts whose outcome is unknown, before another one is placed:
+     * one found placed, cancelled or not placed meanwhile no longer holds the order back. One that
+     * can't be settled yet stays as it is, with its reason.
+     */
+    public function settleForOrder(int $orderId): void
+    {
+        $unsettled = $this->shipmentFinder->forOrder(
+            $orderId,
+            [ShipmentInterface::STATE_UNKNOWN, ShipmentInterface::STATE_PENDING],
+        );
+        foreach ($unsettled as $shipment) {
+            try {
+                $this->reconcile((int)$shipment->getId());
+            } catch (\Throwable $e) {
+                $this->logger->warning('Polkurier reconciliation before placing failed', [
+                    'shipment' => $shipment->getId(),
+                    'exception' => $e,
+                ]);
             }
         }
     }
@@ -211,25 +237,20 @@ readonly class ReconciliationService
         // Placed, or cancelled since in the Polkurier panel: as the order says.
         $this->remoteOrderApplier->apply($adopted, $shipment);
         $duplicatesNote = $duplicates === [] ? null : __(
-            'Polkurier also has %1 for this order, probably duplicates. '
-            . 'Check them in the Polkurier panel and cancel the ones not needed.',
+            'Possible duplicate Polkurier orders: %1. Verify them in the Polkurier panel.',
             \implode(', ', $duplicates),
         );
         $shipment->setLastError($duplicatesNote !== null ? (string)$duplicatesNote : null);
         $this->shipmentRepository->save($shipment);
         if ($shipment->getState() === ShipmentInterface::STATE_CANCELLED) {
             $this->nativeFollowUpService->comment($order, __(
-                'Polkurier order %1 was found after an unconfirmed request, already cancelled in Polkurier. '
-                . 'The order can be shipped again.',
+                'Polkurier order %1 cancelled in the Polkurier panel.',
                 $shipment->getPolkurierNumber(),
             ));
 
             return $shipment;
         }
-        $this->nativeFollowUpService->comment($order, __(
-            'Polkurier order %1 found and linked after an unconfirmed request.',
-            $shipment->getPolkurierNumber(),
-        ));
+        $this->nativeFollowUpService->notePlaced($order, $shipment);
         if ($duplicatesNote !== null) {
             $this->nativeFollowUpService->comment($order, $duplicatesNote);
         }
@@ -247,17 +268,13 @@ readonly class ReconciliationService
         $order = $this->orderLoader->get($shipment->getOrderId());
         if ($shipment->getState() === ShipmentInterface::STATE_CANCELLED) {
             $this->nativeFollowUpService->comment($order, __(
-                'Polkurier order %1 linked by hand after an unconfirmed request, already cancelled in Polkurier. '
-                . 'The order can be shipped again.',
+                'Linked with Polkurier order %1, cancelled in the Polkurier panel.',
                 $shipment->getPolkurierNumber(),
             ));
 
             return $shipment;
         }
-        $this->nativeFollowUpService->comment($order, __(
-            'Polkurier order %1 linked by hand after an unconfirmed request.',
-            $shipment->getPolkurierNumber(),
-        ));
+        $this->nativeFollowUpService->notePlaced($order, $shipment, true);
         $this->nativeFollowUpService->ship($order, $shipment);
         $this->nativeFollowUpService->linked($shipment, $order, 'adopt');
 

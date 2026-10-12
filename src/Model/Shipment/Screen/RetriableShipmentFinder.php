@@ -57,7 +57,7 @@ readonly class RetriableShipmentFinder
             return false;
         }
 
-        return $order->canShip() || $this->nativeShipmentService->getFreeShipments($order) !== [];
+        return $this->nativeShipmentService->canPlaceFor($order);
     }
 
     /**

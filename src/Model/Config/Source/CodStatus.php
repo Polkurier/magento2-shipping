@@ -23,7 +23,7 @@ readonly class CodStatus extends AbstractOptions
             CodStatusEnum::PaymentPending->value => (string)__('Payout pending'),
             CodStatusEnum::Compensation->value => (string)__('Compensation'),
             CodStatusEnum::Paid->value => (string)__('Paid out'),
-            CodStatusEnum::Settled->value => (string)__('Settled'),
+            CodStatusEnum::Settled->value => (string)__('COD settled'),
         ];
     }
 }

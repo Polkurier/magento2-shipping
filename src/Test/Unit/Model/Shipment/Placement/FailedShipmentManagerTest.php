@@ -46,8 +46,8 @@ class FailedShipmentManagerTest extends TestCase
         self::assertSame('2026-09-30 10:00:00', $this->attemptedBefore);
         self::assertSame([
             'delete 7',
-            'comment The DPD shipment that wasn\'t placed was removed, 48 hours after it was last tried. '
-            . 'Why it wasn\'t placed: Przerwa techniczna',
+            'comment Unplaced shipment removed 48 hours after the last attempt. Carrier: DPD. '
+            . 'Reason: Przerwa techniczna',
         ], $this->log);
     }
 
@@ -66,7 +66,7 @@ class FailedShipmentManagerTest extends TestCase
         $this->manager([], $shipment)->discard(7);
 
         self::assertSame(
-            ['delete 7', 'comment The DPD shipment that wasn\'t placed was discarded.'],
+            ['delete 7', 'comment Unplaced shipment discarded. Carrier: DPD.'],
             $this->log,
         );
     }

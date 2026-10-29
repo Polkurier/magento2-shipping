@@ -218,9 +218,12 @@ readonly class StatusRefreshService
             return $shipment;
         }
         if ($shipment->getShipmentId() === null && $shipment->getState() === ShipmentInterface::STATE_CREATED
+            && $shipment->getRequest() !== null
             && $this->shipmentAgeChecker->isOlderThan($shipment, ShipmentAgeChecker::SHIP_AGAIN_AFTER_MINUTES)
         ) {
-            // Placed, but the Magento shipment failed back then: try again with every refresh.
+            // Placed here, but the Magento shipment failed back then: try again with every refresh. One
+            // placed elsewhere and linked from its track goes without one when that's taken
+            // ({@see TrackAdoptionService}).
             $this->nativeFollowUpService->ship($this->orderLoader->get($shipment->getOrderId()), $shipment);
 
             return $shipment;

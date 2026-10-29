@@ -90,6 +90,13 @@ class StatusRefreshServiceTest extends TestCase
         self::assertSame(['save', 'ship'], $this->happened);
     }
 
+    public function testAnOrderLinkedFromItsTrackWithoutAMagentoShipmentIsLeftWithout(): void
+    {
+        $this->refresh(null, [], request: null)->refresh(5);
+
+        self::assertSame(['save'], $this->happened);
+    }
+
     public function testAPlacedOrderJustPlacedIsLeftForItsOwnRequestToShip(): void
     {
         // Magento saves a shipment made with a shipping label once the label is back.
@@ -253,6 +260,7 @@ class StatusRefreshServiceTest extends TestCase
      *     says, as {@see RemoteOrderApplier} would apply it
      * @param \Throwable|null $tracksError what adding the waybills to the Magento shipment throws
      * @param string|null $statusBefore the status code the shipment had before
+     * @param string|null $request the create_order payload the module sent; null for one linked from its track
      */
     private function refresh(
         ?int $magentoShipmentId,
@@ -264,11 +272,12 @@ class StatusRefreshServiceTest extends TestCase
         bool $old = true,
         ?\Throwable $tracksError = null,
         ?string $statusBefore = null,
+        ?string $request = '{"courier":"DPD"}',
     ): StatusRefreshService {
         $this->shipment = (new ObjectManager($this))->getObject(Shipment::class);
         $this->shipment->setId(5)->setOrderId(29)->setState($state)->setPolkurierNumber($number)
             ->setShipmentId($magentoShipmentId)->setWaybills(['W1'])->setDeliveredAt($deliveredBefore)
-            ->setStatusCode($statusBefore)
+            ->setStatusCode($statusBefore)->setRequest($request)
             ->setLastError('The Magento shipment could not be created');
         $repository = $this->createStub(ShipmentRepositoryInterface::class);
         $repository->method('get')->willReturn($this->shipment);

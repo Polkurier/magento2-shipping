@@ -52,8 +52,10 @@ that were sent and received.
   | `label` | placed for a label on Magento's shipment page; the Magento shipment is saved right after the event, so `shipment_id` isn't set yet |
   | `reconcile` | an unconfirmed attempt, found on the account later |
   | `adopt` | an unconfirmed attempt, linked by hand to its order, given by number |
+  | `track` | an order placed elsewhere, e.g. from an import of the shop's orders, linked from a waybill added to a Magento shipment |
 
-  For `reconcile` and `adopt` there's no `request` or `response`, since the answer never arrived.
+  For `reconcile`, `adopt` and `track` there's no `request` or `response`, since the module sent
+  none.
   Nothing is dispatched while the outcome is still unknown, or for a refused order.
 - Address and pack template events fire for changes pushed by the sync as well as for saves in the
   admin. `is_new` says whether the entry was created on the account.

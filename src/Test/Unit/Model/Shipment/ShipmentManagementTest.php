@@ -1656,6 +1656,7 @@ class ShipmentManagementTest extends SdkTestCase
             $clock,
             $this->applicationId(),
             NewingObjectManager::factory(GetOrdersMessageBuilderFactory::class),
+            $this->createStub(ConfigProvider::class),
         );
         // Polkurier's get_status, which confirms a cancellation, as a stub: the client answers every
         // call with the same body.

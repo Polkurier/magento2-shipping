@@ -220,6 +220,25 @@ class NativeShipmentServiceTest extends TestCase
         self::assertSame([$tracks[0]], $this->deletedTracks, 'Other carriers\' tracks and numbers typed by hand stay.');
     }
 
+    public function testTracksOfTheWaybillsAddedFromElsewhereBecomeTheModules(): void
+    {
+        $tracks = [];
+        foreach ([['WB-1', 'custom'], ['WB-2', 'polkurier'], ['TYPED', 'custom']] as [$number, $carrier]) {
+            $track = $this->getMockBuilder(Track::class)->disableOriginalConstructor()->onlyMethods([])->getMock();
+            $tracks[] = $track->setData(['track_number' => $number, 'carrier_code' => $carrier, 'title' => 'InPost']);
+        }
+        $this->magentoShipments[7] = $tracks;
+        $polkurier = $this->polkurier(1, 7, ShipmentInterface::STATE_CREATED, ['WB-1', 'WB-2']);
+        $polkurier->setCarrierCode('INPOST');
+
+        $this->magentoShipment()->takeOverTracks($this->order(), 7, $polkurier);
+
+        self::assertSame(['WB-1'], $this->savedTrackNumbers, 'The module\'s own and other numbers stay as they are.');
+        self::assertSame('polkurier', $tracks[0]->getCarrierCode());
+        self::assertSame('Kurier InPost', $tracks[0]->getTitle());
+        self::assertSame('custom', $tracks[2]->getCarrierCode());
+    }
+
     public function testAReplacementGoesOnTheMagentoShipmentOfTheCancelledOrder(): void
     {
         $cancelled = $this->polkurier(11, 4, ShipmentInterface::STATE_CANCELLED, ['WB-OLD']);

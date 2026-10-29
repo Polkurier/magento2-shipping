@@ -328,9 +328,10 @@ readonly class NativeFollowUpService
     }
 
     /**
-     * An unconfirmed attempt turned out to have been placed: reported like any placed order.
+     * An unconfirmed attempt turned out to have been placed, or one placed elsewhere was linked from
+     * its waybill: reported like any placed order.
      *
-     * @param string $source how it was found: "reconcile" or "adopt"
+     * @param string $source how it was found: "reconcile", "adopt" or "track"
      */
     public function linked(ShipmentInterface $shipment, Order $order, string $source): void
     {

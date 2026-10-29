@@ -163,6 +163,14 @@
     <type name="Magento\Sales\Api\OrderRepositoryInterface">
         <plugin name="polkurier_order_point" type="Polkurier\Shipping\Plugin\Sales\OrderRepositoryPlugin" />
     </type>
+    <!-- Tracking numbers added from elsewhere, e.g. over REST, are linked to their Polkurier orders -->
+    <type name="Magento\Sales\Api\ShipOrderInterface">
+        <plugin name="polkurier_track_adoption" type="Polkurier\Shipping\Plugin\Sales\ShipOrderPlugin" />
+    </type>
+    <type name="Magento\Sales\Api\ShipmentTrackRepositoryInterface">
+        <plugin name="polkurier_track_adoption"
+                type="Polkurier\Shipping\Plugin\Sales\ShipmentTrackRepositoryPlugin" />
+    </type>
     <!-- A Magento shipment made for a Polkurier order takes the number the order was sent with -->
     <type name="Magento\Sales\Model\Order\ShipmentDocumentFactory">
         <plugin name="polkurier_reserved_number" type="Polkurier\Shipping\Plugin\Sales\ShipmentDocumentFactoryPlugin" />

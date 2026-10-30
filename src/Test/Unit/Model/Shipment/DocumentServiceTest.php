@@ -78,26 +78,26 @@ class DocumentServiceTest extends TestCase
         ];
 
         $file = $this->documents()->getProtocol([
-            $this->shipment('711400-24', 1, id: 1),
-            $this->shipment('711400-25', 1, id: 2),
-            $this->shipment('711400-99', 1, id: 3),
+            $this->shipment('24680-24', 1, id: 1),
+            $this->shipment('24680-25', 1, id: 2),
+            $this->shipment('24680-99', 1, id: 3),
         ]);
 
         self::assertSame([[1, 2, 3]], $this->refreshed, 'Read together.');
         self::assertSame(
-            ['711400-24'],
+            ['24680-24'],
             $this->asked?->getOrderNo(),
             'Polkurier fails a whole protocol over one number it doesn\'t know.',
         );
         self::assertSame([
-            'Polkurier order 711400-25 was left out: it was cancelled in Polkurier.',
-            'Polkurier order 711400-99 was left out: Polkurier has no order number 711400-99 on this account.',
+            'Polkurier order 24680-25 was left out: it was cancelled in Polkurier.',
+            'Polkurier order 24680-99 was left out: Polkurier has no order number 24680-99 on this account.',
         ], $file['left_out']);
     }
 
     public function testOneIsAskedForStraightAway(): void
     {
-        $this->documents()->getLabels([$this->shipment('711400-24', 1, id: 1)]);
+        $this->documents()->getLabels([$this->shipment('24680-24', 1, id: 1)]);
 
         self::assertSame([], $this->refreshed, 'Polkurier says itself when the only one asked for can\'t be printed.');
     }
@@ -106,13 +106,13 @@ class DocumentServiceTest extends TestCase
     {
         $this->remoteStates = [1 => ShipmentInterface::STATE_CANCELLED, 2 => ShipmentInterface::STATE_CANCELLED];
         $this->expectExceptionMessage(
-            'None of the selected shipments is placed in Polkurier any more. Polkurier order 711400-24 was left out',
+            'None of the selected shipments is placed in Polkurier any more. Polkurier order 24680-24 was left out',
         );
 
         try {
             $this->documents()->getLabels([
-                $this->shipment('711400-24', 1, id: 1),
-                $this->shipment('711400-25', 1, id: 2),
+                $this->shipment('24680-24', 1, id: 1),
+                $this->shipment('24680-25', 1, id: 2),
             ]);
         } finally {
             self::assertNull($this->asked);
@@ -370,8 +370,8 @@ class DocumentServiceTest extends TestCase
                     ? $this->remoteStates[$id]
                     : ShipmentInterface::STATE_CREATED;
                 $results[$id] = $state === null
-                    ? new LocalizedException(__('Polkurier has no order number %1 on this account.', '711400-99'))
-                    : $this->shipment('711400-' . $id, 1, $state, $id);
+                    ? new LocalizedException(__('Polkurier has no order number %1 on this account.', '24680-99'))
+                    : $this->shipment('24680-' . $id, 1, $state, $id);
             }
 
             return $results;

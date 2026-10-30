@@ -43,14 +43,14 @@ class ReconciliationServiceTest extends TestCase
     public function testAnOrderLinkedByHandIsTakenAsPlacedAndShipped(): void
     {
         $shipment = $this->reconciliation(ShipmentInterface::STATE_UNKNOWN, ShipmentInterface::STATE_CREATED)
-            ->adopt(5, ' 711400-27 ');
+            ->adopt(5, ' 24680-27 ');
 
         self::assertSame(ShipmentInterface::STATE_CREATED, $shipment->getState());
         self::assertNull($shipment->getLastError());
         self::assertSame([
-            'find 711400-27',
+            'find 24680-27',
             'save',
-            'placed by hand: 711400-27',
+            'placed by hand: 24680-27',
             'ship',
             'linked by adopt',
         ], $this->happened);
@@ -59,13 +59,13 @@ class ReconciliationServiceTest extends TestCase
     public function testAnOrderCancelledInPolkurierAlreadyLeavesTheOrderFreeToShipAgain(): void
     {
         $shipment = $this->reconciliation(ShipmentInterface::STATE_UNKNOWN, ShipmentInterface::STATE_CANCELLED)
-            ->adopt(5, '711400-27');
+            ->adopt(5, '24680-27');
 
         self::assertSame(ShipmentInterface::STATE_CANCELLED, $shipment->getState());
         self::assertSame([
-            'find 711400-27',
+            'find 24680-27',
             'save',
-            'comment: Linked with Polkurier order 711400-27, cancelled in the Polkurier panel.',
+            'comment: Linked with Polkurier order 24680-27, cancelled in the Polkurier panel.',
         ], $this->happened);
     }
 
@@ -73,7 +73,7 @@ class ReconciliationServiceTest extends TestCase
     {
         try {
             $this->reconciliation(ShipmentInterface::STATE_CREATED, ShipmentInterface::STATE_CREATED)
-                ->adopt(5, '711400-27');
+                ->adopt(5, '24680-27');
             self::fail('Refused before asking Polkurier.');
         } catch (LocalizedException $e) {
             self::assertSame('Only a shipment whose outcome is unknown can be linked by hand.', $e->getMessage());
@@ -85,35 +85,35 @@ class ReconciliationServiceTest extends TestCase
     {
         try {
             $this->reconciliation(ShipmentInterface::STATE_UNKNOWN, ShipmentInterface::STATE_CREATED, found: false)
-                ->adopt(5, '711400-99');
+                ->adopt(5, '24680-99');
             self::fail('The number is said to be unknown.');
         } catch (LocalizedException $e) {
-            self::assertSame('Polkurier has no order number 711400-99 on this account.', $e->getMessage());
+            self::assertSame('Polkurier has no order number 24680-99 on this account.', $e->getMessage());
         }
-        self::assertSame(['find 711400-99'], $this->happened);
+        self::assertSame(['find 24680-99'], $this->happened);
     }
 
     public function testAnOrderThisShopDidNotPlaceForTheShipmentIsNotLinked(): void
     {
         try {
             $this->reconciliation(ShipmentInterface::STATE_UNKNOWN, ShipmentInterface::STATE_CREATED, own: false)
-                ->adopt(5, '711400-27');
+                ->adopt(5, '24680-27');
             self::fail('Placed in the Polkurier panel, or by another shop on the account.');
         } catch (LocalizedException $e) {
             self::assertSame(
-                'Polkurier order 711400-27 was not placed by this shop for this shipment, '
+                'Polkurier order 24680-27 was not placed by this shop for this shipment, '
                 . 'so it can\'t be linked to it.',
                 $e->getMessage(),
             );
         }
-        self::assertSame(['find 711400-27'], $this->happened, 'Nothing is saved.');
+        self::assertSame(['find 24680-27'], $this->happened, 'Nothing is saved.');
     }
 
     public function testAShipmentSentWithoutTheShopsIdsCanNotBeLinked(): void
     {
         try {
             $this->reconciliation(ShipmentInterface::STATE_UNKNOWN, ShipmentInterface::STATE_CREATED, ids: false)
-                ->adopt(5, '711400-27');
+                ->adopt(5, '24680-27');
             self::fail('No order can be told to be its own.');
         } catch (LocalizedException $e) {
             self::assertSame(
@@ -128,12 +128,12 @@ class ReconciliationServiceTest extends TestCase
     {
         try {
             $this->reconciliation(ShipmentInterface::STATE_UNKNOWN, ShipmentInterface::STATE_CREATED, held: true)
-                ->adopt(5, '711400-27');
+                ->adopt(5, '24680-27');
             self::fail('Another shipment of the same Magento order carries the same ids.');
         } catch (LocalizedException $e) {
-            self::assertSame('Polkurier order 711400-27 is already linked to another shipment.', $e->getMessage());
+            self::assertSame('Polkurier order 24680-27 is already linked to another shipment.', $e->getMessage());
         }
-        self::assertSame(['find 711400-27'], $this->happened, 'Nothing is saved.');
+        self::assertSame(['find 24680-27'], $this->happened, 'Nothing is saved.');
     }
 
     public function testAShipmentLinkedMeanwhileIsNotLinkedAgain(): void
@@ -143,12 +143,12 @@ class ReconciliationServiceTest extends TestCase
                 ShipmentInterface::STATE_UNKNOWN,
                 ShipmentInterface::STATE_CREATED,
                 meanwhile: ShipmentInterface::STATE_CREATED,
-            )->adopt(5, '711400-27');
+            )->adopt(5, '24680-27');
             self::fail('Refused once it is linked.');
         } catch (LocalizedException $e) {
             self::assertSame('Only a shipment whose outcome is unknown can be linked by hand.', $e->getMessage());
         }
-        self::assertSame(['find 711400-27'], $this->happened);
+        self::assertSame(['find 24680-27'], $this->happened);
     }
 
     public function testAShipmentReconciledMeanwhileIsLeftAsItIs(): void
@@ -233,7 +233,7 @@ class ReconciliationServiceTest extends TestCase
         $snapshot = $this->createStub(RemoteOrderApplier::class);
         $snapshot->method('apply')->willReturnCallback(
             static function (RemoteOrder $order, ShipmentInterface $shipment) use ($remoteState): void {
-                $shipment->setPolkurierNumber('711400-27')->setState($remoteState);
+                $shipment->setPolkurierNumber('24680-27')->setState($remoteState);
             },
         );
         $followUp = $this->createStub(NativeFollowUpService::class);

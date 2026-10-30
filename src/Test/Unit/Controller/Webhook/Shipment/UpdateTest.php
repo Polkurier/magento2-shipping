@@ -55,7 +55,7 @@ class UpdateTest extends TestCase
         // Its signature covers the raw bytes: nothing may be parsed or re-encoded on the way.
         $body = \http_build_query([
             'type' => 'UPDATED',
-            'data' => ['number' => '711400-27', 'status' => 'Oczekuje na odbiór', 'status_code' => 'OC'],
+            'data' => ['number' => '24680-27', 'status' => 'Oczekuje na odbiór', 'status_code' => 'OC'],
         ]);
         $body .= '&hash=' . \hash_hmac('sha256', $body, 'panel-secret');
         $webhook = $this->createMock(StatusWebhookHandler::class);

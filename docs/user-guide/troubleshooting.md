@@ -49,7 +49,7 @@ panel. Enter the new one.
 
 **The map doesn't open.** Try a browser without an ad blocker; some block the map. If it still
 doesn't open, check that the server doesn't
-[block Polkurier's map](../developer-guide/configuration.md#api-and-map-hosts).
+[block Polkurier's map](../developer-guide/configuration.md#map-hosts).
 
 **Customers can't continue without a point, but the map shows none.** The map may be limited too
 much. Check **Show only points that** under **Pickup point map**.

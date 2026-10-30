@@ -256,6 +256,7 @@
 "Place the Polkurier order","Złóż zamówienie Polkurier"
 "Placed","Złożone"
 "Polkurier accepted the credentials.","Polkurier przyjął dane dostępowe."
+"Polkurier did not accept this customer ID and API token. (%1)","Polkurier nie przyjął tego numeru klienta i tokenu API. (%1)"
 "Polkurier answered with something unexpected (HTTP %1). Try again later; if it persists, contact Polkurier.","Polkurier odpowiedział w nieoczekiwany sposób (HTTP %1). Spróbuj później; jeśli problem się powtarza, skontaktuj się z Polkurierem."
 "Polkurier could not be reached, or did not answer in time: %1","Nie udało się połączyć z Polkurierem lub nie odpowiedział na czas: %1"
 "Polkurier did not cancel order %1.","Polkurier nie anulował zamówienia %1."

@@ -42,10 +42,15 @@ use Polkurier\Shipping\Model\Shipment\Valuation\OrderAmountCalculator;
 use Polkurier\Shipping\Test\Unit\Support\AdminActionTestCase;
 use Polkurier\Shipping\Test\Unit\Support\NewingObjectManager;
 use Polkurier\Webservice\Api\Service\UtilsServiceInterface;
+use Polkurier\Webservice\Enum\Http\ResponseStatusEnum;
+use Polkurier\Webservice\Exception\AuthorizationException;
 use Polkurier\Webservice\Exception\ConnectionException;
 use Polkurier\Webservice\Http\Request\AuthorizationMessage;
 use Polkurier\Webservice\Http\Request\AuthorizationMessageFactory;
+use Polkurier\Webservice\Http\Response\ErrorMessage;
 use Polkurier\Webservice\Response\Util\AuthConfirmationMessage;
+use Psr\Http\Message\RequestInterface;
+use Psr\Http\Message\ResponseInterface;
 
 #[CoversClass(Save::class)]
 #[CoversClass(Pack::class)]
@@ -268,6 +273,24 @@ class ShipmentActionsTest extends AdminActionTestCase
 
         self::assertSame(
             ['error' => true, 'message' => 'Polkurier could not be reached, or did not answer in time: Timed out.'],
+            $this->json,
+        );
+    }
+
+    public function testRejectedCredentialsAreSaidToBeTheOnesEntered(): void
+    {
+        $this->params = ['customer_id' => '12345', 'api_token' => 'typed'];
+
+        $this->testConnection(function (): AuthConfirmationMessage {
+            throw new AuthorizationException(
+                new ErrorMessage(ResponseStatusEnum::Error, 'Błędny token', 26),
+                $this->createStub(RequestInterface::class),
+                $this->createStub(ResponseInterface::class),
+            );
+        })->execute();
+
+        self::assertSame(
+            ['error' => true, 'message' => 'Polkurier did not accept this customer ID and API token. (Błędny token)'],
             $this->json,
         );
     }

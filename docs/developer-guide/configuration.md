@@ -21,14 +21,12 @@ the default scope only.
 |---|---|
 | `general/customer_id`, `general/api_token` | `getLogin()`, `getToken()`, `hasCredentials()` |
 | `general/sandbox_mode` | `isSandbox()` |
-| `general/api_url` | `getApiUrl()` |
 | `general/timeout` | `getTimeout()` |
 | `general/external_order_id` | `getExternalOrderId()` |
 | `general/application_id` | `getApplicationIdOverride()` |
 | `general/available_carriers` | `getAvailableCarriers()` |
 | `logging/failed_requests`, `logging/methods` | `isLoggingEnabled()`, `getMethodsToLog()` |
 | `logging/personal_data`, `logging/files`, `logging/files_directory` | `isPersonalDataLoggingEnabled()`, `isFileLoggingEnabled()`, `getLogFilesDirectory()` |
-| `map/url` | `getMapUrl()` |
 | `sync/enabled`, `sync/status_enabled` | `isSyncEnabled()`, `isStatusSyncEnabled()` |
 | `sync/webhook_secret` | `getWebhookSecret()` |
 
@@ -81,11 +79,7 @@ You can set them from the command line or in `env.php` like any sensitive settin
 bin/magento config:set --lock-env carriers/polkurier/general/customer_id 12345
 ```
 
-## API and map hosts
-
-`general/api_url` and `map/url` are empty by default and not shown in the admin. Empty means the
-SDK picks Polkurier's production or sandbox host from `sandbox_mode`, and the map uses the matching
-map host. Set them only to point a development installation at another environment.
+## Map hosts
 
 The map hosts, `maps.polkurier.pl` and `maps-sandbox.polkurier.pl`, are whitelisted for scripts,
 styles, connections and images in `etc/csp_whitelist.xml`; `www.polkurier.pl` and the map tiles

@@ -101,7 +101,7 @@ class PayoutManagerTest extends TestCase
         $this->expectException(LocalizedException::class);
         $this->expectExceptionMessage($why);
         $payouts->createPayout(
-            ['711400-26'],
+            ['24680-26'],
             $type,
             MoneyBoxFeePaymentTypeEnum::MoneyBox,
             'token-1',

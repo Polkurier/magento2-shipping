@@ -13,10 +13,12 @@
     <extension_attributes for="Magento\Quote\Api\Data\ShippingMethodInterface">
         <attribute code="method_logo" type="string" />
     </extension_attributes>
-    <!-- The order's pickup point, and the shipping the customer chose -->
+    <!-- The order's pickup point, the shipping the customer chose, and the installation's id -->
     <extension_attributes for="Magento\Sales\Api\Data\OrderInterface">
         <attribute code="polkurier_point" type="Polkurier\Shipping\Api\Data\OrderPointInterface" />
         <!-- The shipping the customer chose, once the order's shipping follows its Polkurier order -->
         <attribute code="polkurier_shipping_choice" type="Polkurier\Shipping\Api\Data\ShippingChoiceInterface" />
+        <!-- The external_application_id the installation's Polkurier orders carry -->
+        <attribute code="polkurier_application_id" type="string" />
     </extension_attributes>
 </config>

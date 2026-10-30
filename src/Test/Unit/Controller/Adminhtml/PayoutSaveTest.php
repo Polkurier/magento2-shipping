@@ -36,7 +36,7 @@ class PayoutSaveTest extends AdminActionTestCase
     public function testAPayoutToABankAccountIsRequestedWithItsCode(): void
     {
         $this->post = [
-            'orders' => "711400-26\n711400-27",
+            'orders' => "24680-26\n24680-27",
             'payout_type' => 'ACCOUNT',
             'fee_payment_type' => 'PREPAID',
             'bank_account_choice' => 'new',
@@ -48,7 +48,7 @@ class PayoutSaveTest extends AdminActionTestCase
         $this->save()->execute();
 
         self::assertSame([
-            ['711400-26', '711400-27'],
+            ['24680-26', '24680-27'],
             MoneyBoxPayoutTypeEnum::Account,
             MoneyBoxFeePaymentTypeEnum::Prepaid,
             'token-1',
@@ -78,7 +78,7 @@ class PayoutSaveTest extends AdminActionTestCase
     public function testATransferWithoutAnAccountGoesBackToTheFormWithWhatWasChosen(): void
     {
         $this->post = [
-            'orders' => '711400-26',
+            'orders' => '24680-26',
             'payout_type' => 'ACCOUNT',
             'bank_account_choice' => '',
             'two_factor_token' => 'token-1',
@@ -91,7 +91,7 @@ class PayoutSaveTest extends AdminActionTestCase
         self::assertSame(['Enter the bank account the payout is transferred to.'], $this->messages['error']);
         self::assertSame(['*/*/request', []], $this->redirect);
         self::assertSame(
-            ['orders' => '711400-26', 'payout_type' => 'ACCOUNT', 'bank_account_choice' => ''],
+            ['orders' => '24680-26', 'payout_type' => 'ACCOUNT', 'bank_account_choice' => ''],
             $this->kept,
         );
     }

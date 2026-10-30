@@ -14,12 +14,16 @@ use Magento\Sales\Api\OrderRepositoryInterface;
 use Polkurier\Shipping\Api\Data\OrderPointInterface;
 use Polkurier\Shipping\Api\Data\ShippingChoiceInterface;
 use Polkurier\Shipping\Api\OrderPointRepositoryInterface;
+use Polkurier\Shipping\Model\Sdk\ApplicationIdProvider;
 use Polkurier\Shipping\Model\ShippingChoice\ShippingChoiceRepository;
 
 /**
  * Exposes the order's pickup point as its polkurier_point extension attribute. When the order's
  * shipping was changed to match its Polkurier order, it also exposes the shipping the customer
- * chose as polkurier_shipping_choice.
+ * chose as polkurier_shipping_choice. Every order carries the installation's id as
+ * polkurier_application_id: a Polkurier order made for it elsewhere, e.g. from an import of the
+ * shop's orders, carries that id to be linked to it
+ * ({@see \Polkurier\Shipping\Model\Shipment\Status\TrackAdoptionService}).
  */
 readonly class OrderRepositoryPlugin
 {
@@ -27,6 +31,7 @@ readonly class OrderRepositoryPlugin
         private OrderPointRepositoryInterface $orderPointRepository,
         private ShippingChoiceRepository $shippingChoiceRepository,
         private OrderExtensionFactory $extensionFactory,
+        private ApplicationIdProvider $applicationIdProvider,
     ) {}
 
     public function afterGet(OrderRepositoryInterface $subject, OrderInterface $order): OrderInterface
@@ -65,10 +70,8 @@ readonly class OrderRepositoryPlugin
 
     private function attach(OrderInterface $order, ?OrderPointInterface $point, ?ShippingChoiceInterface $choice): void
     {
-        if ($point === null && $choice === null) {
-            return;
-        }
         $extension = $order->getExtensionAttributes() ?? $this->extensionFactory->create();
+        $extension->setPolkurierApplicationId($this->applicationIdProvider->get());
         if ($point !== null) {
             $extension->setPolkurierPoint($point);
         }

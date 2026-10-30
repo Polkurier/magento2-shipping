@@ -8,8 +8,12 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Test\Unit\Model\Shipment\Status;
 
 use Magento\Framework\Exception\LocalizedException;
+use Magento\Sales\Model\Order as MagentoOrder;
+use Magento\Sales\Model\Order\Shipment as MagentoShipment;
 use PHPUnit\Framework\Attributes\CoversClass;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
+use Polkurier\Shipping\Enum\Config\ExternalOrderIdEnum;
+use Polkurier\Shipping\Model\Config\ConfigProvider;
 use Polkurier\Shipping\Model\Sdk\ApplicationIdProvider;
 use Polkurier\Shipping\Model\Sdk\ShipmentGateway;
 use Polkurier\Shipping\Model\Shipment\ShipmentFinder;
@@ -19,6 +23,7 @@ use Polkurier\Shipping\Test\Unit\Support\NewingObjectManager;
 use Polkurier\Shipping\Test\Unit\Support\SdkTestCase;
 use Polkurier\Webservice\Builder\Order\GetOrdersMessageBuilderFactory;
 use Polkurier\Webservice\Request\Order\GetOrdersMessage;
+use Polkurier\Webservice\Response\Order as RemoteOrder;
 use Polkurier\Webservice\Response\Order\OrderListMessage;
 use Polkurier\Webservice\Testing\RecordingClient;
 
@@ -60,6 +65,64 @@ class RemoteOrderMatcherTest extends SdkTestCase
         $this->expectExceptionMessage('Polkurier has no order number 18015-1001 on this account.');
 
         $this->matcher()->findByNumber('18015-1001');
+    }
+
+    public function testAnOrderIsFoundByItsWaybill(): void
+    {
+        $this->pages = [1 => $this->list(['number' => '18015-10011', 'waybills' => [['number' => 'WB-10010']]], [
+            'number' => '18015-1001',
+            'waybills' => [['number' => 'WB-100'], ['number' => 'wb-1001']],
+        ])];
+
+        self::assertSame('18015-1001', $this->matcher()->findByWaybill('WB-1001')?->getNumber());
+        self::assertSame('WB-1001', $this->asked[0]->getSearchPhrase());
+    }
+
+    public function testALiveOrderWithTheWaybillGoesBeforeACancelledOne(): void
+    {
+        $this->pages = [1 => $this->list(
+            ['number' => '18015-1001', 'status_code' => 'A', 'waybills' => [['number' => 'W1']]],
+            ['number' => '18015-1002', 'waybills' => [['number' => 'W1']]],
+        )];
+
+        self::assertSame('18015-1002', $this->matcher()->findByWaybill('W1')?->getNumber());
+    }
+
+    public function testAWaybillNoOrderHasFindsNothing(): void
+    {
+        $this->pages = [1 => $this->list(['number' => '18015-1001', 'waybills' => [['number' => 'W12']]])];
+
+        self::assertNull($this->matcher()->findByWaybill('W1'));
+    }
+
+    public function testAnOrderWithoutAnInstallationsIdsMayBeAnyOrders(): void
+    {
+        self::assertTrue($this->matcher()->isMadeFor($this->magentoOrder(), $this->remote(null, null)));
+    }
+
+    public function testAnOrderWithThisInstallationsIdMustCarryTheOrdersNumber(): void
+    {
+        $matcher = $this->matcher();
+
+        self::assertTrue($matcher->isMadeFor($this->magentoOrder(), $this->remote('magento2-0123456789ab', '000000031')));
+        self::assertFalse(
+            $matcher->isMadeFor($this->magentoOrder(), $this->remote('magento2-0123456789ab', '000000027')),
+            'Its shipment\'s number may be another order\'s while the shop sends order numbers.',
+        );
+        self::assertFalse($matcher->isMadeFor($this->magentoOrder(), $this->remote('magento2-0123456789ab', '000000032')));
+    }
+
+    public function testWhileTheShopSendsShipmentNumbersOneOfItsShipmentsNumberWillDo(): void
+    {
+        $matcher = $this->matcher(ExternalOrderIdEnum::Shipment);
+
+        self::assertTrue($matcher->isMadeFor($this->magentoOrder(), $this->remote('magento2-0123456789ab', '000000027')));
+        self::assertTrue($matcher->isMadeFor($this->magentoOrder(), $this->remote('magento2-0123456789ab', '000000031')));
+    }
+
+    public function testAnOrderAnotherInstallationMadeIsNotTheOrders(): void
+    {
+        self::assertFalse($this->matcher()->isMadeFor($this->magentoOrder(), $this->remote('magento2-staging', '000000031')));
     }
 
     public function testTheSearchStopsAtTheLastPage(): void
@@ -181,7 +244,7 @@ class RemoteOrderMatcherTest extends SdkTestCase
         self::assertSame(['18015-1001'], \array_keys($orders), 'The rest are read by number.');
     }
 
-    private function matcher(): RemoteOrderMatcher
+    private function matcher(ExternalOrderIdEnum $externalOrderId = ExternalOrderIdEnum::Order): RemoteOrderMatcher
     {
         $gateway = $this->createStub(ShipmentGateway::class);
         $gateway->method('findOrders')->willReturnCallback(function (GetOrdersMessage $message): OrderListMessage {
@@ -192,6 +255,8 @@ class RemoteOrderMatcherTest extends SdkTestCase
         });
         $applicationId = $this->createStub(ApplicationIdProvider::class);
         $applicationId->method('get')->willReturn('magento2-0123456789ab');
+        $config = $this->createStub(ConfigProvider::class);
+        $config->method('getExternalOrderId')->willReturn($externalOrderId);
 
         return new RemoteOrderMatcher(
             $gateway,
@@ -199,6 +264,7 @@ class RemoteOrderMatcherTest extends SdkTestCase
             new FixedDateTime((int)\strtotime('2026-10-06 10:00:00 UTC')),
             $applicationId,
             NewingObjectManager::factory(GetOrdersMessageBuilderFactory::class),
+            $config,
         );
     }
 
@@ -234,6 +300,45 @@ class RemoteOrderMatcherTest extends SdkTestCase
         $http = new RecordingClient((string)\json_encode($answer));
 
         return $this->clientPool($http)->orders()->getOrders(new GetOrdersMessage(searchPhrase: '18015-1001'));
+    }
+
+    /**
+     * One page of the list with these orders, each the fixture's order with the fields given.
+     *
+     * @param array<string, mixed> ...$orders
+     */
+    private function list(array ...$orders): OrderListMessage
+    {
+        $answer = \json_decode(self::fixture('get_orders.json'), true);
+        $order = $answer['response']['result'][0];
+        $answer['response']['totalpages'] = 1;
+        $answer['response']['result'] = \array_map(static fn(array $fields): array => $fields + $order, $orders);
+        $http = new RecordingClient((string)\json_encode($answer));
+
+        return $this->clientPool($http)->orders()->getOrders(new GetOrdersMessage(searchPhrase: 'W1'));
+    }
+
+    private function remote(?string $applicationId, ?string $externalOrderId): RemoteOrder
+    {
+        $order = $this->createStub(RemoteOrder::class);
+        $order->method('getExternalApplicationId')->willReturn($applicationId);
+        $order->method('getExternalOrderId')->willReturn($externalOrderId);
+
+        return $order;
+    }
+
+    /**
+     * Order 000000031, with Magento shipment 000000027.
+     */
+    private function magentoOrder(): MagentoOrder
+    {
+        $shipment = $this->createStub(MagentoShipment::class);
+        $shipment->method('getIncrementId')->willReturn('000000027');
+        $order = $this->createStub(MagentoOrder::class);
+        $order->method('getIncrementId')->willReturn('000000031');
+        $order->method('getShipmentsCollection')->willReturn([$shipment]);
+
+        return $order;
     }
 
     /**

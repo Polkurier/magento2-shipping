@@ -33,7 +33,8 @@ enum ApiEventEnum: string
      * "order" ({@see \Magento\Sales\Api\Data\OrderInterface}), "source" (how it was placed: "create"
      * when the answer confirmed it; "label" when it was placed for a shipping label on Magento's
      * shipment page, whose Magento shipment is saved right after; "reconcile" or "adopt" when an
-     * unconfirmed attempt turned out to have been placed),
+     * unconfirmed attempt turned out to have been placed; "track" when one placed elsewhere was
+     * linked from a tracking number added to a Magento shipment),
      * "request" ({@see \Polkurier\Webservice\Request\Order\CreateOrderMessage}, only for "create" and "label"),
      * "response" ({@see \Polkurier\Webservice\Response\Order\CreatedOrderMessage}, only for "create" and "label").
      */

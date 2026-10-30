@@ -143,7 +143,7 @@ class ActionsColumnTest extends TestCase
             'order_id' => '29',
             'state' => $state,
             'shipment_id' => $shipmentId,
-            'polkurier_number' => '711400-27',
+            'polkurier_number' => '24680-27',
             'carrier_code' => 'DPD',
             'status_code' => $statusCode,
         ]]]]);

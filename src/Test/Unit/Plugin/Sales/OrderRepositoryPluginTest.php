@@ -18,6 +18,7 @@ use PHPUnit\Framework\TestCase;
 use Polkurier\Shipping\Api\Data\OrderPointInterface;
 use Polkurier\Shipping\Api\Data\ShippingChoiceInterface;
 use Polkurier\Shipping\Api\OrderPointRepositoryInterface;
+use Polkurier\Shipping\Model\Sdk\ApplicationIdProvider;
 use Polkurier\Shipping\Model\ShippingChoice\ShippingChoiceRepository;
 use Polkurier\Shipping\Plugin\Sales\OrderRepositoryPlugin;
 use Polkurier\Shipping\Test\Unit\Support\OrderExtensionWithPoint;
@@ -49,6 +50,25 @@ class OrderRepositoryPluginTest extends TestCase
         self::assertSame($choice, $orders[2]->getExtensionAttributes()?->getPolkurierShippingChoice());
     }
 
+    public function testEveryOrderCarriesTheInstallationsId(): void
+    {
+        $orders = [$this->order(7), $this->order(8)];
+        $result = $this->createStub(OrderSearchResultInterface::class);
+        $result->method('getItems')->willReturn($orders);
+
+        $plugin = $this->plugin(
+            $this->createStub(OrderPointRepositoryInterface::class),
+            $this->createStub(ShippingChoiceRepository::class),
+        );
+        $plugin->afterGetList($this->createStub(OrderRepositoryInterface::class), $result);
+
+        foreach ($orders as $order) {
+            $extension = $order->getExtensionAttributes();
+            self::assertInstanceOf(OrderExtensionWithPoint::class, $extension);
+            self::assertSame('magento2-0123456789ab', $extension->getPolkurierApplicationId());
+        }
+    }
+
     public function testAnOrderGetsItsPointAsStoredNow(): void
     {
         $point = $this->createStub(OrderPointInterface::class);
@@ -69,7 +89,10 @@ class OrderRepositoryPluginTest extends TestCase
         $factory = $this->createStub(OrderExtensionFactory::class);
         $factory->method('create')->willReturnCallback(fn(): OrderExtensionInterface => $this->extension());
 
-        return new OrderRepositoryPlugin($store, $choices, $factory);
+        $applicationId = $this->createStub(ApplicationIdProvider::class);
+        $applicationId->method('get')->willReturn('magento2-0123456789ab');
+
+        return new OrderRepositoryPlugin($store, $choices, $factory, $applicationId);
     }
 
     private function order(int $id): OrderInterface
@@ -96,7 +119,19 @@ class OrderRepositoryPluginTest extends TestCase
     {
         $point = null;
         $choice = null;
+        $applicationId = null;
         $extension = $this->createStub(OrderExtensionWithPoint::class);
+        $extension->method('getPolkurierApplicationId')
+            ->willReturnCallback(static function () use (&$applicationId): ?string {
+                return $applicationId;
+            });
+        $extension->method('setPolkurierApplicationId')->willReturnCallback(
+            static function (string $value) use (&$applicationId, $extension): OrderExtensionInterface {
+                $applicationId = $value;
+
+                return $extension;
+            },
+        );
         $extension->method('getPolkurierPoint')
             ->willReturnCallback(static function () use (&$point): ?OrderPointInterface {
                 return $point;

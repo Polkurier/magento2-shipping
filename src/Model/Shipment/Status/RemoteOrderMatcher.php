@@ -9,18 +9,23 @@ namespace Polkurier\Shipping\Model\Shipment\Status;
 
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Stdlib\DateTime\DateTime;
+use Magento\Sales\Model\Order as MagentoOrder;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
+use Polkurier\Shipping\Enum\Config\ExternalOrderIdEnum;
+use Polkurier\Shipping\Model\Config\ConfigProvider;
 use Polkurier\Shipping\Model\Sdk\ApplicationIdProvider;
 use Polkurier\Shipping\Model\Sdk\ShipmentGateway;
 use Polkurier\Shipping\Model\Shipment\ShipmentFinder;
 use Polkurier\Webservice\Builder\Order\GetOrdersMessageBuilder;
 use Polkurier\Webservice\Builder\Order\GetOrdersMessageBuilderFactory;
+use Polkurier\Webservice\Enum\Order\OrderStatusCodeEnum;
 use Polkurier\Webservice\Request\Order\GetOrdersMessage;
 use Polkurier\Webservice\Response\Order;
 
 /**
  * Finds this installation's orders on the Polkurier account: the one an unanswered attempt may have
- * placed, and the ones the shop holds the numbers of.
+ * placed, the ones the shop holds the numbers of, and the one with a waybill added to a Magento
+ * shipment from elsewhere.
  *
  * Every order the module places carries the installation's application id and the shipment's
  * external order id (the Magento shipment's or order's number). An unanswered attempt's order is
@@ -45,6 +50,7 @@ readonly class RemoteOrderMatcher
         private DateTime $dateTime,
         private ApplicationIdProvider $applicationIdProvider,
         private GetOrdersMessageBuilderFactory $getOrdersMessageBuilderFactory,
+        private ConfigProvider $configProvider,
     ) {}
 
     /**
@@ -91,6 +97,57 @@ readonly class RemoteOrderMatcher
         }
 
         throw new LocalizedException(__('Polkurier has no order number %1 on this account.', $number));
+    }
+
+    /**
+     * The order on the account with the waybill, a live one before a cancelled one, or null.
+     *
+     * @throws LocalizedException when Polkurier can't be asked
+     */
+    public function findByWaybill(string $waybill): ?Order
+    {
+        $found = null;
+        // Searched by phrase, which matches longer numbers that hold it too: only the exact one counts.
+        $orders = $this->findOrders(static fn(GetOrdersMessageBuilder $builder) => $builder
+            ->searchPhrase($waybill)
+            ->items(true));
+        foreach ($orders as $order) {
+            if ($order->getNumber() === null || !self::hasWaybill($order, $waybill)) {
+                continue;
+            }
+            if ($order->getStatusCode() !== OrderStatusCodeEnum::Canceled->value) {
+                return $order;
+            }
+            $found ??= $order;
+        }
+
+        return $found;
+    }
+
+    /**
+     * Whether the order may be the Magento order's: it carries no installation's ids, as one placed
+     * in the Polkurier panel, or it carries this installation's id and the Magento order's number, or
+     * one of its Magento shipments' while those are what the shop sends. One another installation or
+     * integration placed isn't. Order and shipment numbers come from separate sequences, so another
+     * order's number can be a shipment's here.
+     */
+    public function isMadeFor(MagentoOrder $magentoOrder, Order $order): bool
+    {
+        $applicationId = (string)$order->getExternalApplicationId();
+        if ($applicationId === '') {
+            return true;
+        }
+        if ($applicationId !== $this->applicationIdProvider->get()) {
+            return false;
+        }
+        $numbers = [(string)$magentoOrder->getIncrementId()];
+        if ($this->configProvider->getExternalOrderId() === ExternalOrderIdEnum::Shipment) {
+            foreach ($magentoOrder->getShipmentsCollection() as $magentoShipment) {
+                $numbers[] = (string)$magentoShipment->getIncrementId();
+            }
+        }
+
+        return \in_array((string)$order->getExternalOrderId(), $numbers, true);
     }
 
     /**
@@ -253,6 +310,17 @@ readonly class RemoteOrderMatcher
         return $createdAt
             ? (new \DateTimeImmutable($createdAt, new \DateTimeZone('UTC')))->getTimestamp()
             : $this->dateTime->gmtTimestamp();
+    }
+
+    private static function hasWaybill(Order $order, string $waybill): bool
+    {
+        foreach ($order->getWaybills() as $candidate) {
+            if (\strcasecmp((string)$candidate->getNumber(), $waybill) === 0) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static function postcode(string $postcode): string

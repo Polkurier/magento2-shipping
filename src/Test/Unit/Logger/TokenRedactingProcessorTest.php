@@ -140,7 +140,7 @@ class TokenRedactingProcessorTest extends TestCase
             new RequestMessage(
                 ApiMethodEnum::GetStatus,
                 new AuthorizationMessage('s3cr3t-api-token', '12345'),
-                new GetStatusMessage('711400-4', tracking: true),
+                new GetStatusMessage('24680-4', tracking: true),
             ),
             'json',
         );

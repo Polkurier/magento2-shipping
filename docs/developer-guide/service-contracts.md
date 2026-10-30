@@ -60,4 +60,10 @@ available as `getPolkurierShippingChoice()`
 `extension_attributes.polkurier_shipping_choice` in REST (see
 [Shipments](shipments.md#the-orders-shipping)).
 
+Every order also carries the installation's `external_application_id` as
+`getPolkurierApplicationId()`, `extension_attributes.polkurier_application_id` in REST. A Polkurier
+order placed for it elsewhere can carry it, with the Magento order's number as
+`external_order_id`, to be linked to it (see
+[Orders placed elsewhere](shipments.md#orders-placed-elsewhere)).
+
 Next: [Events](events.md)

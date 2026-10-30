@@ -81,7 +81,7 @@ class FollowingShipmentsActionsTest extends AdminActionTestCase
         $this->params = ['pickup_date' => '2026-10-07', 'pickup_time_from' => '11:00', 'pickup_time_to' => '14:00'];
         $pickups = $this->createStub(PickupService::class);
         $pickups->method('bookCollective')
-            ->willReturn(['booked' => ['711400-26'], 'failed' => ['711400-27' => 'Already collected']]);
+            ->willReturn(['booked' => ['24680-26'], 'failed' => ['24680-27' => 'Already collected']]);
 
         (new Pickup(
             $this->context(),
@@ -92,7 +92,7 @@ class FollowingShipmentsActionsTest extends AdminActionTestCase
 
         // One message, at the gravest of what it says.
         self::assertSame(
-            ['Collective pickup booked for: 711400-26. Not booked for 711400-27: Already collected'],
+            ['Collective pickup booked for: 24680-26. Not booked for 24680-27: Already collected'],
             $this->messages['warning'],
         );
         self::assertSame(['polkurier/shipment/index', []], $this->redirect);
@@ -103,7 +103,7 @@ class FollowingShipmentsActionsTest extends AdminActionTestCase
         $this->params = ['pickup_date' => '2026-10-07', 'pickup_time_from' => '11:00', 'pickup_time_to' => '14:00'];
         $pickups = $this->createStub(PickupService::class);
         $pickups->method('bookCollective')
-            ->willReturn(['booked' => [], 'failed' => ['711400-27' => 'Already collected']]);
+            ->willReturn(['booked' => [], 'failed' => ['24680-27' => 'Already collected']]);
 
         (new Pickup(
             $this->context(),
@@ -112,7 +112,7 @@ class FollowingShipmentsActionsTest extends AdminActionTestCase
             $this->flashMessageCollectorFactory(),
         ))->execute();
 
-        self::assertSame(['Not booked for 711400-27: Already collected'], $this->messages['error']);
+        self::assertSame(['Not booked for 24680-27: Already collected'], $this->messages['error']);
         self::assertArrayNotHasKey('success', $this->messages);
     }
 
@@ -120,13 +120,13 @@ class FollowingShipmentsActionsTest extends AdminActionTestCase
     {
         $refresher = $this->createMock(StatusRefreshService::class);
         $refresher->expects(self::once())->method('refreshMany')->with([4, 6])->willReturn([
-            4 => $this->shipment(4, ShipmentInterface::STATE_CREATED, '711400-4'),
+            4 => $this->shipment(4, ShipmentInterface::STATE_CREATED, '24680-4'),
             6 => new LocalizedException(__('Polkurier is not answering.')),
         ]);
         $selected = [
-            $this->shipment(4, ShipmentInterface::STATE_CREATED, '711400-4'),
+            $this->shipment(4, ShipmentInterface::STATE_CREATED, '24680-4'),
             $this->shipment(5, ShipmentInterface::STATE_FAILED, null),
-            $this->shipment(6, ShipmentInterface::STATE_CREATED, '711400-6'),
+            $this->shipment(6, ShipmentInterface::STATE_CREATED, '24680-6'),
         ];
 
         (new MassRefresh(
@@ -137,7 +137,7 @@ class FollowingShipmentsActionsTest extends AdminActionTestCase
         ))->execute();
 
         self::assertSame(
-            ['1 shipment(s) updated. Not updated: 711400-6: Polkurier is not answering.'],
+            ['1 shipment(s) updated. Not updated: 24680-6: Polkurier is not answering.'],
             $this->messages['warning'],
         );
     }
@@ -146,40 +146,40 @@ class FollowingShipmentsActionsTest extends AdminActionTestCase
     {
         $management = $this->createStub(ShipmentManagementInterface::class);
         $management->method('refreshStatus')
-            ->willReturn($this->shipment(4, ShipmentInterface::STATE_CREATED, '711400-4', 'Doręczona'));
+            ->willReturn($this->shipment(4, ShipmentInterface::STATE_CREATED, '24680-4', 'Doręczona'));
         $details = $this->createMock(DetailsLoader::class);
         $details->expects(self::once())->method('refreshTracking');
 
         (new Refresh(
             $this->context(),
-            $this->requested([], $this->shipment(4, ShipmentInterface::STATE_CREATED, '711400-4')),
+            $this->requested([], $this->shipment(4, ShipmentInterface::STATE_CREATED, '24680-4')),
             $management,
             $details,
             $this->flashMessageCollectorFactory(),
         ))->execute();
 
-        self::assertSame(['Polkurier order 711400-4: Doręczona.'], $this->messages['success']);
+        self::assertSame(['Polkurier order 24680-4: Doręczona.'], $this->messages['success']);
     }
 
     public function testScansThatCantBeReadDontUndoTheStatus(): void
     {
         $management = $this->createStub(ShipmentManagementInterface::class);
         $management->method('refreshStatus')
-            ->willReturn($this->shipment(4, ShipmentInterface::STATE_CREATED, '711400-4', 'Doręczona'));
+            ->willReturn($this->shipment(4, ShipmentInterface::STATE_CREATED, '24680-4', 'Doręczona'));
         $details = $this->createStub(DetailsLoader::class);
         $details->method('refreshTracking')
             ->willThrowException(new LocalizedException(__('The carrier\'s scans could not be read.')));
 
         (new Refresh(
             $this->context(),
-            $this->requested([], $this->shipment(4, ShipmentInterface::STATE_CREATED, '711400-4')),
+            $this->requested([], $this->shipment(4, ShipmentInterface::STATE_CREATED, '24680-4')),
             $management,
             $details,
             $this->flashMessageCollectorFactory(),
         ))->execute();
 
         self::assertSame(
-            ['Polkurier order 711400-4: Doręczona. The carrier\'s scans could not be read.'],
+            ['Polkurier order 24680-4: Doręczona. The carrier\'s scans could not be read.'],
             $this->messages['warning'],
         );
     }
@@ -207,7 +207,7 @@ class FollowingShipmentsActionsTest extends AdminActionTestCase
 
         (new Discard(
             $this->context(),
-            $this->requested([], $this->shipment(4, ShipmentInterface::STATE_CREATED, '711400-4')),
+            $this->requested([], $this->shipment(4, ShipmentInterface::STATE_CREATED, '24680-4')),
             $failedShipmentManager,
         ))->execute();
 

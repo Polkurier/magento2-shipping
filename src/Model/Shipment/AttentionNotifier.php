@@ -104,8 +104,9 @@ readonly class AttentionNotifier
                 '(shipment.state IN (?)',
                 [ShipmentInterface::STATE_UNKNOWN, ShipmentInterface::STATE_PENDING],
             ) . $connection->quoteInto(' AND shipment.created_at < ?)', $settleBefore),
+            // Placed here: one linked from its track goes without a Magento shipment when that's taken.
             $connection->quoteInto(
-                '(shipment.state = ? AND shipment.shipment_id IS NULL',
+                '(shipment.state = ? AND shipment.shipment_id IS NULL AND shipment.request IS NOT NULL',
                 ShipmentInterface::STATE_CREATED,
             ) . $connection->quoteInto(' AND shipment.created_at < ?)', $settleBefore),
         ]);

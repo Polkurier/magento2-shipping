@@ -66,7 +66,7 @@ class StatusRefreshServiceTest extends TestCase
         $this->refresh(11, ['delivered' => '2026-10-06 09:00:00'])->refresh(5);
 
         self::assertSame(
-            ['save', 'remark 11: Polkurier order 711400-27 delivered: 2026-10-06 09:00:00.'],
+            ['save', 'remark 11: Polkurier order 24680-27 delivered: 2026-10-06 09:00:00.'],
             $this->happened,
         );
 
@@ -90,6 +90,13 @@ class StatusRefreshServiceTest extends TestCase
         self::assertSame(['save', 'ship'], $this->happened);
     }
 
+    public function testAnOrderLinkedFromItsTrackWithoutAMagentoShipmentIsLeftWithout(): void
+    {
+        $this->refresh(null, [], request: null)->refresh(5);
+
+        self::assertSame(['save'], $this->happened);
+    }
+
     public function testAPlacedOrderJustPlacedIsLeftForItsOwnRequestToShip(): void
     {
         // Magento saves a shipment made with a shipping label once the label is back.
@@ -106,7 +113,7 @@ class StatusRefreshServiceTest extends TestCase
             [
                 'save',
                 'tracks 11: W1, W2',
-                'comment: Waybills issued for Polkurier order 711400-27: W1, W2.',
+                'comment: Waybills issued for Polkurier order 24680-27: W1, W2.',
                 'notify 11',
             ],
             $this->happened,
@@ -118,7 +125,7 @@ class StatusRefreshServiceTest extends TestCase
         $this->refresh(11, ['status' => ['Z', 'Zwrot do nadawcy']])->refresh(5);
 
         self::assertSame(
-            ['save', 'comment: Polkurier order 711400-27 status: Zwrot do nadawcy.'],
+            ['save', 'comment: Polkurier order 24680-27 status: Zwrot do nadawcy.'],
             $this->happened,
         );
 
@@ -207,14 +214,14 @@ class StatusRefreshServiceTest extends TestCase
 
     public function testOrdersListedTogetherAreAppliedAsEachWouldBeAndTheRestReadByNumber(): void
     {
-        $results = $this->many(listed: ['711400-6', '711400-8'])->refreshMany([6, 7, 8]);
+        $results = $this->many(listed: ['24680-6', '24680-8'])->refreshMany([6, 7, 8]);
 
         self::assertSame([
-            'list 711400-6, 711400-7, 711400-8',
-            'apply 711400-6 to 6',
-            'find 711400-7',
-            'apply 711400-7 to 7',
-            'apply 711400-8 to 8',
+            'list 24680-6, 24680-7, 24680-8',
+            'apply 24680-6 to 6',
+            'find 24680-7',
+            'apply 24680-7 to 7',
+            'apply 24680-8 to 8',
         ], $this->happened);
         self::assertSame([6, 7, 8], \array_keys($results));
         foreach ($results as $id => $shipment) {
@@ -225,7 +232,7 @@ class StatusRefreshServiceTest extends TestCase
 
     public function testAShipmentThatFailsDoesNotStopTheOthers(): void
     {
-        $results = $this->many(listed: ['711400-9'], unknown: ['711400-6'], failing: ['711400-7'])
+        $results = $this->many(listed: ['24680-9'], unknown: ['24680-6'], failing: ['24680-7'])
             ->refreshMany([4, 5, 6, 7, 8, 9]);
 
         self::assertSame([4, 5, 6, 7, 8, 9], \array_keys($results), 'In the order given.');
@@ -233,7 +240,7 @@ class StatusRefreshServiceTest extends TestCase
             [
                 4 => 'No such shipment.',
                 5 => 'This shipment has no Polkurier order to read.',
-                6 => 'Polkurier has no order number 711400-6 on this account.',
+                6 => 'Polkurier has no order number 24680-6 on this account.',
                 7 => 'Unexpected.',
             ],
             \array_map(
@@ -245,7 +252,7 @@ class StatusRefreshServiceTest extends TestCase
         self::assertNotInstanceOf(LocalizedException::class, $results[7], 'Passed on as it is.');
         self::assertInstanceOf(ShipmentInterface::class, $results[8]);
         self::assertInstanceOf(ShipmentInterface::class, $results[9]);
-        self::assertSame('list 711400-6, 711400-7, 711400-8, 711400-9', $this->happened[0], 'Without those not read.');
+        self::assertSame('list 24680-6, 24680-7, 24680-8, 24680-9', $this->happened[0], 'Without those not read.');
     }
 
     /**
@@ -253,22 +260,24 @@ class StatusRefreshServiceTest extends TestCase
      *     says, as {@see RemoteOrderApplier} would apply it
      * @param \Throwable|null $tracksError what adding the waybills to the Magento shipment throws
      * @param string|null $statusBefore the status code the shipment had before
+     * @param string|null $request the create_order payload the module sent; null for one linked from its track
      */
     private function refresh(
         ?int $magentoShipmentId,
         array $remote,
         ?string $deliveredBefore = null,
-        ?string $number = '711400-27',
+        ?string $number = '24680-27',
         ?string $shipError = null,
         string $state = ShipmentInterface::STATE_CREATED,
         bool $old = true,
         ?\Throwable $tracksError = null,
         ?string $statusBefore = null,
+        ?string $request = '{"courier":"DPD"}',
     ): StatusRefreshService {
         $this->shipment = (new ObjectManager($this))->getObject(Shipment::class);
         $this->shipment->setId(5)->setOrderId(29)->setState($state)->setPolkurierNumber($number)
             ->setShipmentId($magentoShipmentId)->setWaybills(['W1'])->setDeliveredAt($deliveredBefore)
-            ->setStatusCode($statusBefore)
+            ->setStatusCode($statusBefore)->setRequest($request)
             ->setLastError('The Magento shipment could not be created');
         $repository = $this->createStub(ShipmentRepositoryInterface::class);
         $repository->method('get')->willReturn($this->shipment);
@@ -358,7 +367,7 @@ class StatusRefreshServiceTest extends TestCase
     }
 
     /**
-     * Shipments 6 and up placed as Polkurier order 711400-<id>; 4 doesn't exist and 5 has no
+     * Shipments 6 and up placed as Polkurier order 24680-<id>; 4 doesn't exist and 5 has no
      * Polkurier order.
      *
      * @param string[] $listed the orders Polkurier lists together
@@ -376,7 +385,7 @@ class StatusRefreshServiceTest extends TestCase
             $shipment = (new ObjectManager($this))->getObject(Shipment::class);
 
             return $shipment->setId($id)->setOrderId(29)->setState(ShipmentInterface::STATE_CREATED)
-                ->setPolkurierNumber($id === 5 ? null : '711400-' . $id)->setShipmentId(11)->setWaybills(['W1']);
+                ->setPolkurierNumber($id === 5 ? null : '24680-' . $id)->setShipmentId(11)->setWaybills(['W1']);
         });
         $repository->method('save')->willReturnArgument(0);
         $remote = function (string $number): RemoteOrder {

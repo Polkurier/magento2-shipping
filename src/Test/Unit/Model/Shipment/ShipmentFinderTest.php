@@ -99,7 +99,7 @@ class ShipmentFinderTest extends TestCase
     public function testShipmentsByNumberIdWaybillAndCashOnDelivery(): void
     {
         $finder = $this->finder();
-        $finder->byNumbers(['711400-27'], [ShipmentInterface::STATE_CREATED]);
+        $finder->byNumbers(['24680-27'], [ShipmentInterface::STATE_CREATED]);
         $finder->byIds([4, 5]);
         $finder->latestByWaybill('WB-1');
         $finder->withCodStatus('MB');
@@ -107,7 +107,7 @@ class ShipmentFinderTest extends TestCase
         self::assertSame([
             [
                 'state ' . \json_encode(['in' => ['created']]),
-                'polkurier_number ' . \json_encode(['in' => ['711400-27']]),
+                'polkurier_number ' . \json_encode(['in' => ['24680-27']]),
                 'order entity_id ASC',
             ],
             ['entity_id ' . \json_encode(['in' => [4, 5]]), 'order entity_id ASC'],

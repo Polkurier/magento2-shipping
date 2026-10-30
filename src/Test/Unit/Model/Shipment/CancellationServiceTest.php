@@ -41,13 +41,13 @@ class CancellationServiceTest extends TestCase
 
     public function testAPlacedOrderIsCancelledInPolkurierThenInMagento(): void
     {
-        $shipment = $this->cancellation(ShipmentInterface::STATE_CREATED, '711400-27')->cancel(5);
+        $shipment = $this->cancellation(ShipmentInterface::STATE_CREATED, '24680-27')->cancel(5);
 
         self::assertSame(ShipmentInterface::STATE_CANCELLED, $shipment->getState());
         self::assertTrue($shipment->isFinal());
         self::assertNull($shipment->getLastError());
         self::assertSame(
-            ['cancel 711400-27', 'save', 'follow up here', 'event polkurier_api_order_cancel_after'],
+            ['cancel 24680-27', 'save', 'follow up here', 'event polkurier_api_order_cancel_after'],
             $this->happened,
         );
     }
@@ -55,14 +55,14 @@ class CancellationServiceTest extends TestCase
     public function testAnOrderPolkurierWontCancelStaysAsItIs(): void
     {
         try {
-            $this->cancellation(ShipmentInterface::STATE_CREATED, '711400-27', false)->cancel(5);
+            $this->cancellation(ShipmentInterface::STATE_CREATED, '24680-27', false)->cancel(5);
             self::fail('The refusal is said.');
         } catch (LocalizedException $e) {
-            self::assertSame('Polkurier did not cancel order 711400-27.', $e->getMessage());
+            self::assertSame('Polkurier did not cancel order 24680-27.', $e->getMessage());
         }
 
         self::assertSame(ShipmentInterface::STATE_CREATED, $this->shipment->getState());
-        self::assertSame(['cancel 711400-27'], $this->happened);
+        self::assertSame(['cancel 24680-27'], $this->happened);
     }
 
     /**
@@ -73,7 +73,7 @@ class CancellationServiceTest extends TestCase
         return [
             'not placed' => [ShipmentInterface::STATE_FAILED, null],
             'outcome unknown' => [ShipmentInterface::STATE_UNKNOWN, null],
-            'cancelled already' => [ShipmentInterface::STATE_CANCELLED, '711400-27'],
+            'cancelled already' => [ShipmentInterface::STATE_CANCELLED, '24680-27'],
         ];
     }
 
@@ -92,11 +92,11 @@ class CancellationServiceTest extends TestCase
 
     public function testAnOrderARefreshFoundCancelledMeanwhileIsNotFollowedUpAgain(): void
     {
-        $shipment = $this->cancellation(ShipmentInterface::STATE_CREATED, '711400-27', cancelledMeanwhile: true)
+        $shipment = $this->cancellation(ShipmentInterface::STATE_CREATED, '24680-27', cancelledMeanwhile: true)
             ->cancel(5);
 
         self::assertSame(ShipmentInterface::STATE_CANCELLED, $shipment->getState());
-        self::assertSame(['cancel 711400-27', 'event polkurier_api_order_cancel_after'], $this->happened);
+        self::assertSame(['cancel 24680-27', 'event polkurier_api_order_cancel_after'], $this->happened);
     }
 
     private function cancellation(

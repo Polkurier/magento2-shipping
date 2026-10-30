@@ -256,6 +256,7 @@
 "Place the Polkurier order","Place the Polkurier order"
 "Placed","Placed"
 "Polkurier accepted the credentials.","Polkurier accepted the credentials."
+"Polkurier did not accept this customer ID and API token. (%1)","Polkurier did not accept this customer ID and API token. (%1)"
 "Polkurier answered with something unexpected (HTTP %1). Try again later; if it persists, contact Polkurier.","Polkurier answered with something unexpected (HTTP %1). Try again later; if it persists, contact Polkurier."
 "Polkurier could not be reached, or did not answer in time: %1","Polkurier could not be reached, or did not answer in time: %1"
 "Polkurier did not cancel order %1.","Polkurier did not cancel order %1."

@@ -18,7 +18,9 @@ Requests reach Polkurier through the shipment gateway (see
 
 The module ships only orders placed with a Polkurier method. Anything that starts a new shipment (the
 draft, placing, pricing, packing and collection times) refuses other carriers' orders. What follows
-from a shipment already made (refreshing, reconciling, cancelling) works on any order.
+from a shipment already made (refreshing, reconciling, cancelling) works on any order, as does
+linking an order placed elsewhere from its waybill (see
+[Orders placed elsewhere](#orders-placed-elsewhere)).
 
 ## Lifecycle
 
@@ -288,6 +290,44 @@ shipment's `external_order_id`, and no other shipment may hold it; any other ord
 shipment without an `external_order_id` can't be linked. A cancelled order linked this way is linked
 as `cancelled`, as above.
 
+An order placed elsewhere with the installation's ids, e.g. by Polkurier's import of the shop's
+orders, is a candidate too: if it matches an `unknown` attempt in all the fields above, it's adopted
+as that attempt's outcome.
+
+## Orders placed elsewhere
+
+A tracking number added to a Magento shipment through `Magento\Sales\Api\ShipOrderInterface` or
+`Magento\Sales\Api\ShipmentTrackRepositoryInterface`, which the REST endpoints
+`POST /V1/order/{id}/ship` and `POST /V1/shipment/track` call, is looked up on the account as a
+waybill once it's saved
+([`TrackAdoptionService`](../../src/Model/Shipment/Status/TrackAdoptionService.php)). This links
+orders placed outside the module, such as those Polkurier's import of the shop's orders writes
+their waybills back for, on an order of any shipping method. Magento's own **Add Tracking Number**
+in the admin doesn't go through either, so a number typed there isn't looked up.
+
+A number is skipped when its track has carrier code `polkurier` (the module's own) or a shipment
+already holds it. Otherwise the order on the account with exactly that waybill, a live one before a
+cancelled one, is linked if its ids allow it:
+
+| Order's `external_application_id` | Linked |
+|---|---|
+| none, as for orders placed in the Polkurier panel | yes |
+| the installation's | when its `external_order_id` is the Magento order's number, or one of its Magento shipments' while `general/external_order_id` sends shipment numbers (order and shipment numbers are separate sequences, so another order's number can be a shipment's) |
+| another | no: another installation or integration placed it |
+
+A linked order gets a `polkurier_shipment` row as the order reads, with no `request` or `draft`.
+Its tracks of that waybill become the module's (carrier code `polkurier`, the module's title), and
+the order's shipping follows it (see [The order's shipping](#the-orders-shipping)), whatever the
+method it was placed with. It goes with the Magento shipment the number was added to, which gets
+the order's other waybills, unless another live Polkurier order holds that shipment: then it has no
+Magento shipment of its own, and isn't given one later. The order comment, the shipment's
+**Shipment History** note and the `polkurier_api_order_create_after` event (source `track`) follow,
+as for an adopted attempt; a cancelled order gets only a comment.
+
+A number of an order already linked to the same Magento order converts its track and refreshes the
+shipment. A number not found, or of an order linked elsewhere or refused by its ids, stays a plain
+track. Failures are logged; the track is saved either way.
+
 ## Shipments that need attention
 
 The reconciliation job also tidies up and warns:
@@ -295,7 +335,8 @@ The reconciliation job also tidies up and warns:
 - a `failed` shipment is removed 48 hours after its last attempt, with a note on the order.
   **Discard** removes one at once;
 - one major admin notification is added per shipment that still needs someone: `failed` for 24
-  hours, or `pending`, `unknown`, or `created` without a Magento shipment, for an hour.
+  hours, or `pending`, `unknown`, or `created` by the module without a Magento shipment, for an
+  hour.
 
 ## Following a shipment
 

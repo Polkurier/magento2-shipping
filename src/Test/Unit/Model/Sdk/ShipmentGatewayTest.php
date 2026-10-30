@@ -85,7 +85,7 @@ class ShipmentGatewayTest extends TestCase
                 false,
             ],
             'refused as cancelled' => [$refusal('Zamówienie anulowane'), true],
-            'refused otherwise' => [$refusal('Brak zamówienia 711400-27'), null],
+            'refused otherwise' => [$refusal('Brak zamówienia 24680-27'), null],
             'not reached' => [
                 static fn(): \Throwable => new ConnectionException('cURL error 7: Failed to connect'),
                 null,
@@ -109,6 +109,6 @@ class ShipmentGatewayTest extends TestCase
         $client = $this->createStub(PolkurierClient::class);
         $client->method('orders')->willReturn($orders);
 
-        self::assertSame($cancelled, (new ShipmentGateway($client, new ErrorMessageResolver()))->isCancelled('711400-27'));
+        self::assertSame($cancelled, (new ShipmentGateway($client, new ErrorMessageResolver()))->isCancelled('24680-27'));
     }
 }

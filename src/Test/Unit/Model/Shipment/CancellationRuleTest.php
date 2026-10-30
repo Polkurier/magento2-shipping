@@ -33,36 +33,36 @@ class CancellationRuleTest extends TestCase
             'not read yet' => [$placed, null, 'DPD', [], false, null],
             'with a reported problem' => [
                 $placed, 'W', 'DPD', ['0001'], false,
-                'Polkurier order 711400-27 is with the carrier, so it can\'t be cancelled.',
+                'Polkurier order 24680-27 is with the carrier, so it can\'t be cancelled.',
             ],
             'in transit' => [
                 $placed, 'WP', 'DPD', ['0001'], false,
-                'Polkurier order 711400-27 is with the carrier, so it can\'t be cancelled.',
+                'Polkurier order 24680-27 is with the carrier, so it can\'t be cancelled.',
             ],
             'delivered' => [
                 $placed, 'D', 'DPD', ['0001'], false,
-                'Polkurier order 711400-27 is with the carrier, so it can\'t be cancelled.',
+                'Polkurier order 24680-27 is with the carrier, so it can\'t be cancelled.',
             ],
             'on its way back' => [
                 $placed, 'Z', 'DPD', ['0001'], false,
-                'Polkurier order 711400-27 is with the carrier, so it can\'t be cancelled.',
+                'Polkurier order 24680-27 is with the carrier, so it can\'t be cancelled.',
             ],
             'invoiced' => [
                 $placed, 'OC', 'DPD', ['0001'], true,
-                'Polkurier order 711400-27 is invoiced, so it can\'t be cancelled.',
+                'Polkurier order 24680-27 is invoiced, so it can\'t be cancelled.',
             ],
             'reported cancelled' => [
                 $placed, 'A', 'DPD', [], false,
-                'Polkurier reports order 711400-27 as cancelled.',
+                'Polkurier reports order 24680-27 as cancelled.',
             ],
             'freight not confirmed' => [$placed, 'O', CancellationRule::FREIGHT_CARRIER, [], false, null],
             'freight confirmed' => [
                 $placed, 'P', CancellationRule::FREIGHT_CARRIER, [], false,
-                'Polkurier has confirmed freight order 711400-27, so it can\'t be cancelled.',
+                'Polkurier has confirmed freight order 24680-27, so it can\'t be cancelled.',
             ],
             'freight with a waybill' => [
                 $placed, 'OC', CancellationRule::FREIGHT_CARRIER, ['0001'], false,
-                'Polkurier has confirmed freight order 711400-27, so it can\'t be cancelled.',
+                'Polkurier has confirmed freight order 24680-27, so it can\'t be cancelled.',
             ],
             'cancelled' => [
                 ShipmentInterface::STATE_CANCELLED, 'A', 'DPD', [], false,
@@ -85,7 +85,7 @@ class CancellationRuleTest extends TestCase
     ): void {
         /** @var Shipment $shipment */
         $shipment = (new ObjectManager($this))->getObject(Shipment::class);
-        $shipment->setPolkurierNumber('711400-27')
+        $shipment->setPolkurierNumber('24680-27')
             ->setState($state)
             ->setStatusCode($status)
             ->setCarrierCode($carrier)

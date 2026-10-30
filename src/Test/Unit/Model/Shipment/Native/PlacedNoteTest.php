@@ -45,7 +45,7 @@ class PlacedNoteTest extends TestCase
     {
         $this->followUp(null)->notePlaced($this->order(), $this->placed(['WB-1', 'WB-2']));
 
-        self::assertSame(['Polkurier order 711400-36 placed. Carrier: DPD. Waybills: WB-1, WB-2.'], $this->notes);
+        self::assertSame(['Polkurier order 24680-36 placed. Carrier: DPD. Waybills: WB-1, WB-2.'], $this->notes);
     }
 
     public function testTheCustomersChoiceIsNotedOnlyWhenTheOrderWentWithAnother(): void
@@ -54,22 +54,22 @@ class PlacedNoteTest extends TestCase
             ->notePlaced($this->order(), $this->placed([]));
 
         self::assertSame([
-            'Polkurier order 711400-36 placed. Carrier: DPD. Waybills: not issued yet. '
+            'Polkurier order 24680-36 placed. Carrier: DPD. Waybills: not issued yet. '
             . 'Customer\'s choice: UPS Access Point, pickup point U98125654.',
         ], $this->notes);
     }
 
     public function testEachWaybillLinksToTheTrackingPage(): void
     {
-        $shipment = $this->placed(['WB-1', 'WB-2'])->setTrackingUrl('https://polkurier.pl/sledzenie?nr=711400-36&x=1');
+        $shipment = $this->placed(['WB-1', 'WB-2'])->setTrackingUrl('https://polkurier.pl/sledzenie?nr=24680-36&x=1');
 
         $this->followUp(null)->notePlaced($this->order(), $shipment);
 
         self::assertSame([
-            'Polkurier order 711400-36 placed. Carrier: DPD. Waybills: '
-            . '<a href="https://polkurier.pl/sledzenie?nr=711400-36&amp;x=1" class="polkurier-external" '
+            'Polkurier order 24680-36 placed. Carrier: DPD. Waybills: '
+            . '<a href="https://polkurier.pl/sledzenie?nr=24680-36&amp;x=1" class="polkurier-external" '
             . 'target="_blank" rel="noopener">WB-1</a>, '
-            . '<a href="https://polkurier.pl/sledzenie?nr=711400-36&amp;x=1" class="polkurier-external" '
+            . '<a href="https://polkurier.pl/sledzenie?nr=24680-36&amp;x=1" class="polkurier-external" '
             . 'target="_blank" rel="noopener">WB-2</a>.',
         ], $this->notes);
     }
@@ -78,7 +78,7 @@ class PlacedNoteTest extends TestCase
     {
         $this->followUp(null)->notePlaced($this->order(), $this->placed(['WB-1']), true);
 
-        self::assertSame(['Linked with Polkurier order 711400-36. Carrier: DPD. Waybills: WB-1.'], $this->notes);
+        self::assertSame(['Linked with Polkurier order 24680-36. Carrier: DPD. Waybills: WB-1.'], $this->notes);
     }
 
     /**
@@ -135,7 +135,7 @@ class PlacedNoteTest extends TestCase
     {
         $shipment = $this->getMockBuilder(Shipment::class)->disableOriginalConstructor()->onlyMethods([])->getMock();
         $shipment->setState(ShipmentInterface::STATE_CREATED)
-            ->setPolkurierNumber('711400-36')
+            ->setPolkurierNumber('24680-36')
             ->setCarrierCode('DPD')
             ->setWaybills($waybills);
 

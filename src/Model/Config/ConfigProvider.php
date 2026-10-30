@@ -136,8 +136,7 @@ readonly class ConfigProvider
     }
 
     /**
-     * An API endpoint other than production and sandbox, e.g. a local instance; null lets the SDK
-     * choose by the sandbox flag. Not in the admin: set in config.xml or with bin/magento config:set.
+     * An API endpoint other than production and sandbox; null lets the SDK choose by the sandbox flag.
      */
     public function getApiUrl(): ?string
     {

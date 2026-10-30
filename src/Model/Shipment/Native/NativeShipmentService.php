@@ -457,6 +457,23 @@ readonly class NativeShipmentService
     }
 
     /**
+     * Turns the Magento shipment's tracks of the Polkurier order's waybills added from elsewhere into
+     * the module's: of the Polkurier carrier, which links them to their tracking, and titled as its
+     * own tracks are.
+     */
+    public function takeOverTracks(Order $order, int $shipmentId, ShipmentInterface $shipment): void
+    {
+        $title = $this->getTrackTitle($order, $shipment->getCarrierCode());
+        foreach ($this->shipmentRepository->get($shipmentId)->getTracks() as $track) {
+            if ($track->getCarrierCode() !== Polkurier::CODE
+                && \in_array((string)$track->getTrackNumber(), $shipment->getWaybills(), true)
+            ) {
+                $this->trackRepository->save($track->setCarrierCode(Polkurier::CODE)->setTitle($title));
+            }
+        }
+    }
+
+    /**
      * The title customers see for a track: the label, in the order's store, of the carrier the
      * parcels go with, as the tracking popup has it. Without the carrier's settings, the shipping
      * method the order was placed with, or the carrier's code.

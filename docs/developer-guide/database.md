@@ -84,11 +84,11 @@ adding one (see [Placing](shipments.md#placing)). A request refused as it stands
 | Column | |
 |---|---|
 | `order_id`, `store_id` | the Magento order and its store |
-| `shipment_id` | the Magento shipment the Polkurier order is linked to. Indexed, not unique: a Magento shipment keeps the rows of orders cancelled before the one on it. Null until the Magento shipment exists, or when creating it failed |
+| `shipment_id` | the Magento shipment the Polkurier order is linked to. Indexed, not unique: a Magento shipment keeps the rows of orders cancelled before the one on it. Null until the Magento shipment exists, when creating it failed, or for an order linked from its waybill on a Magento shipment another order holds |
 | `state` | `pending`, `created`, `unknown`, `failed` or `cancelled` (see [Shipments](shipments.md)) |
 | `polkurier_number` | the order number on the account |
 | `carrier_code`, `description`, `recipient_postcode`, `recipient_phone`, `pack_count` | what was sent, kept for matching during reconciliation |
-| `waybills` | JSON list of the carrier's tracking numbers |
+| `waybills` | the carrier's tracking numbers, comma-separated |
 | `status_code`, `status_label`, `status_date`, `delivered_at`, `tracking_url` | the latest delivery status; its times in UTC |
 | `external_order_id`, `reserved_shipment_number` | the shop's id sent with the order, and the shipment number reserved for a Magento shipment not yet created |
 | `price_net`, `price_gross` | what Polkurier charged |
@@ -97,7 +97,7 @@ adding one (see [Placing](shipments.md#placing)). A request refused as it stands
 | `is_final`, `status_checked_at` | whether the shipment is finished, and when its status was last checked |
 | `attention_notified_at` | when the admin was told about this shipment needing attention (see [Shipments](shipments.md#shipments-that-need-attention)); cleared by a new attempt |
 | `draft` | the shipment as it was filled in (JSON, see [The draft](shipments.md#the-draft)); sending it again starts from this |
-| `request` | the serialized request as sent, without credentials |
+| `request` | the serialized request as sent, without credentials; null for an order placed elsewhere and linked from its waybill |
 | `details`, `details_synced_at` | the local copy of the order as Polkurier reports it (JSON), and when it was read |
 | `ship_items` | the quantities the Magento shipment carries, by order item id (JSON); empty means everything left to ship |
 | `ship_packages` | the packages of the Magento shipment, as Magento keeps them (JSON): each parcel and what it holds |

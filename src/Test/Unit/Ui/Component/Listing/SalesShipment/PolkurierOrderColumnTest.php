@@ -40,14 +40,14 @@ class PolkurierOrderColumnTest extends TestCase
     public function testEachMagentoShipmentLinksItsPlacedPolkurierOrder(): void
     {
         $cells = $this->cells([
-            $this->shipment(1, 11, ShipmentInterface::STATE_CANCELLED, '711400-20'),
-            $this->shipment(2, 11, ShipmentInterface::STATE_CREATED, '711400-21'),
-            $this->shipment(3, 12, ShipmentInterface::STATE_CREATED, '711400-22'),
+            $this->shipment(1, 11, ShipmentInterface::STATE_CANCELLED, '24680-20'),
+            $this->shipment(2, 11, ShipmentInterface::STATE_CREATED, '24680-21'),
+            $this->shipment(3, 12, ShipmentInterface::STATE_CREATED, '24680-22'),
         ], [11, 12, 13]);
 
         self::assertSame([
-            '<a href="polkurier/shipment/view/2">711400-21</a>',
-            '<a href="polkurier/shipment/view/3">711400-22</a>',
+            '<a href="polkurier/shipment/view/2">24680-21</a>',
+            '<a href="polkurier/shipment/view/3">24680-22</a>',
             '',
         ], $cells, 'The cancelled one before it gives way; a shipment without one stays empty.');
     }
@@ -55,7 +55,7 @@ class PolkurierOrderColumnTest extends TestCase
     public function testWithoutAPlacedOneTheLatestShowsWithItsState(): void
     {
         $cells = $this->cells([
-            $this->shipment(1, 11, ShipmentInterface::STATE_CANCELLED, '711400-20'),
+            $this->shipment(1, 11, ShipmentInterface::STATE_CANCELLED, '24680-20'),
             $this->shipment(2, 11, ShipmentInterface::STATE_UNKNOWN, null),
         ], [11]);
 
@@ -65,11 +65,11 @@ class PolkurierOrderColumnTest extends TestCase
     public function testThePlacedOneStaysAgainstALaterOne(): void
     {
         $cells = $this->cells([
-            $this->shipment(2, 11, ShipmentInterface::STATE_CREATED, '711400-21'),
+            $this->shipment(2, 11, ShipmentInterface::STATE_CREATED, '24680-21'),
             $this->shipment(4, 11, ShipmentInterface::STATE_FAILED, null),
         ], [11]);
 
-        self::assertSame(['<a href="polkurier/shipment/view/2">711400-21</a>'], $cells);
+        self::assertSame(['<a href="polkurier/shipment/view/2">24680-21</a>'], $cells);
     }
 
     public function testWithoutThePermissionTheCellsStayAsTheyAre(): void
@@ -78,7 +78,7 @@ class PolkurierOrderColumnTest extends TestCase
 
         self::assertSame(
             [null],
-            $this->cells([$this->shipment(2, 11, ShipmentInterface::STATE_CREATED, '711400-21')], [11]),
+            $this->cells([$this->shipment(2, 11, ShipmentInterface::STATE_CREATED, '24680-21')], [11]),
         );
     }
 

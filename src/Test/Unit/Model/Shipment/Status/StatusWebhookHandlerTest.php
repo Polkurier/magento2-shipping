@@ -39,10 +39,10 @@ class StatusWebhookHandlerTest extends TestCase
     {
         $webhook = $this->webhook([31]);
 
-        self::assertSame(StatusWebhookHandler::RECEIVED, $webhook->receive($this->body('UPDATED', '711400-27')));
+        self::assertSame(StatusWebhookHandler::RECEIVED, $webhook->receive($this->body('UPDATED', '24680-27')));
         self::assertSame([31], $this->refreshed);
         self::assertSame(
-            [['711400-27'], [ShipmentInterface::STATE_CREATED]],
+            [['24680-27'], [ShipmentInterface::STATE_CREATED]],
             $this->query,
             'Only a placed shipment of this shop\'s, found by its number.',
         );
@@ -53,18 +53,18 @@ class StatusWebhookHandlerTest extends TestCase
         // Polkurier's staff cancel with an UPDATED event; the order read again says it's cancelled.
         self::assertSame(
             StatusWebhookHandler::RECEIVED,
-            $this->webhook([31])->receive($this->body('UPDATED', '711400-27', ['status_code' => 'CANCELED'])),
+            $this->webhook([31])->receive($this->body('UPDATED', '24680-27', ['status_code' => 'CANCELED'])),
         );
         self::assertSame([31], $this->refreshed);
     }
 
     public function testTheSignatureCoversTheWholeBody(): void
     {
-        $body = $this->body('UPDATED', '711400-27');
+        $body = $this->body('UPDATED', '24680-27');
 
         self::assertSame(
             StatusWebhookHandler::REFUSED,
-            $this->webhook([31])->receive(\str_replace('711400-27', '711400-28', $body)),
+            $this->webhook([31])->receive(\str_replace('24680-27', '24680-28', $body)),
         );
         self::assertSame(StatusWebhookHandler::REFUSED, $this->webhook([31], 'another-secret')->receive($body));
         self::assertSame([], $this->refreshed);
@@ -74,14 +74,14 @@ class StatusWebhookHandlerTest extends TestCase
     {
         self::assertSame(
             StatusWebhookHandler::REFUSED,
-            $this->webhook([31], '')->receive($this->body('UPDATED', '711400-27')),
+            $this->webhook([31], '')->receive($this->body('UPDATED', '24680-27')),
         );
         self::assertSame([], $this->refreshed);
     }
 
     public function testAFieldAddedToASignedEventOrAnUnsignedOneIsRefused(): void
     {
-        $body = $this->body('UPDATED', '711400-27') . '&data%5Bnumber%5D=1';
+        $body = $this->body('UPDATED', '24680-27') . '&data%5Bnumber%5D=1';
 
         self::assertSame(StatusWebhookHandler::REFUSED, $this->webhook([31])->receive($body));
         self::assertSame(StatusWebhookHandler::REFUSED, $this->webhook([31])->receive('type=UPDATED'));
@@ -101,7 +101,7 @@ class StatusWebhookHandlerTest extends TestCase
     {
         self::assertSame(
             StatusWebhookHandler::RECEIVED,
-            $this->webhook([])->receive($this->body('CREATED', '711400-99')),
+            $this->webhook([])->receive($this->body('CREATED', '24680-99')),
         );
         self::assertSame([], $this->refreshed);
     }
@@ -110,7 +110,7 @@ class StatusWebhookHandlerTest extends TestCase
     {
         self::assertSame(
             StatusWebhookHandler::FAILED,
-            $this->webhook([31], self::SECRET, true)->receive($this->body('UPDATED', '711400-27')),
+            $this->webhook([31], self::SECRET, true)->receive($this->body('UPDATED', '24680-27')),
         );
     }
 

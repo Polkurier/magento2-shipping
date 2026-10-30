@@ -18,10 +18,10 @@ class MoneyBoxOrderFinderTest extends TestCase
 {
     public function testNumbersNotKnownAsInTheMoneyBoxAreNamed(): void
     {
-        $orders = $this->moneyBoxOrders(['711400-10', '711400-12']);
+        $orders = $this->moneyBoxOrders(['24680-10', '24680-12']);
 
-        self::assertSame(['711400-10', '711400-12'], $orders->numbers());
-        self::assertSame(['711400-99', '711400-19'], $orders->unknown(['711400-10', '711400-99', '711400-19']));
+        self::assertSame(['24680-10', '24680-12'], $orders->numbers());
+        self::assertSame(['24680-99', '24680-19'], $orders->unknown(['24680-10', '24680-99', '24680-19']));
         self::assertSame([], $orders->unknown([]), 'Nothing typed in: everything available is paid out.');
     }
 

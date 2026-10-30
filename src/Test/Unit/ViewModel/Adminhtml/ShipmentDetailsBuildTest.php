@@ -56,8 +56,8 @@ class ShipmentDetailsBuildTest extends TestCase
 {
     public function testAShipmentReadFromPolkurierIsShownAsPolkurierReportsIt(): void
     {
-        $shipment = $this->shipment(ShipmentInterface::STATE_CREATED, '711400-4', [
-            'number' => '711400-4',
+        $shipment = $this->shipment(ShipmentInterface::STATE_CREATED, '24680-4', [
+            'number' => '24680-4',
             'description' => 'Order #000000052',
             'carrier' => 'DPD',
             'carrier_name' => 'DPD Classic',
@@ -136,7 +136,7 @@ class ShipmentDetailsBuildTest extends TestCase
 
         $view = $this->view(order: true)->build($shipment);
 
-        self::assertSame('Shipment details 711400-4', $view['title']);
+        self::assertSame('Shipment details 24680-4', $view['title']);
         self::assertSame(
             ['Values marked "as sent" are empty in Polkurier\'s copy of the order, and are shown as they were sent.'],
             $view['notes'],
@@ -148,7 +148,7 @@ class ShipmentDetailsBuildTest extends TestCase
             \array_column($view['tables'], 'title'),
         );
         self::assertSame(
-            ['label' => 'Number', 'value' => '711400-4', 'url' => '', 'as_sent' => false, 'external' => false],
+            ['label' => 'Number', 'value' => '24680-4', 'url' => '', 'as_sent' => false, 'external' => false],
             $this->row($view, 'Polkurier order', 'Number'),
         );
         self::assertSame('Placed', $this->row($view, 'Polkurier order', 'Order state')['value']);
@@ -298,7 +298,7 @@ class ShipmentDetailsBuildTest extends TestCase
     public function testParcelsDroppedOffShowWhereUnderTheHandover(): void
     {
         $dropOff = ['no_courier_order' => true, 'multi_pickup' => false, 'pickup_number' => 'DPD-PU-2'];
-        $atPoint = $this->view(order: true)->build($this->shipment(ShipmentInterface::STATE_CREATED, '711400-12', [
+        $atPoint = $this->view(order: true)->build($this->shipment(ShipmentInterface::STATE_CREATED, '24680-12', [
             'sender' => ['person' => 'Jan Kowalski', 'point_id' => 'PL63197', 'point_label' => 'Kiosk, Prosta 1'],
             'pickup' => $dropOff,
         ], shipmentId: 31, lastError: null));
@@ -326,7 +326,7 @@ class ShipmentDetailsBuildTest extends TestCase
             'Nothing is collected.',
         );
 
-        $anyPoint = $this->view(order: true)->build($this->shipment(ShipmentInterface::STATE_CREATED, '711400-15', [
+        $anyPoint = $this->view(order: true)->build($this->shipment(ShipmentInterface::STATE_CREATED, '24680-15', [
             'sender' => ['person' => 'Jan Kowalski', 'point_id' => null],
             'pickup' => $dropOff,
         ], shipmentId: 31, lastError: null));

@@ -27,7 +27,9 @@ use Polkurier\Shipping\Model\ShippingChoice\ShippingChoiceRepository;
  * and its pickup point follow the carrier and point of its latest placed Polkurier order, so the
  * order page, the order grid, e-mails and the API all show them. The customer's choice is kept on
  * the side ({@see ShippingChoiceRepository}) and comes back once no placed Polkurier order is left.
- * The shipping amount the customer paid stays as it was.
+ * The shipping amount the customer paid stays as it was. An order placed with another carrier's
+ * method follows a Polkurier order linked to it as well
+ * ({@see \Polkurier\Shipping\Model\Shipment\Status\TrackAdoptionService}).
  *
  * The order is the repository's instance, which a page saving the order later holds too, and only
  * its shipping fields are written, so nothing else of it is saved again.
@@ -56,7 +58,7 @@ readonly class ActualShippingUpdater
      */
     public function sync(int $orderId, bool $note = true): void
     {
-        $order = $this->orderLoader->findForPolkurier($orderId);
+        $order = $this->orderLoader->find($orderId);
         if ($order === null) {
             return;
         }

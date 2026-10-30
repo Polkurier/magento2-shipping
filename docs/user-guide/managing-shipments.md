@@ -219,6 +219,22 @@ shipment** is offered while the customer hasn't been e-mailed about that shipmen
 Magento's **Send Tracking Information** on the shipment's page sends the e-mail with the new
 tracking numbers.
 
+## Polkurier orders placed elsewhere
+
+A waybill number added to a Magento shipment through Magento's API, e.g. by Polkurier's import of
+your shop's orders, is looked up on your Polkurier account. If an order there has it, that order is
+linked as if you'd placed it here, whatever delivery method the Magento order was placed with:
+
+- it shows in the shipments list, its status is followed, and its label can be printed;
+- the tracking number links to its tracking page;
+- its other waybill numbers are added to the Magento shipment;
+- the order's delivery method changes to the carrier it went with, and the customer's choice is
+  kept in the order comment.
+
+An order placed by another shop or integration on the same account isn't linked, and neither is a
+number added with **Add Tracking Number** on Magento's shipment page. If the Magento shipment
+already has an active Polkurier order, the new one is linked without a Magento shipment of its own.
+
 ## On Magento's shipment page
 
 On an order placed with a Polkurier delivery method, a Magento shipment's page shows, above

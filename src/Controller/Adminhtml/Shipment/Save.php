@@ -54,7 +54,7 @@ class Save extends Action implements HttpPostActionInterface
         try {
             $shipment = $this->shipmentManagement->create(
                 $orderId,
-                $this->keepingOnlyAllowed($this->draftHydrator->fromArray($data)),
+                $this->keepOnlyAllowed($this->draftHydrator->createFromArray($data)),
             );
         } catch (LocalizedException $e) {
             $this->messageManager->addErrorMessage($e->getMessage());
@@ -73,12 +73,12 @@ class Save extends Action implements HttpPostActionInterface
         } else {
             // Placed, with what went wrong after, if anything (the Magento shipment, say), in one message.
             $this->flashMessageCollectorFactory->create()
-                ->success(__(
+                ->addSuccess(__(
                     'Polkurier order %1 placed. Waybills: %2.',
                     $shipment->getPolkurierNumber(),
                     \implode(', ', $shipment->getWaybills()) ?: (string)__('not issued yet'),
                 ))
-                ->warning((string)$shipment->getLastError())
+                ->addWarning((string)$shipment->getLastError())
                 ->send($this->messageManager);
         }
 
@@ -92,15 +92,15 @@ class Save extends Action implements HttpPostActionInterface
     /**
      * The draft, no longer asking to keep what the admin may not change; a warning says so instead.
      */
-    private function keepingOnlyAllowed(ShipmentDraftInterface $draft): ShipmentDraftInterface
+    private function keepOnlyAllowed(ShipmentDraftInterface $draft): ShipmentDraftInterface
     {
         if ($draft->isNewSender()
             && $draft->isKeepingNewSender()
             && !$this->_authorization->isAllowed(AddressSave::ADMIN_RESOURCE)
         ) {
             $draft->setKeepingNewSender(false);
-            $this->notAllowed(
-                $draft->getNewSenderName() ?: ManualEntrySaver::addressName($draft->getNewSenderAddress()),
+            $this->reportNotAllowed(
+                $draft->getNewSenderName() ?: ManualEntrySaver::buildAddressName($draft->getNewSenderAddress()),
                 __('Addresses'),
             );
         }
@@ -109,12 +109,12 @@ class Save extends Action implements HttpPostActionInterface
             && !$this->_authorization->isAllowed(BankAccountSave::ADMIN_RESOURCE)
         ) {
             $draft->setKeepingNewBankAccount(false);
-            $this->notAllowed(ManualEntrySaver::bankAccountName($draft), __('Bank accounts'));
+            $this->reportNotAllowed(ManualEntrySaver::buildBankAccountName($draft), __('Bank accounts'));
         }
         if (!$this->_authorization->isAllowed(PackTemplateSave::ADMIN_RESOURCE)) {
             foreach ($draft->getPacks() as $pack) {
                 if ($pack->getKeepAs() !== '' && $pack->getTemplateId() === null) {
-                    $this->notAllowed($pack->getKeepAs(), __('Pack templates'));
+                    $this->reportNotAllowed($pack->getKeepAs(), __('Pack templates'));
                     $pack->setKeepAs('');
                 }
             }
@@ -123,7 +123,7 @@ class Save extends Action implements HttpPostActionInterface
         return $draft;
     }
 
-    private function notAllowed(string $name, \Stringable $label): void
+    private function reportNotAllowed(string $name, \Stringable $label): void
     {
         $this->messageManager->addWarningMessage(__(
             '"%1" wasn\'t saved to %2: you aren\'t allowed to change them.',

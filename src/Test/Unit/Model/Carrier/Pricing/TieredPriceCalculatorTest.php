@@ -22,7 +22,7 @@ class TieredPriceCalculatorTest extends TestCase
 {
     public function testSubtotalTiersPickTheHighestThresholdReached(): void
     {
-        $config = $this->config('TIER_SUBTOTAL', ['tiers' => [
+        $config = $this->createConfig('TIER_SUBTOTAL', ['tiers' => [
             ['subtotal_from' => 0, 'price' => 14.99],
             ['subtotal_from' => 200, 'price' => 0],
             ['subtotal_from' => 100, 'price' => 9.99],
@@ -36,14 +36,14 @@ class TieredPriceCalculatorTest extends TestCase
 
     public function testCartBelowEveryTierIsNotPriced(): void
     {
-        $config = $this->config('TIER_WEIGHT', ['tiers' => [['weight_from' => 1, 'price' => 20]]]);
+        $config = $this->createConfig('TIER_WEIGHT', ['tiers' => [['weight_from' => 1, 'price' => 20]]]);
 
         self::assertNull((new TieredPriceCalculator(false, true))->calculate($config, 500, 0.5));
     }
 
     public function testMatrixPrefersSubtotalThenWeight(): void
     {
-        $config = $this->config('TIER_SUBTOTAL_WEIGHT', ['tiers' => [
+        $config = $this->createConfig('TIER_SUBTOTAL_WEIGHT', ['tiers' => [
             ['subtotal_from' => 0, 'weight_from' => 0, 'price' => 15],
             ['subtotal_from' => 0, 'weight_from' => 10, 'price' => 30],
             ['subtotal_from' => 300, 'weight_from' => 0, 'price' => 0],
@@ -59,7 +59,7 @@ class TieredPriceCalculatorTest extends TestCase
 
     public function testOfTwoTiersWithTheSameThresholdTheFirstCounts(): void
     {
-        $config = $this->config('TIER_SUBTOTAL', ['tiers' => [
+        $config = $this->createConfig('TIER_SUBTOTAL', ['tiers' => [
             ['subtotal_from' => 100, 'price' => 9.99],
             ['subtotal_from' => 100, 'price' => 4.99],
         ]]);
@@ -69,7 +69,7 @@ class TieredPriceCalculatorTest extends TestCase
 
     public function testRowsThatArentTiersAreLeftOut(): void
     {
-        $config = $this->config('TIER_SUBTOTAL', ['tiers' => [
+        $config = $this->createConfig('TIER_SUBTOTAL', ['tiers' => [
             'not a row',
             ['subtotal_from' => 0],
             ['subtotal_from' => 50, 'price' => 'free'],
@@ -79,7 +79,7 @@ class TieredPriceCalculatorTest extends TestCase
         self::assertSame(12.5, (new TieredPriceCalculator(true, false))->calculate($config, 100, 1));
         self::assertNull(
             (new TieredPriceCalculator(true, false))->calculate(
-                $this->config('TIER_SUBTOTAL', ['tiers' => 'none']),
+                $this->createConfig('TIER_SUBTOTAL', ['tiers' => 'none']),
                 100,
                 1,
             ),
@@ -88,7 +88,7 @@ class TieredPriceCalculatorTest extends TestCase
 
     public function testANegativePriceStoredAnywayPricesNothing(): void
     {
-        $config = $this->config('TIER_SUBTOTAL', ['tiers' => [['subtotal_from' => 0, 'price' => -5]]]);
+        $config = $this->createConfig('TIER_SUBTOTAL', ['tiers' => [['subtotal_from' => 0, 'price' => -5]]]);
 
         self::assertNull((new TieredPriceCalculator(true, false))->calculate($config, 100, 1));
     }
@@ -97,15 +97,15 @@ class TieredPriceCalculatorTest extends TestCase
     {
         $pool = new PriceCalculatorPool($this->createStub(Logger::class), ['FIXED' => new FixedPriceCalculator()]);
 
-        self::assertSame(12.5, $pool->calculate($this->config('FIXED', ['price' => '12.5']), 1, 1));
-        self::assertNull($pool->calculate($this->config('FIXED', []), 1, 1));
-        self::assertNull($pool->calculate($this->config('NO_SUCH_MODEL', ['price' => 1]), 1, 1));
+        self::assertSame(12.5, $pool->calculate($this->createConfig('FIXED', ['price' => '12.5']), 1, 1));
+        self::assertNull($pool->calculate($this->createConfig('FIXED', []), 1, 1));
+        self::assertNull($pool->calculate($this->createConfig('NO_SUCH_MODEL', ['price' => 1]), 1, 1));
     }
 
     /**
      * @param array<string, mixed> $priceInfo
      */
-    private function config(string $model, array $priceInfo): CarrierConfigInterface
+    private function createConfig(string $model, array $priceInfo): CarrierConfigInterface
     {
         return $this->createConfiguredStub(CarrierConfigInterface::class, [
             'getPricingModel' => $model,

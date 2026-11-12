@@ -35,7 +35,7 @@ class SendAgainButton extends AbstractButton
      */
     public function getButtonData(): array
     {
-        $shipment = $this->shipment();
+        $shipment = $this->getShipment();
         if ($shipment === null
             || !$this->authorization->isAllowed('Polkurier_Shipping::shipment_create')
             || !$this->retriableShipmentFinder->isPossible($shipment)
@@ -46,7 +46,7 @@ class SendAgainButton extends AbstractButton
         return [
             'label' => (string)__('Send again'),
             'class' => 'primary',
-            'on_click' => $this->onClickScriptBuilder->location(
+            'on_click' => $this->onClickScriptBuilder->buildLocation(
                 $this->url->getUrl('polkurier/shipment/create', [
                     'order_id' => $shipment->getOrderId(),
                     RetriableShipmentFinder::PARAM => (int)$shipment->getId(),

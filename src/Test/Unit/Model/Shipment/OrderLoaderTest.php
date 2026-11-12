@@ -22,7 +22,7 @@ class OrderLoaderTest extends TestCase
 {
     public function testAPolkurierOrderIsOursToShip(): void
     {
-        $orders = $this->orders('polkurier_DPD');
+        $orders = $this->createLoader('polkurier_DPD');
 
         self::assertSame('000000042', $orders->getForPolkurier(42)->getIncrementId());
         self::assertSame('000000042', $orders->findForPolkurier(42)?->getIncrementId());
@@ -30,7 +30,7 @@ class OrderLoaderTest extends TestCase
 
     public function testAnotherCarriersOrderIsNotShippedWithPolkurier(): void
     {
-        $orders = $this->orders('flatrate_flatrate');
+        $orders = $this->createLoader('flatrate_flatrate');
 
         self::assertNull($orders->findForPolkurier(42));
         self::assertSame(
@@ -46,7 +46,7 @@ class OrderLoaderTest extends TestCase
 
     public function testAnOrderThatIsGoneIsNullOrSaidToBeGone(): void
     {
-        $orders = $this->orders(null);
+        $orders = $this->createLoader(null);
 
         self::assertNull($orders->find(42));
         self::assertNull($orders->findForPolkurier(42));
@@ -61,7 +61,7 @@ class OrderLoaderTest extends TestCase
         }
     }
 
-    private function orders(?string $shippingMethod): OrderLoader
+    private function createLoader(?string $shippingMethod): OrderLoader
     {
         $repository = $this->createStub(OrderRepositoryInterface::class);
         if ($shippingMethod === null) {

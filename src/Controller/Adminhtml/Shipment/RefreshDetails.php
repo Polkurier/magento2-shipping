@@ -50,7 +50,7 @@ class RefreshDetails extends AbstractJsonAction
         ];
     }
 
-    protected function refused(LocalizedException $e): array
+    protected function buildRefusal(LocalizedException $e): array
     {
         return ['errors' => [$e->getMessage()]];
     }

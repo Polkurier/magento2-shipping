@@ -30,7 +30,7 @@ class CostEstimatorTest extends SdkTestCase
 {
     public function testEveryCarrierThatCanCarryTheShipmentIsPriced(): void
     {
-        $quotes = $this->estimator(self::success([
+        $quotes = $this->createEstimator(self::encodeSuccess([
             self::quote('DPD', 17.87, 21.98),
             self::quote('INPOST_PACZKOMAT', 12.06, 14.83),
             self::quote('UPS', 120.0, 147.6, available: false),
@@ -46,7 +46,9 @@ class CostEstimatorTest extends SdkTestCase
 
     public function testPolkuriersOwnAnswerIsRead(): void
     {
-        $quotes = $this->estimator(self::success(\json_decode(self::fixture('order_valuation_v2.json'), true)))
+        $quotes = $this->createEstimator(
+            self::encodeSuccess(\json_decode(self::loadFixture('order_valuation_v2.json'), true)),
+        )
             ->quoteAll((new Draft())->setCarrierCode('DPD'), 1);
 
         self::assertSame(['net' => 48.84, 'gross' => 60.07], $quotes['DPD']);
@@ -56,7 +58,7 @@ class CostEstimatorTest extends SdkTestCase
     public function testAFailureIsReportedForTheMerchant(): void
     {
         $this->expectException(LocalizedException::class);
-        $this->estimator('{"status":"error","response":"Internal error"}', 500)
+        $this->createEstimator('{"status":"error","response":"Internal error"}', 500)
             ->quoteAll((new Draft())->setCarrierCode('DPD'), 1);
     }
 
@@ -80,7 +82,7 @@ class CostEstimatorTest extends SdkTestCase
         ];
     }
 
-    private static function address(string $person, string $postcode): OrderAddressMessage
+    private static function createAddress(string $person, string $postcode): OrderAddressMessage
     {
         return new OrderAddressMessage(
             $person,
@@ -94,17 +96,17 @@ class CostEstimatorTest extends SdkTestCase
         );
     }
 
-    private function estimator(string $answer, int $status = 200): CostEstimator
+    private function createEstimator(string $answer, int $status = 200): CostEstimator
     {
         $mapper = $this->createStub(CreateOrderMessageMapper::class);
         $mapper->method('map')->willReturn(new CreateOrderMessage(
             'DPD',
             ShipmentTypeEnum::Box,
             [new PackMessage(40, 30, 20, 2.5, PackTypeEnum::Standard, 1)],
-            self::address('Jan Kowalski', '00-838'),
-            self::address('Anna Nowak', '31-147'),
+            self::createAddress('Jan Kowalski', '00-838'),
+            self::createAddress('Anna Nowak', '31-147'),
         ));
-        $client = $this->clientPool(new RecordingClient($answer, $status));
+        $client = $this->createClientPool(new RecordingClient($answer, $status));
 
         return new CostEstimator($mapper, new ShipmentGateway($client, new ErrorMessageResolver()));
     }

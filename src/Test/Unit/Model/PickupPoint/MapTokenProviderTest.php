@@ -38,10 +38,10 @@ class MapTokenProviderTest extends SdkTestCase
 
     public function testATokenIsAskedForOnceAndSharedFromTheCache(): void
     {
-        $http = new RecordingClient(self::success(['token' => 'map-token']));
+        $http = new RecordingClient(self::encodeSuccess(['token' => 'map-token']));
 
-        $first = $this->provider($http)->getToken();
-        $second = $this->provider($http)->getToken();
+        $first = $this->createProvider($http)->getToken();
+        $second = $this->createProvider($http)->getToken();
 
         self::assertSame(['map-token', 'map-token'], [$first, $second]);
         self::assertSame(1, $http->requestCount());
@@ -53,12 +53,12 @@ class MapTokenProviderTest extends SdkTestCase
         $payload = \base64_encode((string)\json_encode(['iat' => self::NOW - 600, 'exp' => self::NOW + 9000]));
         $claims = \rtrim(\strtr($payload, '+/', '-_'), '=');
         $token = 'eyJ0eXAiOiJKV1QifQ.' . $claims . '.signature';
-        $http = new RecordingClient(self::success(['token' => $token]));
+        $http = new RecordingClient(self::encodeSuccess(['token' => $token]));
 
-        self::assertSame(self::NOW + 9000, $this->provider($http)->getExpiry());
+        self::assertSame(self::NOW + 9000, $this->createProvider($http)->getExpiry());
         self::assertSame(
             ['token' => $token, 'expires' => self::NOW + 9000],
-            $this->provider($http)->getTokenWithExpiry(),
+            $this->createProvider($http)->getTokenWithExpiry(),
             'The same from the cache.',
         );
         self::assertSame(1, $http->requestCount());
@@ -66,9 +66,9 @@ class MapTokenProviderTest extends SdkTestCase
 
     public function testATokenThatIsNoJwtSaysNothingOfWhenItRunsOut(): void
     {
-        $http = new RecordingClient(self::success(['token' => 'map-token']));
+        $http = new RecordingClient(self::encodeSuccess(['token' => 'map-token']));
 
-        self::assertSame(0, $this->provider($http)->getExpiry());
+        self::assertSame(0, $this->createProvider($http)->getExpiry());
     }
 
     public function testATokenThatCantBeHadIsAnEmptyOneAndLogged(): void
@@ -80,7 +80,7 @@ class MapTokenProviderTest extends SdkTestCase
 
         self::assertSame(
             ['token' => '', 'expires' => 0],
-            $this->provider(new RecordingClient('<html>Bad gateway</html>'), $logger)->getTokenWithExpiry(),
+            $this->createProvider(new RecordingClient('<html>Bad gateway</html>'), $logger)->getTokenWithExpiry(),
         );
     }
 
@@ -88,14 +88,14 @@ class MapTokenProviderTest extends SdkTestCase
     {
         $http = new RecordingClient('<html>Bad gateway</html>');
         try {
-            $this->provider($http)->getToken();
+            $this->createProvider($http)->getToken();
             self::fail('The failure is reported.');
         } catch (\Polkurier\Webservice\Exception\Exception) {
         }
 
         $this->expectException(RecentFailureException::class);
         try {
-            $this->provider($http)->getToken();
+            $this->createProvider($http)->getToken();
         } finally {
             self::assertSame(1, $http->requestCount(), 'The next request is told without asking again.');
             self::assertSame([PolkurierCache::FAILURE_LIFETIME], \array_values($this->lifetimes));
@@ -104,17 +104,17 @@ class MapTokenProviderTest extends SdkTestCase
 
     public function testAnEmptyTokenIsRememberedForAMoment(): void
     {
-        $http = new RecordingClient(self::success(['token' => '']));
+        $http = new RecordingClient(self::encodeSuccess(['token' => '']));
 
-        $first = $this->provider($http)->getToken();
-        $second = $this->provider($http)->getToken();
+        $first = $this->createProvider($http)->getToken();
+        $second = $this->createProvider($http)->getToken();
 
         self::assertSame(['', ''], [$first, $second]);
         self::assertSame(1, $http->requestCount());
         self::assertSame([PolkurierCache::FAILURE_LIFETIME], \array_values($this->lifetimes));
     }
 
-    private function provider(RecordingClient $http, ?Logger $logger = null): MapTokenProvider
+    private function createProvider(RecordingClient $http, ?Logger $logger = null): MapTokenProvider
     {
         $config = $this->createStub(ConfigProvider::class);
         $config->method('getLogin')->willReturn(self::LOGIN);
@@ -129,7 +129,7 @@ class MapTokenProviderTest extends SdkTestCase
             });
 
         return new MapTokenProvider(
-            $this->clientPool($http),
+            $this->createClientPool($http),
             $cache,
             new ErrorMessageResolver(),
             new AccountCache($this->createStub(PolkurierCache::class), new Json(), $config),

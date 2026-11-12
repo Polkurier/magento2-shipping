@@ -49,7 +49,7 @@ class SynchronizationTest extends TestCase
 
     public function testEveryKindRunsWhenNoneIsNamed(): void
     {
-        $summary = $this->synchronization()->synchronize();
+        $summary = $this->createSynchronization()->synchronize();
 
         self::assertSame(
             [SyncEntityEnum::Address, SyncEntityEnum::BankAccount, SyncEntityEnum::PackTemplate],
@@ -61,7 +61,7 @@ class SynchronizationTest extends TestCase
 
     public function testOnlyTheNamedKindsRun(): void
     {
-        $summary = $this->synchronization()->synchronize([SyncEntityEnum::PackTemplate]);
+        $summary = $this->createSynchronization()->synchronize([SyncEntityEnum::PackTemplate]);
 
         self::assertSame([SyncEntityEnum::PackTemplate], $this->ran);
         self::assertStringStartsWith('Pack templates:', $summary[0]);
@@ -72,7 +72,7 @@ class SynchronizationTest extends TestCase
         $this->busy = true;
 
         try {
-            $this->synchronization()->synchronize();
+            $this->createSynchronization()->synchronize();
             self::fail('A synchronization is running.');
         } catch (LocalizedException $e) {
             self::assertStringContainsString('already running', $e->getMessage());
@@ -82,7 +82,7 @@ class SynchronizationTest extends TestCase
 
     public function testTheLockIsFreeAgainAfterwards(): void
     {
-        $this->synchronization()->synchronize([SyncEntityEnum::PackTemplate]);
+        $this->createSynchronization()->synchronize([SyncEntityEnum::PackTemplate]);
 
         self::assertSame(['lock polkurier_sync', 'unlock polkurier_sync'], $this->lockLog);
     }
@@ -91,7 +91,7 @@ class SynchronizationTest extends TestCase
     {
         $this->failing = [SyncEntityEnum::Address];
 
-        $summary = $this->synchronization()->synchronize();
+        $summary = $this->createSynchronization()->synchronize();
 
         self::assertSame(
             [SyncEntityEnum::Address, SyncEntityEnum::BankAccount, SyncEntityEnum::PackTemplate],
@@ -108,10 +108,10 @@ class SynchronizationTest extends TestCase
         $this->expectException(LocalizedException::class);
         $this->expectExceptionMessage('Pack templates: Unreadable.');
 
-        $this->synchronization()->synchronize([SyncEntityEnum::PackTemplate]);
+        $this->createSynchronization()->synchronize([SyncEntityEnum::PackTemplate]);
     }
 
-    private function locks(): LockManagerInterface
+    private function createLockManager(): LockManagerInterface
     {
         $locks = $this->createStub(LockManagerInterface::class);
         $locks->method('lock')->willReturnCallback(function (string $name): bool {
@@ -128,7 +128,7 @@ class SynchronizationTest extends TestCase
         return $locks;
     }
 
-    private function synchronization(): Synchronization
+    private function createSynchronization(): Synchronization
     {
         $engine = $this->createStub(SyncEngine::class);
         $engine->method('run')
@@ -144,11 +144,11 @@ class SynchronizationTest extends TestCase
         return new Synchronization(
             $engine,
             new ErrorMessageResolver(),
-            new SyncLock($this->locks()),
+            new SyncLock($this->createLockManager()),
             $this->createStub(Logger::class),
-            $this->adapter(AddressSyncAdapter::class, SyncEntityEnum::Address),
-            $this->adapter(BankAccountSyncAdapter::class, SyncEntityEnum::BankAccount),
-            $this->adapter(PackTemplateSyncAdapter::class, SyncEntityEnum::PackTemplate),
+            $this->createAdapter(AddressSyncAdapter::class, SyncEntityEnum::Address),
+            $this->createAdapter(BankAccountSyncAdapter::class, SyncEntityEnum::BankAccount),
+            $this->createAdapter(PackTemplateSyncAdapter::class, SyncEntityEnum::PackTemplate),
         );
     }
 
@@ -159,7 +159,7 @@ class SynchronizationTest extends TestCase
      *
      * @return T
      */
-    private function adapter(string $class, SyncEntityEnum $kind): AdapterInterface
+    private function createAdapter(string $class, SyncEntityEnum $kind): AdapterInterface
     {
         $adapter = $this->createStub($class);
         $adapter->method('getEntityType')->willReturn($kind);

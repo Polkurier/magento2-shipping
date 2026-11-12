@@ -38,7 +38,7 @@ class MassPickup extends AbstractShipmentAction implements HttpPostActionInterfa
         } catch (LocalizedException $e) {
             $this->messageManager->addErrorMessage($e->getMessage());
 
-            return $this->back();
+            return $this->redirectBack();
         }
         // Only those awaiting a collective pickup go to the form; the others are listed in a notice.
         ['awaiting' => $ids, 'left_out' => $leftOut] = $this->pickupService->selectAwaiting($selected);
@@ -49,7 +49,7 @@ class MassPickup extends AbstractShipmentAction implements HttpPostActionInterfa
                 );
             }
 
-            return $this->back();
+            return $this->redirectBack();
         }
         if ($leftOut !== []) {
             $this->messageManager->addNoticeMessage(__(

@@ -40,7 +40,7 @@ readonly class ActualShipping implements ArgumentInterface
      *
      * @return list<array{carrier: string, point: string, point_label: string, changed: bool}>
      */
-    public function forOrder(Order $order): array
+    public function getForOrder(Order $order): array
     {
         if (!Polkurier::isOrderOf($order)) {
             return [];
@@ -48,14 +48,14 @@ readonly class ActualShipping implements ArgumentInterface
 
         return $this->describe(
             $order,
-            $this->shipmentFinder->forOrder((int)$order->getEntityId(), [ShipmentInterface::STATE_CREATED]),
+            $this->shipmentFinder->findForOrder((int)$order->getEntityId(), [ShipmentInterface::STATE_CREATED]),
         );
     }
 
     /**
      * @return list<array{carrier: string, point: string, point_label: string, changed: bool}>
      */
-    public function forShipment(Order $order, int $magentoShipmentId): array
+    public function getForShipment(Order $order, int $magentoShipmentId): array
     {
         if (!Polkurier::isOrderOf($order)) {
             return [];
@@ -63,7 +63,7 @@ readonly class ActualShipping implements ArgumentInterface
         $orderId = (int)$order->getEntityId();
 
         return $this->describe($order, \array_filter(
-            $this->shipmentFinder->linkedTo([$magentoShipmentId], [ShipmentInterface::STATE_CREATED]),
+            $this->shipmentFinder->findLinkedTo([$magentoShipmentId], [ShipmentInterface::STATE_CREATED]),
             static fn(ShipmentInterface $shipment): bool => $shipment->getOrderId() === $orderId,
         ));
     }
@@ -88,7 +88,7 @@ readonly class ActualShipping implements ArgumentInterface
      */
     private function describe(Order $order, array $shipments): array
     {
-        $methodCode = (string)Polkurier::methodCodeOf((string)$order->getShippingMethod());
+        $methodCode = (string)Polkurier::extractMethodCode((string)$order->getShippingMethod());
         $chosen = $this->orderPointRepository->getForOrder((int)$order->getEntityId());
         $chosenPoint = $chosen !== null ? $chosen->getPointId() : '';
         $shipped = [];

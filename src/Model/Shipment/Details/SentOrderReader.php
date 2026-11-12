@@ -75,7 +75,7 @@ readonly class SentOrderReader
         $services = [];
         foreach ((array)($request[CreateOrderMessage::FIELD_COURIER_SERVICE] ?? []) as $service => $on) {
             if ($on) {
-                $services[] = $this->optionLabelProvider->service((string)$service);
+                $services[] = $this->optionLabelProvider->getServiceLabel((string)$service);
             }
         }
 

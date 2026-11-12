@@ -41,7 +41,7 @@ class DefaultSenderPointManagerTest extends SdkTestCase
 
     public function testEveryCarrierPolkurierKeepsADefaultForIsReadOncePerRequest(): void
     {
-        $http = new RecordingClient(self::success([
+        $http = new RecordingClient(self::encodeSuccess([
             'default_sender_point' => [
                 'INPOST_PACZKOMAT' => 'KRA01M',
                 'DPD_POINT' => null,
@@ -65,7 +65,7 @@ class DefaultSenderPointManagerTest extends SdkTestCase
 
     public function testACarrierHasADefaultOnlyWhenItTakesParcelsAtPointsAndPolkurierKeepsOne(): void
     {
-        $manager = $this->createManager(new RecordingClient(self::success([
+        $manager = $this->createManager(new RecordingClient(self::encodeSuccess([
             'default_sender_point' => [
                 'INPOST_PACZKOMAT' => 'KRA01M',
                 'DPD_POINT' => null,
@@ -101,16 +101,16 @@ class DefaultSenderPointManagerTest extends SdkTestCase
 
     public function testAChangedPointIsSentAndReadAgainAfterwards(): void
     {
-        $http = new RecordingClient(self::success(['default_sender_point' => ['UPS_AP_POINT_POINT' => null]]));
+        $http = new RecordingClient(self::encodeSuccess(['default_sender_point' => ['UPS_AP_POINT_POINT' => null]]));
         $manager = $this->createManager($http);
         $manager->get();
-        $http->willAnswerWith(self::success(true));
+        $http->willAnswerWith(self::encodeSuccess(true));
 
         $manager->change('UPS_AP_POINT_POINT', 'U02842068');
 
         self::assertSame('change_default_sender_point', $http->lastPayload()['apimethod']);
         self::assertSame(['courier' => 'UPS_AP_POINT_POINT', 'point' => 'U02842068'], $http->lastPayload()['data']);
-        $http->willAnswerWith(self::success(['default_sender_point' => ['UPS_AP_POINT_POINT' => 'U02842068']]));
+        $http->willAnswerWith(self::encodeSuccess(['default_sender_point' => ['UPS_AP_POINT_POINT' => 'U02842068']]));
         self::assertSame(['UPS_AP_POINT_POINT' => 'U02842068'], $manager->get(), 'Read again after the change.');
     }
 
@@ -150,7 +150,7 @@ class DefaultSenderPointManagerTest extends SdkTestCase
             });
 
         return new DefaultSenderPointManager(
-            $this->clientPool($http),
+            $this->createClientPool($http),
             new CarrierFeatureResolver(),
             $cache,
             new AccountCache($this->createStub(PolkurierCache::class), new Json(), $config),

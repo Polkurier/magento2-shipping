@@ -39,10 +39,10 @@ class PolkurierOrderColumnTest extends TestCase
 
     public function testEachMagentoShipmentLinksItsPlacedPolkurierOrder(): void
     {
-        $cells = $this->cells([
-            $this->shipment(1, 11, ShipmentInterface::STATE_CANCELLED, '24680-20'),
-            $this->shipment(2, 11, ShipmentInterface::STATE_CREATED, '24680-21'),
-            $this->shipment(3, 12, ShipmentInterface::STATE_CREATED, '24680-22'),
+        $cells = $this->renderCells([
+            $this->createShipment(1, 11, ShipmentInterface::STATE_CANCELLED, '24680-20'),
+            $this->createShipment(2, 11, ShipmentInterface::STATE_CREATED, '24680-21'),
+            $this->createShipment(3, 12, ShipmentInterface::STATE_CREATED, '24680-22'),
         ], [11, 12, 13]);
 
         self::assertSame([
@@ -54,9 +54,9 @@ class PolkurierOrderColumnTest extends TestCase
 
     public function testWithoutAPlacedOneTheLatestShowsWithItsState(): void
     {
-        $cells = $this->cells([
-            $this->shipment(1, 11, ShipmentInterface::STATE_CANCELLED, '24680-20'),
-            $this->shipment(2, 11, ShipmentInterface::STATE_UNKNOWN, null),
+        $cells = $this->renderCells([
+            $this->createShipment(1, 11, ShipmentInterface::STATE_CANCELLED, '24680-20'),
+            $this->createShipment(2, 11, ShipmentInterface::STATE_UNKNOWN, null),
         ], [11]);
 
         self::assertSame(['<a href="polkurier/shipment/view/2">#2 (Outcome unknown)</a>'], $cells);
@@ -64,9 +64,9 @@ class PolkurierOrderColumnTest extends TestCase
 
     public function testThePlacedOneStaysAgainstALaterOne(): void
     {
-        $cells = $this->cells([
-            $this->shipment(2, 11, ShipmentInterface::STATE_CREATED, '24680-21'),
-            $this->shipment(4, 11, ShipmentInterface::STATE_FAILED, null),
+        $cells = $this->renderCells([
+            $this->createShipment(2, 11, ShipmentInterface::STATE_CREATED, '24680-21'),
+            $this->createShipment(4, 11, ShipmentInterface::STATE_FAILED, null),
         ], [11]);
 
         self::assertSame(['<a href="polkurier/shipment/view/2">24680-21</a>'], $cells);
@@ -78,26 +78,26 @@ class PolkurierOrderColumnTest extends TestCase
 
         self::assertSame(
             [null],
-            $this->cells([$this->shipment(2, 11, ShipmentInterface::STATE_CREATED, '24680-21')], [11]),
+            $this->renderCells([$this->createShipment(2, 11, ShipmentInterface::STATE_CREATED, '24680-21')], [11]),
         );
     }
 
     public function testTheColumnShowsOnlyForAPolkurierOrdersShipments(): void
     {
-        self::assertFalse($this->disabled('polkurier_DPD'));
-        self::assertTrue($this->disabled('flatrate_flatrate'));
-        self::assertTrue($this->disabled(null), 'An order that is gone.');
-        self::assertFalse($this->disabled(false), 'The list of every shipment.');
+        self::assertFalse($this->isDisabled('polkurier_DPD'));
+        self::assertTrue($this->isDisabled('flatrate_flatrate'));
+        self::assertTrue($this->isDisabled(null), 'An order that is gone.');
+        self::assertFalse($this->isDisabled(false), 'The list of every shipment.');
         $this->allowed = false;
-        self::assertTrue($this->disabled('polkurier_DPD'));
+        self::assertTrue($this->isDisabled('polkurier_DPD'));
     }
 
     /**
      * @param string|false|null $method the order's shipping method; null: no such order; false: no order in the request
      */
-    private function disabled(string|false|null $method): bool
+    private function isDisabled(string|false|null $method): bool
     {
-        $column = $this->column([], $method === false ? 0 : 29, $method === false ? null : $method);
+        $column = $this->createColumn([], $method === false ? 0 : 29, $method === false ? null : $method);
         $column->prepare();
 
         return (bool)($column->getData('config')['componentDisabled'] ?? false);
@@ -109,9 +109,9 @@ class PolkurierOrderColumnTest extends TestCase
      *
      * @return array<int, string|null>
      */
-    private function cells(array $shipments, array $magentoShipmentIds): array
+    private function renderCells(array $shipments, array $magentoShipmentIds): array
     {
-        $source = $this->column($shipments)->prepareDataSource(['data' => ['items' => \array_map(
+        $source = $this->createColumn($shipments)->prepareDataSource(['data' => ['items' => \array_map(
             static fn(int $id): array => ['entity_id' => (string)$id],
             $magentoShipmentIds,
         )]]);
@@ -125,7 +125,7 @@ class PolkurierOrderColumnTest extends TestCase
     /**
      * @param Shipment[] $shipments
      */
-    private function column(array $shipments, int $orderId = 0, ?string $method = null): PolkurierOrderColumn
+    private function createColumn(array $shipments, int $orderId = 0, ?string $method = null): PolkurierOrderColumn
     {
         $context = $this->createStub(ContextInterface::class);
         $context->method('getProcessor')->willReturn($this->createStub(Processor::class));
@@ -181,7 +181,7 @@ class PolkurierOrderColumnTest extends TestCase
         );
     }
 
-    private function shipment(int $id, int $magentoShipmentId, string $state, ?string $number): Shipment
+    private function createShipment(int $id, int $magentoShipmentId, string $state, ?string $number): Shipment
     {
         /** @var Shipment $shipment */
         $shipment = (new ObjectManager($this))->getObject(Shipment::class);

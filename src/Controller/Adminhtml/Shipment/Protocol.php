@@ -52,6 +52,6 @@ class Protocol extends AbstractShipmentAction implements HttpGetActionInterface,
             $this->messageManager->addErrorMessage($e->getMessage());
         }
 
-        return $this->back();
+        return $this->redirectBack();
     }
 }

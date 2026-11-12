@@ -56,7 +56,7 @@ class ShipmentDetailsBuildTest extends TestCase
 {
     public function testAShipmentReadFromPolkurierIsShownAsPolkurierReportsIt(): void
     {
-        $shipment = $this->shipment(ShipmentInterface::STATE_CREATED, '24680-4', [
+        $shipment = $this->createShipment(ShipmentInterface::STATE_CREATED, '24680-4', [
             'number' => '24680-4',
             'description' => 'Order #000000052',
             'carrier' => 'DPD',
@@ -134,7 +134,7 @@ class ShipmentDetailsBuildTest extends TestCase
             'has_invoice' => false,
         ], shipmentId: 31, lastError: null);
 
-        $view = $this->view(order: true)->build($shipment);
+        $view = $this->createView(order: true)->build($shipment);
 
         self::assertSame('Shipment details 24680-4', $view['title']);
         self::assertSame(
@@ -149,18 +149,18 @@ class ShipmentDetailsBuildTest extends TestCase
         );
         self::assertSame(
             ['label' => 'Number', 'value' => '24680-4', 'url' => '', 'as_sent' => false, 'external' => false],
-            $this->row($view, 'Polkurier order', 'Number'),
+            $this->findRow($view, 'Polkurier order', 'Number'),
         );
-        self::assertSame('Placed', $this->row($view, 'Polkurier order', 'Order state')['value']);
-        self::assertSame('DPD Classic', $this->row($view, 'Delivery', 'Carrier')['value']);
+        self::assertSame('Placed', $this->findRow($view, 'Polkurier order', 'Order state')['value']);
+        self::assertSame('DPD Classic', $this->findRow($view, 'Delivery', 'Carrier')['value']);
         self::assertSame(
             ['Carrier', 'Shipment type', 'Shipment description', 'Delivery status'],
             \array_slice(\array_column($view['sections'][0]['items'][1]['rows'], 'label'), 0, 4),
             'The delivery starts with who carries what.',
         );
-        self::assertSame('17.84 PLN', $this->row($view, 'Polkurier order', 'Order value')['value']);
-        self::assertSame('0.00 PLN', $this->row($view, 'Polkurier order', 'Amount to pay')['value']);
-        self::assertSame('No', $this->row($view, 'Polkurier order', 'Invoiced')['value']);
+        self::assertSame('17.84 PLN', $this->findRow($view, 'Polkurier order', 'Order value')['value']);
+        self::assertSame('0.00 PLN', $this->findRow($view, 'Polkurier order', 'Amount to pay')['value']);
+        self::assertSame('No', $this->findRow($view, 'Polkurier order', 'Invoiced')['value']);
         self::assertSame(
             [
                 'label' => 'Magento order',
@@ -169,7 +169,7 @@ class ShipmentDetailsBuildTest extends TestCase
                 'as_sent' => false,
                 'external' => false,
             ],
-            $this->row($view, 'Polkurier order', 'Magento order'),
+            $this->findRow($view, 'Polkurier order', 'Magento order'),
         );
         self::assertSame(
             [
@@ -179,7 +179,7 @@ class ShipmentDetailsBuildTest extends TestCase
                 'as_sent' => false,
                 'external' => false,
             ],
-            $this->row($view, 'Polkurier order', 'Magento shipment'),
+            $this->findRow($view, 'Polkurier order', 'Magento shipment'),
         );
         self::assertSame(
             [
@@ -189,14 +189,14 @@ class ShipmentDetailsBuildTest extends TestCase
                 'as_sent' => false,
                 'external' => true,
             ],
-            $this->row($view, 'Delivery', 'Waybill'),
+            $this->findRow($view, 'Delivery', 'Waybill'),
         );
-        self::assertSame('Sklep Sp. z o.o., Jan Kowalski', $this->row($view, 'Sender', 'Name')['value']);
-        self::assertFalse($this->row($view, 'Sender', 'Name')['as_sent']);
+        self::assertSame('Sklep Sp. z o.o., Jan Kowalski', $this->findRow($view, 'Sender', 'Name')['value']);
+        self::assertFalse($this->findRow($view, 'Sender', 'Name')['as_sent']);
         // Polkurier's copy leaves the recipient's point and the services empty: shown as sent.
         self::assertSame(
             ['label' => 'Pickup point', 'value' => 'KRA01M', 'url' => '', 'as_sent' => true, 'external' => false],
-            $this->row($view, 'Recipient', 'Pickup point'),
+            $this->findRow($view, 'Recipient', 'Pickup point'),
         );
         self::assertSame(
             [
@@ -206,16 +206,16 @@ class ShipmentDetailsBuildTest extends TestCase
                 'as_sent' => true,
                 'external' => false,
             ],
-            $this->row($view, 'Services', 'Additional services'),
+            $this->findRow($view, 'Services', 'Additional services'),
         );
-        self::assertSame('149.99 PLN', $this->row($view, 'Services', 'Cash on delivery')['value']);
-        self::assertFalse($this->row($view, 'Services', 'Cash on delivery')['as_sent'], 'Polkurier\'s own value.');
+        self::assertSame('149.99 PLN', $this->findRow($view, 'Services', 'Cash on delivery')['value']);
+        self::assertFalse($this->findRow($view, 'Services', 'Cash on delivery')['as_sent'], 'Polkurier\'s own value.');
         self::assertSame(
             'Bank account: 61109010140000071219812874',
-            $this->row($view, 'Services', 'Paid out to')['value'],
+            $this->findRow($view, 'Services', 'Paid out to')['value'],
         );
-        self::assertSame('Awaiting collection', $this->row($view, 'Services', 'COD status')['value']);
-        self::assertSame('DPD-PU-1', $this->row($view, 'Handover to the carrier', 'Collection number')['value']);
+        self::assertSame('Awaiting collection', $this->findRow($view, 'Services', 'COD status')['value']);
+        self::assertSame('DPD-PU-1', $this->findRow($view, 'Handover to the carrier', 'Collection number')['value']);
         self::assertSame(
             [['Standard', '40 × 30 × 20 cm', '2.5 kg', '1', '17.84 PLN', '2 × Mug']],
             $view['tables'][1]['rows'],
@@ -225,7 +225,7 @@ class ShipmentDetailsBuildTest extends TestCase
 
     public function testAShipmentPolkurierWasntReadForIsShownAsItWasSent(): void
     {
-        $shipment = $this->shipment(
+        $shipment = $this->createShipment(
             ShipmentInterface::STATE_UNKNOWN,
             null,
             [],
@@ -233,7 +233,7 @@ class ShipmentDetailsBuildTest extends TestCase
             lastError: 'Polkurier did not answer in time.',
         );
 
-        $view = $this->view(order: false)->build($shipment, ['The carrier\'s scans could not be read.']);
+        $view = $this->createView(order: false)->build($shipment, ['The carrier\'s scans could not be read.']);
 
         self::assertSame('Shipment details #41', $view['title']);
         self::assertSame([
@@ -248,18 +248,18 @@ class ShipmentDetailsBuildTest extends TestCase
             \array_column($view['tables'], 'title'),
             'No cost before Polkurier priced it.',
         );
-        self::assertSame('—', $this->row($view, 'Polkurier order', 'Number')['value']);
-        self::assertSame('Outcome unknown', $this->row($view, 'Polkurier order', 'Order state')['value']);
+        self::assertSame('—', $this->findRow($view, 'Polkurier order', 'Number')['value']);
+        self::assertSame('Outcome unknown', $this->findRow($view, 'Polkurier order', 'Order state')['value']);
         self::assertSame(
             'DPD Classic',
-            $this->row($view, 'Delivery', 'Carrier')['value'],
+            $this->findRow($view, 'Delivery', 'Carrier')['value'],
             'Named by the carrier settings.',
         );
-        self::assertSame('Parcel', $this->row($view, 'Delivery', 'Shipment type')['value']);
-        self::assertSame('Order #000000052', $this->row($view, 'Delivery', 'Shipment description')['value']);
+        self::assertSame('Parcel', $this->findRow($view, 'Delivery', 'Shipment type')['value']);
+        self::assertSame('Order #000000052', $this->findRow($view, 'Delivery', 'Shipment description')['value']);
         self::assertSame(
             ['label' => 'Magento order', 'value' => '#29', 'url' => '', 'as_sent' => false, 'external' => false],
-            $this->row($view, 'Polkurier order', 'Magento order'),
+            $this->findRow($view, 'Polkurier order', 'Magento order'),
             'An order that is gone links nowhere.',
         );
         self::assertSame(
@@ -270,22 +270,22 @@ class ShipmentDetailsBuildTest extends TestCase
                 'as_sent' => false,
                 'external' => false,
             ],
-            $this->row($view, 'Polkurier order', 'Magento shipment'),
+            $this->findRow($view, 'Polkurier order', 'Magento shipment'),
         );
-        self::assertSame('Prosta 20/5', $this->row($view, 'Sender', 'Street')['value']);
-        self::assertSame('KRA01M', $this->row($view, 'Recipient', 'Pickup point')['value']);
+        self::assertSame('Prosta 20/5', $this->findRow($view, 'Sender', 'Street')['value']);
+        self::assertSame('KRA01M', $this->findRow($view, 'Recipient', 'Pickup point')['value']);
         self::assertFalse(
-            $this->row($view, 'Recipient', 'Pickup point')['as_sent'],
+            $this->findRow($view, 'Recipient', 'Pickup point')['as_sent'],
             'All of it is as sent, which the note says.',
         );
         self::assertSame(
             'SMS notification when dispatched',
-            $this->row($view, 'Services', 'Additional services')['value'],
+            $this->findRow($view, 'Services', 'Additional services')['value'],
         );
-        self::assertSame('Standard time', $this->row($view, 'Services', 'Payout time')['value']);
+        self::assertSame('Standard time', $this->findRow($view, 'Services', 'Payout time')['value']);
         self::assertSame(
             '2026-10-08, 10:00–16:00',
-            $this->row($view, 'Handover to the carrier', 'Collection date')['value'],
+            $this->findRow($view, 'Handover to the carrier', 'Collection date')['value'],
         );
         self::assertSame('There is no Polkurier order to follow.', $view['tables'][2]['empty']);
         self::assertNotContains(
@@ -298,12 +298,17 @@ class ShipmentDetailsBuildTest extends TestCase
     public function testParcelsDroppedOffShowWhereUnderTheHandover(): void
     {
         $dropOff = ['no_courier_order' => true, 'multi_pickup' => false, 'pickup_number' => 'DPD-PU-2'];
-        $atPoint = $this->view(order: true)->build($this->shipment(ShipmentInterface::STATE_CREATED, '24680-12', [
+        $atPoint = $this->createView(
+            order: true,
+        )->build($this->createShipment(ShipmentInterface::STATE_CREATED, '24680-12', [
             'sender' => ['person' => 'Jan Kowalski', 'point_id' => 'PL63197', 'point_label' => 'Kiosk, Prosta 1'],
             'pickup' => $dropOff,
         ], shipmentId: 31, lastError: null));
 
-        self::assertSame('Dropped off at a point', $this->row($atPoint, 'Handover to the carrier', 'Handover')['value']);
+        self::assertSame(
+            'Dropped off at a point',
+            $this->findRow($atPoint, 'Handover to the carrier', 'Handover')['value'],
+        );
         self::assertSame(
             [
                 'label' => 'Drop-off point',
@@ -312,7 +317,7 @@ class ShipmentDetailsBuildTest extends TestCase
                 'as_sent' => false,
                 'external' => false,
             ],
-            $this->row($atPoint, 'Handover to the carrier', 'Drop-off point'),
+            $this->findRow($atPoint, 'Handover to the carrier', 'Drop-off point'),
         );
         self::assertNotContains(
             'Pickup point',
@@ -326,14 +331,16 @@ class ShipmentDetailsBuildTest extends TestCase
             'Nothing is collected.',
         );
 
-        $anyPoint = $this->view(order: true)->build($this->shipment(ShipmentInterface::STATE_CREATED, '24680-15', [
+        $anyPoint = $this->createView(
+            order: true,
+        )->build($this->createShipment(ShipmentInterface::STATE_CREATED, '24680-15', [
             'sender' => ['person' => 'Jan Kowalski', 'point_id' => null],
             'pickup' => $dropOff,
         ], shipmentId: 31, lastError: null));
 
         self::assertSame(
             'any of the carrier\'s points',
-            $this->row($anyPoint, 'Handover to the carrier', 'Drop-off point')['value'],
+            $this->findRow($anyPoint, 'Handover to the carrier', 'Drop-off point')['value'],
         );
     }
 
@@ -344,7 +351,7 @@ class ShipmentDetailsBuildTest extends TestCase
      *
      * @return array<string, string|bool>
      */
-    private function row(array $view, string $item, string $label): array
+    private function findRow(array $view, string $item, string $label): array
     {
         foreach ($view['sections'] as $section) {
             foreach ($section['items'] as $entry) {
@@ -366,7 +373,7 @@ class ShipmentDetailsBuildTest extends TestCase
      *
      * @param array<string, mixed> $details Polkurier's copy of the order; none until it's read
      */
-    private function shipment(
+    private function createShipment(
         string $state,
         ?string $number,
         array $details,
@@ -386,7 +393,7 @@ class ShipmentDetailsBuildTest extends TestCase
         $shipment->method('getCreatedAt')->willReturn('2026-10-05 09:15:00');
         $shipment->method('getDetails')->willReturn($details);
         $shipment->method('getDetailsSyncedAt')->willReturn($details === [] ? null : '2026-10-06 08:00:00');
-        $shipment->method('getRequest')->willReturn($this->sentRequest());
+        $shipment->method('getRequest')->willReturn($this->buildSentRequest());
         $shipment->method('getDraft')->willReturn([
             'items' => [['order_item_id' => 5, 'qty' => 2]],
             'packs' => [['items' => [['order_item_id' => 5, 'qty' => 2]]]],
@@ -400,7 +407,7 @@ class ShipmentDetailsBuildTest extends TestCase
     /**
      * The create_order request as the module stores it: the SDK's own serialization.
      */
-    private function sentRequest(): string
+    private function buildSentRequest(): string
     {
         $message = new CreateOrderMessage(
             'DPD',
@@ -443,7 +450,7 @@ class ShipmentDetailsBuildTest extends TestCase
         return (new SerializerProvider())->getSerializer()->serialize($message, 'json');
     }
 
-    private function view(bool $order): ShipmentDetails
+    private function createView(bool $order): ShipmentDetails
     {
         $labels = new OptionLabelProvider(
             new ShipmentState(),

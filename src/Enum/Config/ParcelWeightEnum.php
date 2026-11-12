@@ -36,7 +36,7 @@ enum ParcelWeightEnum: string
             : $templateWeight;
     }
 
-    public function label(): string
+    public function getLabel(): string
     {
         return match ($this) {
             self::Products => (string)__('What the products in it weigh'),

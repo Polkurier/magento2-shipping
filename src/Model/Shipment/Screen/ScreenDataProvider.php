@@ -125,7 +125,7 @@ readonly class ScreenDataProvider
     public function getDefaultValues(Order $order, ?array $qtys): array
     {
         try {
-            return $this->draftHydrator->toArray($this->defaultDraftBuilder->createFromOrder($order, $qtys));
+            return $this->draftHydrator->convertToArray($this->defaultDraftBuilder->createFromOrder($order, $qtys));
         } catch (LocalizedException) {
             return [];
         }

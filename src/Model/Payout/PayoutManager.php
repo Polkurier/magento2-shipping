@@ -54,7 +54,7 @@ readonly class PayoutManager
      */
     public function getConfig(): MoneyBoxConfigMessage
     {
-        return $this->call(fn() => $this->polkurierClient->moneyBox()->getConfig());
+        return $this->call(fn() => $this->polkurierClient->getMoneyBox()->getConfig());
     }
 
     /**
@@ -62,7 +62,7 @@ readonly class PayoutManager
      */
     public function getPayouts(int $page = 1, int $pageSize = 20): MoneyBoxPayoutListMessage
     {
-        return $this->call(fn() => $this->polkurierClient->moneyBox()->getPayouts(
+        return $this->call(fn() => $this->polkurierClient->getMoneyBox()->getPayouts(
             $this->getMoneyBoxPayoutsMessageBuilderFactory->create()->pageSize($pageSize)->page($page)->build(),
         ));
     }
@@ -74,7 +74,9 @@ readonly class PayoutManager
     {
         try {
             return $this->call(
-                fn(): float => $this->polkurierClient->account()->getAccountInfo()->getMoneyBoxPayoutAvailableBalance(),
+                fn(): float => $this->polkurierClient->getAccount()
+                    ->getAccountInfo()
+                    ->getMoneyBoxPayoutAvailableBalance(),
             );
         } catch (LocalizedException) {
             return null;
@@ -87,7 +89,7 @@ readonly class PayoutManager
      *
      * @param string $choice a bank account's number, or ANOTHER_ACCOUNT
      */
-    public static function chosenAccount(string $choice, string $typed): ?string
+    public static function resolveChosenAccount(string $choice, string $typed): ?string
     {
         $number = BankAccountMapper::normalizeNumber(
             $choice === self::ANOTHER_ACCOUNT || $choice === '' ? $typed : $choice,
@@ -105,7 +107,7 @@ readonly class PayoutManager
      */
     public function quote(array $orderNumbers, ?MoneyBoxPayoutTypeEnum $payoutType = null): MoneyBoxFeeMessage
     {
-        return $this->call(fn() => $this->polkurierClient->moneyBox()->calculatePayoutFee(
+        return $this->call(fn() => $this->polkurierClient->getMoneyBox()->calculatePayoutFee(
             new CalculateMoneyBoxPayoutFeeMessage(orders: \array_values($orderNumbers), payoutType: $payoutType),
         ));
     }
@@ -122,7 +124,7 @@ readonly class PayoutManager
         if ($available !== null && $available <= 0) {
             throw new LocalizedException(__('The money box has nothing to pay out yet. No code was sent.'));
         }
-        $token = $this->call(fn() => $this->polkurierClient->twoFactorToken()->twoFactorTokenRegister(
+        $token = $this->call(fn() => $this->polkurierClient->getTwoFactorToken()->twoFactorTokenRegister(
             new RegisterMessage(TwoFactorNamespaceEnum::MoneyBoxPayout),
         ));
         $this->apiEventDispatcher->dispatch(ApiEventEnum::TwoFactorCodeRequestAfter, null, [
@@ -136,7 +138,7 @@ readonly class PayoutManager
      * Requests the payout. Moves money.
      *
      * @param string[] $orderNumbers empty pays out everything available
-     * @param string|null $bankAccountNumber what a transfer goes to (chosenAccount())
+     * @param string|null $bankAccountNumber what a transfer goes to (resolveChosenAccount())
      *
      * @throws LocalizedException when a transfer has no account, the code is missing, or Polkurier
      *     refuses
@@ -165,7 +167,7 @@ readonly class PayoutManager
             ->twoFactorToken($twoFactorToken)
             ->twoFactorCode($twoFactorCode)
             ->build();
-        $payout = $this->call(fn() => $this->polkurierClient->moneyBox()->createPayout($message));
+        $payout = $this->call(fn() => $this->polkurierClient->getMoneyBox()->createPayout($message));
         $this->apiEventDispatcher->dispatch(ApiEventEnum::PayoutCreateAfter, null, [
             'order_numbers' => \array_values($orderNumbers),
             'payout_type' => $payoutType,
@@ -182,7 +184,7 @@ readonly class PayoutManager
     public function cancelPayout(string $payoutNumber): MoneyBoxPayoutMessage
     {
         $request = new CancelMoneyBoxPayoutMessage($payoutNumber);
-        $payout = $this->call(fn() => $this->polkurierClient->moneyBox()->cancelPayout($request));
+        $payout = $this->call(fn() => $this->polkurierClient->getMoneyBox()->cancelPayout($request));
         $this->apiEventDispatcher->dispatch(ApiEventEnum::PayoutCancelAfter, null, [
             'request' => $request,
             'response' => $payout,
@@ -214,7 +216,7 @@ readonly class PayoutManager
         try {
             return $call();
         } catch (PolkurierException $e) {
-            throw $this->errorMessageResolver->exception($e);
+            throw $this->errorMessageResolver->createException($e);
         }
     }
 }

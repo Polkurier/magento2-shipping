@@ -31,7 +31,7 @@ enum SyncEntityEnum: string
     /**
      * The name the admin knows the kind by, e.g. in synchronization summaries.
      */
-    public function label(): string
+    public function getLabel(): string
     {
         return (string)match ($this) {
             self::Address => __('Addresses'),

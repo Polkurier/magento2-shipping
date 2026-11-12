@@ -26,42 +26,42 @@ use Polkurier\Webservice\Api\Service\UtilsServiceInterface;
 
 /**
  * The Polkurier API with the shop's account: every service of the SDK, set up as the module uses
- * them (credentials, sandbox, timeouts, logging). Orders placed through orders() are not the
+ * them (credentials, sandbox, timeouts, logging). Orders placed through getOrders() are not the
  * module's shipments; place those with {@see \Polkurier\Shipping\Api\ShipmentManagementInterface}.
  *
  * @api
  */
 interface PolkurierClientInterface
 {
-    public function courier(): CourierServiceInterface;
+    public function getCourier(): CourierServiceInterface;
 
-    public function orders(): OrdersServiceInterface;
+    public function getOrders(): OrdersServiceInterface;
 
-    public function account(): AccountServiceInterface;
+    public function getAccount(): AccountServiceInterface;
 
-    public function addresses(): AddressesServiceInterface;
+    public function getAddresses(): AddressesServiceInterface;
 
-    public function bankAccounts(): BankAccountsServiceInterface;
+    public function getBankAccounts(): BankAccountsServiceInterface;
 
-    public function packTemplates(): PackTemplatesServiceInterface;
+    public function getPackTemplates(): PackTemplatesServiceInterface;
 
-    public function geo(): GeoServiceInterface;
+    public function getGeo(): GeoServiceInterface;
 
-    public function twoFactorToken(): TwoFactorTokenServiceInterface;
+    public function getTwoFactorToken(): TwoFactorTokenServiceInterface;
 
-    public function system(): SystemServiceInterface;
+    public function getSystem(): SystemServiceInterface;
 
-    public function utils(): UtilsServiceInterface;
+    public function getUtils(): UtilsServiceInterface;
 
-    public function accountVerification(): AccountVerificationServiceInterface;
+    public function getAccountVerification(): AccountVerificationServiceInterface;
 
-    public function invoices(): InvoicesServiceInterface;
+    public function getInvoices(): InvoicesServiceInterface;
 
-    public function payments(): PaymentsServiceInterface;
+    public function getPayments(): PaymentsServiceInterface;
 
-    public function tickets(): TicketsServiceInterface;
+    public function getTickets(): TicketsServiceInterface;
 
-    public function knowledgeBase(): KnowledgeBaseServiceInterface;
+    public function getKnowledgeBase(): KnowledgeBaseServiceInterface;
 
-    public function moneyBox(): MoneyBoxServiceInterface;
+    public function getMoneyBox(): MoneyBoxServiceInterface;
 }

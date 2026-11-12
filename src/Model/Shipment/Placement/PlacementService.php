@@ -71,7 +71,7 @@ readonly class PlacementService
      *
      * @throws LocalizedException when Polkurier refused the order, or did not confirm it
      */
-    public function forNativeShipment(
+    public function placeForNativeShipment(
         int $orderId,
         ShipmentDraftInterface $draft,
         ?int $magentoShipmentId = null,
@@ -113,11 +113,11 @@ readonly class PlacementService
             return $this->markUnknown($shipment, $order, $e);
         } catch (LocalizedException $e) {
             if ($this->errorMessageResolver->isTransient($e)) {
-                $this->attemptRecorder->failed($shipment, $e->getMessage());
+                $this->attemptRecorder->recordFailed($shipment, $e->getMessage());
             } else {
                 // The same answer every time: the reason is shown, for the shipment to be changed
                 // and placed again.
-                $this->attemptRecorder->refused($shipment, $previous);
+                $this->attemptRecorder->recordRefused($shipment, $previous);
             }
 
             throw $e;
@@ -126,7 +126,7 @@ readonly class PlacementService
         // Under the lock: once saved as placed, a refresh or the admin may ship it too, but not
         // before this does.
         $this->orderLock->run($orderId, function () use ($created, $shipment, $order, $shipInMagento): void {
-            $this->attemptRecorder->placed($shipment, $created);
+            $this->attemptRecorder->recordPlaced($shipment, $created);
             $this->nativeFollowUpService->notePlaced($order, $shipment);
             if ($shipInMagento) {
                 $this->nativeFollowUpService->ship($order, $shipment);
@@ -160,10 +160,10 @@ readonly class PlacementService
     ): array {
         $storeId = (int)$order->getStoreId();
         $this->attemptRecorder->assertNothingUnresolved($orderId);
-        $target = $this->target($order, $draft, $shipInMagento, $magentoShipmentId);
+        $target = $this->resolveTarget($order, $draft, $shipInMagento, $magentoShipmentId);
         $this->draftValidator->prepare($draft, $storeId);
-        $notPlaced = $this->attemptRecorder->notPlaced($orderId);
-        $externalIds = $this->externalIdService->forAttempt($order, $notPlaced, $target['shipment_id']);
+        $notPlaced = $this->attemptRecorder->findNotPlaced($orderId);
+        $externalIds = $this->externalIdService->buildExternalId($order, $notPlaced, $target['shipment_id']);
         $message = $this->createOrderMessageMapper->map($draft, $storeId, [
             'application' => $this->applicationIdProvider->get(),
             'id' => $externalIds['id'],
@@ -189,7 +189,7 @@ readonly class PlacementService
      * @return array{qtys: array<int, float>, shipment_id: int|null, packages: array<int, array<string, mixed>>}
      * @throws LocalizedException
      */
-    private function target(
+    private function resolveTarget(
         Order $order,
         ShipmentDraftInterface $draft,
         bool $shipInMagento,
@@ -229,7 +229,7 @@ readonly class PlacementService
             'exception' => $e,
         ]);
         // Not noted on the order: it's settled automatically, and the outcome is noted then.
-        $this->attemptRecorder->unknown($shipment, $e->getMessage());
+        $this->attemptRecorder->recordUnknown($shipment, $e->getMessage());
 
         return $shipment;
     }

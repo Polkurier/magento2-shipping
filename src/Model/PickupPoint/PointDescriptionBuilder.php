@@ -39,7 +39,7 @@ readonly class PointDescriptionBuilder
     /**
      * Whether the description already names the point, e.g. on an order placed this way.
      */
-    public function names(string $description, string $pointId): bool
+    public function isPointNamed(string $description, string $pointId): bool
     {
         return $pointId !== '' && \str_contains($description, $pointId);
     }

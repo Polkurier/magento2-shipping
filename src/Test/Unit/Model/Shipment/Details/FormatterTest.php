@@ -21,32 +21,32 @@ class FormatterTest extends TestCase
 {
     public function testPolkurierTimesAreShownInTheAdminsTimeZoneLikeTheModulesOwn(): void
     {
-        $format = $this->formatter();
+        $format = $this->createFormatter();
 
         // 14:30 in Warsaw in September is 12:30 UTC, the moment the admin's time zone is applied to.
-        self::assertSame('2026-09-29T12:30:00+00:00', $format->polkurierTime('2026-09-29 14:30:00'));
-        self::assertSame('2026-09-29T12:30:00+00:00', $format->storedTime('2026-09-29 12:30:00'));
-        self::assertSame('—', $format->polkurierTime(null));
-        self::assertSame('not a date', $format->polkurierTime('not a date'));
+        self::assertSame('2026-09-29T12:30:00+00:00', $format->formatPolkurierTime('2026-09-29 14:30:00'));
+        self::assertSame('2026-09-29T12:30:00+00:00', $format->formatStoredTime('2026-09-29 12:30:00'));
+        self::assertSame('—', $format->formatPolkurierTime(null));
+        self::assertSame('not a date', $format->formatPolkurierTime('not a date'));
     }
 
     public function testTheCountryIsNamedOnlyAbroad(): void
     {
-        $format = $this->formatter();
+        $format = $this->createFormatter();
 
-        self::assertSame('00-590 Warszawa', $format->place('00-590', 'Warszawa', 'PL'));
-        self::assertSame('10115 Berlin (DE)', $format->place('10115', 'Berlin', 'DE'));
+        self::assertSame('00-590 Warszawa', $format->formatPlace('00-590', 'Warszawa', 'PL'));
+        self::assertSame('10115 Berlin (DE)', $format->formatPlace('10115', 'Berlin', 'DE'));
     }
 
     public function testSizesAndWeightsKeepTheirUnits(): void
     {
-        $format = $this->formatter();
+        $format = $this->createFormatter();
 
-        self::assertSame('40 × 30 × ? cm', $format->size(40, 30, null));
-        self::assertSame('1.5 kg', $format->weight(1.5));
+        self::assertSame('40 × 30 × ? cm', $format->formatSize(40, 30, null));
+        self::assertSame('1.5 kg', $format->formatWeight(1.5));
     }
 
-    private function formatter(): Formatter
+    private function createFormatter(): Formatter
     {
         $timezone = $this->createStub(TimezoneInterface::class);
         $timezone->method('formatDateTime')->willReturnCallback(

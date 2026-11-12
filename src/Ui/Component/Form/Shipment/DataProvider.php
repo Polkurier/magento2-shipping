@@ -391,7 +391,7 @@ class DataProvider extends FormDataProvider
      */
     private function describeStoreSender(int $storeId): ?array
     {
-        $address = $this->senderMapper->fromStore($storeId);
+        $address = $this->senderMapper->mapFromStore($storeId);
 
         return $address === null ? null : $this->describeMessage($address);
     }
@@ -405,7 +405,11 @@ class DataProvider extends FormDataProvider
             'label' => $address->getName(),
             'company' => (string)$address->getCompany(),
             'person' => $address->getPerson(),
-            'street' => $this->street($address->getStreet(), $address->getHouseNumber(), $address->getFlatNumber()),
+            'street' => $this->formatStreet(
+                $address->getStreet(),
+                $address->getHouseNumber(),
+                $address->getFlatNumber(),
+            ),
             'city' => \trim($address->getPostcode() . ' ' . $address->getCity()),
             'postcode' => $address->getPostcode(),
             'country' => $address->getCountry(),
@@ -425,7 +429,7 @@ class DataProvider extends FormDataProvider
             'company' => (string)$address->getCompany(),
             'postcode' => $address->getPostcode(),
             'person' => $address->getPerson() === $address->getCompany() ? '' : $address->getPerson(),
-            'street' => $this->street(
+            'street' => $this->formatStreet(
                 $address->getStreet(),
                 (string)$address->getHouseNumber(),
                 $address->getFlatNumber(),
@@ -438,7 +442,7 @@ class DataProvider extends FormDataProvider
         ];
     }
 
-    private function street(string $street, string $houseNumber, ?string $flatNumber): string
+    private function formatStreet(string $street, string $houseNumber, ?string $flatNumber): string
     {
         return \trim($street . ' ' . $houseNumber . ($flatNumber ? '/' . $flatNumber : ''));
     }
@@ -464,7 +468,7 @@ class DataProvider extends FormDataProvider
             ShipmentDraftInterface::FIELD_SHIPMENT_TYPE => (object)$this->shipmentTypes->toArray(),
             PackInterface::FIELD_PACK_TYPE => (object)$this->packTypes->toArray(),
             // The shipment type each parcel type makes.
-            'pack_shipment_type' => (object)ParcelTypeMapper::map(),
+            'pack_shipment_type' => (object)ParcelTypeMapper::getShipmentTypeMap(),
             ShipmentDraftInterface::FIELD_COD_TYPE => (object)$this->codTypes->toArray(),
             ShipmentDraftInterface::FIELD_COD_RETURN_TYPE => (object)$this->codReturnTypes->toArray(),
             ShipmentDraftInterface::FIELD_COD_BANK_ACCOUNT_ID => $labels(

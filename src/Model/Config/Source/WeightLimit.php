@@ -18,7 +18,7 @@ readonly class WeightLimit extends AbstractOptions
     {
         $options = [];
         foreach (WeightLimitEnum::cases() as $case) {
-            $options[$case->value] = $case->label();
+            $options[$case->value] = $case->getLabel();
         }
 
         return $options;

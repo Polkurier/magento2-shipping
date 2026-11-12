@@ -67,7 +67,7 @@ readonly class StatusWebhookHandler
         // Only a placed shipment of this shop, which is known by its number. Other orders of the
         // account, such as a copy of the shop's or one placed in the panel, aren't this shop's to
         // follow.
-        foreach ($this->shipmentFinder->byNumbers([$number], [ShipmentInterface::STATE_CREATED]) as $shipment) {
+        foreach ($this->shipmentFinder->findByNumbers([$number], [ShipmentInterface::STATE_CREATED]) as $shipment) {
             $shipmentId = (int)$shipment->getId();
             try {
                 $this->shipmentManagement->refreshStatus($shipmentId);

@@ -42,7 +42,7 @@ readonly class DescribePickupPointObserver implements ObserverInterface
         if (!$order instanceof Order || !$quote instanceof Quote) {
             return;
         }
-        $methodCode = Polkurier::methodCodeOf((string)$order->getShippingMethod());
+        $methodCode = Polkurier::extractMethodCode((string)$order->getShippingMethod());
         if ($methodCode === null) {
             return;
         }

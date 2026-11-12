@@ -43,17 +43,17 @@ class ScreenDataProviderTest extends TestCase
     {
         $point = new CourierPoint('WAW195M', available: true, address: '02-134 Warszawa, 1 Sierpnia 36B');
 
-        self::assertSame($point, $this->context($point)->findRecipientPoint('INPOST_PACZKOMAT', 'WAW195M'));
+        self::assertSame($point, $this->createProvider($point)->findRecipientPoint('INPOST_PACZKOMAT', 'WAW195M'));
     }
 
     public function testAPointGoneOrClosedIsSaidToBe(): void
     {
         self::assertFalse(
-            $this->context(null)->findRecipientPoint('INPOST_PACZKOMAT', 'WAW299X'),
+            $this->createProvider(null)->findRecipientPoint('INPOST_PACZKOMAT', 'WAW299X'),
             'No longer there.',
         );
         self::assertFalse(
-            $this->context(new CourierPoint('WAW195M', available: false))
+            $this->createProvider(new CourierPoint('WAW195M', available: false))
                 ->findRecipientPoint('INPOST_PACZKOMAT', 'WAW195M'),
             'Closed.',
         );
@@ -62,13 +62,13 @@ class ScreenDataProviderTest extends TestCase
     public function testWhatCantBeToldIsNeverTakenAsClosed(): void
     {
         self::assertNull(
-            $this->context(new ConnectionException('cURL error 7'))
+            $this->createProvider(new ConnectionException('cURL error 7'))
                 ->findRecipientPoint('INPOST_PACZKOMAT', 'WAW195M'),
             'Polkurier unreachable.',
         );
-        self::assertNull($this->context(null)->findRecipientPoint('INPOST_PACZKOMAT', ''), 'No point.');
+        self::assertNull($this->createProvider(null)->findRecipientPoint('INPOST_PACZKOMAT', ''), 'No point.');
         self::assertNull(
-            $this->context(null, carrier: false)->findRecipientPoint('GONE', 'WAW195M'),
+            $this->createProvider(null, carrier: false)->findRecipientPoint('GONE', 'WAW195M'),
             'No such carrier.',
         );
     }
@@ -89,16 +89,16 @@ class ScreenDataProviderTest extends TestCase
                 'label' => '02-134 Warszawa, 1 Sierpnia 36B',
                 'closed' => false,
             ],
-            $this->context($open)->describeRecipientPoint(42, 'INPOST_PACZKOMAT', 'WAW195M'),
+            $this->createProvider($open)->describeRecipientPoint(42, 'INPOST_PACZKOMAT', 'WAW195M'),
         );
         self::assertSame(
             ['id' => 'WAW195M', 'name' => '', 'label' => 'Paczkomat WAW195M, as chosen', 'closed' => true],
-            $this->context(null)->describeRecipientPoint(42, 'INPOST_PACZKOMAT', 'WAW195M'),
+            $this->createProvider(null)->describeRecipientPoint(42, 'INPOST_PACZKOMAT', 'WAW195M'),
             'Gone since: told by the label the customer chose it by.',
         );
         self::assertSame(
             ['id' => 'WAW299X', 'name' => '', 'label' => '', 'closed' => true],
-            $this->context(null)->describeRecipientPoint(42, 'INPOST_PACZKOMAT', 'WAW299X'),
+            $this->createProvider(null)->describeRecipientPoint(42, 'INPOST_PACZKOMAT', 'WAW299X'),
             'Another point than the customer\'s has no label of theirs.',
         );
     }
@@ -117,13 +117,16 @@ class ScreenDataProviderTest extends TestCase
                 'POZ02M' => ['name' => 'Kiosk', 'label' => '60-001 Poznań, Polna 2'],
                 'WAW195M' => ['name' => '', 'label' => 'Paczkomat WAW195M, as chosen'],
             ],
-            $this->context($points, defaultSenderPoints: ['INPOST_PACZKOMAT' => 'POZ02M', 'DPD_POINT' => 'GDA03M'])
+            $this->createProvider(
+                $points,
+                defaultSenderPoints: ['INPOST_PACZKOMAT' => 'POZ02M', 'DPD_POINT' => 'GDA03M'],
+            )
                 ->describePoints($recipient, 'KRA01M'),
             'The drop-off point and the carriers\' default ones, closed or not; those not found are left out.',
         );
         self::assertSame(
             [],
-            $this->context($points)->describePoints(['id' => 'WAW299X', 'name' => '', 'label' => ''], ''),
+            $this->createProvider($points)->describePoints(['id' => 'WAW299X', 'name' => '', 'label' => ''], ''),
             'A pickup point with nothing to tell is left out.',
         );
     }
@@ -133,7 +136,7 @@ class ScreenDataProviderTest extends TestCase
      *     code for more than one point
      * @param array<string, string> $defaultSenderPoints the account's drop-off points by carrier
      */
-    private function context(
+    private function createProvider(
         CourierPoint|\Throwable|array|null $found,
         bool $carrier = true,
         array $defaultSenderPoints = [],

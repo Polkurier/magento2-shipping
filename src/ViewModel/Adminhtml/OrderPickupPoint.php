@@ -34,10 +34,13 @@ readonly class OrderPickupPoint implements ArgumentInterface
 
     public function getPoint(Order $order): ?OrderPointInterface
     {
-        $methodCode = Polkurier::methodCodeOf((string)$order->getShippingMethod());
+        $methodCode = Polkurier::extractMethodCode((string)$order->getShippingMethod());
         $point = $methodCode === null ? null : $this->orderPointRepository->getForOrder((int)$order->getEntityId());
         if ($methodCode === null || $point === null || $point->getPointId() === ''
-            || $this->pointDescriptionBuilder->names((string)$order->getShippingDescription(), $point->getPointId())
+            || $this->pointDescriptionBuilder->isPointNamed(
+                (string)$order->getShippingDescription(),
+                $point->getPointId(),
+            )
         ) {
             return null;
         }

@@ -45,9 +45,9 @@ readonly class AttemptRecorder
     /**
      * The order's latest shipment that wasn't placed, which a new attempt sends again.
      */
-    public function notPlaced(int $orderId): ?Shipment
+    public function findNotPlaced(int $orderId): ?Shipment
     {
-        $shipment = $this->shipmentFinder->latestForOrder($orderId, [ShipmentInterface::STATE_FAILED]);
+        $shipment = $this->shipmentFinder->findLatestForOrder($orderId, [ShipmentInterface::STATE_FAILED]);
 
         return $shipment instanceof Shipment ? $shipment : null;
     }
@@ -60,7 +60,7 @@ readonly class AttemptRecorder
      */
     public function assertNothingUnresolved(int $orderId): void
     {
-        $unresolved = $this->shipmentFinder->forOrder(
+        $unresolved = $this->shipmentFinder->findForOrder(
             $orderId,
             [ShipmentInterface::STATE_UNKNOWN, ShipmentInterface::STATE_PENDING],
         );
@@ -90,15 +90,15 @@ readonly class AttemptRecorder
      * Saves the attempt as pending before the request goes out, so an interrupted request still
      * leaves a trace, and the next request for the order finds it.
      *
-     * @param Shipment|null $notPlaced the shipment sent again, from notPlaced()
+     * @param Shipment|null $notPlaced the shipment sent again, from findNotPlaced()
      * @param array{qtys: array<int, float>, shipment_id: int|null, packages: array<int, array<string, mixed>>} $target
      *     what the Magento shipment ships: quantities by order item id, the existing one it goes
      *     on, and its packages
      * @param array{id: string, reserved: string|null} $externalIds from
-     *     {@see \Polkurier\Shipping\Model\Shipment\Placement\ExternalIdService::forAttempt()}
+     *     {@see \Polkurier\Shipping\Model\Shipment\Placement\ExternalIdService::buildExternalId()}
      *
      * @return array{shipment: Shipment, previous: array<string, mixed>|null} the shipment, and its
-     *     data from before when a shipment that wasn't placed is being sent again, for refused()
+     *     data from before when a shipment that wasn't placed is being sent again, for recordRefused()
      */
     public function record(
         ?Shipment $notPlaced,
@@ -130,7 +130,7 @@ readonly class AttemptRecorder
             ->setShipPackages($target['packages'] ?: null)
             ->setRequest($this->serializerProvider->getSerializer()->serialize($message, 'json'))
             // What sending it again starts from, should it fail on Polkurier's side.
-            ->setDraft($this->draftHydrator->toArray($draft))
+            ->setDraft($this->draftHydrator->convertToArray($draft))
             ->setLastError(null)
             // A new attempt: whatever the admin was told about the earlier one is past.
             ->setAttentionNotifiedAt(null);
@@ -149,7 +149,7 @@ readonly class AttemptRecorder
      *
      * @param array<string, mixed>|null $previous as record() gave it
      */
-    public function refused(Shipment $shipment, ?array $previous): void
+    public function recordRefused(Shipment $shipment, ?array $previous): void
     {
         if ($previous !== null) {
             $this->shipmentRepository->save($shipment->setData($previous));
@@ -161,7 +161,7 @@ readonly class AttemptRecorder
     /**
      * Failed on Polkurier's side (down, busy, out of reach): kept, to be sent again as it is.
      */
-    public function failed(ShipmentInterface $shipment, string $reason): void
+    public function recordFailed(ShipmentInterface $shipment, string $reason): void
     {
         $this->shipmentRepository->save($shipment->setState(ShipmentInterface::STATE_FAILED)->setLastError($reason));
     }
@@ -169,12 +169,12 @@ readonly class AttemptRecorder
     /**
      * Polkurier didn't confirm it: it may exist, and is never sent again until it's looked up in Polkurier.
      */
-    public function unknown(ShipmentInterface $shipment, string $reason): void
+    public function recordUnknown(ShipmentInterface $shipment, string $reason): void
     {
         $this->shipmentRepository->save($shipment->setState(ShipmentInterface::STATE_UNKNOWN)->setLastError($reason));
     }
 
-    public function placed(ShipmentInterface $shipment, CreatedOrderMessage $created): void
+    public function recordPlaced(ShipmentInterface $shipment, CreatedOrderMessage $created): void
     {
         $this->shipmentRepository->save($shipment->setState(ShipmentInterface::STATE_CREATED)
             ->setPolkurierNumber($created->getOrderNumber())

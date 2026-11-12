@@ -33,7 +33,7 @@ class Draft extends DataObject implements ShipmentDraftInterface
      */
     public function getShipmentType(): string
     {
-        $types = ParcelTypeMapper::shipmentTypesOf(\array_map(
+        $types = ParcelTypeMapper::mapShipmentTypes(\array_map(
             static fn(PackInterface $pack): string => $pack->getPackType(),
             $this->getPacks(),
         ));
@@ -48,7 +48,7 @@ class Draft extends DataObject implements ShipmentDraftInterface
 
     public function getDescription(): ?string
     {
-        return $this->nullableString(self::FIELD_DESCRIPTION);
+        return $this->getNullableString(self::FIELD_DESCRIPTION);
     }
 
     public function setDescription(?string $description): static
@@ -58,7 +58,7 @@ class Draft extends DataObject implements ShipmentDraftInterface
 
     public function getSenderAddressId(): ?int
     {
-        return $this->nullableInt(self::FIELD_SENDER_ADDRESS_ID);
+        return $this->getNullableInt(self::FIELD_SENDER_ADDRESS_ID);
     }
 
     public function setSenderAddressId(?int $senderAddressId): static
@@ -78,7 +78,7 @@ class Draft extends DataObject implements ShipmentDraftInterface
 
     public function getRecipientCompany(): ?string
     {
-        return $this->nullableString(self::FIELD_RECIPIENT_COMPANY);
+        return $this->getNullableString(self::FIELD_RECIPIENT_COMPANY);
     }
 
     public function setRecipientCompany(?string $recipientCompany): static
@@ -98,7 +98,7 @@ class Draft extends DataObject implements ShipmentDraftInterface
 
     public function getRecipientHouseNumber(): ?string
     {
-        return $this->nullableString(self::FIELD_RECIPIENT_HOUSE_NUMBER);
+        return $this->getNullableString(self::FIELD_RECIPIENT_HOUSE_NUMBER);
     }
 
     public function setRecipientHouseNumber(?string $recipientHouseNumber): static
@@ -108,7 +108,7 @@ class Draft extends DataObject implements ShipmentDraftInterface
 
     public function getRecipientFlatNumber(): ?string
     {
-        return $this->nullableString(self::FIELD_RECIPIENT_FLAT_NUMBER);
+        return $this->getNullableString(self::FIELD_RECIPIENT_FLAT_NUMBER);
     }
 
     public function setRecipientFlatNumber(?string $recipientFlatNumber): static
@@ -168,7 +168,7 @@ class Draft extends DataObject implements ShipmentDraftInterface
 
     public function getRecipientPointId(): ?string
     {
-        return $this->nullableString(self::FIELD_RECIPIENT_POINT_ID);
+        return $this->getNullableString(self::FIELD_RECIPIENT_POINT_ID);
     }
 
     public function setRecipientPointId(?string $recipientPointId): static
@@ -222,7 +222,7 @@ class Draft extends DataObject implements ShipmentDraftInterface
 
     public function getCodAmount(): ?float
     {
-        return $this->nullableFloat(self::FIELD_COD_AMOUNT);
+        return $this->getNullableFloat(self::FIELD_COD_AMOUNT);
     }
 
     public function setCodAmount(?float $codAmount): static
@@ -232,7 +232,7 @@ class Draft extends DataObject implements ShipmentDraftInterface
 
     public function getCodType(): ?string
     {
-        return $this->nullableString(self::FIELD_COD_TYPE);
+        return $this->getNullableString(self::FIELD_COD_TYPE);
     }
 
     public function setCodType(?string $codType): static
@@ -242,7 +242,7 @@ class Draft extends DataObject implements ShipmentDraftInterface
 
     public function getCodReturnType(): ?string
     {
-        return $this->nullableString(self::FIELD_COD_RETURN_TYPE);
+        return $this->getNullableString(self::FIELD_COD_RETURN_TYPE);
     }
 
     public function setCodReturnType(?string $codReturnType): static
@@ -252,7 +252,7 @@ class Draft extends DataObject implements ShipmentDraftInterface
 
     public function getCodBankAccountId(): ?int
     {
-        return $this->nullableInt(self::FIELD_COD_BANK_ACCOUNT_ID);
+        return $this->getNullableInt(self::FIELD_COD_BANK_ACCOUNT_ID);
     }
 
     public function setCodBankAccountId(?int $codBankAccountId): static
@@ -363,7 +363,7 @@ class Draft extends DataObject implements ShipmentDraftInterface
 
     public function getInsuranceAmount(): ?float
     {
-        return $this->nullableFloat(self::FIELD_INSURANCE_AMOUNT);
+        return $this->getNullableFloat(self::FIELD_INSURANCE_AMOUNT);
     }
 
     public function setInsuranceAmount(?float $insuranceAmount): static
@@ -373,7 +373,7 @@ class Draft extends DataObject implements ShipmentDraftInterface
 
     public function getCoverAddressId(): ?int
     {
-        return $this->nullableInt(self::FIELD_COVER_ADDRESS_ID);
+        return $this->getNullableInt(self::FIELD_COVER_ADDRESS_ID);
     }
 
     public function setCoverAddressId(?int $coverAddressId): static
@@ -405,7 +405,7 @@ class Draft extends DataObject implements ShipmentDraftInterface
 
     public function getPickupDate(): ?string
     {
-        return $this->nullableString(self::FIELD_PICKUP_DATE);
+        return $this->getNullableString(self::FIELD_PICKUP_DATE);
     }
 
     public function setPickupDate(?string $pickupDate): static
@@ -415,7 +415,7 @@ class Draft extends DataObject implements ShipmentDraftInterface
 
     public function getPickupTimeFrom(): ?string
     {
-        return $this->nullableString(self::FIELD_PICKUP_TIME_FROM);
+        return $this->getNullableString(self::FIELD_PICKUP_TIME_FROM);
     }
 
     public function setPickupTimeFrom(?string $pickupTimeFrom): static
@@ -425,7 +425,7 @@ class Draft extends DataObject implements ShipmentDraftInterface
 
     public function getPickupTimeTo(): ?string
     {
-        return $this->nullableString(self::FIELD_PICKUP_TIME_TO);
+        return $this->getNullableString(self::FIELD_PICKUP_TIME_TO);
     }
 
     public function setPickupTimeTo(?string $pickupTimeTo): static
@@ -447,7 +447,7 @@ class Draft extends DataObject implements ShipmentDraftInterface
 
     public function getTargetShipmentId(): ?int
     {
-        return $this->nullableInt(self::FIELD_TARGET_SHIPMENT_ID);
+        return $this->getNullableInt(self::FIELD_TARGET_SHIPMENT_ID);
     }
 
     public function setTargetShipmentId(?int $targetShipmentId): static
@@ -465,21 +465,21 @@ class Draft extends DataObject implements ShipmentDraftInterface
         return $this->setData(self::FIELD_NOTIFY_CUSTOMER, $notify);
     }
 
-    private function nullableString(string $field): ?string
+    private function getNullableString(string $field): ?string
     {
         $value = $this->getData($field);
 
         return $value === null || $value === '' ? null : (string)$value;
     }
 
-    private function nullableInt(string $field): ?int
+    private function getNullableInt(string $field): ?int
     {
         $value = $this->getData($field);
 
         return $value === null || $value === '' ? null : (int)$value;
     }
 
-    private function nullableFloat(string $field): ?float
+    private function getNullableFloat(string $field): ?float
     {
         $value = $this->getData($field);
 

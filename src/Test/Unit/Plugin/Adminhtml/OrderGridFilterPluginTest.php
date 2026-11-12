@@ -40,7 +40,7 @@ class OrderGridFilterPluginTest extends TestCase
 
     public function testNoCarrierNoFilter(): void
     {
-        $collection = $this->collection();
+        $collection = $this->createCollection();
         (new OrderGridFilterPlugin())->aroundAddFieldToFilter(
             $collection,
             static fn() => self::fail('Not for the grid.'),
@@ -54,7 +54,7 @@ class OrderGridFilterPluginTest extends TestCase
     public function testOtherFiltersGoToTheGrid(): void
     {
         $passed = [];
-        $collection = $this->collection();
+        $collection = $this->createCollection();
 
         $result = (new OrderGridFilterPlugin())->aroundAddFieldToFilter(
             $collection,
@@ -77,7 +77,7 @@ class OrderGridFilterPluginTest extends TestCase
      */
     private function filter(array $condition): void
     {
-        $collection = $this->collection();
+        $collection = $this->createCollection();
         $result = (new OrderGridFilterPlugin())->aroundAddFieldToFilter(
             $collection,
             static fn() => self::fail('Not for the grid\'s table, which has no such column.'),
@@ -89,7 +89,7 @@ class OrderGridFilterPluginTest extends TestCase
         self::assertInstanceOf(Select::class, $this->where[0][1], 'Matched against the orders found by their method.');
     }
 
-    private function collection(): Collection
+    private function createCollection(): Collection
     {
         $orders = $this->createStub(Select::class);
         $orders->method('from')->willReturnSelf();

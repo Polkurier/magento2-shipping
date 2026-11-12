@@ -218,7 +218,7 @@ readonly class NativeShipmentService
             return [];
         }
         // Oldest first: what a new Polkurier order replaces is the latest cancelled one.
-        foreach ($this->shipmentFinder->linkedTo(\array_keys($shipments)) as $polkurier) {
+        foreach ($this->shipmentFinder->findLinkedTo(\array_keys($shipments)) as $polkurier) {
             $id = (int)$polkurier->getShipmentId();
             if (\in_array($polkurier->getState(), ShipmentInterface::LIVE_STATES, true)) {
                 unset($shipments[$id]);
@@ -422,7 +422,7 @@ readonly class NativeShipmentService
     public function release(int $magentoShipmentId): void
     {
         $waybills = [];
-        foreach ($this->shipmentFinder->linkedTo([$magentoShipmentId]) as $replaced) {
+        foreach ($this->shipmentFinder->findLinkedTo([$magentoShipmentId]) as $replaced) {
             if (!\in_array($replaced->getState(), ShipmentInterface::LIVE_STATES, true)) {
                 $waybills = \array_merge($waybills, $replaced->getWaybills());
             }
@@ -486,7 +486,7 @@ readonly class NativeShipmentService
         }
         $description = (string)$order->getShippingDescription();
 
-        return $carrierCode === '' || $carrierCode === Polkurier::methodCodeOf((string)$order->getShippingMethod())
+        return $carrierCode === '' || $carrierCode === Polkurier::extractMethodCode((string)$order->getShippingMethod())
             ? ($description !== '' ? $description : $carrierCode)
             : $carrierCode;
     }

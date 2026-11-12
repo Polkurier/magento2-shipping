@@ -53,15 +53,15 @@ class MassRefresh extends AbstractShipmentAction implements HttpPostActionInterf
                 }
             }
         } catch (LocalizedException $e) {
-            $flash->error($e->getMessage());
+            $flash->addError($e->getMessage());
         }
-        $flash->success(__('%1 shipment(s) updated.', $refreshed));
+        $flash->addSuccess(__('%1 shipment(s) updated.', $refreshed));
         if ($failed !== []) {
             $notUpdated = __('Not updated: %1', \implode('; ', $failed));
-            $refreshed > 0 ? $flash->warning($notUpdated) : $flash->error($notUpdated);
+            $refreshed > 0 ? $flash->addWarning($notUpdated) : $flash->addError($notUpdated);
         }
         $flash->send($this->messageManager);
 
-        return $this->back();
+        return $this->redirectBack();
     }
 }

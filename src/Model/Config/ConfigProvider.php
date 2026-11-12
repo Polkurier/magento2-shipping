@@ -86,7 +86,7 @@ readonly class ConfigProvider
 
     public function isActive(?int $storeId = null): bool
     {
-        return $this->flag(self::XML_PATH_ACTIVE, $storeId);
+        return $this->isFlagSet(self::XML_PATH_ACTIVE, $storeId);
     }
 
     /**
@@ -95,7 +95,7 @@ readonly class ConfigProvider
      */
     public function getTitle(?int $storeId = null): string
     {
-        return (string)$this->value(self::XML_PATH_TITLE, $storeId);
+        return (string)$this->getValue(self::XML_PATH_TITLE, $storeId);
     }
 
     /**
@@ -103,18 +103,18 @@ readonly class ConfigProvider
      */
     public function getTierCartValue(?int $storeId = null): CartValueEnum
     {
-        return CartValueEnum::tryFrom((string)$this->value(self::XML_PATH_TIER_CART_VALUE, $storeId))
+        return CartValueEnum::tryFrom((string)$this->getValue(self::XML_PATH_TIER_CART_VALUE, $storeId))
             ?? CartValueEnum::Gross;
     }
 
     public function getLogin(): string
     {
-        return $this->globalDecrypt(self::XML_PATH_LOGIN);
+        return $this->decryptGlobal(self::XML_PATH_LOGIN);
     }
 
     public function getToken(): string
     {
-        return $this->globalDecrypt(self::XML_PATH_TOKEN);
+        return $this->decryptGlobal(self::XML_PATH_TOKEN);
     }
 
     public function hasCredentials(): bool
@@ -125,14 +125,14 @@ readonly class ConfigProvider
     /**
      * The message an action that calls Polkurier gives when the credentials are missing.
      */
-    public static function credentialsMissing(): Phrase
+    public static function describeMissingCredentials(): Phrase
     {
         return __('Configure the Polkurier customer ID and API token first.');
     }
 
     public function isSandbox(): bool
     {
-        return $this->globalFlag(self::XML_PATH_SANDBOX);
+        return $this->isGlobalFlagSet(self::XML_PATH_SANDBOX);
     }
 
     /**
@@ -140,14 +140,14 @@ readonly class ConfigProvider
      */
     public function getApiUrl(): ?string
     {
-        $url = \trim((string)$this->globalValue(self::XML_PATH_API_URL));
+        $url = \trim((string)$this->getGlobalValue(self::XML_PATH_API_URL));
 
         return $url !== '' ? \rtrim($url, '/') : null;
     }
 
     public function getTimeout(): int
     {
-        $timeout = (int)$this->globalValue(self::XML_PATH_TIMEOUT);
+        $timeout = (int)$this->getGlobalValue(self::XML_PATH_TIMEOUT);
 
         return $timeout > 0 ? $timeout : 30;
     }
@@ -157,7 +157,7 @@ readonly class ConfigProvider
      */
     public function getExternalOrderId(): ExternalOrderIdEnum
     {
-        return ExternalOrderIdEnum::tryFrom((string)$this->globalValue(self::XML_PATH_EXTERNAL_ORDER_ID))
+        return ExternalOrderIdEnum::tryFrom((string)$this->getGlobalValue(self::XML_PATH_EXTERNAL_ORDER_ID))
             ?? ExternalOrderIdEnum::Order;
     }
 
@@ -167,12 +167,12 @@ readonly class ConfigProvider
      */
     public function getApplicationIdOverride(): string
     {
-        return \trim((string)$this->globalValue(self::XML_PATH_APPLICATION_ID));
+        return \trim((string)$this->getGlobalValue(self::XML_PATH_APPLICATION_ID));
     }
 
     public function isLoggingEnabled(): bool
     {
-        return $this->globalFlag(self::XML_PATH_LOGGING);
+        return $this->isGlobalFlagSet(self::XML_PATH_LOGGING);
     }
 
     /**
@@ -182,18 +182,18 @@ readonly class ConfigProvider
     {
         return \array_values(\array_filter(\array_map(
             static fn(string $method): ?ApiMethodEnum => ApiMethodEnum::tryFrom($method),
-            $this->globalList(self::XML_PATH_LOG_METHODS),
+            $this->getGlobalList(self::XML_PATH_LOG_METHODS),
         )));
     }
 
     public function isPersonalDataLoggingEnabled(): bool
     {
-        return $this->globalFlag(self::XML_PATH_LOG_PERSONAL_DATA);
+        return $this->isGlobalFlagSet(self::XML_PATH_LOG_PERSONAL_DATA);
     }
 
     public function isFileLoggingEnabled(): bool
     {
-        return $this->globalFlag(self::XML_PATH_LOG_FILES);
+        return $this->isGlobalFlagSet(self::XML_PATH_LOG_FILES);
     }
 
     /**
@@ -201,7 +201,7 @@ readonly class ConfigProvider
      */
     public function getLogFilesDirectory(): string
     {
-        return \trim((string)$this->globalValue(self::XML_PATH_LOG_FILES_DIRECTORY));
+        return \trim((string)$this->getGlobalValue(self::XML_PATH_LOG_FILES_DIRECTORY));
     }
 
     /**
@@ -212,7 +212,7 @@ readonly class ConfigProvider
      */
     public function getAvailableCarriers(): array
     {
-        return $this->globalList(self::XML_PATH_AVAILABLE_CARRIERS);
+        return $this->getGlobalList(self::XML_PATH_AVAILABLE_CARRIERS);
     }
 
     /**
@@ -221,12 +221,12 @@ readonly class ConfigProvider
      */
     public function isUseStoreInformationAddress(?int $storeId = null): bool
     {
-        return $this->flag(self::XML_PATH_USE_STORE_INFORMATION_ADDRESS, $storeId);
+        return $this->isFlagSet(self::XML_PATH_USE_STORE_INFORMATION_ADDRESS, $storeId);
     }
 
     public function isUseStoreOriginAddress(?int $storeId = null): bool
     {
-        return $this->flag(self::XML_PATH_USE_ORIGIN_ADDRESS, $storeId);
+        return $this->isFlagSet(self::XML_PATH_USE_ORIGIN_ADDRESS, $storeId);
     }
 
     /**
@@ -234,7 +234,7 @@ readonly class ConfigProvider
      */
     public function getSenderEmailIdentity(?int $storeId = null): string
     {
-        return (string)$this->value(self::XML_PATH_SENDER_EMAIL, $storeId) ?: 'general';
+        return (string)$this->getValue(self::XML_PATH_SENDER_EMAIL, $storeId) ?: 'general';
     }
 
     /**
@@ -244,7 +244,7 @@ readonly class ConfigProvider
     {
         return \array_values(\array_filter(\array_map(
             static fn(string $service): ?AdditionalServiceEnum => AdditionalServiceEnum::tryFrom($service),
-            $this->list(self::XML_PATH_DEFAULT_SERVICES, $storeId),
+            $this->getList(self::XML_PATH_DEFAULT_SERVICES, $storeId),
         )));
     }
 
@@ -253,7 +253,7 @@ readonly class ConfigProvider
      */
     public function getDefaultCoverAddressId(?int $storeId = null): ?int
     {
-        $id = (int)$this->value(self::XML_PATH_DEFAULT_COVER_ADDRESS, $storeId);
+        $id = (int)$this->getValue(self::XML_PATH_DEFAULT_COVER_ADDRESS, $storeId);
 
         return $id > 0 ? $id : null;
     }
@@ -264,13 +264,13 @@ readonly class ConfigProvider
      */
     public function getDefaultShipmentType(?int $storeId = null): ShipmentTypeEnum
     {
-        return ShipmentTypeEnum::tryFrom((string)$this->value(self::XML_PATH_DEFAULT_SHIPMENT_TYPE, $storeId))
+        return ShipmentTypeEnum::tryFrom((string)$this->getValue(self::XML_PATH_DEFAULT_SHIPMENT_TYPE, $storeId))
             ?? ShipmentTypeEnum::Box;
     }
 
     public function isInsureByDefault(?int $storeId = null): bool
     {
-        return $this->flag(self::XML_PATH_INSURE_BY_DEFAULT, $storeId);
+        return $this->isFlagSet(self::XML_PATH_INSURE_BY_DEFAULT, $storeId);
     }
 
     /**
@@ -278,7 +278,7 @@ readonly class ConfigProvider
      */
     public function isPackingNewShipments(?int $storeId = null): bool
     {
-        return $this->flag(self::XML_PATH_PACK_NEW_SHIPMENTS, $storeId);
+        return $this->isFlagSet(self::XML_PATH_PACK_NEW_SHIPMENTS, $storeId);
     }
 
     /**
@@ -286,30 +286,32 @@ readonly class ConfigProvider
      */
     public function getPackingMargin(?int $storeId = null): float
     {
-        return \max(0.0, (float)\str_replace(',', '.', (string)$this->value(self::XML_PATH_PACKING_MARGIN, $storeId)));
+        $margin = (string)$this->getValue(self::XML_PATH_PACKING_MARGIN, $storeId);
+
+        return \max(0.0, (float)\str_replace(',', '.', $margin));
     }
 
     public function getWeightLimit(?int $storeId = null): WeightLimitEnum
     {
-        return WeightLimitEnum::tryFrom((string)$this->value(self::XML_PATH_WEIGHT_LIMIT, $storeId))
+        return WeightLimitEnum::tryFrom((string)$this->getValue(self::XML_PATH_WEIGHT_LIMIT, $storeId))
             ?? WeightLimitEnum::Warn;
     }
 
     public function getParcelWeight(?int $storeId = null): ParcelWeightEnum
     {
-        return ParcelWeightEnum::tryFrom((string)$this->value(self::XML_PATH_PARCEL_WEIGHT, $storeId))
+        return ParcelWeightEnum::tryFrom((string)$this->getValue(self::XML_PATH_PARCEL_WEIGHT, $storeId))
             ?? ParcelWeightEnum::Products;
     }
 
     public function getDefaultCodType(?int $storeId = null): CodTypeEnum
     {
-        return CodTypeEnum::tryFrom((string)$this->value(self::XML_PATH_DEFAULT_COD_TYPE, $storeId))
+        return CodTypeEnum::tryFrom((string)$this->getValue(self::XML_PATH_DEFAULT_COD_TYPE, $storeId))
             ?? CodTypeEnum::Standard;
     }
 
     public function getDefaultCodReturnType(?int $storeId = null): CodReturnTypeEnum
     {
-        return CodReturnTypeEnum::tryFrom((string)$this->value(self::XML_PATH_DEFAULT_COD_RETURN_TYPE, $storeId))
+        return CodReturnTypeEnum::tryFrom((string)$this->getValue(self::XML_PATH_DEFAULT_COD_RETURN_TYPE, $storeId))
             ?? CodReturnTypeEnum::BankAccount;
     }
 
@@ -318,7 +320,7 @@ readonly class ConfigProvider
      */
     public function getDescriptionFormat(?int $storeId = null): string
     {
-        return (string)$this->value(self::XML_PATH_DESCRIPTION_FORMAT, $storeId) ?: '#%s';
+        return (string)$this->getValue(self::XML_PATH_DESCRIPTION_FORMAT, $storeId) ?: '#%s';
     }
 
     /**
@@ -328,13 +330,13 @@ readonly class ConfigProvider
      */
     public function getCodPaymentMethods(?int $storeId = null): array
     {
-        return $this->list(self::XML_PATH_COD_PAYMENT_METHODS, $storeId);
+        return $this->getList(self::XML_PATH_COD_PAYMENT_METHODS, $storeId);
     }
 
     public function getMapUrl(): string
     {
         // A map token only works with the map of the environment that issued it.
-        $url = \trim((string)$this->globalValue(self::XML_PATH_MAP_URL));
+        $url = \trim((string)$this->getGlobalValue(self::XML_PATH_MAP_URL));
         if ($url !== '') {
             return \rtrim($url, '/');
         }
@@ -344,27 +346,27 @@ readonly class ConfigProvider
 
     public function getMapLatitude(?int $storeId = null): float
     {
-        return (float)$this->value(self::XML_PATH_MAP_LATITUDE, $storeId);
+        return (float)$this->getValue(self::XML_PATH_MAP_LATITUDE, $storeId);
     }
 
     public function getMapLongitude(?int $storeId = null): float
     {
-        return (float)$this->value(self::XML_PATH_MAP_LONGITUDE, $storeId);
+        return (float)$this->getValue(self::XML_PATH_MAP_LONGITUDE, $storeId);
     }
 
     public function getMapZoom(?int $storeId = null): int
     {
-        return (int)$this->value(self::XML_PATH_MAP_ZOOM, $storeId);
+        return (int)$this->getValue(self::XML_PATH_MAP_ZOOM, $storeId);
     }
 
     public function isMapShowList(?int $storeId = null): bool
     {
-        return $this->flag(self::XML_PATH_MAP_SHOW_LIST, $storeId);
+        return $this->isFlagSet(self::XML_PATH_MAP_SHOW_LIST, $storeId);
     }
 
     public function isMapShowSearch(?int $storeId = null): bool
     {
-        return $this->flag(self::XML_PATH_MAP_SHOW_SEARCH, $storeId);
+        return $this->isFlagSet(self::XML_PATH_MAP_SHOW_SEARCH, $storeId);
     }
 
     /**
@@ -374,18 +376,18 @@ readonly class ConfigProvider
     {
         return \array_values(\array_filter(\array_map(
             static fn(string $function): ?PointFunctionEnum => PointFunctionEnum::tryFrom($function),
-            $this->list(self::XML_PATH_MAP_POINT_FUNCTIONS, $storeId),
+            $this->getList(self::XML_PATH_MAP_POINT_FUNCTIONS, $storeId),
         )));
     }
 
     public function isSyncEnabled(): bool
     {
-        return $this->globalFlag(self::XML_PATH_SYNC_ENABLED);
+        return $this->isGlobalFlagSet(self::XML_PATH_SYNC_ENABLED);
     }
 
     public function isStatusSyncEnabled(): bool
     {
-        return $this->globalFlag(self::XML_PATH_STATUS_SYNC_ENABLED);
+        return $this->isGlobalFlagSet(self::XML_PATH_STATUS_SYNC_ENABLED);
     }
 
     /**
@@ -394,7 +396,7 @@ readonly class ConfigProvider
      */
     public function getWebhookSecret(): string
     {
-        return $this->globalDecrypt(self::XML_PATH_WEBHOOK_SECRET);
+        return $this->decryptGlobal(self::XML_PATH_WEBHOOK_SECRET);
     }
 
     /**
@@ -403,7 +405,7 @@ readonly class ConfigProvider
      */
     public function getStatusIntervalMinutes(): int
     {
-        $schedule = \trim((string)$this->globalValue(self::XML_PATH_STATUS_SCHEDULE));
+        $schedule = \trim((string)$this->getGlobalValue(self::XML_PATH_STATUS_SCHEDULE));
         if (\preg_match('#^\*/(\d+) #', $schedule, $match) && (int)$match[1] > 0) {
             return (int)$match[1];
         }
@@ -415,12 +417,12 @@ readonly class ConfigProvider
      * A setting of the Polkurier account, which is one for the whole installation. It's read from
      * the default scope only, ignoring any value saved for a website or store view.
      */
-    private function globalValue(string $path): mixed
+    private function getGlobalValue(string $path): mixed
     {
         return $this->scopeConfig->getValue($path, ScopeConfigInterface::SCOPE_TYPE_DEFAULT);
     }
 
-    private function globalFlag(string $path): bool
+    private function isGlobalFlagSet(string $path): bool
     {
         return $this->scopeConfig->isSetFlag($path, ScopeConfigInterface::SCOPE_TYPE_DEFAULT);
     }
@@ -428,24 +430,24 @@ readonly class ConfigProvider
     /**
      * @return string[]
      */
-    private function globalList(string $path): array
+    private function getGlobalList(string $path): array
     {
-        return $this->parseList($this->globalValue($path));
+        return $this->parseList($this->getGlobalValue($path));
     }
 
-    private function globalDecrypt(string $path): string
+    private function decryptGlobal(string $path): string
     {
-        $value = (string)$this->globalValue($path);
+        $value = (string)$this->getGlobalValue($path);
 
         return $value === '' ? '' : \trim($this->encryptor->decrypt($value));
     }
 
-    private function value(string $path, ?int $storeId): mixed
+    private function getValue(string $path, ?int $storeId): mixed
     {
         return $this->scopeConfig->getValue($path, ScopeInterface::SCOPE_STORE, $storeId);
     }
 
-    private function flag(string $path, ?int $storeId): bool
+    private function isFlagSet(string $path, ?int $storeId): bool
     {
         return $this->scopeConfig->isSetFlag($path, ScopeInterface::SCOPE_STORE, $storeId);
     }
@@ -453,9 +455,9 @@ readonly class ConfigProvider
     /**
      * @return string[]
      */
-    private function list(string $path, ?int $storeId): array
+    private function getList(string $path, ?int $storeId): array
     {
-        return $this->parseList($this->value($path, $storeId));
+        return $this->parseList($this->getValue($path, $storeId));
     }
 
     /**

@@ -22,7 +22,7 @@ readonly class OnClickScriptBuilder
     /**
      * Follows a link.
      */
-    public function location(string $url): string
+    public function buildLocation(string $url): string
     {
         return \sprintf('setLocation(%s);', $this->json->serialize($url));
     }
@@ -30,7 +30,7 @@ readonly class OnClickScriptBuilder
     /**
      * Posts to an action with the form key, after a confirmation when a title is given.
      */
-    public function post(string $url, ?string $confirmTitle = null, ?string $confirmText = null): string
+    public function buildPost(string $url, ?string $confirmTitle = null, ?string $confirmText = null): string
     {
         // "data" must reach dataPost as an object: it adds the form key to it as a property.
         $send = \sprintf(
@@ -53,7 +53,7 @@ readonly class OnClickScriptBuilder
     /**
      * Asks for one value, then posts it to an action with the form key, under the given field name.
      */
-    public function prompt(string $url, string $title, string $text, string $field): string
+    public function buildPrompt(string $url, string $title, string $text, string $field): string
     {
         return \sprintf(
             "require(['mage/dataPost', 'Magento_Ui/js/modal/prompt'], function (dataPost, prompt) { "

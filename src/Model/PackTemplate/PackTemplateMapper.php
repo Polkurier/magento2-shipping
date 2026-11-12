@@ -41,7 +41,7 @@ readonly class PackTemplateMapper
             PackTemplateInterface::FIELD_EXT_ID => $template->getId(),
             PackTemplateInterface::FIELD_NAME => $template->getName(),
             PackTemplateInterface::FIELD_DESCRIPTION => $template->getDescription() ?: null,
-            PackTemplateInterface::FIELD_PACK_TYPE => ParcelTypeMapper::fromPolkurier(
+            PackTemplateInterface::FIELD_PACK_TYPE => ParcelTypeMapper::mapFromPolkurier(
                 $template->getShipmentType(),
                 $template->getType(),
             ),
@@ -76,7 +76,7 @@ readonly class PackTemplateMapper
             ->setServices((array)$remote[PackTemplateInterface::FIELD_SERVICES]);
     }
 
-    public function toSaveMessage(PackTemplateInterface $template): SaveMessage
+    public function mapToSaveMessage(PackTemplateInterface $template): SaveMessage
     {
         return $this->saveMessageBuilderFactory->create()
             ->name($template->getName())
@@ -84,8 +84,8 @@ readonly class PackTemplateMapper
             ->width($template->getWidth())
             ->height($template->getHeight())
             ->weight($template->getWeight())
-            ->shipmentType(ParcelTypeMapper::shipmentTypeOf($template->getPackType()))
-            ->type(ParcelTypeMapper::polkurierTypeOf($template->getPackType()))
+            ->shipmentType(ParcelTypeMapper::mapShipmentType($template->getPackType()))
+            ->type(ParcelTypeMapper::mapPolkurierType($template->getPackType()))
             ->id($template->getExtId())
             ->cod($template->getCodAmount())
             ->insurance($template->getInsuranceAmount())
@@ -98,7 +98,7 @@ readonly class PackTemplateMapper
             ->build();
     }
 
-    public function toDeleteMessage(PackTemplateInterface $template): DeleteMessage
+    public function mapToDeleteMessage(PackTemplateInterface $template): DeleteMessage
     {
         return new DeleteMessage(id: (string)$template->getExtId());
     }

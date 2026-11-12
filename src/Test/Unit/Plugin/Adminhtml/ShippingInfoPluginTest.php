@@ -26,7 +26,7 @@ class ShippingInfoPluginTest extends TestCase
     public function testThePointAndTheCarrierShippedWithGoUnderTheShippingMethod(): void
     {
         $html = (new ShippingInfoPlugin())->afterToHtml(
-            $this->block(
+            $this->createBlock(
                 'order_shipping_view',
                 ['polkurier_order_point' => '<p>WAW195M</p>', 'polkurier_shipped_with' => '<p>DPD</p>'],
             ),
@@ -42,7 +42,10 @@ class ShippingInfoPluginTest extends TestCase
     public function testWithNothingToAddTheSectionStaysAsItIs(): void
     {
         self::assertSame(self::SECTION, (new ShippingInfoPlugin())->afterToHtml(
-            $this->block('order_shipping_view', ['polkurier_order_point' => "\n", 'polkurier_shipped_with' => '']),
+            $this->createBlock(
+                'order_shipping_view',
+                ['polkurier_order_point' => "\n", 'polkurier_shipped_with' => ''],
+            ),
             self::SECTION,
         ));
     }
@@ -50,7 +53,7 @@ class ShippingInfoPluginTest extends TestCase
     public function testOtherOrderBlocksAreLeftAlone(): void
     {
         self::assertSame(self::SECTION, (new ShippingInfoPlugin())->afterToHtml(
-            $this->block('order_payment', ['polkurier_order_point' => '<p>WAW195M</p>']),
+            $this->createBlock('order_payment', ['polkurier_order_point' => '<p>WAW195M</p>']),
             self::SECTION,
         ));
     }
@@ -59,7 +62,7 @@ class ShippingInfoPluginTest extends TestCase
     {
         $magentoShipment = $this->createStub(Shipment::class);
         $magentoShipment->method('getId')->willReturn(10);
-        $shippedWith = $this->child('<p>InPost</p>', $data);
+        $shippedWith = $this->createChild('<p>InPost</p>', $data);
         $form = $this->createStub(Form::class);
         $form->method('getNameInLayout')->willReturn('form');
         $form->method('getShipment')->willReturn($magentoShipment);
@@ -83,12 +86,12 @@ class ShippingInfoPluginTest extends TestCase
     /**
      * @param array<string, string> $children HTML by child name
      */
-    private function block(string $name, array $children): AbstractOrder
+    private function createBlock(string $name, array $children): AbstractOrder
     {
         $block = $this->createStub(AbstractOrder::class);
         $block->method('getNameInLayout')->willReturn($name);
         $block->method('getChildBlock')->willReturnCallback(
-            fn(string $child): ?Template => isset($children[$child]) ? $this->child($children[$child]) : null,
+            fn(string $child): ?Template => isset($children[$child]) ? $this->createChild($children[$child]) : null,
         );
         $block->method('getOrder')->willReturn($this->createStub(Order::class));
 
@@ -98,7 +101,7 @@ class ShippingInfoPluginTest extends TestCase
     /**
      * @param array<string, mixed>|null $data receives what the child is given
      */
-    private function child(string $html, ?array &$data = null): Template
+    private function createChild(string $html, ?array &$data = null): Template
     {
         $child = $this->createStub(Template::class);
         $child->method('addData')->willReturnCallback(function (array $given) use ($child, &$data) {

@@ -22,13 +22,13 @@ class RefreshShipmentStatusTaskTest extends TestCase
         $refresher = $this->createMock(StatusRefreshService::class);
         $refresher->expects(self::once())->method('refreshPending');
 
-        (new RefreshShipmentStatusTask($refresher, $this->config(true, true)))->execute();
+        (new RefreshShipmentStatusTask($refresher, $this->createConfig(true, true)))->execute();
     }
 
     /**
      * @return array<string, array{bool, bool}>
      */
-    public static function notToRun(): array
+    public static function provideNotToRun(): array
     {
         return [
             'scheduled updates off' => [false, true],
@@ -36,16 +36,16 @@ class RefreshShipmentStatusTaskTest extends TestCase
         ];
     }
 
-    #[DataProvider('notToRun')]
+    #[DataProvider('provideNotToRun')]
     public function testNothingIsAskedOfPolkurierWhenItShouldntBe(bool $enabled, bool $credentials): void
     {
         $refresher = $this->createMock(StatusRefreshService::class);
         $refresher->expects(self::never())->method('refreshPending');
 
-        (new RefreshShipmentStatusTask($refresher, $this->config($enabled, $credentials)))->execute();
+        (new RefreshShipmentStatusTask($refresher, $this->createConfig($enabled, $credentials)))->execute();
     }
 
-    private function config(bool $enabled, bool $credentials): ConfigProvider
+    private function createConfig(bool $enabled, bool $credentials): ConfigProvider
     {
         $config = $this->createStub(ConfigProvider::class);
         $config->method('isStatusSyncEnabled')->willReturn($enabled);

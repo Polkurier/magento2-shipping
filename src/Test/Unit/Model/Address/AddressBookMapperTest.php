@@ -33,12 +33,14 @@ class AddressBookMapperTest extends SdkTestCase
 
     public function testAnAddressReadFromPolkurierIsCopiedOntoTheLocalEntry(): void
     {
-        $http = new RecordingClient(self::success([self::REMOTE]));
-        $remote = $this->clientPool($http)->addresses()->getAddresses(new GetMessage(AddressTypeEnum::Sender))[0];
-        $mapper = self::mapper();
+        $http = new RecordingClient(self::encodeSuccess([self::REMOTE]));
+        $remote = $this->createClientPool($http)->getAddresses()->getAddresses(
+            new GetMessage(AddressTypeEnum::Sender),
+        )[0];
+        $mapper = self::createMapper();
 
         $normalized = $mapper->normalize($remote);
-        $local = $this->newAddress();
+        $local = $this->createNewAddress();
         $mapper->apply($normalized, $local);
 
         self::assertSame('aZ3k', $local->getExtId());
@@ -54,10 +56,12 @@ class AddressBookMapperTest extends SdkTestCase
     public function testAProvincePolkurierCantKeepStaysAsMagentoHasIt(): void
     {
         // Polkurier keeps no Polish provinces.
-        $http = new RecordingClient(self::success([self::REMOTE]));
-        $remote = $this->clientPool($http)->addresses()->getAddresses(new GetMessage(AddressTypeEnum::Sender))[0];
-        $mapper = self::mapper();
-        $local = $this->newAddress()->setProvince('małopolskie');
+        $http = new RecordingClient(self::encodeSuccess([self::REMOTE]));
+        $remote = $this->createClientPool($http)->getAddresses()->getAddresses(
+            new GetMessage(AddressTypeEnum::Sender),
+        )[0];
+        $mapper = self::createMapper();
+        $local = $this->createNewAddress()->setProvince('małopolskie');
 
         $mapper->apply($mapper->normalize($remote), $local);
 
@@ -67,9 +71,9 @@ class AddressBookMapperTest extends SdkTestCase
 
     public function testALocalEntryIsSentAsTheApiExpects(): void
     {
-        $http = new RecordingClient(self::success(self::REMOTE));
-        $mapper = self::mapper();
-        $local = $this->newAddress();
+        $http = new RecordingClient(self::encodeSuccess(self::REMOTE));
+        $mapper = self::createMapper();
+        $local = $this->createNewAddress();
         $local->setExtId('aZ3k')
             ->setName('Magazyn')
             ->setType('SENDER')
@@ -86,7 +90,7 @@ class AddressBookMapperTest extends SdkTestCase
             ->setDefault(true)
             ->setCover(true);
 
-        $saved = $this->clientPool($http)->addresses()->saveAddress($mapper->toSaveMessage($local));
+        $saved = $this->createClientPool($http)->getAddresses()->saveAddress($mapper->mapToSaveMessage($local));
         $data = $http->lastPayload()['data'];
 
         self::assertSame('aZ3k', $data['id'], 'An entry already in Polkurier is updated, not duplicated.');
@@ -97,13 +101,13 @@ class AddressBookMapperTest extends SdkTestCase
         self::assertSame('aZ3k', $mapper->normalize($saved)[AddressInterface::FIELD_EXT_ID]);
     }
 
-    private function newAddress(): Address
+    private function createNewAddress(): Address
     {
         return (new ObjectManager($this))->getObject(Address::class);
     }
 
-    private static function mapper(): AddressBookMapper
+    private static function createMapper(): AddressBookMapper
     {
-        return new AddressBookMapper(NewingObjectManager::factory(SaveMessageBuilderFactory::class));
+        return new AddressBookMapper(NewingObjectManager::createFactory(SaveMessageBuilderFactory::class));
     }
 }

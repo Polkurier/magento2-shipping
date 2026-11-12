@@ -21,22 +21,22 @@ class ShipmentTest extends TestCase
 {
     public function testAnEmptyDraftIsNone(): void
     {
-        self::assertNull($this->shipment()->setDraft([])->getData(ShipmentInterface::FIELD_DRAFT));
-        self::assertSame([], $this->shipment()->setDraft(null)->getDraft());
+        self::assertNull($this->createShipment()->setDraft([])->getData(ShipmentInterface::FIELD_DRAFT));
+        self::assertSame([], $this->createShipment()->setDraft(null)->getDraft());
     }
 
     public function testEmptyDetailsAndTrackingAreReadNotMissing(): void
     {
-        $shipment = $this->shipment()->setDetails([])->setTracking([]);
+        $shipment = $this->createShipment()->setDetails([])->setTracking([]);
 
         self::assertSame('[]', $shipment->getData(ShipmentInterface::FIELD_DETAILS));
         self::assertSame('[]', $shipment->getData(ShipmentInterface::FIELD_TRACKING));
-        self::assertNull($this->shipment()->setDetails(null)->getData(ShipmentInterface::FIELD_DETAILS));
+        self::assertNull($this->createShipment()->setDetails(null)->getData(ShipmentInterface::FIELD_DETAILS));
     }
 
     public function testShippedItemsKeepTheirIds(): void
     {
-        $shipment = $this->shipment()->setShipItems([7 => 2.0, 12 => 1.5]);
+        $shipment = $this->createShipment()->setShipItems([7 => 2.0, 12 => 1.5]);
 
         self::assertSame('{"7":2,"12":1.5}', $shipment->getData(ShipmentInterface::FIELD_SHIP_ITEMS));
         self::assertSame([7 => 2.0, 12 => 1.5], $shipment->getShipItems());
@@ -44,7 +44,7 @@ class ShipmentTest extends TestCase
 
     public function testPolishTextIsStoredAsItIs(): void
     {
-        $shipment = $this->shipment()->setDraft(['description' => 'Zażółć gęślą jaźń']);
+        $shipment = $this->createShipment()->setDraft(['description' => 'Zażółć gęślą jaźń']);
 
         self::assertStringContainsString('Zażółć', (string)$shipment->getData(ShipmentInterface::FIELD_DRAFT));
         self::assertSame('Zażółć gęślą jaźń', $shipment->getDraft()['description']);
@@ -54,10 +54,10 @@ class ShipmentTest extends TestCase
     {
         $this->expectException(\JsonException::class);
 
-        $this->shipment()->setDetails(['name' => "\xB1\x31"]);
+        $this->createShipment()->setDetails(['name' => "\xB1\x31"]);
     }
 
-    private function shipment(): Shipment
+    private function createShipment(): Shipment
     {
         return (new ObjectManager($this))->getObject(Shipment::class);
     }

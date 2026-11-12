@@ -34,7 +34,7 @@ abstract class AbstractDelete extends AbstractAction implements HttpPostActionIn
                 ? $this->messageManager->addWarningMessage(__(
                     'Deleted in Magento, but Polkurier hasn\'t deleted it yet: '
                     . '%1 It\'s tried again with the next synchronization.',
-                    $this->reasons($result),
+                    $this->formatReasons($result),
                 ))
                 : $this->messageManager->addSuccessMessage(__('Deleted.'));
         } catch (LocalizedException $e) {

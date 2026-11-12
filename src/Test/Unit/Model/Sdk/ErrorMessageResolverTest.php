@@ -32,13 +32,13 @@ class ErrorMessageResolverTest extends TestCase
     {
         $messages = new ErrorMessageResolver();
 
-        self::assertSame('Recipient: Phone', $messages->fieldLabel('recipient.phone'));
-        self::assertSame('Sender: House number', $messages->fieldLabel('sender.housenumber'));
-        self::assertSame('Parcel 2: Weight', $messages->fieldLabel('packs.1.weight'));
-        self::assertSame('Shipment description', $messages->fieldLabel('description'));
+        self::assertSame('Recipient: Phone', $messages->getFieldLabel('recipient.phone'));
+        self::assertSame('Sender: House number', $messages->getFieldLabel('sender.housenumber'));
+        self::assertSame('Parcel 2: Weight', $messages->getFieldLabel('packs.1.weight'));
+        self::assertSame('Shipment description', $messages->getFieldLabel('description'));
         self::assertSame(
             'something.else',
-            $messages->fieldLabel('something.else'),
+            $messages->getFieldLabel('something.else'),
             'One it doesn\'t know stays as it is.',
         );
     }
@@ -51,26 +51,26 @@ class ErrorMessageResolverTest extends TestCase
 
         self::assertSame(
             'Polkurier would not accept this. Check: Recipient: Phone is required; Parcel 1: Weight too heavy',
-            (string)$messages->phrase(new ValidationException([
+            (string)$messages->createPhrase(new ValidationException([
                 'recipient.phone' => ['is required'],
                 'packs.0.weight' => ['too heavy'],
             ])),
         );
         self::assertSame(
             'The request to Polkurier could not be built: No carrier',
-            (string)$messages->phrase(new InvalidArgumentException('No carrier')),
+            (string)$messages->createPhrase(new InvalidArgumentException('No carrier')),
         );
         self::assertStringStartsWith(
             'Polkurier did not accept the API credentials.',
-            (string)$messages->phrase($this->refusal(AuthorizationException::class, 'Błędny token')),
+            (string)$messages->createPhrase($this->createRefusal(AuthorizationException::class, 'Błędny token')),
         );
         self::assertStringEndsWith(
             '(Błędny token)',
-            (string)$messages->phrase($this->refusal(AuthorizationException::class, 'Błędny token')),
+            (string)$messages->createPhrase($this->createRefusal(AuthorizationException::class, 'Błędny token')),
         );
         self::assertSame(
             'Polkurier refused: Kod pocztowy jest nieprawidłowy Check: Recipient: Postcode wrong',
-            (string)$messages->phrase($this->refusal(
+            (string)$messages->createPhrase($this->createRefusal(
                 WebserviceException::class,
                 'Kod pocztowy jest nieprawidłowy',
                 ['recipient.postcode' => ['wrong']],
@@ -78,24 +78,26 @@ class ErrorMessageResolverTest extends TestCase
         );
         self::assertSame(
             'Polkurier could not be reached, or did not answer in time: cURL error 28',
-            (string)$messages->phrase(new ConnectionException('Request failed', 0, new \RuntimeException('cURL error 28'))),
+            (string)$messages->createPhrase(
+                new ConnectionException('Request failed', 0, new \RuntimeException('cURL error 28')),
+            ),
         );
         self::assertSame(
             'Polkurier answered with something unexpected (HTTP 502). Try again later; '
             . 'if it persists, contact Polkurier.',
-            (string)$messages->phrase(new MalformedResponseException('Not JSON', $response)),
+            (string)$messages->createPhrase(new MalformedResponseException('Not JSON', $response)),
         );
         self::assertSame(
             'Polkurier did not answer a moment ago.',
-            (string)$messages->phrase(new RecentFailureException('Polkurier did not answer a moment ago.')),
+            (string)$messages->createPhrase(new RecentFailureException('Polkurier did not answer a moment ago.')),
         );
         self::assertSame(
             'Polkurier error: Something else',
-            (string)$messages->phrase(new PolkurierException('Something else')),
+            (string)$messages->createPhrase(new PolkurierException('Something else')),
         );
         self::assertSame(
             'Choose a carrier first.',
-            (string)$messages->phrase(new LocalizedException(__('Choose a carrier first.'))),
+            (string)$messages->createPhrase(new LocalizedException(__('Choose a carrier first.'))),
         );
     }
 
@@ -103,7 +105,7 @@ class ErrorMessageResolverTest extends TestCase
     {
         $failure = new ConnectionException('Timed out.');
 
-        $exception = (new ErrorMessageResolver())->exception($failure);
+        $exception = (new ErrorMessageResolver())->createException($failure);
 
         self::assertSame(
             'Polkurier could not be reached, or did not answer in time: Timed out.',
@@ -123,7 +125,7 @@ class ErrorMessageResolverTest extends TestCase
         $messages = new ErrorMessageResolver();
 
         foreach ([new LocalizedException(__('Choose a carrier.')), new \RuntimeException('Disk full')] as $e) {
-            $phrase = $messages->phrase($e);
+            $phrase = $messages->createPhrase($e);
 
             self::assertSame('%1', $phrase->getText(), 'Its text is never looked up in the dictionary.');
             self::assertSame([$e->getMessage()], $phrase->getArguments());
@@ -132,7 +134,7 @@ class ErrorMessageResolverTest extends TestCase
 
     public function testATextDescribedAlreadyOnlyFillsAPlaceholder(): void
     {
-        $phrase = (new ErrorMessageResolver())->phrase(
+        $phrase = (new ErrorMessageResolver())->createPhrase(
             new RecentFailureException('Polkurier did not answer a moment ago.'),
         );
 
@@ -143,7 +145,7 @@ class ErrorMessageResolverTest extends TestCase
     /**
      * @return iterable<string, array{0: ?int, 1: ?string, 2: string, 3: bool}>
      */
-    public static function refusals(): iterable
+    public static function provideRefusals(): iterable
     {
         yield 'unknown error' => [1, 'UNKNOWN_ERROR', 'Nieznany błąd. Proszę spróbować ponownie', true];
         yield 'maintenance' => [22, 'MAINTENANCE_MODE', 'PRZERWA TECHNICZNA', true];
@@ -183,7 +185,7 @@ class ErrorMessageResolverTest extends TestCase
         yield 'no reason' => [0, null, '', true];
     }
 
-    #[DataProvider('refusals')]
+    #[DataProvider('provideRefusals')]
     public function testOnlyAPassingFailureIsWorthTryingAgain(
         ?int $statusCode,
         ?string $errorCode,
@@ -199,7 +201,7 @@ class ErrorMessageResolverTest extends TestCase
         self::assertSame($transient, (new ErrorMessageResolver())->isTransient($refusal));
         self::assertSame(
             $transient,
-            (new ErrorMessageResolver())->isTransient((new ErrorMessageResolver())->exception($refusal)),
+            (new ErrorMessageResolver())->isTransient((new ErrorMessageResolver())->createException($refusal)),
             'Seen through the merchant-facing exception.',
         );
     }
@@ -226,7 +228,7 @@ class ErrorMessageResolverTest extends TestCase
      * @param class-string<WebserviceException> $class
      * @param array<string, string[]>|null $fields
      */
-    private function refusal(string $class, string $reason, ?array $fields = null): WebserviceException
+    private function createRefusal(string $class, string $reason, ?array $fields = null): WebserviceException
     {
         return new $class(
             new ErrorMessage(ResponseStatusEnum::Error, $reason, 26, null, $fields),

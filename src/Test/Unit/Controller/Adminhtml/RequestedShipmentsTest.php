@@ -25,7 +25,7 @@ class RequestedShipmentsTest extends TestCase
     /**
      * @return iterable<string, array{mixed, int[]}>
      */
-    public static function idParams(): iterable
+    public static function provideIdParams(): iterable
     {
         yield 'a comma-separated list' => ['4,5,,x', [4, 5]];
         yield 'one' => [7, [7]];
@@ -37,7 +37,7 @@ class RequestedShipmentsTest extends TestCase
     /**
      * @param int[] $expected
      */
-    #[DataProvider('idParams')]
+    #[DataProvider('provideIdParams')]
     public function testTheIdsAreReadFromAListOrAString(mixed $param, array $expected): void
     {
         $request = $this->createStub(RequestInterface::class);

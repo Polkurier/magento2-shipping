@@ -24,7 +24,7 @@ readonly class WeightUnitConverter
         private CarrierHelper $carrierHelper,
     ) {}
 
-    public function toKilograms(float $weight, int|string|null $storeId): float
+    public function convertToKilograms(float $weight, int|string|null $storeId): float
     {
         $configuredUnit = $this->scopeConfig->getValue(
             DirectoryHelper::XML_PATH_WEIGHT_UNIT,

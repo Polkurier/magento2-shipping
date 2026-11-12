@@ -96,7 +96,7 @@ class RetriableShipmentFinderTest extends TestCase
         $latestShipment = $this->createStub(ShipmentInterface::class);
         $latestShipment->method('getId')->willReturn($latest);
         $finder = $this->createStub(ShipmentFinder::class);
-        $finder->method('latestForOrder')->willReturn($latestShipment);
+        $finder->method('findLatestForOrder')->willReturn($latestShipment);
 
         $order = $this->createStub(Order::class);
         $order->method('canShip')->willReturn($canShip);

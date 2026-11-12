@@ -41,7 +41,7 @@ class Label extends AbstractShipmentAction implements HttpGetActionInterface, Ht
         try {
             $document = $this->documentService->getLabels(
                 $this->getSelectedShipments(),
-                LabelFileFormatEnum::tryFrom(RequestParam::string($this->getRequest(), 'format')),
+                LabelFileFormatEnum::tryFrom(RequestParam::getString($this->getRequest(), 'format')),
             );
             // These show on the next page, since this request answers with the file.
             foreach ($document['left_out'] as $message) {
@@ -58,6 +58,6 @@ class Label extends AbstractShipmentAction implements HttpGetActionInterface, Ht
             $this->messageManager->addErrorMessage($e->getMessage());
         }
 
-        return $this->back();
+        return $this->redirectBack();
     }
 }

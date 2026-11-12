@@ -25,7 +25,7 @@ class RefreshCarriersTaskTest extends TestCase
 
         (new RefreshCarriersTask(
             $carriers,
-            $this->config(true, true),
+            $this->createConfig(true, true),
             $this->createStub(Logger::class),
         ))->execute();
     }
@@ -33,7 +33,7 @@ class RefreshCarriersTaskTest extends TestCase
     /**
      * @return array<string, array{bool, bool}>
      */
-    public static function notToRun(): array
+    public static function provideNotToRun(): array
     {
         return [
             'synchronization off' => [false, true],
@@ -41,7 +41,7 @@ class RefreshCarriersTaskTest extends TestCase
         ];
     }
 
-    #[DataProvider('notToRun')]
+    #[DataProvider('provideNotToRun')]
     public function testNothingIsAskedOfPolkurierWhenItShouldntBe(bool $enabled, bool $credentials): void
     {
         $carriers = $this->createMock(CarrierConfigSynchronizer::class);
@@ -49,7 +49,7 @@ class RefreshCarriersTaskTest extends TestCase
 
         (new RefreshCarriersTask(
             $carriers,
-            $this->config($enabled, $credentials),
+            $this->createConfig($enabled, $credentials),
             $this->createStub(Logger::class),
         ))->execute();
     }
@@ -64,10 +64,10 @@ class RefreshCarriersTaskTest extends TestCase
             ->method('warning')
             ->with('Polkurier carrier list refresh failed', ['exception' => $failure]);
 
-        (new RefreshCarriersTask($carriers, $this->config(true, true), $logger))->execute();
+        (new RefreshCarriersTask($carriers, $this->createConfig(true, true), $logger))->execute();
     }
 
-    private function config(bool $enabled, bool $credentials): ConfigProvider
+    private function createConfig(bool $enabled, bool $credentials): ConfigProvider
     {
         $config = $this->createStub(ConfigProvider::class);
         $config->method('isSyncEnabled')->willReturn($enabled);

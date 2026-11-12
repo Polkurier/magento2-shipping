@@ -20,9 +20,9 @@ class CancelButton extends AbstractButton
      */
     public function getButtonData(): array
     {
-        $shipment = $this->shipment();
+        $shipment = $this->getShipment();
         if ($shipment === null
-            || CancellationRule::refusal($shipment) !== null
+            || CancellationRule::getRefusal($shipment) !== null
             || !$this->authorization->isAllowed('Polkurier_Shipping::shipment_cancel')
         ) {
             return [];
@@ -30,6 +30,12 @@ class CancelButton extends AbstractButton
 
         $confirm = ShipmentConfirmationProvider::cancel((string)$shipment->getPolkurierNumber());
 
-        return $this->post((string)__('Cancel'), 'cancel', 30, (string)$confirm['title'], (string)$confirm['message']);
+        return $this->buildPostButton(
+            (string)__('Cancel'),
+            'cancel',
+            30,
+            (string)$confirm['title'],
+            (string)$confirm['message'],
+        );
     }
 }

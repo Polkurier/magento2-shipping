@@ -39,7 +39,7 @@ readonly class BankAccountSyncAdapter implements AdapterInterface
     public function fetchRemote(): array
     {
         $remote = [];
-        foreach ($this->polkurierClient->bankAccounts()->getBankAccounts() as $account) {
+        foreach ($this->polkurierClient->getBankAccounts()->getBankAccounts() as $account) {
             if ($account->getId() !== null) {
                 $remote[$account->getId()] = $this->bankAccountMapper->normalize($account);
             }

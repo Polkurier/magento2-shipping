@@ -15,7 +15,7 @@ use Magento\Framework\App\RequestInterface;
  */
 final class RequestParam
 {
-    public static function string(RequestInterface $request, string $name, string $default = ''): string
+    public static function getString(RequestInterface $request, string $name, string $default = ''): string
     {
         $value = $request->getParam($name, $default);
 

@@ -34,7 +34,7 @@ class CarrierSortOrderUpdaterTest extends TestCase
 
     public function testTheRowsTakeTheirNewOrderAndEveryCarrierIsNumberedByTens(): void
     {
-        $this->order()->arrange([4, 1, 2, 3]);
+        $this->createUpdater()->arrange([4, 1, 2, 3]);
 
         self::assertSame(['UPS' => 10, 'DPD' => 20, 'GLS' => 30, 'INPOST' => 40], $this->sortOrders());
     }
@@ -42,7 +42,7 @@ class CarrierSortOrderUpdaterTest extends TestCase
     public function testCarriersTheGridDidNotShowKeepTheirPlaces(): void
     {
         // Filtered to DPD and INPOST, which swap: GLS and UPS stay second and fourth.
-        $this->order()->arrange([3, 1]);
+        $this->createUpdater()->arrange([3, 1]);
 
         self::assertSame(['INPOST' => 10, 'GLS' => 20, 'DPD' => 30, 'UPS' => 40], $this->sortOrders());
     }
@@ -52,7 +52,7 @@ class CarrierSortOrderUpdaterTest extends TestCase
         $this->configs['DPD']->setSortOrder(10);
         $this->configs['GLS']->setSortOrder(20);
 
-        $this->order()->arrange([1, 2, 3, 4]);
+        $this->createUpdater()->arrange([1, 2, 3, 4]);
 
         self::assertSame([], $this->saved);
     }
@@ -61,7 +61,7 @@ class CarrierSortOrderUpdaterTest extends TestCase
     {
         $this->expectException(LocalizedException::class);
 
-        $this->order()->arrange([99]);
+        $this->createUpdater()->arrange([99]);
     }
 
     protected function setUp(): void
@@ -85,7 +85,7 @@ class CarrierSortOrderUpdaterTest extends TestCase
         return $orders;
     }
 
-    private function order(): CarrierSortOrderUpdater
+    private function createUpdater(): CarrierSortOrderUpdater
     {
         $configs = $this->createStub(CarrierConfigProvider::class);
         $configs->method('getAll')->willReturnCallback(fn(): array => $this->configs);

@@ -39,7 +39,7 @@ class Calculate extends AbstractJsonAction
     {
         $data = (array)$this->getRequest()->getParam('data', []);
         $order = $this->orderLoader->getForPolkurier((int)($data['order_id'] ?? 0));
-        $draft = $this->draftHydrator->fromArray($data);
+        $draft = $this->draftHydrator->createFromArray($data);
         $quotes = $this->costEstimator->quoteAll($draft, (int)$order->getStoreId());
         $cost = $quotes[$draft->getCarrierCode()] ?? null;
 
@@ -50,7 +50,7 @@ class Calculate extends AbstractJsonAction
         ];
     }
 
-    protected function refused(LocalizedException $e): array
+    protected function buildRefusal(LocalizedException $e): array
     {
         // Retry is offered only when it may help. After a refusal, the screen waits for a change to
         // the shipment.

@@ -56,7 +56,7 @@ class StatusRefreshServiceBatchTest extends TestCase
 
     public function testOnlyUnfinishedShipmentsAreTakenLeastRecentlyCheckedFirst(): void
     {
-        $this->refresher([])->refreshPending();
+        $this->createService([])->refreshPending();
 
         self::assertSame(
             ['2026-09-30 09:31:00', StatusRefreshService::BATCH_SIZE],
@@ -68,14 +68,14 @@ class StatusRefreshServiceBatchTest extends TestCase
     public function testTheScheduleSetsHowRecentlyCheckedIsTooRecent(): void
     {
         $this->interval = 10;
-        $this->refresher([])->refreshPending();
+        $this->createService([])->refreshPending();
 
         self::assertSame('2026-09-30 09:51:00', $this->query[0] ?? null);
     }
 
     public function testUpdatingNowTakesEveryUnfinishedShipmentHoweverRecentlyChecked(): void
     {
-        $result = $this->refresher([$this->shipment(5), $this->shipment(7)])->refreshNow();
+        $result = $this->createService([$this->createShipment(5), $this->createShipment(7)])->refreshNow();
 
         self::assertSame(['refreshed' => 1, 'failed' => 1], $result, 'However recently checked.');
         self::assertSame([null, StatusRefreshService::BATCH_SIZE], $this->query);
@@ -86,7 +86,7 @@ class StatusRefreshServiceBatchTest extends TestCase
     {
         $checked = [];
 
-        $this->refresher([$this->shipment(7), $this->shipment(8)], $checked)->refreshPending();
+        $this->createService([$this->createShipment(7), $this->createShipment(8)], $checked)->refreshPending();
 
         self::assertSame([7 => '2026-09-30 10:00:00'], $checked, 'It must not stay first in line.');
     }
@@ -97,7 +97,7 @@ class StatusRefreshServiceBatchTest extends TestCase
         $this->stored = [7 => ['status_code' => 'D', 'status_checked_at' => '2026-09-29 10:00:00']];
         $checked = [];
 
-        $this->refresher([$this->shipment(7)->setStatusCode('P')], $checked)->refreshPending();
+        $this->createService([$this->createShipment(7)->setStatusCode('P')], $checked)->refreshPending();
 
         self::assertSame(
             'D',
@@ -116,7 +116,7 @@ class StatusRefreshServiceBatchTest extends TestCase
         $this->failure = new \LogicException('Unexpected.');
         $checked = [];
 
-        $this->refresher([$this->shipment(7), $this->shipment(8)], $checked)->refreshPending();
+        $this->createService([$this->createShipment(7), $this->createShipment(8)], $checked)->refreshPending();
 
         self::assertSame([7], \array_keys($checked));
     }
@@ -125,10 +125,10 @@ class StatusRefreshServiceBatchTest extends TestCase
      * @param Shipment[] $shipments
      * @param array<int, string> $checked check times the refresher recorded, by shipment id
      */
-    private function refresher(array $shipments, array &$checked = []): StatusRefreshService
+    private function createService(array $shipments, array &$checked = []): StatusRefreshService
     {
         $finder = $this->createStub(ShipmentFinder::class);
-        $finder->method('dueForStatusCheck')->willReturnCallback(
+        $finder->method('findDueForStatusCheck')->willReturnCallback(
             function (?string $checkedBefore, int $limit) use ($shipments): array {
                 $this->query = [$checkedBefore, $limit];
 
@@ -145,7 +145,7 @@ class StatusRefreshServiceBatchTest extends TestCase
                 }
                 $results[$id] = $id === 7
                     ? $this->failure ?? new LocalizedException(__('Polkurier is not answering.'))
-                    : $this->shipment($id);
+                    : $this->createShipment($id);
             }
 
             return $results;
@@ -207,7 +207,7 @@ class StatusRefreshServiceBatchTest extends TestCase
         return $refresher;
     }
 
-    private function shipment(int $id): Shipment
+    private function createShipment(int $id): Shipment
     {
         /** @var Shipment $shipment */
         $shipment = (new ObjectManager($this))->getObject(Shipment::class);

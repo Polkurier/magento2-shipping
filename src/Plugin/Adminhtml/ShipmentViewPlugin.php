@@ -47,7 +47,7 @@ readonly class ShipmentViewPlugin
             return [$layout];
         }
         // If it has had several (one cancelled, another placed on it since), the latest.
-        $linked = $this->shipmentFinder->latestLinkedTo((int)$shipment->getId());
+        $linked = $this->shipmentFinder->findLatestLinkedTo((int)$shipment->getId());
         if ($linked !== null && $this->authorization->isAllowed('Polkurier_Shipping::shipments')) {
             $subject->addButton(self::VIEW_BUTTON, [
                 'label' => __('Polkurier order'),

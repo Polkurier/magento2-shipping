@@ -27,8 +27,8 @@ class ReturnsBackTraitTest extends TestCase
 
     public function testBackToWhereTheActionWasStarted(): void
     {
-        $this->action('http://shop.test/admin/polkurier/shipment/index/key/abc/')
-            ->back('sales/order/view', ['order_id' => 42], []);
+        $this->createAction('http://shop.test/admin/polkurier/shipment/index/key/abc/')
+            ->callReturnBack('sales/order/view', ['order_id' => 42], []);
 
         self::assertSame(['url', 'http://shop.test/admin/polkurier/shipment/index/key/abc/'], $this->target);
     }
@@ -36,7 +36,7 @@ class ReturnsBackTraitTest extends TestCase
     public function testWithoutAnyThereTheFallback(): void
     {
         // Magento names the site's base address when there's no referer, or an outside one.
-        $this->action('http://shop.test/')->back('sales/order/view', ['order_id' => 42], []);
+        $this->createAction('http://shop.test/')->callReturnBack('sales/order/view', ['order_id' => 42], []);
 
         self::assertSame(['path', ['sales/order/view', ['order_id' => 42]]], $this->target);
     }
@@ -44,20 +44,20 @@ class ReturnsBackTraitTest extends TestCase
     public function testNotToAStorefrontPage(): void
     {
         // With a custom admin URL, Magento's fallback is the storefront's base address.
-        $this->action('https://www.shop.test/')->back('sales/order/view', ['order_id' => 42], []);
+        $this->createAction('https://www.shop.test/')->callReturnBack('sales/order/view', ['order_id' => 42], []);
 
         self::assertSame(['path', ['sales/order/view', ['order_id' => 42]]], $this->target);
     }
 
     public function testNotToAPageTheActionDidAwayWith(): void
     {
-        $this->action('http://shop.test/admin/polkurier/shipment/view/id/5/key/abc/')
-            ->back('sales/order/view', ['order_id' => 42], ['polkurier/shipment/view/id/5/']);
+        $this->createAction('http://shop.test/admin/polkurier/shipment/view/id/5/key/abc/')
+            ->callReturnBack('sales/order/view', ['order_id' => 42], ['polkurier/shipment/view/id/5/']);
 
         self::assertSame(['path', ['sales/order/view', ['order_id' => 42]]], $this->target);
     }
 
-    private function action(string $referer): object
+    private function createAction(string $referer): object
     {
         $result = $this->createStub(Redirect::class);
         $result->method('setUrl')->willReturnCallback(function (string $url) use ($result): Redirect {
@@ -92,7 +92,7 @@ class ReturnsBackTraitTest extends TestCase
              * @param array<string, mixed> $params
              * @param string[] $gone
              */
-            public function back(string $path, array $params, array $gone): Redirect
+            public function callReturnBack(string $path, array $params, array $gone): Redirect
             {
                 return $this->returnBack($path, $params, $gone);
             }

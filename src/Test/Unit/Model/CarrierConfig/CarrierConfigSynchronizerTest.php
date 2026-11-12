@@ -55,7 +55,7 @@ class CarrierConfigSynchronizerTest extends TestCase
 
     public function testTheFirstReadAddsEveryCarrierSwitchedOffInOrderWithoutTellingAnyone(): void
     {
-        self::assertSame(2, $this->synchronizer(['DPD', 'INPOST_PACZKOMAT'])->synchronize());
+        self::assertSame(2, $this->createSynchronizer(['DPD', 'INPOST_PACZKOMAT'])->synchronize());
 
         self::assertSame(['DPD', 'INPOST_PACZKOMAT'], $this->saved);
         self::assertFalse($this->rows['DPD']->isActive());
@@ -70,9 +70,9 @@ class CarrierConfigSynchronizerTest extends TestCase
 
     public function testANewCarrierGoesLastAndIsToldAbout(): void
     {
-        $this->row('DPD', 30, active: true);
+        $this->addRow('DPD', 30, active: true);
 
-        $this->synchronizer(['DPD', 'UPS'])->synchronize();
+        $this->createSynchronizer(['DPD', 'UPS'])->synchronize();
 
         self::assertSame(40, $this->rows['UPS']->getSortOrder());
         self::assertTrue($this->rows['DPD']->isActive(), 'The merchant\'s settings stay.');
@@ -81,10 +81,10 @@ class CarrierConfigSynchronizerTest extends TestCase
 
     public function testACarrierNoLongerOfferedKeepsItsRowUnavailableAndIsToldAbout(): void
     {
-        $this->row('DPD', 10, active: true);
-        $this->row('UPS', 20, active: true);
+        $this->addRow('DPD', 10, active: true);
+        $this->addRow('UPS', 20, active: true);
 
-        $this->synchronizer(['DPD'])->synchronize();
+        $this->createSynchronizer(['DPD'])->synchronize();
 
         self::assertFalse($this->rows['UPS']->isAvailable());
         self::assertTrue($this->rows['UPS']->isActive(), 'Back as it was if the account offers it again.');
@@ -93,10 +93,10 @@ class CarrierConfigSynchronizerTest extends TestCase
 
     public function testACarrierOfferedAgainIsToldAboutAsNew(): void
     {
-        $this->row('DPD', 10);
-        $this->row('UPS', 20, available: false);
+        $this->addRow('DPD', 10);
+        $this->addRow('UPS', 20, available: false);
 
-        $this->synchronizer(['DPD', 'UPS'])->synchronize();
+        $this->createSynchronizer(['DPD', 'UPS'])->synchronize();
 
         self::assertTrue($this->rows['UPS']->isAvailable());
         self::assertSame(20, $this->rows['UPS']->getSortOrder());
@@ -105,10 +105,10 @@ class CarrierConfigSynchronizerTest extends TestCase
 
     public function testWhenPolkurierCantBeAskedNothingChanges(): void
     {
-        $this->row('DPD', 10);
+        $this->addRow('DPD', 10);
 
         try {
-            $this->synchronizer(new ConnectionException('Timed out'))->synchronize();
+            $this->createSynchronizer(new ConnectionException('Timed out'))->synchronize();
             self::fail('The failure is said.');
         } catch (LocalizedException) {
         }
@@ -120,7 +120,7 @@ class CarrierConfigSynchronizerTest extends TestCase
     public function testARowThatCantBeSavedTakesTheOthersBackWithIt(): void
     {
         try {
-            $this->synchronizer(['DPD', 'UPS'], failOn: 'UPS')->synchronize();
+            $this->createSynchronizer(['DPD', 'UPS'], failOn: 'UPS')->synchronize();
             self::fail('The failure is said.');
         } catch (CouldNotSaveException) {
         }
@@ -129,9 +129,9 @@ class CarrierConfigSynchronizerTest extends TestCase
         self::assertSame([], $this->notices);
     }
 
-    private function row(string $code, int $sortOrder, bool $active = false, bool $available = true): void
+    private function addRow(string $code, int $sortOrder, bool $active = false, bool $available = true): void
     {
-        $this->rows[$code] = $this->config()
+        $this->rows[$code] = $this->createConfig()
             ->setCarrierCode($code)
             ->setCarrierName($code)
             ->setSortOrder($sortOrder)
@@ -139,7 +139,7 @@ class CarrierConfigSynchronizerTest extends TestCase
             ->setAvailable($available);
     }
 
-    private function config(): CarrierConfig
+    private function createConfig(): CarrierConfig
     {
         return new CarrierConfig(
             $this->createStub(Context::class),
@@ -151,7 +151,7 @@ class CarrierConfigSynchronizerTest extends TestCase
     /**
      * @param string[]|\Throwable $offered the account's carriers, or why they can't be read
      */
-    private function synchronizer(array|\Throwable $offered, ?string $failOn = null): CarrierConfigSynchronizer
+    private function createSynchronizer(array|\Throwable $offered, ?string $failOn = null): CarrierConfigSynchronizer
     {
         $catalog = $this->createStub(CarrierCatalog::class);
         if ($offered instanceof \Throwable) {
@@ -178,7 +178,7 @@ class CarrierConfigSynchronizerTest extends TestCase
                 return $config;
             });
         $factory = $this->createStub(CarrierConfigFactory::class);
-        $factory->method('create')->willReturnCallback(fn(): CarrierConfig => $this->config());
+        $factory->method('create')->willReturnCallback(fn(): CarrierConfig => $this->createConfig());
         $connection = $this->createStub(AdapterInterface::class);
         foreach (['beginTransaction' => 'begin', 'commit' => 'commit', 'rollBack' => 'rollBack'] as $method => $step) {
             $connection->method($method)->willReturnCallback(function () use ($step, $connection): AdapterInterface {

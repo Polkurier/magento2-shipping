@@ -44,15 +44,15 @@ class TestConnection extends AbstractJsonAction
 
     protected function answer(): array
     {
-        $login = \trim(RequestParam::string($this->getRequest(), 'customer_id'));
-        $token = \trim(RequestParam::string($this->getRequest(), 'api_token'));
+        $login = \trim(RequestParam::getString($this->getRequest(), 'customer_id'));
+        $token = \trim(RequestParam::getString($this->getRequest(), 'api_token'));
         $login = $login === '' || $login === self::MASK ? $this->configProvider->getLogin() : $login;
         $token = $token === '' || $token === self::MASK ? $this->configProvider->getToken() : $token;
         if ($login === '' || $token === '') {
             throw new LocalizedException(__('Enter the customer ID and the API token.'));
         }
         try {
-            $this->polkurierClient->utils()->testAuthApi(
+            $this->polkurierClient->getUtils()->testAuthApi(
                 $this->authorizationMessageFactory->create(['token' => $token, 'login' => $login]),
             );
         } catch (AuthorizationException $e) {
@@ -62,7 +62,7 @@ class TestConnection extends AbstractJsonAction
                 $e->getErrorMessage()->getResponse(),
             ), $e);
         } catch (PolkurierException $e) {
-            throw $this->errorMessageResolver->exception($e);
+            throw $this->errorMessageResolver->createException($e);
         }
 
         return ['message' => (string)__('Polkurier accepted the credentials.')];

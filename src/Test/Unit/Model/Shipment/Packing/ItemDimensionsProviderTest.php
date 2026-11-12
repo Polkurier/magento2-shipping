@@ -29,37 +29,43 @@ class ItemDimensionsProviderTest extends TestCase
     public function testTheOptionChosenForAConfigurableProductIsMeasured(): void
     {
         $this->sizes = [10 => [50.0, 40.0, 30.0], 11 => [20.0, 15.0, 10.0]];
-        $order = $this->order([$this->item(1, 10, 1.0, [$this->item(2, 11, 1.0)])]);
+        $order = $this->createOrder([$this->createItem(1, 10, 1.0, [$this->createItem(2, 11, 1.0)])]);
 
-        self::assertSame([1 => [20.0, 15.0, 10.0]], $this->dimensions()->get($order, [1]));
+        self::assertSame([1 => [20.0, 15.0, 10.0]], $this->createProvider()->get($order, [1]));
     }
 
     public function testABundleWithASizeOfItsOwnIsMeasuredAsAWhole(): void
     {
         $this->sizes = [20 => [60.0, 40.0, 20.0], 21 => [10.0, 10.0, 10.0], 22 => [5.0, 5.0, 5.0]];
-        $order = $this->order([$this->item(1, 20, 1.0, [$this->item(2, 21, 1.0), $this->item(3, 22, 1.0)])]);
+        $order = $this->createOrder(
+            [$this->createItem(1, 20, 1.0, [$this->createItem(2, 21, 1.0), $this->createItem(3, 22, 1.0)])],
+        );
 
-        self::assertSame([1 => [60.0, 40.0, 20.0]], $this->dimensions()->get($order, [1]));
+        self::assertSame([1 => [60.0, 40.0, 20.0]], $this->createProvider()->get($order, [1]));
     }
 
     public function testABundleWithoutASizeStacksItsParts(): void
     {
         $this->sizes = [21 => [10.0, 30.0, 4.0], 22 => [20.0, 5.0, 3.0]];
         // Two bundles ordered: two of the first part and one of the second in each.
-        $order = $this->order([$this->item(1, 20, 2.0, [$this->item(2, 21, 4.0), $this->item(3, 22, 2.0)])]);
+        $order = $this->createOrder(
+            [$this->createItem(1, 20, 2.0, [$this->createItem(2, 21, 4.0), $this->createItem(3, 22, 2.0)])],
+        );
 
-        self::assertSame([1 => [30.0, 10.0, 11.0]], $this->dimensions()->get($order, [1]));
+        self::assertSame([1 => [30.0, 10.0, 11.0]], $this->createProvider()->get($order, [1]));
     }
 
     public function testABundleWithAPartWithoutASizeIsUnmeasured(): void
     {
         $this->sizes = [21 => [10.0, 10.0, 10.0]];
-        $order = $this->order([$this->item(1, 20, 1.0, [$this->item(2, 21, 1.0), $this->item(3, 22, 1.0)])]);
+        $order = $this->createOrder(
+            [$this->createItem(1, 20, 1.0, [$this->createItem(2, 21, 1.0), $this->createItem(3, 22, 1.0)])],
+        );
 
-        self::assertSame([], $this->dimensions()->get($order, [1]));
+        self::assertSame([], $this->createProvider()->get($order, [1]));
     }
 
-    private function dimensions(): ItemDimensionsProvider
+    private function createProvider(): ItemDimensionsProvider
     {
         $collection = $this->createStub(Collection::class);
         $collection->method('addAttributeToSelect')->willReturnSelf();
@@ -88,7 +94,7 @@ class ItemDimensionsProviderTest extends TestCase
     /**
      * @param Item[] $items
      */
-    private function order(array $items): Order
+    private function createOrder(array $items): Order
     {
         $order = $this->createStub(Order::class);
         $order->method('getAllItems')->willReturn($items);
@@ -99,7 +105,7 @@ class ItemDimensionsProviderTest extends TestCase
     /**
      * @param Item[] $children
      */
-    private function item(int $id, int $productId, float $qty, array $children = []): Item
+    private function createItem(int $id, int $productId, float $qty, array $children = []): Item
     {
         $item = $this->createStub(Item::class);
         $item->method('getItemId')->willReturn($id);

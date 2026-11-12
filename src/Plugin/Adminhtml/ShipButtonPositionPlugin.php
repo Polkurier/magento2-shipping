@@ -37,7 +37,7 @@ readonly class ShipButtonPositionPlugin
     {
         foreach ($buttonList->getItems() as $items) {
             if (isset($items[self::BUTTON])) {
-                $this->order($items);
+                $this->sortItems($items);
             }
         }
 
@@ -50,7 +50,7 @@ readonly class ShipButtonPositionPlugin
      *
      * @param array<string, Item> $items sorted
      */
-    private function order(array $items): void
+    private function sortItems(array $items): void
     {
         $button = $items[self::BUTTON];
         unset($items[self::BUTTON]);

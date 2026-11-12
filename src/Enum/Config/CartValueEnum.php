@@ -22,7 +22,7 @@ enum CartValueEnum: string
      */
     case Net = 'net';
 
-    public function label(): string
+    public function getLabel(): string
     {
         return match ($this) {
             self::Gross => (string)__('With tax'),

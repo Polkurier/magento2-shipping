@@ -22,7 +22,7 @@ class ShipButtonPositionPluginTest extends TestCase
     {
         self::assertSame(
             ['order_edit', 'order_invoice', 'order_ship', 'polkurier_ship', 'order_reorder'],
-            $this->laidOut(['order_edit', 'order_invoice', 'order_ship', 'order_reorder', 'polkurier_ship']),
+            $this->layOut(['order_edit', 'order_invoice', 'order_ship', 'order_reorder', 'polkurier_ship']),
         );
     }
 
@@ -31,7 +31,7 @@ class ShipButtonPositionPluginTest extends TestCase
         // An admin not allowed to ship gets no "Ship".
         self::assertSame(
             ['order_cancel', 'order_hold', 'order_invoice', 'order_reorder', 'polkurier_ship'],
-            $this->laidOut(['order_cancel', 'polkurier_ship', 'order_hold', 'order_invoice', 'order_reorder']),
+            $this->layOut(['order_cancel', 'polkurier_ship', 'order_hold', 'order_invoice', 'order_reorder']),
         );
     }
 
@@ -39,11 +39,11 @@ class ShipButtonPositionPluginTest extends TestCase
     {
         self::assertSame(
             ['order_reorder', 'something_else', 'polkurier_ship'],
-            $this->laidOut(['order_reorder', 'something_else', 'polkurier_ship']),
+            $this->layOut(['order_reorder', 'something_else', 'polkurier_ship']),
         );
         self::assertSame(
             ['order_ship', 'order_reorder'],
-            $this->laidOut(['order_ship', 'order_reorder']),
+            $this->layOut(['order_ship', 'order_reorder']),
             'Not on the page: nothing changes.',
         );
     }
@@ -55,7 +55,7 @@ class ShipButtonPositionPluginTest extends TestCase
      *
      * @return string[] in the order the toolbar lays them out
      */
-    private function laidOut(array $ids): array
+    private function layOut(array $ids): array
     {
         $items = [];
         foreach ($ids as $id) {

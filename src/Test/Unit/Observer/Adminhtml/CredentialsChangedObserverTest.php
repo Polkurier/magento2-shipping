@@ -21,13 +21,13 @@ class CredentialsChangedObserverTest extends TestCase
 {
     public function testEverythingCachedForTheAccountGoesButThePoints(): void
     {
-        self::assertNotContains(CacheTagEnum::Points, CacheTagEnum::ofAccount());
+        self::assertNotContains(CacheTagEnum::Points, CacheTagEnum::getAccountTags());
         $clients = $this->createMock(PolkurierClient::class);
         $clients->expects(self::once())->method('reset');
         $catalog = $this->createMock(CarrierCatalog::class);
         $catalog->expects(self::once())->method('clean');
         $cache = $this->createMock(PolkurierCache::class);
-        $cache->expects(self::once())->method('cleanTags')->with(...CacheTagEnum::ofAccount())->willReturn(true);
+        $cache->expects(self::once())->method('cleanTags')->with(...CacheTagEnum::getAccountTags())->willReturn(true);
 
         (new CredentialsChangedObserver($clients, $catalog, $cache))->execute(new Observer());
     }

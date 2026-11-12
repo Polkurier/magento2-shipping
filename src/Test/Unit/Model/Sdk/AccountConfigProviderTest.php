@@ -44,7 +44,7 @@ class AccountConfigProviderTest extends TestCase
 
     public function testReadsTheAccountFromTheDefaultScopeOnly(): void
     {
-        $config = $this->provider()->getConfig();
+        $config = $this->createProvider()->getConfig();
 
         self::assertSame('11111', $config->getAuthorization()->getLogin());
         self::assertSame('token-one', $config->getAuthorization()->getToken());
@@ -56,7 +56,7 @@ class AccountConfigProviderTest extends TestCase
 
     public function testHidesPersonalDataAndLeavesFilesOutUnlessAllowed(): void
     {
-        $config = $this->provider()->getConfig();
+        $config = $this->createProvider()->getConfig();
 
         self::assertFalse($config->isPersonalDataLoggingEnabled());
         self::assertFalse($config->isFileLoggingEnabled());
@@ -73,7 +73,7 @@ class AccountConfigProviderTest extends TestCase
         $this->values[ConfigProvider::XML_PATH_LOG_PERSONAL_DATA] = '1';
         $this->values[ConfigProvider::XML_PATH_LOG_FILES] = '1';
         $this->values[ConfigProvider::XML_PATH_LOG_FILES_DIRECTORY] = ' var/polkurier/./files ';
-        $config = $this->provider()->getConfig();
+        $config = $this->createProvider()->getConfig();
 
         self::assertTrue($config->isPersonalDataLoggingEnabled());
         self::assertTrue($config->isFileLoggingEnabled());
@@ -84,7 +84,7 @@ class AccountConfigProviderTest extends TestCase
         );
 
         $this->values[ConfigProvider::XML_PATH_LOG_FILES_DIRECTORY] = '/var/log/shop/../polkurier';
-        self::assertSame('/var/log/polkurier/2026/10', $this->provider()->getConfig()->getLogFilesDirectory());
+        self::assertSame('/var/log/polkurier/2026/10', $this->createProvider()->getConfig()->getLogFilesDirectory());
     }
 
     public function testTheStatusIntervalIsReadFromEveryScheduleOffered(): void
@@ -99,7 +99,7 @@ class AccountConfigProviderTest extends TestCase
         $intervals = [];
         foreach (\array_keys((new StatusSchedule())->toArray()) as $schedule) {
             $this->values[ConfigProvider::XML_PATH_STATUS_SCHEDULE] = $schedule;
-            $intervals[$schedule] = $this->config()->getStatusIntervalMinutes();
+            $intervals[$schedule] = $this->createConfig()->getStatusIntervalMinutes();
         }
 
         self::assertSame($expected, $intervals);
@@ -109,21 +109,21 @@ class AccountConfigProviderTest extends TestCase
     {
         $this->values[ConfigProvider::XML_PATH_TIMEOUT] = '';
 
-        self::assertSame(30, $this->provider()->getConfig()->getApiTimeout());
+        self::assertSame(30, $this->createProvider()->getConfig()->getApiTimeout());
     }
 
     public function testTheStorefrontWaitsAtMostItsOwnLimit(): void
     {
         $this->values[ConfigProvider::XML_PATH_TIMEOUT] = '30';
-        self::assertSame(5, $this->provider(5)->getConfig()->getApiTimeout());
+        self::assertSame(5, $this->createProvider(5)->getConfig()->getApiTimeout());
 
         $this->values[ConfigProvider::XML_PATH_TIMEOUT] = '3';
-        self::assertSame(3, $this->provider(5)->getConfig()->getApiTimeout(), 'A shorter setting stands.');
+        self::assertSame(3, $this->createProvider(5)->getConfig()->getApiTimeout(), 'A shorter setting stands.');
     }
 
     public function testIdentifiesTheIntegrationAndTargetsTheConfiguredEndpoint(): void
     {
-        $config = $this->provider()->getConfig();
+        $config = $this->createProvider()->getConfig();
 
         self::assertSame(AccountConfigProvider::PLATFORM, $config->getPlatform());
         self::assertSame('1.2.3', $config->getPlatformVersion());
@@ -134,39 +134,39 @@ class AccountConfigProviderTest extends TestCase
         );
 
         $this->values[ConfigProvider::XML_PATH_API_URL] = 'http://api.local/';
-        self::assertSame('http://api.local', $this->provider()->getConfig()->getApiUrl());
+        self::assertSame('http://api.local', $this->createProvider()->getConfig()->getApiUrl());
     }
 
     public function testResolvesAtCallTimeNotAtConstruction(): void
     {
-        $provider = $this->provider();
+        $provider = $this->createProvider();
         $this->values[ConfigProvider::XML_PATH_TOKEN] = 'enc:rotated';
 
         self::assertSame('rotated', $provider->getConfig()->getAuthorization()->getToken());
     }
 
-    public static function directoryList(): DirectoryList
+    public static function createDirectoryList(): DirectoryList
     {
         return new DirectoryList('/srv/magento');
     }
 
-    private function provider(?int $maxTimeout = null): AccountConfigProvider
+    private function createProvider(?int $maxTimeout = null): AccountConfigProvider
     {
         $packageInfo = $this->createStub(PackageInfo::class);
         $packageInfo->method('getVersion')->willReturn('1.2.3');
 
         return new AccountConfigProvider(
-            $this->config(),
+            $this->createConfig(),
             $packageInfo,
-            new LogFilesDirectoryResolver(self::directoryList()),
+            new LogFilesDirectoryResolver(self::createDirectoryList()),
             new FixedDateTime((int)\strtotime('2026-10-06 07:00:00 UTC')),
-            NewingObjectManager::factory(SdkConfigFactory::class),
-            NewingObjectManager::factory(AuthorizationMessageFactory::class),
+            NewingObjectManager::createFactory(SdkConfigFactory::class),
+            NewingObjectManager::createFactory(AuthorizationMessageFactory::class),
             $maxTimeout,
         );
     }
 
-    private function config(): ConfigProvider
+    private function createConfig(): ConfigProvider
     {
         $scopeConfig = $this->createStub(ScopeConfigInterface::class);
         $scopeConfig->method('getValue')->willReturnCallback(function (string $path, string $scope): ?string {

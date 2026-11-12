@@ -23,7 +23,7 @@ enum WeightLimitEnum: string
      */
     case KeepUnder = 'keep_under';
 
-    public function label(): string
+    public function getLabel(): string
     {
         return match ($this) {
             self::Warn => (string)__('Only warn about heavier parcels'),

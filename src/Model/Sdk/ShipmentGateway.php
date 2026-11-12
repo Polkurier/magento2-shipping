@@ -71,13 +71,13 @@ readonly class ShipmentGateway
     public function placeOrder(CreateOrderMessage $message): CreatedOrderMessage
     {
         try {
-            return $this->polkurierClient->orders()->createOrder($message);
+            return $this->polkurierClient->getOrders()->createOrder($message);
         } catch (PolkurierException $e) {
-            if ($this->mayHaveBeenPlaced($e)) {
-                throw new PlacementUncertainException($this->errorMessageResolver->phrase($e), $e);
+            if ($this->isPossiblyPlaced($e)) {
+                throw new PlacementUncertainException($this->errorMessageResolver->createPhrase($e), $e);
             }
 
-            throw $this->errorMessageResolver->exception($e);
+            throw $this->errorMessageResolver->createException($e);
         }
     }
 
@@ -86,7 +86,7 @@ readonly class ShipmentGateway
      */
     public function cancelOrder(OrderIdMessage $message): CancellationMessage
     {
-        return $this->call(fn(): CancellationMessage => $this->polkurierClient->orders()->cancelOrder($message));
+        return $this->call(fn(): CancellationMessage => $this->polkurierClient->getOrders()->cancelOrder($message));
     }
 
     /**
@@ -94,7 +94,7 @@ readonly class ShipmentGateway
      */
     public function findOrders(GetOrdersMessage $message): OrderListMessage
     {
-        return $this->call(fn(): OrderListMessage => $this->polkurierClient->orders()->getOrders($message));
+        return $this->call(fn(): OrderListMessage => $this->polkurierClient->getOrders()->getOrders($message));
     }
 
     /**
@@ -102,7 +102,7 @@ readonly class ShipmentGateway
      */
     public function getStatus(string $number, bool $tracking): OrderStatusMessage
     {
-        return $this->call(fn(): OrderStatusMessage => $this->polkurierClient->orders()->getStatus(
+        return $this->call(fn(): OrderStatusMessage => $this->polkurierClient->getOrders()->getStatus(
             new GetStatusMessage($number, tracking: $tracking),
         ));
     }
@@ -116,7 +116,7 @@ readonly class ShipmentGateway
     public function isCancelled(string $number): ?bool
     {
         try {
-            $this->polkurierClient->orders()->getStatus(new GetStatusMessage($number));
+            $this->polkurierClient->getOrders()->getStatus(new GetStatusMessage($number));
 
             return false;
         } catch (WebserviceException $e) {
@@ -133,7 +133,7 @@ readonly class ShipmentGateway
      */
     public function getLabel(GetDocumentMessage $message): DocumentMessage
     {
-        return $this->call(fn(): DocumentMessage => $this->polkurierClient->orders()->getLabel($message));
+        return $this->call(fn(): DocumentMessage => $this->polkurierClient->getOrders()->getLabel($message));
     }
 
     /**
@@ -141,7 +141,7 @@ readonly class ShipmentGateway
      */
     public function getProtocol(GetDocumentMessage $message): DocumentMessage
     {
-        return $this->call(fn(): DocumentMessage => $this->polkurierClient->orders()->getProtocol($message));
+        return $this->call(fn(): DocumentMessage => $this->polkurierClient->getOrders()->getProtocol($message));
     }
 
     /**
@@ -152,7 +152,7 @@ readonly class ShipmentGateway
      */
     public function valuate(CreateOrderMessage $message): array
     {
-        return $this->call(fn(): array => $this->polkurierClient->orders()->orderValuation($message));
+        return $this->call(fn(): array => $this->polkurierClient->getOrders()->orderValuation($message));
     }
 
     /**
@@ -161,7 +161,7 @@ readonly class ShipmentGateway
      */
     public function getPickupTimes(GetPickupTimeMessage $message): array
     {
-        return $this->call(fn(): array => $this->polkurierClient->courier()->getCourierPickupTime($message));
+        return $this->call(fn(): array => $this->polkurierClient->getCourier()->getCourierPickupTime($message));
     }
 
     /**
@@ -173,7 +173,7 @@ readonly class ShipmentGateway
     public function isMultiPickupAvailable(MultiPickupAvailabilityRequestMessage $message): bool
     {
         return $this->call(
-            fn(): bool => $this->polkurierClient->orders()->isMultiPickupAvailable($message)->isAvailable(),
+            fn(): bool => $this->polkurierClient->getOrders()->isMultiPickupAvailable($message)->isAvailable(),
         );
     }
 
@@ -183,7 +183,7 @@ readonly class ShipmentGateway
     public function bookMultiPickup(MultiPickupRequestMessage $message): MultiPickupResultMessage
     {
         return $this->call(
-            fn(): MultiPickupResultMessage => $this->polkurierClient->orders()->createMultiOrderPickup($message),
+            fn(): MultiPickupResultMessage => $this->polkurierClient->getOrders()->createMultiOrderPickup($message),
         );
     }
 
@@ -200,7 +200,7 @@ readonly class ShipmentGateway
         try {
             return $request();
         } catch (PolkurierException $e) {
-            throw $this->errorMessageResolver->exception($e);
+            throw $this->errorMessageResolver->createException($e);
         }
     }
 
@@ -210,10 +210,10 @@ readonly class ShipmentGateway
      * Polkurier only gives before saving anything. An answer lost or unreadable, UNKNOWN_ERROR, the
      * fatal refusal (FATAL_PREFIX) and a refusal with no reason at all may hide a placed order.
      */
-    private function mayHaveBeenPlaced(PolkurierException $e): bool
+    private function isPossiblyPlaced(PolkurierException $e): bool
     {
         if ($e instanceof ConnectionException) {
-            return !$this->wasNotSent($e);
+            return !$this->isUnsent($e);
         }
         if ($e instanceof MalformedResponseException) {
             return true;
@@ -239,7 +239,7 @@ readonly class ShipmentGateway
      * it. A timeout counts only while connecting; one while waiting for the answer may follow a
      * placed order.
      */
-    private function wasNotSent(ConnectionException $e): bool
+    private function isUnsent(ConnectionException $e): bool
     {
         $message = $e->getMessage();
         $previous = $e->getPrevious();

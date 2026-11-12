@@ -19,7 +19,7 @@ class RequestParamTest extends TestCase
     /**
      * @return array<string, array{mixed, string}>
      */
-    public static function values(): array
+    public static function provideValues(): array
     {
         return [
             'text' => ['ZPL', 'ZPL'],
@@ -29,7 +29,7 @@ class RequestParamTest extends TestCase
         ];
     }
 
-    #[DataProvider('values')]
+    #[DataProvider('provideValues')]
     public function testAParameterReadsAsTextAndAListAsEmpty(mixed $param, string $expected): void
     {
         $request = $this->createStub(RequestInterface::class);
@@ -37,6 +37,6 @@ class RequestParamTest extends TestCase
             static fn(string $name, mixed $default = null): mixed => $param ?? $default,
         );
 
-        self::assertSame($expected, RequestParam::string($request, 'format', 'fallback'));
+        self::assertSame($expected, RequestParam::getString($request, 'format', 'fallback'));
     }
 }

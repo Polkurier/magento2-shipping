@@ -142,6 +142,6 @@ class PayoutSaveTest extends AdminActionTestCase
             $this->kept = $value;
         });
 
-        return new Save($this->context(), $payouts, $persistor);
+        return new Save($this->createContext(), $payouts, $persistor);
     }
 }

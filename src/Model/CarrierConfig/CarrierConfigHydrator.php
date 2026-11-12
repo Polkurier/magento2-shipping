@@ -41,13 +41,13 @@ readonly class CarrierConfigHydrator
         $model = PricingModelEnum::tryFrom((string)($data[CarrierConfigInterface::FIELD_PRICING_MODEL] ?? ''))
             ?? PricingModelEnum::Fixed;
         $config->setCustomLabel(\trim((string)($data[CarrierConfigInterface::FIELD_CUSTOM_LABEL] ?? '')) ?: null)
-            ->setLogo($this->logo($data))
-            ->setStoreLabels($this->storeLabels($data))
+            ->setLogo($this->resolveLogo($data))
+            ->setStoreLabels($this->buildStoreLabels($data))
             ->setActive((bool)($data[CarrierConfigInterface::FIELD_ACTIVE] ?? false))
             ->setPricingModel($model->value)
             ->setPriceInfo($model === PricingModelEnum::Fixed
-                ? $this->fixedPrice((string)($data[FixedPriceCalculator::FIELD_PRICE] ?? ''))
-                : $this->tiers((array)($data[TieredPriceCalculator::FIELD_TIERS] ?? [])));
+                ? $this->buildFixedPrice((string)($data[FixedPriceCalculator::FIELD_PRICE] ?? ''))
+                : $this->buildTiers((array)($data[TieredPriceCalculator::FIELD_TIERS] ?? [])));
     }
 
     /**
@@ -76,7 +76,7 @@ readonly class CarrierConfigHydrator
                     $config->getCarrierName(),
                 ));
             }
-            $config->setPriceInfo($this->fixedPrice((string)$row[FixedPriceCalculator::FIELD_PRICE]));
+            $config->setPriceInfo($this->buildFixedPrice((string)$row[FixedPriceCalculator::FIELD_PRICE]));
         }
     }
 
@@ -84,9 +84,9 @@ readonly class CarrierConfigHydrator
      * @return array<string, float>
      * @throws LocalizedException
      */
-    private function fixedPrice(string $price): array
+    private function buildFixedPrice(string $price): array
     {
-        $price = self::number($price);
+        $price = self::normalizeNumber($price);
         if (!\is_numeric($price) || (float)$price < 0) {
             throw new LocalizedException(__('Enter the price.'));
         }
@@ -100,23 +100,23 @@ readonly class CarrierConfigHydrator
      * @return array<string, array<int, array<string, float>>>
      * @throws LocalizedException
      */
-    private function tiers(array $rows): array
+    private function buildTiers(array $rows): array
     {
         $tiers = [];
         foreach ($rows as $row) {
             if (!\is_array($row)
                 || !empty($row['delete'])
-                || !\is_numeric(self::number((string)($row[TieredPriceCalculator::FIELD_PRICE] ?? '')))
+                || !\is_numeric(self::normalizeNumber((string)($row[TieredPriceCalculator::FIELD_PRICE] ?? '')))
             ) {
                 continue;
             }
             $tier = [
                 TieredPriceCalculator::FIELD_SUBTOTAL_FROM
-                    => (float)self::number((string)($row[TieredPriceCalculator::FIELD_SUBTOTAL_FROM] ?? 0)),
+                    => (float)self::normalizeNumber((string)($row[TieredPriceCalculator::FIELD_SUBTOTAL_FROM] ?? 0)),
                 TieredPriceCalculator::FIELD_WEIGHT_FROM
-                    => (float)self::number((string)($row[TieredPriceCalculator::FIELD_WEIGHT_FROM] ?? 0)),
+                    => (float)self::normalizeNumber((string)($row[TieredPriceCalculator::FIELD_WEIGHT_FROM] ?? 0)),
                 TieredPriceCalculator::FIELD_PRICE
-                    => (float)self::number((string)$row[TieredPriceCalculator::FIELD_PRICE]),
+                    => (float)self::normalizeNumber((string)$row[TieredPriceCalculator::FIELD_PRICE]),
             ];
             if (\min($tier) < 0) {
                 throw new LocalizedException(__('A price tier can\'t have a negative price or threshold.'));
@@ -133,7 +133,7 @@ readonly class CarrierConfigHydrator
     /**
      * A decimal comma is taken as a point.
      */
-    private static function number(string $value): string
+    private static function normalizeNumber(string $value): string
     {
         return \str_replace(',', '.', \trim($value));
     }
@@ -143,7 +143,7 @@ readonly class CarrierConfigHydrator
      *
      * @param array<string, mixed> $data
      */
-    private function logo(array $data): ?string
+    private function resolveLogo(array $data): ?string
     {
         $file = (string)($data[CarrierConfigInterface::FIELD_LOGO][0]['file'] ?? '');
 
@@ -158,7 +158,7 @@ readonly class CarrierConfigHydrator
      *
      * @return CarrierLabelInterface[]
      */
-    private function storeLabels(array $data): array
+    private function buildStoreLabels(array $data): array
     {
         $labels = [];
         foreach ((array)($data[CarrierConfigInterface::FIELD_STORE_LABELS] ?? []) as $row) {

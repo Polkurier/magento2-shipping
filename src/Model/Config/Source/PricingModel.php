@@ -18,7 +18,7 @@ readonly class PricingModel extends AbstractOptions
     {
         $models = [];
         foreach (PricingModelEnum::cases() as $model) {
-            $models[$model->value] = $model->label();
+            $models[$model->value] = $model->getLabel();
         }
 
         return $models;

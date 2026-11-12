@@ -45,7 +45,7 @@ readonly class CarrierNoticeProvider
      */
     public function getNotices(): array
     {
-        $key = $this->accountCache->key('carrier_notices');
+        $key = $this->accountCache->buildKey('carrier_notices');
         $cached = $this->polkurierCache->load($key);
         if (\is_string($cached) && $cached !== '') {
             try {
@@ -59,7 +59,7 @@ readonly class CarrierNoticeProvider
         }
 
         try {
-            $messages = $this->polkurierClient->system()->getCouriersMessages();
+            $messages = $this->polkurierClient->getSystem()->getCouriersMessages();
         } catch (PolkurierException $e) {
             // Notices are a courtesy: the screen works without them.
             $this->logger->warning('Polkurier carrier notices could not be read', ['exception' => $e]);
@@ -70,7 +70,9 @@ readonly class CarrierNoticeProvider
         foreach ($messages as $message) {
             $notices[] = [
                 'carrier' => $message->getCourier(),
-                'html' => self::inNewTab($this->escaper->escapeHtml($message->getMessage(), self::ALLOWED_TAGS)),
+                'html' => self::openLinksInNewTab(
+                    $this->escaper->escapeHtml($message->getMessage(), self::ALLOWED_TAGS),
+                ),
                 'severity' => match ($message->getSeverity()) {
                     CourierMessageSeverityEnum::Success => 'success',
                     CourierMessageSeverityEnum::Danger => 'error',
@@ -93,7 +95,7 @@ readonly class CarrierNoticeProvider
      * Links in a notice lead to Polkurier's or a carrier's pages, so they open in a new tab. The
      * escaper keeps no target of their own.
      */
-    private static function inNewTab(string $html): string
+    private static function openLinksInNewTab(string $html): string
     {
         return \str_replace('<a ', '<a target="_blank" rel="noopener" ', $html);
     }

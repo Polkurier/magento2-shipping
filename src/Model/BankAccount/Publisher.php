@@ -50,9 +50,9 @@ readonly class Publisher
     public function isPinLocked(): bool
     {
         try {
-            return (bool)$this->polkurierClient->account()->getAccountInfo()->getPinLocks()?->isBankAccountsEdit();
+            return (bool)$this->polkurierClient->getAccount()->getAccountInfo()->getPinLocks()?->isBankAccountsEdit();
         } catch (PolkurierException $e) {
-            throw $this->errorMessageResolver->exception($e);
+            throw $this->errorMessageResolver->createException($e);
         }
     }
 
@@ -65,11 +65,11 @@ readonly class Publisher
     public function requestCode(): TwoFactorToken
     {
         try {
-            $token = $this->polkurierClient->twoFactorToken()->twoFactorTokenRegister(
+            $token = $this->polkurierClient->getTwoFactorToken()->twoFactorTokenRegister(
                 new RegisterMessage(TwoFactorNamespaceEnum::ChangeBankAccountNumber),
             );
         } catch (PolkurierException $e) {
-            throw $this->errorMessageResolver->exception($e);
+            throw $this->errorMessageResolver->createException($e);
         }
         $this->apiEventDispatcher->dispatch(ApiEventEnum::TwoFactorCodeRequestAfter, null, [
             'namespace' => TwoFactorNamespaceEnum::ChangeBankAccountNumber,
@@ -91,17 +91,18 @@ readonly class Publisher
     ): void {
         $isNew = $account->getExtId() === null;
         try {
-            $stored = $this->polkurierClient->bankAccounts()->saveBankAccount($this->bankAccountMapper->toSaveMessage(
+            $bankAccounts = $this->polkurierClient->getBankAccounts();
+            $stored = $bankAccounts->saveBankAccount($this->bankAccountMapper->mapToSaveMessage(
                 $account,
                 $twoFactorToken,
                 $twoFactorCode,
                 $pin,
             ));
         } catch (PolkurierException $e) {
-            throw $this->errorMessageResolver->exception($e);
+            throw $this->errorMessageResolver->createException($e);
         }
         $normalized = $this->bankAccountMapper->normalize($stored);
-        $this->syncEngine->pushed($this->bankAccountSyncAdapter, $account, $normalized, $this->now());
+        $this->syncEngine->recordPushed($this->bankAccountSyncAdapter, $account, $normalized, $this->getNow());
         $this->apiEventDispatcher->dispatch(ApiEventEnum::BankAccountSaveAfter, null, [
             'bank_account' => $account,
             'is_new' => $isNew,
@@ -118,10 +119,10 @@ readonly class Publisher
     {
         if ($account->getExtId() !== null) {
             try {
-                $message = $this->bankAccountMapper->toDeleteMessage($account, $pin);
-                $this->polkurierClient->bankAccounts()->deleteBankAccount($message);
+                $message = $this->bankAccountMapper->mapToDeleteMessage($account, $pin);
+                $this->polkurierClient->getBankAccounts()->deleteBankAccount($message);
             } catch (PolkurierException $e) {
-                throw $this->errorMessageResolver->exception($e);
+                throw $this->errorMessageResolver->createException($e);
             }
             $this->apiEventDispatcher->dispatch(
                 ApiEventEnum::BankAccountDeleteAfter,
@@ -132,7 +133,7 @@ readonly class Publisher
         $this->bankAccountRepository->delete($account);
     }
 
-    private function now(): \DateTimeImmutable
+    private function getNow(): \DateTimeImmutable
     {
         return new \DateTimeImmutable('@' . $this->dateTime->gmtTimestamp());
     }

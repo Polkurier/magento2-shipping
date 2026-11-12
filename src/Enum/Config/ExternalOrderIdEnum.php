@@ -16,7 +16,7 @@ enum ExternalOrderIdEnum: string
     case Shipment = 'shipment';
     case Order = 'order';
 
-    public function label(): string
+    public function getLabel(): string
     {
         return match ($this) {
             self::Shipment => (string)__('Shipment ID'),

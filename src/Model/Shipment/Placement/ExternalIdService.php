@@ -44,7 +44,7 @@ readonly class ExternalIdService
      *         Magento shipment still to be created
      * @throws LocalizedException when the Magento shipment it goes on is gone
      */
-    public function forAttempt(Order $order, ?ShipmentInterface $attempt, ?int $magentoShipmentId): array
+    public function buildExternalId(Order $order, ?ShipmentInterface $attempt, ?int $magentoShipmentId): array
     {
         if ($this->configProvider->getExternalOrderId() === ExternalOrderIdEnum::Order) {
             return ['id' => (string)$order->getIncrementId(), 'reserved' => null];

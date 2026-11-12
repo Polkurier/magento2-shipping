@@ -32,7 +32,7 @@ abstract class AbstractButton implements ButtonProviderInterface
         protected readonly OnClickScriptBuilder $onClickScriptBuilder,
     ) {}
 
-    protected function shipment(): ?ShipmentInterface
+    protected function getShipment(): ?ShipmentInterface
     {
         if ($this->shipment === null) {
             try {
@@ -47,29 +47,34 @@ abstract class AbstractButton implements ButtonProviderInterface
 
     protected function isCreated(): bool
     {
-        return $this->shipment()?->getState() === ShipmentInterface::STATE_CREATED;
+        return $this->getShipment()?->getState() === ShipmentInterface::STATE_CREATED;
     }
 
     /**
      * @param array<string, string> $params besides the shipment's id
      */
-    protected function actionUrl(string $action, array $params = []): string
+    protected function getActionUrl(string $action, array $params = []): string
     {
         return $this->url->getUrl(
             'polkurier/shipment/' . $action,
-            ['id' => (int)$this->shipment()?->getId()] + $params,
+            ['id' => (int)$this->getShipment()?->getId()] + $params,
         );
     }
 
     /**
      * @return array<string, mixed>
      */
-    protected function link(string $label, string $action, int $sortOrder, string $class = 'secondary'): array
+    protected function buildLinkButton(
+        string $label,
+        string $action,
+        int $sortOrder,
+        string $class = 'secondary',
+    ): array
     {
         return [
             'label' => $label,
             'class' => $class,
-            'on_click' => $this->onClickScriptBuilder->location($this->actionUrl($action)),
+            'on_click' => $this->onClickScriptBuilder->buildLocation($this->getActionUrl($action)),
             'sort_order' => $sortOrder,
         ];
     }
@@ -79,7 +84,7 @@ abstract class AbstractButton implements ButtonProviderInterface
      *
      * @return array<string, mixed>
      */
-    protected function post(
+    protected function buildPostButton(
         string $label,
         string $action,
         int $sortOrder,
@@ -89,7 +94,11 @@ abstract class AbstractButton implements ButtonProviderInterface
         return [
             'label' => $label,
             'class' => 'secondary',
-            'on_click' => $this->onClickScriptBuilder->post($this->actionUrl($action), $confirmTitle, $confirmText),
+            'on_click' => $this->onClickScriptBuilder->buildPost(
+                $this->getActionUrl($action),
+                $confirmTitle,
+                $confirmText,
+            ),
             'sort_order' => $sortOrder,
         ];
     }

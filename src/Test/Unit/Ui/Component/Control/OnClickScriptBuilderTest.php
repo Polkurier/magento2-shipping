@@ -36,15 +36,18 @@ class OnClickScriptBuilderTest extends TestCase
     {
         $onClick = new OnClickScriptBuilder(new Json());
 
-        self::assertContains(self::HOSTILE, $this->strings($onClick->location(self::HOSTILE)));
+        self::assertContains(self::HOSTILE, $this->extractStrings($onClick->buildLocation(self::HOSTILE)));
         self::assertContains(
             self::HOSTILE,
-            $this->strings($onClick->post(self::HOSTILE, 'It\'s "sure"?', self::HOSTILE)),
+            $this->extractStrings($onClick->buildPost(self::HOSTILE, 'It\'s "sure"?', self::HOSTILE)),
         );
-        self::assertContains('It\'s "sure"?', $this->strings($onClick->post(self::HOSTILE, 'It\'s "sure"?', 'x')));
+        self::assertContains(
+            'It\'s "sure"?',
+            $this->extractStrings($onClick->buildPost(self::HOSTILE, 'It\'s "sure"?', 'x')),
+        );
         self::assertContains(
             self::HOSTILE,
-            $this->strings($onClick->prompt(self::HOSTILE, 'Title', 'Text', 'pickup_date')),
+            $this->extractStrings($onClick->buildPrompt(self::HOSTILE, 'Title', 'Text', 'pickup_date')),
         );
     }
 
@@ -80,10 +83,10 @@ class OnClickScriptBuilderTest extends TestCase
     public function testBackGoesOnlyToAPageOfThisAdmin(): void
     {
         $back = 'https://shop.test/admin/sales/order/view/order_id/29/?q=\'"';
-        self::assertContains($back, $this->strings($this->pickupBack($back)));
+        self::assertContains($back, $this->extractStrings($this->buildPickupBack($back)));
         self::assertContains(
             'sales/order/view',
-            $this->strings($this->pickupBack('https://evil.test/admin/')),
+            $this->extractStrings($this->buildPickupBack('https://evil.test/admin/')),
             'Elsewhere: back to the order.',
         );
     }
@@ -104,12 +107,12 @@ class OnClickScriptBuilderTest extends TestCase
         ))->getButtonData();
         $deleteAccount = (new BankAccountDeleteButton($request, $url, new Json()))->getButtonData();
 
-        self::assertContains(self::HOSTILE, $this->strings((string)$delete['on_click']));
-        self::assertContains('Delete "this" one\'s entry?', $this->strings((string)$delete['on_click']));
-        self::assertContains(self::HOSTILE, $this->strings((string)$deleteAccount['on_click']));
+        self::assertContains(self::HOSTILE, $this->extractStrings((string)$delete['on_click']));
+        self::assertContains('Delete "this" one\'s entry?', $this->extractStrings((string)$delete['on_click']));
+        self::assertContains(self::HOSTILE, $this->extractStrings((string)$deleteAccount['on_click']));
     }
 
-    private function pickupBack(string $back): string
+    private function buildPickupBack(string $back): string
     {
         $request = $this->createStub(RequestInterface::class);
         $request->method('getParam')
@@ -133,7 +136,7 @@ class OnClickScriptBuilderTest extends TestCase
     /**
      * @return string[] the script's string literals, as JavaScript reads them
      */
-    private function strings(string $script): array
+    private function extractStrings(string $script): array
     {
         \preg_match_all('/"(?:[^"\\\\]|\\\\.)*"/', $script, $matches);
         $strings = [];

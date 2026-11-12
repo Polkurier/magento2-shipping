@@ -41,32 +41,38 @@ class PolkurierClientTest extends TestCase
             ),
         ));
 
-        self::assertSame($services(PolkurierWebservice::class), $services(PolkurierClientInterface::class));
+        self::assertSame(
+            \array_map(
+                static fn(string $name): string => 'get' . \ucfirst($name),
+                $services(PolkurierWebservice::class),
+            ),
+            $services(PolkurierClientInterface::class),
+        );
     }
 
     public function testOneClientServesTheWholeRequest(): void
     {
-        $client = $this->client();
+        $client = $this->createClient();
 
-        $client->orders();
-        $client->courier();
-        $client->orders();
+        $client->getOrders();
+        $client->getCourier();
+        $client->getOrders();
 
         self::assertSame(1, $this->built);
     }
 
     public function testNewCredentialsGetANewClient(): void
     {
-        $client = $this->client();
+        $client = $this->createClient();
 
-        $client->orders();
+        $client->getOrders();
         $client->reset();
-        $client->orders();
+        $client->getOrders();
 
         self::assertSame(2, $this->built, 'The configuration is read again after a reset.');
     }
 
-    private function client(): PolkurierClient
+    private function createClient(): PolkurierClient
     {
         $configProviders = $this->createStub(AccountConfigProviderFactory::class);
         $configProviders->method('create')->willReturnCallback(function (): AccountConfigProvider {

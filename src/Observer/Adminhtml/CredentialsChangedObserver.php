@@ -16,7 +16,7 @@ use Polkurier\Shipping\Model\Sdk\PolkurierClient;
 
 /**
  * After the carrier configuration is saved, forgets the clients built from the previous
- * credentials and everything cached for the account ({@see CacheTagEnum::ofAccount()}).
+ * credentials and everything cached for the account ({@see CacheTagEnum::getAccountTags()}).
  *
  * Event: admin_system_config_changed_section_carriers
  */
@@ -32,6 +32,6 @@ readonly class CredentialsChangedObserver implements ObserverInterface
     {
         $this->polkurierClient->reset();
         $this->carrierCatalog->clean();
-        $this->polkurierCache->cleanTags(...CacheTagEnum::ofAccount());
+        $this->polkurierCache->cleanTags(...CacheTagEnum::getAccountTags());
     }
 }

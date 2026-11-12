@@ -43,7 +43,7 @@ readonly class PackTemplateSyncAdapter implements PushableAdapterInterface
     public function fetchRemote(): array
     {
         $remote = [];
-        foreach ($this->polkurierClient->packTemplates()->getPackTemplates() as $template) {
+        foreach ($this->polkurierClient->getPackTemplates()->getPackTemplates() as $template) {
             if ($template->getId() !== null) {
                 $remote[$template->getId()] = $this->packTemplateMapper->normalize($template);
             }
@@ -72,9 +72,9 @@ readonly class PackTemplateSyncAdapter implements PushableAdapterInterface
     public function push(SyncableInterface $local): array
     {
         /** @var PackTemplateInterface $local */
-        $request = $this->packTemplateMapper->toSaveMessage($local);
+        $request = $this->packTemplateMapper->mapToSaveMessage($local);
         $isNew = $local->getExtId() === null;
-        $response = $this->polkurierClient->packTemplates()->savePackTemplates($request);
+        $response = $this->polkurierClient->getPackTemplates()->savePackTemplates($request);
         $this->apiEventDispatcher->dispatch(ApiEventEnum::PackTemplateSaveAfter, null, [
             'pack_template' => $local,
             'is_new' => $isNew,
@@ -88,8 +88,8 @@ readonly class PackTemplateSyncAdapter implements PushableAdapterInterface
     public function deleteRemote(SyncableInterface $local): void
     {
         /** @var PackTemplateInterface $local */
-        $request = $this->packTemplateMapper->toDeleteMessage($local);
-        if ($this->polkurierClient->packTemplates()->deletePackTemplates($request)) {
+        $request = $this->packTemplateMapper->mapToDeleteMessage($local);
+        if ($this->polkurierClient->getPackTemplates()->deletePackTemplates($request)) {
             $this->apiEventDispatcher->dispatch(
                 ApiEventEnum::PackTemplateDeleteAfter,
                 null,

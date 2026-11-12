@@ -26,7 +26,7 @@ class ValidatePickupPointObserverTest extends TestCase
         $selection = $this->createMock(PointSelectionRecorder::class);
         $selection->expects(self::once())->method('requirePoint')->with(self::anything(), 'INPOST_PACZKOMAT');
 
-        (new ValidatePickupPointObserver($selection))->execute($this->event('polkurier_INPOST_PACZKOMAT'));
+        (new ValidatePickupPointObserver($selection))->execute($this->createEvent('polkurier_INPOST_PACZKOMAT'));
     }
 
     public function testOtherCarriersAndVirtualOrdersArentChecked(): void
@@ -34,11 +34,11 @@ class ValidatePickupPointObserverTest extends TestCase
         $selection = $this->createMock(PointSelectionRecorder::class);
         $selection->expects(self::never())->method('requirePoint');
 
-        (new ValidatePickupPointObserver($selection))->execute($this->event('flatrate_flatrate'));
-        (new ValidatePickupPointObserver($selection))->execute($this->event('polkurier_INPOST_PACZKOMAT', true));
+        (new ValidatePickupPointObserver($selection))->execute($this->createEvent('flatrate_flatrate'));
+        (new ValidatePickupPointObserver($selection))->execute($this->createEvent('polkurier_INPOST_PACZKOMAT', true));
     }
 
-    private function event(string $method, bool $virtual = false): Observer
+    private function createEvent(string $method, bool $virtual = false): Observer
     {
         $address = $this->getMockBuilder(Address::class)
             ->disableOriginalConstructor()

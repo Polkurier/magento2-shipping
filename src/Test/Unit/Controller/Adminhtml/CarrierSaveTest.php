@@ -192,6 +192,6 @@ class CarrierSaveTest extends AdminActionTestCase
                 }
             });
 
-        return new Save($this->context(), $repository, $hydrator, $persistor, $points);
+        return new Save($this->createContext(), $repository, $hydrator, $persistor, $points);
     }
 }

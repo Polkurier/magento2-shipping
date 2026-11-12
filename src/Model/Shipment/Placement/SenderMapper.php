@@ -33,9 +33,9 @@ readonly class SenderMapper
     /**
      * An address book entry, handing the parcels over at the point given, or at none.
      */
-    public function fromAddress(AddressInterface $address, ?string $pointId): OrderAddressMessage
+    public function mapFromAddress(AddressInterface $address, ?string $pointId): OrderAddressMessage
     {
-        return $this->fromFields([
+        return $this->mapFromFields([
             AddressInterface::FIELD_PERSON => $address->getPerson(),
             AddressInterface::FIELD_COMPANY => (string)$address->getCompany(),
             AddressInterface::FIELD_STREET => $address->getStreet(),
@@ -55,7 +55,7 @@ readonly class SenderMapper
      *
      * @param array<string, string> $fields by address field
      */
-    public function fromFields(array $fields, ?string $pointId = null): OrderAddressMessage
+    public function mapFromFields(array $fields, ?string $pointId = null): OrderAddressMessage
     {
         $value = static fn(string $field): string => \trim((string)($fields[$field] ?? ''));
         $builder = $this->orderAddressMessageBuilderFactory->create()
@@ -84,15 +84,15 @@ readonly class SenderMapper
      * The store's address or shipping origin, as configured, handing the parcels over at the
      * point given, or at none; null when neither is used and filled in.
      */
-    public function fromStore(int $storeId, ?string $pointId = null): ?OrderAddressMessage
+    public function mapFromStore(int $storeId, ?string $pointId = null): ?OrderAddressMessage
     {
         $fromInformation = $this->configProvider->isUseStoreInformationAddress($storeId)
-            ? $this->fromStoreInformation($storeId, $pointId)
+            ? $this->mapFromStoreInformation($storeId, $pointId)
             : null;
 
         $useOrigin = $this->configProvider->isUseStoreOriginAddress($storeId);
 
-        return $fromInformation ?? ($useOrigin ? $this->fromStoreOrigin($storeId, $pointId) : null);
+        return $fromInformation ?? ($useOrigin ? $this->mapFromStoreOrigin($storeId, $pointId) : null);
     }
 
     /**
@@ -101,7 +101,7 @@ readonly class SenderMapper
      * The cover address has no house number of its own in the SDK, so it goes at the end of the
      * street, which is also how the API prints it.
      */
-    public function toCoverAddress(AddressInterface $address): CoverAddressMessage
+    public function mapToCoverAddress(AddressInterface $address): CoverAddressMessage
     {
         $builder = $this->coverAddressMessageBuilderFactory->create()
             ->person($address->getPerson())
@@ -124,44 +124,44 @@ readonly class SenderMapper
      * The store's address (General > Store Information), with the store's name, phone and the
      * configured store e-mail, or null when it isn't filled in.
      */
-    private function fromStoreInformation(int $storeId, ?string $pointId): ?OrderAddressMessage
+    private function mapFromStoreInformation(int $storeId, ?string $pointId): ?OrderAddressMessage
     {
-        return $this->fromStoreAddress('general/store_information', $storeId, $pointId);
+        return $this->mapFromStoreAddress('general/store_information', $storeId, $pointId);
     }
 
     /**
      * The shipping origin (Sales > Shipping Settings > Origin), with the store's name, phone and
      * the configured store e-mail, or null when it isn't filled in.
      */
-    private function fromStoreOrigin(int $storeId, ?string $pointId): ?OrderAddressMessage
+    private function mapFromStoreOrigin(int $storeId, ?string $pointId): ?OrderAddressMessage
     {
-        return $this->fromStoreAddress('shipping/origin', $storeId, $pointId);
+        return $this->mapFromStoreAddress('shipping/origin', $storeId, $pointId);
     }
 
-    private function fromStoreAddress(string $prefix, int $storeId, ?string $pointId): ?OrderAddressMessage
+    private function mapFromStoreAddress(string $prefix, int $storeId, ?string $pointId): ?OrderAddressMessage
     {
         $street = $this->streetParser->parse([
-            $this->value($prefix . '/street_line1', $storeId),
-            $this->value($prefix . '/street_line2', $storeId),
+            $this->getConfigValue($prefix . '/street_line1', $storeId),
+            $this->getConfigValue($prefix . '/street_line2', $storeId),
         ]);
-        $city = $this->value($prefix . '/city', $storeId);
-        $postcode = $this->value($prefix . '/postcode', $storeId);
+        $city = $this->getConfigValue($prefix . '/city', $storeId);
+        $postcode = $this->getConfigValue($prefix . '/postcode', $storeId);
         if ($street['street'] === '' || $city === '' || $postcode === '') {
             return null;
         }
-        $name = $this->value('general/store_information/name', $storeId);
+        $name = $this->getConfigValue('general/store_information/name', $storeId);
         $builder = $this->orderAddressMessageBuilderFactory->create()
             ->person($name)
             ->street($street['street'])
             ->houseNumber((string)$street['house_number'])
             ->city($city)
             ->postcode($postcode)
-            ->country($this->value($prefix . '/country_id', $storeId) ?: Polkurier::HOME_COUNTRY)
-            ->email($this->value(
+            ->country($this->getConfigValue($prefix . '/country_id', $storeId) ?: Polkurier::HOME_COUNTRY)
+            ->email($this->getConfigValue(
                 \sprintf('trans_email/ident_%s/email', $this->configProvider->getSenderEmailIdentity($storeId)),
                 $storeId,
             ))
-            ->phone($this->value('general/store_information/phone', $storeId));
+            ->phone($this->getConfigValue('general/store_information/phone', $storeId));
         if ($name !== '') {
             $builder->company($name);
         }
@@ -175,7 +175,7 @@ readonly class SenderMapper
         return $builder->build();
     }
 
-    private function value(string $path, int $storeId): string
+    private function getConfigValue(string $path, int $storeId): string
     {
         return \trim((string)$this->scopeConfig->getValue($path, ScopeInterface::SCOPE_STORE, $storeId));
     }

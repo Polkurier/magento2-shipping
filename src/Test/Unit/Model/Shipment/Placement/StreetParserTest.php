@@ -18,7 +18,7 @@ class StreetParserTest extends TestCase
     /**
      * @return array<string, array{0: string[], 1: array{street: string, house_number: ?string, flat_number: ?string}}>
      */
-    public static function streets(): array
+    public static function provideStreets(): array
     {
         return [
             'number at the end' => [['Długa 12'], ['street' => 'Długa', 'house_number' => '12', 'flat_number' => null]],
@@ -60,7 +60,7 @@ class StreetParserTest extends TestCase
      * @param string[] $lines
      * @param array{street: string, house_number: ?string, flat_number: ?string} $expected
      */
-    #[DataProvider('streets')]
+    #[DataProvider('provideStreets')]
     public function testParses(array $lines, array $expected): void
     {
         self::assertSame($expected, (new StreetParser())->parse($lines));

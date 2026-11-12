@@ -49,10 +49,10 @@ class SyncableEntityActionsTest extends AdminActionTestCase
     public function testASavedAccountGoesBackToTheList(): void
     {
         $this->post = ['id' => '3', 'name' => 'Firmowe', 'form_key' => 'x'];
-        $handler = $this->bankAccounts($this->account(3));
+        $handler = $this->createBankAccountHandler($this->createAccount(3));
         $handler->expects(self::once())->method('save')
             ->with(self::anything(), ['name' => 'Firmowe'])
-            ->willReturn($this->synced(pushed: 1));
+            ->willReturn($this->createSyncResult(pushed: 1));
 
         $this->save($handler)->execute();
 
@@ -65,7 +65,7 @@ class SyncableEntityActionsTest extends AdminActionTestCase
         $this->post = ['id' => '3', 'name' => 'Firmowe'];
         $this->params = [FormActions::BACK_PARAM => FormActions::SAVE_AND_CONTINUE];
 
-        $this->save($this->bankAccounts($this->account(3)->setSyncError('Błędny PIN')))->execute();
+        $this->save($this->createBankAccountHandler($this->createAccount(3)->setSyncError('Błędny PIN')))->execute();
 
         self::assertSame(['*/*/edit', ['id' => 3]], $this->redirect);
         self::assertSame(['Saved in Magento, but not in Polkurier: Błędny PIN'], $this->messages['warning']);
@@ -79,7 +79,7 @@ class SyncableEntityActionsTest extends AdminActionTestCase
             BankAccountHandler::FIELD_CONFIRMATION_PIN => '2342',
             'two_factor_code' => '123456',
         ];
-        $handler = $this->bankAccounts($this->account(3));
+        $handler = $this->createBankAccountHandler($this->createAccount(3));
         $handler->method('save')
             ->willThrowException(new LocalizedException(__(
                 'A synchronization with Polkurier is already running. Try again in a moment.',
@@ -97,12 +97,12 @@ class SyncableEntityActionsTest extends AdminActionTestCase
         // Posted by the form's Delete button, never carried in the address bar.
         $this->params = ['id' => '3', BankAccountHandler::FIELD_CONFIRMATION_PIN => 'from the query'];
         $this->post = ['id' => '3', BankAccountHandler::FIELD_CONFIRMATION_PIN => '2342'];
-        $handler = $this->bankAccounts($this->account(3));
+        $handler = $this->createBankAccountHandler($this->createAccount(3));
         $handler->expects(self::once())->method('delete')
             ->with(self::anything(), '2342')
             ->willThrowException(new LocalizedException(__('Polkurier did not delete bank account Firmowe.')));
 
-        (new Delete($this->context(), $handler))->execute();
+        (new Delete($this->createContext(), $handler))->execute();
 
         self::assertSame(['Polkurier did not delete bank account Firmowe.'], $this->messages['error']);
     }
@@ -116,21 +116,27 @@ class SyncableEntityActionsTest extends AdminActionTestCase
                 throw new LocalizedException(__('Polkurier did not delete Karton M.'));
             }
 
-            return $this->synced(deleted: 1);
+            return $this->createSyncResult(deleted: 1);
         });
         $filter = $this->createStub(Filter::class);
         $filter->method('getCollection')
-            ->willReturn([$this->template('Karton S'), $this->template('Karton M'), $this->template('Karton L')]);
+            ->willReturn(
+                [
+                    $this->createTemplate('Karton S'),
+                    $this->createTemplate('Karton M'),
+                    $this->createTemplate('Karton L'),
+                ],
+            );
         $collections = $this->createStub(CollectionFactory::class);
         $collections->method('create')
             ->willReturn($this->createStub(\Polkurier\Shipping\Model\ResourceModel\PackTemplate\Collection::class));
 
         (new MassDelete(
-            $this->context(),
+            $this->createContext(),
             $handler,
             $filter,
             $collections,
-            $this->flashMessageCollectorFactory(),
+            $this->createFlashMessageCollectorFactory(),
         ))->execute();
 
         self::assertSame(
@@ -145,22 +151,24 @@ class SyncableEntityActionsTest extends AdminActionTestCase
     {
         $handler = $this->createMock(PackTemplateHandler::class);
         $handler->method('delete')
-            ->willReturnCallback(fn(): SyncResult => $this->synced(
+            ->willReturnCallback(fn(): SyncResult => $this->createSyncResult(
                 failed: 1,
                 errors: ['Polkurier could not be reached.'],
             ));
         $filter = $this->createStub(Filter::class);
-        $filter->method('getCollection')->willReturn([$this->template('Karton S'), $this->template('Karton M')]);
+        $filter->method('getCollection')->willReturn(
+            [$this->createTemplate('Karton S'), $this->createTemplate('Karton M')],
+        );
         $collections = $this->createStub(CollectionFactory::class);
         $collections->method('create')
             ->willReturn($this->createStub(\Polkurier\Shipping\Model\ResourceModel\PackTemplate\Collection::class));
 
         (new MassDelete(
-            $this->context(),
+            $this->createContext(),
             $handler,
             $filter,
             $collections,
-            $this->flashMessageCollectorFactory(),
+            $this->createFlashMessageCollectorFactory(),
         ))->execute();
 
         self::assertSame(['warning' => [
@@ -174,13 +182,15 @@ class SyncableEntityActionsTest extends AdminActionTestCase
         $this->params = [
             'items' => [3 => ['name' => 'Firmowe', 'sync_state' => 'synced', 'ext_id' => 'forged'], 4 => 'not a row'],
         ];
-        $handler = $this->bankAccounts($this->account(3)->setSyncState(SyncableInterface::STATE_UNCONFIRMED));
+        $handler = $this->createBankAccountHandler(
+            $this->createAccount(3)->setSyncState(SyncableInterface::STATE_UNCONFIRMED),
+        );
         $handler->expects(self::once())->method('save')->with(self::anything(), ['name' => 'Firmowe']);
 
         (new InlineEdit(
-            $this->context(),
+            $this->createContext(),
             $handler,
-            $this->jsonFactory(),
+            $this->createJsonFactory(),
         ))->execute();
 
         self::assertTrue($this->json['error'] ?? false);
@@ -194,8 +204,12 @@ class SyncableEntityActionsTest extends AdminActionTestCase
     /**
      * @param string[] $errors
      */
-    private function synced(int $pushed = 0, int $deleted = 0, int $failed = 0, array $errors = []): SyncResult
-    {
+    private function createSyncResult(
+        int $pushed = 0,
+        int $deleted = 0,
+        int $failed = 0,
+        array $errors = [],
+    ): SyncResult {
         $result = new SyncResult(SyncEntityEnum::PackTemplate);
         $result->pushed = $pushed;
         $result->deleted = $deleted;
@@ -212,13 +226,13 @@ class SyncableEntityActionsTest extends AdminActionTestCase
             $this->persisted = $data;
         });
 
-        return new Save($this->context(), $handler, $persistor);
+        return new Save($this->createContext(), $handler, $persistor);
     }
 
     /**
      * @return BankAccountHandler&\PHPUnit\Framework\MockObject\MockObject
      */
-    private function bankAccounts(BankAccount $account): BankAccountHandler
+    private function createBankAccountHandler(BankAccount $account): BankAccountHandler
     {
         $handler = $this->createMock(BankAccountHandler::class);
         $handler->method('get')->willReturn($account);
@@ -227,7 +241,7 @@ class SyncableEntityActionsTest extends AdminActionTestCase
         return $handler;
     }
 
-    private function account(int $id): BankAccount
+    private function createAccount(int $id): BankAccount
     {
         /** @var BankAccount $account */
         $account = (new ObjectManager($this))->getObject(BankAccount::class);
@@ -236,7 +250,7 @@ class SyncableEntityActionsTest extends AdminActionTestCase
         return $account->setName('Firmowe');
     }
 
-    private function template(string $name): PackTemplate
+    private function createTemplate(string $name): PackTemplate
     {
         /** @var PackTemplate $template */
         $template = (new ObjectManager($this))->getObject(PackTemplate::class);

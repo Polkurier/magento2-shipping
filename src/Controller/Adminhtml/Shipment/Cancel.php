@@ -42,6 +42,6 @@ class Cancel extends AbstractShipmentAction implements HttpPostActionInterface
             }
         }
 
-        return $this->back();
+        return $this->redirectBack();
     }
 }

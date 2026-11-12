@@ -87,13 +87,13 @@ readonly class RetriableShipmentFinder
      */
     public function findForOrder(Order $order): ?ShipmentInterface
     {
-        $latest = $this->shipmentFinder->latestForOrder((int)$order->getEntityId());
+        $latest = $this->shipmentFinder->findLatestForOrder((int)$order->getEntityId());
 
         return $latest !== null && $this->isPossible($latest) ? $latest : null;
     }
 
     private function isLatest(int $shipmentId, int $orderId): bool
     {
-        return (int)$this->shipmentFinder->latestForOrder($orderId)?->getId() === $shipmentId;
+        return (int)$this->shipmentFinder->findLatestForOrder($orderId)?->getId() === $shipmentId;
     }
 }

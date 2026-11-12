@@ -56,7 +56,7 @@ readonly class RestrictCashOnDeliveryObserver implements ObserverInterface
             return;
         }
         foreach ($this->getDeliveries($quote) as [$carrierCode, $quoteAddressId]) {
-            if (!$this->collectsCod($quote, $carrierCode, $quoteAddressId)) {
+            if (!$this->isCollectingCod($quote, $carrierCode, $quoteAddressId)) {
                 $result->setData('is_available', false);
 
                 return;
@@ -72,13 +72,13 @@ readonly class RestrictCashOnDeliveryObserver implements ObserverInterface
     private function getDeliveries(\Magento\Quote\Model\Quote $quote): array
     {
         if (!$quote->getIsMultiShipping()) {
-            $code = Polkurier::methodCodeOf((string)$quote->getShippingAddress()->getShippingMethod());
+            $code = Polkurier::extractMethodCode((string)$quote->getShippingAddress()->getShippingMethod());
 
             return $code !== null ? [[$code, 0]] : [];
         }
         $deliveries = [];
         foreach ($quote->getAllShippingAddresses() as $address) {
-            $code = Polkurier::methodCodeOf((string)$address->getShippingMethod());
+            $code = Polkurier::extractMethodCode((string)$address->getShippingMethod());
             if ($code !== null) {
                 $deliveries[] = [$code, (int)$address->getId()];
             }
@@ -90,7 +90,7 @@ readonly class RestrictCashOnDeliveryObserver implements ObserverInterface
     /**
      * Whether the delivery's carrier, and its pickup point if any, collect cash on delivery.
      */
-    private function collectsCod(\Magento\Quote\Model\Quote $quote, string $carrierCode, int $quoteAddressId): bool
+    private function isCollectingCod(\Magento\Quote\Model\Quote $quote, string $carrierCode, int $quoteAddressId): bool
     {
         try {
             $carrier = $this->carrierCatalog->getCarrier($carrierCode);

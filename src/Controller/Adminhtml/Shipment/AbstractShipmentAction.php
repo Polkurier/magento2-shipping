@@ -59,7 +59,7 @@ abstract class AbstractShipmentAction extends Action
      *
      * @param string[] $gone paths of pages the action did away with
      */
-    protected function back(array $gone = []): Redirect
+    protected function redirectBack(array $gone = []): Redirect
     {
         $orderId = (int)$this->getRequest()->getParam('order_id');
 

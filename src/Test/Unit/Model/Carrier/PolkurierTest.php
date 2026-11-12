@@ -83,7 +83,7 @@ class PolkurierTest extends SdkTestCase
 
     public function testOffersTheMerchantsCarriersAtTheMerchantsPrices(): void
     {
-        $methods = $this->rates($this->request('PL', 120.0, 2.0));
+        $methods = $this->collectRates($this->request('PL', 120.0, 2.0));
 
         self::assertSame(['INPOST_PACZKOMAT' => 12.99, 'DPD' => 14.99], $methods);
         $payload = $this->http->lastPayload();
@@ -94,19 +94,22 @@ class PolkurierTest extends SdkTestCase
 
     public function testTiersFollowTheCart(): void
     {
-        self::assertSame(['INPOST_PACZKOMAT' => 12.99, 'DPD' => 0.0], $this->rates($this->request('PL', 300.0, 2.0)));
+        self::assertSame(
+            ['INPOST_PACZKOMAT' => 12.99, 'DPD' => 0.0],
+            $this->collectRates($this->request('PL', 300.0, 2.0)),
+        );
     }
 
     public function testCarriersForAbroadGoAbroadOnlyAndTheOthersOnlyAtHome(): void
     {
         // Polkurier prices neither a domestic carrier abroad nor one for abroad at home.
-        $this->http->willAnswerWith(self::success([
+        $this->http->willAnswerWith(self::encodeSuccess([
             ['servicecode' => 'INPOST_PACZKOMAT', 'name' => 'InPost Paczkomat', 'foreign_shipments' => false],
             ['servicecode' => 'DPD', 'name' => 'DPD Export', 'foreign_shipments' => true],
         ]));
 
-        self::assertSame(['DPD' => 14.99], $this->rates($this->request('DE', 120.0, 2.0)));
-        self::assertSame(['INPOST_PACZKOMAT' => 12.99], $this->rates($this->request('PL', 120.0, 2.0)));
+        self::assertSame(['DPD' => 14.99], $this->collectRates($this->request('DE', 120.0, 2.0)));
+        self::assertSame(['INPOST_PACZKOMAT' => 12.99], $this->collectRates($this->request('PL', 120.0, 2.0)));
     }
 
     public function testFreeShippingZeroesThePrice(): void
@@ -114,7 +117,7 @@ class PolkurierTest extends SdkTestCase
         $request = $this->request('PL', 120.0, 2.0);
         $request->setFreeShipping(true);
 
-        self::assertSame(['INPOST_PACZKOMAT' => 0.0, 'DPD' => 0.0], $this->rates($request));
+        self::assertSame(['INPOST_PACZKOMAT' => 0.0, 'DPD' => 0.0], $this->collectRates($request));
     }
 
     public function testFreeShippingDoesNotOfferAMethodTheCartIsNotPricedFor(): void
@@ -123,7 +126,7 @@ class PolkurierTest extends SdkTestCase
         $request = $this->request('PL', 20.0, 2.0);
         $request->setFreeShipping(true);
 
-        self::assertSame(['INPOST_PACZKOMAT' => 0.0], $this->rates($request));
+        self::assertSame(['INPOST_PACZKOMAT' => 0.0], $this->collectRates($request));
     }
 
     public function testWeightTiersAreInKilogramsWhateverTheStoresUnit(): void
@@ -135,25 +138,28 @@ class PolkurierTest extends SdkTestCase
         // 10 lb are 4.5 kg: still the first tier.
         self::assertSame(
             ['INPOST_PACZKOMAT' => 12.99, 'DPD' => 14.99],
-            $this->rates($this->request('PL', 120.0, 10.0)),
+            $this->collectRates($this->request('PL', 120.0, 10.0)),
         );
     }
 
     public function testCarrierTheAccountNoLongerOffersIsHidden(): void
     {
-        $this->http->willAnswerWith(self::success([
+        $this->http->willAnswerWith(self::encodeSuccess([
             ['servicecode' => 'DPD', 'name' => 'DPD Classic', 'foreign_shipments' => false],
         ]));
 
-        self::assertSame(['DPD' => 14.99], $this->rates($this->request('PL', 120.0, 2.0)));
+        self::assertSame(['DPD' => 14.99], $this->collectRates($this->request('PL', 120.0, 2.0)));
     }
 
     public function testAnUnreachableApiStillOffersDomesticMethodsAndNeverThrows(): void
     {
         $this->http->willAnswerWith('<html>Bad gateway</html>');
 
-        self::assertSame(['INPOST_PACZKOMAT' => 12.99, 'DPD' => 14.99], $this->rates($this->request('PL', 120.0, 2.0)));
-        self::assertSame([], $this->rates($this->request('DE', 120.0, 2.0)));
+        self::assertSame(
+            ['INPOST_PACZKOMAT' => 12.99, 'DPD' => 14.99],
+            $this->collectRates($this->request('PL', 120.0, 2.0)),
+        );
+        self::assertSame([], $this->collectRates($this->request('DE', 120.0, 2.0)));
     }
 
     public function testAPickupPointOnlyCarrierIsLeftOutWhileTheMapCantOpen(): void
@@ -161,7 +167,7 @@ class PolkurierTest extends SdkTestCase
         foreach (['', new ConnectionException('Timed out.')] as $token) {
             $this->mapToken = $token;
 
-            self::assertSame(['DPD' => 14.99], $this->rates($this->request('PL', 120.0, 2.0)));
+            self::assertSame(['DPD' => 14.99], $this->collectRates($this->request('PL', 120.0, 2.0)));
         }
     }
 
@@ -170,7 +176,10 @@ class PolkurierTest extends SdkTestCase
         $this->mapToken = '';
         $this->area = Area::AREA_ADMINHTML;
 
-        self::assertSame(['INPOST_PACZKOMAT' => 12.99, 'DPD' => 14.99], $this->rates($this->request('PL', 120.0, 2.0)));
+        self::assertSame(
+            ['INPOST_PACZKOMAT' => 12.99, 'DPD' => 14.99],
+            $this->collectRates($this->request('PL', 120.0, 2.0)),
+        );
     }
 
     public function testTrackingIsTitledByTheMethodAndLinksToTheCarriersPage(): void
@@ -181,8 +190,8 @@ class PolkurierTest extends SdkTestCase
         $shipment->method('getStoreId')->willReturn(1);
         $this->waybills = ['WB-1' => $shipment];
 
-        $known = $this->carrier()->getTrackingInfo('WB-1');
-        $unknown = $this->carrier()->getTrackingInfo('WB-9');
+        $known = $this->createCarrier()->getTrackingInfo('WB-1');
+        $unknown = $this->createCarrier()->getTrackingInfo('WB-9');
 
         self::assertSame(['polkurier', 'Kurier DPD', 'WB-1', 'https://track.example/WB-1'], [
             $known->getData('carrier'),
@@ -201,21 +210,21 @@ class PolkurierTest extends SdkTestCase
     {
         $this->active = false;
 
-        self::assertFalse($this->carrier()->collectRates($this->request('PL', 120.0, 2.0)));
+        self::assertFalse($this->createCarrier()->collectRates($this->request('PL', 120.0, 2.0)));
         self::assertSame(0, $this->http->requestCount());
     }
 
     protected function setUp(): void
     {
-        $this->http = new RecordingClient(self::fixture('available_carriers.json'));
+        $this->http = new RecordingClient(self::loadFixture('available_carriers.json'));
     }
 
     /**
      * @return array<string, float>|array{}
      */
-    private function rates(RateRequest $request): array
+    private function collectRates(RateRequest $request): array
     {
-        $result = $this->carrier()->collectRates($request);
+        $result = $this->createCarrier()->collectRates($request);
         self::assertInstanceOf(Result::class, $result);
         $methods = [];
         foreach ($result->getAllRates() as $rate) {
@@ -238,7 +247,7 @@ class PolkurierTest extends SdkTestCase
         ]);
     }
 
-    private function carrier(): Polkurier
+    private function createCarrier(): Polkurier
     {
         $scopeConfig = $this->createStub(ScopeConfigInterface::class);
         $scopeConfig->method('isSetFlag')
@@ -254,8 +263,8 @@ class PolkurierTest extends SdkTestCase
 
         $configs = $this->createStub(CarrierConfigProvider::class);
         $configs->method('getActive')->willReturn([
-            'INPOST_PACZKOMAT' => $this->config('INPOST_PACZKOMAT', 'Paczkomat', 'FIXED', ['price' => 12.99]),
-            'DPD' => $this->config('DPD', 'Kurier DPD', $this->dpdModel, ['tiers' => $this->dpdTiers]),
+            'INPOST_PACZKOMAT' => $this->createConfig('INPOST_PACZKOMAT', 'Paczkomat', 'FIXED', ['price' => 12.99]),
+            'DPD' => $this->createConfig('DPD', 'Kurier DPD', $this->dpdModel, ['tiers' => $this->dpdTiers]),
         ]);
         $configs->method('getLabel')
             ->willReturnCallback(static fn(string $code): ?string => $code === 'DPD' ? 'Kurier DPD' : null);
@@ -264,7 +273,7 @@ class PolkurierTest extends SdkTestCase
         $cache->method('load')->willReturn(false);
         $config = new ConfigProvider($scopeConfig, $this->createStub(EncryptorInterface::class));
         $catalog = new CarrierCatalog(
-            $this->clientPool($this->http),
+            $this->createClientPool($this->http),
             $cache,
             new ErrorMessageResolver(),
             new AvailableCarrierFilter($config),
@@ -302,7 +311,7 @@ class PolkurierTest extends SdkTestCase
                 'TIER_SUBTOTAL' => new TieredPriceCalculator(true, false),
                 'TIER_WEIGHT' => new TieredPriceCalculator(false, true),
             ]),
-            new WeightUnitConverter($scopeConfig, MagentoMeasures::carrierHelper()),
+            new WeightUnitConverter($scopeConfig, MagentoMeasures::createCarrierHelper()),
             $this->createStub(Logger::class),
             $tokens,
             $appState,
@@ -311,7 +320,7 @@ class PolkurierTest extends SdkTestCase
         );
 
         $finder = $this->createStub(ShipmentFinder::class);
-        $finder->method('latestByWaybill')
+        $finder->method('findLatestByWaybill')
             ->willReturnCallback(fn(string $waybill): ?ShipmentInterface => $this->waybills[$waybill] ?? null);
 
         $statuses = $this->createStub(StatusFactory::class);
@@ -334,7 +343,7 @@ class PolkurierTest extends SdkTestCase
     /**
      * @param array<string, mixed> $priceInfo
      */
-    private function config(string $code, string $label, string $model, array $priceInfo): CarrierConfigInterface
+    private function createConfig(string $code, string $label, string $model, array $priceInfo): CarrierConfigInterface
     {
         return $this->createConfiguredStub(CarrierConfigInterface::class, [
             'getCarrierCode' => $code,

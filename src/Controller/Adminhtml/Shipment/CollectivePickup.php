@@ -39,7 +39,7 @@ class CollectivePickup extends AbstractJsonAction
         $data = (array)$this->getRequest()->getParam('data', []);
         $carrierCode = (string)($data[ShipmentDraftInterface::FIELD_CARRIER_CODE] ?? '');
         $packs = $this->draftHydrator
-            ->fromArray([
+            ->createFromArray([
                 ShipmentDraftInterface::FIELD_PACKS => (array)($data[ShipmentDraftInterface::FIELD_PACKS] ?? []),
             ])
             ->getPacks();
@@ -51,7 +51,7 @@ class CollectivePickup extends AbstractJsonAction
         // when the order is placed.
         return ['available' => $this->pickupService->isCollectiveAvailable(
             $carrierCode,
-            $this->pickupService->senderPostcodeOf($data),
+            $this->pickupService->getSenderPostcode($data),
             (string)($data[ShipmentDraftInterface::FIELD_SHIPMENT_TYPE] ?? 'box'),
             \array_map($this->createOrderMessageMapper->mapPack(...), $packs),
         )];

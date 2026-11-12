@@ -20,7 +20,7 @@ class LinkButton extends AbstractButton
      */
     public function getButtonData(): array
     {
-        $shipment = $this->shipment();
+        $shipment = $this->getShipment();
         // Only an order sent with the shipment's ids can be linked to it.
         if ($shipment === null || $shipment->getState() !== ShipmentInterface::STATE_UNKNOWN
             || $shipment->getExternalOrderId() === null
@@ -31,8 +31,8 @@ class LinkButton extends AbstractButton
         return [
             'label' => (string)__('Link to a Polkurier order'),
             'class' => 'secondary',
-            'on_click' => $this->onClickScriptBuilder->prompt(
-                $this->actionUrl('adopt'),
+            'on_click' => $this->onClickScriptBuilder->buildPrompt(
+                $this->getActionUrl('adopt'),
                 (string)__('Link to a Polkurier order'),
                 (string)__(
                     'The number of the Polkurier order this shop placed for this shipment, '

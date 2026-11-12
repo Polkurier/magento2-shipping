@@ -37,10 +37,10 @@ class AccountCacheTest extends TestCase
             return false;
         };
 
-        self::assertFalse($this->cache()->remember('pin_locked', 900, $load));
-        self::assertFalse($this->cache()->remember('pin_locked', 900, $load), 'A false answer is cached too.');
+        self::assertFalse($this->createCache()->remember('pin_locked', 900, $load));
+        self::assertFalse($this->createCache()->remember('pin_locked', 900, $load), 'A false answer is cached too.');
         $this->login = '777';
-        $this->cache()->remember('pin_locked', 900, $load);
+        $this->createCache()->remember('pin_locked', 900, $load);
 
         self::assertSame(2, $asked, 'Other credentials are another account.');
         self::assertSame(
@@ -52,7 +52,11 @@ class AccountCacheTest extends TestCase
     public function testAFailureIsNotCached(): void
     {
         try {
-            $this->cache()->remember('pin_locked', 900, static fn(): bool => throw new \RuntimeException('Down.'));
+            $this->createCache()->remember(
+                'pin_locked',
+                900,
+                static fn(): bool => throw new \RuntimeException('Down.'),
+            );
         } catch (\RuntimeException) {
         }
 
@@ -61,25 +65,25 @@ class AccountCacheTest extends TestCase
 
     public function testTheKeyFollowsTheAccountAndWhatElseTheEntryDependsOn(): void
     {
-        $keys = $this->cache();
+        $keys = $this->createCache();
 
         // The cache's prefix, then a hash of the login, the sandbox flag and what else the entry depends on.
-        self::assertSame('polkurier_map_token_' . \sha1('12345|0'), $keys->key('map_token'));
-        self::assertSame('polkurier_carriers_' . \sha1('12345|0|2.0.0@abc'), $keys->key('carriers', '2.0.0@abc'));
+        self::assertSame('polkurier_map_token_' . \sha1('12345|0'), $keys->buildKey('map_token'));
+        self::assertSame('polkurier_carriers_' . \sha1('12345|0|2.0.0@abc'), $keys->buildKey('carriers', '2.0.0@abc'));
     }
 
     public function testAnotherAccountOrTheSandboxNeverSeesTheEntry(): void
     {
-        $production = $this->cache()->key('map_token');
+        $production = $this->createCache()->buildKey('map_token');
         $this->sandbox = true;
-        $sandbox = $this->cache()->key('map_token');
+        $sandbox = $this->createCache()->buildKey('map_token');
         $this->login = '67890';
-        $other = $this->cache()->key('map_token');
+        $other = $this->createCache()->buildKey('map_token');
 
         self::assertCount(3, \array_unique([$production, $sandbox, $other]));
     }
 
-    private function cache(): AccountCache
+    private function createCache(): AccountCache
     {
         $cache = $this->createStub(PolkurierCache::class);
         $cache->method('load')->willReturnCallback(fn(string $key): string|false => $this->cached[$key][0] ?? false);

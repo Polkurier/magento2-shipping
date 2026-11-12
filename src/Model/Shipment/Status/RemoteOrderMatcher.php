@@ -75,7 +75,7 @@ readonly class RemoteOrderMatcher
             }
         }
 
-        return $this->unclaimed($shipment, $found);
+        return $this->findUnclaimed($shipment, $found);
     }
 
     /**
@@ -170,7 +170,7 @@ readonly class RemoteOrderMatcher
             $number = $shipment->getPolkurierNumber();
             if ($number !== null) {
                 $wanted[$number] = true;
-                $placedAt[] = $this->timestamp($shipment);
+                $placedAt[] = $this->getTimestamp($shipment);
             }
         }
         $count = \count($wanted);
@@ -235,7 +235,7 @@ readonly class RemoteOrderMatcher
      *
      * @return array{sure: Order[], possible: Order[]}
      */
-    private function unclaimed(ShipmentInterface $shipment, array $found): array
+    private function findUnclaimed(ShipmentInterface $shipment, array $found): array
     {
         $all = \array_merge($found[self::SURE], $found[self::POSSIBLE]);
         $taken = $this->getAdoptedNumbers((int)$shipment->getId(), $all);
@@ -282,9 +282,10 @@ readonly class RemoteOrderMatcher
         if (!$this->isPlacedFor($shipment, $order)
             || $order->getCourier() !== $shipment->getCarrierCode()
             || \trim((string)$order->getDescription()) !== \trim($shipment->getDescription())
-            || self::postcode($order->getRecipient()->getPostcode())
-                !== self::postcode((string)$shipment->getRecipientPostcode())
-            || self::phone($order->getRecipient()->getPhone()) !== self::phone((string)$shipment->getRecipientPhone())
+            || self::normalizePostcode($order->getRecipient()->getPostcode())
+                !== self::normalizePostcode((string)$shipment->getRecipientPostcode())
+            || self::normalizePhone($order->getRecipient()->getPhone())
+                !== self::normalizePhone((string)$shipment->getRecipientPhone())
         ) {
             return self::NO_MATCH;
         }
@@ -303,7 +304,7 @@ readonly class RemoteOrderMatcher
     /**
      * When the shipment was placed, or now for one not saved yet.
      */
-    private function timestamp(ShipmentInterface $shipment): int
+    private function getTimestamp(ShipmentInterface $shipment): int
     {
         $createdAt = $shipment->getCreatedAt();
 
@@ -323,7 +324,7 @@ readonly class RemoteOrderMatcher
         return false;
     }
 
-    private static function postcode(string $postcode): string
+    private static function normalizePostcode(string $postcode): string
     {
         return (string)\preg_replace('/\W+/', '', \strtoupper($postcode));
     }
@@ -331,7 +332,7 @@ readonly class RemoteOrderMatcher
     /**
      * The last nine digits, which survive a country prefix or formatting being added or removed.
      */
-    private static function phone(string $phone): string
+    private static function normalizePhone(string $phone): string
     {
         return \substr((string)\preg_replace('/\D+/', '', $phone), -9);
     }
@@ -349,7 +350,7 @@ readonly class RemoteOrderMatcher
             return [];
         }
         $numbers = [];
-        $shipments = $this->shipmentFinder->byNumbers(
+        $shipments = $this->shipmentFinder->findByNumbers(
             \array_map(static fn(Order $order): string => (string)$order->getNumber(), $orders),
         );
         foreach ($shipments as $item) {

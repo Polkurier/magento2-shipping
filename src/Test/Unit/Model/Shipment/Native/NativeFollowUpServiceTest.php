@@ -57,14 +57,14 @@ class NativeFollowUpServiceTest extends TestCase
 
     public function testTheChosenEmailGoesOnceThePlacedOrderHasItsWaybills(): void
     {
-        $this->followUp([])->notifyCustomer($this->order(42), $this->placed(['WB-1']));
+        $this->followUp([])->notifyCustomer($this->createOrder(42), $this->createPlacedShipment(['WB-1']));
 
         self::assertSame(['send 56'], $this->log);
     }
 
     public function testTheChosenEmailWaitsForTheWaybills(): void
     {
-        $this->followUp([])->notifyCustomer($this->order(42), $this->placed([]));
+        $this->followUp([])->notifyCustomer($this->createOrder(42), $this->createPlacedShipment([]));
 
         self::assertSame([], $this->log);
     }
@@ -73,7 +73,7 @@ class NativeFollowUpServiceTest extends TestCase
     {
         $this->magentoShipment->setData('email_sent', 1);
 
-        $this->followUp([])->notifyCustomer($this->order(42), $this->placed(['WB-1']));
+        $this->followUp([])->notifyCustomer($this->createOrder(42), $this->createPlacedShipment(['WB-1']));
 
         self::assertSame([], $this->log);
     }
@@ -82,7 +82,7 @@ class NativeFollowUpServiceTest extends TestCase
     {
         $this->sent = false;
 
-        $this->followUp([])->notifyCustomer($this->order(42), $this->placed(['WB-1']));
+        $this->followUp([])->notifyCustomer($this->createOrder(42), $this->createPlacedShipment(['WB-1']));
 
         self::assertSame(
             ['send 56', 'warning Magento shipment created but the e-mail to the customer was not sent'],
@@ -95,16 +95,16 @@ class NativeFollowUpServiceTest extends TestCase
         $this->sent = false;
         $this->async = true;
 
-        $this->followUp([])->notifyCustomer($this->order(42), $this->placed(['WB-1']));
+        $this->followUp([])->notifyCustomer($this->createOrder(42), $this->createPlacedShipment(['WB-1']));
 
         self::assertSame(['send 56'], $this->log);
     }
 
     public function testTheShipmentStaysWithoutTheCancelledOrdersLabelPackagesAndWaybills(): void
     {
-        $cancelled = $this->polkurier(7, ShipmentInterface::STATE_CANCELLED);
+        $cancelled = $this->createPolkurierShipment(7, ShipmentInterface::STATE_CANCELLED);
 
-        self::assertSame('000000009', $this->followUp([$cancelled])->clearShipment($this->order(42), $cancelled));
+        self::assertSame('000000009', $this->followUp([$cancelled])->clearShipment($this->createOrder(42), $cancelled));
         self::assertNull($this->magentoShipment->getData('shipping_label'));
         self::assertNull($this->magentoShipment->getData('packages'));
         self::assertSame(['remove tracks WB-1', 'save 56'], $this->log);
@@ -112,10 +112,10 @@ class NativeFollowUpServiceTest extends TestCase
 
     public function testAShipmentThatCantBeClearedIsLoggedAndTheCancellationStands(): void
     {
-        $cancelled = $this->polkurier(7, ShipmentInterface::STATE_CANCELLED);
+        $cancelled = $this->createPolkurierShipment(7, ShipmentInterface::STATE_CANCELLED);
         $this->failing = true;
 
-        self::assertNull($this->followUp([$cancelled])->clearShipment($this->order(42), $cancelled));
+        self::assertNull($this->followUp([$cancelled])->clearShipment($this->createOrder(42), $cancelled));
         self::assertSame(
             ['error Polkurier order cancelled but its label could not be removed from the Magento shipment'],
             $this->log,
@@ -124,20 +124,20 @@ class NativeFollowUpServiceTest extends TestCase
 
     public function testAShipmentAnotherPolkurierOrderHoldsIsLeftAlone(): void
     {
-        $cancelled = $this->polkurier(7, ShipmentInterface::STATE_CANCELLED);
+        $cancelled = $this->createPolkurierShipment(7, ShipmentInterface::STATE_CANCELLED);
 
         self::assertNull(
-            $this->followUp([$cancelled, $this->polkurier(8, ShipmentInterface::STATE_CREATED)])
-                ->clearShipment($this->order(42), $cancelled),
+            $this->followUp([$cancelled, $this->createPolkurierShipment(8, ShipmentInterface::STATE_CREATED)])
+                ->clearShipment($this->createOrder(42), $cancelled),
         );
         self::assertSame([], $this->log);
     }
 
     public function testAShipmentOfAnotherOrderIsLeftAlone(): void
     {
-        $cancelled = $this->polkurier(7, ShipmentInterface::STATE_CANCELLED);
+        $cancelled = $this->createPolkurierShipment(7, ShipmentInterface::STATE_CANCELLED);
 
-        self::assertNull($this->followUp([$cancelled])->clearShipment($this->order(43), $cancelled));
+        self::assertNull($this->followUp([$cancelled])->clearShipment($this->createOrder(43), $cancelled));
         self::assertSame([], $this->log);
     }
 
@@ -180,7 +180,7 @@ class NativeFollowUpServiceTest extends TestCase
             },
         );
         $finder = $this->createStub(ShipmentFinder::class);
-        $finder->method('linkedTo')->willReturn($linked);
+        $finder->method('findLinkedTo')->willReturn($linked);
         $logger = $this->createStub(Logger::class);
         $logger->method('error')->willReturnCallback(function (string|\Stringable $message): void {
             $this->log[] = 'error ' . $message;
@@ -220,7 +220,7 @@ class NativeFollowUpServiceTest extends TestCase
         );
     }
 
-    private function polkurier(int $id, string $state): Shipment
+    private function createPolkurierShipment(int $id, string $state): Shipment
     {
         $shipment = $this->getMockBuilder(Shipment::class)->disableOriginalConstructor()->onlyMethods([])->getMock();
         $shipment->setData(['state' => $state, 'shipment_id' => 56, 'waybills' => 'WB-1'])->setId($id);
@@ -233,15 +233,15 @@ class NativeFollowUpServiceTest extends TestCase
      *
      * @param string[] $waybills
      */
-    private function placed(array $waybills): Shipment
+    private function createPlacedShipment(array $waybills): Shipment
     {
-        $shipment = $this->polkurier(7, ShipmentInterface::STATE_CREATED);
+        $shipment = $this->createPolkurierShipment(7, ShipmentInterface::STATE_CREATED);
         $shipment->setWaybills($waybills)->setDraft([ShipmentDraftInterface::FIELD_NOTIFY_CUSTOMER => true]);
 
         return $shipment;
     }
 
-    private function order(int $id): Order
+    private function createOrder(int $id): Order
     {
         $order = $this->getMockBuilder(Order::class)->disableOriginalConstructor()->onlyMethods([])->getMock();
         $order->setData('entity_id', $id);

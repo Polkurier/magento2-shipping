@@ -424,7 +424,7 @@ interface ShipmentInterface
 
     /**
      * The local copy of the order as Polkurier last reported it, or an empty array before it has
-     * been read. See {@see \Polkurier\Shipping\Model\Shipment\Status\RemoteOrderApplier::fromOrder()} for its shape.
+     * been read. See {@see \Polkurier\Shipping\Model\Shipment\Status\RemoteOrderApplier::mapFromOrder()} for its shape.
      *
      * @return array<string, mixed>
      */

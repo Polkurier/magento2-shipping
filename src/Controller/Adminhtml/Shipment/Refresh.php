@@ -42,19 +42,19 @@ class Refresh extends AbstractShipmentAction implements HttpPostActionInterface
             } catch (LocalizedException $e) {
                 $this->messageManager->addErrorMessage($e->getMessage());
 
-                return $this->back();
+                return $this->redirectBack();
             }
-            $flash = $this->flashMessageCollectorFactory->create()->success(
+            $flash = $this->flashMessageCollectorFactory->create()->addSuccess(
                 __('Polkurier order %1: %2.', $shipment->getPolkurierNumber(), (string)$shipment->getStatusLabel()),
             );
             try {
                 $this->detailsLoader->refreshTracking($shipment);
             } catch (LocalizedException $e) {
-                $flash->warning($e->getMessage());
+                $flash->addWarning($e->getMessage());
             }
             $flash->send($this->messageManager);
         }
 
-        return $this->back();
+        return $this->redirectBack();
     }
 }

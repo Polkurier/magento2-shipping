@@ -34,7 +34,7 @@ class Cancel extends Action implements HttpPostActionInterface
 
     public function execute(): Redirect
     {
-        $number = RequestParam::string($this->getRequest(), 'number');
+        $number = RequestParam::getString($this->getRequest(), 'number');
         try {
             if ($number === '') {
                 throw new LocalizedException(__('No payout to cancel.'));

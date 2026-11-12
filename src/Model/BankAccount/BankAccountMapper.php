@@ -26,7 +26,7 @@ readonly class BankAccountMapper
      * Polkurier takes a bank account only with one confirmation: the PIN when bank account edits
      * are PIN-locked, otherwise a confirmed two-factor token and its code.
      */
-    public function toSaveMessage(
+    public function mapToSaveMessage(
         BankAccountInterface $account,
         ?string $twoFactorToken = null,
         ?string $twoFactorCode = null,
@@ -43,7 +43,7 @@ readonly class BankAccountMapper
             ->build();
     }
 
-    public function toDeleteMessage(BankAccountInterface $account, ?string $pin = null): DeleteBankAccountMessage
+    public function mapToDeleteMessage(BankAccountInterface $account, ?string $pin = null): DeleteBankAccountMessage
     {
         return new DeleteBankAccountMessage((string)$account->getExtId(), $pin ?: null);
     }

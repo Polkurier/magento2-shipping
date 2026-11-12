@@ -34,9 +34,9 @@ class ShippingMethodLogoPluginTest extends TestCase
 {
     public function testTheCarriersLogoTravelsWithItsMethod(): void
     {
-        $method = $this->method('polkurier', 'DPD');
+        $method = $this->createMethod('polkurier', 'DPD');
 
-        $this->plugin('shipping/carrier_logos/dpd.png')->afterModelToDataObject(
+        $this->createPlugin('shipping/carrier_logos/dpd.png')->afterModelToDataObject(
             $this->createStub(ShippingMethodConverter::class),
             $method,
             $this->rate(),
@@ -51,16 +51,16 @@ class ShippingMethodLogoPluginTest extends TestCase
 
     public function testMethodsWithoutALogoAndOtherCarriersAreLeftAlone(): void
     {
-        $withoutLogo = $this->method('polkurier', 'DPD');
-        $other = $this->method('flatrate', 'flatrate');
+        $withoutLogo = $this->createMethod('polkurier', 'DPD');
+        $other = $this->createMethod('flatrate', 'flatrate');
 
-        $this->plugin(null)->afterModelToDataObject(
+        $this->createPlugin(null)->afterModelToDataObject(
             $this->createStub(ShippingMethodConverter::class),
             $withoutLogo,
             $this->rate(),
             'PLN',
         );
-        $this->plugin('shipping/carrier_logos/dpd.png')->afterModelToDataObject(
+        $this->createPlugin('shipping/carrier_logos/dpd.png')->afterModelToDataObject(
             $this->createStub(ShippingMethodConverter::class),
             $other,
             $this->rate(),
@@ -73,7 +73,7 @@ class ShippingMethodLogoPluginTest extends TestCase
 
     public function testOnlyRasterImagesInTheLogoDirectoryAreAccepted(): void
     {
-        $logo = $this->logo();
+        $logo = $this->createLogo();
 
         self::assertTrue($logo->isOwnFile('shipping/carrier_logos/dpd.png'));
         self::assertFalse($logo->isOwnFile('shipping/carrier_logos/../../app/etc/env.php'));
@@ -81,7 +81,7 @@ class ShippingMethodLogoPluginTest extends TestCase
         self::assertFalse($logo->isOwnFile('shipping/carrier_logos/dpd.svg'), 'An SVG can carry scripts.');
     }
 
-    private function plugin(?string $file): ShippingMethodLogoPlugin
+    private function createPlugin(?string $file): ShippingMethodLogoPlugin
     {
         $config = (new CarrierConfig(
             $this->createStub(\Magento\Framework\Model\Context::class),
@@ -91,16 +91,16 @@ class ShippingMethodLogoPluginTest extends TestCase
         $configs = $this->createStub(CarrierConfigProvider::class);
         $configs->method('get')->willReturn($config);
         $extensions = $this->createStub(ShippingMethodExtensionFactory::class);
-        $extensions->method('create')->willReturnCallback(fn() => $this->extension());
+        $extensions->method('create')->willReturnCallback(fn() => $this->createExtension());
 
-        return new ShippingMethodLogoPlugin($extensions, $configs, $this->logo(), $this->storeManager());
+        return new ShippingMethodLogoPlugin($extensions, $configs, $this->createLogo(), $this->storeManager());
     }
 
     /**
      * The extension attributes of a shipping method, as Magento generates them for the module:
      * the generated class depends on configuration unit tests don't load.
      */
-    private function extension(): ShippingMethodExtensionInterface
+    private function createExtension(): ShippingMethodExtensionInterface
     {
         return new class implements ShippingMethodExtensionInterface {
             private ?string $logo = null;
@@ -122,7 +122,7 @@ class ShippingMethodLogoPluginTest extends TestCase
         };
     }
 
-    private function logo(): CarrierLogoStorage
+    private function createLogo(): CarrierLogoStorage
     {
         return new CarrierLogoStorage(
             $this->createStub(UploaderFactory::class),
@@ -143,10 +143,10 @@ class ShippingMethodLogoPluginTest extends TestCase
         return $manager;
     }
 
-    private function method(string $carrier, string $code): ShippingMethod
+    private function createMethod(string $carrier, string $code): ShippingMethod
     {
         $extensions = $this->createStub(ExtensionAttributesFactory::class);
-        $extensions->method('create')->willReturnCallback(fn() => $this->extension());
+        $extensions->method('create')->willReturnCallback(fn() => $this->createExtension());
         $method = new ShippingMethod($extensions, $this->createStub(AttributeValueFactory::class));
 
         return $method->setCarrierCode($carrier)->setMethodCode($code);

@@ -36,7 +36,7 @@ class DataProviderTest extends TestCase
 
     public function testThePageIsBuiltFromWhatIsStoredWithoutAskingPolkurier(): void
     {
-        $shipment = $this->shipment();
+        $shipment = $this->createShipment();
         $statusRefresh = $this->createMock(StatusRefreshService::class);
         $statusRefresh->expects(self::never())->method('refresh');
         $gateway = $this->createMock(ShipmentGateway::class);
@@ -44,7 +44,7 @@ class DataProviderTest extends TestCase
         $details = $this->createMock(ShipmentDetails::class);
         $details->expects(self::once())->method('build')->with($shipment, [])->willReturn(['title' => 'Stored']);
 
-        $data = $this->provider($shipment, $details, $statusRefresh, $gateway)->getData();
+        $data = $this->createProvider($shipment, $details, $statusRefresh, $gateway)->getData();
 
         self::assertSame(['title' => 'Stored'], $data[3]['view']);
         self::assertTrue($data[3]['refresh'], 'The copy is missing: the page has it read in the background.');
@@ -53,22 +53,24 @@ class DataProviderTest extends TestCase
 
     public function testAFinishedShipmentWithItsCopyAndScansIsNotRefreshed(): void
     {
-        $data = $this->provider($this->shipment()->setDetails(['number' => '18015-2865'])->setIsFinal(true))->getData();
+        $data = $this->createProvider(
+            $this->createShipment()->setDetails(['number' => '18015-2865'])->setIsFinal(true),
+        )->getData();
 
         self::assertFalse($data[3]['refresh']);
     }
 
     public function testAShipmentOnItsWayIsRefreshedEachTime(): void
     {
-        $data = $this->provider($this->shipment()->setDetails(['number' => '18015-2865']))->getData();
+        $data = $this->createProvider($this->createShipment()->setDetails(['number' => '18015-2865']))->getData();
 
         self::assertTrue($data[3]['refresh']);
     }
 
     public function testACancelledShipmentWithFinalScansIsNotRefreshed(): void
     {
-        $data = $this->provider(
-            $this->shipment()
+        $data = $this->createProvider(
+            $this->createShipment()
                 ->setDetails(['number' => '18015-2865'])
                 ->setState(ShipmentInterface::STATE_CANCELLED)
                 ->setIsFinal(true)
@@ -80,14 +82,14 @@ class DataProviderTest extends TestCase
 
     public function testAShipmentWithoutAPolkurierOrderIsNotRefreshed(): void
     {
-        $data = $this->provider(
-            $this->shipment()->setPolkurierNumber(null)->setState(ShipmentInterface::STATE_FAILED),
+        $data = $this->createProvider(
+            $this->createShipment()->setPolkurierNumber(null)->setState(ShipmentInterface::STATE_FAILED),
         )->getData();
 
         self::assertFalse($data[3]['refresh']);
     }
 
-    private function provider(
+    private function createProvider(
         Shipment $shipment,
         ?ShipmentDetails $details = null,
         ?StatusRefreshService $statusRefresh = null,
@@ -124,7 +126,7 @@ class DataProviderTest extends TestCase
         );
     }
 
-    private function shipment(): Shipment
+    private function createShipment(): Shipment
     {
         /** @var Shipment $shipment */
         $shipment = (new ObjectManager($this))->getObject(Shipment::class);

@@ -79,7 +79,7 @@ readonly class AddressBookMapper
             ->setShared((bool)$remote[AddressInterface::FIELD_SHARED]);
     }
 
-    public function toSaveMessage(AddressInterface $address): SaveMessage
+    public function mapToSaveMessage(AddressInterface $address): SaveMessage
     {
         return $this->saveMessageBuilderFactory->create()
             ->name($address->getName())
@@ -101,7 +101,7 @@ readonly class AddressBookMapper
             ->build();
     }
 
-    public function toDeleteMessage(AddressInterface $address): DeleteMessage
+    public function mapToDeleteMessage(AddressInterface $address): DeleteMessage
     {
         return new DeleteMessage(
             id: (string)$address->getExtId(),

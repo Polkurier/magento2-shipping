@@ -49,9 +49,9 @@ class ActualShippingUpdaterTest extends TestCase
 
     public function testAnotherCarrierAndPointBecomeTheOrdersAndTheCustomersChoiceIsKept(): void
     {
-        $this->placed = $this->shipment('INPOST_PACZKOMAT', 'KRA235M');
+        $this->placed = $this->createShipment('INPOST_PACZKOMAT', 'KRA235M');
 
-        $this->service()->sync(15);
+        $this->createService()->sync(15);
 
         self::assertSame('polkurier_INPOST_PACZKOMAT', $this->order->getShippingMethod());
         self::assertSame(
@@ -69,9 +69,9 @@ class ActualShippingUpdaterTest extends TestCase
 
     public function testAtPlacingTheChangeIsLeftToThePlacedOrdersOwnNote(): void
     {
-        $this->placed = $this->shipment('INPOST_PACZKOMAT', 'KRA235M');
+        $this->placed = $this->createShipment('INPOST_PACZKOMAT', 'KRA235M');
 
-        $this->service()->sync(15, false);
+        $this->createService()->sync(15, false);
 
         self::assertSame('polkurier_INPOST_PACZKOMAT', $this->order->getShippingMethod());
         self::assertNotContains('comment', $this->log);
@@ -79,9 +79,9 @@ class ActualShippingUpdaterTest extends TestCase
 
     public function testShippingAsTheOrderSaysChangesNothing(): void
     {
-        $this->placed = $this->shipment('DHL_POINT', '4515215');
+        $this->placed = $this->createShipment('DHL_POINT', '4515215');
 
-        $this->service()->sync(15);
+        $this->createService()->sync(15);
 
         self::assertSame([], $this->log);
     }
@@ -101,7 +101,7 @@ class ActualShippingUpdaterTest extends TestCase
             'point_cod' => 1,
         ]);
 
-        $this->service()->sync(15);
+        $this->createService()->sync(15);
 
         self::assertSame('polkurier_DHL_POINT', $this->order->getShippingMethod());
         self::assertSame('DHL POP, punkt odbioru 4515215', $this->order->getShippingDescription());
@@ -116,9 +116,9 @@ class ActualShippingUpdaterTest extends TestCase
 
     public function testACourierWithoutAPointLeavesTheOrderWithoutOne(): void
     {
-        $this->placed = $this->shipment('DPD', '');
+        $this->placed = $this->createShipment('DPD', '');
 
-        $this->service()->sync(15);
+        $this->createService()->sync(15);
 
         self::assertSame('polkurier_DPD', $this->order->getShippingMethod());
         self::assertSame('Kurier DPD', $this->order->getShippingDescription());
@@ -137,10 +137,10 @@ class ActualShippingUpdaterTest extends TestCase
             'shipping_method' => 'polkurier_DHL_POINT',
             'shipping_description' => 'DHL POP, punkt odbioru 4515215',
         ]);
-        $this->point = $this->orderPoint('DHL_POINT', '4515215', 'Kraków, Kocmyrzowska 2b');
+        $this->point = $this->createOrderPoint('DHL_POINT', '4515215', 'Kraków, Kocmyrzowska 2b');
     }
 
-    private function service(): ActualShippingUpdater
+    private function createService(): ActualShippingUpdater
     {
         $orders = $this->createStub(OrderRepositoryInterface::class);
         $orders->method('get')->willReturn($this->order);
@@ -205,7 +205,7 @@ class ActualShippingUpdaterTest extends TestCase
             $this->log[] = 'grid ' . $id;
         });
         $followUp = $this->createStub(NativeFollowUpService::class);
-        $followUp->method('comment')->willReturnCallback(function (): void {
+        $followUp->method('addComment')->willReturnCallback(function (): void {
             $this->log[] = 'comment';
         });
         $sentOrder = $this->createStub(SentOrderReader::class);
@@ -229,7 +229,7 @@ class ActualShippingUpdaterTest extends TestCase
         );
     }
 
-    private function shipment(string $carrier, string $point): Shipment
+    private function createShipment(string $carrier, string $point): Shipment
     {
         $shipment = $this->getMockBuilder(Shipment::class)->disableOriginalConstructor()->onlyMethods([])->getMock();
         $shipment->setData([
@@ -241,7 +241,7 @@ class ActualShippingUpdaterTest extends TestCase
         return $shipment;
     }
 
-    private function orderPoint(string $method, string $pointId, string $label): OrderPointInterface
+    private function createOrderPoint(string $method, string $pointId, string $label): OrderPointInterface
     {
         $point = $this->getMockBuilder(OrderPoint::class)->disableOriginalConstructor()->onlyMethods([])->getMock();
 

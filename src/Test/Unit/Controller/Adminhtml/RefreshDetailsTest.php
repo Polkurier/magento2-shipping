@@ -57,11 +57,11 @@ class RefreshDetailsTest extends AdminActionTestCase
 
     public function testAMissingOrderCopyIsStoredByAStatusRefreshAndShown(): void
     {
-        $refreshed = $this->shipment()->setDetails(['number' => '18015-2865']);
+        $refreshed = $this->createShipment()->setDetails(['number' => '18015-2865']);
         $statusRefresh = $this->createMock(StatusRefreshService::class);
         $statusRefresh->expects(self::once())->method('refresh')->with(3)->willReturn($refreshed);
 
-        $this->action($this->shipment(), $statusRefresh)->execute();
+        $this->createAction($this->createShipment(), $statusRefresh)->execute();
 
         self::assertFalse($this->json['error']);
         self::assertSame([], $this->json['errors']);
@@ -73,12 +73,12 @@ class RefreshDetailsTest extends AdminActionTestCase
     {
         $statusRefresh = $this->createMock(StatusRefreshService::class);
         $statusRefresh->expects(self::never())->method('refresh');
-        $shipment = $this->shipment()
+        $shipment = $this->createShipment()
             ->setDetails(['number' => '18015-2865'])
             ->setIsFinal(true)
             ->setTrackingSyncedAt(null);
 
-        $this->action($shipment, $statusRefresh)->execute();
+        $this->createAction($shipment, $statusRefresh)->execute();
 
         self::assertSame(['18015-2865'], $this->scansRead);
         self::assertSame([3], \array_keys($this->written));
@@ -92,7 +92,7 @@ class RefreshDetailsTest extends AdminActionTestCase
             ->willThrowException(new LocalizedException(__('Polkurier is not answering.')));
         $this->scansFailure = new LocalizedException(__('Polkurier is not answering.'));
 
-        $this->action($this->shipment()->setTrackingSyncedAt(null), $statusRefresh)->execute();
+        $this->createAction($this->createShipment()->setTrackingSyncedAt(null), $statusRefresh)->execute();
 
         self::assertTrue($this->json['error']);
         self::assertArrayNotHasKey('view', $this->json);
@@ -111,7 +111,7 @@ class RefreshDetailsTest extends AdminActionTestCase
         $statusRefresh = $this->createStub(StatusRefreshService::class);
         $statusRefresh->method('refresh')->willThrowException(new \TypeError('Unexpected answer.'));
 
-        $this->action($this->shipment()->setTrackingSyncedAt(null), $statusRefresh)->execute();
+        $this->createAction($this->createShipment()->setTrackingSyncedAt(null), $statusRefresh)->execute();
 
         self::assertFalse($this->json['error']);
         self::assertSame(['The Polkurier order could not be read.'], $this->json['errors']);
@@ -124,8 +124,8 @@ class RefreshDetailsTest extends AdminActionTestCase
         $repository->method('get')->willThrowException(new NoSuchEntityException(__('The shipment is gone.')));
 
         (new RefreshDetails(
-            $this->context(),
-            $this->jsonFactory(),
+            $this->createContext(),
+            $this->createJsonFactory(),
             $repository,
             $this->createStub(DetailsLoader::class),
             $this->createStub(ShipmentDetails::class),
@@ -137,7 +137,7 @@ class RefreshDetailsTest extends AdminActionTestCase
         );
     }
 
-    private function action(Shipment $shipment, StatusRefreshService $statusRefresh): RefreshDetails
+    private function createAction(Shipment $shipment, StatusRefreshService $statusRefresh): RefreshDetails
     {
         $this->params = ['id' => '3'];
         $repository = $this->createStub(ShipmentRepositoryInterface::class);
@@ -161,8 +161,8 @@ class RefreshDetailsTest extends AdminActionTestCase
         );
 
         return new RefreshDetails(
-            $this->context(),
-            $this->jsonFactory(),
+            $this->createContext(),
+            $this->createJsonFactory(),
             $repository,
             new DetailsLoader(
                 $statusRefresh,
@@ -176,7 +176,7 @@ class RefreshDetailsTest extends AdminActionTestCase
         );
     }
 
-    private function shipment(): Shipment
+    private function createShipment(): Shipment
     {
         /** @var Shipment $shipment */
         $shipment = (new ObjectManager($this))->getObject(Shipment::class);

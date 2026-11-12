@@ -214,7 +214,7 @@ class StatusRefreshServiceTest extends TestCase
 
     public function testOrdersListedTogetherAreAppliedAsEachWouldBeAndTheRestReadByNumber(): void
     {
-        $results = $this->many(listed: ['24680-6', '24680-8'])->refreshMany([6, 7, 8]);
+        $results = $this->createService(listed: ['24680-6', '24680-8'])->refreshMany([6, 7, 8]);
 
         self::assertSame([
             'list 24680-6, 24680-7, 24680-8',
@@ -232,7 +232,7 @@ class StatusRefreshServiceTest extends TestCase
 
     public function testAShipmentThatFailsDoesNotStopTheOthers(): void
     {
-        $results = $this->many(listed: ['24680-9'], unknown: ['24680-6'], failing: ['24680-7'])
+        $results = $this->createService(listed: ['24680-9'], unknown: ['24680-6'], failing: ['24680-7'])
             ->refreshMany([4, 5, 6, 7, 8, 9]);
 
         self::assertSame([4, 5, 6, 7, 8, 9], \array_keys($results), 'In the order given.');
@@ -316,16 +316,16 @@ class StatusRefreshServiceTest extends TestCase
         $followUp = $this->createStub(NativeFollowUpService::class);
         $orderLoader = $this->createStub(OrderLoader::class);
         $orderLoader->method('get')->willReturn($this->createStub(Order::class));
-        $followUp->method('waybillList')->willReturnCallback(
+        $followUp->method('formatWaybillList')->willReturnCallback(
             static fn(ShipmentInterface $shipment): string => \implode(', ', $shipment->getWaybills()),
         );
-        $followUp->method('comment')->willReturnCallback(function (Order $order, Phrase $comment): void {
+        $followUp->method('addComment')->willReturnCallback(function (Order $order, Phrase $comment): void {
             $this->happened[] = 'comment: ' . $comment;
         });
-        $followUp->method('remark')->willReturnCallback(function (?int $id, Phrase $remark): void {
+        $followUp->method('addRemark')->willReturnCallback(function (?int $id, Phrase $remark): void {
             $this->happened[] = 'remark ' . $id . ': ' . $remark;
         });
-        $followUp->method('cancelled')->willReturnCallback(
+        $followUp->method('followCancellation')->willReturnCallback(
             function (ShipmentInterface $shipment, bool $inPolkurier): Order {
                 $this->happened[] = $inPolkurier ? 'cancelled in Polkurier' : 'cancelled here';
 
@@ -343,7 +343,7 @@ class StatusRefreshServiceTest extends TestCase
             return $shipError;
         });
         $format = $this->createStub(Formatter::class);
-        $format->method('storedTime')->willReturnArgument(0);
+        $format->method('formatStoredTime')->willReturnArgument(0);
 
         $age = $this->createStub(ShipmentAgeChecker::class);
         $age->method('isOlderThan')->willReturn($old);
@@ -374,7 +374,7 @@ class StatusRefreshServiceTest extends TestCase
      * @param string[] $unknown the orders Polkurier doesn't find by their numbers
      * @param string[] $failing the orders that fail unexpectedly once applied
      */
-    private function many(array $listed, array $unknown = [], array $failing = []): StatusRefreshService
+    private function createService(array $listed, array $unknown = [], array $failing = []): StatusRefreshService
     {
         $repository = $this->createStub(ShipmentRepositoryInterface::class);
         $repository->method('get')->willReturnCallback(function (int $id): ShipmentInterface {

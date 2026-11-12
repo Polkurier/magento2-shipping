@@ -41,7 +41,7 @@ class DefaultDraftBuilderTest extends TestCase
 
     public function testTheDescriptionPutsTheOrderNumberWhereThePatternHasPercentS(): void
     {
-        $describe = new \ReflectionMethod(DefaultDraftBuilder::class, 'description');
+        $describe = new \ReflectionMethod(DefaultDraftBuilder::class, 'formatDescription');
 
         self::assertSame('#000000032', $describe->invoke(null, '#%s', '000000032'));
         self::assertSame('Sklep', $describe->invoke(null, 'Sklep', '000000032'));

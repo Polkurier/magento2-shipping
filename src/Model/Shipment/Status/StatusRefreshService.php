@@ -95,7 +95,7 @@ readonly class StatusRefreshService
     {
         $shipment = $this->shipmentRepository->get($shipmentId);
 
-        return $this->update($shipment, $this->remoteOrderMatcher->findByNumber(self::number($shipment)));
+        return $this->update($shipment, $this->remoteOrderMatcher->findByNumber(self::getNumber($shipment)));
     }
 
     /**
@@ -117,7 +117,7 @@ readonly class StatusRefreshService
         foreach (\array_unique($shipmentIds) as $shipmentId) {
             try {
                 $shipment = $this->shipmentRepository->get($shipmentId);
-                $numbers[$shipmentId] = self::number($shipment);
+                $numbers[$shipmentId] = self::getNumber($shipment);
                 $shipments[$shipmentId] = $shipment;
             } catch (\Throwable $e) {
                 $failed[$shipmentId] = $e;
@@ -162,7 +162,7 @@ readonly class StatusRefreshService
     /**
      * @throws LocalizedException
      */
-    private static function number(ShipmentInterface $shipment): string
+    private static function getNumber(ShipmentInterface $shipment): string
     {
         return $shipment->getPolkurierNumber()
             ?? throw new LocalizedException(__('This shipment has no Polkurier order to read.'));
@@ -196,16 +196,16 @@ readonly class StatusRefreshService
         $shipment->setLastError(null)->setStatusCheckedAt((string)$this->dateTime->gmtDate());
         $this->shipmentRepository->save($shipment);
         if (!$wasDelivered && $shipment->getDeliveredAt() !== null) {
-            $this->nativeFollowUpService->remark($shipment->getShipmentId(), __(
+            $this->nativeFollowUpService->addRemark($shipment->getShipmentId(), __(
                 'Polkurier order %1 delivered: %2.',
                 $number,
-                $this->formatter->storedTime($shipment->getDeliveredAt()),
+                $this->formatter->formatStoredTime($shipment->getDeliveredAt()),
             ));
         }
         if ($shipment->getStatusCode() !== $statusBefore
             && \in_array($shipment->getStatusCode(), self::NOTED_STATUSES, true)
         ) {
-            $this->nativeFollowUpService->comment($this->orderLoader->get($shipment->getOrderId()), __(
+            $this->nativeFollowUpService->addComment($this->orderLoader->get($shipment->getOrderId()), __(
                 'Polkurier order %1 status: %2.',
                 $number,
                 $shipment->getStatusLabel() ?: (string)$shipment->getStatusCode(),
@@ -213,7 +213,7 @@ readonly class StatusRefreshService
         }
         if (!$wasCancelled && $shipment->getState() === ShipmentInterface::STATE_CANCELLED) {
             // Cancelled in the Polkurier panel: its Magento shipment is cleared, as when cancelled here.
-            $this->nativeFollowUpService->cancelled($shipment, true);
+            $this->nativeFollowUpService->followCancellation($shipment, true);
 
             return $shipment;
         }
@@ -237,10 +237,10 @@ readonly class StatusRefreshService
                 $shipment,
                 $shipment->getWaybills(),
             );
-            $this->nativeFollowUpService->comment($order, __(
+            $this->nativeFollowUpService->addComment($order, __(
                 'Waybills issued for Polkurier order %1: %2.',
                 $number,
-                $this->nativeFollowUpService->waybillList($shipment),
+                $this->nativeFollowUpService->formatWaybillList($shipment),
             ));
             // The customer's e-mail, when asked for, waits for the waybills.
             $this->nativeFollowUpService->notifyCustomer($order, $shipment);
@@ -282,7 +282,7 @@ readonly class StatusRefreshService
         $failed = 0;
         $shipmentIds = \array_map(
             static fn(ShipmentInterface $shipment): int => (int)$shipment->getId(),
-            $this->shipmentFinder->dueForStatusCheck($checkedBefore, self::BATCH_SIZE),
+            $this->shipmentFinder->findDueForStatusCheck($checkedBefore, self::BATCH_SIZE),
         );
         foreach ($this->refreshMany($shipmentIds) as $shipmentId => $result) {
             if (!$result instanceof \Throwable) {

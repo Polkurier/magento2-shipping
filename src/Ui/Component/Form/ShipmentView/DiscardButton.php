@@ -20,7 +20,7 @@ class DiscardButton extends AbstractButton
      */
     public function getButtonData(): array
     {
-        if ($this->shipment()?->getState() !== ShipmentInterface::STATE_FAILED
+        if ($this->getShipment()?->getState() !== ShipmentInterface::STATE_FAILED
             || !$this->authorization->isAllowed('Polkurier_Shipping::shipment_create')
         ) {
             return [];
@@ -28,7 +28,7 @@ class DiscardButton extends AbstractButton
 
         $confirm = ShipmentConfirmationProvider::discard();
 
-        return $this->post(
+        return $this->buildPostButton(
             (string)__('Discard'),
             'discard',
             25,

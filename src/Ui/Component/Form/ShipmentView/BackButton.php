@@ -53,7 +53,7 @@ class BackButton extends AbstractButton
 
         return [
             'label' => __('Back'),
-            'on_click' => $this->onClickScriptBuilder->location(
+            'on_click' => $this->onClickScriptBuilder->buildLocation(
                 \is_array($back) && ($back['id'] ?? null) === $id
                     ? (string)$back['url']
                     : $this->url->getUrl('polkurier/shipment/index'),

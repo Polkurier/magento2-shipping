@@ -38,7 +38,7 @@ readonly class NativeLabelPackageMapper
      *
      * @return Pack[]
      */
-    public function toPacks(array $packages): array
+    public function mapToPacks(array $packages): array
     {
         $packs = [];
         foreach ($packages as $package) {
@@ -60,12 +60,12 @@ readonly class NativeLabelPackageMapper
                 ->setItems($items)
                 ->setTemplateId(null)
                 ->setPackType(ParcelTypeMapper::normalize((string)($params['container'] ?? '')))
-                ->setLength($this->centimetres((float)($params['length'] ?? 0), $units))
-                ->setWidth($this->centimetres((float)($params['width'] ?? 0), $units))
-                ->setHeight($this->centimetres((float)($params['height'] ?? 0), $units))
+                ->setLength($this->convertToCentimetres((float)($params['length'] ?? 0), $units))
+                ->setWidth($this->convertToCentimetres((float)($params['width'] ?? 0), $units))
+                ->setHeight($this->convertToCentimetres((float)($params['height'] ?? 0), $units))
                 ->setWeight(\max(
                     0.1,
-                    $this->kilograms((float)($params['weight'] ?? 0), (string)($params['weight_units'] ?? '')),
+                    $this->convertToKilograms((float)($params['weight'] ?? 0), (string)($params['weight_units'] ?? '')),
                 ))
                 ->setAmount(1)
                 // Saved as a pack template once placed, as asked in the packaging window.
@@ -78,7 +78,7 @@ readonly class NativeLabelPackageMapper
     /**
      * Converts the packaging window's weight, in pounds or kilograms, to kilograms.
      */
-    private function kilograms(float $weight, string $units): float
+    private function convertToKilograms(float $weight, string $units): float
     {
         $from = $units === Weight::POUND ? Weight::POUND : Weight::KILOGRAM;
 
@@ -88,7 +88,7 @@ readonly class NativeLabelPackageMapper
     /**
      * Converts the packaging window's size, in inches or centimetres, to whole centimetres.
      */
-    private function centimetres(float $length, string $units): int
+    private function convertToCentimetres(float $length, string $units): int
     {
         $from = $units === Length::INCH ? Length::INCH : Length::CENTIMETER;
 

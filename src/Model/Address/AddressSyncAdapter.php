@@ -45,7 +45,7 @@ readonly class AddressSyncAdapter implements PushableAdapterInterface
     public function fetchRemote(): array
     {
         $remote = [];
-        $addresses = $this->polkurierClient->addresses()->getAddresses(new GetMessage(AddressTypeEnum::Sender));
+        $addresses = $this->polkurierClient->getAddresses()->getAddresses(new GetMessage(AddressTypeEnum::Sender));
         foreach ($addresses as $address) {
             if ($address->getId() !== null) {
                 $remote[$address->getId()] = $this->addressBookMapper->normalize($address);
@@ -76,9 +76,9 @@ readonly class AddressSyncAdapter implements PushableAdapterInterface
     public function push(SyncableInterface $local): array
     {
         /** @var AddressInterface $local */
-        $request = $this->addressBookMapper->toSaveMessage($local);
+        $request = $this->addressBookMapper->mapToSaveMessage($local);
         $isNew = $local->getExtId() === null;
-        $response = $this->polkurierClient->addresses()->saveAddress($request);
+        $response = $this->polkurierClient->getAddresses()->saveAddress($request);
         $this->apiEventDispatcher->dispatch(ApiEventEnum::AddressSaveAfter, null, [
             'address' => $local,
             'is_new' => $isNew,
@@ -92,8 +92,8 @@ readonly class AddressSyncAdapter implements PushableAdapterInterface
     public function deleteRemote(SyncableInterface $local): void
     {
         /** @var AddressInterface $local */
-        $request = $this->addressBookMapper->toDeleteMessage($local);
-        if ($this->polkurierClient->addresses()->deleteAddress($request)) {
+        $request = $this->addressBookMapper->mapToDeleteMessage($local);
+        if ($this->polkurierClient->getAddresses()->deleteAddress($request)) {
             $this->apiEventDispatcher->dispatch(
                 ApiEventEnum::AddressDeleteAfter,
                 null,

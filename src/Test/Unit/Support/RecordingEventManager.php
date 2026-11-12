@@ -37,7 +37,7 @@ class RecordingEventManager implements ManagerInterface
     /**
      * @return array<int, array<string, mixed>> the data of each dispatch of the event
      */
-    public function of(ApiEventEnum $event): array
+    public function listDispatched(ApiEventEnum $event): array
     {
         return \array_values(\array_map(
             static fn(array $dispatch): array => $dispatch['data'],

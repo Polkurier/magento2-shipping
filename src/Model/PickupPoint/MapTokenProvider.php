@@ -57,7 +57,7 @@ class MapTokenProvider implements ResetAfterRequestInterface
      */
     public function getToken(): string
     {
-        $key = $this->accountCache->key('map_token');
+        $key = $this->accountCache->buildKey('map_token');
         if (isset($this->answers[$key])) {
             return $this->answer($this->answers[$key]);
         }
@@ -73,10 +73,10 @@ class MapTokenProvider implements ResetAfterRequestInterface
         }
 
         try {
-            $token = $this->polkurierClient->geo()->getMapToken()->getToken();
+            $token = $this->polkurierClient->getGeo()->getMapToken()->getToken();
         } catch (PolkurierException $e) {
             $this->polkurierCache->save(
-                (string)$this->errorMessageResolver->phrase($e),
+                (string)$this->errorMessageResolver->createPhrase($e),
                 $key . self::FAILURE_SUFFIX,
                 [CacheTagEnum::MapToken->value, CacheTagEnum::Failures->value],
                 PolkurierCache::FAILURE_LIFETIME,

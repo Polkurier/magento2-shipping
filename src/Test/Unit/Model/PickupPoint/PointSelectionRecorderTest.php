@@ -18,6 +18,7 @@ use Polkurier\Shipping\Logger\Logger;
 use Polkurier\Shipping\Model\Carrier\CarrierCatalog;
 use Polkurier\Shipping\Model\Carrier\CarrierFeatureResolver;
 use Polkurier\Shipping\Model\Config\ConfigProvider;
+use Polkurier\Shipping\Model\PickupPoint\PointFinder;
 use Polkurier\Shipping\Model\PickupPoint\PointSelectionRecorder;
 use Polkurier\Shipping\Model\QuotePoint;
 use Polkurier\Shipping\Model\QuotePointFactory;
@@ -27,6 +28,7 @@ use Polkurier\Webservice\Response\Carrier;
 use Polkurier\Webservice\Response\CourierPoint;
 
 #[CoversClass(PointSelectionRecorder::class)]
+#[CoversClass(PointFinder::class)]
 #[AllowMockObjectsWithoutExpectations]
 class PointSelectionRecorderTest extends TestCase
 {
@@ -62,6 +64,21 @@ class PointSelectionRecorderTest extends TestCase
 
         self::assertSame('WAW195M', $this->saved?->getPointId());
         self::assertSame('Krótka 5, Warszawa', $this->saved->getPointLabel());
+    }
+
+    public function testAPointWithoutAnAddressLineIsLabelledByItsStreetAndTown(): void
+    {
+        $this->selection(new CourierPoint(
+            'WAW195M',
+            street: 'Krótka 5',
+            zip: '00-001',
+            city: 'Warszawa',
+            available: true,
+            functions: [PointFunctionEnum::Collect->value],
+        ))
+            ->select($this->quote(), 'polkurier', 'INPOST_PACZKOMAT', 'WAW195M');
+
+        self::assertSame('Krótka 5, 00-001 Warszawa', $this->saved?->getPointLabel());
     }
 
     public function testAClosedPointIsRefused(): void
@@ -223,7 +240,17 @@ class PointSelectionRecorderTest extends TestCase
         $config = $this->createStub(ConfigProvider::class);
         $config->method('getMapPointFunctions')->willReturn([PointFunctionEnum::Collect]);
 
-        return new PointSelectionRecorder($store, $points, $catalog, $features, $config, $this->createStub(Logger::class));
+        $logger = $this->createStub(Logger::class);
+
+        return new PointSelectionRecorder(
+            $store,
+            $points,
+            $catalog,
+            $features,
+            new PointFinder($catalog, $features, $logger),
+            $config,
+            $logger,
+        );
     }
 
     private function quote(): Quote

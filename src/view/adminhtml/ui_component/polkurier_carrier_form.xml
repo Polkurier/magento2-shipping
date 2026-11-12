@@ -150,6 +150,16 @@
                 </checkbox>
             </formElements>
         </field>
+        <field name="default_sender_point" formElement="input" sortOrder="35"
+               component="Polkurier_Shipping/js/form/element/point">
+            <settings>
+                <label translate="true">Default drop-off point</label>
+                <dataType>text</dataType>
+                <notice translate="true">New shipments with this carrier start as dropped off there; carriers of the same point network share it.</notice>
+                <dataScope>default_sender_point</dataScope>
+                <visible>false</visible>
+            </settings>
+        </field>
     </fieldset>
     <fieldset name="pricing">
         <settings>

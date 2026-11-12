@@ -27,7 +27,6 @@ interface AddressInterface extends SyncableInterface
     public const string FIELD_POSTCODE = 'postcode';
     public const string FIELD_PROVINCE = 'province';
     public const string FIELD_COUNTRY = 'country';
-    public const string FIELD_POINT_ID = 'point_id';
     public const string FIELD_EMAIL = 'email';
     public const string FIELD_PHONE = 'phone';
     public const string FIELD_IS_DEFAULT = 'is_default';
@@ -153,18 +152,6 @@ interface AddressInterface extends SyncableInterface
      * @return $this
      */
     public function setCountry(string $country): static;
-
-    /**
-     * @return string|null
-     */
-    public function getPointId(): ?string;
-
-    /**
-     * @param string|null $pointId
-     *
-     * @return $this
-     */
-    public function setPointId(?string $pointId): static;
 
     /**
      * @return string

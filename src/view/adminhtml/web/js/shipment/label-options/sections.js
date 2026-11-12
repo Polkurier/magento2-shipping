@@ -6,7 +6,11 @@
  * The groups of label options: for each, its one-line summary, when it's shown or needs
  * attention, and the fields it's edited with.
  */
-define(['mage/translate', 'Polkurier_Shipping/js/shipment/workspace/rules'], function ($t, rules) {
+define([
+    'mage/translate',
+    'Polkurier_Shipping/js/shipment/workspace/rules',
+    'Polkurier_Shipping/js/shipment/points-map'
+], function ($t, rules, pointsMap) {
     'use strict';
 
     /**
@@ -20,8 +24,6 @@ define(['mage/translate', 'Polkurier_Shipping/js/shipment/workspace/rules'], fun
             carrier = state.carrier,
             label = state.optionLabel,
             money = state.money,
-            // Point addresses by code, shared with the editor, which adds what's chosen on the map.
-            pointLabels = config.pointLabels = config.pointLabels || {},
             closedPoint = config.point && config.point.closed ? config.point.id : '';
 
         /**
@@ -113,10 +115,6 @@ define(['mage/translate', 'Polkurier_Shipping/js/shipment/workspace/rules'], fun
 
         function bankAccountTypedIn(form) {
             return toBankAccount(form) && typingIn('cod_bank_account_id')(form);
-        }
-
-        if (config.point && config.point.id && config.point.label) {
-            pointLabels[config.point.id] = config.point.label;
         }
 
         function pickupDateVisible() {
@@ -222,7 +220,10 @@ define(['mage/translate', 'Polkurier_Shipping/js/shipment/workspace/rules'], fun
                     }
                     // Handed over at a point, for a carrier that takes parcels at points.
                     if (senderPointUsed(values.pickup_mode) && filled(values.sender_point_id)) {
-                        text += ' · ' + $t('drop-off point %1').replace('%1', values.sender_point_id);
+                        text += ' · ' + $t('drop-off point %1').replace('%1', [
+                            values.sender_point_id,
+                            pointsMap.describe(config.pointDetails, values.sender_point_id)
+                        ].filter(Boolean).join(' — '));
                     }
 
                     return text;
@@ -274,8 +275,9 @@ define(['mage/translate', 'Polkurier_Shipping/js/shipment/workspace/rules'], fun
                     const id = values.recipient_point_id;
 
                     if (filled(id)) {
-                        // Its address, as the map or the order has it; a code typed in has none.
-                        return [id, pointLabels[id] || ''].filter(Boolean).join(' — ')
+                        // Its name and address, as Polkurier or the map has them; a code typed in
+                        // has none.
+                        return [id, pointsMap.describe(config.pointDetails, id)].filter(Boolean).join(' — ')
                             + (id === closedPoint ? '. ' + $t('Closed or no longer there: choose another point.') : '');
                     }
 

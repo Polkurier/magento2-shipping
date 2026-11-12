@@ -10,7 +10,7 @@
  * says the carrier can't collect these parcels that way; it's asked again whenever they change.
  *
  * When the parcels are dropped off with a carrier that takes them at points, the point is chosen
- * on the map, near the sender. It starts as the sender address's drop-off point.
+ * on the map, near the sender. It starts as the account's drop-off point for the carrier.
  */
 define([
     'ko',
@@ -59,6 +59,7 @@ define([
             this.pointShown = ko.observable(false);
             this.pointAlone = ko.observable(false);
             this.pointId = ko.observable('');
+            this.pointName = ko.observable('');
             this.pointLabel = ko.observable('');
             this.pointRequired = ko.observable(false);
             this.pointMissing = ko.observable(false);
@@ -95,7 +96,7 @@ define([
                 modes = [];
 
             this.watchCollective(data);
-            this.followSenderAndCarrier(data, features);
+            this.followCarrier(data, features);
             _.each(labels, function (label, value) {
                 if (rules.handoverOffered(value, features, this.collective())) {
                     modes.push({value: value, label: label, id: 'polkurier-handover-' + value});
@@ -145,30 +146,28 @@ define([
         },
 
         /**
-         * Another sender or carrier starts from the default handover again (rules.defaultHandover()).
-         * A drop-off point chosen or removed here keeps the handover as it is.
+         * Another carrier starts from the default handover again (rules.defaultHandover()). A
+         * drop-off point chosen or removed here keeps the handover as it is.
          *
          * @param {Object} data
          * @param {Object} features
          */
-        followSenderAndCarrier: function (data, features) {
-            // The sender and carrier pickers set the sender's point along with the sender or the
-            // carrier, before the debounced refresh reads it.
-            const key = [data.carrier_code, data.sender_address_id].map(function (value) {
-                return String(value === null || value === undefined ? '' : value);
-            }).join('|');
+        followCarrier: function (data, features) {
+            // The carrier picker sets the carrier's drop-off point along with the carrier, before
+            // the debounced refresh reads it.
+            const key = String(data.carrier_code || '');
 
-            if (this.senderAndCarrier !== undefined && this.senderAndCarrier !== key) {
+            if (this.followedCarrier !== undefined && this.followedCarrier !== key) {
                 const mode = rules.defaultHandover(features, String(data.sender_point_id || ''));
 
                 if (mode !== data.pickup_mode) {
-                    this.senderAndCarrier = key;
+                    this.followedCarrier = key;
                     this.set('pickup_mode', mode);
 
                     return;
                 }
             }
-            this.senderAndCarrier = key;
+            this.followedCarrier = key;
         },
 
         retry: function () {
@@ -180,14 +179,16 @@ define([
          * @param {Object} features
          */
         refreshPoint: function (data, features) {
-            const requirement = features.sender_point || 'NONE';
+            const requirement = features.sender_point || 'NONE',
+                details = (data.point_details || {})[data.sender_point_id || ''] || {};
 
             this.pointShown(rules.senderPointUsed(requirement, features.drop_off, this.mode()));
             this.pointAlone(this.pointShown() && this.mode() !== 'drop_off');
             this.pointRequired(requirement === 'REQUIRED');
             this.pointId(data.sender_point_id || '');
             this.pointMissing(this.pointRequired() && this.validated() && !rules.filled(this.pointId()));
-            this.pointLabel(data.sender_point_label_id === this.pointId() ? data.sender_point_label || '' : '');
+            this.pointName(details.name || '');
+            this.pointLabel(details.label || '');
             this.canChoosePoint(pointsMap.canOpen(data.map));
         },
 
@@ -211,9 +212,8 @@ define([
                 this.features().providers,
                 this.senderPostcode(),
                 function (pointId, point) {
+                    this.set('point_details', pointsMap.addPoint(this.get('point_details'), pointId, point));
                     this.set('sender_point_id', pointId);
-                    this.set('sender_point_label', pointsMap.describe(point));
-                    this.set('sender_point_label_id', pointId);
                 }.bind(this),
                 ['send']
             );

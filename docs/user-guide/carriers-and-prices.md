@@ -43,6 +43,13 @@ Click **Edit** on a carrier:
 - **Logo in checkout** is shown in front of the carrier's name at checkout. Click **Upload** and
   choose a JPG, PNG, GIF or WebP file of about 60 × 30 pixels. To remove it, click the bin icon on
   the preview.
+- **Default drop-off point**, for carriers that take parcels at points and that Polkurier keeps a
+  default for: where new shipments with the carrier start as dropped off. **Choose on map** shows
+  the carrier's points that take parcels for sending, near your default sender address; **Remove**
+  leaves no default. Polkurier keeps one per point network for your account, so carriers of the
+  same network share it: changing it on one InPost locker carrier changes it on the others. If
+  Polkurier refuses the point, for example one of another network, nothing is saved and its reason
+  is shown.
 - **Pricing** sets what customers pay; see [Pricing](#pricing) below.
 
 ### Working in the list

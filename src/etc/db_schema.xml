@@ -63,7 +63,6 @@
         <column xsi:type="varchar" name="postcode" nullable="false" length="32" />
         <column xsi:type="varchar" name="province" nullable="true" length="64" />
         <column xsi:type="varchar" name="country" nullable="false" length="2" default="PL" />
-        <column xsi:type="varchar" name="point_id" nullable="true" length="64" />
         <column xsi:type="varchar" name="email" nullable="false" length="255" />
         <column xsi:type="varchar" name="phone" nullable="false" length="64" />
         <column xsi:type="smallint" name="is_default" nullable="false" unsigned="true" default="0" />

@@ -19,7 +19,7 @@ Resources**. The module's permissions are under **Polkurier**:
     - **Cash on delivery payouts**: see payouts.
       - **Request payouts**: request and cancel payouts.
   - **Settings**: the Settings menu.
-    - **Carriers**: manage carriers.
+    - **Carriers**: manage carriers, including their default drop-off points.
     - **Addresses**: manage addresses.
     - **Bank accounts**: manage bank accounts.
     - **Pack templates**: manage pack templates.

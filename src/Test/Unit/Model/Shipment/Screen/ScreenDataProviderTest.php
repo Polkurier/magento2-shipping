@@ -15,11 +15,14 @@ use Polkurier\Shipping\Api\AddressRepositoryInterface;
 use Polkurier\Shipping\Api\Data\OrderPointInterface;
 use Polkurier\Shipping\Api\OrderPointRepositoryInterface;
 use Polkurier\Shipping\Api\PackTemplateRepositoryInterface;
+use Polkurier\Shipping\Logger\Logger;
 use Polkurier\Shipping\Model\Carrier\CarrierCatalog;
 use Polkurier\Shipping\Model\Carrier\CarrierFeatureResolver;
 use Polkurier\Shipping\Model\Config\ConfigProvider;
 use Polkurier\Shipping\Model\Config\Source\PackType;
+use Polkurier\Shipping\Model\PickupPoint\DefaultSenderPointManager;
 use Polkurier\Shipping\Model\PickupPoint\MapTokenProvider;
+use Polkurier\Shipping\Model\PickupPoint\PointFinder;
 use Polkurier\Shipping\Model\Shipment\Draft\DefaultDraftBuilder;
 use Polkurier\Shipping\Model\Shipment\Draft\DraftHydrator;
 use Polkurier\Shipping\Model\Shipment\Screen\ScreenDataProvider;
@@ -32,6 +35,7 @@ use Polkurier\Webservice\Response\Carrier\AdditionalData\PointsMap;
 use Polkurier\Webservice\Response\CourierPoint;
 
 #[CoversClass(ScreenDataProvider::class)]
+#[CoversClass(PointFinder::class)]
 #[AllowMockObjectsWithoutExpectations]
 class ScreenDataProviderTest extends TestCase
 {
@@ -69,41 +73,96 @@ class ScreenDataProviderTest extends TestCase
         );
     }
 
-    public function testThePointIsDescribedByItsAddressTodayOrAsTheCustomerChoseIt(): void
+    public function testThePointIsDescribedByItsNameAndAddressTodayOrAsTheCustomerChoseIt(): void
     {
-        $open = new CourierPoint('WAW195M', available: true, address: '02-134 Warszawa, 1 Sierpnia 36B');
+        $open = new CourierPoint(
+            'WAW195M',
+            name: 'Paczkomat przy sklepie',
+            available: true,
+            address: '02-134 Warszawa, 1 Sierpnia 36B',
+        );
 
         self::assertSame(
-            ['id' => 'WAW195M', 'label' => '02-134 Warszawa, 1 Sierpnia 36B', 'closed' => false],
+            [
+                'id' => 'WAW195M',
+                'name' => 'Paczkomat przy sklepie',
+                'label' => '02-134 Warszawa, 1 Sierpnia 36B',
+                'closed' => false,
+            ],
             $this->context($open)->describeRecipientPoint(42, 'INPOST_PACZKOMAT', 'WAW195M'),
         );
         self::assertSame(
-            ['id' => 'WAW195M', 'label' => 'Paczkomat WAW195M, as chosen', 'closed' => true],
+            ['id' => 'WAW195M', 'name' => '', 'label' => 'Paczkomat WAW195M, as chosen', 'closed' => true],
             $this->context(null)->describeRecipientPoint(42, 'INPOST_PACZKOMAT', 'WAW195M'),
             'Gone since: told by the label the customer chose it by.',
         );
         self::assertSame(
-            ['id' => 'WAW299X', 'label' => '', 'closed' => true],
+            ['id' => 'WAW299X', 'name' => '', 'label' => '', 'closed' => true],
             $this->context(null)->describeRecipientPoint(42, 'INPOST_PACZKOMAT', 'WAW299X'),
             'Another point than the customer\'s has no label of theirs.',
         );
     }
 
-    private function context(CourierPoint|\Throwable|null $found, bool $carrier = true): ScreenDataProvider
+    public function testThePointsAScreenStartsWithAreDescribedByCode(): void
     {
-        $catalog = $this->createStub(CarrierCatalog::class);
-        $catalog->method('getCarrier')->willReturn(
-            $carrier
-                ? new Carrier('INPOST_PACZKOMAT', 'Paczkomat', false, new AdditionalData(
-                    pointsMap: new PointsMap(['inpost'], recipientPoint: PointRequirementEnum::Required),
-                ))
-                : null,
+        $points = [
+            'KRA01M' => new CourierPoint('KRA01M', description: 'Pickup - Shop', address: '31-401 Kraków, Długa 1'),
+            'POZ02M' => new CourierPoint('POZ02M', name: 'Kiosk', available: false, address: '60-001 Poznań, Polna 2'),
+        ];
+        $recipient = ['id' => 'WAW195M', 'name' => '', 'label' => 'Paczkomat WAW195M, as chosen'];
+
+        self::assertSame(
+            [
+                'KRA01M' => ['name' => 'Pickup - Shop', 'label' => '31-401 Kraków, Długa 1'],
+                'POZ02M' => ['name' => 'Kiosk', 'label' => '60-001 Poznań, Polna 2'],
+                'WAW195M' => ['name' => '', 'label' => 'Paczkomat WAW195M, as chosen'],
+            ],
+            $this->context($points, defaultSenderPoints: ['INPOST_PACZKOMAT' => 'POZ02M', 'DPD_POINT' => 'GDA03M'])
+                ->describePoints($recipient, 'KRA01M'),
+            'The drop-off point and the carriers\' default ones, closed or not; those not found are left out.',
         );
+        self::assertSame(
+            [],
+            $this->context($points)->describePoints(['id' => 'WAW299X', 'name' => '', 'label' => ''], ''),
+            'A pickup point with nothing to tell is left out.',
+        );
+    }
+
+    /**
+     * @param CourierPoint|\Throwable|array<string, CourierPoint>|null $found what Polkurier has, by
+     *     code for more than one point
+     * @param array<string, string> $defaultSenderPoints the account's drop-off points by carrier
+     */
+    private function context(
+        CourierPoint|\Throwable|array|null $found,
+        bool $carrier = true,
+        array $defaultSenderPoints = [],
+    ): ScreenDataProvider {
+        $paczkomat = new Carrier('INPOST_PACZKOMAT', 'Paczkomat', false, new AdditionalData(
+            pointsMap: new PointsMap(['inpost'], recipientPoint: PointRequirementEnum::Required),
+        ));
+        $catalog = $this->createStub(CarrierCatalog::class);
+        $catalog->method('getCarrier')->willReturn($carrier ? $paczkomat : null);
+        $catalog->method('getCarriers')->willReturn([
+            'INPOST_PACZKOMAT' => $paczkomat,
+            'DPD_POINT' => new Carrier('DPD_POINT', 'DPD Pickup', false, new AdditionalData(
+                pointsMap: new PointsMap(['dpd'], recipientPoint: PointRequirementEnum::Required),
+            )),
+        ]);
         if ($found instanceof \Throwable) {
             $catalog->method('findPoint')->willThrowException($found);
+        } elseif (\is_array($found)) {
+            // Found only among every carrier's providers.
+            $catalog->method('findPoint')->willReturnCallback(
+                static fn(string $pointId, array $providers): ?CourierPoint => \count($providers) === 2
+                    ? $found[$pointId] ?? null
+                    : null,
+            );
         } else {
             $catalog->method('findPoint')->willReturn($found);
         }
+        $defaults = $this->createStub(DefaultSenderPointManager::class);
+        $defaults->method('get')->willReturn($defaultSenderPoints);
 
         $chosen = $this->createStub(OrderPointInterface::class);
         $chosen->method('getPointId')->willReturn('WAW195M');
@@ -119,11 +178,11 @@ class ScreenDataProviderTest extends TestCase
             $this->createStub(MapTokenProvider::class),
             $this->createStub(ConfigProvider::class),
             $this->createStub(OrderAmountCalculator::class),
-            $catalog,
-            new CarrierFeatureResolver(),
+            new PointFinder($catalog, new CarrierFeatureResolver(), $this->createStub(Logger::class)),
             $this->createStub(DefaultDraftBuilder::class),
             $points,
             $this->createStub(UrlInterface::class),
+            $defaults,
         );
     }
 }

@@ -28,7 +28,6 @@ use Polkurier\Webservice\Exception\Exception as PolkurierException;
 class MapTokenProvider implements ResetAfterRequestInterface
 {
     public const int CACHE_LIFETIME = 3 * 3600;
-    public const int FAILURE_LIFETIME = 90;
 
     private const string FAILURE_SUFFIX = '_failed';
 
@@ -80,7 +79,7 @@ class MapTokenProvider implements ResetAfterRequestInterface
                 (string)$this->errorMessageResolver->phrase($e),
                 $key . self::FAILURE_SUFFIX,
                 [CacheTagEnum::MapToken->value, CacheTagEnum::Failures->value],
-                self::FAILURE_LIFETIME,
+                PolkurierCache::FAILURE_LIFETIME,
             );
 
             throw $this->answers[$key] = $e;
@@ -89,7 +88,7 @@ class MapTokenProvider implements ResetAfterRequestInterface
             $token !== '' ? $token : self::NO_TOKEN,
             $token !== '' ? $key : $key . self::FAILURE_SUFFIX,
             [CacheTagEnum::MapToken->value],
-            $token !== '' ? self::CACHE_LIFETIME : self::FAILURE_LIFETIME,
+            $token !== '' ? self::CACHE_LIFETIME : PolkurierCache::FAILURE_LIFETIME,
         );
 
         return $this->answers[$key] = $token;

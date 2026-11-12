@@ -18,6 +18,7 @@ use Polkurier\Shipping\Api\Data\ShipmentDraftInterface;
 use Polkurier\Shipping\Logger\Logger;
 use Polkurier\Shipping\Model\Carrier\CarrierCatalog;
 use Polkurier\Shipping\Model\Carrier\CarrierFeatureResolver;
+use Polkurier\Shipping\Model\PickupPoint\DefaultSenderPointManager;
 use Polkurier\Shipping\Model\Sdk\ErrorMessageResolver;
 use Polkurier\Shipping\Model\Shipment\Placement\SenderMapper;
 use Polkurier\Shipping\Model\Shipment\Screen\ShipmentOptionsProvider;
@@ -86,6 +87,7 @@ class ShipmentOptionsProviderTest extends TestCase
             'point' => 'NONE',
             'providers' => [],
             'sender_point' => 'NONE',
+            'default_sender_point' => '',
             'cod' => true,
             'insurance' => true,
             'insurance_with_cod' => false,
@@ -107,8 +109,9 @@ class ShipmentOptionsProviderTest extends TestCase
         $inpost = $features['INPOST_PACZKOMAT'];
         self::assertSame([...$always, 'WEEK_COLLECTION'], $inpost['services']);
         self::assertSame(
-            ['REQUIRED', ['INPOST'], 'OPTIONAL'],
-            [$inpost['point'], $inpost['providers'], $inpost['sender_point']],
+            ['REQUIRED', ['INPOST'], 'OPTIONAL', 'KRA01M'],
+            [$inpost['point'], $inpost['providers'], $inpost['sender_point'], $inpost['default_sender_point']],
+            'The account\'s drop-off point for the carrier comes with it.',
         );
         self::assertTrue($inpost['drop_off']);
         self::assertTrue($inpost['insurance_with_cod']);
@@ -294,6 +297,10 @@ class ShipmentOptionsProviderTest extends TestCase
         $logger->method('warning')->willReturnCallback(function (string $message): void {
             $this->logged[] = $message;
         });
+        $defaultSenderPoints = $this->createStub(DefaultSenderPointManager::class);
+        $defaultSenderPoints->method('getForCarrier')->willReturnCallback(
+            static fn(Carrier $carrier): ?string => $carrier->getServiceCode() === 'INPOST_PACZKOMAT' ? 'KRA01M' : null,
+        );
 
         return new ShipmentOptionsProvider(
             $catalog,
@@ -303,6 +310,7 @@ class ShipmentOptionsProviderTest extends TestCase
             new ErrorMessageResolver(),
             $logger,
             $senders ?? $this->createStub(SenderMapper::class),
+            $defaultSenderPoints,
         );
     }
 }

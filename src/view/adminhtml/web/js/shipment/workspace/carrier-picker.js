@@ -160,26 +160,12 @@ define([
          * @param {String} code
          */
         swapPoint: function (previous, code) {
-            const point = rules.swapPoint(this.pointsByCarrier, previous, code, {
-                id: this.source.get('data.recipient_point_id') || '',
-                label: this.source.get('data.recipient_point_label_id') === this.source.get('data.recipient_point_id')
-                    ? this.source.get('data.recipient_point_label') || ''
-                    : ''
-            });
-
-            this.source.set('data.recipient_point_id', point.id);
-            this.source.set('data.recipient_point_label', point.label);
-            this.source.set('data.recipient_point_label_id', point.id);
-        },
-
-        /**
-         * @returns {String} the drop-off point of the chosen sender address, '' without one
-         */
-        senderAddressPoint: function () {
-            const data = this.source.get('data') || {},
-                address = (data.senders || {})[String(data.sender_address_id || '')];
-
-            return address && address.point_id ? String(address.point_id) : '';
+            this.source.set('data.recipient_point_id', rules.swapPoint(
+                this.pointsByCarrier,
+                previous,
+                code,
+                this.source.get('data.recipient_point_id') || ''
+            ));
         },
 
         /**
@@ -193,8 +179,11 @@ define([
             } else if (code !== this.carrier) {
                 this.swapPoint(this.carrier, code);
                 this.carrier = code;
-                // Points belong to a carrier: the sender's point goes back to its address's.
-                this.source.set('data.sender_point_id', this.senderAddressPoint());
+                // Points belong to a carrier's network: the drop-off point becomes the account's
+                // for the carrier.
+                this.source.set('data.sender_point_id', rules.featuresOf(
+                    (this.source.get('data.carriers') || {})[code] || null
+                ).default_sender_point);
             }
             const carriers = this.source.get('data.carriers') || {},
                 carrier = carriers[code] || null,

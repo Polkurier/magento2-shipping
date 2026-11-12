@@ -65,8 +65,6 @@ class ManualEntrySaver implements ResetAfterRequestInterface
                 AddressInterface::FIELD_TYPE => AddressInterface::TYPE_SENDER,
                 AddressInterface::FIELD_COUNTRY => Polkurier::HOME_COUNTRY,
                 AddressInterface::FIELD_IS_DEFAULT => $this->isFirst($this->addressCollectionFactory->create()),
-                // The drop-off point used this time, for the next shipment from this address.
-                AddressInterface::FIELD_POINT_ID => $draft->getSenderPointId(),
             ] + \array_filter($address, static fn(string $value): bool => $value !== ''));
         }
         if ($draft->isNewBankAccount() && $draft->isKeepingNewBankAccount()

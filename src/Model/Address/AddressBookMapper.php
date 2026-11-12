@@ -44,7 +44,6 @@ readonly class AddressBookMapper
             AddressInterface::FIELD_POSTCODE => $address->getPostcode(),
             AddressInterface::FIELD_PROVINCE => $address->getProvince() ?: null,
             AddressInterface::FIELD_COUNTRY => $address->getCountry() ?: Polkurier::HOME_COUNTRY,
-            AddressInterface::FIELD_POINT_ID => $address->getPointId() ?: null,
             AddressInterface::FIELD_EMAIL => $address->getEmail(),
             AddressInterface::FIELD_PHONE => $address->getPhone(),
             AddressInterface::FIELD_IS_DEFAULT => $address->isDefault(),
@@ -54,15 +53,12 @@ readonly class AddressBookMapper
     }
 
     /**
-     * Fields Polkurier can't keep stay as Magento has them: a sender's drop-off point (Polkurier
-     * keeps points for recipients only) and the province when Polkurier has none (it knows no
-     * Polish ones).
+     * The province stays as Magento has it when Polkurier has none: Polkurier knows no Polish ones.
      *
      * @param array<string, mixed> $remote as returned by {@see normalize()}
      */
     public function apply(array $remote, AddressInterface $address): void
     {
-        $sender = (string)$remote[AddressInterface::FIELD_TYPE] === AddressInterface::TYPE_SENDER;
         $extId = $remote[AddressInterface::FIELD_EXT_ID] ?? null;
         $address->setExtId($extId !== null ? (string)$extId : null)
             ->setName((string)$remote[AddressInterface::FIELD_NAME])
@@ -76,7 +72,6 @@ readonly class AddressBookMapper
             ->setPostcode((string)$remote[AddressInterface::FIELD_POSTCODE])
             ->setProvince(($remote[AddressInterface::FIELD_PROVINCE] ?? null) ?: $address->getProvince())
             ->setCountry((string)$remote[AddressInterface::FIELD_COUNTRY])
-            ->setPointId($sender ? $address->getPointId() : $remote[AddressInterface::FIELD_POINT_ID])
             ->setEmail((string)$remote[AddressInterface::FIELD_EMAIL])
             ->setPhone((string)$remote[AddressInterface::FIELD_PHONE])
             ->setDefault((bool)$remote[AddressInterface::FIELD_IS_DEFAULT])
@@ -101,7 +96,6 @@ readonly class AddressBookMapper
             ->flatNumber($address->getFlatNumber() ?: null)
             ->province($address->getProvince() ?: null)
             ->country($address->getCountry() ?: Polkurier::HOME_COUNTRY)
-            ->pointId($address->getPointId() ?: null)
             ->default($address->isDefault())
             ->coverAddress($address->isCover())
             ->build();

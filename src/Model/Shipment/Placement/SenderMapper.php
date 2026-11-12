@@ -46,16 +46,16 @@ readonly class SenderMapper
             AddressInterface::FIELD_COUNTRY => $address->getCountry(),
             AddressInterface::FIELD_EMAIL => $address->getEmail(),
             AddressInterface::FIELD_PHONE => $address->getPhone(),
-            AddressInterface::FIELD_POINT_ID => (string)$pointId,
-        ]);
+        ], $pointId);
     }
 
     /**
-     * A sender given field by field, as one typed in for a shipment; Poland unless said otherwise.
+     * A sender given field by field, as one typed in for a shipment, handing the parcels over at the
+     * point given, or at none; Poland unless said otherwise.
      *
      * @param array<string, string> $fields by address field
      */
-    public function fromFields(array $fields): OrderAddressMessage
+    public function fromFields(array $fields, ?string $pointId = null): OrderAddressMessage
     {
         $value = static fn(string $field): string => \trim((string)($fields[$field] ?? ''));
         $builder = $this->orderAddressMessageBuilderFactory->create()
@@ -73,8 +73,8 @@ readonly class SenderMapper
         if ($value(AddressInterface::FIELD_FLAT_NUMBER) !== '') {
             $builder->flatNumber($value(AddressInterface::FIELD_FLAT_NUMBER));
         }
-        if ($value(AddressInterface::FIELD_POINT_ID) !== '') {
-            $builder->pointId($value(AddressInterface::FIELD_POINT_ID));
+        if ($pointId !== null && $pointId !== '') {
+            $builder->pointId($pointId);
         }
 
         return $builder->build();

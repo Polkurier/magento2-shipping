@@ -32,11 +32,11 @@ class MapToken extends Action implements HttpGetActionInterface
     }
 
     /**
-     * Also for choosing an address's drop-off point.
+     * Also for choosing a carrier's default drop-off point.
      */
     protected function _isAllowed(): bool
     {
-        return parent::_isAllowed() || $this->_authorization->isAllowed('Polkurier_Shipping::addresses');
+        return parent::_isAllowed() || $this->_authorization->isAllowed('Polkurier_Shipping::carriers');
     }
 
     public function execute(): Json

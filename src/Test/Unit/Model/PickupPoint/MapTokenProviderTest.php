@@ -98,7 +98,7 @@ class MapTokenProviderTest extends SdkTestCase
             $this->provider($http)->getToken();
         } finally {
             self::assertSame(1, $http->requestCount(), 'The next request is told without asking again.');
-            self::assertSame([MapTokenProvider::FAILURE_LIFETIME], \array_values($this->lifetimes));
+            self::assertSame([PolkurierCache::FAILURE_LIFETIME], \array_values($this->lifetimes));
         }
     }
 
@@ -111,7 +111,7 @@ class MapTokenProviderTest extends SdkTestCase
 
         self::assertSame(['', ''], [$first, $second]);
         self::assertSame(1, $http->requestCount());
-        self::assertSame([MapTokenProvider::FAILURE_LIFETIME], \array_values($this->lifetimes));
+        self::assertSame([PolkurierCache::FAILURE_LIFETIME], \array_values($this->lifetimes));
     }
 
     private function provider(RecordingClient $http, ?Logger $logger = null): MapTokenProvider

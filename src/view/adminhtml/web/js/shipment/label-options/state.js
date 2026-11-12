@@ -264,10 +264,12 @@ define([
              * @param {String} code
              */
             swapPoint: function (previous, code) {
-                values.recipient_point_id = rules.swapPoint(pointsByCarrier, previous, code, {
-                    id: values.recipient_point_id || '',
-                    label: ''
-                }).id;
+                values.recipient_point_id = rules.swapPoint(
+                    pointsByCarrier,
+                    previous,
+                    code,
+                    values.recipient_point_id || ''
+                );
             },
 
             /**
@@ -278,12 +280,10 @@ define([
             },
 
             /**
-             * @returns {String} the drop-off point of the chosen sender address, '' without one
+             * @returns {String} the account's drop-off point for the chosen carrier, '' without one
              */
-            senderAddressPoint: function () {
-                const address = (config.senderPoints || {})[String(values.sender_address_id || '')];
-
-                return address && address.point_id ? address.point_id : '';
+            getDefaultSenderPoint: function () {
+                return rules.featuresOf(state.carrier()).default_sender_point;
             },
 
             /**
@@ -293,9 +293,7 @@ define([
                 if (values.sender_address_id === 'new') {
                     return values.new_sender_postcode || '';
                 }
-                const address = (config.senderPoints || {})[String(values.sender_address_id || '')];
-
-                return address ? address.postcode : '';
+                return (config.senderPostcodes || {})[String(values.sender_address_id || '')] || '';
             },
 
             /**

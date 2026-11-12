@@ -155,6 +155,11 @@ class LabelOptions implements ArgumentInterface, ResetAfterRequestInterface
             : null;
         $values = $this->screenDataProvider->getDefaultValues($order, $shipped);
         $amounts = $this->screenDataProvider->getAmounts($order);
+        $point = $this->screenDataProvider->describeRecipientPoint(
+            (int)$order->getEntityId(),
+            (string)($values[ShipmentDraftInterface::FIELD_CARRIER_CODE] ?? ''),
+            (string)($values[ShipmentDraftInterface::FIELD_RECIPIENT_POINT_ID] ?? ''),
+        );
 
         return (string)$this->json->serialize([
             'name' => NativeLabelService::OPTIONS_PARAM,
@@ -179,18 +184,19 @@ class LabelOptions implements ArgumentInterface, ResetAfterRequestInterface
             'palletServices' => $this->screenDataProvider->getPalletServices(),
             // Where the point map starts: the postcode alone, which the city can't contradict.
             'mapSearch' => \trim((string)$order->getShippingAddress()?->getPostcode()),
-            // The sender addresses' postcodes and drop-off points, for the drop-off point.
-            'senderPoints' => (object)$this->screenDataProvider->getSenderPoints(),
+            // Where the drop-off point's map starts for each sender address.
+            'senderPostcodes' => (object)$this->screenDataProvider->getSenderPostcodes(),
             // The collection dates and windows, as the Polkurier shipment screen asks for them.
             'pickupTimes' => [
                 'url' => $this->url->getUrl('polkurier/shipment/pickupTimes'),
                 'orderId' => (int)$order->getEntityId(),
                 'recipientPostcode' => \trim((string)$order->getShippingAddress()?->getPostcode()),
             ],
-            'point' => $this->screenDataProvider->describeRecipientPoint(
-                (int)$order->getEntityId(),
-                (string)($values[ShipmentDraftInterface::FIELD_CARRIER_CODE] ?? ''),
-                (string)($values[ShipmentDraftInterface::FIELD_RECIPIENT_POINT_ID] ?? ''),
+            'point' => $point,
+            // Names and addresses by point code; points chosen on the map are added to them.
+            'pointDetails' => (object)$this->screenDataProvider->describePoints(
+                $point,
+                (string)($values[ShipmentDraftInterface::FIELD_SENDER_POINT_ID] ?? ''),
             ),
             'options' => [
                 ShipmentDraftInterface::FIELD_CARRIER_CODE => $this->shipmentOptionsProvider->getCarrierOptions(),

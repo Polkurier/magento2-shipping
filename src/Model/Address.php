@@ -162,18 +162,6 @@ class Address extends AbstractModel implements AddressInterface
         return $this->setData(self::FIELD_COUNTRY, $country);
     }
 
-    public function getPointId(): ?string
-    {
-        $value = $this->getData(self::FIELD_POINT_ID);
-
-        return $value === null || $value === '' ? null : (string)$value;
-    }
-
-    public function setPointId(?string $pointId): static
-    {
-        return $this->setData(self::FIELD_POINT_ID, $pointId);
-    }
-
     public function getEmail(): string
     {
         $value = $this->getData(self::FIELD_EMAIL);

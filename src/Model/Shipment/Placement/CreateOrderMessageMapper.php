@@ -209,9 +209,7 @@ readonly class CreateOrderMessageMapper
             ? $draft->getSenderPointId()
             : null;
         if ($draft->isNewSender()) {
-            $sender = $this->senderMapper->fromFields(
-                [AddressInterface::FIELD_POINT_ID => (string)$pointId] + $this->newSender($draft),
-            );
+            $sender = $this->senderMapper->fromFields($this->newSender($draft), $pointId);
         } elseif ($draft->getSenderAddressId()) {
             $sender = $this->senderMapper->fromAddress($this->address($draft->getSenderAddressId()), $pointId);
         } else {

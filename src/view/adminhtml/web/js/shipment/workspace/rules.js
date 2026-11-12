@@ -479,8 +479,8 @@ define(['mage/translate'], function ($t) {
      * @param {Object} aside the points put aside, by carrier code; changed in place
      * @param {String} previous the carrier chosen so far
      * @param {String} code the carrier chosen now
-     * @param {{id: String, label: String}} current the point chosen so far
-     * @returns {{id: String, label: String}} the point that goes with the carrier chosen now
+     * @param {String} current the point chosen so far
+     * @returns {String} the point that goes with the carrier chosen now
      */
     function swapPoint(aside, previous, code, current) {
         if (previous === code) {
@@ -490,7 +490,7 @@ define(['mage/translate'], function ($t) {
             aside[previous] = current;
         }
 
-        return aside[code] || {id: '', label: ''};
+        return aside[code] || '';
     }
 
     return {

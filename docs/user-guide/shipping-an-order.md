@@ -105,8 +105,8 @@ to it, how the parcels reach the carrier:
 
 - **A courier collects them**: the first free date and time window is chosen; pick another if you
   like.
-- **I drop them off at a point**: the drop-off point starts as your sender address's. **Choose on
-  map** picks another.
+- **I drop them off at a point**: the drop-off point starts as your sender address's, shown with
+  its name and address. **Choose on map** picks another.
 - **A courier collects them later, with other shipments**: booked later for many shipments at once
   (see [Collective pickups](managing-shipments.md#collective-pickups)).
 
@@ -118,8 +118,8 @@ Choosing another sender or carrier starts from that again.
 ### Recipient
 
 Name, address, phone and e-mail, with **Change** to correct them. For pickup point carriers, the
-point is shown with its current address; **Choose on map** picks another. A point that has closed
-is marked in red: choose another.
+point is shown with its name and current address; **Choose on map** picks another. A point that has
+closed is marked in red: choose another.
 
 ### Parcels
 

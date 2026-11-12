@@ -160,16 +160,12 @@ define([
          * @param {String} code
          */
         swapPoint: function (previous, code) {
-            const point = rules.swapPoint(this.pointsByCarrier, previous, code, {
-                id: this.source.get('data.recipient_point_id') || '',
-                label: this.source.get('data.recipient_point_label_id') === this.source.get('data.recipient_point_id')
-                    ? this.source.get('data.recipient_point_label') || ''
-                    : ''
-            });
-
-            this.source.set('data.recipient_point_id', point.id);
-            this.source.set('data.recipient_point_label', point.label);
-            this.source.set('data.recipient_point_label_id', point.id);
+            this.source.set('data.recipient_point_id', rules.swapPoint(
+                this.pointsByCarrier,
+                previous,
+                code,
+                this.source.get('data.recipient_point_id') || ''
+            ));
         },
 
         /**

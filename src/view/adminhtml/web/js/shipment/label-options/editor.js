@@ -108,9 +108,7 @@ define([
                             : config.mapSearch;
 
                         pointsMap.open(config.map, carrier.providers, search || '', function (pointId, point) {
-                            if (config.pointLabels) {
-                                config.pointLabels[pointId] = pointsMap.describe(point);
-                            }
+                            config.pointDetails = pointsMap.addPoint(config.pointDetails, pointId, point);
                             box.val(pointId).trigger('change');
                         }, field.mapFunctions);
                     }));

@@ -122,18 +122,37 @@ define(['mage/translate', 'Magento_Ui/js/modal/alert'], function ($t, alert) {
         },
 
         /**
-         * The point's address in one line, for showing next to its code.
+         * The point's details, by its code, with a point chosen on the map added: its name, or its
+         * description when it has none, and its address in one line.
          *
+         * @param {Object} details the points' names and addresses, by code
+         * @param {String} pointId
          * @param {Object} point as the map returns it
+         * @returns {Object} a copy of details with the point
+         */
+        addPoint: function (details, pointId, point) {
+            const copy = Object.assign({}, details || {});
+
+            copy[pointId] = {
+                name: point.name || point.description || '',
+                label: point.address
+                    || [point.street, [point.zip, point.city].filter(Boolean).join(' ')].filter(Boolean).join(', ')
+            };
+
+            return copy;
+        },
+
+        /**
+         * The point's name and address in one line, '' when neither is known.
+         *
+         * @param {Object} details the points' names and addresses, by code
+         * @param {String} pointId
          * @returns {String}
          */
-        describe: function (point) {
-            if (!point) {
-                return '';
-            }
+        describe: function (details, pointId) {
+            const point = (details || {})[pointId];
 
-            return point.address
-                || [point.street, [point.zip, point.city].filter(Boolean).join(' ')].filter(Boolean).join(', ');
+            return point ? [point.name, point.label].filter(Boolean).join(', ') : '';
         },
 
         /**

@@ -264,10 +264,12 @@ define([
              * @param {String} code
              */
             swapPoint: function (previous, code) {
-                values.recipient_point_id = rules.swapPoint(pointsByCarrier, previous, code, {
-                    id: values.recipient_point_id || '',
-                    label: ''
-                }).id;
+                values.recipient_point_id = rules.swapPoint(
+                    pointsByCarrier,
+                    previous,
+                    code,
+                    values.recipient_point_id || ''
+                );
             },
 
             /**

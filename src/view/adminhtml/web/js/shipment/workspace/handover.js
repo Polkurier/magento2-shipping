@@ -59,6 +59,7 @@ define([
             this.pointShown = ko.observable(false);
             this.pointAlone = ko.observable(false);
             this.pointId = ko.observable('');
+            this.pointName = ko.observable('');
             this.pointLabel = ko.observable('');
             this.pointRequired = ko.observable(false);
             this.pointMissing = ko.observable(false);
@@ -180,14 +181,16 @@ define([
          * @param {Object} features
          */
         refreshPoint: function (data, features) {
-            const requirement = features.sender_point || 'NONE';
+            const requirement = features.sender_point || 'NONE',
+                details = (data.point_details || {})[data.sender_point_id || ''] || {};
 
             this.pointShown(rules.senderPointUsed(requirement, features.drop_off, this.mode()));
             this.pointAlone(this.pointShown() && this.mode() !== 'drop_off');
             this.pointRequired(requirement === 'REQUIRED');
             this.pointId(data.sender_point_id || '');
             this.pointMissing(this.pointRequired() && this.validated() && !rules.filled(this.pointId()));
-            this.pointLabel(data.sender_point_label_id === this.pointId() ? data.sender_point_label || '' : '');
+            this.pointName(details.name || '');
+            this.pointLabel(details.label || '');
             this.canChoosePoint(pointsMap.canOpen(data.map));
         },
 
@@ -211,9 +214,8 @@ define([
                 this.features().providers,
                 this.senderPostcode(),
                 function (pointId, point) {
+                    this.set('point_details', pointsMap.addPoint(this.get('point_details'), pointId, point));
                     this.set('sender_point_id', pointId);
-                    this.set('sender_point_label', pointsMap.describe(point));
-                    this.set('sender_point_label_id', pointId);
                 }.bind(this),
                 ['send']
             );

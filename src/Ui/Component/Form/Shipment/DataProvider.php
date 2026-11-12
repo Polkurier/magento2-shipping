@@ -213,16 +213,19 @@ class DataProvider extends FormDataProvider
         $data['pallet_services'] = $this->screenDataProvider->getPalletServices();
         $data['carriers_error'] = $this->shipmentOptionsProvider->getCarriersError();
         $data['map'] = $this->screenDataProvider->getMap();
-        // The point as Polkurier has it now: its address today, or, when it's gone or closed since
-        // the order was placed, a problem to fix before placing.
+        // The pickup point as Polkurier has it now: its name and address today, or, when it's gone
+        // or closed since the order was placed, a problem to fix before placing.
         $point = $this->screenDataProvider->describeRecipientPoint(
             $orderId,
             (string)($data[ShipmentDraftInterface::FIELD_CARRIER_CODE] ?? ''),
             (string)($data[ShipmentDraftInterface::FIELD_RECIPIENT_POINT_ID] ?? ''),
         );
-        $data['recipient_point_label'] = $point['label'];
-        $data['recipient_point_label_id'] = $point['id'];
         $data['recipient_point_closed'] = $point['closed'] ? $point['id'] : '';
+        // Points chosen on the map are added to them.
+        $data['point_details'] = (object)$this->screenDataProvider->describePoints(
+            $point,
+            (string)($data[ShipmentDraftInterface::FIELD_SENDER_POINT_ID] ?? ''),
+        );
         $data['senders'] = (object)$this->getSenders();
         $data['store_sender'] = $this->describeStoreSender($storeId);
         // Only those that can be printed as the sender.

@@ -412,8 +412,6 @@ class DataProvider extends FormDataProvider
             'phone' => $address->getPhone(),
             'email' => $address->getEmail(),
             'default' => $address->isDefault() ? '1' : '',
-            // Where its parcels are handed over at a point.
-            'point_id' => (string)$address->getPointId(),
         ];
     }
 

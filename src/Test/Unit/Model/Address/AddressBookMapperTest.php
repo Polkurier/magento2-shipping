@@ -51,17 +51,16 @@ class AddressBookMapperTest extends SdkTestCase
         self::assertSame('SENDER', $http->lastPayload()['data']['type']);
     }
 
-    public function testWhatPolkurierCantKeepOfASenderStaysAsMagentoHasIt(): void
+    public function testAProvincePolkurierCantKeepStaysAsMagentoHasIt(): void
     {
-        // Polkurier keeps points for recipients only, and no Polish provinces.
+        // Polkurier keeps no Polish provinces.
         $http = new RecordingClient(self::success([self::REMOTE]));
         $remote = $this->clientPool($http)->addresses()->getAddresses(new GetMessage(AddressTypeEnum::Sender))[0];
         $mapper = self::mapper();
-        $local = $this->newAddress()->setPointId('KRA01M')->setProvince('małopolskie');
+        $local = $this->newAddress()->setProvince('małopolskie');
 
         $mapper->apply($mapper->normalize($remote), $local);
 
-        self::assertSame('KRA01M', $local->getPointId());
         self::assertSame('małopolskie', $local->getProvince());
         self::assertSame('Jan Kowalski', $local->getPerson(), 'The rest follows Polkurier.');
     }

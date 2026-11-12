@@ -169,16 +169,6 @@ define([
         },
 
         /**
-         * @returns {String} the drop-off point of the chosen sender address, '' without one
-         */
-        senderAddressPoint: function () {
-            const data = this.source.get('data') || {},
-                address = (data.senders || {})[String(data.sender_address_id || '')];
-
-            return address && address.point_id ? String(address.point_id) : '';
-        },
-
-        /**
          * @param {String} code
          */
         publishFeatures: function (code) {
@@ -189,8 +179,11 @@ define([
             } else if (code !== this.carrier) {
                 this.swapPoint(this.carrier, code);
                 this.carrier = code;
-                // Points belong to a carrier: the sender's point goes back to its address's.
-                this.source.set('data.sender_point_id', this.senderAddressPoint());
+                // Points belong to a carrier's network: the drop-off point becomes the account's
+                // for the carrier.
+                this.source.set('data.sender_point_id', rules.featuresOf(
+                    (this.source.get('data.carriers') || {})[code] || null
+                ).default_sender_point);
             }
             const carriers = this.source.get('data.carriers') || {},
                 carrier = carriers[code] || null,

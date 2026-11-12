@@ -15,6 +15,7 @@ use Polkurier\Shipping\Api\Data\ShipmentDraftInterface;
 use Polkurier\Shipping\Logger\Logger;
 use Polkurier\Shipping\Model\Carrier\CarrierCatalog;
 use Polkurier\Shipping\Model\Carrier\CarrierFeatureResolver;
+use Polkurier\Shipping\Model\PickupPoint\DefaultSenderPointManager;
 use Polkurier\Shipping\Model\Sdk\ErrorMessageResolver;
 use Polkurier\Shipping\Model\Shipment\Placement\SenderMapper;
 use Polkurier\Webservice\Enum\Courier\PointRequirementEnum;
@@ -40,6 +41,7 @@ class ShipmentOptionsProvider implements ResetAfterRequestInterface
         private readonly ErrorMessageResolver $errorMessageResolver,
         private readonly Logger $logger,
         private readonly SenderMapper $senderMapper,
+        private readonly DefaultSenderPointManager $defaultSenderPointManager,
     ) {}
 
     /**
@@ -91,6 +93,8 @@ class ShipmentOptionsProvider implements ResetAfterRequestInterface
                 'providers' => $this->carrierFeatureResolver->getPointProviders($carrier),
                 // Whether the parcels are handed over at a point: NONE, OPTIONAL or REQUIRED.
                 'sender_point' => $this->carrierFeatureResolver->getSenderPointRequirement($carrier)->value,
+                // The account's drop-off point for a carrier that takes parcels at points, '' without one.
+                'default_sender_point' => (string)$this->defaultSenderPointManager->getForCarrier($carrier),
                 'cod' => $this->carrierFeatureResolver->isCodAvailable($carrier),
                 'insurance' => $this->carrierFeatureResolver->isInsuranceAvailable($carrier),
                 'insurance_with_cod' => $this->carrierFeatureResolver->isInsuranceRequiredWithCod($carrier),

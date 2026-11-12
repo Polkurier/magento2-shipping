@@ -105,15 +105,17 @@ to it, how the parcels reach the carrier:
 
 - **A courier collects them**: the first free date and time window is chosen; pick another if you
   like.
-- **I drop them off at a point**: the drop-off point starts as your sender address's, shown with
-  its name and address. **Choose on map** picks another.
+- **I drop them off at a point**: the drop-off point starts as the carrier's default (see
+  [Setting up a carrier](carriers-and-prices.md#setting-up-a-carrier)), shown with its name and
+  address. **Choose on map** picks another for this shipment.
 - **A courier collects them later, with other shipments**: booked later for many shipments at once
   (see [Collective pickups](managing-shipments.md#collective-pickups)).
 
 **I drop them off at a point** is chosen at first when the carrier takes parcels only at points
-(such as UPS Access Point Punkt-Punkt, which offers nothing else), or when your sender address has
-a drop-off point and the carrier takes parcels at points. Otherwise **A courier collects them** is.
-Choosing another sender or carrier starts from that again.
+(such as UPS Access Point Punkt-Punkt, which offers nothing else), or when your Polkurier account
+has a default drop-off point for the carrier and the carrier takes parcels at points. Otherwise **A
+courier collects them** is. Choosing another carrier starts from that again, with that carrier's
+default drop-off point.
 
 ### Recipient
 

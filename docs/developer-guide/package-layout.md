@@ -36,7 +36,8 @@ src/
         OrderPoint/        the order's pickup point
         PackTemplate/      pack templates
         Payout/            cash on delivery payouts from the money box
-        PickupPoint/       choosing a pickup point at checkout, and the map
+        PickupPoint/       pickup points: choosing one at checkout, the map, looking points up, and the
+                           account's default drop-off points
         QuotePoint/        the cart's pickup point
         ResourceModel/     resource models and collections
         Sdk/               the connection to Polkurier: the account, the client, errors, events

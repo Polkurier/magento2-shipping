@@ -184,8 +184,8 @@ class LabelOptions implements ArgumentInterface, ResetAfterRequestInterface
             'palletServices' => $this->screenDataProvider->getPalletServices(),
             // Where the point map starts: the postcode alone, which the city can't contradict.
             'mapSearch' => \trim((string)$order->getShippingAddress()?->getPostcode()),
-            // The sender addresses' postcodes and drop-off points, for the drop-off point.
-            'senderPoints' => (object)$this->screenDataProvider->getSenderPoints(),
+            // Where the drop-off point's map starts for each sender address.
+            'senderPostcodes' => (object)$this->screenDataProvider->getSenderPostcodes(),
             // The collection dates and windows, as the Polkurier shipment screen asks for them.
             'pickupTimes' => [
                 'url' => $this->url->getUrl('polkurier/shipment/pickupTimes'),

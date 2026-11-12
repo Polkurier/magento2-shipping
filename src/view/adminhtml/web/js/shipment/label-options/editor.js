@@ -255,8 +255,7 @@ define([
          * @param {jQuery} form
          */
         function apply(section, form) {
-            const senderBefore = values.sender_address_id,
-                senderPointBefore = values.sender_point_id,
+            const senderPointBefore = values.sender_point_id,
                 carrierBefore = values.carrier_code,
                 pickupModeBefore = values.pickup_mode,
                 insuranceBefore = values.insurance_amount,
@@ -294,8 +293,7 @@ define([
                     }).get()
                     : fields.val();
             });
-            const senderOrCarrierChanged = !same(senderBefore, values.sender_address_id)
-                || !same(carrierBefore, values.carrier_code);
+            const carrierChanged = !same(carrierBefore, values.carrier_code);
 
             if (!same(insuranceBefore, values.insurance_amount)) {
                 state.insuranceSetByHand();
@@ -307,19 +305,18 @@ define([
             if (!same(pickupModeBefore, values.pickup_mode) && values.pickup_mode !== 'drop_off') {
                 values.sender_point_id = '';
             }
-            if (!same(carrierBefore, values.carrier_code)) {
+            if (carrierChanged) {
                 state.swapPoint(carrierBefore, values.carrier_code);
             }
-            // Another sender, or carrier, hands the parcels over at its own drop-off point,
-            // unless one was just chosen.
-            if (senderOrCarrierChanged && same(senderPointBefore, values.sender_point_id)) {
-                values.sender_point_id = state.senderAddressPoint();
+            // Another carrier hands the parcels over at the account's drop-off point for it, unless
+            // one was just chosen, and starts from the default handover again.
+            if (carrierChanged && same(senderPointBefore, values.sender_point_id)) {
+                values.sender_point_id = state.getDefaultSenderPoint();
             }
-            // Another sender or carrier starts from the default handover again.
-            if (senderOrCarrierChanged) {
+            if (carrierChanged) {
                 values.pickup_mode = state.defaultHandover();
             }
-            if (!same(carrierBefore, values.carrier_code) || section.normalizes) {
+            if (carrierChanged || section.normalizes) {
                 state.normalize();
             }
         }

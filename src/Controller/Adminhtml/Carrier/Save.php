@@ -17,9 +17,13 @@ use Polkurier\Shipping\Api\CarrierConfigRepositoryInterface;
 use Polkurier\Shipping\Controller\Adminhtml\ReadsPostDataTrait;
 use Polkurier\Shipping\Enum\Adminhtml\FormMemoryEnum;
 use Polkurier\Shipping\Model\CarrierConfig\CarrierConfigHydrator;
+use Polkurier\Shipping\Model\PickupPoint\DefaultSenderPointManager;
+use Polkurier\Shipping\Ui\Component\Form\Carrier\DataProvider;
 
 /**
- * Saves how a carrier is offered and priced in checkout.
+ * Saves how a carrier is offered and priced in checkout and, when changed, the account's default
+ * drop-off point for it, which Polkurier keeps. The point goes to Polkurier after the prices are
+ * checked and before the carrier is saved, so a refusal of either saves nothing.
  */
 class Save extends Action implements HttpPostActionInterface
 {
@@ -32,6 +36,7 @@ class Save extends Action implements HttpPostActionInterface
         private readonly CarrierConfigRepositoryInterface $carrierConfigRepository,
         private readonly CarrierConfigHydrator $carrierConfigHydrator,
         private readonly DataPersistorInterface $dataPersistor,
+        private readonly DefaultSenderPointManager $defaultSenderPointManager,
     ) {
         parent::__construct($context);
     }
@@ -44,6 +49,10 @@ class Save extends Action implements HttpPostActionInterface
         try {
             $config = $this->carrierConfigRepository->get($id);
             $this->carrierConfigHydrator->hydrate($config, $data);
+            $point = \trim((string)($data[DataProvider::FIELD_DEFAULT_SENDER_POINT] ?? ''));
+            if ($point !== \trim((string)($data[DataProvider::FIELD_DEFAULT_SENDER_POINT_BEFORE] ?? ''))) {
+                $this->defaultSenderPointManager->change($config->getCarrierCode(), $point);
+            }
             $this->carrierConfigRepository->save($config);
             $this->messageManager->addSuccessMessage(__('Saved.'));
             $this->dataPersistor->clear(FormMemoryEnum::Carrier->value);

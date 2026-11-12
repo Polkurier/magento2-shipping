@@ -2,7 +2,7 @@
  ~ Copyright (c) 2026 Polkurier.pl
  ~ Licensed under the MIT License, see LICENSE.md
 -->
-<!-- A point's id with "Choose on map" next to it -->
+<!-- A point's code with "Choose on map" and "Remove" next to it, and its name and address below -->
 <div class="polkurier-point-input">
     <input class="admin__control-text" type="text"
            data-bind="
@@ -20,4 +20,8 @@
     <button type="button" class="action-default" if="canChoose()" click="choose" disable="disabled">
         <span translate="'Choose on map'"></span>
     </button>
+    <button type="button" class="action-default" if="value" click="remove" disable="disabled">
+        <span translate="'Remove'"></span>
+    </button>
 </div>
+<div class="polkurier-point-details" if="details" text="details"></div>

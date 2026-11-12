@@ -85,11 +85,7 @@ class ManualEntrySaverTest extends TestCase
         self::assertSame('SENDER', $this->saved['address'][0]['type']);
         self::assertTrue($this->saved['address'][0]['is_default'], 'The first address.');
         self::assertArrayNotHasKey('flat_number', $this->saved['address'][0], 'What wasn\'t typed in isn\'t saved.');
-        self::assertSame(
-            'PL63197',
-            $this->saved['address'][0]['point_id'],
-            'With the drop-off point it was handed over at.',
-        );
+        self::assertArrayNotHasKey('point_id', $this->saved['address'][0], 'A sender address has no point.');
         self::assertArrayNotHasKey('bank', $this->saved, 'Not asked to keep.');
         self::assertSame([
             [

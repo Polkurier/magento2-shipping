@@ -13,15 +13,15 @@ use Magento\Sales\Model\Order;
 use Polkurier\Shipping\Api\AddressRepositoryInterface;
 use Polkurier\Shipping\Api\OrderPointRepositoryInterface;
 use Polkurier\Shipping\Api\PackTemplateRepositoryInterface;
-use Polkurier\Shipping\Model\Carrier\CarrierCatalog;
 use Polkurier\Shipping\Model\Carrier\CarrierFeatureResolver;
 use Polkurier\Shipping\Model\Config\ConfigProvider;
 use Polkurier\Shipping\Model\Config\Source\PackType;
+use Polkurier\Shipping\Model\PickupPoint\DefaultSenderPointManager;
 use Polkurier\Shipping\Model\PickupPoint\MapTokenProvider;
+use Polkurier\Shipping\Model\PickupPoint\PointFinder;
 use Polkurier\Shipping\Model\Shipment\Draft\DefaultDraftBuilder;
 use Polkurier\Shipping\Model\Shipment\Draft\DraftHydrator;
 use Polkurier\Shipping\Model\Shipment\Valuation\OrderAmountCalculator;
-use Polkurier\Webservice\Exception\Exception as PolkurierException;
 use Polkurier\Webservice\Response\CourierPoint;
 
 /**
@@ -38,11 +38,11 @@ readonly class ScreenDataProvider
         private MapTokenProvider $mapTokenProvider,
         private ConfigProvider $configProvider,
         private OrderAmountCalculator $orderAmountCalculator,
-        private CarrierCatalog $carrierCatalog,
-        private CarrierFeatureResolver $carrierFeatureResolver,
+        private PointFinder $pointFinder,
         private DefaultDraftBuilder $defaultDraftBuilder,
         private OrderPointRepositoryInterface $orderPointRepository,
         private UrlInterface $url,
+        private DefaultSenderPointManager $defaultSenderPointManager,
     ) {}
 
     /**
@@ -56,12 +56,7 @@ readonly class ScreenDataProvider
     {
         $point = $this->findRecipientPoint($carrierCode, $pointId);
         if ($point) {
-            return [
-                'id' => $pointId,
-                'name' => $this->nameOf($point),
-                'label' => (string)$point->getAddress(),
-                'closed' => false,
-            ];
+            return ['id' => $pointId, ...$this->pointFinder->describe($point), 'closed' => false];
         }
         $chosen = $pointId === '' ? null : $this->orderPointRepository->getForOrder($orderId);
         $label = $chosen !== null && $chosen->getPointId() === $pointId ? (string)$chosen->getPointLabel() : '';
@@ -71,9 +66,9 @@ readonly class ScreenDataProvider
 
     /**
      * The names and addresses of the points a screen starts with, by code: the pickup point as
-     * {@see describeRecipientPoint()} has it, the drop-off point, and those of the sender addresses,
-     * which choosing a sender brings in. A sender's point is looked up among all the carriers'
-     * points, since it's kept whatever the carrier. Points that can't be looked up are left out.
+     * {@see describeRecipientPoint()} has it, the drop-off point, and the account's drop-off points
+     * of the other carriers, which choosing a carrier brings in. Points that can't be looked up are
+     * left out.
      *
      * @param array{id: string, name: string, label: string} $recipientPoint
      *
@@ -81,15 +76,12 @@ readonly class ScreenDataProvider
      */
     public function describePoints(array $recipientPoint, string $senderPointId): array
     {
-        $ids = [$senderPointId];
-        foreach ($this->addressRepository->getSenderAddresses() as $address) {
-            $ids[] = (string)$address->getPointId();
-        }
+        $ids = [$senderPointId, ...\array_values($this->defaultSenderPointManager->get())];
         $points = [];
         foreach (\array_unique(\array_filter($ids, static fn(string $id): bool => $id !== '')) as $id) {
-            $point = $this->lookUpPoint($id);
+            $point = $this->pointFinder->find($id);
             if ($point) {
-                $points[$id] = ['name' => $this->nameOf($point), 'label' => (string)$point->getAddress()];
+                $points[$id] = $this->pointFinder->describe($point);
             }
         }
         if ($recipientPoint['id'] !== '' && ($recipientPoint['name'] !== '' || $recipientPoint['label'] !== '')) {
@@ -116,7 +108,7 @@ readonly class ScreenDataProvider
      */
     public function findRecipientPoint(string $carrierCode, string $pointId): CourierPoint|false|null
     {
-        $point = $this->lookUpPoint($pointId, $carrierCode);
+        $point = $this->pointFinder->find($pointId, $carrierCode);
 
         return $point && !$point->isAvailable() ? false : $point;
     }
@@ -140,22 +132,18 @@ readonly class ScreenDataProvider
     }
 
     /**
-     * Where each sender address is and the point it hands parcels over at, for the drop-off
-     * point's map and default.
+     * Each sender address's postcode, where the drop-off point's map starts.
      *
-     * @return array<string, array{postcode: string, point_id: string}> by address id
+     * @return array<string, string> by address id
      */
-    public function getSenderPoints(): array
+    public function getSenderPostcodes(): array
     {
-        $points = [];
+        $postcodes = [];
         foreach ($this->addressRepository->getSenderAddresses() as $address) {
-            $points[(string)$address->getId()] = [
-                'postcode' => $address->getPostcode(),
-                'point_id' => (string)$address->getPointId(),
-            ];
+            $postcodes[(string)$address->getId()] = $address->getPostcode();
         }
 
-        return $points;
+        return $postcodes;
     }
 
     /**
@@ -215,44 +203,5 @@ readonly class ScreenDataProvider
             'cod_remaining' => $this->orderAmountCalculator->getCodRemaining($order),
             'shipping_covered' => $this->orderAmountCalculator->isShippingCovered($order),
         ];
-    }
-
-    /**
-     * A point among the map providers of the carrier, or of all the carriers when none is given:
-     * false when Polkurier has no such point, null when that can't be told.
-     */
-    private function lookUpPoint(string $pointId, ?string $carrierCode = null): CourierPoint|false|null
-    {
-        if ($carrierCode === '' || $pointId === '') {
-            return null;
-        }
-        try {
-            $providers = [];
-            $carriers = $carrierCode === null
-                ? $this->carrierCatalog->getCarriers()
-                : [$this->carrierCatalog->getCarrier($carrierCode)];
-            foreach ($carriers as $carrier) {
-                if ($carrier !== null) {
-                    $providers = [...$providers, ...$this->carrierFeatureResolver->getPointProviders($carrier)];
-                }
-            }
-            if ($providers === []) {
-                return null;
-            }
-            $providers = \array_values(\array_unique($providers));
-            $point = $this->carrierCatalog->findPoint($pointId, $providers);
-        } catch (PolkurierException) {
-            return null;
-        }
-
-        return $point ?? false;
-    }
-
-    /**
-     * What the point is called: its name, or its description when it has none, e.g. "DPD Pickup".
-     */
-    private function nameOf(CourierPoint $point): string
-    {
-        return $point->getName() !== '' ? $point->getName() : $point->getDescription();
     }
 }

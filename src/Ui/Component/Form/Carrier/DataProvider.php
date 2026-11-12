@@ -9,22 +9,40 @@ namespace Polkurier\Shipping\Ui\Component\Form\Carrier;
 
 use Magento\Framework\App\Request\DataPersistorInterface;
 use Magento\Framework\App\RequestInterface;
+use Magento\Framework\UrlInterface;
 use Magento\Store\Model\StoreManagerInterface;
+use Polkurier\Shipping\Api\AddressRepositoryInterface;
 use Polkurier\Shipping\Api\Data\CarrierConfigInterface;
 use Polkurier\Shipping\Api\Data\CarrierLabelInterface;
 use Polkurier\Shipping\Enum\Adminhtml\FormMemoryEnum;
+use Polkurier\Shipping\Model\Carrier\CarrierCatalog;
+use Polkurier\Shipping\Model\Carrier\CarrierFeatureResolver;
 use Polkurier\Shipping\Model\Carrier\CarrierLogoStorage;
 use Polkurier\Shipping\Model\Carrier\Pricing\FixedPriceCalculator;
 use Polkurier\Shipping\Model\Carrier\Pricing\TieredPriceCalculator;
+use Polkurier\Shipping\Model\Config\ConfigProvider;
+use Polkurier\Shipping\Model\PickupPoint\DefaultSenderPointManager;
+use Polkurier\Shipping\Model\PickupPoint\PointFinder;
 use Polkurier\Shipping\Model\ResourceModel\CarrierConfig\Collection;
 use Polkurier\Shipping\Model\ResourceModel\CarrierConfig\CollectionFactory;
 use Polkurier\Shipping\Ui\Component\Form\FormDataProvider;
+use Polkurier\Webservice\Exception\Exception as PolkurierException;
+use Polkurier\Webservice\Response\Carrier;
 
 /**
- * A carrier's checkout settings, with its price_info spread into the form's price and tier rows.
+ * A carrier's checkout settings, with its price_info spread into the form's price and tier rows,
+ * and the account's default drop-off point for it.
  */
 class DataProvider extends FormDataProvider
 {
+    public const string FIELD_DEFAULT_SENDER_POINT = 'default_sender_point';
+
+    /**
+     * The default drop-off point as the form showed it, so saving changes it only when it was
+     * changed in the form.
+     */
+    public const string FIELD_DEFAULT_SENDER_POINT_BEFORE = 'default_sender_point_before';
+
     private Collection $carriers;
 
     /**
@@ -40,6 +58,13 @@ class DataProvider extends FormDataProvider
         private readonly StoreManagerInterface $storeManager,
         private readonly CarrierLogoStorage $carrierLogoStorage,
         private readonly DataPersistorInterface $dataPersistor,
+        private readonly CarrierCatalog $carrierCatalog,
+        private readonly CarrierFeatureResolver $carrierFeatureResolver,
+        private readonly DefaultSenderPointManager $defaultSenderPointManager,
+        private readonly PointFinder $pointFinder,
+        private readonly AddressRepositoryInterface $addressRepository,
+        private readonly ConfigProvider $configProvider,
+        private readonly UrlInterface $url,
         array $meta = [],
         array $data = [],
     ) {
@@ -49,13 +74,34 @@ class DataProvider extends FormDataProvider
     }
 
     /**
-     * Offers every store view for store view labels.
+     * Offers every store view for store view labels, and the default drop-off point for a carrier
+     * that can have one ({@see DefaultSenderPointManager::getForCarrier()}): on the map, its own points
+     * that take parcels for sending, starting at the default sender address's postcode.
      *
      * @return array<string, mixed>
      */
     public function getMeta(): array
     {
         $meta = parent::getMeta();
+        foreach ($this->getEditedConfig() as $config) {
+            $code = $config->getCarrierCode();
+            $carrier = $this->findCarrier($code);
+            $point = $carrier !== null ? $this->defaultSenderPointManager->getForCarrier($carrier) : null;
+            if ($point === null) {
+                continue;
+            }
+            $found = $this->pointFinder->find($point, $code);
+            $meta['general']['children'][self::FIELD_DEFAULT_SENDER_POINT]['arguments']['data']['config'] = [
+                'visible' => true,
+                'map' => [
+                    'baseUrl' => $this->configProvider->getMapUrl() . '/',
+                    'tokenUrl' => $this->url->getUrl('polkurier/shipment/mapToken'),
+                ],
+                'providers' => $this->carrierFeatureResolver->getPointProviders($carrier),
+                'postcode' => (string)$this->addressRepository->getDefaultSenderAddress()?->getPostcode(),
+                'pointDetails' => (object)($found ? [$point => $this->pointFinder->describe($found)] : []),
+            ];
+        }
         $options = [];
         foreach ($this->storeManager->getStores() as $store) {
             $options[] = ['value' => (string)$store->getId(), 'label' => (string)$store->getName()];
@@ -96,6 +142,9 @@ class DataProvider extends FormDataProvider
                     (array)($info[TieredPriceCalculator::FIELD_TIERS] ?? []),
                 ),
             ];
+            $point = $this->defaultSenderPointManager->get()[$config->getCarrierCode()] ?? '';
+            $result[$id][self::FIELD_DEFAULT_SENDER_POINT] = $point;
+            $result[$id][self::FIELD_DEFAULT_SENDER_POINT_BEFORE] = $point;
         }
         // What was typed, when saving it failed.
         $persisted = $this->dataPersistor->get(FormMemoryEnum::Carrier->value);
@@ -105,6 +154,18 @@ class DataProvider extends FormDataProvider
         $this->dataPersistor->clear(FormMemoryEnum::Carrier->value);
 
         return $result;
+    }
+
+    /**
+     * The carrier as Polkurier offers it, or null when it isn't offered or can't be read.
+     */
+    private function findCarrier(string $code): ?Carrier
+    {
+        try {
+            return $this->carrierCatalog->getCarrier($code);
+        } catch (PolkurierException) {
+            return null;
+        }
     }
 
     /**

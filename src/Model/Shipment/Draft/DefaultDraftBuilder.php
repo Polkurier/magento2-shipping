@@ -20,6 +20,7 @@ use Polkurier\Shipping\Model\Carrier\CarrierCatalog;
 use Polkurier\Shipping\Model\Carrier\CarrierFeatureResolver;
 use Polkurier\Shipping\Model\Carrier\Polkurier;
 use Polkurier\Shipping\Model\Config\ConfigProvider;
+use Polkurier\Shipping\Model\PickupPoint\DefaultSenderPointManager;
 use Polkurier\Shipping\Model\Shipment\Draft;
 use Polkurier\Shipping\Model\Shipment\DraftFactory;
 use Polkurier\Shipping\Model\Shipment\Packing\AutoPacker;
@@ -27,7 +28,6 @@ use Polkurier\Shipping\Model\Shipment\Placement\ParcelTypeMapper;
 use Polkurier\Shipping\Model\Shipment\Placement\SenderMapper;
 use Polkurier\Shipping\Model\Shipment\Placement\StreetParser;
 use Polkurier\Shipping\Model\Shipment\Valuation\OrderAmountCalculator;
-use Polkurier\Webservice\Enum\Courier\PointRequirementEnum;
 use Polkurier\Webservice\Enum\Order\AdditionalServiceEnum;
 use Polkurier\Webservice\Enum\Order\ShipmentTypeEnum;
 use Polkurier\Webservice\Exception\Exception as PolkurierException;
@@ -55,6 +55,7 @@ readonly class DefaultDraftBuilder
         private AutoPacker $autoPacker,
         private Logger $logger,
         private SenderMapper $senderMapper,
+        private DefaultSenderPointManager $defaultSenderPointManager,
     ) {}
 
     /**
@@ -77,11 +78,10 @@ readonly class DefaultDraftBuilder
         $sender = $this->addressRepository->getDefaultSenderAddress();
         $senderId = $sender?->getId();
         $draft->setSenderAddressId($senderId !== null ? (int)$senderId : null);
-        // Handed over at the sender's drop-off point, for a carrier that takes parcels at points.
-        if ($carrier !== null
-            && $this->carrierFeatureResolver->getSenderPointRequirement($carrier) !== PointRequirementEnum::None
-        ) {
-            $draft->setSenderPointId($sender?->getPointId() ?: null);
+        // Handed over at the account's drop-off point for the carrier, for one that takes parcels at
+        // points.
+        if ($carrier !== null) {
+            $draft->setSenderPointId($this->defaultSenderPointManager->getForCarrier($carrier) ?: null);
         }
         // Nothing to send from, neither an address nor the store's: one is typed in and saved.
         if ($senderId === null
@@ -155,8 +155,8 @@ readonly class DefaultDraftBuilder
             $carrier === null || \in_array(AdditionalServiceEnum::CoverSenderAddress, $offered, true),
         ));
 
-        // Dropped off for a carrier that takes parcels only at points, or at the sender address's
-        // drop-off point; otherwise a courier collects them.
+        // Dropped off for a carrier that takes parcels only at points, or at the account's drop-off
+        // point for the carrier; otherwise a courier collects them.
         $draft->setPickupMode(
             $carrier !== null && (
                 $this->carrierFeatureResolver->isDropOffOnly($carrier)

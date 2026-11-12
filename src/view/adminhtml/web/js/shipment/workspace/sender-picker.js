@@ -58,9 +58,7 @@ define([
                         [address.company, address.person].filter(Boolean).join(', '),
                         address.street,
                         address.city,
-                        [address.phone, address.email].filter(Boolean).join(', '),
-                        // Where its parcels are dropped off, for carriers that take them at points.
-                        address.point_id ? $t('Drop-off point') + ': ' + address.point_id : ''
+                        [address.phone, address.email].filter(Boolean).join(', ')
                     ].filter(Boolean),
                     isDefault: !!address.default,
                     selected: String(option.value) === String(selected)
@@ -72,11 +70,7 @@ define([
          * @param {Object} tile
          */
         choose: function (tile) {
-            const address = (this.source.get('data.senders') || {})[String(tile.value)];
-
             this.value(tile.value);
-            // Handed over at that address's drop-off point, if it has one.
-            this.source.set('data.sender_point_id', address && address.point_id ? String(address.point_id) : '');
             // A new address's fields are filled in below first, so the modal stays open.
             if (tile.value === 'new') {
                 return;

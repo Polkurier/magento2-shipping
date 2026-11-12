@@ -64,11 +64,11 @@ define(['mage/translate'], function ($t) {
 
     /**
      * How the parcels are handed over unless chosen otherwise: dropped off for a carrier that takes
-     * them only at points, or at the sender address's drop-off point when the carrier takes parcels
-     * at points; otherwise a courier collects them.
+     * them only at points, or at the drop-off point when the carrier takes parcels at points;
+     * otherwise a courier collects them.
      *
      * @param {Object} features featuresOf() the carrier
-     * @param {String} senderPointId the sender address's drop-off point, '' without one
+     * @param {String} senderPointId the drop-off point, '' without one
      * @returns {String} drop_off or courier
      */
     function defaultHandover(features, senderPointId) {
@@ -456,6 +456,8 @@ define(['mage/translate'], function ($t) {
             point_required: carrier ? carrier.point === 'REQUIRED' : false,
             // Whether the parcels are handed over at a point: NONE, OPTIONAL or REQUIRED.
             sender_point: carrier ? carrier.sender_point || 'NONE' : 'NONE',
+            // The account's drop-off point for the carrier, '' without one.
+            default_sender_point: carrier ? carrier.default_sender_point || '' : '',
             providers: carrier ? carrier.providers : [],
             cod: carrier ? carrier.cod : true,
             insurance: carrier ? carrier.insurance : true,

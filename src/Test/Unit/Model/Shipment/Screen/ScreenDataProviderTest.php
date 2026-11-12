@@ -12,7 +12,6 @@ use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Polkurier\Shipping\Api\AddressRepositoryInterface;
-use Polkurier\Shipping\Api\Data\AddressInterface;
 use Polkurier\Shipping\Api\Data\OrderPointInterface;
 use Polkurier\Shipping\Api\OrderPointRepositoryInterface;
 use Polkurier\Shipping\Api\PackTemplateRepositoryInterface;
@@ -20,7 +19,9 @@ use Polkurier\Shipping\Model\Carrier\CarrierCatalog;
 use Polkurier\Shipping\Model\Carrier\CarrierFeatureResolver;
 use Polkurier\Shipping\Model\Config\ConfigProvider;
 use Polkurier\Shipping\Model\Config\Source\PackType;
+use Polkurier\Shipping\Model\PickupPoint\DefaultSenderPointManager;
 use Polkurier\Shipping\Model\PickupPoint\MapTokenProvider;
+use Polkurier\Shipping\Model\PickupPoint\PointFinder;
 use Polkurier\Shipping\Model\Shipment\Draft\DefaultDraftBuilder;
 use Polkurier\Shipping\Model\Shipment\Draft\DraftHydrator;
 use Polkurier\Shipping\Model\Shipment\Screen\ScreenDataProvider;
@@ -33,6 +34,7 @@ use Polkurier\Webservice\Response\Carrier\AdditionalData\PointsMap;
 use Polkurier\Webservice\Response\CourierPoint;
 
 #[CoversClass(ScreenDataProvider::class)]
+#[CoversClass(PointFinder::class)]
 #[AllowMockObjectsWithoutExpectations]
 class ScreenDataProviderTest extends TestCase
 {
@@ -114,9 +116,9 @@ class ScreenDataProviderTest extends TestCase
                 'POZ02M' => ['name' => 'Kiosk', 'label' => '60-001 Poznań, Polna 2'],
                 'WAW195M' => ['name' => '', 'label' => 'Paczkomat WAW195M, as chosen'],
             ],
-            $this->context($points, senderPoints: ['POZ02M', '', 'GDA03M'])
+            $this->context($points, defaultSenderPoints: ['INPOST_PACZKOMAT' => 'POZ02M', 'DPD_POINT' => 'GDA03M'])
                 ->describePoints($recipient, 'KRA01M'),
-            'The drop-off point and the senders\' points, closed or not; those not found are left out.',
+            'The drop-off point and the carriers\' default ones, closed or not; those not found are left out.',
         );
         self::assertSame(
             [],
@@ -128,12 +130,12 @@ class ScreenDataProviderTest extends TestCase
     /**
      * @param CourierPoint|\Throwable|array<string, CourierPoint>|null $found what Polkurier has, by
      *     code for more than one point
-     * @param string[] $senderPoints the drop-off points of the sender addresses
+     * @param array<string, string> $defaultSenderPoints the account's drop-off points by carrier
      */
     private function context(
         CourierPoint|\Throwable|array|null $found,
         bool $carrier = true,
-        array $senderPoints = [],
+        array $defaultSenderPoints = [],
     ): ScreenDataProvider {
         $paczkomat = new Carrier('INPOST_PACZKOMAT', 'Paczkomat', false, new AdditionalData(
             pointsMap: new PointsMap(['inpost'], recipientPoint: PointRequirementEnum::Required),
@@ -158,13 +160,8 @@ class ScreenDataProviderTest extends TestCase
         } else {
             $catalog->method('findPoint')->willReturn($found);
         }
-        $addresses = $this->createStub(AddressRepositoryInterface::class);
-        $addresses->method('getSenderAddresses')->willReturn(\array_map(function (string $pointId): AddressInterface {
-            $address = $this->createStub(AddressInterface::class);
-            $address->method('getPointId')->willReturn($pointId);
-
-            return $address;
-        }, $senderPoints));
+        $defaults = $this->createStub(DefaultSenderPointManager::class);
+        $defaults->method('get')->willReturn($defaultSenderPoints);
 
         $chosen = $this->createStub(OrderPointInterface::class);
         $chosen->method('getPointId')->willReturn('WAW195M');
@@ -175,16 +172,16 @@ class ScreenDataProviderTest extends TestCase
         return new ScreenDataProvider(
             $this->createStub(DraftHydrator::class),
             $this->createStub(PackTemplateRepositoryInterface::class),
-            $addresses,
+            $this->createStub(AddressRepositoryInterface::class),
             $this->createStub(PackType::class),
             $this->createStub(MapTokenProvider::class),
             $this->createStub(ConfigProvider::class),
             $this->createStub(OrderAmountCalculator::class),
-            $catalog,
-            new CarrierFeatureResolver(),
+            new PointFinder($catalog, new CarrierFeatureResolver()),
             $this->createStub(DefaultDraftBuilder::class),
             $points,
             $this->createStub(UrlInterface::class),
+            $defaults,
         );
     }
 }

@@ -467,7 +467,7 @@ class CreateOrderMessageMapperTest extends TestCase
         $sender = $this->createConfiguredStub(AddressInterface::class, [
             'getPerson' => 'Jan Kowalski', 'getCompany' => 'Magazyn Sp. z o.o.', 'getStreet' => 'Fabryczna',
             'getHouseNumber' => '7', 'getFlatNumber' => null, 'getCity' => 'Łódź', 'getPostcode' => '90-001',
-            'getCountry' => 'PL', 'getEmail' => 'magazyn@example.com', 'getPhone' => '501501501', 'getPointId' => null,
+            'getCountry' => 'PL', 'getEmail' => 'magazyn@example.com', 'getPhone' => '501501501',
         ]);
         $cover = $this->createConfiguredStub(AddressInterface::class, [
             'getPerson' => 'Dział zwrotów', 'getCompany' => null, 'getStreet' => 'Zwroty', 'getHouseNumber' => '1',

@@ -15,6 +15,7 @@ use Polkurier\Shipping\Api\AddressRepositoryInterface;
 use Polkurier\Shipping\Api\Data\OrderPointInterface;
 use Polkurier\Shipping\Api\OrderPointRepositoryInterface;
 use Polkurier\Shipping\Api\PackTemplateRepositoryInterface;
+use Polkurier\Shipping\Logger\Logger;
 use Polkurier\Shipping\Model\Carrier\CarrierCatalog;
 use Polkurier\Shipping\Model\Carrier\CarrierFeatureResolver;
 use Polkurier\Shipping\Model\Config\ConfigProvider;
@@ -177,7 +178,7 @@ class ScreenDataProviderTest extends TestCase
             $this->createStub(MapTokenProvider::class),
             $this->createStub(ConfigProvider::class),
             $this->createStub(OrderAmountCalculator::class),
-            new PointFinder($catalog, new CarrierFeatureResolver()),
+            new PointFinder($catalog, new CarrierFeatureResolver(), $this->createStub(Logger::class)),
             $this->createStub(DefaultDraftBuilder::class),
             $points,
             $this->createStub(UrlInterface::class),

@@ -7,19 +7,22 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Model\PickupPoint;
 
+use Polkurier\Shipping\Exception\RecentFailureException;
+use Polkurier\Shipping\Logger\Logger;
 use Polkurier\Shipping\Model\Carrier\CarrierCatalog;
 use Polkurier\Shipping\Model\Carrier\CarrierFeatureResolver;
 use Polkurier\Webservice\Exception\Exception as PolkurierException;
 use Polkurier\Webservice\Response\CourierPoint;
 
 /**
- * Looks points up by code on Polkurier, for showing them by name and address next to their codes.
+ * Looks points up by code on Polkurier, and describes them as they're shown next to their codes.
  */
 readonly class PointFinder
 {
     public function __construct(
         private CarrierCatalog $carrierCatalog,
         private CarrierFeatureResolver $carrierFeatureResolver,
+        private Logger $logger,
     ) {}
 
     /**
@@ -45,7 +48,12 @@ readonly class PointFinder
                 return null;
             }
             $point = $this->carrierCatalog->findPoint($pointId, \array_values(\array_unique($providers)));
-        } catch (PolkurierException) {
+        } catch (RecentFailureException) {
+            // Logged when it failed.
+            return null;
+        } catch (PolkurierException $e) {
+            $this->logger->warning('Polkurier pickup point lookup failed', ['exception' => $e]);
+
             return null;
         }
 
@@ -62,7 +70,17 @@ readonly class PointFinder
     {
         return [
             'name' => $point->getName() !== '' ? $point->getName() : $point->getDescription(),
-            'label' => (string)$point->getAddress(),
+            'label' => $this->formatAddress($point),
         ];
+    }
+
+    /**
+     * The point's address in one line, as the map shows it after choosing.
+     */
+    public function formatAddress(CourierPoint $point): string
+    {
+        $town = \trim($point->getZip() . ' ' . $point->getCity());
+
+        return $point->getAddress() ?: \implode(', ', \array_filter([\trim((string)$point->getStreet()), $town]));
     }
 }

@@ -22,7 +22,7 @@ define([
      */
     return function (config) {
         const values = $.extend({services: []}, config.values),
-            filled = rules.filled,
+            isFilled = rules.isFilled,
             // Points set aside when the carrier changed, keyed by the carrier they were chosen for.
             pointsByCarrier = {};
 
@@ -34,13 +34,13 @@ define([
         const state = {
             ITEM_INPUT: ITEM_INPUT,
             values: values,
-            filled: filled,
+            isFilled: isFilled,
 
             /**
              * @param {String} service
              * @returns {Boolean} whether any carrier offers it, so it can be chosen before the carrier
              */
-            anyCarrierOffers: function (service) {
+            isOfferedByAnyCarrier: function (service) {
                 return Object.keys(config.carriers || {}).some(function (code) {
                     return (config.carriers[code].services || []).indexOf(service) !== -1;
                 });
@@ -50,11 +50,11 @@ define([
              * @param {String} [code] the chosen carrier when left out
              * @returns {Object|null} what the carrier supports
              */
-            carrier: function (code) {
+            getCarrier: function (code) {
                 return config.carriers[code === undefined ? values.carrier_code : code] || null;
             },
 
-            optionLabel: function (field, value) {
+            getOptionLabel: function (field, value) {
                 const option = (config.options[field] || []).find(function (item) {
                     return String(item.value) === String(value);
                 });
@@ -62,8 +62,8 @@ define([
                 return option ? option.label : '';
             },
 
-            money: function (amount) {
-                return rules.money(amount, config.currency);
+            formatMoney: function (amount) {
+                return rules.formatMoney(amount, config.currency);
             },
 
             /**
@@ -72,19 +72,19 @@ define([
              *
              * @returns {Number|null} null when the page has no quantities to go by
              */
-            shipmentValue: function () {
-                const worth = state.shipmentWorth();
+            getShipmentValue: function () {
+                const worth = state.getShipmentWorth();
 
                 return worth === null ? null : worth.value;
             },
 
             /**
-             * The shipment value with what it comes from (rules.shipmentWorth), for the quantities on
+             * The shipment value with what it comes from (rules.calculateShipmentWorth), for the quantities on
              * the page.
              *
              * @returns {Object|null} null when the page has no quantities to go by
              */
-            shipmentWorth: function () {
+            getShipmentWorth: function () {
                 const items = config.items || {},
                     shipped = config.shippedQtys || {},
                     qtys = {};
@@ -107,7 +107,7 @@ define([
 
                 // Only the Polkurier shipment screen asks to include the shipping and handling with
                 // a part that doesn't carry the rest.
-                return rules.shipmentWorth({
+                return rules.calculateShipmentWorth({
                     grand_total: config.grandTotal,
                     shipping_charged: config.shippingCharged,
                     shipping_covered: config.shippingCovered,
@@ -126,20 +126,20 @@ define([
             },
 
             /**
-             * Keeps the cash on delivery at what the shipment collects (rules.codFor), unless it was
+             * Keeps the cash on delivery at what the shipment collects (rules.calculateCod), unless it was
              * set by hand or is off. An existing shipment keeps the amount it already has.
              *
              * @returns {Boolean} whether it changed
              */
             followCod: function () {
-                const c = state.carrier(),
-                    worth = config.existingShipment ? null : state.shipmentWorth();
+                const c = state.getCarrier(),
+                    worth = config.existingShipment ? null : state.getShipmentWorth();
                 let cod;
 
                 if (codEdited || worth === null || !c || !c.cod || !(Number(values.cod_amount) > 0)) {
                     return false;
                 }
-                cod = (Math.round(rules.codFor(Number(config.codRemaining), worth) * 100) / 100).toFixed(2);
+                cod = (Math.round(rules.calculateCod(Number(config.codRemaining), worth) * 100) / 100).toFixed(2);
                 if (cod === Number(values.cod_amount).toFixed(2)) {
                     return false;
                 }
@@ -151,7 +151,7 @@ define([
             /**
              * The merchant set the cash on delivery: it no longer follows the quantities.
              */
-            codSetByHand: function () {
+            markCodSetByHand: function () {
                 codEdited = true;
             },
 
@@ -161,13 +161,13 @@ define([
              * @returns {Boolean} whether it changed
              */
             followInsurance: function () {
-                const c = state.carrier(),
-                    value = state.shipmentValue();
+                const c = state.getCarrier(),
+                    value = state.getShipmentValue();
 
-                if (insuranceEdited || value === null || !c || !c.insurance || !filled(values.insurance_amount)) {
+                if (insuranceEdited || value === null || !c || !c.insurance || !isFilled(values.insurance_amount)) {
                     return false;
                 }
-                values.insurance_amount = rules.insuranceFor(Number(values.cod_amount) || 0, value).toFixed(2);
+                values.insurance_amount = rules.calculateInsurance(Number(values.cod_amount) || 0, value).toFixed(2);
 
                 return true;
             },
@@ -175,12 +175,12 @@ define([
             /**
              * The merchant set the insurance: it no longer follows the quantities.
              */
-            insuranceSetByHand: function () {
+            markInsuranceSetByHand: function () {
                 insuranceEdited = true;
             },
 
-            codTooHigh: function () {
-                return filled(values.cod_amount) && Number(values.cod_amount) > Number(config.codRemaining) + 0.005;
+            isCodTooHigh: function () {
+                return isFilled(values.cod_amount) && Number(values.cod_amount) > Number(config.codRemaining) + 0.005;
             },
 
             /**
@@ -191,7 +191,7 @@ define([
              * @param {Boolean} [blockingOnly]
              * @returns {Array<String>}
              */
-            issues: function (fields, blockingOnly) {
+            findIssues: function (fields, blockingOnly) {
                 const services = {},
                     names = fields || config.fields;
 
@@ -199,8 +199,8 @@ define([
                     services[option.value] = option.label;
                 });
 
-                return rules.issues($.extend({}, values, {
-                    features: rules.featuresOf(state.carrier()),
+                return rules.findIssues($.extend({}, values, {
+                    features: rules.buildFeatures(state.getCarrier()),
                     carriers: config.carriers,
                     carriers_error: config.carriersError,
                     choices: {services: services},
@@ -221,8 +221,8 @@ define([
              *
              * @returns {String[]}
              */
-            problems: function () {
-                return state.issues(null, true);
+            findProblems: function () {
+                return state.findIssues(null, true);
             },
 
             /**
@@ -233,12 +233,12 @@ define([
              * @param {Array<String>} containers the parcel type of each package
              * @returns {Array<String>}
              */
-            packageProblems: function (containers) {
-                const c = state.carrier(),
-                    types = rules.shipmentTypes(containers.map(function (container) {
+            findPackageProblems: function (containers) {
+                const c = state.getCarrier(),
+                    types = rules.listShipmentTypes(containers.map(function (container) {
                         return {pack_type: container};
                     }), config.packShipmentTypes),
-                    problem = rules.kindProblem(types, c ? c.shipment_types : []),
+                    problem = rules.describeKindProblem(types, c ? c.shipment_types : []),
                     pallet = values.services.filter(function (service) {
                         return (config.palletServices || []).indexOf(service) !== -1;
                     }),
@@ -248,7 +248,7 @@ define([
                     problems.push(
                         $t('These services are for pallets only: %1.')
                             .replace('%1', pallet.map(function (service) {
-                                return state.optionLabel('services', service) || service;
+                                return state.getOptionLabel('services', service) || service;
                             }).join(', '))
                     );
                 }
@@ -275,21 +275,21 @@ define([
             /**
              * @returns {String} the handover to start from for the chosen carrier and sender
              */
-            defaultHandover: function () {
-                return rules.defaultHandover(rules.featuresOf(state.carrier()), values.sender_point_id || '');
+            getDefaultHandover: function () {
+                return rules.getDefaultHandover(rules.buildFeatures(state.getCarrier()), values.sender_point_id || '');
             },
 
             /**
              * @returns {String} the account's drop-off point for the chosen carrier, '' without one
              */
             getDefaultSenderPoint: function () {
-                return rules.featuresOf(state.carrier()).default_sender_point;
+                return rules.buildFeatures(state.getCarrier()).default_sender_point;
             },
 
             /**
              * @returns {String} the chosen sender's postcode, where the drop-off point's map starts
              */
-            senderPostcode: function () {
+            getSenderPostcode: function () {
                 if (values.sender_address_id === 'new') {
                     return values.new_sender_postcode || '';
                 }
@@ -301,13 +301,13 @@ define([
              * insists on it with cash on delivery.
              */
             normalize: function () {
-                const c = state.carrier();
+                const c = state.getCarrier();
 
                 if (!c) {
                     return;
                 }
                 // Services stay: they can be chosen before the carrier and are checked against it
-                // (problems()). COVER_ADDRESS_SENDER comes with the cover address, not as a service.
+                // (findProblems()). COVER_ADDRESS_SENDER comes with the cover address, not as a service.
                 values.services = values.services.filter(function (service) {
                     return service !== 'COVER_ADDRESS_SENDER';
                 });
@@ -322,7 +322,7 @@ define([
                 }
                 if (!c.insurance) {
                     values.insurance_amount = '';
-                } else if (c.insurance_with_cod && filled(values.cod_amount) && !filled(values.insurance_amount)) {
+                } else if (c.insurance_with_cod && isFilled(values.cod_amount) && !isFilled(values.insurance_amount)) {
                     values.insurance_amount = Number(values.cod_amount).toFixed(2);
                 }
                 // A carrier that takes parcels only at points: they're dropped off there, whatever
@@ -337,18 +337,18 @@ define([
                 }
             },
 
-            codNote: function () {
+            getCodNote: function () {
                 if (Number(config.codCollected) > 0) {
                     return $t('Leave empty for none. Order total: %1, of which the order\'s other Polkurier orders collect %2.')
-                        .replace('%1', state.money(config.grandTotal))
-                        .replace('%2', state.money(config.codCollected));
+                        .replace('%1', state.formatMoney(config.grandTotal))
+                        .replace('%2', state.formatMoney(config.codCollected));
                 }
 
-                return $t('Leave empty for none. Order total: %1').replace('%1', state.money(config.grandTotal));
+                return $t('Leave empty for none. Order total: %1').replace('%1', state.formatMoney(config.grandTotal));
             },
 
-            insuranceNote: function () {
-                const worth = state.shipmentWorth();
+            getInsuranceNote: function () {
+                const worth = state.getShipmentWorth();
 
                 if (worth === null) {
                     return $t('Leave empty for none.');
@@ -359,9 +359,9 @@ define([
                     : (worth.with_shipping
                         ? $t('Leave empty for none. Shipment value: %1, the products with tax and after discounts and the shipping and handling, as this part carries the rest of the order (order total: %2, of which shipping and handling: %3).')
                         : $t('Leave empty for none. Shipment value: %1, the products with tax and after discounts, as only part of the order ships (order total: %2, of which shipping and handling: %3).')))
-                    .replace('%1', state.money(worth.value))
-                    .replace('%2', state.money(config.grandTotal))
-                    .replace('%3', state.money(config.shippingCharged));
+                    .replace('%1', state.formatMoney(worth.value))
+                    .replace('%2', state.formatMoney(config.grandTotal))
+                    .replace('%3', state.formatMoney(config.shippingCharged));
             }
         };
 

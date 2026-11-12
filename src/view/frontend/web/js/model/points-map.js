@@ -21,7 +21,7 @@ define(['mage/translate', 'Magento_Ui/js/modal/alert'], function ($t, alert) {
      * @param {Object} config the map settings; updated in place with a fresh token
      * @returns {Promise<String>} the token to open the map with
      */
-    function freshToken(config) {
+    function fetchFreshToken(config) {
         const now = Date.now() / 1000;
 
         if (config.token && (!config.tokenExpires || config.tokenExpires - now > REFRESH_BEFORE)) {
@@ -81,7 +81,7 @@ define(['mage/translate', 'Magento_Ui/js/modal/alert'], function ($t, alert) {
          * @param {Function} onChoose called with {id, label, cod}
          */
         open: function (config, providers, searchQuery, onChoose) {
-            freshToken(config).then(function () {
+            fetchFreshToken(config).then(function () {
                 return loadWidget(config.baseUrl);
             }).then(function () {
                 const map = new window.POLKURIER.PointsMap({

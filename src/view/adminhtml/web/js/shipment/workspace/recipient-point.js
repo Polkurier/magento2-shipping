@@ -34,18 +34,18 @@ define([
         },
 
         refresh: function () {
-            const features = this.features(),
+            const features = this.getFeatures(),
                 // Known for points looked up when the screen opened and those chosen on the map.
                 details = (this.get('point_details') || {})[this.get('recipient_point_id') || ''] || {};
 
             this.shown(features.point_allowed !== false);
             this.required(!!features.point_required);
-            this.missing(this.required() && this.validated() && !rules.filled(this.get('recipient_point_id')));
+            this.missing(this.required() && this.isValidated() && !rules.isFilled(this.get('recipient_point_id')));
             this.pointId(this.get('recipient_point_id') || '');
             this.name(details.name || '');
             this.label(details.label || '');
             this.canChoose(pointsMap.canOpen(this.get('map')));
-            this.closed(rules.filled(this.pointId()) && this.get('recipient_point_closed') === this.pointId());
+            this.closed(rules.isFilled(this.pointId()) && this.get('recipient_point_closed') === this.pointId());
         },
 
         chooseOnMap: function () {
@@ -53,9 +53,9 @@ define([
 
             pointsMap.open(
                 data.map,
-                this.features().providers,
+                this.getFeatures().providers,
                 // The postcode alone: a city changed afterwards can't contradict it.
-                rules.filled(data.recipient_postcode) ? String(data.recipient_postcode).trim() : '',
+                rules.isFilled(data.recipient_postcode) ? String(data.recipient_postcode).trim() : '',
                 function (pointId, point) {
                     this.set('point_details', pointsMap.addPoint(this.get('point_details'), pointId, point));
                     this.set('recipient_point_id', pointId);

@@ -7,7 +7,7 @@
  * editor. A new parcel opens in the editor, empty or filled in from a pack template chosen under
  * "Add a parcel", so its size, weight and the shipped items it holds can be set before it's added.
  * Until its weight is typed in, it follows the parcel weight setting: what the items in it weigh,
- * or its template's weight (rules.parcelWeight).
+ * or its template's weight (rules.calculateParcelWeight).
  */
 define([
     'jquery',
@@ -80,7 +80,7 @@ define([
 
         refresh: function () {
             const choices = (this.get('choices') || {}).pack_type || {},
-                items = rules.itemsById(this.get() || {}),
+                items = rules.indexItemsById(this.get() || {}),
                 describe = this.describeContents.bind(this);
 
             this.templates(this.get('templates') || []);
@@ -91,7 +91,7 @@ define([
             this.packTypes(_.map(choices, function (label, value) {
                 return {value: value, label: label};
             }));
-            this.rows(this.packs().map(function (pack, index) {
+            this.rows(this.getPacks().map(function (pack, index) {
                 return {
                     index: index,
                     name: choices[pack.pack_type] || pack.pack_type || $t('Parcel'),
@@ -105,14 +105,14 @@ define([
                         ? $t('Saved as the pack template "%1" once placed').replace('%1', pack.keep_as)
                         : '',
                     incomplete: FIELDS.some(function (field) {
-                        return rules.amount(pack[field]) <= 0;
+                        return rules.parseAmount(pack[field]) <= 0;
                     })
                 };
             }));
             this.unpacked(this.describeUnpacked(items));
-            this.estimated(Boolean(this.get('packs_estimated')) && this.packs().length > 0);
+            this.estimated(Boolean(this.get('packs_estimated')) && this.getPacks().length > 0);
             this.canPack(this.get('can_ship') !== false && _.some(this.get('items') || [], function (item) {
-                return rules.amount(item.qty) > 0;
+                return rules.parseAmount(item.qty) > 0;
             }));
         },
 
@@ -129,7 +129,7 @@ define([
                     data: {
                         order_id: this.get('order_id'),
                         items: this.get('items'),
-                        shipment_type: this.packs().length ? this.get('shipment_type') : ''
+                        shipment_type: this.getPacks().length ? this.get('shipment_type') : ''
                     }
                 }, {
                     done: function (response) {
@@ -153,7 +153,7 @@ define([
 
             confirm({
                 title: $t('Pack automatically?'),
-                content: this.packs().length
+                content: this.getPacks().length
                     ? $t('The current parcels are replaced with parcels of your pack templates, with the items spread over them by their size.')
                     : $t('The items are spread over parcels of your pack templates by their size.'),
                 actions: {confirm: pack}
@@ -169,11 +169,11 @@ define([
          */
         describeContents: function (pack, items) {
             const parts = (pack.items || []).filter(function (row) {
-                    return rules.amount(row.qty) > 0 && items[String(row.order_item_id)];
+                    return rules.parseAmount(row.qty) > 0 && items[String(row.order_item_id)];
                 }).map(function (row) {
-                    return rules.amount(row.qty) + ' × ' + items[String(row.order_item_id)].name;
+                    return rules.parseAmount(row.qty) + ' × ' + items[String(row.order_item_id)].name;
                 }),
-                weight = rules.contentsWeight(pack, items);
+                weight = rules.calculateContentsWeight(pack, items);
 
             if (parts.length && weight > 0) {
                 parts.push($t('What it holds weighs %1 kg.').replace('%1', String(weight)));
@@ -189,15 +189,15 @@ define([
          * @returns {String}
          */
         describeUnpacked: function (items) {
-            const packs = this.packs(),
-                totals = rules.packed(packs),
+            const packs = this.getPacks(),
+                totals = rules.countPacked(packs),
                 left = [];
 
             if (this.get('can_ship') === false || !Object.keys(totals).length) {
                 return '';
             }
             Object.keys(items).forEach(function (id) {
-                const qty = rules.amount(items[id].qty) - (totals[id] || 0);
+                const qty = rules.parseAmount(items[id].qty) - (totals[id] || 0);
 
                 if (qty > 0.0001) {
                     left.push(Math.round(qty * 1000) / 1000 + ' × ' + items[id].name);
@@ -212,7 +212,7 @@ define([
          *
          * @returns {Array<Object>}
          */
-        packs: function () {
+        getPacks: function () {
             return _.filter(_.values(this.get('packs') || []), function (pack) {
                 return pack && !pack.delete;
             }).map(function (pack) {
@@ -237,7 +237,7 @@ define([
          *     them the merchant's
          */
         store: function (packs, estimated) {
-            const types = rules.shipmentTypes(packs, (this.get('choices') || {}).pack_shipment_type);
+            const types = rules.listShipmentTypes(packs, (this.get('choices') || {}).pack_shipment_type);
 
             this.set('packs_estimated', Boolean(estimated));
             this.set('packs', packs);
@@ -246,7 +246,7 @@ define([
             if (types.length === 1) {
                 this.set('shipment_type', types[0]);
             } else if (!packs.length) {
-                this.set('shipment_type', this.startingType());
+                this.set('shipment_type', this.getStartingType());
             }
         },
 
@@ -254,9 +254,9 @@ define([
          * @returns {String} the default pack template's kind, or the first kind the carrier takes
          *     when it doesn't take that
          */
-        startingType: function () {
+        getStartingType: function () {
             const type = this.get('default_shipment_type') || 'box',
-                taken = this.features().shipment_types || [];
+                taken = this.getFeatures().shipment_types || [];
 
             return !taken.length || taken.indexOf(type) !== -1 ? type : taken[0];
         },
@@ -280,7 +280,7 @@ define([
         fix: function (issue) {
             const index = issue.fix && issue.fix.parcel !== undefined ? issue.fix.parcel : -1;
 
-            if (index >= 0 && this.packs()[index]) {
+            if (index >= 0 && this.getPacks()[index]) {
                 this.edit({index: index});
             } else {
                 this.add();
@@ -319,7 +319,7 @@ define([
         },
 
         addCustom: function () {
-            const weight = rules.amount(this.get('order_weight'));
+            const weight = rules.parseAmount(this.get('order_weight'));
 
             if (this.packing()) {
                 return;
@@ -336,7 +336,7 @@ define([
             if (this.packing()) {
                 return;
             }
-            this.openEditor(row.index, this.packs()[row.index] || {});
+            this.openEditor(row.index, this.getPacks()[row.index] || {});
         },
 
         /**
@@ -351,7 +351,7 @@ define([
                 content: _.escape(row.name + ' (' + row.size + ')'),
                 actions: {
                     confirm: function () {
-                        const packs = this.packs();
+                        const packs = this.getPacks();
 
                         packs.splice(row.index, 1);
                         this.store(packs);
@@ -371,7 +371,7 @@ define([
             if (this.packing()) {
                 return;
             }
-            const packs = this.packs(),
+            const packs = this.getPacks(),
                 otherType = Boolean(template.shipment_type) && template.shipment_type !== this.get('shipment_type'),
                 pack = {
                     template_id: template.id,
@@ -410,19 +410,20 @@ define([
 
             editor.index = index;
             editor.templateId = pack.template_id || null;
-            editor.templateWeight = this.templateWeight(editor.templateId);
+            editor.templateWeight = this.getTemplateWeight(editor.templateId);
             editor.origin = pack;
             editor.shipmentType = shipmentType || null;
             editor.packType(pack.pack_type || 'ST');
             FIELDS.forEach(function (field) {
                 editor[field](pack[field] === undefined || pack[field] === null ? '' : String(pack[field]));
             });
-            editor.items(this.editorItems(index, pack));
+            editor.items(this.getEditorItems(index, pack));
             editor.contentsWeight(this.weighContents());
             editor.keep(Boolean(pack.keep_as));
             editor.keepName(pack.keep_as || '');
             // For a parcel that says what it holds, a weight other than the setting's was typed in.
-            this.followedWeight = (pack.items || []).length && rules.amount(editor.weight()) !== this.editorWeight()
+            this.followedWeight = (pack.items || []).length
+                && rules.parseAmount(editor.weight()) !== this.getEditorWeight()
                 ? null
                 : editor.weight();
             editor.error('');
@@ -437,30 +438,32 @@ define([
          * @param {Object} pack
          * @returns {Array<Object>}
          */
-        editorItems: function (index, pack) {
+        getEditorItems: function (index, pack) {
             const data = this.get() || {},
                 // Parcels of another shipment type are replaced by this one, so they hold nothing.
-                others = rules.packed((this.editor.shipmentType ? [] : this.packs()).filter(function (other, position) {
-                    return position !== index;
-                })),
+                others = rules.countPacked(
+                    (this.editor.shipmentType ? [] : this.getPacks()).filter(function (other, position) {
+                        return position !== index;
+                    })
+                ),
                 held = {};
 
             if (data.can_ship === false) {
                 return [];
             }
             (pack.items || []).forEach(function (row) {
-                held[String(row.order_item_id)] = rules.amount(row.qty);
+                held[String(row.order_item_id)] = rules.parseAmount(row.qty);
             });
 
             return (data.items || []).filter(function (item) {
-                return rules.amount(item.qty) > 0;
+                return rules.parseAmount(item.qty) > 0;
             }).map(function (item) {
                 const id = String(item.order_item_id),
-                    left = Math.max(0, rules.amount(item.qty) - (others[id] || 0)),
+                    left = Math.max(0, rules.parseAmount(item.qty) - (others[id] || 0)),
                     row = {
                         id: id,
                         name: item.name,
-                        weight: rules.amount(item.weight),
+                        weight: rules.parseAmount(item.weight),
                         left: left,
                         leftText: $t('of %1 left').replace('%1', String(Math.round(left * 1000) / 1000)),
                         qty: ko.observable(held[id] ? String(held[id]) : '')
@@ -468,7 +471,7 @@ define([
 
                 // Marked as the items to ship are.
                 row.invalid = ko.pureComputed(function () {
-                    const qty = rules.amount(row.qty());
+                    const qty = rules.parseAmount(row.qty());
 
                     return qty < 0 || qty > left + 0.0001;
                 });
@@ -484,7 +487,7 @@ define([
          */
         weighContents: function () {
             return Math.round(this.editor.items().reduce(function (total, row) {
-                return total + row.weight * rules.amount(row.qty());
+                return total + row.weight * rules.parseAmount(row.qty());
             }, 0) * 1000) / 1000;
         },
 
@@ -497,17 +500,17 @@ define([
          * @returns {Number}
          */
         weigh: function (templateWeight, rows, tare) {
-            const items = rules.itemsById(this.get() || {});
+            const items = rules.indexItemsById(this.get() || {});
 
-            return rules.parcelWeight(
+            return rules.calculateParcelWeight(
                 this.get('parcel_weight') || 'products',
-                rules.amount(templateWeight) || null,
+                rules.parseAmount(templateWeight) || null,
                 (rows || []).map(function (row) {
                     const item = items[String(row.order_item_id)];
 
-                    return {weight: item ? rules.amount(item.weight) : 0, qty: rules.amount(row.qty)};
+                    return {weight: item ? rules.parseAmount(item.weight) : 0, qty: rules.parseAmount(row.qty)};
                 }),
-                rules.amount(tare) || null
+                rules.parseAmount(tare) || null
             );
         },
 
@@ -515,33 +518,33 @@ define([
          * @param {String|Number|null} templateId
          * @returns {Number|null} the weight of that pack template, null when there's none
          */
-        templateWeight: function (templateId) {
+        getTemplateWeight: function (templateId) {
             const template = templateId ? this.templates().find(function (candidate) {
                 return String(candidate.id) === String(templateId);
             }) : null;
 
-            return template ? rules.amount(template.weight) : null;
+            return template ? rules.parseAmount(template.weight) : null;
         },
 
         /**
          * @param {String|Number|null} templateId
          * @returns {Number|null} what that pack template's packaging weighs, null when not said
          */
-        templateTare: function (templateId) {
+        getTemplateTare: function (templateId) {
             const template = templateId ? this.templates().find(function (candidate) {
                 return String(candidate.id) === String(templateId);
             }) : null;
 
-            return template && rules.filled(template.tare) ? rules.amount(template.tare) : null;
+            return template && rules.isFilled(template.tare) ? rules.parseAmount(template.tare) : null;
         },
 
         /**
          * @returns {Number} what the parcel in the editor weighs by the setting, 0 when unknown
          */
-        editorWeight: function () {
+        getEditorWeight: function () {
             return this.weigh(this.editor.templateWeight, this.editor.items().map(function (row) {
                 return {order_item_id: row.id, qty: row.qty()};
-            }), this.templateTare(this.editor.templateId));
+            }), this.getTemplateTare(this.editor.templateId));
         },
 
         /**
@@ -549,7 +552,7 @@ define([
          */
         followContents: function () {
             const editor = this.editor,
-                weight = this.editorWeight();
+                weight = this.getEditorWeight();
 
             editor.contentsWeight(this.weighContents());
             if (weight > 0 && this.followedWeight !== null && String(editor.weight()) === String(this.followedWeight)) {
@@ -560,25 +563,25 @@ define([
 
         saveEditor: function () {
             const editor = this.editor,
-                packs = editor.shipmentType ? [] : this.packs(),
+                packs = editor.shipmentType ? [] : this.getPacks(),
                 previous = editor.origin,
                 pack = {pack_type: editor.packType()};
 
             if (FIELDS.some(function (field) {
-                return rules.amount(editor[field]()) <= 0;
+                return rules.parseAmount(editor[field]()) <= 0;
             })) {
                 editor.error($t('Enter the size and weight, each greater than zero.'));
 
                 return;
             }
             ['length', 'width', 'height'].forEach(function (field) {
-                pack[field] = Math.round(rules.amount(editor[field]()));
+                pack[field] = Math.round(rules.parseAmount(editor[field]()));
             });
             pack.amount = 1;
-            pack.weight = rules.amount(editor.weight());
+            pack.weight = rules.parseAmount(editor.weight());
             pack.items = [];
             const over = editor.items().find(function (row) {
-                const qty = rules.amount(row.qty());
+                const qty = rules.parseAmount(row.qty());
 
                 if (qty > 0) {
                     pack.items.push({order_item_id: row.id, qty: qty});
@@ -594,7 +597,7 @@ define([
 
                 return;
             }
-            const mixed = rules.kindProblem(rules.shipmentTypes(packs.filter(function (other, position) {
+            const mixed = rules.describeKindProblem(rules.listShipmentTypes(packs.filter(function (other, position) {
                 return position !== editor.index;
             }).concat([pack]), (this.get('choices') || {}).pack_shipment_type), []);
 

@@ -27,7 +27,7 @@ define(['mage/translate', 'Magento_Ui/js/modal/alert'], function ($t, alert) {
      * @param {Object} map the map settings; updated in place with a fresh token
      * @returns {Promise<String>}
      */
-    function freshToken(map) {
+    function fetchFreshToken(map) {
         const now = Date.now() / 1000;
 
         if (map.token && (!map.expires || map.expires - now > REFRESH_BEFORE)) {
@@ -163,7 +163,7 @@ define(['mage/translate', 'Magento_Ui/js/modal/alert'], function ($t, alert) {
          * @param {String[]} [functions] only points that do these, e.g. ['send'] for drop-off points
          */
         open: function (map, providers, searchQuery, onChoose, functions) {
-            freshToken(map).then(function () {
+            fetchFreshToken(map).then(function () {
                 return loadWidget(map.baseUrl);
             }).then(function (target) {
                 // The providers array is made in the iframe, so it has the widget's built-ins too.

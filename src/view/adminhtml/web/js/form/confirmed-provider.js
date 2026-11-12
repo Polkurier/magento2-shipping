@@ -110,7 +110,7 @@ define([
          */
         ask: function (options, what) {
             const settings = this.confirmation,
-                dialog = this.dialog(),
+                dialog = this.getDialog(),
                 field = function (name, label, type, note) {
                     const id = 'polkurier-confirm-' + name,
                         row = $('<div class="admin__field"/>')
@@ -157,7 +157,7 @@ define([
         /**
          * @returns {jQuery} the page's confirmation modal
          */
-        dialog: function () {
+        getDialog: function () {
             if (this.confirmDialog) {
                 return this.confirmDialog;
             }
@@ -180,7 +180,7 @@ define([
                     }},
                     {text: $t('Confirm and save'), class: 'action-primary', click: confirm}
                 ],
-                opened: function () {
+                isOpened: function () {
                     dialog.find('input').first().trigger('focus');
                 }
             });
@@ -205,7 +205,7 @@ define([
          */
         confirm: function () {
             const settings = this.confirmation,
-                dialog = this.dialog(),
+                dialog = this.getDialog(),
                 what = this.pending ? this.pending.what : {},
                 error = dialog.find('.polkurier-confirm__error'),
                 code = String(dialog.find('[name=code]').val() || '').trim(),

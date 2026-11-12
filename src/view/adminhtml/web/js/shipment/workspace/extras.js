@@ -41,9 +41,9 @@ define([
 
         refresh: function () {
             const data = this.get() || {},
-                features = this.features(),
+                features = this.getFeatures(),
                 // What's available for the shipment's type, whichever carrier offers it.
-                allowed = rules.servicesFor(data),
+                allowed = rules.findServices(data),
                 offered = features.services || null,
                 coverOffered = allowed === null || allowed.indexOf(COVER) !== -1,
                 labels = (data.choices || {}).services || {},
@@ -62,17 +62,17 @@ define([
 
                 return;
             }
-            if (!coverOffered && rules.filled(data.cover_address_id)) {
+            if (!coverOffered && rules.isFilled(data.cover_address_id)) {
                 this.set('cover_address_id', '');
 
                 return;
             }
 
-            if (features.cod !== false || rules.amount(data.cod_amount) > 0) {
-                switches.push(this.codSwitch(data));
+            if (features.cod !== false || rules.parseAmount(data.cod_amount) > 0) {
+                switches.push(this.buildCodSwitch(data));
             }
-            if (features.insurance !== false || rules.amount(data.insurance_amount) > 0) {
-                switches.push(this.insuranceSwitch(data));
+            if (features.insurance !== false || rules.parseAmount(data.insurance_amount) > 0) {
+                switches.push(this.buildInsuranceSwitch(data));
             }
             _.each(labels, function (label, service) {
                 if (allowed === null || allowed.indexOf(service) !== -1) {
@@ -91,7 +91,7 @@ define([
                 switches.push({
                     id: 'polkurier-service-cover',
                     label: $t('Another sender on the label'),
-                    checked: rules.filled(data.cover_address_id),
+                    checked: rules.isFilled(data.cover_address_id),
                     unavailable: offered && offered.indexOf(COVER) === -1 ? $t('This carrier does not offer it.') : '',
                     toggle: this.toggleCover.bind(this),
                     cover: true
@@ -106,22 +106,25 @@ define([
          * @param {Object} data
          * @returns {Object}
          */
-        codSwitch: function (data) {
-            const on = rules.amount(data.cod_amount) > 0,
-                unavailable = this.features().cod === false;
+        buildCodSwitch: function (data) {
+            const on = rules.parseAmount(data.cod_amount) > 0,
+                unavailable = this.getFeatures().cod === false;
 
             return {
                 id: 'polkurier-service-cod',
                 label: $t('Cash on delivery'),
                 checked: on,
-                amount: on ? this.money(data.cod_amount) : '',
+                amount: on ? this.formatMoney(data.cod_amount) : '',
                 details: on
-                    ? [this.choice('cod_type', data.cod_type), this.choice('cod_return_type', data.cod_return_type)]
-                        .filter(rules.filled)
+                    ? [
+                        this.getChoiceLabel('cod_type', data.cod_type),
+                        this.getChoiceLabel('cod_return_type', data.cod_return_type)
+                    ]
+                        .filter(rules.isFilled)
                         .join(' · ')
                     : '',
-                problem: on && data.cod_return_type === 'BA' && (!rules.filled(data.cod_bank_account_id)
-                    || (data.cod_bank_account_id === 'new' && !rules.filled(data.new_bank_account_number)))
+                problem: on && data.cod_return_type === 'BA' && (!rules.isFilled(data.cod_bank_account_id)
+                    || (data.cod_bank_account_id === 'new' && !rules.isFilled(data.new_bank_account_number)))
                     ? $t('No bank account to pay it out to.')
                     : '',
                 unavailable: unavailable ? $t('This carrier does not collect cash on delivery.') : '',
@@ -134,15 +137,15 @@ define([
          * @param {Object} data
          * @returns {Object}
          */
-        insuranceSwitch: function (data) {
-            const on = rules.amount(data.insurance_amount) > 0,
-                unavailable = this.features().insurance === false;
+        buildInsuranceSwitch: function (data) {
+            const on = rules.parseAmount(data.insurance_amount) > 0,
+                unavailable = this.getFeatures().insurance === false;
 
             return {
                 id: 'polkurier-service-insurance',
                 label: $t('Insurance'),
                 checked: on,
-                amount: on ? this.money(data.insurance_amount) : '',
+                amount: on ? this.formatMoney(data.insurance_amount) : '',
                 unavailable: unavailable ? $t('This carrier does not insure shipments.') : '',
                 edit: unavailable ? null : this.openModal.bind(this, this.insuranceModal),
                 toggle: this.toggleInsurance.bind(this)
@@ -159,7 +162,7 @@ define([
                 return;
             }
             // What the order's other Polkurier orders don't collect yet.
-            const value = rules.amount(this.get('cod_remaining'));
+            const value = rules.parseAmount(this.get('cod_remaining'));
 
             if (value > 0) {
                 this.set('cod_amount', value.toFixed(2));
@@ -177,10 +180,10 @@ define([
 
                 return;
             }
-            // What it collects, or else what it's worth (rules.insuranceFor).
-            const value = rules.insuranceFor(
-                rules.amount(this.get('cod_amount')),
-                rules.amount(this.get('shipment_value'))
+            // What it collects, or else what it's worth (rules.calculateInsurance).
+            const value = rules.calculateInsurance(
+                rules.parseAmount(this.get('cod_amount')),
+                rules.parseAmount(this.get('shipment_value'))
             );
 
             if (value > 0) {

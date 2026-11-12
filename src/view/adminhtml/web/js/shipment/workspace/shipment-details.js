@@ -49,10 +49,10 @@ define([
 
             this.carrierName(data.carrier_code ? (carriers[data.carrier_code] || {}).name || data.carrier_code : '');
             // Marked once placing was tried, as everything else missing is.
-            this.carrierMissing(!data.carrier_code && this.validated());
+            this.carrierMissing(!data.carrier_code && this.isValidated());
             this.contents(data.description || '');
             this.quoting(!!this.source.get('quoting'));
-            this.price(quote ? {net: this.money(quote.net), gross: this.money(quote.gross)} : null);
+            this.price(quote ? {net: this.formatMoney(quote.net), gross: this.formatMoney(quote.gross)} : null);
             this.unpriced(!!(quotes && data.carrier_code && !quote));
             this.priceMessage(this.source.get('quoteMessage') || '');
             this.carrierNotices((data.carrier_notices || []).filter(function (notice) {
@@ -63,7 +63,7 @@ define([
         },
 
         /**
-         * What the shipment is worth, with what that comes from (rules.shipmentWorth); null with
+         * What the shipment is worth, with what that comes from (rules.calculateShipmentWorth); null with
          * nothing to ship and nothing to replace.
          *
          * @param {Object} data
@@ -71,7 +71,7 @@ define([
          */
         describeWorth: function (data) {
             const replacing = data.replacing,
-                worth = rules.shipmentWorth(data);
+                worth = rules.calculateShipmentWorth(data);
 
             // Nothing to ship and nothing to replace: there's no shipment to be worth anything.
             if (!replacing && !(data.can_ship !== false && (data.items || []).length)) {
@@ -82,10 +82,10 @@ define([
                 productsLabel: replacing
                     ? $t('Products on Magento shipment #%1').replace('%1', replacing.increment_id)
                     : $t('Products in this shipment'),
-                products: this.money(worth.products),
-                shipping: this.money(rules.amount(data.shipping_charged)),
-                total: this.money(worth.order_total),
-                value: this.money(worth.value),
+                products: this.formatMoney(worth.products),
+                shipping: this.formatMoney(rules.parseAmount(data.shipping_charged)),
+                total: this.formatMoney(worth.order_total),
+                value: this.formatMoney(worth.value),
                 // For a priced part of the order, the merchant is asked whether it carries the
                 // shipping and handling. Not for the part carrying the rest, which includes it as it
                 // collects it, nor once another part includes it.
@@ -116,7 +116,7 @@ define([
         /**
          * @returns {String}
          */
-        noPrice: function () {
+        describeMissingPrice: function () {
             if (this.quoting()) {
                 return $t('Updating prices…');
             }

@@ -27,7 +27,7 @@ define([
         },
 
         refresh: function () {
-            const address = this.kind === 'sender' ? this.sender() : this.recipient();
+            const address = this.kind === 'sender' ? this.getSender() : this.getRecipient();
 
             // What's missing from a typed-in sender is reported as the section's problem.
             this.missing(address ? '' : $t('No sender address.'));
@@ -43,29 +43,31 @@ define([
                         address.country && address.country !== this.get('home_country')
                             ? '(' + address.country + ')'
                             : ''
-                    ].filter(rules.filled).join(' ')
+                    ].filter(rules.isFilled).join(' ')
                 },
-                {text: [address.phone, address.email].filter(rules.filled).join(', '), muted: true}
+                {text: [address.phone, address.email].filter(rules.isFilled).join(', '), muted: true}
             ].filter(function (line) {
-                return rules.filled(line.text);
+                return rules.isFilled(line.text);
             }) : []);
         },
 
         /**
          * @returns {Object|null}
          */
-        sender: function () {
+        getSender: function () {
             if (this.get('sender_address_id') === 'new') {
-                return this.newSender();
+                return this.getNewSender();
             }
             const id = this.get('sender_address_id'),
-                address = rules.filled(id) ? (this.get('senders') || {})[String(id)] : this.get('store_sender');
+                address = rules.isFilled(id) ? (this.get('senders') || {})[String(id)] : this.get('store_sender');
 
             if (!address) {
                 return null;
             }
 
-            return Object.assign({}, address, {caption: rules.filled(id) ? address.label : $t('The store\'s address')});
+            return Object.assign({}, address, {
+                caption: rules.isFilled(id) ? address.label : $t('The store\'s address')
+            });
         },
 
         /**
@@ -73,9 +75,9 @@ define([
          *
          * @returns {Object}
          */
-        newSender: function () {
+        getNewSender: function () {
             const data = this.get() || {},
-                number = [data.new_sender_house_number, data.new_sender_flat_number].filter(rules.filled).join('/'),
+                number = [data.new_sender_house_number, data.new_sender_flat_number].filter(rules.isFilled).join('/'),
                 keep = Boolean(data.keep_new_sender) && data.keep_new_sender !== '0';
 
             return {
@@ -85,8 +87,8 @@ define([
                     : $t('A new address, for this shipment only'),
                 company: data.new_sender_company,
                 person: data.new_sender_person,
-                street: [data.new_sender_street, number].filter(rules.filled).join(' '),
-                city: [data.new_sender_postcode, data.new_sender_city].filter(rules.filled).join(' '),
+                street: [data.new_sender_street, number].filter(rules.isFilled).join(' '),
+                city: [data.new_sender_postcode, data.new_sender_city].filter(rules.isFilled).join(' '),
                 country: data.new_sender_country,
                 phone: data.new_sender_phone,
                 email: data.new_sender_email
@@ -96,15 +98,15 @@ define([
         /**
          * @returns {Object}
          */
-        recipient: function () {
+        getRecipient: function () {
             const data = this.get() || {},
-                number = [data.recipient_house_number, data.recipient_flat_number].filter(rules.filled).join('/');
+                number = [data.recipient_house_number, data.recipient_flat_number].filter(rules.isFilled).join('/');
 
             return {
                 company: data.recipient_company,
                 person: data.recipient_person,
-                street: [data.recipient_street, number].filter(rules.filled).join(' '),
-                city: [data.recipient_postcode, data.recipient_city].filter(rules.filled).join(' '),
+                street: [data.recipient_street, number].filter(rules.isFilled).join(' '),
+                city: [data.recipient_postcode, data.recipient_city].filter(rules.isFilled).join(' '),
                 country: data.recipient_country,
                 phone: data.recipient_phone,
                 email: data.recipient_email

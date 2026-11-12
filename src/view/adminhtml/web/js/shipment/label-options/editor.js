@@ -26,7 +26,7 @@ define([
      */
     return function (state, config) {
         const values = state.values,
-            filled = state.filled,
+            isFilled = state.isFilled,
             // Only the answer to the latest request for collection dates counts.
             pickups = request();
 
@@ -60,7 +60,7 @@ define([
             return control;
         }
 
-        function checkboxes(field, form, id, control) {
+        function renderCheckboxes(field, form, id, control) {
             (config.options[field.name] || []).forEach(function (option) {
                 if (field.filter && !field.filter(String(option.value), form)) {
                     return;
@@ -83,7 +83,7 @@ define([
             }
         }
 
-        function input(field, id, control) {
+        function renderInput(field, id, control) {
             const box = $('<input class="admin__control-text"/>').attr({
                     id: id,
                     name: field.name,
@@ -91,8 +91,8 @@ define([
                     step: field.type === 'number' ? '0.01' : null,
                     min: field.type === 'number' ? '0' : null,
                     maxlength: field.maxlength || null
-                }).val(filled(values[field.name]) ? values[field.name] : ''),
-                carrier = state.carrier();
+                }).val(isFilled(values[field.name]) ? values[field.name] : ''),
+                carrier = state.getCarrier();
 
             control.append(box);
             if (field.map && pointsMap.canOpen(config.map)
@@ -123,7 +123,7 @@ define([
          * @param {String} id
          * @param {jQuery} control
          */
-        function pickup(id, control) {
+        function renderPickup(id, control) {
             const dates = $('<select class="admin__control-select" name="pickup_date"/>').attr('id', id),
                 windows = $('<select class="admin__control-select" name="pickup_window"/>')
                     .attr('aria-label', $t('Collection time')),
@@ -156,7 +156,7 @@ define([
             windows.hide();
             anyTime.hide();
             dates.on('change', fillWindows);
-            if (!filled(values.carrier_code) || !setup.url) {
+            if (!isFilled(values.carrier_code) || !setup.url) {
                 status.text($t('Choose a carrier to see its collection dates.'));
 
                 return;
@@ -197,7 +197,7 @@ define([
             });
         }
 
-        function field(definition, form) {
+        function renderField(definition, form) {
             const id = 'polkurier-label-' + definition.name,
                 wrapper = $('<div class="admin__field"/>'),
                 control = $('<div class="admin__field-control"/>');
@@ -208,7 +208,7 @@ define([
             wrapper.append(control);
 
             if (definition.type === 'pickup') {
-                pickup(id, control);
+                renderPickup(id, control);
             } else if (definition.type === 'checkbox') {
                 // A single choice, with its label beside the box.
                 wrapper.addClass('admin__field-option');
@@ -218,7 +218,7 @@ define([
                         .attr({id: id, name: definition.name})
                         .prop(
                             'checked',
-                            filled(values[definition.name])
+                            isFilled(values[definition.name])
                                 && String(values[definition.name]) !== '0'
                                 && values[definition.name] !== false
                         ),
@@ -227,13 +227,13 @@ define([
             } else if (definition.type === 'select') {
                 control.append(select(definition, form, id));
             } else if (definition.type === 'checkboxes') {
-                checkboxes(definition, form, id, control);
+                renderCheckboxes(definition, form, id, control);
             } else {
-                input(definition, id, control);
+                renderInput(definition, id, control);
             }
-            if (definition.shownFor) {
+            if (definition.isShownFor) {
                 const update = function () {
-                    wrapper.toggle(definition.shownFor(form));
+                    wrapper.toggle(definition.isShownFor(form));
                 };
 
                 form.on('change.polkurierFields', 'select, input[type=checkbox]', update);
@@ -296,10 +296,10 @@ define([
             const carrierChanged = !same(carrierBefore, values.carrier_code);
 
             if (!same(insuranceBefore, values.insurance_amount)) {
-                state.insuranceSetByHand();
+                state.markInsuranceSetByHand();
             }
             if (!same(codBefore, values.cod_amount)) {
-                state.codSetByHand();
+                state.markCodSetByHand();
             }
             // Collected from the sender: no drop-off point, which would show in the summary unused.
             if (!same(pickupModeBefore, values.pickup_mode) && values.pickup_mode !== 'drop_off') {
@@ -314,7 +314,7 @@ define([
                 values.sender_point_id = state.getDefaultSenderPoint();
             }
             if (carrierChanged) {
-                values.pickup_mode = state.defaultHandover();
+                values.pickup_mode = state.getDefaultHandover();
             }
             if (carrierChanged || section.normalizes) {
                 state.normalize();
@@ -343,8 +343,8 @@ define([
                     };
 
                 section.fields.forEach(function (definition) {
-                    if (!definition.visible || definition.visible()) {
-                        form.append(field(definition, form));
+                    if (!definition.isVisible || definition.isVisible()) {
+                        form.append(renderField(definition, form));
                     }
                 });
                 // A field named like its line doesn't show the name again; it keeps it for screen

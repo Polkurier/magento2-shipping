@@ -43,7 +43,7 @@ readonly class CopyPickupPointToOrderObserver implements ObserverInterface
             if ($point === null || !$order->getEntityId()) {
                 return;
             }
-            if ((string)$order->getShippingMethod() === Polkurier::methodOf($point->getMethodCode())) {
+            if ((string)$order->getShippingMethod() === Polkurier::buildShippingMethod($point->getMethodCode())) {
                 $this->orderPointRepository->copyFromQuote($point, (int)$order->getEntityId());
             }
         } catch (\Throwable $e) {

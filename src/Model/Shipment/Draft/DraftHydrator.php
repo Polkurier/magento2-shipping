@@ -28,72 +28,73 @@ readonly class DraftHydrator
     /**
      * @param array<string, mixed> $data
      */
-    public function fromArray(array $data): ShipmentDraftInterface
+    public function createFromArray(array $data): ShipmentDraftInterface
     {
         $draft = $this->draftFactory->create();
-        $draft->setCarrierCode(self::string($data, ShipmentDraftInterface::FIELD_CARRIER_CODE));
-        $draft->setShipmentType(self::string($data, ShipmentDraftInterface::FIELD_SHIPMENT_TYPE));
-        $draft->setDescription(self::nullableString($data, ShipmentDraftInterface::FIELD_DESCRIPTION));
+        $draft->setCarrierCode(self::readString($data, ShipmentDraftInterface::FIELD_CARRIER_CODE));
+        $draft->setShipmentType(self::readString($data, ShipmentDraftInterface::FIELD_SHIPMENT_TYPE));
+        $draft->setDescription(self::readNullableString($data, ShipmentDraftInterface::FIELD_DESCRIPTION));
         // A sender typed in comes as "new" in place of an address's id, as the screens choose it.
         $newSender = ($data[ShipmentDraftInterface::FIELD_SENDER_ADDRESS_ID] ?? null) === ShipmentDraftInterface::NEW;
         $draft->setNewSender($newSender);
         $draft->setSenderAddressId(
-            $newSender ? null : self::nullableInt($data, ShipmentDraftInterface::FIELD_SENDER_ADDRESS_ID),
+            $newSender ? null : self::readNullableInt($data, ShipmentDraftInterface::FIELD_SENDER_ADDRESS_ID),
         );
         $address = [];
         foreach (ShipmentDraftInterface::NEW_SENDER_FIELDS as $field => $key) {
-            $address[$field] = self::string($data, $key);
+            $address[$field] = self::readString($data, $key);
         }
         $draft->setNewSenderAddress($address);
-        $draft->setKeepingNewSender(self::flag($data, ShipmentDraftInterface::FIELD_KEEP_NEW_SENDER));
-        $draft->setSenderPointId(self::nullableString($data, ShipmentDraftInterface::FIELD_SENDER_POINT_ID));
-        $draft->setNewSenderName(self::string($data, ShipmentDraftInterface::FIELD_NEW_SENDER_NAME));
-        $draft->setRecipientPerson(self::string($data, ShipmentDraftInterface::FIELD_RECIPIENT_PERSON));
-        $draft->setRecipientCompany(self::nullableString($data, ShipmentDraftInterface::FIELD_RECIPIENT_COMPANY));
-        $draft->setRecipientStreet(self::string($data, ShipmentDraftInterface::FIELD_RECIPIENT_STREET));
+        $draft->setKeepingNewSender(self::readFlag($data, ShipmentDraftInterface::FIELD_KEEP_NEW_SENDER));
+        $draft->setSenderPointId(self::readNullableString($data, ShipmentDraftInterface::FIELD_SENDER_POINT_ID));
+        $draft->setNewSenderName(self::readString($data, ShipmentDraftInterface::FIELD_NEW_SENDER_NAME));
+        $draft->setRecipientPerson(self::readString($data, ShipmentDraftInterface::FIELD_RECIPIENT_PERSON));
+        $draft->setRecipientCompany(self::readNullableString($data, ShipmentDraftInterface::FIELD_RECIPIENT_COMPANY));
+        $draft->setRecipientStreet(self::readString($data, ShipmentDraftInterface::FIELD_RECIPIENT_STREET));
         $draft->setRecipientHouseNumber(
-            self::nullableString($data, ShipmentDraftInterface::FIELD_RECIPIENT_HOUSE_NUMBER),
+            self::readNullableString($data, ShipmentDraftInterface::FIELD_RECIPIENT_HOUSE_NUMBER),
         );
         $draft->setRecipientFlatNumber(
-            self::nullableString($data, ShipmentDraftInterface::FIELD_RECIPIENT_FLAT_NUMBER),
+            self::readNullableString($data, ShipmentDraftInterface::FIELD_RECIPIENT_FLAT_NUMBER),
         );
-        $draft->setRecipientPostcode(self::string($data, ShipmentDraftInterface::FIELD_RECIPIENT_POSTCODE));
-        $draft->setRecipientCity(self::string($data, ShipmentDraftInterface::FIELD_RECIPIENT_CITY));
+        $draft->setRecipientPostcode(self::readString($data, ShipmentDraftInterface::FIELD_RECIPIENT_POSTCODE));
+        $draft->setRecipientCity(self::readString($data, ShipmentDraftInterface::FIELD_RECIPIENT_CITY));
         $draft->setRecipientCountry(
-            self::string($data, ShipmentDraftInterface::FIELD_RECIPIENT_COUNTRY) ?: Polkurier::HOME_COUNTRY,
+            self::readString($data, ShipmentDraftInterface::FIELD_RECIPIENT_COUNTRY) ?: Polkurier::HOME_COUNTRY,
         );
-        $draft->setRecipientPhone(self::string($data, ShipmentDraftInterface::FIELD_RECIPIENT_PHONE));
-        $draft->setRecipientEmail(self::string($data, ShipmentDraftInterface::FIELD_RECIPIENT_EMAIL));
-        $draft->setRecipientPointId(self::nullableString($data, ShipmentDraftInterface::FIELD_RECIPIENT_POINT_ID));
-        $draft->setCodAmount(self::nullableFloat($data, ShipmentDraftInterface::FIELD_COD_AMOUNT));
-        $draft->setCodType(self::nullableString($data, ShipmentDraftInterface::FIELD_COD_TYPE));
-        $draft->setCodReturnType(self::nullableString($data, ShipmentDraftInterface::FIELD_COD_RETURN_TYPE));
+        $draft->setRecipientPhone(self::readString($data, ShipmentDraftInterface::FIELD_RECIPIENT_PHONE));
+        $draft->setRecipientEmail(self::readString($data, ShipmentDraftInterface::FIELD_RECIPIENT_EMAIL));
+        $draft->setRecipientPointId(self::readNullableString($data, ShipmentDraftInterface::FIELD_RECIPIENT_POINT_ID));
+        $draft->setCodAmount(self::readNullableFloat($data, ShipmentDraftInterface::FIELD_COD_AMOUNT));
+        $draft->setCodType(self::readNullableString($data, ShipmentDraftInterface::FIELD_COD_TYPE));
+        $draft->setCodReturnType(self::readNullableString($data, ShipmentDraftInterface::FIELD_COD_RETURN_TYPE));
         $bankAccountId = $data[ShipmentDraftInterface::FIELD_COD_BANK_ACCOUNT_ID] ?? null;
         $newBankAccount = $bankAccountId === ShipmentDraftInterface::NEW;
         $draft->setNewBankAccount($newBankAccount);
         $draft->setCodBankAccountId(
-            $newBankAccount ? null : self::nullableInt($data, ShipmentDraftInterface::FIELD_COD_BANK_ACCOUNT_ID),
+            $newBankAccount ? null : self::readNullableInt($data, ShipmentDraftInterface::FIELD_COD_BANK_ACCOUNT_ID),
         );
-        $draft->setNewBankAccountNumber(self::string($data, ShipmentDraftInterface::FIELD_NEW_BANK_ACCOUNT_NUMBER));
-        $draft->setKeepingNewBankAccount(self::flag($data, ShipmentDraftInterface::FIELD_KEEP_NEW_BANK_ACCOUNT));
-        $draft->setNewBankAccountName(self::string($data, ShipmentDraftInterface::FIELD_NEW_BANK_ACCOUNT_NAME));
-        $draft->setInsuranceAmount(self::nullableFloat($data, ShipmentDraftInterface::FIELD_INSURANCE_AMOUNT));
-        $draft->setShippingIncluded(self::flag($data, ShipmentDraftInterface::FIELD_SHIPPING_INCLUDED));
-        $draft->setCoverAddressId(self::nullableInt($data, ShipmentDraftInterface::FIELD_COVER_ADDRESS_ID));
+        $draft->setNewBankAccountNumber(self::readString($data, ShipmentDraftInterface::FIELD_NEW_BANK_ACCOUNT_NUMBER));
+        $draft->setKeepingNewBankAccount(self::readFlag($data, ShipmentDraftInterface::FIELD_KEEP_NEW_BANK_ACCOUNT));
+        $draft->setNewBankAccountName(self::readString($data, ShipmentDraftInterface::FIELD_NEW_BANK_ACCOUNT_NAME));
+        $draft->setInsuranceAmount(self::readNullableFloat($data, ShipmentDraftInterface::FIELD_INSURANCE_AMOUNT));
+        $draft->setShippingIncluded(self::readFlag($data, ShipmentDraftInterface::FIELD_SHIPPING_INCLUDED));
+        $draft->setCoverAddressId(self::readNullableInt($data, ShipmentDraftInterface::FIELD_COVER_ADDRESS_ID));
         $services = (array)($data[ShipmentDraftInterface::FIELD_SERVICES] ?? []);
         $draft->setServices(\array_values(\array_filter(\array_map('strval', $services))));
         $draft->setPickupMode(
-            self::string($data, ShipmentDraftInterface::FIELD_PICKUP_MODE) ?: ShipmentDraftInterface::PICKUP_COURIER,
+            self::readString($data, ShipmentDraftInterface::FIELD_PICKUP_MODE)
+                ?: ShipmentDraftInterface::PICKUP_COURIER,
         );
-        $draft->setPickupDate(self::nullableString($data, ShipmentDraftInterface::FIELD_PICKUP_DATE));
-        $draft->setPickupTimeFrom(self::nullableString($data, ShipmentDraftInterface::FIELD_PICKUP_TIME_FROM));
-        $draft->setPickupTimeTo(self::nullableString($data, ShipmentDraftInterface::FIELD_PICKUP_TIME_TO));
+        $draft->setPickupDate(self::readNullableString($data, ShipmentDraftInterface::FIELD_PICKUP_DATE));
+        $draft->setPickupTimeFrom(self::readNullableString($data, ShipmentDraftInterface::FIELD_PICKUP_TIME_FROM));
+        $draft->setPickupTimeTo(self::readNullableString($data, ShipmentDraftInterface::FIELD_PICKUP_TIME_TO));
         $draft->setAdditionalFields(\array_map('strval', \array_filter(
             (array)($data[ShipmentDraftInterface::FIELD_ADDITIONAL_FIELDS] ?? []),
             static fn($value): bool => \is_scalar($value),
         )));
-        $draft->setTargetShipmentId(self::nullableInt($data, ShipmentDraftInterface::FIELD_TARGET_SHIPMENT_ID));
-        $draft->setNotifyCustomer(self::flag($data, ShipmentDraftInterface::FIELD_NOTIFY_CUSTOMER));
+        $draft->setTargetShipmentId(self::readNullableInt($data, ShipmentDraftInterface::FIELD_TARGET_SHIPMENT_ID));
+        $draft->setNotifyCustomer(self::readFlag($data, ShipmentDraftInterface::FIELD_NOTIFY_CUSTOMER));
 
         $packs = [];
         foreach ((array)($data[ShipmentDraftInterface::FIELD_PACKS] ?? []) as $row) {
@@ -101,20 +102,20 @@ readonly class DraftHydrator
                 continue;
             }
             $packs[] = $this->packFactory->create()
-                ->setItems($this->items((array)($row[PackInterface::FIELD_ITEMS] ?? [])))
-                ->setTemplateId(self::nullableInt($row, PackInterface::FIELD_TEMPLATE_ID))
-                ->setPackType(self::string($row, PackInterface::FIELD_PACK_TYPE))
+                ->setItems($this->buildItems((array)($row[PackInterface::FIELD_ITEMS] ?? [])))
+                ->setTemplateId(self::readNullableInt($row, PackInterface::FIELD_TEMPLATE_ID))
+                ->setPackType(self::readString($row, PackInterface::FIELD_PACK_TYPE))
                 ->setLength((int)($row[PackInterface::FIELD_LENGTH] ?? 0))
                 ->setWidth((int)($row[PackInterface::FIELD_WIDTH] ?? 0))
                 ->setHeight((int)($row[PackInterface::FIELD_HEIGHT] ?? 0))
                 ->setWeight((float)\str_replace(',', '.', (string)($row[PackInterface::FIELD_WEIGHT] ?? 0)))
-                ->setKeepAs(self::string($row, PackInterface::FIELD_KEEP_AS))
+                ->setKeepAs(self::readString($row, PackInterface::FIELD_KEEP_AS))
                 // Amount is always 1: identical parcels are listed one by one.
                 ->setAmount(1);
         }
         $draft->setPacks($packs);
 
-        $draft->setItems($this->items((array)($data[ShipmentDraftInterface::FIELD_ITEMS] ?? [])));
+        $draft->setItems($this->buildItems((array)($data[ShipmentDraftInterface::FIELD_ITEMS] ?? [])));
 
         return $draft;
     }
@@ -122,7 +123,7 @@ readonly class DraftHydrator
     /**
      * @return array<string, mixed>
      */
-    public function toArray(ShipmentDraftInterface $draft): array
+    public function convertToArray(ShipmentDraftInterface $draft): array
     {
         /** @var Draft $draft */
         $data = $draft->getData();
@@ -135,12 +136,12 @@ readonly class DraftHydrator
                 PackInterface::FIELD_HEIGHT => $pack->getHeight() ?: '',
                 PackInterface::FIELD_WEIGHT => $pack->getWeight(),
                 PackInterface::FIELD_AMOUNT => $pack->getAmount(),
-                PackInterface::FIELD_ITEMS => self::itemRows($pack->getItems()),
+                PackInterface::FIELD_ITEMS => self::buildItemRows($pack->getItems()),
                 PackInterface::FIELD_KEEP_AS => $pack->getKeepAs(),
             ],
             $draft->getPacks(),
         );
-        $data[ShipmentDraftInterface::FIELD_ITEMS] = self::itemRows($draft->getItems());
+        $data[ShipmentDraftInterface::FIELD_ITEMS] = self::buildItemRows($draft->getItems());
         $data[ShipmentDraftInterface::FIELD_PACKS_ESTIMATED] = $draft->isPacksEstimated();
         $data[ShipmentDraftInterface::FIELD_SHIPPING_INCLUDED] = $draft->isShippingIncluded();
         // Chosen on the screens as "new", in place of an id.
@@ -160,7 +161,7 @@ readonly class DraftHydrator
      *
      * @return ItemInterface[]
      */
-    private function items(array $rows): array
+    private function buildItems(array $rows): array
     {
         $items = [];
         foreach ($rows as $row) {
@@ -180,7 +181,7 @@ readonly class DraftHydrator
      *
      * @return array<int, array<string, int|float>>
      */
-    private static function itemRows(array $items): array
+    private static function buildItemRows(array $items): array
     {
         return \array_map(
             static fn(ItemInterface $item): array => [
@@ -194,7 +195,7 @@ readonly class DraftHydrator
     /**
      * @param array<string, mixed> $data
      */
-    private static function string(array $data, string $key): string
+    private static function readString(array $data, string $key): string
     {
         return \trim((string)($data[$key] ?? ''));
     }
@@ -202,7 +203,7 @@ readonly class DraftHydrator
     /**
      * @param array<string, mixed> $data
      */
-    private static function flag(array $data, string $key): bool
+    private static function readFlag(array $data, string $key): bool
     {
         return \filter_var($data[$key] ?? false, \FILTER_VALIDATE_BOOLEAN);
     }
@@ -210,9 +211,9 @@ readonly class DraftHydrator
     /**
      * @param array<string, mixed> $data
      */
-    private static function nullableString(array $data, string $key): ?string
+    private static function readNullableString(array $data, string $key): ?string
     {
-        $value = self::string($data, $key);
+        $value = self::readString($data, $key);
 
         return $value === '' ? null : $value;
     }
@@ -220,9 +221,9 @@ readonly class DraftHydrator
     /**
      * @param array<string, mixed> $data
      */
-    private static function nullableInt(array $data, string $key): ?int
+    private static function readNullableInt(array $data, string $key): ?int
     {
-        $value = self::string($data, $key);
+        $value = self::readString($data, $key);
 
         return $value === '' || !\is_numeric($value) || (int)$value === 0 ? null : (int)$value;
     }
@@ -230,9 +231,9 @@ readonly class DraftHydrator
     /**
      * @param array<string, mixed> $data
      */
-    private static function nullableFloat(array $data, string $key): ?float
+    private static function readNullableFloat(array $data, string $key): ?float
     {
-        $value = \str_replace(',', '.', self::string($data, $key));
+        $value = \str_replace(',', '.', self::readString($data, $key));
 
         return $value === '' || !\is_numeric($value) ? null : (float)$value;
     }

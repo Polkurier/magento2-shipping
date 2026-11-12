@@ -53,12 +53,12 @@ class DefaultSenderPointManager implements ResetAfterRequestInterface
         if ($this->points !== null) {
             return $this->points;
         }
-        $failureKey = $this->accountCache->key('default_sender_points_failed');
+        $failureKey = $this->accountCache->buildKey('default_sender_points_failed');
         if ($this->polkurierCache->load($failureKey)) {
             return $this->points = [];
         }
         try {
-            $points = $this->polkurierClient->account()->getAccountInfo()->getDefaultSenderPoint();
+            $points = $this->polkurierClient->getAccount()->getAccountInfo()->getDefaultSenderPoint();
         } catch (PolkurierException $e) {
             $this->logger->warning('Default drop-off points unavailable', ['exception' => $e]);
             $this->polkurierCache->save('1', $failureKey, [CacheTagEnum::Failures->value], PolkurierCache::FAILURE_LIFETIME);
@@ -90,11 +90,11 @@ class DefaultSenderPointManager implements ResetAfterRequestInterface
     public function change(string $carrierCode, string $pointId): void
     {
         try {
-            $this->polkurierClient->account()->changeDefaultSenderPoint(
+            $this->polkurierClient->getAccount()->changeDefaultSenderPoint(
                 new ChangeDefaultSenderPointMessage($carrierCode, $pointId),
             );
         } catch (PolkurierException $e) {
-            throw $this->errorMessageResolver->exception($e);
+            throw $this->errorMessageResolver->createException($e);
         }
         // The other carriers of the network have changed too.
         $this->points = null;

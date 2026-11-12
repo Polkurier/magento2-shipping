@@ -88,7 +88,7 @@ define([
         /**
          * @returns {String} the field that identifies a row
          */
-        indexField: function () {
+        getIndexField: function () {
             return this.rows().get('storageConfig.indexField') || 'config_id';
         },
 
@@ -98,7 +98,7 @@ define([
          * @returns {String}
          */
         getId: function (record) {
-            return record ? String(record[this.indexField()]) : '';
+            return record ? String(record[this.getIndexField()]) : '';
         },
 
         /**
@@ -121,13 +121,13 @@ define([
                 rows = row.parent().children('tr.data-row'),
                 from = rows.index(row),
                 to = from + (by || 0),
-                id = this.rowId.bind(this),
+                id = this.getRowId.bind(this),
                 ids = rows.map(function () {
                     return id(this);
                 }).get();
 
             if (!event.altKey || !by || this.drag || to < 0 || to >= rows.length
-                || this.group(rows.eq(to)) !== this.group(row)) {
+                || this.getGroup(rows.eq(to)) !== this.getGroup(row)) {
                 return;
             }
             event.preventDefault();
@@ -154,7 +154,7 @@ define([
                 table = row.closest('table'),
                 copy = $(table[0].cloneNode(false)).append($('<tbody/>').append(row.clone())),
                 others = row.parent().children('tr.data-row').not(row),
-                group = this.group.bind(this),
+                group = this.getGroup.bind(this),
                 own = group(row),
                 // The other rows of its block, whose gaps are the only ones it can land in.
                 mates = others.map(function (index) {
@@ -204,7 +204,7 @@ define([
                 .on('mousemove' + EVENTS, this.move.bind(this))
                 .on('mouseup' + EVENTS, this.land.bind(this))
                 .on('keydown' + EVENTS, this.escape.bind(this));
-            this.autoScroll();
+            this.scrollAutomatically();
         },
 
         /**
@@ -223,7 +223,7 @@ define([
          */
         follow: function (pageY) {
             const drag = this.drag,
-                slot = this.slot(pageY);
+                slot = this.findSlot(pageY);
 
             drag.copy.css('top', pageY - drag.grabY);
             drag.line.css('top', drag.gaps[slot]).toggle(slot !== drag.from && drag.gaps.length > 0);
@@ -233,7 +233,7 @@ define([
          * @param {Number} pageY
          * @returns {Number} how many of the other rows end up above the dragged one
          */
-        slot: function (pageY) {
+        findSlot: function (pageY) {
             const drag = this.drag;
 
             return Math.min(Math.max(_.sortedIndex(drag.middles, pageY), drag.first), drag.last);
@@ -246,7 +246,7 @@ define([
          * @param {HTMLElement|jQuery} row
          * @returns {String} the id of the entry the row shows
          */
-        rowId: function (row) {
+        getRowId: function (row) {
             return String($(row).find('[data-id]').attr('data-id'));
         },
 
@@ -254,9 +254,9 @@ define([
          * @param {HTMLElement|jQuery} row
          * @returns {String} the value of groupBy the row has, or '' without groupBy
          */
-        group: function (row) {
-            const field = this.indexField(),
-                id = this.rowId(row),
+        getGroup: function (row) {
+            const field = this.getIndexField(),
+                id = this.getRowId(row),
                 item = this.groupBy ? _.find(this.rows().get('data.items') || [], function (entry) {
                     return String(entry[field]) === id;
                 }) : null;
@@ -268,7 +268,7 @@ define([
          * While the pointer is held near the top or bottom of the window, scrolls the page, so that
          * a row can be taken past what's in view.
          */
-        autoScroll: function () {
+        scrollAutomatically: function () {
             const drag = this.drag,
                 edge = 60,
                 step = function () {
@@ -327,9 +327,9 @@ define([
          * @param {MouseEvent} event
          */
         land: function (event) {
-            const slot = this.slot(event.pageY),
+            const slot = this.findSlot(event.pageY),
                 drag = this.drop(),
-                id = this.rowId.bind(this),
+                id = this.getRowId.bind(this),
                 before = drag.row.parent().children('tr.data-row').map(function () {
                     return id(this);
                 }).get(),
@@ -349,7 +349,7 @@ define([
          * @param {Array<String>} ids
          */
         arrange: function (ids) {
-            const field = this.indexField(),
+            const field = this.getIndexField(),
                 byId = _.indexBy(this.rows().get('data.items') || [], function (item) {
                     return String(item[field]);
                 });

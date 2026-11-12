@@ -34,7 +34,7 @@ class PickupTimes extends AbstractJsonAction
     protected function answer(): array
     {
         $data = (array)$this->getRequest()->getParam('data', []);
-        $senderPostcode = $this->pickupService->senderPostcodeOf($data);
+        $senderPostcode = $this->pickupService->getSenderPostcode($data);
         if (empty($data[ShipmentDraftInterface::FIELD_CARRIER_CODE])) {
             throw new LocalizedException(__('Choose a carrier first.'));
         }
@@ -49,7 +49,7 @@ class PickupTimes extends AbstractJsonAction
         )];
     }
 
-    protected function refused(LocalizedException $e): array
+    protected function buildRefusal(LocalizedException $e): array
     {
         // Retry is offered only when it may help. After a refusal, the screen waits for a change to
         // the shipment.

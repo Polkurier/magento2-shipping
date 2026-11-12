@@ -44,8 +44,8 @@ class LabelButton extends AbstractButton
             $options[] = [
                 'id' => 'format-' . \strtolower($format ?: 'pdf'),
                 'label' => $name,
-                'onclick' => $this->onClickScriptBuilder->location(
-                    $this->actionUrl('label', $format !== '' ? ['format' => $format] : []),
+                'onclick' => $this->onClickScriptBuilder->buildLocation(
+                    $this->getActionUrl('label', $format !== '' ? ['format' => $format] : []),
                 ),
                 // What the button itself prints.
                 'default' => $format === '',

@@ -62,10 +62,10 @@ class DetailsLoaderTest extends TestCase
 
     public function testAMissingOrderCopyIsStoredByAStatusRefresh(): void
     {
-        $refreshed = $this->shipment()->setDetails(['number' => '18015-2865'])->setStatusLabel('Doręczona');
+        $refreshed = $this->createShipment()->setDetails(['number' => '18015-2865'])->setStatusLabel('Doręczona');
         $this->refreshedShipment = $refreshed;
 
-        $loaded = $this->loader()->refresh($this->shipment());
+        $loaded = $this->createLoader()->refresh($this->createShipment());
 
         self::assertSame([3], $this->statusRefreshed);
         self::assertSame([], $loaded['errors']);
@@ -75,12 +75,12 @@ class DetailsLoaderTest extends TestCase
 
     public function testTheScansOfTheRefreshedShipmentFollowItsStateNow(): void
     {
-        $this->refreshedShipment = $this->shipment()
+        $this->refreshedShipment = $this->createShipment()
             ->setDetails(['number' => '18015-2865'])
             ->setState(ShipmentInterface::STATE_CANCELLED)
             ->setTrackingSyncedAt(null);
 
-        $this->loader()->refresh($this->shipment()->setTrackingSyncedAt(null));
+        $this->createLoader()->refresh($this->createShipment()->setTrackingSyncedAt(null));
 
         self::assertSame([3], $this->statusRefreshed);
         self::assertSame([], $this->read, 'Cancelled in Polkurier: no scans to read.');
@@ -88,10 +88,10 @@ class DetailsLoaderTest extends TestCase
 
     public function testAFinishedShipmentWithItsCopyAndScansNeedsNoRefresh(): void
     {
-        $shipment = $this->shipment()->setDetails(['number' => '18015-2865'])->setIsFinal(true);
+        $shipment = $this->createShipment()->setDetails(['number' => '18015-2865'])->setIsFinal(true);
 
-        self::assertFalse($this->loader()->needsRefresh($shipment));
-        $loaded = $this->loader()->refresh($shipment);
+        self::assertFalse($this->createLoader()->needsRefresh($shipment));
+        $loaded = $this->createLoader()->refresh($shipment);
 
         self::assertSame($shipment, $loaded['shipment']);
         self::assertSame([], $this->statusRefreshed);
@@ -100,26 +100,26 @@ class DetailsLoaderTest extends TestCase
 
     public function testAShipmentOnItsWayIsRefreshedEachTime(): void
     {
-        self::assertTrue($this->loader()->needsRefresh($this->shipment()), 'No copy yet.');
+        self::assertTrue($this->createLoader()->needsRefresh($this->createShipment()), 'No copy yet.');
         self::assertTrue(
-            $this->loader()->needsRefresh($this->shipment()->setDetails(['number' => '18015-2865'])),
+            $this->createLoader()->needsRefresh($this->createShipment()->setDetails(['number' => '18015-2865'])),
             'Read just now, and may have moved on since.',
         );
     }
 
     public function testACancelledShipmentWithItsCopyNeedsNoRefresh(): void
     {
-        self::assertFalse($this->loader()->needsRefresh(
-            $this->shipment()
+        self::assertFalse($this->createLoader()->needsRefresh(
+            $this->createShipment()
                 ->setDetails(['number' => '18015-2865'])
                 ->setState(ShipmentInterface::STATE_CANCELLED)
-                ->setTrackingSyncedAt($this->minutesAgo(3 * 24 * 60)),
+                ->setTrackingSyncedAt($this->formatMinutesAgo(3 * 24 * 60)),
         ));
     }
 
     public function testAShipmentOnItsWayHasItsCopyAndScansReadAgain(): void
     {
-        $loaded = $this->loader()->refresh($this->shipment()->setDetails(['number' => '18015-2865']));
+        $loaded = $this->createLoader()->refresh($this->createShipment()->setDetails(['number' => '18015-2865']));
 
         self::assertSame([3], $this->statusRefreshed);
         self::assertSame(['18015-2865'], $this->read);
@@ -129,11 +129,11 @@ class DetailsLoaderTest extends TestCase
 
     public function testTheScansOfAFinishedShipmentAreNotReadAgain(): void
     {
-        $this->loader()->refresh(
-            $this->shipment()
+        $this->createLoader()->refresh(
+            $this->createShipment()
                 ->setDetails(['number' => '18015-2865'])
                 ->setIsFinal(true)
-                ->setTrackingSyncedAt($this->minutesAgo(3 * 24 * 60)),
+                ->setTrackingSyncedAt($this->formatMinutesAgo(3 * 24 * 60)),
         );
 
         self::assertSame([], $this->read, 'Its scans cannot move on any more.');
@@ -141,8 +141,10 @@ class DetailsLoaderTest extends TestCase
 
     public function testScansNeverReadAreReadEvenForAFinishedShipment(): void
     {
-        $this->loader()->refresh(
-            $this->shipment()->setDetails(['number' => '18015-2865'])->setIsFinal(true)->setTrackingSyncedAt(null),
+        $this->createLoader()->refresh(
+            $this->createShipment()->setDetails(
+                ['number' => '18015-2865'],
+            )->setIsFinal(true)->setTrackingSyncedAt(null),
         );
 
         self::assertSame(['18015-2865'], $this->read);
@@ -157,8 +159,10 @@ class DetailsLoaderTest extends TestCase
             ShipmentInterface::STATE_CANCELLED,
         ];
         foreach ($notPlaced as $state) {
-            $this->loader()->refresh(
-                $this->shipment()->setDetails(['number' => '18015-2865'])->setState($state)->setTrackingSyncedAt(null),
+            $this->createLoader()->refresh(
+                $this->createShipment()->setDetails(
+                    ['number' => '18015-2865'],
+                )->setState($state)->setTrackingSyncedAt(null),
             );
         }
 
@@ -167,9 +171,11 @@ class DetailsLoaderTest extends TestCase
 
     public function testRefreshingTheScansWritesOnlyTheirColumns(): void
     {
-        $shipment = $this->shipment()->setStatusLabel('Changed on the page')->setTrackingSyncedAt($this->minutesAgo(5));
+        $shipment = $this->createShipment()->setStatusLabel('Changed on the page')->setTrackingSyncedAt(
+            $this->formatMinutesAgo(5),
+        );
 
-        $this->loader()->refreshTracking($shipment);
+        $this->createLoader()->refreshTracking($shipment);
 
         self::assertSame([3], \array_keys($this->written));
         self::assertSame(
@@ -178,14 +184,14 @@ class DetailsLoaderTest extends TestCase
             'The rest of the row is left as stored.',
         );
         self::assertSame(self::SCANS, \json_decode((string)$this->written[3][ShipmentInterface::FIELD_TRACKING], true));
-        self::assertSame($this->minutesAgo(0), $this->written[3][ShipmentInterface::FIELD_TRACKING_SYNCED_AT]);
+        self::assertSame($this->formatMinutesAgo(0), $this->written[3][ShipmentInterface::FIELD_TRACKING_SYNCED_AT]);
         self::assertSame(self::SCANS, $shipment->getTracking(), 'The shipment shown has them too.');
     }
 
     public function testACancelledShipmentOrOneWithoutANumberHasNoScansToRefresh(): void
     {
-        $this->loader()->refreshTracking($this->shipment()->setState(ShipmentInterface::STATE_CANCELLED));
-        $this->loader()->refreshTracking($this->shipment()->setPolkurierNumber(null));
+        $this->createLoader()->refreshTracking($this->createShipment()->setState(ShipmentInterface::STATE_CANCELLED));
+        $this->createLoader()->refreshTracking($this->createShipment()->setPolkurierNumber(null));
 
         self::assertSame([], $this->read);
         self::assertSame([], $this->written);
@@ -195,8 +201,10 @@ class DetailsLoaderTest extends TestCase
     {
         $this->readFailure = new LocalizedException(__('Polkurier is not answering.'));
 
-        $loaded = $this->loader()->refresh(
-            $this->shipment()->setDetails(['number' => '18015-2865'])->setIsFinal(true)->setTrackingSyncedAt(null),
+        $loaded = $this->createLoader()->refresh(
+            $this->createShipment()->setDetails(
+                ['number' => '18015-2865'],
+            )->setIsFinal(true)->setTrackingSyncedAt(null),
         );
 
         self::assertSame(['The carrier\'s scans could not be read: Polkurier is not answering.'], $loaded['errors']);
@@ -208,8 +216,10 @@ class DetailsLoaderTest extends TestCase
     {
         $this->writeFailure = new \RuntimeException('Deadlock found when trying to get lock.');
 
-        $loaded = $this->loader()->refresh(
-            $this->shipment()->setDetails(['number' => '18015-2865'])->setIsFinal(true)->setTrackingSyncedAt(null),
+        $loaded = $this->createLoader()->refresh(
+            $this->createShipment()->setDetails(
+                ['number' => '18015-2865'],
+            )->setIsFinal(true)->setTrackingSyncedAt(null),
         );
 
         self::assertSame(
@@ -223,9 +233,9 @@ class DetailsLoaderTest extends TestCase
     {
         $this->orderFailure = new LocalizedException(__('Polkurier has no order number 18015-2865 on this account.'));
         // Finished, with its scans read: only the copy is read.
-        $stored = $this->shipment()->setIsFinal(true);
+        $stored = $this->createShipment()->setIsFinal(true);
 
-        $loaded = $this->loader()->refresh($stored);
+        $loaded = $this->createLoader()->refresh($stored);
 
         self::assertSame(['Polkurier has no order number 18015-2865 on this account.'], $loaded['errors']);
         self::assertNull($loaded['shipment'], 'Nothing was read: the page keeps what it shows.');
@@ -236,7 +246,7 @@ class DetailsLoaderTest extends TestCase
     {
         $this->orderFailure = new \TypeError('Unexpected answer.');
 
-        $loaded = $this->loader()->refresh($this->shipment()->setTrackingSyncedAt(null));
+        $loaded = $this->createLoader()->refresh($this->createShipment()->setTrackingSyncedAt(null));
 
         self::assertSame(['The Polkurier order could not be read.'], $loaded['errors']);
         self::assertSame(['18015-2865'], $this->read);
@@ -245,14 +255,16 @@ class DetailsLoaderTest extends TestCase
 
     public function testAShipmentWithoutAPolkurierNumberHasNothingToLoad(): void
     {
-        $loaded = $this->loader()->refresh($this->shipment()->setPolkurierNumber(null)->setTrackingSyncedAt(null));
+        $loaded = $this->createLoader()->refresh(
+            $this->createShipment()->setPolkurierNumber(null)->setTrackingSyncedAt(null),
+        );
 
         self::assertSame([], $loaded['errors']);
         self::assertSame([], $this->read);
         self::assertSame([], $this->statusRefreshed);
     }
 
-    private function loader(): DetailsLoader
+    private function createLoader(): DetailsLoader
     {
         $statusRefresh = $this->createStub(StatusRefreshService::class);
         $statusRefresh->method('refresh')->willReturnCallback(function (int $id): ShipmentInterface {
@@ -261,10 +273,10 @@ class DetailsLoaderTest extends TestCase
             }
             $this->statusRefreshed[] = $id;
 
-            return $this->refreshedShipment ?? $this->shipment()->setDetails(['number' => '18015-2865']);
+            return $this->refreshedShipment ?? $this->createShipment()->setDetails(['number' => '18015-2865']);
         });
         $applier = $this->createStub(RemoteOrderApplier::class);
-        $applier->method('tracking')->willReturn(self::SCANS);
+        $applier->method('mapTracking')->willReturn(self::SCANS);
         $gateway = $this->createStub(ShipmentGateway::class);
         $gateway->method('getStatus')->willReturnCallback(
             function (string $number, bool $tracking): OrderStatusMessage {
@@ -295,7 +307,7 @@ class DetailsLoaderTest extends TestCase
         );
     }
 
-    private function shipment(): Shipment
+    private function createShipment(): Shipment
     {
         /** @var Shipment $shipment */
         $shipment = (new ObjectManager($this))->getObject(Shipment::class);
@@ -307,7 +319,7 @@ class DetailsLoaderTest extends TestCase
             ->setTrackingSyncedAt(\gmdate('Y-m-d H:i:s', self::NOW));
     }
 
-    private function minutesAgo(int $minutes): string
+    private function formatMinutesAgo(int $minutes): string
     {
         return \gmdate('Y-m-d H:i:s', self::NOW - $minutes * 60);
     }

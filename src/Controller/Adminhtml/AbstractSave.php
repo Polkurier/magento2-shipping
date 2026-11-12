@@ -43,7 +43,7 @@ abstract class AbstractSave extends AbstractAction implements HttpPostActionInte
             if ($result->failed > 0 || $entity->getSyncError()) {
                 $this->messageManager->addWarningMessage((string)__(
                     'Saved in Magento, but not in Polkurier: %1',
-                    $entity->getSyncError() ?: $this->reasons($result),
+                    $entity->getSyncError() ?: $this->formatReasons($result),
                 ));
             } elseif ($result->unconfirmed > 0) {
                 $this->messageManager->addNoticeMessage((string)__(

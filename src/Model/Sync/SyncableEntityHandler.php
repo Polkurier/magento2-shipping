@@ -68,7 +68,7 @@ abstract readonly class SyncableEntityHandler implements EntityHandlerInterface
 
                 return $result;
             }
-            $entity->setDeletedAt($this->now())->setSyncState(SyncableInterface::STATE_PENDING);
+            $entity->setDeletedAt($this->getNow())->setSyncState(SyncableInterface::STATE_PENDING);
             $this->adapter->save($entity);
 
             return $this->push($entity);
@@ -96,7 +96,11 @@ abstract readonly class SyncableEntityHandler implements EntityHandlerInterface
             return $this->syncEngine->run($this->adapter, $entity);
         } catch (\Exception $e) {
             throw new LocalizedException(
-                __('%1: %2', $this->adapter->getEntityType()->label(), $this->errorMessageResolver->phrase($e)),
+                __(
+                    '%1: %2',
+                    $this->adapter->getEntityType()->getLabel(),
+                    $this->errorMessageResolver->createPhrase($e),
+                ),
                 $e,
             );
         }

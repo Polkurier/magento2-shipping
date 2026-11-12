@@ -66,9 +66,9 @@ readonly class Synchronization
                 continue;
             }
             try {
-                $summary[] = $this->syncEngine->run($adapter)->summary();
+                $summary[] = $this->syncEngine->run($adapter)->getSummary();
             } catch (\Exception $e) {
-                $line = (string)__('%1: %2', $kind->label(), $this->errorMessageResolver->phrase($e));
+                $line = (string)__('%1: %2', $kind->getLabel(), $this->errorMessageResolver->createPhrase($e));
                 $this->logger->warning(
                     'Polkurier synchronization failed',
                     ['entity' => $kind->value, 'exception' => $e],

@@ -34,9 +34,12 @@ class ShipmentFinderTest extends TestCase
 
     public function testTheOrdersLatestShipmentOfAState(): void
     {
-        $this->items = [$this->shipment(9)];
+        $this->items = [$this->createShipment(9)];
 
-        self::assertSame(9, (int)$this->finder()->latestForOrder(42, [ShipmentInterface::STATE_FAILED])?->getId());
+        self::assertSame(
+            9,
+            (int)$this->createFinder()->findLatestForOrder(42, [ShipmentInterface::STATE_FAILED])?->getId(),
+        );
         self::assertSame([[
             'state ' . \json_encode(['in' => ['failed']]),
             'order_id ' . \json_encode(['eq' => 42]),
@@ -47,7 +50,7 @@ class ShipmentFinderTest extends TestCase
 
     public function testNoShipmentIsNull(): void
     {
-        self::assertNull($this->finder()->latestForOrder(42));
+        self::assertNull($this->createFinder()->findLatestForOrder(42));
         self::assertSame(
             [['order_id ' . \json_encode(['eq' => 42]), 'order entity_id DESC', 'page 1']],
             $this->queries,
@@ -56,9 +59,9 @@ class ShipmentFinderTest extends TestCase
 
     public function testTheOrdersShipmentsOldestFirst(): void
     {
-        $this->items = [$this->shipment(3), $this->shipment(5)];
+        $this->items = [$this->createShipment(3), $this->createShipment(5)];
 
-        $found = $this->finder()->forOrder(42, ShipmentInterface::LIVE_STATES);
+        $found = $this->createFinder()->findForOrder(42, ShipmentInterface::LIVE_STATES);
 
         self::assertCount(2, $found);
         self::assertSame([[
@@ -70,9 +73,9 @@ class ShipmentFinderTest extends TestCase
 
     public function testShipmentsLinkedToMagentoShipments(): void
     {
-        $finder = $this->finder();
-        $finder->linkedTo([11, 12]);
-        $finder->latestLinkedTo(11, [ShipmentInterface::STATE_CREATED]);
+        $finder = $this->createFinder();
+        $finder->findLinkedTo([11, 12]);
+        $finder->findLatestLinkedTo(11, [ShipmentInterface::STATE_CREATED]);
 
         self::assertSame([
             ['shipment_id ' . \json_encode(['in' => [11, 12]]), 'order entity_id ASC'],
@@ -87,22 +90,22 @@ class ShipmentFinderTest extends TestCase
 
     public function testListsOfNothingAskNothing(): void
     {
-        $finder = $this->finder();
+        $finder = $this->createFinder();
 
-        self::assertSame([], $finder->linkedTo([]));
-        self::assertSame([], $finder->byNumbers([]));
-        self::assertSame([], $finder->byIds([]));
-        self::assertNull($finder->latestByWaybill(''));
+        self::assertSame([], $finder->findLinkedTo([]));
+        self::assertSame([], $finder->findByNumbers([]));
+        self::assertSame([], $finder->findByIds([]));
+        self::assertNull($finder->findLatestByWaybill(''));
         self::assertSame([], $this->queries);
     }
 
     public function testShipmentsByNumberIdWaybillAndCashOnDelivery(): void
     {
-        $finder = $this->finder();
-        $finder->byNumbers(['24680-27'], [ShipmentInterface::STATE_CREATED]);
-        $finder->byIds([4, 5]);
-        $finder->latestByWaybill('WB-1');
-        $finder->withCodStatus('MB');
+        $finder = $this->createFinder();
+        $finder->findByNumbers(['24680-27'], [ShipmentInterface::STATE_CREATED]);
+        $finder->findByIds([4, 5]);
+        $finder->findLatestByWaybill('WB-1');
+        $finder->findWithCodStatus('MB');
 
         self::assertSame([
             [
@@ -118,9 +121,9 @@ class ShipmentFinderTest extends TestCase
 
     public function testShipmentsDueForAStatusCheckLeastRecentlyCheckedFirst(): void
     {
-        $finder = $this->finder();
-        $finder->dueForStatusCheck('2026-09-30 09:31:00', 200);
-        $finder->dueForStatusCheck(null, 200);
+        $finder = $this->createFinder();
+        $finder->findDueForStatusCheck('2026-09-30 09:31:00', 200);
+        $finder->findDueForStatusCheck(null, 200);
 
         $due = [
             'state ' . \json_encode(['in' => ['created']]),
@@ -139,7 +142,7 @@ class ShipmentFinderTest extends TestCase
 
     public function testShipmentsDueForReconciliation(): void
     {
-        $this->finder()->dueForReconciliation('2026-09-30 09:55:00', '2026-09-30 09:55:00', 50);
+        $this->createFinder()->findDueForReconciliation('2026-09-30 09:55:00', '2026-09-30 09:55:00', 50);
 
         self::assertSame([[
             'state ' . \json_encode(['in' => ['unknown', 'pending']]),
@@ -153,7 +156,7 @@ class ShipmentFinderTest extends TestCase
 
     public function testShipmentsNotPlacedLastTriedBefore(): void
     {
-        $this->finder()->failedBefore('2026-09-30 10:00:00');
+        $this->createFinder()->findFailedBefore('2026-09-30 10:00:00');
 
         self::assertSame([[
             'state ' . \json_encode(['in' => ['failed']]),
@@ -162,7 +165,7 @@ class ShipmentFinderTest extends TestCase
         ]], $this->queries);
     }
 
-    private function finder(): ShipmentFinder
+    private function createFinder(): ShipmentFinder
     {
         $factory = $this->createStub(CollectionFactory::class);
         $factory->method('create')->willReturnCallback(function (): Collection {
@@ -198,7 +201,7 @@ class ShipmentFinderTest extends TestCase
         return new ShipmentFinder($factory);
     }
 
-    private function shipment(int $id): Shipment
+    private function createShipment(int $id): Shipment
     {
         $shipment = $this->createStub(Shipment::class);
         $shipment->method('getId')->willReturn($id);

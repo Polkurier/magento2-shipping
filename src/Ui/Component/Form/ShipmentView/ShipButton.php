@@ -18,9 +18,9 @@ class ShipButton extends AbstractButton
     public function getButtonData(): array
     {
         return $this->isCreated()
-            && $this->shipment()?->getShipmentId() === null
+            && $this->getShipment()?->getShipmentId() === null
             && $this->authorization->isAllowed('Polkurier_Shipping::shipment_create')
-            ? $this->post((string)__('Create Magento shipment'), 'ship', 60)
+            ? $this->buildPostButton((string)__('Create Magento shipment'), 'ship', 60)
             : [];
     }
 }

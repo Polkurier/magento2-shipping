@@ -94,7 +94,7 @@ class ActionsColumn extends Column
                         ];
                     }
                     if ($this->authorization->isAllowed('Polkurier_Shipping::shipment_cancel')
-                        && CancellationRule::refusal($this->shipmentFactory->create(['data' => $item])) === null
+                        && CancellationRule::getRefusal($this->shipmentFactory->create(['data' => $item])) === null
                     ) {
                         $actions['cancel'] = [
                             'href' => $this->url->getUrl('polkurier/shipment/cancel', $params),

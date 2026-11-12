@@ -52,9 +52,9 @@ readonly class ErrorMessageResolver
     /**
      * The failure as an exception to show the merchant, with the message described.
      */
-    public function exception(\Exception $e): LocalizedException
+    public function createException(\Exception $e): LocalizedException
     {
-        return new LocalizedException($this->phrase($e), $e);
+        return new LocalizedException($this->createPhrase($e), $e);
     }
 
     /**
@@ -62,12 +62,12 @@ readonly class ErrorMessageResolver
      * another phrase. An already translated message only fills a placeholder; it isn't translated
      * again.
      */
-    public function phrase(\Throwable $e): Phrase
+    public function createPhrase(\Throwable $e): Phrase
     {
         return match (true) {
             $e instanceof ValidationException => __(
                 'Polkurier would not accept this. Check: %1',
-                $this->fields($e->getValidationErrors()),
+                $this->formatFields($e->getValidationErrors()),
             ),
             $e instanceof InvalidArgumentException => __(
                 'The request to Polkurier could not be built: %1',
@@ -79,7 +79,7 @@ readonly class ErrorMessageResolver
                 . 'Configuration > Sales > Delivery Methods > Polkurier. (%1)',
                 $e->getErrorMessage()->getResponse(),
             ),
-            $e instanceof WebserviceException => $this->webservice($e),
+            $e instanceof WebserviceException => $this->describeWebserviceError($e),
             $e instanceof ConnectionException => __(
                 'Polkurier could not be reached, or did not answer in time: %1',
                 $e->getPrevious()?->getMessage() ?? $e->getMessage(),
@@ -130,7 +130,7 @@ readonly class ErrorMessageResolver
      *
      * @return array<string, string[]>
      */
-    public function fieldErrors(\Throwable $e): array
+    public function getFieldErrors(\Throwable $e): array
     {
         return match (true) {
             $e instanceof ValidationException => $e->getValidationErrors(),
@@ -144,7 +144,7 @@ readonly class ErrorMessageResolver
      * "Recipient: Phone" and "packs.0.weight" as "Parcel 1: Weight". A name it doesn't know stays
      * as it is.
      */
-    public function fieldLabel(string $field): string
+    public function getFieldLabel(string $field): string
     {
         $groups = [
             CreateOrderMessage::FIELD_RECIPIENT => __('Recipient'),
@@ -196,24 +196,24 @@ readonly class ErrorMessageResolver
         return $words === [] ? (string)$group : $group . ': ' . \implode(' ', $words);
     }
 
-    private function webservice(WebserviceException $e): Phrase
+    private function describeWebserviceError(WebserviceException $e): Phrase
     {
         $error = $e->getErrorMessage();
         $fields = $error->getValidationErrors();
 
         return $fields
-            ? __('Polkurier refused: %1 Check: %2', (string)$error->getResponse(), $this->fields($fields))
+            ? __('Polkurier refused: %1 Check: %2', (string)$error->getResponse(), $this->formatFields($fields))
             : __('Polkurier refused: %1', (string)$error->getResponse());
     }
 
     /**
      * @param array<string, string[]> $errors
      */
-    private function fields(array $errors): string
+    private function formatFields(array $errors): string
     {
         $parts = [];
         foreach ($errors as $field => $messages) {
-            $parts[] = $this->fieldLabel((string)$field) . ' ' . \implode(', ', (array)$messages);
+            $parts[] = $this->getFieldLabel((string)$field) . ' ' . \implode(', ', (array)$messages);
         }
 
         return \implode('; ', $parts);

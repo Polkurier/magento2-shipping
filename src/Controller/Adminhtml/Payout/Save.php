@@ -59,7 +59,7 @@ class Save extends Action implements HttpPostActionInterface
                 (string)($data['two_factor_code'] ?? ''),
                 isset($data['security_pin']) ? (string)$data['security_pin'] : null,
                 $payoutType === MoneyBoxPayoutTypeEnum::Account
-                    ? PayoutManager::chosenAccount(
+                    ? PayoutManager::resolveChosenAccount(
                         (string)($data['bank_account_choice'] ?? PayoutManager::ANOTHER_ACCOUNT),
                         (string)($data['bank_account_number'] ?? ''),
                     )

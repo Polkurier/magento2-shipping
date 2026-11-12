@@ -62,11 +62,11 @@ Smaller messages without a builder (an id, a delete) are created directly.
 
 [`Api\PolkurierClientInterface`](../../src/Api/PolkurierClientInterface.php) hands out every
 service of the SDK for the account the module is connected to, with its credentials, sandbox
-setting, timeouts and logging, including those the module doesn't use itself, such as `invoices()`,
-`payments()` and `tickets()`:
+setting, timeouts and logging, including those the module doesn't use itself, such as `getInvoices()`,
+`getPayments()` and `getTickets()`:
 
 ```php
-$point = $this->polkurierClient->courier()->getCourierPoint('WAW195M', ['INPOST_PACZKOMAT']);
+$point = $this->polkurierClient->getCourier()->getCourierPoint('WAW195M', ['INPOST_PACZKOMAT']);
 ```
 
 Orders placed this way aren't the module's shipments: it won't list, follow or cancel them. To place

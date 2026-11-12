@@ -97,7 +97,7 @@ class CarrierCatalog implements ResetAfterRequestInterface
      */
     public function getAccountCarriers(): array
     {
-        $key = $this->cacheKey();
+        $key = $this->getCacheKey();
         if (isset($this->loaded[$key])) {
             return $this->loaded[$key];
         }
@@ -118,7 +118,7 @@ class CarrierCatalog implements ResetAfterRequestInterface
             $carriers = $this->fetch();
         } catch (PolkurierException $e) {
             $this->polkurierCache->save(
-                (string)$this->errorMessageResolver->phrase($e),
+                (string)$this->errorMessageResolver->createPhrase($e),
                 $key . self::FAILURE_SUFFIX,
                 [CacheTagEnum::Carriers->value, CacheTagEnum::Failures->value],
                 PolkurierCache::FAILURE_LIFETIME,
@@ -142,7 +142,7 @@ class CarrierCatalog implements ResetAfterRequestInterface
         $carriers = $this->fetch();
         $this->clean();
 
-        return $this->keep($this->cacheKey(), $carriers);
+        return $this->keep($this->getCacheKey(), $carriers);
     }
 
     /**
@@ -167,7 +167,7 @@ class CarrierCatalog implements ResetAfterRequestInterface
             return null;
         }
         \sort($providers);
-        $key = $this->accountCache->key('point', $this->sdkVersion(), $pointId, \implode(',', $providers));
+        $key = $this->accountCache->buildKey('point', $this->getSdkVersion(), $pointId, \implode(',', $providers));
         $cached = $this->polkurierCache->load($key);
         if ($cached === self::NO_POINT) {
             return null;
@@ -176,7 +176,7 @@ class CarrierCatalog implements ResetAfterRequestInterface
         if ($point instanceof CourierPoint) {
             return $point;
         }
-        foreach ([$this->cacheKey(), $this->pointsFailureKey()] as $failing) {
+        foreach ([$this->getCacheKey(), $this->getPointsFailureKey()] as $failing) {
             $failure = $this->failed[$failing] ?? $this->polkurierCache->load($failing . self::FAILURE_SUFFIX);
             if ($failure instanceof PolkurierException) {
                 throw $failure;
@@ -187,18 +187,18 @@ class CarrierCatalog implements ResetAfterRequestInterface
         }
 
         try {
-            $point = $this->polkurierClient->courier()->getCourierPoint($pointId, $providers);
+            $point = $this->polkurierClient->getCourier()->getCourierPoint($pointId, $providers);
         } catch (PolkurierException $e) {
             // Polkurier unreachable or busy: not asked again for a while. A refusal of this point
             // says nothing of the next one.
             if ($this->errorMessageResolver->isTransient($e)) {
                 $this->polkurierCache->save(
-                    (string)$this->errorMessageResolver->phrase($e),
-                    $this->pointsFailureKey() . self::FAILURE_SUFFIX,
+                    (string)$this->errorMessageResolver->createPhrase($e),
+                    $this->getPointsFailureKey() . self::FAILURE_SUFFIX,
                     [CacheTagEnum::Points->value, CacheTagEnum::Failures->value],
                     PolkurierCache::FAILURE_LIFETIME,
                 );
-                $this->failed[$this->pointsFailureKey()] = $e;
+                $this->failed[$this->getPointsFailureKey()] = $e;
             }
 
             throw $e;
@@ -234,7 +234,7 @@ class CarrierCatalog implements ResetAfterRequestInterface
     {
         $carriers = [];
         $message = new AvailableCarriersMessage(additionalData: true);
-        $available = $this->polkurierClient->courier()->availableCarriers($message);
+        $available = $this->polkurierClient->getCourier()->availableCarriers($message);
         foreach ($available as $carrier) {
             $carriers[$carrier->getServiceCode()] = $carrier;
         }
@@ -281,7 +281,7 @@ class CarrierCatalog implements ResetAfterRequestInterface
     private function unserializeCached(string $cached): mixed
     {
         try {
-            $classes = $this->cachedClasses($cached);
+            $classes = $this->listCachedClasses($cached);
 
             return $classes === null ? false : \unserialize($cached, ['allowed_classes' => $classes]);
         } catch (\Throwable) {
@@ -289,9 +289,9 @@ class CarrierCatalog implements ResetAfterRequestInterface
         }
     }
 
-    private function pointsFailureKey(): string
+    private function getPointsFailureKey(): string
     {
-        return $this->accountCache->key('points');
+        return $this->accountCache->buildKey('points');
     }
 
     /**
@@ -300,7 +300,7 @@ class CarrierCatalog implements ResetAfterRequestInterface
      *
      * @return string[]|null
      */
-    private function cachedClasses(string $serialized): ?array
+    private function listCachedClasses(string $serialized): ?array
     {
         \preg_match_all('/(?:^|[;{}])[OE]:\d+:"([^":]+)/', $serialized, $matches);
         $classes = \array_values(\array_unique($matches[1]));
@@ -317,15 +317,15 @@ class CarrierCatalog implements ResetAfterRequestInterface
         return $classes;
     }
 
-    private function cacheKey(): string
+    private function getCacheKey(): string
     {
-        return $this->accountCache->key('carriers', $this->sdkVersion());
+        return $this->accountCache->buildKey('carriers', $this->getSdkVersion());
     }
 
     /**
      * Cached lists of an earlier SDK may no longer fit its classes.
      */
-    private function sdkVersion(): string
+    private function getSdkVersion(): string
     {
         try {
             return InstalledVersions::getVersion(self::SDK_PACKAGE)

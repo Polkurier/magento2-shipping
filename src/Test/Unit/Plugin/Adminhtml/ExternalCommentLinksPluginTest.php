@@ -33,7 +33,7 @@ class ExternalCommentLinksPluginTest extends TestCase
         self::assertSame(
             'Waybills: <a href="https://polkurier.pl/t?nr=1&amp;x=2" class="polkurier-external" '
             . 'target="_blank" rel="noopener">WB-1</a>.',
-            $this->plugin($escaped),
+            $this->applyPlugin($escaped),
         );
     }
 
@@ -41,10 +41,10 @@ class ExternalCommentLinksPluginTest extends TestCase
     {
         $comment = 'See <a href="https://example.com/">this</a>.';
 
-        self::assertSame($comment, $this->plugin($comment));
+        self::assertSame($comment, $this->applyPlugin($comment));
     }
 
-    private function plugin(string $escaped): string
+    private function applyPlugin(string $escaped): string
     {
         $result = (new ExternalCommentLinksPlugin())
             ->afterEscapeHtmlWithLinks($this->createStub(Admin::class), $escaped);

@@ -106,7 +106,7 @@ class NativeLabelPagePluginTest extends TestCase
     public function testWhatBecameOfTheEntriesKeptIsSaidAfterTheLabel(): void
     {
         $this->params = ['order_id' => '9', 'shipment' => ['create_shipping_label' => '1']];
-        $this->flashMessageCollector = (new FlashMessageCollector())->success('"Tuba" was saved to pack templates.');
+        $this->flashMessageCollector = (new FlashMessageCollector())->addSuccess('"Tuba" was saved to pack templates.');
 
         $this->execute(
             Save::class,
@@ -121,12 +121,12 @@ class NativeLabelPagePluginTest extends TestCase
         $this->params = [NativeLabelService::OPTIONS_PARAM => ['carrier_code' => 'DPD']];
         $request = $this->request();
         $shipment = $this->createMock(Shipment::class);
-        $shipment->method('getOrder')->willReturn($this->order('polkurier_inpost_paczkomat'));
+        $shipment->method('getOrder')->willReturn($this->createOrder('polkurier_inpost_paczkomat'));
         $shipment->expects(self::once())
             ->method('setData')
             ->with(NativeLabelService::FIELD_OPTIONS, ['carrier_code' => 'DPD']);
 
-        $this->plugin([])->beforeCreate($this->createStub(LabelGenerator::class), $shipment, $request);
+        $this->createPlugin([])->beforeCreate($this->createStub(LabelGenerator::class), $shipment, $request);
     }
 
     public function testAShipmentWithoutALabelIsLeftAlone(): void
@@ -152,15 +152,15 @@ class NativeLabelPagePluginTest extends TestCase
         $controller = $this->createStub($action);
         $controller->method('getRequest')->willReturn($this->request());
 
-        return $this->plugin($allowed, $method)->aroundExecute($controller, static fn(): string => 'proceeded');
+        return $this->createPlugin($allowed, $method)->aroundExecute($controller, static fn(): string => 'proceeded');
     }
 
     /**
      * @param string[] $allowed the ACL resources the admin has
      */
-    private function plugin(array $allowed, string $method = 'polkurier_inpost_paczkomat'): NativeLabelPagePlugin
+    private function createPlugin(array $allowed, string $method = 'polkurier_inpost_paczkomat'): NativeLabelPagePlugin
     {
-        $order = $this->order($method);
+        $order = $this->createOrder($method);
         $orders = $this->createStub(OrderRepositoryInterface::class);
         $orders->method('get')
             ->willReturnCallback(
@@ -224,7 +224,7 @@ class NativeLabelPagePluginTest extends TestCase
         return $request;
     }
 
-    private function order(string $method): Order
+    private function createOrder(string $method): Order
     {
         $order = $this->createStub(Order::class);
         $order->method('getShippingMethod')->willReturn($method);

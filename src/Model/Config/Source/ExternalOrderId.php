@@ -18,7 +18,7 @@ readonly class ExternalOrderId extends AbstractOptions
     {
         $options = [];
         foreach (ExternalOrderIdEnum::cases() as $case) {
-            $options[$case->value] = $case->label();
+            $options[$case->value] = $case->getLabel();
         }
 
         return $options;

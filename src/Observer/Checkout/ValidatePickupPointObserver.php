@@ -33,7 +33,7 @@ readonly class ValidatePickupPointObserver implements ObserverInterface
     {
         /** @var Quote $quote */
         $quote = $observer->getEvent()->getData('quote');
-        $methodCode = Polkurier::methodCodeOf((string)$quote->getShippingAddress()->getShippingMethod());
+        $methodCode = Polkurier::extractMethodCode((string)$quote->getShippingAddress()->getShippingMethod());
         if ($methodCode !== null && !$quote->isVirtual()) {
             $this->pointSelectionRecorder->requirePoint($quote, $methodCode);
         }

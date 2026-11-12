@@ -179,7 +179,7 @@ class LabelOptions implements ArgumentInterface, ResetAfterRequestInterface
             'carriersError' => $this->shipmentOptionsProvider->getCarriersError(),
             'map' => $this->screenDataProvider->getMap(),
             // The shipment type each parcel type makes, for checking the packages.
-            'packShipmentTypes' => (object)ParcelTypeMapper::map(),
+            'packShipmentTypes' => (object)ParcelTypeMapper::getShipmentTypeMap(),
             // Services for pallets, which only pallets may have.
             'palletServices' => $this->screenDataProvider->getPalletServices(),
             // Where the point map starts: the postcode alone, which the city can't contradict.

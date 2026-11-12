@@ -71,7 +71,7 @@ class ShipmentActionsTest extends AdminActionTestCase
         $this->post = ['order_id' => '29'];
         $management = $this->createStub(ShipmentManagementInterface::class);
         $management->method('create')
-            ->willReturn($this->shipment(ShipmentInterface::STATE_CREATED, 'POL1', ['WB-1', 'WB-2']));
+            ->willReturn($this->createShipment(ShipmentInterface::STATE_CREATED, 'POL1', ['WB-1', 'WB-2']));
 
         $this->save($management)->execute();
 
@@ -113,7 +113,7 @@ class ShipmentActionsTest extends AdminActionTestCase
                     && $kept->isKeepingNewBankAccount()
                     && $kept->getPacks()[0]->getKeepAs() === '',
             ))
-            ->willReturn($this->shipment(ShipmentInterface::STATE_CREATED, 'POL1', ['WB-1']));
+            ->willReturn($this->createShipment(ShipmentInterface::STATE_CREATED, 'POL1', ['WB-1']));
 
         $this->save($management, $draft)->execute();
 
@@ -128,7 +128,7 @@ class ShipmentActionsTest extends AdminActionTestCase
         $this->post = ['order_id' => '29'];
         $management = $this->createStub(ShipmentManagementInterface::class);
         $management->method('create')
-            ->willReturn($this->shipment(ShipmentInterface::STATE_UNKNOWN, null, [], 'Timed out.'));
+            ->willReturn($this->createShipment(ShipmentInterface::STATE_UNKNOWN, null, [], 'Timed out.'));
 
         $this->save($management)->execute();
 
@@ -141,7 +141,7 @@ class ShipmentActionsTest extends AdminActionTestCase
     public function testPackingWithoutChosenItemsPacksWhatTheOrderHasLeft(): void
     {
         $this->params = ['data' => ['order_id' => '29']];
-        $packer = $this->packer([5 => 2.0]);
+        $packer = $this->createPacker([5 => 2.0]);
         $packer->expects(self::once())->method('pack')->with(self::anything(), [5 => 2.0])
             ->willReturn([
                 'packs' => [(new DraftPack())->setAmount(1)],
@@ -162,7 +162,7 @@ class ShipmentActionsTest extends AdminActionTestCase
     public function testAParcelOfItsOwnSizeWithoutAWeightIsToBeWeighedByHand(): void
     {
         $this->params = ['data' => ['order_id' => '29']];
-        $packer = $this->packer([5 => 2.0]);
+        $packer = $this->createPacker([5 => 2.0]);
         $packer->method('pack')
             ->willReturn([
                 'packs' => [(new DraftPack())->setAmount(1)],
@@ -184,7 +184,7 @@ class ShipmentActionsTest extends AdminActionTestCase
     public function testNothingLeftToShipIsSaidSo(): void
     {
         $this->params = ['data' => ['order_id' => '29']];
-        $packer = $this->packer([]);
+        $packer = $this->createPacker([]);
         $packer->expects(self::never())->method('pack');
 
         $this->pack($packer)->execute();
@@ -196,7 +196,7 @@ class ShipmentActionsTest extends AdminActionTestCase
     {
         // Its items count as shipped on the order: what the order has left is not what it carries.
         $this->params = ['data' => ['order_id' => '29', 'target_shipment_id' => '11']];
-        $packer = $this->packer([], 11, [7 => 1.0]);
+        $packer = $this->createPacker([], 11, [7 => 1.0]);
         $packer->expects(self::once())->method('pack')->with(self::anything(), [7 => 1.0])
             ->willReturn([
                 'packs' => [(new DraftPack())->setAmount(1)],
@@ -213,7 +213,7 @@ class ShipmentActionsTest extends AdminActionTestCase
     public function testUnmeasuredProductsAreNamed(): void
     {
         $this->params = ['data' => ['order_id' => '29']];
-        $packer = $this->packer([5 => 2.0]);
+        $packer = $this->createPacker([5 => 2.0]);
         $packer->method('pack')
             ->willReturn([
                 'packs' => [],
@@ -297,9 +297,9 @@ class ShipmentActionsTest extends AdminActionTestCase
 
     public function testOnlyShipmentsAwaitingACollectivePickupGoToItsForm(): void
     {
-        $this->massPickup([
-            $this->collective(41, 'POL1', awaiting: true),
-            $this->collective(42, 'POL2', awaiting: false),
+        $this->createMassPickup([
+            $this->createCollectiveShipment(41, 'POL1', awaiting: true),
+            $this->createCollectiveShipment(42, 'POL2', awaiting: false),
         ])->execute();
 
         self::assertSame('*/*/pickupForm', $this->redirect[0] ?? null);
@@ -309,7 +309,7 @@ class ShipmentActionsTest extends AdminActionTestCase
 
     public function testNoFormOpensWithoutAShipmentAwaitingACollectivePickup(): void
     {
-        $this->massPickup([$this->collective(42, 'POL2', awaiting: false)])->execute();
+        $this->createMassPickup([$this->createCollectiveShipment(42, 'POL2', awaiting: false)])->execute();
 
         self::assertNotSame('*/*/pickupForm', $this->redirect[0] ?? null);
         self::assertSame(['None of the selected shipments awaits a collective pickup.'], $this->messages['error']);
@@ -318,20 +318,20 @@ class ShipmentActionsTest extends AdminActionTestCase
     /**
      * @param ShipmentInterface[] $selected
      */
-    private function massPickup(array $selected): MassPickup
+    private function createMassPickup(array $selected): MassPickup
     {
         $requested = $this->createStub(RequestedShipments::class);
         $requested->method('getSelected')->willReturn($selected);
 
         return new MassPickup(
-            $this->context(),
+            $this->createContext(),
             $requested,
             $this->createStub(EncoderInterface::class),
             (new \ReflectionClass(PickupService::class))->newInstanceWithoutConstructor(),
         );
     }
 
-    private function collective(int $id, string $number, bool $awaiting): ShipmentInterface
+    private function createCollectiveShipment(int $id, string $number, bool $awaiting): ShipmentInterface
     {
         $shipment = $this->createStub(ShipmentInterface::class);
         $shipment->method('getId')->willReturn($id);
@@ -350,15 +350,15 @@ class ShipmentActionsTest extends AdminActionTestCase
             $this->kept = $data;
         });
         $hydrator = $this->createStub(DraftHydrator::class);
-        $hydrator->method('fromArray')->willReturn($draft ?? $this->createStub(ShipmentDraftInterface::class));
+        $hydrator->method('createFromArray')->willReturn($draft ?? $this->createStub(ShipmentDraftInterface::class));
 
         return new Save(
-            $this->context(),
+            $this->createContext(),
             $management,
             $hydrator,
             new RejectedDraftStorage($persistor),
             $this->createStub(ManualEntrySaver::class),
-            $this->flashMessageCollectorFactory(),
+            $this->createFlashMessageCollectorFactory(),
         );
     }
 
@@ -367,10 +367,10 @@ class ShipmentActionsTest extends AdminActionTestCase
         $orders = $this->createStub(OrderLoader::class);
         $orders->method('getForPolkurier')->willReturn($this->createStub(Order::class));
         $hydrator = $this->createStub(DraftHydrator::class);
-        $hydrator->method('fromArray')->willReturn($this->draft);
-        $hydrator->method('toArray')->willReturn([ShipmentDraftInterface::FIELD_PACKS => [['amount' => 1]]]);
+        $hydrator->method('createFromArray')->willReturn($this->draft);
+        $hydrator->method('convertToArray')->willReturn([ShipmentDraftInterface::FIELD_PACKS => [['amount' => 1]]]);
 
-        return new Pack($this->context(), $this->jsonFactory(), $orders, $hydrator, $packer);
+        return new Pack($this->createContext(), $this->createJsonFactory(), $orders, $hydrator, $packer);
     }
 
     /**
@@ -380,7 +380,7 @@ class ShipmentActionsTest extends AdminActionTestCase
      * @param array<int, float> $left what the order has left to ship
      * @param array<int, float> $inShipment what the Magento shipment of the draft carries
      */
-    private function packer(array $left, ?int $targetId = null, array $inShipment = []): AutoPacker&MockObject
+    private function createPacker(array $left, ?int $targetId = null, array $inShipment = []): AutoPacker&MockObject
     {
         $this->draft = new Draft();
         $this->draft->setItems([])->setShipmentType('box')->setTargetShipmentId($targetId);
@@ -408,24 +408,29 @@ class ShipmentActionsTest extends AdminActionTestCase
         $utils = $this->createStub(UtilsServiceInterface::class);
         $utils->method('testAuthApi')->willReturnCallback($answer);
         $client = $this->createStub(PolkurierClient::class);
-        $client->method('utils')->willReturn($utils);
+        $client->method('getUtils')->willReturn($utils);
         $config = $this->createStub(ConfigProvider::class);
         $config->method('getLogin')->willReturn($savedLogin);
         $config->method('getToken')->willReturn($savedToken);
         return new TestConnection(
-            $this->context(),
-            $this->jsonFactory(),
+            $this->createContext(),
+            $this->createJsonFactory(),
             $client,
             $config,
             new ErrorMessageResolver(),
-            NewingObjectManager::factory(AuthorizationMessageFactory::class),
+            NewingObjectManager::createFactory(AuthorizationMessageFactory::class),
         );
     }
 
     /**
      * @param string[] $waybills
      */
-    private function shipment(string $state, ?string $number, array $waybills, ?string $error = null): ShipmentInterface
+    private function createShipment(
+        string $state,
+        ?string $number,
+        array $waybills,
+        ?string $error = null,
+    ): ShipmentInterface
     {
         $shipment = $this->createStub(ShipmentInterface::class);
         $shipment->method('getState')->willReturn($state);

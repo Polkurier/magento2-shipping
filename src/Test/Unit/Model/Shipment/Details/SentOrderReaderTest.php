@@ -144,7 +144,7 @@ class SentOrderReaderTest extends TestCase
             'packs' => [
                 ['amount' => 2, 'length' => 40, 'width' => 30, 'height' => 20, 'weight' => 2.5, 'type' => 'ST'],
             ],
-        ], $this->sentOrder()->read($request));
+        ], $this->createReader()->read($request));
     }
 
     public function testTheCoverAddressKeepsItsFlatAsTheOthersDo(): void
@@ -176,7 +176,7 @@ class SentOrderReaderTest extends TestCase
             ),
         ), 'json');
 
-        $read = $this->sentOrder()->read($request);
+        $read = $this->createReader()->read($request);
 
         self::assertSame('Prosta 20/5', $read['sender']['street'] ?? null);
         self::assertSame(
@@ -188,7 +188,7 @@ class SentOrderReaderTest extends TestCase
 
     public function testWhatTheRequestLeftOutIsEmpty(): void
     {
-        $read = $this->sentOrder()->read(
+        $read = $this->createReader()->read(
             '{"courier":"INPOST_PACZKOMAT","shipmenttype":"box","courierservice":{"SMS_NOTIFICATION_RECIPIENT":false}}',
         );
 
@@ -205,11 +205,11 @@ class SentOrderReaderTest extends TestCase
     public function testAnUnreadableRequestGivesNothing(): void
     {
         foreach (['', 'not json', '{"courier":"DPD",', 'null', '"create_order"'] as $request) {
-            self::assertSame([], $this->sentOrder()->read($request), $request);
+            self::assertSame([], $this->createReader()->read($request), $request);
         }
     }
 
-    private function sentOrder(): SentOrderReader
+    private function createReader(): SentOrderReader
     {
         return new SentOrderReader(
             new Json(),

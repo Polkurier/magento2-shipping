@@ -32,7 +32,7 @@ class Handler extends Base
     public function __construct(DriverInterface $filesystem, ?string $filePath = null)
     {
         $this->fileName = self::DIRECTORY . '/'
-            . self::fileName(new \DateTimeImmutable('now', new \DateTimeZone('UTC')), false);
+            . self::buildFileName(new \DateTimeImmutable('now', new \DateTimeZone('UTC')), false);
         parent::__construct($filesystem, $filePath);
         $this->directory = \dirname((string)$this->url);
         // Each record picks its file just before it's written. A processor rather than
@@ -43,7 +43,7 @@ class Handler extends Base
     /**
      * The file a record goes to, e.g. "2026-10-access.log", or "2026-10-error.log" from a warning up.
      */
-    public static function fileName(\DateTimeInterface $at, bool $error): string
+    public static function buildFileName(\DateTimeInterface $at, bool $error): string
     {
         return $at->format('Y-m') . ($error ? '-error.log' : '-access.log');
     }
@@ -57,7 +57,7 @@ class Handler extends Base
     {
         $at = $record['datetime'] ?? null;
         $level = $record['level'] ?? null;
-        $url = $this->directory . '/' . self::fileName(
+        $url = $this->directory . '/' . self::buildFileName(
             $at instanceof \DateTimeInterface ? $at : new \DateTimeImmutable(),
             ($level instanceof \BackedEnum ? $level->value : (int)$level) >= Logger::WARNING,
         );

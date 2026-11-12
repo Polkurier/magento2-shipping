@@ -76,7 +76,7 @@ readonly class AttentionNotifier
                 ['increment_id'],
             )
             ->where('shipment.' . ShipmentInterface::FIELD_ATTENTION_NOTIFIED_AT . ' IS NULL')
-            ->where($this->needsSomeone($noticeBefore, $settleBefore));
+            ->where($this->buildAttentionCondition($noticeBefore, $settleBefore));
         foreach ($connection->fetchAll($select) as $row) {
             [$title, $description] = $this->describe($row);
             $this->notifier->addMajor($title, $description, $this->url->getUrl(self::VIEW_PATH, [
@@ -93,7 +93,7 @@ readonly class AttentionNotifier
     /**
      * The SQL condition that a shipment (aliased "shipment") needs attention.
      */
-    private function needsSomeone(string $noticeBefore, string $settleBefore): string
+    private function buildAttentionCondition(string $noticeBefore, string $settleBefore): string
     {
         $connection = $this->resource->getConnection('sales');
 
@@ -145,7 +145,7 @@ readonly class AttentionNotifier
             )
             ->where('shipment.entity_id IN (?)', \array_values(\array_unique($shown)))
             ->where('shipment.' . ShipmentInterface::FIELD_ATTENTION_NOTIFIED_AT . ' IS NOT NULL')
-            ->where($this->needsSomeone($noticeBefore, $settleBefore))));
+            ->where($this->buildAttentionCondition($noticeBefore, $settleBefore))));
         $settled = \array_keys(\array_diff($shown, $stillNeeded));
         if ($settled !== []) {
             $inbox->update($inboxTable, ['is_read' => 1, 'is_remove' => 1], ['notification_id IN (?)' => $settled]);
@@ -160,7 +160,7 @@ readonly class AttentionNotifier
     private function describe(array $row): array
     {
         $order = (string)($row['increment_id'] ?? '');
-        $when = $this->formatter->storedTime((string)$row[ShipmentInterface::FIELD_CREATED_AT]);
+        $when = $this->formatter->formatStoredTime((string)$row[ShipmentInterface::FIELD_CREATED_AT]);
         $reason = \rtrim((string)$row[ShipmentInterface::FIELD_LAST_ERROR], '. ');
 
         return match ((string)$row[ShipmentInterface::FIELD_STATE]) {
@@ -171,8 +171,10 @@ readonly class AttentionNotifier
                     . 'otherwise it\'s removed on %3.',
                     $when,
                     $reason,
-                    $this->formatter->storedTime(
-                        $this->failedShipmentManager->expiresAfter((string)$row[ShipmentInterface::FIELD_CREATED_AT]),
+                    $this->formatter->formatStoredTime(
+                        $this->failedShipmentManager->calculateExpiry(
+                            (string)$row[ShipmentInterface::FIELD_CREATED_AT],
+                        ),
                     ),
                 ),
             ],

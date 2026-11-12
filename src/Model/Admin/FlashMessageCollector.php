@@ -31,22 +31,22 @@ class FlashMessageCollector
 
     private int $level = self::SUCCESS;
 
-    public function success(Phrase|string $text): self
+    public function addSuccess(Phrase|string $text): self
     {
         return $this->add($text, self::SUCCESS);
     }
 
-    public function notice(Phrase|string $text): self
+    public function addNotice(Phrase|string $text): self
     {
         return $this->add($text, self::NOTICE);
     }
 
-    public function warning(Phrase|string $text): self
+    public function addWarning(Phrase|string $text): self
     {
         return $this->add($text, self::WARNING);
     }
 
-    public function error(Phrase|string $text): self
+    public function addError(Phrase|string $text): self
     {
         return $this->add($text, self::ERROR);
     }
@@ -75,7 +75,7 @@ class FlashMessageCollector
      * Says where a confirmation code was sent and until when it's valid. "Where" is the name of the
      * method Polkurier sent it by: a partly masked phone number or e-mail address.
      */
-    public static function codeSent(TwoFactorToken $token): string
+    public static function formatCodeSent(TwoFactorToken $token): string
     {
         $where = \trim((string)$token->getTransportMethod()?->getName()) ?: \trim($token->getPhoneNumber());
         $until = $token->getExpiresAt()->format('H:i');

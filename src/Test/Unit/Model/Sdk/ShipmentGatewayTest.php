@@ -33,7 +33,7 @@ class ShipmentGatewayTest extends TestCase
     /**
      * @return array<string, array{string, bool}>
      */
-    public static function connectionFailures(): array
+    public static function provideConnectionFailures(): array
     {
         return [
             'no connection' => [
@@ -51,13 +51,13 @@ class ShipmentGatewayTest extends TestCase
         ];
     }
 
-    #[DataProvider('connectionFailures')]
+    #[DataProvider('provideConnectionFailures')]
     public function testOnlyARequestThatMayHaveArrivedLeavesThePlacingUncertain(string $failure, bool $uncertain): void
     {
         $orders = $this->createStub(OrdersServiceInterface::class);
         $orders->method('createOrder')->willThrowException(new ConnectionException($failure));
         $client = $this->createStub(PolkurierClient::class);
-        $client->method('orders')->willReturn($orders);
+        $client->method('getOrders')->willReturn($orders);
 
         try {
             (new ShipmentGateway($client, new ErrorMessageResolver()))
@@ -71,7 +71,7 @@ class ShipmentGatewayTest extends TestCase
     /**
      * @return array<string, array{\Closure(self): (OrderStatusMessage|\Throwable), ?bool}>
      */
-    public static function statusAnswers(): array
+    public static function provideStatusAnswers(): array
     {
         $refusal = static fn(string $reason): \Closure => static fn(self $test): \Throwable => new WebserviceException(
             new ErrorMessage(ResponseStatusEnum::Error, $reason),
@@ -96,7 +96,7 @@ class ShipmentGatewayTest extends TestCase
     /**
      * @param \Closure(self): (OrderStatusMessage|\Throwable) $answer
      */
-    #[DataProvider('statusAnswers')]
+    #[DataProvider('provideStatusAnswers')]
     public function testGetStatusTellsACancelledOrderFromALiveOne(\Closure $answer, ?bool $cancelled): void
     {
         $orders = $this->createStub(OrdersServiceInterface::class);
@@ -107,7 +107,7 @@ class ShipmentGatewayTest extends TestCase
             $orders->method('getStatus')->willReturn($result);
         }
         $client = $this->createStub(PolkurierClient::class);
-        $client->method('orders')->willReturn($orders);
+        $client->method('getOrders')->willReturn($orders);
 
         self::assertSame($cancelled, (new ShipmentGateway($client, new ErrorMessageResolver()))->isCancelled('24680-27'));
     }

@@ -109,7 +109,7 @@ readonly class TokenRedactingProcessor
     private static function redactValue(mixed $value): mixed
     {
         return match (true) {
-            $value instanceof MessageInterface => self::redact(self::body($value)),
+            $value instanceof MessageInterface => self::redact(self::readBody($value)),
             \is_string($value) => self::redact($value),
             \is_array($value) => self::redactArray($value),
             default => $value,
@@ -119,7 +119,7 @@ readonly class TokenRedactingProcessor
     /**
      * The whole body, with the stream rewound after: whoever holds the message may read it again.
      */
-    private static function body(MessageInterface $message): string
+    private static function readBody(MessageInterface $message): string
     {
         $stream = $message->getBody();
         $body = (string)$stream;

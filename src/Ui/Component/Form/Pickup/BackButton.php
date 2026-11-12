@@ -33,12 +33,12 @@ readonly class BackButton implements ButtonProviderInterface
     public function getButtonData(): array
     {
         $orderId = (int)$this->request->getParam('order_id');
-        $from = RequestParam::string($this->request, 'uenc');
+        $from = RequestParam::getString($this->request, 'uenc');
         $back = $from !== '' ? (string)$this->urlDecoder->decode($from) : '';
 
         return [
             'label' => $orderId ? __('Back to the order') : __('Back'),
-            'on_click' => $this->onClickScriptBuilder->location(match (true) {
+            'on_click' => $this->onClickScriptBuilder->buildLocation(match (true) {
                 // Only a page of this admin: the parameter comes from the browser and isn't trusted
                 // further.
                 \str_starts_with($back, (string)$this->url->getBaseUrl()) => $back,

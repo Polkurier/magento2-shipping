@@ -61,7 +61,7 @@ class ManualEntrySaver implements ResetAfterRequestInterface
         if ($draft->isNewSender() && $draft->isKeepingNewSender()) {
             $address = $draft->getNewSenderAddress();
             $this->save($this->addressHandler, [
-                AddressInterface::FIELD_NAME => $draft->getNewSenderName() ?: self::addressName($address),
+                AddressInterface::FIELD_NAME => $draft->getNewSenderName() ?: self::buildAddressName($address),
                 AddressInterface::FIELD_TYPE => AddressInterface::TYPE_SENDER,
                 AddressInterface::FIELD_COUNTRY => Polkurier::HOME_COUNTRY,
                 AddressInterface::FIELD_IS_DEFAULT => $this->isFirst($this->addressCollectionFactory->create()),
@@ -71,7 +71,7 @@ class ManualEntrySaver implements ResetAfterRequestInterface
             && $draft->getNewBankAccountNumber() !== ''
         ) {
             $this->save($this->bankAccountHandler, [
-                BankAccountInterface::FIELD_NAME => self::bankAccountName($draft),
+                BankAccountInterface::FIELD_NAME => self::buildBankAccountName($draft),
                 BankAccountInterface::FIELD_NUMBER => BankAccountMapper::normalizeNumber(
                     $draft->getNewBankAccountNumber(),
                 ),
@@ -118,7 +118,7 @@ class ManualEntrySaver implements ResetAfterRequestInterface
      *
      * @param array<string, string> $address
      */
-    public static function addressName(array $address): string
+    public static function buildAddressName(array $address): string
     {
         return \implode(', ', \array_filter([
             ($address[AddressInterface::FIELD_COMPANY] ?? '') ?: ($address[AddressInterface::FIELD_PERSON] ?? ''),
@@ -129,7 +129,7 @@ class ManualEntrySaver implements ResetAfterRequestInterface
     /**
      * What a bank account typed in is called when no name was given: "Account ending 1234".
      */
-    public static function bankAccountName(ShipmentDraftInterface $draft): string
+    public static function buildBankAccountName(ShipmentDraftInterface $draft): string
     {
         $number = BankAccountMapper::normalizeNumber($draft->getNewBankAccountNumber());
 
@@ -151,7 +151,9 @@ class ManualEntrySaver implements ResetAfterRequestInterface
                 'Polkurier: an entry typed in for a shipment could not be saved',
                 ['exception' => $e],
             );
-            $this->flashMessageCollector->warning(__('"%1" wasn\'t saved to %2: %3', $name, $label, $e->getMessage()));
+            $this->flashMessageCollector->addWarning(
+                __('"%1" wasn\'t saved to %2: %3', $name, $label, $e->getMessage()),
+            );
 
             return;
         }
@@ -161,21 +163,21 @@ class ManualEntrySaver implements ResetAfterRequestInterface
     private function tell(SyncableInterface $entity, SyncResult $result, string $name, string $label): void
     {
         if ($result->failed > 0 || $entity->getSyncError()) {
-            $this->flashMessageCollector->warning(__(
+            $this->flashMessageCollector->addWarning(__(
                 '"%1" was saved to %2 in Magento, but not in Polkurier: %3',
                 $name,
                 $label,
                 $entity->getSyncError() ?: \implode(' ', \array_unique($result->errors)),
             ));
         } elseif ($result->unconfirmed > 0) {
-            $this->flashMessageCollector->notice(__(
+            $this->flashMessageCollector->addNotice(__(
                 '"%1" was saved to %2 in Magento. '
                 . 'It goes to Polkurier once you confirm it there with the code or your security PIN.',
                 $name,
                 $label,
             ));
         } else {
-            $this->flashMessageCollector->success(__('"%1" was saved to %2.', $name, $label));
+            $this->flashMessageCollector->addSuccess(__('"%1" was saved to %2.', $name, $label));
         }
     }
 

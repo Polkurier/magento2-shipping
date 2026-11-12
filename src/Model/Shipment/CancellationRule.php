@@ -38,7 +38,7 @@ class CancellationRule
     /**
      * Why the order can't be cancelled, or null when it can.
      */
-    public static function refusal(ShipmentInterface $shipment): ?Phrase
+    public static function getRefusal(ShipmentInterface $shipment): ?Phrase
     {
         $number = (string)$shipment->getPolkurierNumber();
         if ($number === '' || $shipment->getState() !== ShipmentInterface::STATE_CREATED) {

@@ -104,7 +104,7 @@ class PolkurierOrderColumn extends Column
         // else the latest.
         $links = [];
         $holding = [];
-        foreach ($this->shipmentFinder->linkedTo($magentoShipmentIds) as $shipment) {
+        foreach ($this->shipmentFinder->findLinkedTo($magentoShipmentIds) as $shipment) {
             $magentoShipmentId = (int)$shipment->getShipmentId();
             if ($holding[$magentoShipmentId] ?? false) {
                 continue;

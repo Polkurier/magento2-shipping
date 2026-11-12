@@ -24,7 +24,7 @@ class RejectedDraftStorageTest extends TestCase
 
     public function testTheFormIsHandedBackOnceForItsOrder(): void
     {
-        $draft = $this->draft();
+        $draft = $this->createStorage();
         $draft->keep(['order_id' => 7, 'recipient_phone' => '600700800']);
 
         self::assertNull($draft->take(8), 'Another order opens with its defaults.');
@@ -32,7 +32,7 @@ class RejectedDraftStorageTest extends TestCase
         self::assertNull($draft->take(7));
     }
 
-    private function draft(): RejectedDraftStorage
+    private function createStorage(): RejectedDraftStorage
     {
         $persistor = $this->createStub(DataPersistorInterface::class);
         $persistor->method('set')->willReturnCallback(function (string $key, mixed $data): void {

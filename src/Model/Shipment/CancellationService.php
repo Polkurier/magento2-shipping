@@ -38,7 +38,7 @@ readonly class CancellationService
     public function cancel(int $shipmentId): ShipmentInterface
     {
         $shipment = $this->shipmentRepository->get($shipmentId);
-        $refusal = CancellationRule::refusal($shipment);
+        $refusal = CancellationRule::getRefusal($shipment);
         if ($refusal !== null) {
             throw new LocalizedException($refusal);
         }
@@ -57,7 +57,7 @@ readonly class CancellationService
             $shipment->setState(ShipmentInterface::STATE_CANCELLED)->setIsFinal(true)->setLastError(null);
             $this->shipmentRepository->save($shipment);
 
-            return [$shipment, $this->nativeFollowUpService->cancelled($shipment, false)];
+            return [$shipment, $this->nativeFollowUpService->followCancellation($shipment, false)];
         });
         $this->apiEventDispatcher->dispatch(ApiEventEnum::OrderCancelAfter, $shipment->getStoreId(), [
             'shipment' => $shipment,

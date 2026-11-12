@@ -60,7 +60,7 @@ class PickupServiceTest extends TestCase
 
     public function testCollectionTimesAreDaysWithTheirWindows(): void
     {
-        $times = $this->pickups()->getPickupTimes('DPD', '05-620', '', 'box');
+        $times = $this->createService()->getPickupTimes('DPD', '05-620', '', 'box');
 
         self::assertSame('DPD', $this->timesAsked?->getCourier());
         self::assertSame('05-620', $this->timesAsked->getShipFrom());
@@ -78,15 +78,15 @@ class PickupServiceTest extends TestCase
     public function testACollectivePickupIsBookedForTheShipmentsAwaitingOne(): void
     {
         $this->bookable = ['18015-1'];
-        $waiting = $this->shipment('18015-1');
-        $other = $this->shipment('18015-2');
+        $waiting = $this->createShipment('18015-1');
+        $other = $this->createShipment('18015-2');
 
-        $result = $this->pickups()->bookCollective([
+        $result = $this->createService()->bookCollective([
             $waiting,
             $other,
-            $this->shipment('18015-3', booked: true),
-            $this->shipment('18015-4', multiPickup: false),
-            $this->shipment(null, state: ShipmentInterface::STATE_UNKNOWN),
+            $this->createShipment('18015-3', booked: true),
+            $this->createShipment('18015-4', multiPickup: false),
+            $this->createShipment(null, state: ShipmentInterface::STATE_UNKNOWN),
         ], '2026-10-01', '10:00', '16:00');
 
         self::assertSame(['18015-1', '18015-2'], $this->booking?->getOrders());
@@ -97,19 +97,19 @@ class PickupServiceTest extends TestCase
         self::assertTrue($waiting->isPickupBooked());
         self::assertFalse($other->isPickupBooked());
 
-        $event = $this->events->of(ApiEventEnum::PickupCreateAfter);
+        $event = $this->events->listDispatched(ApiEventEnum::PickupCreateAfter);
         self::assertCount(1, $event);
         self::assertSame([$waiting], $event[0]['shipments']);
     }
 
     public function testTheSenderPostcodeIsTheChosenAddresssOrTheOneTypedIn(): void
     {
-        $pickups = $this->pickups();
+        $pickups = $this->createService();
 
-        self::assertSame('00-950', $pickups->senderPostcodeOf(['order_id' => 29, 'sender_address_id' => '3']));
+        self::assertSame('00-950', $pickups->getSenderPostcode(['order_id' => 29, 'sender_address_id' => '3']));
         self::assertSame(
             '30-001',
-            $pickups->senderPostcodeOf([
+            $pickups->getSenderPostcode([
                 'order_id' => 29,
                 'sender_address_id' => 'new',
                 'new_sender_postcode' => ' 30-001 ',
@@ -121,7 +121,7 @@ class PickupServiceTest extends TestCase
     {
         $this->expectExceptionMessage('Fill in the sender\'s postcode first.');
 
-        $this->pickups()->senderPostcodeOf([
+        $this->createService()->getSenderPostcode([
             'order_id' => 29,
             'sender_address_id' => 'new',
             'new_sender_postcode' => '',
@@ -133,8 +133,8 @@ class PickupServiceTest extends TestCase
         $this->expectExceptionMessage('None of the selected shipments awaits a collective pickup.');
 
         try {
-            $this->pickups()->bookCollective(
-                [$this->shipment('18015-3', booked: true)],
+            $this->createService()->bookCollective(
+                [$this->createShipment('18015-3', booked: true)],
                 '2026-10-01',
                 '10:00',
                 '16:00',
@@ -151,8 +151,8 @@ class PickupServiceTest extends TestCase
         $this->multiPickupAvailable = false;
         $this->bookable = ['18015-1'];
 
-        $result = $this->pickups()->bookCollective(
-            [$this->shipment('18015-1')],
+        $result = $this->createService()->bookCollective(
+            [$this->createShipment('18015-1')],
             '2026-10-01',
             '10:00',
             '16:00',
@@ -172,7 +172,7 @@ class PickupServiceTest extends TestCase
             amount: 1,
         );
 
-        self::assertTrue($this->pickups()->isCollectiveAvailable('DPD', '31-042', 'box', [$pack]));
+        self::assertTrue($this->createService()->isCollectiveAvailable('DPD', '31-042', 'box', [$pack]));
         self::assertSame('DPD', $this->availabilityAsked?->getCourier());
         self::assertSame('31-042', $this->availabilityAsked->getSenderPostCode());
         self::assertSame(ShipmentTypeEnum::Box, $this->availabilityAsked->getShipmentType());
@@ -181,8 +181,8 @@ class PickupServiceTest extends TestCase
 
     public function testABookingPolkurierTurnsDownEntirelyIsNotReported(): void
     {
-        $result = $this->pickups()->bookCollective(
-            [$this->shipment('18015-1')],
+        $result = $this->createService()->bookCollective(
+            [$this->createShipment('18015-1')],
             '2026-10-01',
             '10:00',
             '16:00',
@@ -190,7 +190,7 @@ class PickupServiceTest extends TestCase
 
         self::assertSame([], $result['booked']);
         self::assertSame([], $this->saved);
-        self::assertSame([], $this->events->of(ApiEventEnum::PickupCreateAfter));
+        self::assertSame([], $this->events->listDispatched(ApiEventEnum::PickupCreateAfter));
     }
 
     protected function setUp(): void
@@ -198,7 +198,7 @@ class PickupServiceTest extends TestCase
         $this->events = new RecordingEventManager();
     }
 
-    private function pickups(): PickupService
+    private function createService(): PickupService
     {
         $gateway = $this->createStub(ShipmentGateway::class);
         $gateway->method('getPickupTimes')->willReturnCallback(function (GetPickupTimeMessage $message): array {
@@ -260,13 +260,13 @@ class PickupServiceTest extends TestCase
             $orders,
             $addresses,
             $this->createStub(SenderMapper::class),
-            NewingObjectManager::factory(GetPickupTimeMessageBuilderFactory::class),
-            NewingObjectManager::factory(MultiPickupAvailabilityRequestMessageBuilderFactory::class),
-            NewingObjectManager::factory(MultiPickupRequestMessageBuilderFactory::class),
+            NewingObjectManager::createFactory(GetPickupTimeMessageBuilderFactory::class),
+            NewingObjectManager::createFactory(MultiPickupAvailabilityRequestMessageBuilderFactory::class),
+            NewingObjectManager::createFactory(MultiPickupRequestMessageBuilderFactory::class),
         );
     }
 
-    private function shipment(
+    private function createShipment(
         ?string $number,
         bool $booked = false,
         bool $multiPickup = true,

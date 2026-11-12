@@ -27,7 +27,7 @@ class AdminActionsAclTest extends TestCase
     /**
      * @return array<string, array{class-string<AbstractAction>}>
      */
-    public static function actions(): array
+    public static function provideActions(): array
     {
         $root = \realpath(__DIR__ . '/../../../../Controller/Adminhtml');
         self::assertNotFalse($root);
@@ -54,24 +54,24 @@ class AdminActionsAclTest extends TestCase
     /**
      * @param class-string<AbstractAction> $class
      */
-    #[DataProvider('actions')]
+    #[DataProvider('provideActions')]
     public function testEveryActionDeclaresAResourceThatExists(string $class): void
     {
         $constant = new \ReflectionClassConstant($class, 'ADMIN_RESOURCE');
 
         self::assertSame($class, $constant->getDeclaringClass()->getName(), 'Declared on the action itself');
-        self::assertContains($constant->getValue(), \array_merge(self::resources(), self::MAGENTO_RESOURCES));
+        self::assertContains($constant->getValue(), \array_merge(self::listResources(), self::MAGENTO_RESOURCES));
     }
 
     public function testEveryActionIsFound(): void
     {
-        self::assertGreaterThan(50, \count(self::actions()));
+        self::assertGreaterThan(50, \count(self::provideActions()));
     }
 
     /**
      * @return string[] the resources etc/acl.xml declares
      */
-    private static function resources(): array
+    private static function listResources(): array
     {
         $xml = \simplexml_load_file(__DIR__ . '/../../../../etc/acl.xml');
         self::assertNotFalse($xml);

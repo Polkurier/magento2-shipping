@@ -30,7 +30,7 @@ abstract class AbstractAction extends Action
     /**
      * Polkurier's reasons, without repeats.
      */
-    protected function reasons(SyncResult $result): string
+    protected function formatReasons(SyncResult $result): string
     {
         return \implode(' ', \array_unique($result->errors));
     }

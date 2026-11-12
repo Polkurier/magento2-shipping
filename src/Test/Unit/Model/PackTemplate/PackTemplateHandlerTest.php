@@ -50,9 +50,9 @@ class PackTemplateHandlerTest extends TestCase
 
     public function testASaveKeepsTheFormNotTheSyncFieldsAndSendsThatEntryAlone(): void
     {
-        $template = $this->template()->setExtId('remote-7')->setSyncState(SyncableInterface::STATE_SYNCED);
+        $template = $this->createTemplate()->setExtId('remote-7')->setSyncState(SyncableInterface::STATE_SYNCED);
 
-        $report = $this->handler()->save($template, [
+        $report = $this->createHandler()->save($template, [
             'name' => 'Karton L',
             'length' => '60',
             'ext_id' => 'forged',
@@ -75,10 +75,10 @@ class PackTemplateHandlerTest extends TestCase
     public function testANameAnotherTemplateHasIsRefusedBeforeAnythingIsSaved(): void
     {
         $this->taken = ['karton l'];
-        $template = $this->template()->setName('Karton M');
+        $template = $this->createTemplate()->setName('Karton M');
 
         try {
-            $this->handler()->save($template, ['name' => '  Karton L ']);
+            $this->createHandler()->save($template, ['name' => '  Karton L ']);
             self::fail('Two templates can\'t share a name.');
         } catch (LocalizedException $e) {
             self::assertSame('A pack template named "Karton L" already exists. Choose another name.', $e->getMessage());
@@ -88,9 +88,9 @@ class PackTemplateHandlerTest extends TestCase
 
     public function testTheNameIsSavedWithoutSurroundingSpaces(): void
     {
-        $template = $this->template();
+        $template = $this->createTemplate();
 
-        $this->handler()->save($template, ['name' => ' Karton L ']);
+        $this->createHandler()->save($template, ['name' => ' Karton L ']);
 
         self::assertSame('Karton L', $template->getName());
     }
@@ -98,10 +98,10 @@ class PackTemplateHandlerTest extends TestCase
     public function testAPushThatFailsIsReportedWithTheKind(): void
     {
         $this->pushFails = true;
-        $template = $this->template();
+        $template = $this->createTemplate();
 
         try {
-            $this->handler()->save($template, ['name' => 'Karton L']);
+            $this->createHandler()->save($template, ['name' => 'Karton L']);
             self::fail('The push failed.');
         } catch (LocalizedException $e) {
             self::assertSame('Pack templates: Unreadable.', $e->getMessage());
@@ -111,16 +111,16 @@ class PackTemplateHandlerTest extends TestCase
 
     public function testAnEntryNeverSentIsDeletedInMagentoAlone(): void
     {
-        $this->handler()->delete($this->template()->setName('Draft'));
+        $this->createHandler()->delete($this->createTemplate()->setName('Draft'));
 
         self::assertSame(['lock polkurier_sync', 'delete Draft', 'unlock polkurier_sync'], $this->log);
     }
 
     public function testAnEntryInPolkurierIsMarkedDeletedForTheSynchronizationToCarryOut(): void
     {
-        $template = $this->template()->setName('Karton M')->setExtId('remote-7');
+        $template = $this->createTemplate()->setName('Karton M')->setExtId('remote-7');
 
-        $this->handler()->delete($template);
+        $this->createHandler()->delete($template);
 
         self::assertSame('2026-09-30 10:00:00', $template->getDeletedAt());
         self::assertSame(SyncableInterface::STATE_PENDING, $template->getSyncState());
@@ -133,10 +133,10 @@ class PackTemplateHandlerTest extends TestCase
     public function testNothingChangesWhileASynchronizationRuns(): void
     {
         $this->syncRunning = true;
-        $template = $this->template()->setName('Karton M');
+        $template = $this->createTemplate()->setName('Karton M');
 
         try {
-            $this->handler()->save($template, ['name' => 'Karton XL']);
+            $this->createHandler()->save($template, ['name' => 'Karton XL']);
             self::fail('The change waits for the synchronization.');
         } catch (LocalizedException $e) {
             self::assertStringContainsString('already running', $e->getMessage());
@@ -145,7 +145,7 @@ class PackTemplateHandlerTest extends TestCase
         self::assertSame([], $this->log);
     }
 
-    private function handler(): PackTemplateHandler
+    private function createHandler(): PackTemplateHandler
     {
         $adapter = $this->createStub(PackTemplateSyncAdapter::class);
         $adapter->method('getEntityType')->willReturn(SyncEntityEnum::PackTemplate);
@@ -191,12 +191,12 @@ class PackTemplateHandlerTest extends TestCase
             new ErrorMessageResolver(),
             new FixedDateTime((int)\strtotime('2026-09-30 10:00:00 UTC')),
             new SyncLock($locks),
-            NewingObjectManager::factory(SyncResultFactory::class),
-            $this->resource(),
+            NewingObjectManager::createFactory(SyncResultFactory::class),
+            $this->createResource(),
         );
     }
 
-    private function resource(): PackTemplateResource
+    private function createResource(): PackTemplateResource
     {
         $resource = $this->createStub(PackTemplateResource::class);
         $resource->method('isNameTaken')->willReturnCallback(
@@ -206,7 +206,7 @@ class PackTemplateHandlerTest extends TestCase
         return $resource;
     }
 
-    private function template(): PackTemplate
+    private function createTemplate(): PackTemplate
     {
         /** @var PackTemplate $template */
         $template = (new ObjectManager($this))->getObject(PackTemplate::class);

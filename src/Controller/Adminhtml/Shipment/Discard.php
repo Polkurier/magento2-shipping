@@ -32,7 +32,7 @@ class Discard extends AbstractShipmentAction implements HttpPostActionInterface
     {
         $shipment = $this->getShipment();
         if ($shipment === null) {
-            return $this->back();
+            return $this->redirectBack();
         }
         try {
             $this->failedShipmentManager->discard((int)$shipment->getId());

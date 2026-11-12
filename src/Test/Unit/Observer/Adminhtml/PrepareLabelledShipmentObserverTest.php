@@ -31,9 +31,9 @@ class PrepareLabelledShipmentObserverTest extends TestCase
         $new = $this->track(null, 'WB-2', 'Polkurier');
         $typed = $this->track(null, 'WB-3', 'Typed by hand');
         $other = $this->track(null, 'X-1', 'Polkurier', 'ups');
-        $shipment = $this->shipment([$existing, $again, $new, $typed, $other]);
+        $shipment = $this->createShipment([$existing, $again, $new, $typed, $other]);
 
-        $this->observer()->execute($this->event($shipment));
+        $this->createObserver()->execute($this->createEvent($shipment));
 
         self::assertSame([$existing, $new, $typed, $other], $shipment->getData('kept'));
         self::assertSame('Kurier DPD', $new->getData('title'), 'The shipping method, as customers know it.');
@@ -44,10 +44,10 @@ class PrepareLabelledShipmentObserverTest extends TestCase
     public function testTracksAreTitledByTheCarrierTheParcelsWentWithNotTheOrderedOne(): void
     {
         $new = $this->track(null, 'WB-1', 'Polkurier');
-        $shipment = $this->shipment([$new]);
+        $shipment = $this->createShipment([$new]);
         $shipment->setData(NativeLabelService::FIELD_CARRIER, 'INPOST_PACZKOMAT');
 
-        $this->observer()->execute($this->event($shipment));
+        $this->createObserver()->execute($this->createEvent($shipment));
 
         self::assertSame('InPost Paczkomat', $new->getData('title'));
         self::assertFalse($shipment->hasData(NativeLabelService::FIELD_CARRIER));
@@ -55,17 +55,17 @@ class PrepareLabelledShipmentObserverTest extends TestCase
 
     public function testALabelThatWasNotAvailableIsNotStored(): void
     {
-        $shipment = $this->shipment([]);
+        $shipment = $this->createShipment([]);
         $shipment->setData(NativeLabelService::FIELD_NO_LABEL, true);
         $shipment->setData('shipping_label', '%PDF-empty');
 
-        $this->observer()->execute($this->event($shipment));
+        $this->createObserver()->execute($this->createEvent($shipment));
 
         self::assertFalse($shipment->hasData('shipping_label'));
         self::assertFalse($shipment->hasData(NativeLabelService::FIELD_NO_LABEL));
     }
 
-    private function observer(): PrepareLabelledShipmentObserver
+    private function createObserver(): PrepareLabelledShipmentObserver
     {
         $config = $this->createStub(ConfigProvider::class);
         $config->method('getTitle')->willReturn('Polkurier');
@@ -79,7 +79,7 @@ class PrepareLabelledShipmentObserverTest extends TestCase
         return new PrepareLabelledShipmentObserver($config, $titles);
     }
 
-    private function event(Shipment $shipment): Observer
+    private function createEvent(Shipment $shipment): Observer
     {
         return new Observer(['event' => new Event(['shipment' => $shipment])]);
     }
@@ -87,7 +87,7 @@ class PrepareLabelledShipmentObserverTest extends TestCase
     /**
      * @param Track[] $tracks
      */
-    private function shipment(array $tracks): Shipment
+    private function createShipment(array $tracks): Shipment
     {
         $order = $this->createStub(Order::class);
         $order->method('getShippingMethod')->willReturn('polkurier_DPD');

@@ -62,7 +62,7 @@ readonly class CreateOrderMessageMapper
      */
     public function map(ShipmentDraftInterface $draft, int $storeId, ?array $externalIds = null): CreateOrderMessage
     {
-        $types = ParcelTypeMapper::shipmentTypesOf(\array_map(
+        $types = ParcelTypeMapper::mapShipmentTypes(\array_map(
             static fn(PackInterface $pack): string => $pack->getPackType(),
             $draft->getPacks(),
         ));
@@ -89,7 +89,9 @@ readonly class CreateOrderMessageMapper
             $builder->insurance(\round((float)$draft->getInsuranceAmount(), 2));
         }
         if ($draft->getCoverAddressId()) {
-            $builder->coverAddress($this->senderMapper->toCoverAddress($this->address($draft->getCoverAddressId())));
+            $builder->coverAddress(
+                $this->senderMapper->mapToCoverAddress($this->loadAddress($draft->getCoverAddressId())),
+            );
         }
         $pickup = $this->mapPickup($draft);
         if ($pickup !== null) {
@@ -166,7 +168,7 @@ readonly class CreateOrderMessageMapper
             ->width($pack->getWidth())
             ->height($pack->getHeight())
             ->weight(\round($pack->getWeight(), 3))
-            ->type(ParcelTypeMapper::polkurierTypeOf($pack->getPackType()))
+            ->type(ParcelTypeMapper::mapPolkurierType($pack->getPackType()))
             ->amount(\max(1, $pack->getAmount()))
             ->build();
     }
@@ -209,11 +211,11 @@ readonly class CreateOrderMessageMapper
             ? $draft->getSenderPointId()
             : null;
         if ($draft->isNewSender()) {
-            $sender = $this->senderMapper->fromFields($this->newSender($draft), $pointId);
+            $sender = $this->senderMapper->mapFromFields($this->getNewSender($draft), $pointId);
         } elseif ($draft->getSenderAddressId()) {
-            $sender = $this->senderMapper->fromAddress($this->address($draft->getSenderAddressId()), $pointId);
+            $sender = $this->senderMapper->mapFromAddress($this->loadAddress($draft->getSenderAddressId()), $pointId);
         } else {
-            $sender = $this->senderMapper->fromStore($storeId, $pointId);
+            $sender = $this->senderMapper->mapFromStore($storeId, $pointId);
         }
         if ($sender === null) {
             throw new LocalizedException(__(
@@ -231,7 +233,7 @@ readonly class CreateOrderMessageMapper
      * @return array<string, string> by address field
      * @throws LocalizedException when it lacks what Polkurier needs of a sender
      */
-    private function newSender(ShipmentDraftInterface $draft): array
+    private function getNewSender(ShipmentDraftInterface $draft): array
     {
         $fields = $draft->getNewSenderAddress();
         $labels = [
@@ -314,7 +316,7 @@ readonly class CreateOrderMessageMapper
             return null;
         }
         // The date and window are Polish time, as Polkurier offers them, whatever PHP's own zone.
-        $zone = PolkurierTimeZone::zone();
+        $zone = PolkurierTimeZone::getZone();
         $builder = $this->pickupMessageBuilderFactory->create()
             ->pickupDate(new \DateTimeImmutable($draft->getPickupDate(), $zone));
         if ($draft->getPickupTimeFrom()) {
@@ -334,7 +336,7 @@ readonly class CreateOrderMessageMapper
     /**
      * @throws LocalizedException
      */
-    private function address(int $id): \Polkurier\Shipping\Api\Data\AddressInterface
+    private function loadAddress(int $id): \Polkurier\Shipping\Api\Data\AddressInterface
     {
         try {
             return $this->addressRepository->get($id);

@@ -55,7 +55,7 @@ define(['ko'], function (ko) {
          * @param {String} methodCode
          * @returns {Boolean} whether the method's carrier collects cash on delivery
          */
-        collectsCod: function (methodCode) {
+        isCollectingCod: function (methodCode) {
             return this.hasMap(methodCode) && !!methods[methodCode].cod;
         },
 

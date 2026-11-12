@@ -70,7 +70,7 @@ readonly class RequestedShipments
         $orderId = (int)$request->getParam('order_id');
         if ($ids !== []) {
             return \array_values(\array_filter(
-                $this->shipmentFinder->byIds($ids),
+                $this->shipmentFinder->findByIds($ids),
                 static fn(ShipmentInterface $shipment): bool => !$orderId || $shipment->getOrderId() === $orderId,
             ));
         }

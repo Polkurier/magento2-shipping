@@ -68,7 +68,7 @@ define([
                 if (mode && mode !== this.get('pickup_mode')) {
                     this.set('pickup_mode', mode);
                     // Collected from the sender: no drop-off point, which would show here unused.
-                    if (mode !== 'drop_off' && rules.filled(this.get('sender_point_id'))) {
+                    if (mode !== 'drop_off' && rules.isFilled(this.get('sender_point_id'))) {
                         this.set('sender_point_id', '');
                     }
                 }
@@ -91,14 +91,14 @@ define([
 
         refresh: function () {
             const data = this.get() || {},
-                features = this.features(),
+                features = this.getFeatures(),
                 labels = (data.choices || {}).pickup_mode || {},
                 modes = [];
 
             this.watchCollective(data);
             this.followCarrier(data, features);
             _.each(labels, function (label, value) {
-                if (rules.handoverOffered(value, features, this.collective())) {
+                if (rules.isHandoverOffered(value, features, this.collective())) {
                     modes.push({value: value, label: label, id: 'polkurier-handover-' + value});
                 }
             }, this);
@@ -118,10 +118,10 @@ define([
             this.mode(data.pickup_mode || 'courier');
             this.refreshPoint(data, features);
             this.showDates(this.mode() === 'courier' && features.pickup_date !== false);
-            this.dateMissing(this.validated() && this.showDates() && Boolean(features.pickup_date_required)
-                && !rules.filled(data.pickup_date));
-            this.windowMissing(this.validated() && this.showDates() && Boolean(features.pickup_time_required)
-                && !(rules.filled(data.pickup_time_from) && rules.filled(data.pickup_time_to)));
+            this.dateMissing(this.isValidated() && this.showDates() && Boolean(features.pickup_date_required)
+                && !rules.isFilled(data.pickup_date));
+            this.windowMissing(this.isValidated() && this.showDates() && Boolean(features.pickup_time_required)
+                && !(rules.isFilled(data.pickup_time_from) && rules.isFilled(data.pickup_time_to)));
             if (this.showDates()) {
                 const key = JSON.stringify(_.pick(
                     data,
@@ -146,7 +146,7 @@ define([
         },
 
         /**
-         * Another carrier starts from the default handover again (rules.defaultHandover()). A
+         * Another carrier starts from the default handover again (rules.getDefaultHandover()). A
          * drop-off point chosen or removed here keeps the handover as it is.
          *
          * @param {Object} data
@@ -158,7 +158,7 @@ define([
             const key = String(data.carrier_code || '');
 
             if (this.followedCarrier !== undefined && this.followedCarrier !== key) {
-                const mode = rules.defaultHandover(features, String(data.sender_point_id || ''));
+                const mode = rules.getDefaultHandover(features, String(data.sender_point_id || ''));
 
                 if (mode !== data.pickup_mode) {
                     this.followedCarrier = key;
@@ -182,11 +182,11 @@ define([
             const requirement = features.sender_point || 'NONE',
                 details = (data.point_details || {})[data.sender_point_id || ''] || {};
 
-            this.pointShown(rules.senderPointUsed(requirement, features.drop_off, this.mode()));
+            this.pointShown(rules.isSenderPointUsed(requirement, features.drop_off, this.mode()));
             this.pointAlone(this.pointShown() && this.mode() !== 'drop_off');
             this.pointRequired(requirement === 'REQUIRED');
             this.pointId(data.sender_point_id || '');
-            this.pointMissing(this.pointRequired() && this.validated() && !rules.filled(this.pointId()));
+            this.pointMissing(this.pointRequired() && this.isValidated() && !rules.isFilled(this.pointId()));
             this.pointName(details.name || '');
             this.pointLabel(details.label || '');
             this.canChoosePoint(pointsMap.canOpen(data.map));
@@ -195,22 +195,22 @@ define([
         /**
          * @returns {String} the sender's postcode, where the map starts
          */
-        senderPostcode: function () {
+        getSenderPostcode: function () {
             const data = this.get() || {},
                 address = data.sender_address_id === 'new'
                     ? {postcode: data.new_sender_postcode}
-                    : rules.filled(data.sender_address_id)
+                    : rules.isFilled(data.sender_address_id)
                         ? (data.senders || {})[String(data.sender_address_id)]
                         : data.store_sender;
 
-            return address && rules.filled(address.postcode) ? String(address.postcode).trim() : '';
+            return address && rules.isFilled(address.postcode) ? String(address.postcode).trim() : '';
         },
 
         choosePoint: function () {
             pointsMap.open(
                 this.get('map'),
-                this.features().providers,
-                this.senderPostcode(),
+                this.getFeatures().providers,
+                this.getSenderPostcode(),
                 function (pointId, point) {
                     this.set('point_details', pointsMap.addPoint(this.get('point_details'), pointId, point));
                     this.set('sender_point_id', pointId);
@@ -278,7 +278,7 @@ define([
         load: function () {
             this.failed(false);
             this.retryable(false);
-            if (!rules.filled(this.get('carrier_code'))) {
+            if (!rules.isFilled(this.get('carrier_code'))) {
                 this.dates.cancel();
                 this.days([]);
                 this.forgetDate();
@@ -353,7 +353,7 @@ define([
             this.date('');
             this.window('');
             ['pickup_date', 'pickup_time_from', 'pickup_time_to'].forEach(function (field) {
-                if (rules.filled(this.get(field))) {
+                if (rules.isFilled(this.get(field))) {
                     this.set(field, '');
                 }
             }, this);
@@ -384,7 +384,7 @@ define([
                 // stays chosen.
                 this.window('');
                 ['pickup_time_from', 'pickup_time_to'].forEach(function (field) {
-                    if (rules.filled(this.get(field))) {
+                    if (rules.isFilled(this.get(field))) {
                         this.set(field, '');
                     }
                 }, this);

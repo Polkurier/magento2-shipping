@@ -28,9 +28,9 @@ class ShipmentDocumentFactoryPluginTest extends TestCase
         $numbers->expect(42, '000000077');
         $plugin = new ShipmentDocumentFactoryPlugin($numbers);
 
-        $other = $plugin->afterCreate($this->factory(), $this->shipment(), $this->order(7));
-        $made = $plugin->afterCreate($this->factory(), $this->shipment(), $this->order(42));
-        $next = $plugin->afterCreate($this->factory(), $this->shipment(), $this->order(42));
+        $other = $plugin->afterCreate($this->createFactory(), $this->createShipment(), $this->createOrder(7));
+        $made = $plugin->afterCreate($this->createFactory(), $this->createShipment(), $this->createOrder(42));
+        $next = $plugin->afterCreate($this->createFactory(), $this->createShipment(), $this->createOrder(42));
 
         self::assertNull($other->getIncrementId(), 'Another order\'s shipment is numbered by Magento.');
         self::assertSame('000000077', $made->getIncrementId());
@@ -44,22 +44,22 @@ class ShipmentDocumentFactoryPluginTest extends TestCase
         $plugin = new ShipmentDocumentFactoryPlugin($numbers);
 
         $numbered = $plugin->afterCreate(
-            $this->factory(),
-            $this->shipment()->setIncrementId('000000070'),
-            $this->order(42),
+            $this->createFactory(),
+            $this->createShipment()->setIncrementId('000000070'),
+            $this->createOrder(42),
         );
-        $made = $plugin->afterCreate($this->factory(), $this->shipment(), $this->order(42));
+        $made = $plugin->afterCreate($this->createFactory(), $this->createShipment(), $this->createOrder(42));
 
         self::assertSame('000000070', $numbered->getIncrementId());
         self::assertSame('000000077', $made->getIncrementId());
     }
 
-    private function shipment(): Shipment
+    private function createShipment(): Shipment
     {
         return $this->getMockBuilder(Shipment::class)->disableOriginalConstructor()->onlyMethods([])->getMock();
     }
 
-    private function order(int $id): OrderInterface
+    private function createOrder(int $id): OrderInterface
     {
         $order = $this->createStub(OrderInterface::class);
         $order->method('getEntityId')->willReturn($id);
@@ -67,7 +67,7 @@ class ShipmentDocumentFactoryPluginTest extends TestCase
         return $order;
     }
 
-    private function factory(): ShipmentDocumentFactory
+    private function createFactory(): ShipmentDocumentFactory
     {
         return $this->createStub(ShipmentDocumentFactory::class);
     }

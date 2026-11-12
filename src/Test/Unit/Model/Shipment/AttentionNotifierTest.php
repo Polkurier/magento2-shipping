@@ -35,7 +35,7 @@ class AttentionNotifierTest extends TestCase
 
     public function testEachShipmentNeedingSomeoneIsNotifiedOnceWithALinkToIt(): void
     {
-        $this->notifier([
+        $this->createNotifier([
             [
                 'entity_id' => '5',
                 'state' => 'failed',
@@ -70,7 +70,7 @@ class AttentionNotifierTest extends TestCase
 
     public function testNoticesWhoseShipmentNoLongerNeedsSomeoneAreWithdrawn(): void
     {
-        $this->notifier([], [
+        $this->createNotifier([], [
             3 => 'http://shop.test/admin/polkurier/shipment/view/id/5/',
             4 => 'http://shop.test/admin/polkurier/shipment/view/id/8/',
             6 => 'http://shop.test/admin/polkurier/shipment/view/id/12/',
@@ -81,7 +81,7 @@ class AttentionNotifierTest extends TestCase
 
     public function testNothingIsWithdrawnWithoutMagentosNotifications(): void
     {
-        $this->notifier([], null)->notify();
+        $this->createNotifier([], null)->notify();
 
         self::assertSame([], $this->log);
     }
@@ -91,7 +91,7 @@ class AttentionNotifierTest extends TestCase
      * @param array<int, string>|null $shown the notices showing, by id; null: no notifications table
      * @param int[] $stillNeeded the shipments of those that still need someone
      */
-    private function notifier(array $rows, ?array $shown = [], array $stillNeeded = []): AttentionNotifier
+    private function createNotifier(array $rows, ?array $shown = [], array $stillNeeded = []): AttentionNotifier
     {
         $select = $this->createStub(Select::class);
         $select->method('from')->willReturnSelf();

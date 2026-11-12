@@ -46,11 +46,11 @@ class SerializerProvider implements SerializerProviderInterface
         $this->inner ??= $this->sdkSerializerProviderFactory->create([
             'config' => $this->serializerConfigFactory->create([
                 'metadataCache' => $this->phpFilesAdapterFactory->create([
-                    'namespace' => $this->cacheNamespace(),
+                    'namespace' => $this->getCacheNamespace(),
                     'defaultLifetime' => 0,
                     'directory' => $this->directoryList->getPath(DirectoryList::CACHE) . '/' . self::CACHE_DIRECTORY,
                 ]),
-                'timezone' => PolkurierTimeZone::zone(),
+                'timezone' => PolkurierTimeZone::getZone(),
             ]),
         ]);
 
@@ -60,7 +60,7 @@ class SerializerProvider implements SerializerProviderInterface
     /**
      * The metadata of an earlier SDK may no longer fit its classes, so each version has its own.
      */
-    private function cacheNamespace(): string
+    private function getCacheNamespace(): string
     {
         try {
             $version = InstalledVersions::getVersion(self::SDK_PACKAGE)

@@ -102,7 +102,7 @@ readonly class DetailsLoader
         } catch (LocalizedException $e) {
             throw new LocalizedException(__('The carrier\'s scans could not be read: %1', $e->getMessage()), $e);
         }
-        $shipment->setTracking($this->remoteOrderApplier->tracking($status))
+        $shipment->setTracking($this->remoteOrderApplier->mapTracking($status))
             ->setTrackingSyncedAt((string)$this->dateTime->gmtDate());
         /** @var ShipmentModel $shipment */
         $this->shipmentResource->updateColumns((int)$shipment->getId(), [

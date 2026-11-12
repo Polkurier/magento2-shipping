@@ -15,7 +15,7 @@ final class PolkurierTimeZone
 {
     public const string ZONE = 'Europe/Warsaw';
 
-    public static function zone(): \DateTimeZone
+    public static function getZone(): \DateTimeZone
     {
         return new \DateTimeZone(self::ZONE);
     }

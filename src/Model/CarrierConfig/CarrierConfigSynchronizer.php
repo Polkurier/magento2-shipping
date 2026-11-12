@@ -52,7 +52,7 @@ readonly class CarrierConfigSynchronizer
         try {
             $carriers = $this->carrierCatalog->refreshAccountCarriers();
         } catch (PolkurierException $e) {
-            throw $this->errorMessageResolver->exception($e);
+            throw $this->errorMessageResolver->createException($e);
         }
         $this->carrierConfigProvider->reset();
         $existing = $this->carrierConfigProvider->getAll();
@@ -90,7 +90,7 @@ readonly class CarrierConfigSynchronizer
     {
         foreach ($carriers as $code => $carrier) {
             if ($existing !== [] && !($existing[$code] ?? null)?->isAvailable()) {
-                $added[] = CarrierNameProvider::nameOr($carrier->getName(), $code);
+                $added[] = CarrierNameProvider::resolveName($carrier->getName(), $code);
             }
             $config = $existing[$code] ?? $this->carrierConfigFactory->create()
                 ->setCarrierCode($code)
@@ -106,7 +106,7 @@ readonly class CarrierConfigSynchronizer
         foreach ($existing as $code => $config) {
             if (!isset($carriers[$code]) && $config->isAvailable()) {
                 $this->carrierConfigRepository->save($config->setAvailable(false));
-                $revoked[] = CarrierNameProvider::nameOr($config->getCarrierName(), $code);
+                $revoked[] = CarrierNameProvider::resolveName($config->getCarrierName(), $code);
             }
         }
     }

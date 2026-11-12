@@ -32,7 +32,7 @@ class Adopt extends AbstractShipmentAction implements HttpPostActionInterface
     public function execute(): Redirect
     {
         $shipment = $this->getShipment();
-        $number = \trim(RequestParam::string($this->getRequest(), 'polkurier_number'));
+        $number = \trim(RequestParam::getString($this->getRequest(), 'polkurier_number'));
         if ($shipment !== null && $number !== '') {
             try {
                 $shipment = $this->shipmentManagement->adopt((int)$shipment->getId(), $number);
@@ -44,6 +44,6 @@ class Adopt extends AbstractShipmentAction implements HttpPostActionInterface
             }
         }
 
-        return $this->back();
+        return $this->redirectBack();
     }
 }

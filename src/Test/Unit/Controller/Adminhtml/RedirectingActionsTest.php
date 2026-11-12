@@ -46,7 +46,7 @@ class RedirectingActionsTest extends AdminActionTestCase
             )));
 
         (new Create(
-            $this->context(),
+            $this->createContext(),
             $orders,
             $this->createStub(RetriableShipmentFinder::class),
             $this->createStub(FailedShipmentManager::class),
@@ -69,7 +69,7 @@ class RedirectingActionsTest extends AdminActionTestCase
                 999,
             )));
 
-        (new Edit($this->context(), $repository))->execute();
+        (new Edit($this->createContext(), $repository))->execute();
 
         self::assertSame(['*/*/index', []], $this->redirect);
         self::assertSame(['The carrier settings with id "999" do not exist.'], $this->messages['error']);
@@ -77,9 +77,9 @@ class RedirectingActionsTest extends AdminActionTestCase
 
     public function testTheChosenCarriersAreEachSwitchedTheOtherWay(): void
     {
-        $dpd = $this->carrier('DPD', true);
-        $inpost = $this->carrier('INPOST', false);
-        $ups = $this->carrier('UPS', false);
+        $dpd = $this->createCarrier('DPD', true);
+        $inpost = $this->createCarrier('INPOST', false);
+        $ups = $this->createCarrier('UPS', false);
         $filter = $this->createStub(Filter::class);
         $filter->method('getCollection')->willReturn([$dpd, $inpost, $ups]);
         $collections = $this->createStub(CollectionFactory::class);
@@ -93,7 +93,7 @@ class RedirectingActionsTest extends AdminActionTestCase
                 return $config;
             });
 
-        (new MassToggle($this->context(), $filter, $collections, $repository))->execute();
+        (new MassToggle($this->createContext(), $filter, $collections, $repository))->execute();
 
         self::assertSame([false, true, true], [$dpd->isActive(), $inpost->isActive(), $ups->isActive()]);
         self::assertSame(['DPD', 'INPOST', 'UPS'], $saved);
@@ -107,7 +107,7 @@ class RedirectingActionsTest extends AdminActionTestCase
         $payouts = $this->createMock(PayoutManager::class);
         $payouts->expects(self::never())->method('cancelPayout');
 
-        (new Cancel($this->context(), $payouts))->execute();
+        (new Cancel($this->createContext(), $payouts))->execute();
 
         self::assertSame(['*/*/index', []], $this->redirect);
         self::assertSame(['No payout to cancel.'], $this->messages['error']);
@@ -119,13 +119,13 @@ class RedirectingActionsTest extends AdminActionTestCase
         $payouts = $this->createMock(PayoutManager::class);
         $payouts->expects(self::once())->method('cancelPayout')->with('W-1');
 
-        (new Cancel($this->context(), $payouts))->execute();
+        (new Cancel($this->createContext(), $payouts))->execute();
 
         self::assertSame(['*/*/index', []], $this->redirect);
         self::assertSame(['Payout W-1 cancelled.'], $this->messages['success']);
     }
 
-    private function carrier(string $code, bool $active): CarrierConfig
+    private function createCarrier(string $code, bool $active): CarrierConfig
     {
         /** @var CarrierConfig $config */
         $config = (new ObjectManager($this))->getObject(CarrierConfig::class);

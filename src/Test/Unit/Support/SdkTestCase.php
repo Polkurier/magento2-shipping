@@ -29,7 +29,7 @@ abstract class SdkTestCase extends TestCase
     protected const string TOKEN = 'test-token-secret';
     protected const string LOGIN = '12345';
 
-    protected function clientPool(RecordingClient $http): PolkurierClient
+    protected function createClientPool(RecordingClient $http): PolkurierClient
     {
         $webserviceFactory = $this->createStub(PolkurierWebserviceFactory::class);
         $webserviceFactory->method('create')->willReturnCallback(
@@ -60,12 +60,12 @@ abstract class SdkTestCase extends TestCase
     /**
      * @param mixed $response the envelope's "response"
      */
-    protected static function success(mixed $response): string
+    protected static function encodeSuccess(mixed $response): string
     {
         return (string)\json_encode(['status' => 'success', 'response' => $response]);
     }
 
-    protected static function fixture(string $name): string
+    protected static function loadFixture(string $name): string
     {
         return (string)\file_get_contents(__DIR__ . '/../_files/' . $name);
     }

@@ -60,8 +60,8 @@ class CarrierCatalogTest extends TestCase
 
     public function testAPointIsAskedForOnceAndKeptForADay(): void
     {
-        $point = $this->catalog()->findPoint('WAW195M', ['INPOST']);
-        $again = $this->catalog()->findPoint('WAW195M', ['INPOST']);
+        $point = $this->createCatalog()->findPoint('WAW195M', ['INPOST']);
+        $again = $this->createCatalog()->findPoint('WAW195M', ['INPOST']);
 
         self::assertSame('WAW195M', $point?->getId());
         self::assertSame('WAW195M', $again?->getId());
@@ -72,8 +72,8 @@ class CarrierCatalogTest extends TestCase
 
     public function testAPointThatDoesntExistIsRememberedTooForADay(): void
     {
-        self::assertNull($this->catalog()->findPoint('NOPE01', ['INPOST']));
-        self::assertNull($this->catalog()->findPoint('NOPE01', ['INPOST']));
+        self::assertNull($this->createCatalog()->findPoint('NOPE01', ['INPOST']));
+        self::assertNull($this->createCatalog()->findPoint('NOPE01', ['INPOST']));
 
         self::assertSame(['NOPE01'], $this->pointRequests);
         self::assertContains(CarrierCatalog::POINT_LIFETIME, $this->lifetimes);
@@ -81,17 +81,17 @@ class CarrierCatalogTest extends TestCase
 
     public function testTheProvidersOrderMakesNoOtherEntry(): void
     {
-        $this->catalog()->findPoint('WAW195M', ['INPOST', 'POCZTA']);
-        $this->catalog()->findPoint('WAW195M', ['POCZTA', 'INPOST']);
+        $this->createCatalog()->findPoint('WAW195M', ['INPOST', 'POCZTA']);
+        $this->createCatalog()->findPoint('WAW195M', ['POCZTA', 'INPOST']);
 
         self::assertSame(['WAW195M'], $this->pointRequests);
     }
 
     public function testRefreshingTheCarriersKeepsThePoints(): void
     {
-        $this->catalog()->findPoint('WAW195M', ['INPOST']);
-        $this->catalog()->refreshAccountCarriers();
-        $this->catalog()->findPoint('WAW195M', ['INPOST']);
+        $this->createCatalog()->findPoint('WAW195M', ['INPOST']);
+        $this->createCatalog()->refreshAccountCarriers();
+        $this->createCatalog()->findPoint('WAW195M', ['INPOST']);
 
         self::assertSame(['WAW195M'], $this->pointRequests);
     }
@@ -100,12 +100,12 @@ class CarrierCatalogTest extends TestCase
     {
         $this->failure = new ConnectionException('Timed out');
         try {
-            $this->catalog()->getAccountCarriers();
+            $this->createCatalog()->getAccountCarriers();
         } catch (ConnectionException) {
         }
 
         try {
-            $this->catalog()->findPoint('WAW195M', ['INPOST']);
+            $this->createCatalog()->findPoint('WAW195M', ['INPOST']);
             self::fail('Not asked: Polkurier failed a moment ago.');
         } catch (RecentFailureException) {
         }
@@ -116,14 +116,14 @@ class CarrierCatalogTest extends TestCase
     {
         $this->pointFailure = new ConnectionException('Timed out');
         try {
-            $this->catalog()->findPoint('WAW195M', ['INPOST']);
+            $this->createCatalog()->findPoint('WAW195M', ['INPOST']);
             self::fail('The failure is thrown.');
         } catch (ConnectionException) {
         }
         $this->pointFailure = null;
 
         try {
-            $this->catalog()->findPoint('KRA01M', ['INPOST']);
+            $this->createCatalog()->findPoint('KRA01M', ['INPOST']);
             self::fail('Not asked: Polkurier failed a moment ago.');
         } catch (RecentFailureException) {
         }
@@ -139,18 +139,18 @@ class CarrierCatalogTest extends TestCase
             $this->createStub(ResponseInterface::class),
         );
         try {
-            $this->catalog()->findPoint('???', ['INPOST']);
+            $this->createCatalog()->findPoint('???', ['INPOST']);
         } catch (WebserviceException) {
         }
         $this->pointFailure = null;
 
-        self::assertSame('KRA01M', $this->catalog()->findPoint('KRA01M', ['INPOST'])?->getId());
+        self::assertSame('KRA01M', $this->createCatalog()->findPoint('KRA01M', ['INPOST'])?->getId());
     }
 
     public function testTheListIsAskedForOnceAndThenReadFromTheCache(): void
     {
-        self::assertSame(['DPD'], \array_keys($this->catalog()->getAccountCarriers()));
-        $carriers = $this->catalog()->getAccountCarriers();
+        self::assertSame(['DPD'], \array_keys($this->createCatalog()->getAccountCarriers()));
+        $carriers = $this->createCatalog()->getAccountCarriers();
 
         self::assertSame(1, $this->requests);
         self::assertSame('DPD', $carriers['DPD']->getServiceCode());
@@ -158,11 +158,11 @@ class CarrierCatalogTest extends TestCase
 
     public function testAnEntryNamingAClassOutsideTheSdkIsDroppedAndFetchedAgain(): void
     {
-        $this->catalog()->getAccountCarriers();
+        $this->createCatalog()->getAccountCarriers();
         $key = \array_key_first($this->cached);
         $this->cached[$key] = \serialize(['DPD' => new \ArrayObject()]);
 
-        $carriers = $this->catalog()->getAccountCarriers();
+        $carriers = $this->createCatalog()->getAccountCarriers();
 
         self::assertSame(2, $this->requests);
         self::assertInstanceOf(Carrier::class, $carriers['DPD']);
@@ -170,11 +170,11 @@ class CarrierCatalogTest extends TestCase
 
     public function testAnEntryNamingAClassThatNoLongerExistsIsDroppedAndFetchedAgain(): void
     {
-        $this->catalog()->getAccountCarriers();
+        $this->createCatalog()->getAccountCarriers();
         $key = \array_key_first($this->cached);
         $this->cached[$key] = 'a:1:{s:3:"DPD";O:41:"Polkurier\Webservice\Response\GoneCarrier":0:{}}';
 
-        $carriers = $this->catalog()->getAccountCarriers();
+        $carriers = $this->createCatalog()->getAccountCarriers();
 
         self::assertSame(2, $this->requests, 'It would come back as an incomplete object.');
         self::assertInstanceOf(Carrier::class, $carriers['DPD']);
@@ -182,11 +182,11 @@ class CarrierCatalogTest extends TestCase
 
     public function testAnUnreadableEntryIsFetchedAgain(): void
     {
-        $this->catalog()->getAccountCarriers();
+        $this->createCatalog()->getAccountCarriers();
         $key = \array_key_first($this->cached);
         $this->cached[$key] = 'not serialized';
 
-        $this->catalog()->getAccountCarriers();
+        $this->createCatalog()->getAccountCarriers();
 
         self::assertSame(2, $this->requests);
     }
@@ -194,7 +194,7 @@ class CarrierCatalogTest extends TestCase
     public function testAFailureIsNotAskedAgainInTheSameRequest(): void
     {
         $this->failure = new ConnectionException('Timed out.');
-        $catalog = $this->catalog();
+        $catalog = $this->createCatalog();
 
         foreach ([1, 2] as $attempt) {
             try {
@@ -211,17 +211,17 @@ class CarrierCatalogTest extends TestCase
     {
         $this->failure = new ConnectionException('Timed out.');
         try {
-            $this->catalog()->getAccountCarriers();
+            $this->createCatalog()->getAccountCarriers();
         } catch (ConnectionException) {
         }
 
         try {
-            $this->catalog()->getAccountCarriers();
+            $this->createCatalog()->getAccountCarriers();
             self::fail('The failure is reported again.');
         } catch (RecentFailureException $e) {
             self::assertSame(
                 'Polkurier could not be reached, or did not answer in time: Timed out.',
-                (string)(new ErrorMessageResolver())->phrase($e),
+                (string)(new ErrorMessageResolver())->createPhrase($e),
             );
         }
         self::assertSame(1, $this->requests, 'The next request is told without waiting for the API.');
@@ -231,7 +231,7 @@ class CarrierCatalogTest extends TestCase
     public function testCleaningForgetsTheFailure(): void
     {
         $this->failure = new ConnectionException('Timed out.');
-        $catalog = $this->catalog();
+        $catalog = $this->createCatalog();
         try {
             $catalog->getAccountCarriers();
         } catch (ConnectionException) {
@@ -246,31 +246,31 @@ class CarrierCatalogTest extends TestCase
 
     public function testARefreshAsksPastTheCache(): void
     {
-        $this->catalog()->getAccountCarriers();
+        $this->createCatalog()->getAccountCarriers();
 
-        self::assertSame(['DPD'], \array_keys($this->catalog()->refreshAccountCarriers()));
+        self::assertSame(['DPD'], \array_keys($this->createCatalog()->refreshAccountCarriers()));
         self::assertSame(2, $this->requests);
     }
 
     public function testAFailedRefreshLeavesTheCachedListAsItWas(): void
     {
-        $this->catalog()->getAccountCarriers();
+        $this->createCatalog()->getAccountCarriers();
         $this->failure = new ConnectionException('Timed out.');
         try {
-            $this->catalog()->refreshAccountCarriers();
+            $this->createCatalog()->refreshAccountCarriers();
             self::fail('The failure is said.');
         } catch (ConnectionException) {
         }
 
         self::assertSame(
             ['DPD'],
-            \array_keys($this->catalog()->getAccountCarriers()),
+            \array_keys($this->createCatalog()->getAccountCarriers()),
             'Read from the cache, still there.',
         );
         self::assertSame(2, $this->requests);
     }
 
-    private function catalog(): CarrierCatalog
+    private function createCatalog(): CarrierCatalog
     {
         $courier = $this->createStub(CourierServiceInterface::class);
         $courier->method('availableCarriers')->willReturnCallback(function (): array {
@@ -290,7 +290,7 @@ class CarrierCatalogTest extends TestCase
             return \str_starts_with($id, 'NOPE') ? null : new CourierPoint($id, available: true);
         });
         $clientPool = $this->createStub(PolkurierClient::class);
-        $clientPool->method('courier')->willReturn($courier);
+        $clientPool->method('getCourier')->willReturn($courier);
         $config = $this->createStub(ConfigProvider::class);
         $config->method('getLogin')->willReturn('12345');
 

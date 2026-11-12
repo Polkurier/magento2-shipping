@@ -63,7 +63,7 @@ readonly class ActualShippingUpdater
             return;
         }
         $choice = $this->shippingChoiceRepository->getForOrder($orderId);
-        $latest = $this->latestPlaced($orderId);
+        $latest = $this->findLatestPlaced($orderId);
         if ($latest === null) {
             if ($choice !== null) {
                 $this->restore($order, $note);
@@ -71,14 +71,14 @@ readonly class ActualShippingUpdater
 
             return;
         }
-        [$carrier, $point] = $this->sentTo($latest);
+        [$carrier, $point] = $this->getCarrierAndPoint($latest);
         $current = $this->orderPointRepository->getForOrder($orderId);
-        if ($carrier === Polkurier::methodCodeOf((string)$order->getShippingMethod())
+        if ($carrier === Polkurier::extractMethodCode((string)$order->getShippingMethod())
             && $point === (string)$current?->getPointId()
         ) {
             return;
         }
-        if ($choice !== null && $carrier === Polkurier::methodCodeOf((string)$choice->getShippingMethod())
+        if ($choice !== null && $carrier === Polkurier::extractMethodCode((string)$choice->getShippingMethod())
             && $point === (string)$choice->getPointId()
         ) {
             $this->restore($order, $note);
@@ -103,14 +103,14 @@ readonly class ActualShippingUpdater
             $cod = $found?->isCod();
         }
         $description = $this->describe($order, $carrier, $point, $label);
-        $this->write($order, Polkurier::methodOf($carrier), $description);
+        $this->write($order, Polkurier::buildShippingMethod($carrier), $description);
         if ($point !== '') {
             $this->orderPointRepository->replaceForOrder($orderId, $carrier, $point, $label, $cod);
         } else {
             $this->orderPointRepository->deleteForOrder($orderId);
         }
         if ($note) {
-            $this->nativeFollowUpService->comment($order, __(
+            $this->nativeFollowUpService->addComment($order, __(
                 'Shipping method changed to: %1 (Polkurier order %2). Customer\'s choice: %3.',
                 $description,
                 (string)$latest->getPolkurierNumber(),
@@ -143,7 +143,7 @@ readonly class ActualShippingUpdater
         }
         $this->shippingChoiceRepository->deleteForOrder($orderId);
         if ($note) {
-            $this->nativeFollowUpService->comment($order, __(
+            $this->nativeFollowUpService->addComment($order, __(
                 'Shipping method changed back to the customer\'s choice: %1.',
                 (string)$choice->getShippingDescription(),
             ));
@@ -174,15 +174,15 @@ readonly class ActualShippingUpdater
         }
     }
 
-    private function latestPlaced(int $orderId): ?ShipmentInterface
+    private function findLatestPlaced(int $orderId): ?ShipmentInterface
     {
-        return $this->shipmentFinder->latestForOrder($orderId, [ShipmentInterface::STATE_CREATED]);
+        return $this->shipmentFinder->findLatestForOrder($orderId, [ShipmentInterface::STATE_CREATED]);
     }
 
     /**
      * @return array{0: string, 1: string} the carrier code and the pickup point id ('' without one)
      */
-    private function sentTo(ShipmentInterface $shipment): array
+    private function getCarrierAndPoint(ShipmentInterface $shipment): array
     {
         // As Polkurier reports it, or as it was sent while that's not been read yet.
         $details = $shipment->getDetails() ?: $this->sentOrderReader->read((string)$shipment->getRequest());

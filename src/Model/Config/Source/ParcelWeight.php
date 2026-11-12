@@ -18,7 +18,7 @@ readonly class ParcelWeight extends AbstractOptions
     {
         $options = [];
         foreach (ParcelWeightEnum::cases() as $case) {
-            $options[$case->value] = $case->label();
+            $options[$case->value] = $case->getLabel();
         }
 
         return $options;

@@ -55,13 +55,13 @@ define([
                             .replace('%1', response.unknown.join(', '))
                         : '');
                     this.fee(response.error ? null : {
-                        gross: rules.money(response.fee),
-                        net: rules.money(response.fee_net),
+                        gross: rules.formatMoney(response.fee),
+                        net: rules.formatMoney(response.fee_net),
                         free: $t('Free payouts left: %1 of %2.')
                             .replace('%1', response.free_left)
                             .replace('%2', response.free_total),
                         available: typeof response.available === 'number'
-                            ? $t('Available to pay out: %1.').replace('%1', rules.money(response.available))
+                            ? $t('Available to pay out: %1.').replace('%1', rules.formatMoney(response.available))
                             : ''
                     });
                 }.bind(this),

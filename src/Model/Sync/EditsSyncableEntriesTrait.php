@@ -49,7 +49,7 @@ trait EditsSyncableEntriesTrait
         /** @var AbstractModel&SyncableInterface $entity */
         $entity->addData($data);
         $this->assertUniqueName($entity);
-        $entity->setUpdatedAt($this->now())->setSyncState(SyncableInterface::STATE_PENDING)->setSyncError(null);
+        $entity->setUpdatedAt($this->getNow())->setSyncState(SyncableInterface::STATE_PENDING)->setSyncError(null);
     }
 
     /**
@@ -57,7 +57,7 @@ trait EditsSyncableEntriesTrait
      */
     abstract protected function assertUniqueName(SyncableInterface $entity): void;
 
-    protected function now(): string
+    protected function getNow(): string
     {
         return \gmdate(DateFormat::DATETIME_PHP_FORMAT, $this->dateTime->gmtTimestamp());
     }

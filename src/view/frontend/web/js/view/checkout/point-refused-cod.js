@@ -29,7 +29,7 @@ define([
                 const method = quote.shippingMethod(),
                     point = method && pickupPoint.isOwnMethod(method) ? pickupPoint.get(method.method_code) : null;
 
-                return !!point && pickupPoint.collectsCod(method.method_code) && point.cod === false;
+                return !!point && pickupPoint.isCollectingCod(method.method_code) && point.cod === false;
             });
 
             return this;

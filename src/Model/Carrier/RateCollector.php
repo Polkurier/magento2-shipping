@@ -76,8 +76,8 @@ readonly class RateCollector
         $carriers = $this->getCatalog();
         $foreign = $request->getDestCountryId() && $request->getDestCountryId() !== Polkurier::HOME_COUNTRY;
         // The subtotal is in the base currency, as the prices are; weight tiers are in kilograms.
-        $subtotal = $this->cartValueOf($request);
-        $weight = $this->weightUnitConverter->toKilograms((float)$request->getPackageWeight(), $storeId);
+        $subtotal = $this->getCartValue($request);
+        $weight = $this->weightUnitConverter->convertToKilograms((float)$request->getPackageWeight(), $storeId);
 
         $result = $this->rateResultFactory->create();
         $mapAvailable = null;
@@ -115,7 +115,7 @@ readonly class RateCollector
      * tax, and its discount, but before the tax on the discounted amounts: an item's discount is
      * taken off both in proportion, from the price Magento applies discounts to.
      */
-    public function cartValueOf(RateRequest $request): float
+    public function getCartValue(RateRequest $request): float
     {
         $storeId = (int)$request->getStoreId();
         $gross = $this->configProvider->getTierCartValue($storeId) === CartValueEnum::Gross;

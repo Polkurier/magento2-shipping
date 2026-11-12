@@ -28,7 +28,7 @@ readonly class Formatter
         private ResolverInterface $localeResolver,
     ) {}
 
-    public function number(float $value): string
+    public function formatNumber(float $value): string
     {
         return (string)(new \NumberFormatter($this->localeResolver->getLocale(), \NumberFormatter::DECIMAL))
             ->format($value);
@@ -37,7 +37,7 @@ readonly class Formatter
     /**
      * An amount in złoty, the currency of everything Polkurier charges and collects.
      */
-    public function money(float $amount): string
+    public function formatMoney(float $amount): string
     {
         return $this->priceCurrency->format($amount, false, 2, null, OrderAmountCalculator::CURRENCY);
     }
@@ -45,7 +45,7 @@ readonly class Formatter
     /**
      * A time the module stored, in UTC.
      */
-    public function storedTime(?string $value): string
+    public function formatStoredTime(?string $value): string
     {
         return $value
             ? $this->timezone->formatDateTime($value, \IntlDateFormatter::MEDIUM, \IntlDateFormatter::SHORT)
@@ -55,13 +55,13 @@ readonly class Formatter
     /**
      * A time as Polkurier reported it, in Polish time, shown like the module's own times.
      */
-    public function polkurierTime(?string $value): string
+    public function formatPolkurierTime(?string $value): string
     {
         if (!$value) {
             return self::NONE;
         }
         try {
-            $time = (new \DateTimeImmutable($value, PolkurierTimeZone::zone()))
+            $time = (new \DateTimeImmutable($value, PolkurierTimeZone::getZone()))
                 ->setTimezone(new \DateTimeZone('UTC'));
         } catch (\DateMalformedStringException) {
             return $value;
@@ -70,20 +70,20 @@ readonly class Formatter
         return $this->timezone->formatDateTime($time, \IntlDateFormatter::MEDIUM, \IntlDateFormatter::SHORT);
     }
 
-    public function size(mixed $length, mixed $width, mixed $height): string
+    public function formatSize(mixed $length, mixed $width, mixed $height): string
     {
         return (string)__('%1 × %2 × %3 cm', $length ?? '?', $width ?? '?', $height ?? '?');
     }
 
-    public function weight(float $kilograms): string
+    public function formatWeight(float $kilograms): string
     {
-        return (string)__('%1 kg', $this->number($kilograms));
+        return (string)__('%1 kg', $this->formatNumber($kilograms));
     }
 
     /**
      * The postcode and town, and the country when it isn't Poland.
      */
-    public function place(string $postcode, string $city, ?string $country): string
+    public function formatPlace(string $postcode, string $city, ?string $country): string
     {
         $place = \trim($postcode . ' ' . $city);
 
@@ -99,7 +99,7 @@ readonly class Formatter
      *
      * @return array<int, array<string, string|bool>>
      */
-    public function rows(array $rows): array
+    public function formatRows(array $rows): array
     {
         $result = [];
         foreach ($rows as $row) {

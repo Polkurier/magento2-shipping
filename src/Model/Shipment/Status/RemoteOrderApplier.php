@@ -58,14 +58,14 @@ readonly class RemoteOrderApplier
             ->setStatusCode($order->getStatusCode())
             ->setStatusLabel($order->getStatus())
             // In UTC, as every time the module stores: Polkurier reports them in Polish time.
-            ->setStatusDate(self::utc($order->getStatusDate()))
-            ->setDeliveredAt($order->getDeliveredDate() !== null ? self::utc($order->getDeliveredDate()) : null)
+            ->setStatusDate(self::formatUtc($order->getStatusDate()))
+            ->setDeliveredAt($order->getDeliveredDate() !== null ? self::formatUtc($order->getDeliveredDate()) : null)
             ->setTrackingUrl($order->getTrackingUri() ?: $shipment->getTrackingUrl())
             ->setPriceNet($order->getPriceNet())
             ->setPriceGross($order->getPriceGross())
             ->setCodAmount($order->getCod()?->getAmount() ?: null)
             ->setCodStatus($order->getCod()?->getStatus()->value)
-            ->setDetails($this->fromOrder($order))
+            ->setDetails($this->mapFromOrder($order))
             ->setDetailsSyncedAt((string)$this->dateTime->gmtDate());
 
         $notConfirmed = [
@@ -133,7 +133,7 @@ readonly class RemoteOrderApplier
     /**
      * @return array<string, mixed>
      */
-    public function fromOrder(Order $order): array
+    public function mapFromOrder(Order $order): array
     {
         $waybills = [];
         foreach ($order->getWaybills() as $waybill) {
@@ -178,9 +178,9 @@ readonly class RemoteOrderApplier
             'delivered_date' => $order->getDeliveredDate()?->format(DateFormat::DATETIME_PHP_FORMAT),
             'tracking_url' => $order->getTrackingUri(),
             'waybills' => $waybills,
-            'sender' => $this->address($order->getSender()),
-            'recipient' => $this->address($order->getRecipient()),
-            'cover_address' => $order->getCoverAddress() === null ? null : $this->address($order->getCoverAddress()),
+            'sender' => $this->mapAddress($order->getSender()),
+            'recipient' => $this->mapAddress($order->getRecipient()),
+            'cover_address' => $order->getCoverAddress() === null ? null : $this->mapAddress($order->getCoverAddress()),
             'cod' => $cod === null ? null : [
                 'amount' => $cod->getAmount(),
                 'type' => $cod->getType()->value,
@@ -218,7 +218,7 @@ readonly class RemoteOrderApplier
      *
      * @return array<int, array<string, string>>
      */
-    public function tracking(OrderStatusMessage $status): array
+    public function mapTracking(OrderStatusMessage $status): array
     {
         $events = [];
         foreach ($status->getTracking() as $event) {
@@ -236,7 +236,7 @@ readonly class RemoteOrderApplier
         return $events;
     }
 
-    private static function utc(\DateTimeInterface $time): string
+    private static function formatUtc(\DateTimeInterface $time): string
     {
         return \DateTimeImmutable::createFromInterface($time)
             ->setTimezone(new \DateTimeZone('UTC'))
@@ -246,7 +246,7 @@ readonly class RemoteOrderApplier
     /**
      * @return array<string, string|null>
      */
-    private function address(BaseAddress $address): array
+    private function mapAddress(BaseAddress $address): array
     {
         $point = $address->getPoint();
 

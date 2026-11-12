@@ -46,7 +46,7 @@ define([
                     }
                 }, this);
                 row.missing = ko.pureComputed(function () {
-                    return row.required && this.validated() && !rules.filled(row.value());
+                    return row.required && this.isValidated() && !rules.isFilled(row.value());
                 }, this);
 
                 return row;

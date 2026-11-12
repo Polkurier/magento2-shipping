@@ -23,7 +23,7 @@ class CancellationRuleTest extends TestCase
     /**
      * @return array<string, array{string, ?string, string, string[], bool, ?string}>
      */
-    public static function orders(): array
+    public static function provideOrders(): array
     {
         $placed = ShipmentInterface::STATE_CREATED;
 
@@ -74,7 +74,7 @@ class CancellationRuleTest extends TestCase
     /**
      * @param string[] $waybills
      */
-    #[DataProvider('orders')]
+    #[DataProvider('provideOrders')]
     public function testAnOrderIsOfferedForCancellingAsThePolkurierPanelOffersIt(
         string $state,
         ?string $status,
@@ -92,6 +92,6 @@ class CancellationRuleTest extends TestCase
             ->setWaybills($waybills)
             ->setDetails(['has_invoice' => $invoiced]);
 
-        self::assertSame($refusal, CancellationRule::refusal($shipment)?->render());
+        self::assertSame($refusal, CancellationRule::getRefusal($shipment)?->render());
     }
 }

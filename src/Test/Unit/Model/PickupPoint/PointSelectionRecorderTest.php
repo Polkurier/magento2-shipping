@@ -54,7 +54,7 @@ class PointSelectionRecorderTest extends TestCase
 
     public function testAnOpenPointThatHandsOutParcelsIsKept(): void
     {
-        $this->selection(new CourierPoint(
+        $this->createRecorder(new CourierPoint(
             'WAW195M',
             available: true,
             functions: [PointFunctionEnum::Collect->value, PointFunctionEnum::Send->value],
@@ -68,7 +68,7 @@ class PointSelectionRecorderTest extends TestCase
 
     public function testAPointWithoutAnAddressLineIsLabelledByItsStreetAndTown(): void
     {
-        $this->selection(new CourierPoint(
+        $this->createRecorder(new CourierPoint(
             'WAW195M',
             street: 'Krótka 5',
             zip: '00-001',
@@ -85,14 +85,18 @@ class PointSelectionRecorderTest extends TestCase
     {
         $this->expectException(InputException::class);
 
-        $this->selection(new CourierPoint('WAW195M', available: false, functions: [PointFunctionEnum::Collect->value]))
+        $this->createRecorder(
+            new CourierPoint('WAW195M', available: false, functions: [PointFunctionEnum::Collect->value]),
+        )
             ->select($this->quote(), 'polkurier', 'INPOST_PACZKOMAT', 'WAW195M');
     }
 
     public function testAPointThatOnlyTakesParcelsInIsRefused(): void
     {
         try {
-            $this->selection(new CourierPoint('WAW01N', available: true, functions: [PointFunctionEnum::Send->value]))
+            $this->createRecorder(
+                new CourierPoint('WAW01N', available: true, functions: [PointFunctionEnum::Send->value]),
+            )
                 ->select($this->quote(), 'polkurier', 'INPOST_PACZKOMAT', 'WAW01N');
             self::fail('The customer could not collect the parcel there.');
         } catch (InputException) {
@@ -102,7 +106,7 @@ class PointSelectionRecorderTest extends TestCase
 
     public function testAnotherCarrierTakesTheAddresssPointAway(): void
     {
-        $this->selection()->select($this->quote(), 'flatrate', 'flatrate', 'WAW195M', 12);
+        $this->createRecorder()->select($this->quote(), 'flatrate', 'flatrate', 'WAW195M', 12);
 
         self::assertSame(['5/12'], $this->deleted);
         self::assertNull($this->saved);
@@ -112,14 +116,14 @@ class PointSelectionRecorderTest extends TestCase
     {
         $this->expectExceptionMessage('Choose a pickup point for the selected delivery method.');
 
-        $this->selection()->select($this->quote(), 'polkurier', 'INPOST_PACZKOMAT', '  ');
+        $this->createRecorder()->select($this->quote(), 'polkurier', 'INPOST_PACZKOMAT', '  ');
     }
 
     public function testAMethodThatTakesAPointOptionallyGoesWithoutOne(): void
     {
         $this->required = false;
 
-        $this->selection()->select($this->quote(), 'polkurier', 'DPD_PICKUP', null);
+        $this->createRecorder()->select($this->quote(), 'polkurier', 'DPD_PICKUP', null);
 
         self::assertSame(['5/0'], $this->deleted);
     }
@@ -129,7 +133,7 @@ class PointSelectionRecorderTest extends TestCase
         $this->required = false;
         $this->allowed = false;
 
-        $this->selection()->select($this->quote(), 'polkurier', 'DPD', 'WAW195M');
+        $this->createRecorder()->select($this->quote(), 'polkurier', 'DPD', 'WAW195M');
 
         self::assertSame(['5/0'], $this->deleted);
         self::assertNull($this->saved);
@@ -139,7 +143,7 @@ class PointSelectionRecorderTest extends TestCase
     {
         $this->carrierOutage = true;
 
-        $this->selection()->select($this->quote(), 'polkurier', 'INPOST_PACZKOMAT', 'WAW195M');
+        $this->createRecorder()->select($this->quote(), 'polkurier', 'INPOST_PACZKOMAT', 'WAW195M');
 
         self::assertSame('WAW195M', $this->saved?->getPointId());
         self::assertSame('WAW195M', $this->saved->getPointLabel());
@@ -149,7 +153,7 @@ class PointSelectionRecorderTest extends TestCase
     {
         $this->pointOutage = true;
 
-        $this->selection()->select($this->quote(), 'polkurier', 'INPOST_PACZKOMAT', 'WAW195M');
+        $this->createRecorder()->select($this->quote(), 'polkurier', 'INPOST_PACZKOMAT', 'WAW195M');
 
         self::assertSame('WAW195M', $this->saved?->getPointLabel());
         self::assertNull(
@@ -160,7 +164,7 @@ class PointSelectionRecorderTest extends TestCase
 
     public function testEachAddressOfAMultiAddressCheckoutKeepsItsOwnPoint(): void
     {
-        $this->selection(new CourierPoint(
+        $this->createRecorder(new CourierPoint(
             'WAW195M',
             available: true,
             functions: [PointFunctionEnum::Collect->value],
@@ -175,25 +179,25 @@ class PointSelectionRecorderTest extends TestCase
     public function testPlacingNeedsAPointForTheMethodChosen(): void
     {
         $this->stored = 'INPOST_PACZKOMAT';
-        $this->selection()->requirePoint($this->quote(), 'INPOST_PACZKOMAT');
+        $this->createRecorder()->requirePoint($this->quote(), 'INPOST_PACZKOMAT');
 
         $this->stored = 'INPOST_PACZKOMAT_ECONOMY';
         try {
-            $this->selection()->requirePoint($this->quote(), 'INPOST_PACZKOMAT');
+            $this->createRecorder()->requirePoint($this->quote(), 'INPOST_PACZKOMAT');
             self::fail('A point chosen for another method doesn\'t count.');
         } catch (InputException) {
         }
 
         $this->required = false;
-        $this->selection()->requirePoint($this->quote(), 'DPD');
+        $this->createRecorder()->requirePoint($this->quote(), 'DPD');
         $this->required = true;
         $this->carrierOutage = true;
         // Let through rather than lost.
-        $this->selection()->requirePoint($this->quote(), 'INPOST_PACZKOMAT');
+        $this->createRecorder()->requirePoint($this->quote(), 'INPOST_PACZKOMAT');
         $this->addToAssertionCount(3);
     }
 
-    private function selection(?CourierPoint $point = null): PointSelectionRecorder
+    private function createRecorder(?CourierPoint $point = null): PointSelectionRecorder
     {
         $store = $this->createStub(QuotePointRepositoryInterface::class);
         $store->method('getForQuote')->willReturnCallback(function (): ?QuotePoint {

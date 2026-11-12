@@ -18,7 +18,7 @@ trait SyncableTrait
 {
     public function getExtId(): ?string
     {
-        return $this->nullableString(SyncableInterface::FIELD_EXT_ID);
+        return $this->getNullableString(SyncableInterface::FIELD_EXT_ID);
     }
 
     public function setExtId(?string $extId): static
@@ -38,7 +38,7 @@ trait SyncableTrait
 
     public function getSyncError(): ?string
     {
-        return $this->nullableString(SyncableInterface::FIELD_SYNC_ERROR);
+        return $this->getNullableString(SyncableInterface::FIELD_SYNC_ERROR);
     }
 
     public function setSyncError(?string $syncError): static
@@ -48,7 +48,7 @@ trait SyncableTrait
 
     public function getRemoteHash(): ?string
     {
-        return $this->nullableString(SyncableInterface::FIELD_REMOTE_HASH);
+        return $this->getNullableString(SyncableInterface::FIELD_REMOTE_HASH);
     }
 
     public function setRemoteHash(?string $remoteHash): static
@@ -58,7 +58,7 @@ trait SyncableTrait
 
     public function getRemoteUpdatedAt(): ?string
     {
-        return $this->nullableString(SyncableInterface::FIELD_REMOTE_UPDATED_AT);
+        return $this->getNullableString(SyncableInterface::FIELD_REMOTE_UPDATED_AT);
     }
 
     public function setRemoteUpdatedAt(?string $remoteUpdatedAt): static
@@ -68,7 +68,7 @@ trait SyncableTrait
 
     public function getSyncedAt(): ?string
     {
-        return $this->nullableString(SyncableInterface::FIELD_SYNCED_AT);
+        return $this->getNullableString(SyncableInterface::FIELD_SYNCED_AT);
     }
 
     public function setSyncedAt(?string $syncedAt): static
@@ -78,7 +78,7 @@ trait SyncableTrait
 
     public function getDeletedAt(): ?string
     {
-        return $this->nullableString(SyncableInterface::FIELD_DELETED_AT);
+        return $this->getNullableString(SyncableInterface::FIELD_DELETED_AT);
     }
 
     public function setDeletedAt(?string $deletedAt): static
@@ -88,7 +88,7 @@ trait SyncableTrait
 
     public function getCreatedAt(): ?string
     {
-        return $this->nullableString(SyncableInterface::FIELD_CREATED_AT);
+        return $this->getNullableString(SyncableInterface::FIELD_CREATED_AT);
     }
 
     public function setCreatedAt(?string $createdAt): static
@@ -98,7 +98,7 @@ trait SyncableTrait
 
     public function getUpdatedAt(): ?string
     {
-        return $this->nullableString(SyncableInterface::FIELD_UPDATED_AT);
+        return $this->getNullableString(SyncableInterface::FIELD_UPDATED_AT);
     }
 
     public function setUpdatedAt(?string $updatedAt): static
@@ -106,7 +106,7 @@ trait SyncableTrait
         return $this->setData(SyncableInterface::FIELD_UPDATED_AT, $updatedAt);
     }
 
-    private function nullableString(string $field): ?string
+    private function getNullableString(string $field): ?string
     {
         $value = $this->getData($field);
 

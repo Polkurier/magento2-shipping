@@ -25,22 +25,22 @@ public function __construct(private readonly PolkurierClient $polkurierClient) {
 
 public function execute(): void
 {
-    $carriers = $this->polkurierClient->courier()->availableCarriers();
+    $carriers = $this->polkurierClient->getCourier()->availableCarriers();
 }
 ```
 
 | Method | SDK service |
 |---|---|
-| `account()` | account details, security PIN locks |
-| `addresses()` | sender addresses |
-| `bankAccounts()` | bank accounts |
-| `courier()` | carriers, pickup points, pickup times |
-| `geo()`, `utils()` | geographic lookups and helpers |
-| `moneyBox()` | cash on delivery balance and payouts |
-| `orders()` | placing, cancelling, labels, protocols, statuses, collective pickups |
-| `packTemplates()` | pack templates |
-| `system()` | service information, the carriers' current notices, coupon validation |
-| `twoFactorToken()` | sending two-factor codes |
+| `getAccount()` | account details, security PIN locks |
+| `getAddresses()` | sender addresses |
+| `getBankAccounts()` | bank accounts |
+| `getCourier()` | carriers, pickup points, pickup times |
+| `getGeo()`, `getUtils()` | geographic lookups and helpers |
+| `getMoneyBox()` | cash on delivery balance and payouts |
+| `getOrders()` | placing, cancelling, labels, protocols, statuses, collective pickups |
+| `getPackTemplates()` | pack templates |
+| `getSystem()` | service information, the carriers' current notices, coupon validation |
+| `getTwoFactorToken()` | sending two-factor codes |
 
 The methods take no store: every store uses the same account. Saving the configuration resets the
 client ([`PolkurierClient::reset()`](../../src/Model/Sdk/PolkurierClient.php)), so the next call
@@ -126,7 +126,7 @@ for the admin, so callers only ever see Magento exceptions.
 
 When you call the SDK yourself,
 [`Model\Sdk\ErrorMessageResolver`](../../src/Model/Sdk/ErrorMessageResolver.php) gives you the same
-handling. `phrase()` turns any failure into a message for the admin. `isTransient()` tells whether
+handling. `createPhrase()` turns any failure into a message for the admin. `isTransient()` tells whether
 sending the same request again may get a different answer; it also looks through a
 `Magento\Framework\Exception\LocalizedException` to the failure behind it. Transient failures are
 a failed connection, an unreadable answer, and the codes Polkurier uses when it's down or busy

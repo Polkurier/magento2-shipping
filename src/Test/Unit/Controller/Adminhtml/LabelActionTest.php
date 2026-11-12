@@ -31,7 +31,7 @@ class LabelActionTest extends AdminActionTestCase
     /**
      * @return iterable<string, array{mixed, LabelFileFormatEnum|null}>
      */
-    public static function formats(): iterable
+    public static function provideFormats(): iterable
     {
         yield 'a printer language' => ['ZPL', LabelFileFormatEnum::Zpl];
         yield 'none' => [null, null];
@@ -39,16 +39,16 @@ class LabelActionTest extends AdminActionTestCase
         yield 'a list' => [['ZPL'], null];
     }
 
-    #[DataProvider('formats')]
+    #[DataProvider('provideFormats')]
     public function testTheLabelsComeInTheFormatAskedForOrAsAPdf(mixed $format, ?LabelFileFormatEnum $expected): void
     {
         $this->params = ['ids' => '4,5', 'format' => $format];
         $documents = $this->createMock(DocumentService::class);
         $documents->expects(self::once())->method('getLabels')
             ->with([], $expected)
-            ->willReturn($this->document([]));
+            ->willReturn($this->buildDocument([]));
 
-        $this->label($documents)->execute();
+        $this->createLabel($documents)->execute();
 
         self::assertSame('polkurier-labels.txt', $this->file[0] ?? null);
     }
@@ -56,9 +56,9 @@ class LabelActionTest extends AdminActionTestCase
     public function testTheOrdersLeftOutAreNamedWithTheFile(): void
     {
         $documents = $this->createStub(DocumentService::class);
-        $documents->method('getLabels')->willReturn($this->document(['Polkurier order 18015-2866 was left out.']));
+        $documents->method('getLabels')->willReturn($this->buildDocument(['Polkurier order 18015-2866 was left out.']));
 
-        $this->label($documents)->execute();
+        $this->createLabel($documents)->execute();
 
         self::assertSame(['Polkurier order 18015-2866 was left out.'], $this->messages['warning']);
         self::assertSame(
@@ -72,7 +72,7 @@ class LabelActionTest extends AdminActionTestCase
      *
      * @return array{file_name: string, content: string, content_type: string, left_out: string[]}
      */
-    private function document(array $leftOut): array
+    private function buildDocument(array $leftOut): array
     {
         return [
             'file_name' => 'polkurier-labels.txt',
@@ -82,7 +82,7 @@ class LabelActionTest extends AdminActionTestCase
         ];
     }
 
-    private function label(DocumentService $documents): Label
+    private function createLabel(DocumentService $documents): Label
     {
         $requested = $this->createStub(RequestedShipments::class);
         $requested->method('getSelected')->willReturn([]);
@@ -95,6 +95,6 @@ class LabelActionTest extends AdminActionTestCase
             },
         );
 
-        return new Label($this->context(), $requested, $documents, $files);
+        return new Label($this->createContext(), $requested, $documents, $files);
     }
 }

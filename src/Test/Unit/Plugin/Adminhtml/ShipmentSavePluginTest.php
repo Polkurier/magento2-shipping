@@ -55,12 +55,16 @@ class ShipmentSavePluginTest extends TestCase
 
     public function testAShipmentWithoutALabelIsSavedWhenNothingIsPending(): void
     {
-        self::assertSame('saved', $this->save([], [$this->polkurier(ShipmentInterface::STATE_CREATED, 56)]));
+        $shipment = $this->createPolkurierShipment(ShipmentInterface::STATE_CREATED, 56);
+
+        self::assertSame('saved', $this->save([], [$shipment]));
     }
 
     public function testAShipmentWithoutALabelWaitsForAnUnconfirmedPolkurierOrder(): void
     {
-        self::assertNotSame('saved', $this->save([], [$this->polkurier(ShipmentInterface::STATE_UNKNOWN)]));
+        $shipment = $this->createPolkurierShipment(ShipmentInterface::STATE_UNKNOWN);
+
+        self::assertNotSame('saved', $this->save([], [$shipment]));
         self::assertSame(['adminhtml/order_shipment/new', ['order_id' => 9]], $this->redirect);
         self::assertCount(1, $this->messages);
         self::assertStringStartsWith(
@@ -71,15 +75,17 @@ class ShipmentSavePluginTest extends TestCase
 
     public function testAShipmentWithoutALabelWaitsForAPolkurierOrderBeingPlaced(): void
     {
-        self::assertNotSame('saved', $this->save([], [$this->polkurier(ShipmentInterface::STATE_PENDING)]));
+        $shipment = $this->createPolkurierShipment(ShipmentInterface::STATE_PENDING);
+
+        self::assertNotSame('saved', $this->save([], [$shipment]));
         self::assertStringEndsWith('Nothing was shipped.', $this->messages[0]);
     }
 
     public function testAShipmentWithoutALabelWaitsForThePlacedOrdersMagentoShipment(): void
     {
         self::assertNotSame('saved', $this->save([], [
-            $this->polkurier(ShipmentInterface::STATE_CREATED, 56),
-            $this->polkurier(ShipmentInterface::STATE_CREATED),
+            $this->createPolkurierShipment(ShipmentInterface::STATE_CREATED, 56),
+            $this->createPolkurierShipment(ShipmentInterface::STATE_CREATED),
         ]));
         self::assertSame(['adminhtml/order_shipment/new', ['order_id' => 9]], $this->redirect);
         self::assertStringStartsWith(
@@ -90,12 +96,18 @@ class ShipmentSavePluginTest extends TestCase
 
     public function testAPolkurierOrderForAnExistingMagentoShipmentTakesNoItems(): void
     {
-        self::assertSame('saved', $this->save([], [$this->polkurier(ShipmentInterface::STATE_UNKNOWN, target: 56)]));
+        self::assertSame(
+            'saved',
+            $this->save([], [$this->createPolkurierShipment(ShipmentInterface::STATE_UNKNOWN, target: 56)]),
+        );
     }
 
     public function testAnOrderOfAnotherCarrierIsLeftAlone(): void
     {
-        self::assertSame('saved', $this->save([], [$this->polkurier(ShipmentInterface::STATE_UNKNOWN)], 'flatrate'));
+        self::assertSame(
+            'saved',
+            $this->save([], [$this->createPolkurierShipment(ShipmentInterface::STATE_UNKNOWN)], 'flatrate'),
+        );
     }
 
     /**
@@ -119,7 +131,7 @@ class ShipmentSavePluginTest extends TestCase
         $orders = $this->createStub(OrderRepositoryInterface::class);
         $orders->method('get')->willReturn($order);
         $finder = $this->createStub(ShipmentFinder::class);
-        $finder->method('forOrder')->willReturn($polkurier);
+        $finder->method('findForOrder')->willReturn($polkurier);
 
         $redirect = $this->createStub(Redirect::class);
         $redirect->method('setPath')->willReturnCallback(function (string $path, array $params = []) use ($redirect) {
@@ -140,14 +152,21 @@ class ShipmentSavePluginTest extends TestCase
             return 'saved';
         };
 
-        return (new ShipmentSavePlugin(new OrderLoader($orders), $finder, $this->messageManager(), $redirects, $labels))
-            ->aroundExecute($controller, $proceed);
+        $plugin = new ShipmentSavePlugin(
+            new OrderLoader($orders),
+            $finder,
+            $this->createMessageManager(),
+            $redirects,
+            $labels,
+        );
+
+        return $plugin->aroundExecute($controller, $proceed);
     }
 
     /**
      * Holds $this->messages; Magento's own message is added by its action.
      */
-    private function messageManager(): ManagerInterface
+    private function createMessageManager(): ManagerInterface
     {
         $collection = $this->createStub(Collection::class);
         $collection->method('getItems')->willReturnCallback(function (): array {
@@ -179,8 +198,11 @@ class ShipmentSavePluginTest extends TestCase
         return $manager;
     }
 
-    private function polkurier(string $state, ?int $magentoShipmentId = null, ?int $target = null): Shipment
-    {
+    private function createPolkurierShipment(
+        string $state,
+        ?int $magentoShipmentId = null,
+        ?int $target = null,
+    ): Shipment {
         /** @var Shipment $shipment */
         $shipment = (new ObjectManager($this))->getObject(Shipment::class);
         $placed = $state === ShipmentInterface::STATE_CREATED;

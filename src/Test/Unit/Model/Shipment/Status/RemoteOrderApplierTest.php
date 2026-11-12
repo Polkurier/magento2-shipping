@@ -31,7 +31,7 @@ class RemoteOrderApplierTest extends SdkTestCase
     /**
      * @return array<string, array{string, ?string, ?string, bool}>
      */
-    public static function shipments(): array
+    public static function provideShipments(): array
     {
         return [
             'in transit' => ['WP', null, '2026-09-01 10:00:00', false],
@@ -47,29 +47,29 @@ class RemoteOrderApplierTest extends SdkTestCase
         ];
     }
 
-    #[DataProvider('shipments')]
+    #[DataProvider('provideShipments')]
     public function testDecidesWhenAShipmentIsFinished(
         string $status,
         ?string $cod,
         ?string $statusDate,
         bool $final,
     ): void {
-        $shipment = $this->shipment()->setStatusCode($status)->setCodStatus($cod)->setStatusDate($statusDate);
+        $shipment = $this->createShipment()->setStatusCode($status)->setCodStatus($cod)->setStatusDate($statusDate);
 
         self::assertSame(
             $final,
-            $this->applier(new FixedDateTime((int)\strtotime(self::NOW . ' UTC')))->isFinal($shipment),
+            $this->createApplier(new FixedDateTime((int)\strtotime(self::NOW . ' UTC')))->isFinal($shipment),
         );
     }
 
     public function testAppliesThePolkurierOrderToTheShipment(): void
     {
-        $shipment = $this->shipment()
+        $shipment = $this->createShipment()
             ->setState(ShipmentInterface::STATE_UNKNOWN)
             ->setTrackingUrl('https://kept.example');
 
-        $this->applier(new FixedDateTime((int)\strtotime(self::NOW . ' UTC')))
-            ->apply($this->order(), $shipment);
+        $this->createApplier(new FixedDateTime((int)\strtotime(self::NOW . ' UTC')))
+            ->apply($this->createOrder(), $shipment);
 
         self::assertSame(ShipmentInterface::STATE_CREATED, $shipment->getState(), 'Found, so placed after all.');
         self::assertSame('12345-678', $shipment->getPolkurierNumber());
@@ -88,12 +88,12 @@ class RemoteOrderApplierTest extends SdkTestCase
     public function testACancelledPolkurierOrderCancelsTheShipment(): void
     {
         $json = (string)\json_encode(\array_replace_recursive(
-            \json_decode(self::fixture('get_orders.json'), true),
+            \json_decode(self::loadFixture('get_orders.json'), true),
             ['response' => ['result' => [['status_code' => 'A', 'status' => 'Anulowane', 'COD' => null]]]],
         ));
-        $shipment = $this->shipment()->setState(ShipmentInterface::STATE_CREATED);
+        $shipment = $this->createShipment()->setState(ShipmentInterface::STATE_CREATED);
 
-        $this->applier(new FixedDateTime())->apply($this->order($json), $shipment);
+        $this->createApplier(new FixedDateTime())->apply($this->createOrder($json), $shipment);
 
         self::assertSame(ShipmentInterface::STATE_CANCELLED, $shipment->getState());
         self::assertTrue($shipment->isFinal());
@@ -102,12 +102,12 @@ class RemoteOrderApplierTest extends SdkTestCase
     public function testAWaybillCancelledOnALiveOrderLeavesTheShipmentPlaced(): void
     {
         $json = (string)\json_encode(\array_replace_recursive(
-            \json_decode(self::fixture('get_orders.json'), true),
+            \json_decode(self::loadFixture('get_orders.json'), true),
             ['response' => ['result' => [['status_code' => 'A', 'status' => 'Anulowane', 'COD' => null]]]],
         ));
-        $shipment = $this->shipment()->setState(ShipmentInterface::STATE_CREATED);
+        $shipment = $this->createShipment()->setState(ShipmentInterface::STATE_CREATED);
 
-        $this->applier(new FixedDateTime(), cancelled: false)->apply($this->order($json), $shipment);
+        $this->createApplier(new FixedDateTime(), cancelled: false)->apply($this->createOrder($json), $shipment);
 
         self::assertSame(ShipmentInterface::STATE_CREATED, $shipment->getState(), 'get_status answers for it.');
         self::assertFalse($shipment->isFinal());
@@ -116,13 +116,13 @@ class RemoteOrderApplierTest extends SdkTestCase
     public function testACancellationPolkurierCantConfirmChangesNothingYet(): void
     {
         $json = (string)\json_encode(\array_replace_recursive(
-            \json_decode(self::fixture('get_orders.json'), true),
+            \json_decode(self::loadFixture('get_orders.json'), true),
             ['response' => ['result' => [['status_code' => 'A', 'status' => 'Anulowane', 'COD' => null]]]],
         ));
-        $shipment = $this->shipment()->setState(ShipmentInterface::STATE_CREATED);
+        $shipment = $this->createShipment()->setState(ShipmentInterface::STATE_CREATED);
 
         try {
-            $this->applier(new FixedDateTime(), cancelled: null)->apply($this->order($json), $shipment);
+            $this->createApplier(new FixedDateTime(), cancelled: null)->apply($this->createOrder($json), $shipment);
             self::fail('Checked again with the next update.');
         } catch (LocalizedException $e) {
             self::assertStringStartsWith('Polkurier reports order 12345-678 as cancelled', $e->getMessage());
@@ -133,12 +133,12 @@ class RemoteOrderApplierTest extends SdkTestCase
 
     public function testACancelledShipmentIsFinished(): void
     {
-        $shipment = $this->shipment()->setState(ShipmentInterface::STATE_CANCELLED)->setStatusCode('OC');
+        $shipment = $this->createShipment()->setState(ShipmentInterface::STATE_CANCELLED)->setStatusCode('OC');
 
-        self::assertTrue($this->applier(new FixedDateTime())->isFinal($shipment));
+        self::assertTrue($this->createApplier(new FixedDateTime())->isFinal($shipment));
     }
 
-    private function shipment(): Shipment
+    private function createShipment(): Shipment
     {
         /** @var Shipment $shipment */
         $shipment = (new ObjectManager($this))->getObject(Shipment::class);
@@ -146,17 +146,17 @@ class RemoteOrderApplierTest extends SdkTestCase
         return $shipment->setState(ShipmentInterface::STATE_CREATED);
     }
 
-    private function order(?string $answer = null): Order
+    private function createOrder(?string $answer = null): Order
     {
-        $http = new RecordingClient($answer ?? self::fixture('get_orders.json'));
+        $http = new RecordingClient($answer ?? self::loadFixture('get_orders.json'));
 
-        return $this->clientPool($http)
-            ->orders()
+        return $this->createClientPool($http)
+            ->getOrders()
             ->getOrders(new GetOrdersMessage(searchPhrase: '12345-678'))
             ->getResult()[0];
     }
 
-    private function applier(FixedDateTime $clock, ?bool $cancelled = true): RemoteOrderApplier
+    private function createApplier(FixedDateTime $clock, ?bool $cancelled = true): RemoteOrderApplier
     {
         $gateway = $this->createStub(ShipmentGateway::class);
         $gateway->method('isCancelled')->willReturn($cancelled);

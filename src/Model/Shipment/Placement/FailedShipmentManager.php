@@ -56,9 +56,9 @@ readonly class FailedShipmentManager
     public function describe(ShipmentInterface $shipment): array
     {
         return [
-            'tried' => $this->formatter->storedTime($shipment->getCreatedAt()),
+            'tried' => $this->formatter->formatStoredTime($shipment->getCreatedAt()),
             'reason' => \rtrim((string)$shipment->getLastError(), '. '),
-            'removed' => $this->formatter->storedTime($this->expiresAfter((string)$shipment->getCreatedAt())),
+            'removed' => $this->formatter->formatStoredTime($this->calculateExpiry((string)$shipment->getCreatedAt())),
         ];
     }
 
@@ -66,7 +66,7 @@ readonly class FailedShipmentManager
      * When a shipment that wasn't placed is removed, unless placed or discarded first, counted from
      * its last attempt; UTC.
      */
-    public function expiresAfter(string $lastTried): string
+    public function calculateExpiry(string $lastTried): string
     {
         $from = \strtotime($lastTried . ' UTC') ?: $this->dateTime->gmtTimestamp();
 
@@ -102,7 +102,7 @@ readonly class FailedShipmentManager
             $this->dateTime->gmtTimestamp() - self::LIFETIME_HOURS * 3600,
         );
         $removed = 0;
-        foreach ($this->shipmentFinder->failedBefore($before) as $shipment) {
+        foreach ($this->shipmentFinder->findFailedBefore($before) as $shipment) {
             $this->remove($shipment, __(
                 'Unplaced shipment removed %2 hours after the last attempt. Carrier: %1. Reason: %3',
                 $this->carrierNameProvider->get($shipment->getCarrierCode()),
@@ -119,7 +119,7 @@ readonly class FailedShipmentManager
     {
         $this->shipmentRepository->delete($shipment);
         try {
-            $this->nativeFollowUpService->comment($this->orderLoader->get($shipment->getOrderId()), $comment);
+            $this->nativeFollowUpService->addComment($this->orderLoader->get($shipment->getOrderId()), $comment);
         } catch (LocalizedException) {
             // The order is gone: nothing to note it on.
         }

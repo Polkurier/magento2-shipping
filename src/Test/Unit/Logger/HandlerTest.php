@@ -30,10 +30,10 @@ class HandlerTest extends TestCase
         $handler->handle($this->record('2026-10-06 07:00:02', 'later in October'));
         $handler->close();
 
-        self::assertSame(['2026-09-access.log', '2026-10-access.log', '2026-10-error.log'], $this->files());
-        self::assertSame(['last of September'], $this->messages('2026-09-access.log'));
-        self::assertSame(['first of October', 'later in October'], $this->messages('2026-10-access.log'));
-        self::assertSame(['refused in October', 'unknown value in October'], $this->messages('2026-10-error.log'));
+        self::assertSame(['2026-09-access.log', '2026-10-access.log', '2026-10-error.log'], $this->listFiles());
+        self::assertSame(['last of September'], $this->readMessages('2026-09-access.log'));
+        self::assertSame(['first of October', 'later in October'], $this->readMessages('2026-10-access.log'));
+        self::assertSame(['refused in October', 'unknown value in October'], $this->readMessages('2026-10-error.log'));
     }
 
     protected function setUp(): void
@@ -56,7 +56,7 @@ class HandlerTest extends TestCase
     /**
      * @return string[]
      */
-    private function files(): array
+    private function listFiles(): array
     {
         $files = \array_map('basename', \glob($this->root . Handler::DIRECTORY . '/*') ?: []);
         \sort($files);
@@ -67,7 +67,7 @@ class HandlerTest extends TestCase
     /**
      * @return string[] the messages in a file, in order
      */
-    private function messages(string $file): array
+    private function readMessages(string $file): array
     {
         \preg_match_all(
             '/polkurier\.\w+: (.+?) \[\]/',

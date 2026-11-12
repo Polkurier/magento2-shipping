@@ -55,7 +55,7 @@ readonly class NativeLabelPagePlugin
         $request = $subject->getRequest();
         $data = (array)$request->getParam('shipment', []);
         $labelAsked = $subject instanceof CreateLabel || !empty($data['create_shipping_label']);
-        if (!$labelAsked || $this->orderLoader->findForPolkurier($this->orderId($request)) === null) {
+        if (!$labelAsked || $this->orderLoader->findForPolkurier($this->getOrderId($request)) === null) {
             return $proceed();
         }
         if (!$this->authorization->isAllowed(ShipmentSave::ADMIN_RESOURCE)) {
@@ -65,7 +65,7 @@ readonly class NativeLabelPagePlugin
             ]);
         }
         if (!$this->authorization->isAllowed(PackTemplateSave::ADMIN_RESOURCE)) {
-            $request->setParams(['packages' => $this->withoutKeepAs((array)$request->getParam('packages', []))]);
+            $request->setParams(['packages' => $this->removeKeepAs((array)$request->getParam('packages', []))]);
         }
         $result = $proceed();
         $this->manualEntrySaver->takeOutcome()->send($this->messageManager);
@@ -83,7 +83,7 @@ readonly class NativeLabelPagePlugin
         return null;
     }
 
-    private function orderId(RequestInterface $request): int
+    private function getOrderId(RequestInterface $request): int
     {
         $orderId = (int)$request->getParam('order_id');
         $shipmentId = (int)$request->getParam('shipment_id');
@@ -103,7 +103,7 @@ readonly class NativeLabelPagePlugin
      *
      * @return array<int|string, mixed>
      */
-    private function withoutKeepAs(array $packages): array
+    private function removeKeepAs(array $packages): array
     {
         foreach ($packages as $key => $package) {
             $name = \is_array($package)

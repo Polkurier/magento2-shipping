@@ -30,11 +30,11 @@ class CarrierConfigTest extends TestCase
 
     public function testLabelsSavedAsTheyWereLoadedAreNotWrittenAgain(): void
     {
-        $resource = $this->resource();
-        $config = $this->config();
-        $resource->attachStoreLabels($config, [$this->label(1, 'Kurier')]);
+        $resource = $this->createResource();
+        $config = $this->createConfig();
+        $resource->attachStoreLabels($config, [$this->createLabel(1, 'Kurier')]);
 
-        $config->setStoreLabels([$this->label(1, 'Kurier')]);
+        $config->setStoreLabels([$this->createLabel(1, 'Kurier')]);
         $this->afterSave($resource, $config);
 
         self::assertSame([], $this->writes);
@@ -42,11 +42,11 @@ class CarrierConfigTest extends TestCase
 
     public function testChangedLabelsReplaceTheStoredOnesOnce(): void
     {
-        $resource = $this->resource();
-        $config = $this->config();
-        $resource->attachStoreLabels($config, [$this->label(1, 'Kurier')]);
+        $resource = $this->createResource();
+        $config = $this->createConfig();
+        $resource->attachStoreLabels($config, [$this->createLabel(1, 'Kurier')]);
 
-        $config->setStoreLabels([$this->label(1, 'Kurier DPD')]);
+        $config->setStoreLabels([$this->createLabel(1, 'Kurier DPD')]);
         $this->afterSave($resource, $config);
         $this->afterSave($resource, $config);
 
@@ -55,9 +55,9 @@ class CarrierConfigTest extends TestCase
 
     public function testRemovingEveryLabelDeletesThem(): void
     {
-        $resource = $this->resource();
-        $config = $this->config();
-        $resource->attachStoreLabels($config, [$this->label(1, 'Kurier')]);
+        $resource = $this->createResource();
+        $config = $this->createConfig();
+        $resource->attachStoreLabels($config, [$this->createLabel(1, 'Kurier')]);
 
         $config->setStoreLabels([]);
         $this->afterSave($resource, $config);
@@ -65,7 +65,7 @@ class CarrierConfigTest extends TestCase
         self::assertSame(['delete'], $this->writes);
     }
 
-    private function resource(): Resource
+    private function createResource(): Resource
     {
         $connection = $this->createStub(AdapterInterface::class);
         $connection->method('delete')->willReturnCallback(function (): int {
@@ -87,7 +87,7 @@ class CarrierConfigTest extends TestCase
         return new Resource($context, $this->createStub(CarrierLabelInterfaceFactory::class));
     }
 
-    private function config(): CarrierConfig
+    private function createConfig(): CarrierConfig
     {
         $config = (new ObjectManager($this))->getObject(CarrierConfig::class);
         $config->setId(7);
@@ -95,7 +95,7 @@ class CarrierConfigTest extends TestCase
         return $config;
     }
 
-    private function label(int $storeId, string $label): CarrierLabel
+    private function createLabel(int $storeId, string $label): CarrierLabel
     {
         return (new CarrierLabel())->setStoreId($storeId)->setLabel($label);
     }

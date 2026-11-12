@@ -20,8 +20,8 @@ define([
      * @param {*} value
      * @returns {String}
      */
-    function quantity(value) {
-        return String(rules.amount(value));
+    function formatQuantity(value) {
+        return String(rules.parseAmount(value));
     }
 
     return Part.extend({
@@ -57,16 +57,16 @@ define([
             items.forEach(function (item, index) {
                 const row = this.rows()[index];
 
-                if (rules.amount(row.qty()) !== rules.amount(item.qty)) {
+                if (rules.parseAmount(row.qty()) !== rules.parseAmount(item.qty)) {
                     row.syncing = true;
-                    row.qty(quantity(item.qty));
+                    row.qty(formatQuantity(item.qty));
                     row.syncing = false;
                 }
             }, this);
             if (this.followed === null && items.length) {
-                this.followed = rules.amount(data.insurance_amount);
-                this.followedCod = rules.amount(data.cod_amount);
-                this.wasWhole = rules.shipmentWorth(data).whole;
+                this.followed = rules.parseAmount(data.insurance_amount);
+                this.followedCod = rules.parseAmount(data.cod_amount);
+                this.wasWhole = rules.calculateShipmentWorth(data).whole;
             }
             // Including or excluding the shipping and handling sets both amounts again.
             if (this.wasIncluded !== null && Boolean(data.shipping_included) !== this.wasIncluded) {
@@ -102,17 +102,17 @@ define([
             const row = {
                 name: item.name,
                 sku: item.sku,
-                ordered: quantity(item.qty_ordered),
-                shipped: quantity(item.qty_shipped),
-                left: rules.amount(item.qty_to_ship),
-                leftText: $t('of %1 left').replace('%1', quantity(item.qty_to_ship)),
+                ordered: formatQuantity(item.qty_ordered),
+                shipped: formatQuantity(item.qty_shipped),
+                left: rules.parseAmount(item.qty_to_ship),
+                leftText: $t('of %1 left').replace('%1', formatQuantity(item.qty_to_ship)),
                 label: $t('Quantity of %1 to ship').replace('%1', item.name),
-                qty: ko.observable(quantity(item.qty)),
+                qty: ko.observable(formatQuantity(item.qty)),
                 syncing: false
             };
 
             row.invalid = ko.pureComputed(function () {
-                const qty = rules.amount(row.qty());
+                const qty = rules.parseAmount(row.qty());
 
                 return qty < 0 || qty > row.left + 0.0001;
             });
@@ -133,8 +133,8 @@ define([
          * @param {Object} data
          */
         followCod: function (data) {
-            const cod = rules.amount(data.cod_amount),
-                insurance = rules.amount(data.insurance_amount),
+            const cod = rules.parseAmount(data.cod_amount),
+                insurance = rules.parseAmount(data.insurance_amount),
                 before = this.seenCod;
 
             this.seenCod = cod;
@@ -143,24 +143,24 @@ define([
             }
             // Set by hand if it's neither what it last followed, nor the old cash on delivery, nor
             // the value.
-            if (![this.followed, before, rules.amount(data.shipment_value)].some(function (amount) {
+            if (![this.followed, before, rules.parseAmount(data.shipment_value)].some(function (amount) {
                 return amount !== null && Math.abs(insurance - amount) < 0.005;
             })) {
                 return;
             }
-            this.followed = rules.insuranceFor(cod, rules.amount(data.shipment_value));
+            this.followed = rules.calculateInsurance(cod, rules.parseAmount(data.shipment_value));
             this.set('insurance_amount', this.followed.toFixed(2));
         },
 
         /**
-         * Keeps the cash on delivery at what the shipment collects (rules.codFor) and the insurance
+         * Keeps the cash on delivery at what the shipment collects (rules.calculateCod) and the insurance
          * at what it's worth, unless either is off or was set by hand (the latter ignored when forced).
          *
          * @param {Boolean} [force] set them whatever they are, as including the shipping requires
          */
         follow: function (force) {
             let data = this.get(),
-                worth = rules.shipmentWorth(data);
+                worth = rules.calculateShipmentWorth(data);
 
             // Going from the whole order to part of it starts without the shipping and handling.
             if (this.wasWhole && !worth.whole && data.shipping_included) {
@@ -168,13 +168,13 @@ define([
                 this.wasIncluded = false;
                 this.set('shipping_included', false);
                 data = this.get();
-                worth = rules.shipmentWorth(data);
+                worth = rules.calculateShipmentWorth(data);
             }
             this.wasWhole = worth.whole;
             const value = worth.value,
-                before = rules.amount(data.shipment_value),
-                insurance = rules.amount(data.insurance_amount),
-                codBefore = rules.amount(data.cod_amount),
+                before = rules.parseAmount(data.shipment_value),
+                insurance = rules.parseAmount(data.insurance_amount),
+                codBefore = rules.parseAmount(data.cod_amount),
                 // What this part set, or what the insurance switch fills in: not set by hand.
                 automatic = [this.followed, before, codBefore, Math.max(before, codBefore)];
             let cod = codBefore,
@@ -184,7 +184,7 @@ define([
             if (codBefore > 0 && !data.replacing
                 && (force || this.followedCod !== null && Math.abs(codBefore - this.followedCod) < 0.005)
             ) {
-                cod = Math.round(rules.codFor(rules.amount(data.cod_remaining), worth) * 100) / 100;
+                cod = Math.round(rules.calculateCod(rules.parseAmount(data.cod_remaining), worth) * 100) / 100;
                 this.followedCod = cod;
                 this.set('cod_amount', cod.toFixed(2));
             }
@@ -194,7 +194,7 @@ define([
                 return;
             }
             // What it collects, or else what it's worth: the parts add up to the order total.
-            next = rules.insuranceFor(cod, value);
+            next = rules.calculateInsurance(cod, value);
             this.followed = next;
             this.seenCod = cod;
             this.set('insurance_amount', next.toFixed(2));

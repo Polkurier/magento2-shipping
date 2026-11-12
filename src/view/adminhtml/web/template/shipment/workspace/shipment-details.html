@@ -67,7 +67,7 @@
             <span class="polkurier-muted" data-bind="text: '(' + price().gross + ' ' + $t('gross') + ')'"></span>
             <!-- /ko -->
             <!-- ko ifnot: price -->
-            <span class="polkurier-muted" text="noPrice()"></span>
+            <span class="polkurier-muted" text="describeMissingPrice()"></span>
             <!-- /ko -->
             <div class="polkurier-text-error polkurier-facts__line" if="unpriced">
                 <!-- Bound through $t: an apostrophe would end a translate attribute's string. -->

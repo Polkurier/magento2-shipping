@@ -29,8 +29,8 @@ class DraftHydratorTest extends TestCase
             $this->createStub(ItemFactory::class),
         );
 
-        self::assertFalse($hydrator->toArray(new Draft())['packs_estimated']);
-        self::assertTrue($hydrator->toArray((new Draft())->setPacksEstimated(true))['packs_estimated']);
+        self::assertFalse($hydrator->convertToArray(new Draft())['packs_estimated']);
+        self::assertTrue($hydrator->convertToArray((new Draft())->setPacksEstimated(true))['packs_estimated']);
     }
 
     public function testASenderAndAnAccountTypedInGoAndComeAsNew(): void
@@ -43,7 +43,7 @@ class DraftHydratorTest extends TestCase
             $this->createStub(ItemFactory::class),
         );
 
-        $draft = $hydrator->fromArray([
+        $draft = $hydrator->createFromArray([
             'sender_address_id' => 'new',
             'new_sender_city' => ' Kraków ',
             'keep_new_sender' => '1',
@@ -60,11 +60,11 @@ class DraftHydratorTest extends TestCase
         self::assertSame('Magazyn', $draft->getNewSenderName());
         self::assertTrue($draft->isNewBankAccount());
         self::assertFalse($draft->isKeepingNewBankAccount());
-        $data = $hydrator->toArray($draft);
+        $data = $hydrator->convertToArray($draft);
         self::assertSame('new', $data['sender_address_id']);
         self::assertSame('new', $data['cod_bank_account_id']);
         self::assertSame('6110', $data['new_bank_account_number']);
-        self::assertFalse($hydrator->fromArray(['sender_address_id' => '7'])->isNewSender());
+        self::assertFalse($hydrator->createFromArray(['sender_address_id' => '7'])->isNewSender());
     }
 
     public function testTheCustomerIsEmailedOnlyWhenTicked(): void
@@ -77,9 +77,9 @@ class DraftHydratorTest extends TestCase
             $this->createStub(ItemFactory::class),
         );
 
-        self::assertTrue($hydrator->fromArray(['notify_customer' => '1'])->isNotifyCustomer());
-        self::assertFalse($hydrator->fromArray(['notify_customer' => '0'])->isNotifyCustomer());
-        self::assertFalse($hydrator->fromArray([])->isNotifyCustomer());
-        self::assertTrue($hydrator->toArray((new Draft())->setNotifyCustomer(true))['notify_customer']);
+        self::assertTrue($hydrator->createFromArray(['notify_customer' => '1'])->isNotifyCustomer());
+        self::assertFalse($hydrator->createFromArray(['notify_customer' => '0'])->isNotifyCustomer());
+        self::assertFalse($hydrator->createFromArray([])->isNotifyCustomer());
+        self::assertTrue($hydrator->convertToArray((new Draft())->setNotifyCustomer(true))['notify_customer']);
     }
 }

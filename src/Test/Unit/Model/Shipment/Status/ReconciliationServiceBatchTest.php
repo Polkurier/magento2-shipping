@@ -48,8 +48,8 @@ class ReconciliationServiceBatchTest extends TestCase
     public function testTakesUnconfirmedAndInterruptedShipments(): void
     {
         $checked = [];
-        $this->reconciler(
-            [$this->shipment(1), $this->shipment(2), $this->shipment(3)],
+        $this->createService(
+            [$this->createShipment(1), $this->createShipment(2), $this->createShipment(3)],
             [1 => ShipmentInterface::STATE_CREATED, 2 => ShipmentInterface::STATE_UNKNOWN],
             $checked,
         )->reconcilePending();
@@ -76,7 +76,7 @@ class ReconciliationServiceBatchTest extends TestCase
     {
         $checked = [];
 
-        $this->reconciler([], [], $checked)->reconcilePending();
+        $this->createService([], [], $checked)->reconcilePending();
 
         self::assertSame([], $checked);
     }
@@ -89,7 +89,7 @@ class ReconciliationServiceBatchTest extends TestCase
         ];
         $checked = [];
 
-        $this->reconciler([$this->shipment(3)], [], $checked)->reconcilePending();
+        $this->createService([$this->createShipment(3)], [], $checked)->reconcilePending();
 
         self::assertSame(
             ShipmentInterface::STATE_CREATED,
@@ -104,8 +104,8 @@ class ReconciliationServiceBatchTest extends TestCase
         $this->failure = new \LogicException('Unexpected.');
         $checked = [];
 
-        $this->reconciler(
-            [$this->shipment(1), $this->shipment(2)],
+        $this->createService(
+            [$this->createShipment(1), $this->createShipment(2)],
             [2 => ShipmentInterface::STATE_CREATED],
             $checked,
         )->reconcilePending();
@@ -118,10 +118,10 @@ class ReconciliationServiceBatchTest extends TestCase
      * @param array<int, string> $outcomes state after reconciling, by id; missing ones fail
      * @param array<int, string> $checked check times the reconciler recorded, by shipment id
      */
-    private function reconciler(array $shipments, array $outcomes, array &$checked): ReconciliationService
+    private function createService(array $shipments, array $outcomes, array &$checked): ReconciliationService
     {
         $finder = $this->createStub(ShipmentFinder::class);
-        $finder->method('dueForReconciliation')->willReturnCallback(
+        $finder->method('findDueForReconciliation')->willReturnCallback(
             function (string $attemptedBefore, string $checkedBefore, int $limit) use ($shipments): array {
                 $this->query = [$attemptedBefore, $checkedBefore, $limit];
 
@@ -140,7 +140,7 @@ class ReconciliationServiceBatchTest extends TestCase
                 throw $this->failure ?? new LocalizedException(__('Polkurier is not answering.'));
             }
 
-            return $this->shipment($id)->setState($outcomes[$id]);
+            return $this->createShipment($id)->setState($outcomes[$id]);
         };
         // The whole row written back, whichever way it is saved.
         $writeBack = function (Shipment $shipment): void {
@@ -193,7 +193,7 @@ class ReconciliationServiceBatchTest extends TestCase
         return $reconciliation;
     }
 
-    private function shipment(int $id): Shipment
+    private function createShipment(int $id): Shipment
     {
         /** @var Shipment $shipment */
         $shipment = (new ObjectManager($this))->getObject(Shipment::class);

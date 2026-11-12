@@ -19,7 +19,7 @@ class AvailableCarrierFilterTest extends TestCase
 {
     public function testTheSelectedCarriersAreKept(): void
     {
-        $available = $this->available(['DPD', 'INPOST_PACZKOMAT']);
+        $available = $this->createFilter(['DPD', 'INPOST_PACZKOMAT']);
 
         self::assertSame(
             ['DPD' => 1, 'INPOST_PACZKOMAT' => 3],
@@ -30,7 +30,7 @@ class AvailableCarrierFilterTest extends TestCase
 
     public function testNothingSelectedKeepsEveryCarrier(): void
     {
-        $available = $this->available([]);
+        $available = $this->createFilter([]);
 
         self::assertSame(['DPD' => 1, 'DHL' => 2], $available->filter(['DPD' => 1, 'DHL' => 2]));
         self::assertNull($available->getCodes());
@@ -39,7 +39,7 @@ class AvailableCarrierFilterTest extends TestCase
     /**
      * @param string[] $codes
      */
-    private function available(array $codes): AvailableCarrierFilter
+    private function createFilter(array $codes): AvailableCarrierFilter
     {
         $config = $this->createStub(ConfigProvider::class);
         $config->method('getAvailableCarriers')->willReturn($codes);

@@ -14,7 +14,7 @@ if (!$order instanceof \Magento\Sales\Model\Order) {
     return;
 }
 $shipmentId = (int)$block->getData('shipment_id');
-$shipped = $shipmentId ? $viewModel->forShipment($order, $shipmentId) : $viewModel->forOrder($order);
+$shipped = $shipmentId ? $viewModel->getForShipment($order, $shipmentId) : $viewModel->getForOrder($order);
 $choice = $viewModel->getCustomerChoice($order);
 ?>
 <?php if ($choice !== null): ?>

@@ -78,7 +78,7 @@ readonly class ItemDimensionsProvider
         $dimensions = [];
         foreach ($productIds as $orderItemId => [$shippedId, $ownId]) {
             // The option shipped, or, when it has no size, the product ordered.
-            $size = $sizes[$shippedId] ?? $sizes[$ownId] ?? $this->stacked($parts[$orderItemId] ?? [], $sizes);
+            $size = $sizes[$shippedId] ?? $sizes[$ownId] ?? $this->measureStacked($parts[$orderItemId] ?? [], $sizes);
             if ($size !== null) {
                 $dimensions[$orderItemId] = $size;
             }
@@ -96,7 +96,7 @@ readonly class ItemDimensionsProvider
      *
      * @return array{0: float, 1: float, 2: float}|null null unless every part has a size
      */
-    private function stacked(array $parts, array $sizes): ?array
+    private function measureStacked(array $parts, array $sizes): ?array
     {
         if ($parts === []) {
             return null;

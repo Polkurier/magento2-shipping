@@ -39,7 +39,7 @@ class UploadLogo extends Action implements HttpPostActionInterface
         try {
             return $result->setData(
                 $this->carrierLogoStorage->upload(
-                    RequestParam::string($this->getRequest(), 'param_name', CarrierConfigInterface::FIELD_LOGO),
+                    RequestParam::getString($this->getRequest(), 'param_name', CarrierConfigInterface::FIELD_LOGO),
                 ),
             );
         } catch (LocalizedException $e) {

@@ -17,7 +17,7 @@ class SyncableEntityAclTest extends TestCase
     /**
      * @return array<string, array{0: class-string, 1: string}>
      */
-    public static function controllers(): array
+    public static function provideControllers(): array
     {
         $resources = [
             'Address' => 'Polkurier_Shipping::addresses',
@@ -39,7 +39,7 @@ class SyncableEntityAclTest extends TestCase
     /**
      * @param class-string $class
      */
-    #[DataProvider('controllers')]
+    #[DataProvider('provideControllers')]
     public function testEveryActionIsGuardedByItsKindsResource(string $class, string $resource): void
     {
         self::assertSame($resource, \constant($class . '::ADMIN_RESOURCE'));

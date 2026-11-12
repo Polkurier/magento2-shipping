@@ -54,7 +54,7 @@ class ShipmentOptionsProvider implements ResetAfterRequestInterface
         } catch (PolkurierException $e) {
             // The page still opens, so the merchant can see the rest; the reason goes with it.
             if ($this->failure === null) {
-                $this->failure = (string)$this->errorMessageResolver->phrase($e);
+                $this->failure = (string)$this->errorMessageResolver->createPhrase($e);
                 $this->logger->warning(
                     'Polkurier: the carrier list could not be read for a shipment page',
                     ['exception' => $e],
@@ -141,7 +141,7 @@ class ShipmentOptionsProvider implements ResetAfterRequestInterface
     {
         $options = [];
         foreach ($this->addressRepository->getSenderAddresses($coverOnly) as $address) {
-            $options[] = ['value' => (string)$address->getId(), 'label' => $this->addressLabel($address)];
+            $options[] = ['value' => (string)$address->getId(), 'label' => $this->getAddressLabel($address)];
         }
 
         return $options;
@@ -156,7 +156,7 @@ class ShipmentOptionsProvider implements ResetAfterRequestInterface
     public function getSenderChoices(int $storeId): array
     {
         return \array_merge(
-            $this->senderMapper->fromStore($storeId) !== null
+            $this->senderMapper->mapFromStore($storeId) !== null
                 ? [['value' => '', 'label' => (string)__('The store\'s address')]]
                 : [],
             $this->getSenderOptions(),
@@ -193,7 +193,7 @@ class ShipmentOptionsProvider implements ResetAfterRequestInterface
         return $options;
     }
 
-    public function addressLabel(AddressInterface $address): string
+    public function getAddressLabel(AddressInterface $address): string
     {
         return \sprintf(
             '%s — %s %s%s, %s %s',

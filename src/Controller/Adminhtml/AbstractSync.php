@@ -32,7 +32,7 @@ abstract class AbstractSync extends AbstractAction implements HttpPostActionInte
     public function execute(): Redirect
     {
         if (!$this->configProvider->hasCredentials()) {
-            $this->messageManager->addErrorMessage(ConfigProvider::credentialsMissing());
+            $this->messageManager->addErrorMessage(ConfigProvider::describeMissingCredentials());
 
             return $this->returnBack('*/*/index');
         }
@@ -54,7 +54,7 @@ abstract class AbstractSync extends AbstractAction implements HttpPostActionInte
     {
         $flash = $this->flashMessageCollectorFactory->create();
         foreach ($lines as $line) {
-            $flash->notice($line);
+            $flash->addNotice($line);
         }
         $flash->send($this->messageManager);
     }

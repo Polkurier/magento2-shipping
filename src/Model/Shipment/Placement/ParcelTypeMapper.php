@@ -50,7 +50,7 @@ final readonly class ParcelTypeMapper
     /**
      * @return string the parcel type for the shipment type and parcel type Polkurier reports
      */
-    public static function fromPolkurier(
+    public static function mapFromPolkurier(
         ShipmentTypeEnum|string|null $shipmentType,
         PackTypeEnum|string|null $packType,
     ): string {
@@ -82,7 +82,7 @@ final readonly class ParcelTypeMapper
             : (PackTypeEnum::tryFrom((string)$packType) ?? PackTypeEnum::Standard)->value;
     }
 
-    public static function shipmentTypeOf(?string $packType): ShipmentTypeEnum
+    public static function mapShipmentType(?string $packType): ShipmentTypeEnum
     {
         $packType = self::normalize($packType);
 
@@ -96,7 +96,7 @@ final readonly class ParcelTypeMapper
     /**
      * The parcel type Polkurier takes.
      */
-    public static function polkurierTypeOf(?string $packType): PackTypeEnum
+    public static function mapPolkurierType(?string $packType): PackTypeEnum
     {
         return match ($packType = self::normalize($packType)) {
             self::ENVELOPE, self::EURO_PALLET => PackTypeEnum::Standard,
@@ -109,7 +109,7 @@ final readonly class ParcelTypeMapper
      * The smallest pallet whose footprint takes what's this long and wide, turned either way; the
      * largest when none does.
      */
-    public static function palletFor(float $length, float $width): string
+    public static function getPalletType(float $length, float $width): string
     {
         [$long, $short] = $length >= $width ? [$length, $width] : [$width, $length];
         foreach (self::PALLET_SIZES as $type => [$palletLong, $palletShort]) {
@@ -127,11 +127,11 @@ final readonly class ParcelTypeMapper
      * @return ShipmentTypeEnum[] the shipment types of the parcels, each once: one for a shipment
      *     that can go, none without parcels
      */
-    public static function shipmentTypesOf(array $packTypes): array
+    public static function mapShipmentTypes(array $packTypes): array
     {
         $types = [];
         foreach ($packTypes as $packType) {
-            $type = self::shipmentTypeOf($packType);
+            $type = self::mapShipmentType($packType);
             $types[$type->value] = $type;
         }
 
@@ -141,7 +141,7 @@ final readonly class ParcelTypeMapper
     /**
      * @return array<string, string> the shipment type of each parcel type, for the screens
      */
-    public static function map(): array
+    public static function getShipmentTypeMap(): array
     {
         $map = [];
         $types = [
@@ -151,7 +151,7 @@ final readonly class ParcelTypeMapper
             self::EURO_PALLET_NON_STANDARD,
         ];
         foreach ($types as $packType) {
-            $map[$packType] = self::shipmentTypeOf($packType)->value;
+            $map[$packType] = self::mapShipmentType($packType)->value;
         }
 
         return $map;

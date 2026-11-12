@@ -30,7 +30,7 @@ readonly class BackToOrderButton implements ButtonProviderInterface
     {
         return [
             'label' => __('Back to the order'),
-            'on_click' => $this->onClickScriptBuilder->location(
+            'on_click' => $this->onClickScriptBuilder->buildLocation(
                 $this->url->getUrl('sales/order/view', ['order_id' => (int)$this->request->getParam('order_id')]),
             ),
             'class' => 'back',

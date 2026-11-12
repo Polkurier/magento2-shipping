@@ -24,10 +24,10 @@ readonly class MoneyBoxOrderFinder
     /**
      * @return string[]
      */
-    public function numbers(): array
+    public function findNumbers(): array
     {
         $numbers = [];
-        foreach ($this->shipmentFinder->withCodStatus(CodStatusEnum::MoneyBox->value) as $shipment) {
+        foreach ($this->shipmentFinder->findWithCodStatus(CodStatusEnum::MoneyBox->value) as $shipment) {
             $numbers[] = (string)$shipment->getPolkurierNumber();
         }
 
@@ -41,8 +41,8 @@ readonly class MoneyBoxOrderFinder
      *
      * @return string[]
      */
-    public function unknown(array $numbers): array
+    public function findUnknown(array $numbers): array
     {
-        return \array_values(\array_diff($numbers, $this->numbers()));
+        return \array_values(\array_diff($numbers, $this->findNumbers()));
     }
 }

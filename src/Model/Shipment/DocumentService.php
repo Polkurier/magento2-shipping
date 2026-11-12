@@ -46,18 +46,18 @@ readonly class DocumentService
      */
     public function getLabels(array $shipments, ?LabelFileFormatEnum $format = null): array
     {
-        [$numbers, $leftOut] = $this->numbers($shipments, $format);
+        [$numbers, $leftOut] = $this->collectNumbers($shipments, $format);
 
         if ($format === null || \count($numbers) === 1) {
-            $content = $this->label($numbers, $format);
+            $content = $this->fetchLabel($numbers, $format);
         } else {
-            [$content, $numbers, $failed] = $this->printerLabels($numbers, $format);
+            [$content, $numbers, $failed] = $this->fetchPrinterLabels($numbers, $format);
             $leftOut = [...$leftOut, ...$failed];
         }
-        [$extension, $contentType] = self::fileType($content);
+        [$extension, $contentType] = self::detectFileType($content);
 
         return [
-            'file_name' => $this->fileName('labels', $numbers, $extension),
+            'file_name' => $this->buildFileName('labels', $numbers, $extension),
             'content' => $content,
             'content_type' => $contentType,
             'left_out' => $leftOut,
@@ -72,11 +72,11 @@ readonly class DocumentService
      */
     public function getProtocol(array $shipments): array
     {
-        [$numbers, $leftOut] = $this->numbers($shipments);
+        [$numbers, $leftOut] = $this->collectNumbers($shipments);
         $document = $this->shipmentGateway->getProtocol(new GetDocumentMessage($numbers));
 
         return [
-            'file_name' => $this->fileName('protocol', $numbers, 'pdf'),
+            'file_name' => $this->buildFileName('protocol', $numbers, 'pdf'),
             'content' => $document->getDecodedFile(),
             'content_type' => 'application/pdf',
             'left_out' => $leftOut,
@@ -91,7 +91,7 @@ readonly class DocumentService
      * @return array{0: string[], 1: string[]} the order numbers, and why any were left out
      * @throws LocalizedException
      */
-    private function numbers(array $shipments, ?LabelFileFormatEnum $format = null): array
+    private function collectNumbers(array $shipments, ?LabelFileFormatEnum $format = null): array
     {
         $placed = [];
         foreach ($shipments as $shipment) {
@@ -160,7 +160,7 @@ readonly class DocumentService
     /**
      * @param string[] $numbers
      */
-    private function fileName(string $kind, array $numbers, string $extension): string
+    private function buildFileName(string $kind, array $numbers, string $extension): string
     {
         return \sprintf(
             'polkurier-%s-%s.%s',
@@ -177,7 +177,7 @@ readonly class DocumentService
      *
      * @throws LocalizedException
      */
-    private function label(array $numbers, ?LabelFileFormatEnum $format): string
+    private function fetchLabel(array $numbers, ?LabelFileFormatEnum $format): string
     {
         $content = $this->shipmentGateway->getLabel(new GetDocumentMessage($numbers, $format))->getDecodedFile();
         if ($content === '') {
@@ -200,7 +200,7 @@ readonly class DocumentService
      * @return array{string, string[], string[]} the file, the orders in it, and why any were left out
      * @throws LocalizedException the first order's error, when every order fails
      */
-    private function printerLabels(array $numbers, LabelFileFormatEnum $format): array
+    private function fetchPrinterLabels(array $numbers, LabelFileFormatEnum $format): array
     {
         $content = '';
         $joined = [];
@@ -209,17 +209,17 @@ readonly class DocumentService
         $firstError = null;
         foreach ($numbers as $number) {
             try {
-                $part = $this->label([$number], $format);
+                $part = $this->fetchLabel([$number], $format);
             } catch (LocalizedException $e) {
                 $firstError ??= $e;
                 $failed[] = $number;
                 $leftOut[] = (string)__('Polkurier order %1 was left out: %2', $number, $e->getMessage());
                 continue;
             }
-            if (self::fileType($part)[0] !== 'txt') {
+            if (self::detectFileType($part)[0] !== 'txt') {
                 $kept = \array_values(\array_diff($numbers, $failed));
 
-                return [$this->label($kept, null), $kept, $leftOut];
+                return [$this->fetchLabel($kept, null), $kept, $leftOut];
             }
             // Each part as received (Datamax lines end in a CR alone), with a line break between
             // parts only where the one before doesn't end in one.
@@ -242,7 +242,7 @@ readonly class DocumentService
      *
      * @return array{string, string}
      */
-    private static function fileType(string $content): array
+    private static function detectFileType(string $content): array
     {
         // A UTF-8 byte order mark and whitespace before the format's signature don't count.
         $head = \substr($content, 0, 1024);

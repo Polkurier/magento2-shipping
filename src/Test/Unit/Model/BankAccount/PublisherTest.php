@@ -46,15 +46,15 @@ class PublisherTest extends SdkTestCase
 
     public function testSavingWithACodeSendsTheTokenAndCodeAndRecordsTheAccountAsInSync(): void
     {
-        $http = new RecordingClient(self::success([
+        $http = new RecordingClient(self::encodeSuccess([
             'id' => 'b1',
             'name' => 'Main',
             'number' => self::IBAN,
             'default' => true,
         ]));
-        $account = $this->account();
+        $account = $this->createAccount();
 
-        $this->publisher($http)->save($account, 'tok', '123456', null);
+        $this->createPublisher($http)->save($account, 'tok', '123456', null);
 
         $payload = $http->lastPayload();
         self::assertSame('save_bank_account', $payload['apimethod']);
@@ -68,7 +68,7 @@ class PublisherTest extends SdkTestCase
             'Recorded as sent, with the id Polkurier gave it.',
         );
 
-        $events = $this->events->of(ApiEventEnum::BankAccountSaveAfter);
+        $events = $this->events->listDispatched(ApiEventEnum::BankAccountSaveAfter);
         self::assertCount(1, $events);
         self::assertTrue($events[0]['is_new']);
         self::assertArrayNotHasKey('request', $events[0], 'The request carries the code.');
@@ -76,14 +76,14 @@ class PublisherTest extends SdkTestCase
 
     public function testWithAPinOnlyThePinIsSent(): void
     {
-        $http = new RecordingClient(self::success([
+        $http = new RecordingClient(self::encodeSuccess([
             'id' => 'b1',
             'name' => 'Main',
             'number' => self::IBAN,
             'default' => true,
         ]));
 
-        $this->publisher($http)->save($this->account(), 'tok', '1', '9999');
+        $this->createPublisher($http)->save($this->createAccount(), 'tok', '1', '9999');
 
         $data = $http->lastPayload()['data'];
         self::assertSame('9999', $data['access_pin']);
@@ -99,7 +99,7 @@ class PublisherTest extends SdkTestCase
         ]));
 
         try {
-            $this->publisher($http)->save($this->account(), 'tok', '000000', null);
+            $this->createPublisher($http)->save($this->createAccount(), 'tok', '000000', null);
             self::fail('Expected the refusal to be reported.');
         } catch (LocalizedException $e) {
             self::assertStringContainsString('Nieprawidłowy kod', $e->getMessage());
@@ -110,15 +110,15 @@ class PublisherTest extends SdkTestCase
 
     public function testDeletingSendsThePinAndRemovesTheLocalEntry(): void
     {
-        $http = new RecordingClient(self::success(true));
-        $account = $this->account()->setExtId('b1');
+        $http = new RecordingClient(self::encodeSuccess(true));
+        $account = $this->createAccount()->setExtId('b1');
 
-        $this->publisher($http)->delete($account, '9999');
+        $this->createPublisher($http)->delete($account, '9999');
 
         self::assertSame('delete_bank_account', $http->lastPayload()['apimethod']);
         self::assertSame('9999', $http->lastPayload()['data']['access_pin']);
         self::assertSame([$account], $this->deleted);
-        self::assertCount(1, $this->events->of(ApiEventEnum::BankAccountDeleteAfter));
+        self::assertCount(1, $this->events->listDispatched(ApiEventEnum::BankAccountDeleteAfter));
     }
 
     protected function setUp(): void
@@ -126,10 +126,10 @@ class PublisherTest extends SdkTestCase
         $this->events = new RecordingEventManager();
     }
 
-    private function publisher(RecordingClient $http): Publisher
+    private function createPublisher(RecordingClient $http): Publisher
     {
         $engine = $this->createStub(SyncEngine::class);
-        $engine->method('pushed')->willReturnCallback(function ($adapter, $local, array $stored): void {
+        $engine->method('recordPushed')->willReturnCallback(function ($adapter, $local, array $stored): void {
             $this->pushed[] = $stored;
         });
         $repository = $this->createStub(BankAccountRepositoryInterface::class);
@@ -142,8 +142,8 @@ class PublisherTest extends SdkTestCase
         $dateTime->method('gmtTimestamp')->willReturn(1790000000);
 
         return new Publisher(
-            $this->clientPool($http),
-            new BankAccountMapper(NewingObjectManager::factory(SaveMessageBuilderFactory::class)),
+            $this->createClientPool($http),
+            new BankAccountMapper(NewingObjectManager::createFactory(SaveMessageBuilderFactory::class)),
             $this->createStub(BankAccountSyncAdapter::class),
             $engine,
             $repository,
@@ -153,7 +153,7 @@ class PublisherTest extends SdkTestCase
         );
     }
 
-    private function account(): BankAccount
+    private function createAccount(): BankAccount
     {
         /** @var BankAccount $account */
         $account = (new ObjectManager($this))->getObject(BankAccount::class);

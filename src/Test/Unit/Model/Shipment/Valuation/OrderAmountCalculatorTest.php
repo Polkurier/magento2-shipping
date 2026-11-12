@@ -23,24 +23,24 @@ class OrderAmountCalculatorTest extends TestCase
 {
     public function testCodLeftIsTheTotalLessWhatOtherOrdersCollect(): void
     {
-        $amounts = $this->amounts([200.0, 50.5]);
-        $order = $this->order(500.0, []);
+        $amounts = $this->createCalculator([200.0, 50.5]);
+        $order = $this->createOrder(500.0, []);
 
         self::assertSame(250.5, $amounts->getCodCollected($order));
         self::assertSame(249.5, $amounts->getCodRemaining($order));
-        self::assertSame(0.0, $this->amounts([600.0])->getCodRemaining($order));
+        self::assertSame(0.0, $this->createCalculator([600.0])->getCodRemaining($order));
     }
 
     public function testPartOfTheOrderIsWorthItsItems(): void
     {
-        $order = $this->order(515.0, [
+        $order = $this->createOrder(515.0, [
             // Two books at 150 with tax, 20 off in all; a lamp at 200.
-            $this->item(1, qtyOrdered: 2, rowTotal: 300.0, discount: 20.0, qtyToShip: 2),
-            $this->item(2, qtyOrdered: 1, rowTotal: 200.0, qtyToShip: 1),
+            $this->createItem(1, qtyOrdered: 2, rowTotal: 300.0, discount: 20.0, qtyToShip: 2),
+            $this->createItem(2, qtyOrdered: 1, rowTotal: 200.0, qtyToShip: 1),
             // The option of a configurable product ships with its parent.
-            $this->item(3, qtyOrdered: 1, rowTotal: 0.0, qtyToShip: 0, dummy: true),
+            $this->createItem(3, qtyOrdered: 1, rowTotal: 0.0, qtyToShip: 0, dummy: true),
         ]);
-        $amounts = $this->amounts([]);
+        $amounts = $this->createCalculator([]);
 
         self::assertSame(140.0, $amounts->getShipmentValue($order, [1 => 1.0]));
         self::assertSame(340.0, $amounts->getShipmentValue($order, [1 => 1.0, 2 => 1.0, 3 => 1.0]));
@@ -58,29 +58,29 @@ class OrderAmountCalculatorTest extends TestCase
 
     public function testCashOnDeliveryCollectsWhatThePartIsWorthAndTheRestWithTheLastPart(): void
     {
-        $order = $this->order(515.0, [
-            $this->item(1, qtyOrdered: 2, rowTotal: 300.0, discount: 20.0, qtyToShip: 2),
-            $this->item(2, qtyOrdered: 1, rowTotal: 200.0, qtyToShip: 1),
+        $order = $this->createOrder(515.0, [
+            $this->createItem(1, qtyOrdered: 2, rowTotal: 300.0, discount: 20.0, qtyToShip: 2),
+            $this->createItem(2, qtyOrdered: 1, rowTotal: 200.0, qtyToShip: 1),
         ]);
 
-        self::assertSame(140.0, $this->amounts([])->getCodFor($order, [1 => 1.0]));
+        self::assertSame(140.0, $this->createCalculator([])->getCodFor($order, [1 => 1.0]));
         self::assertSame(
             515.0,
-            $this->amounts([])->getCodFor($order, [1 => 2.0, 2 => 1.0]),
+            $this->createCalculator([])->getCodFor($order, [1 => 2.0, 2 => 1.0]),
             'Everything left: the shipping too.',
         );
-        self::assertSame(515.0, $this->amounts([])->getCodFor($order));
+        self::assertSame(515.0, $this->createCalculator([])->getCodFor($order));
         // Another Polkurier order collects 400 already: no part collects more than the 115 left.
-        self::assertSame(115.0, $this->amounts([400.0])->getCodFor($order, [1 => 1.0]));
+        self::assertSame(115.0, $this->createCalculator([400.0])->getCodFor($order, [1 => 1.0]));
     }
 
     public function testTheValueComesWithWhatItIsMadeOf(): void
     {
-        $order = $this->order(515.0, [
-            $this->item(1, qtyOrdered: 2, rowTotal: 300.0, discount: 20.0, qtyToShip: 2),
-            $this->item(2, qtyOrdered: 1, rowTotal: 200.0, qtyToShip: 1),
+        $order = $this->createOrder(515.0, [
+            $this->createItem(1, qtyOrdered: 2, rowTotal: 300.0, discount: 20.0, qtyToShip: 2),
+            $this->createItem(2, qtyOrdered: 1, rowTotal: 200.0, qtyToShip: 1),
         ]);
-        $amounts = $this->amounts([]);
+        $amounts = $this->createCalculator([]);
 
         self::assertSame(
             [
@@ -113,11 +113,11 @@ class OrderAmountCalculatorTest extends TestCase
 
     public function testThePartTheShippingIsIncludedWithIsWorthItToo(): void
     {
-        $order = $this->order(515.0, [
-            $this->item(1, qtyOrdered: 2, rowTotal: 300.0, discount: 20.0, qtyToShip: 2),
-            $this->item(2, qtyOrdered: 1, rowTotal: 200.0, qtyToShip: 1),
+        $order = $this->createOrder(515.0, [
+            $this->createItem(1, qtyOrdered: 2, rowTotal: 300.0, discount: 20.0, qtyToShip: 2),
+            $this->createItem(2, qtyOrdered: 1, rowTotal: 200.0, qtyToShip: 1),
         ], shipping: 35.0);
-        $amounts = $this->amounts([]);
+        $amounts = $this->createCalculator([]);
 
         self::assertSame(175.0, $amounts->getShipmentValue($order, [1 => 1.0], true));
         self::assertSame(
@@ -131,70 +131,80 @@ class OrderAmountCalculatorTest extends TestCase
 
     public function testTheOrderIsAlwaysCollectedInFull(): void
     {
-        $order = $this->order(515.0, [
-            $this->item(1, qtyOrdered: 2, rowTotal: 300.0, discount: 20.0, qtyToShip: 2),
-            $this->item(2, qtyOrdered: 1, rowTotal: 200.0, qtyToShip: 1),
+        $order = $this->createOrder(515.0, [
+            $this->createItem(1, qtyOrdered: 2, rowTotal: 300.0, discount: 20.0, qtyToShip: 2),
+            $this->createItem(2, qtyOrdered: 1, rowTotal: 200.0, qtyToShip: 1),
         ], shipping: 35.0);
 
         self::assertSame(
             515.0,
-            $this->amounts([])->getCodFor($order, [1 => 2.0, 2 => 1.0], false),
+            $this->createCalculator([])->getCodFor($order, [1 => 2.0, 2 => 1.0], false),
             'The whole order collects its total, shipping or not.',
         );
         // One book went first, collecting 140: the part carrying the rest collects the 375 left.
-        $rest = $this->order(515.0, [
-            $this->item(1, qtyOrdered: 2, rowTotal: 300.0, discount: 20.0, qtyToShip: 1),
-            $this->item(2, qtyOrdered: 1, rowTotal: 200.0, qtyToShip: 1),
+        $rest = $this->createOrder(515.0, [
+            $this->createItem(1, qtyOrdered: 2, rowTotal: 300.0, discount: 20.0, qtyToShip: 1),
+            $this->createItem(2, qtyOrdered: 1, rowTotal: 200.0, qtyToShip: 1),
         ], shipping: 35.0);
-        self::assertSame(375.0, $this->amounts([140.0])->getCodFor($rest, [1 => 1.0, 2 => 1.0], false));
+        self::assertSame(375.0, $this->createCalculator([140.0])->getCodFor($rest, [1 => 1.0, 2 => 1.0], false));
         self::assertSame(
             375.0,
-            $this->amounts([140.0])->getShipmentValue($rest, [1 => 1.0, 2 => 1.0]),
+            $this->createCalculator([140.0])->getShipmentValue($rest, [1 => 1.0, 2 => 1.0]),
             'Insured for the products and the shipping it collects.',
         );
         // The first part included the shipping: the rest goes without it, insured for its products.
-        self::assertSame(340.0, $this->amounts([175.0], 'kgs', true)->getShipmentValue($rest, [1 => 1.0, 2 => 1.0]));
+        self::assertSame(
+            340.0,
+            $this->createCalculator([175.0], 'kgs', true)->getShipmentValue($rest, [1 => 1.0, 2 => 1.0]),
+        );
         self::assertSame(
             140.0,
-            $this->amounts([175.0], 'kgs', true)->getShipmentValue($rest, [1 => 1.0], true),
+            $this->createCalculator([175.0], 'kgs', true)->getShipmentValue($rest, [1 => 1.0], true),
             'Not included twice.',
         );
     }
 
     public function testShippingIsWhatTheCustomerWasChargedForIt(): void
     {
-        self::assertSame(14.99, $this->amounts([])->getShippingCharged($this->order(100.0, [], shipping: 14.99)));
+        self::assertSame(
+            14.99,
+            $this->createCalculator([])->getShippingCharged($this->createOrder(100.0, [], shipping: 14.99)),
+        );
         self::assertSame(
             4.99,
-            $this->amounts([])->getShippingCharged($this->order(100.0, [], shipping: 14.99, shippingDiscount: 10.0)),
+            $this->createCalculator([])->getShippingCharged(
+                $this->createOrder(100.0, [], shipping: 14.99, shippingDiscount: 10.0),
+            ),
             'Less the discount on shipping.',
         );
         // 1 zł = 0.25 €: 5 € of shipping are 20 zł.
         self::assertSame(
             20.0,
-            $this->amounts([])->getShippingCharged($this->order(100.0, [], 'EUR', 'PLN', 0.25, shipping: 5.0)),
+            $this->createCalculator([])->getShippingCharged(
+                $this->createOrder(100.0, [], 'EUR', 'PLN', 0.25, shipping: 5.0),
+            ),
         );
     }
 
     public function testWhatIsLeftAfterAPartialShipment(): void
     {
-        $order = $this->order(515.0, [
-            $this->item(1, qtyOrdered: 2, rowTotal: 300.0, discount: 20.0, qtyToShip: 1),
-            $this->item(2, qtyOrdered: 1, rowTotal: 200.0, qtyToShip: 0),
+        $order = $this->createOrder(515.0, [
+            $this->createItem(1, qtyOrdered: 2, rowTotal: 300.0, discount: 20.0, qtyToShip: 1),
+            $this->createItem(2, qtyOrdered: 1, rowTotal: 200.0, qtyToShip: 0),
         ]);
 
-        self::assertSame(140.0, $this->amounts([])->getShipmentValue($order));
+        self::assertSame(140.0, $this->createCalculator([])->getShipmentValue($order));
     }
 
     public function testNothingToGoByFallsBackToTheTotal(): void
     {
-        $order = $this->order(515.0, [
-            $this->item(1, qtyOrdered: 2, rowTotal: 300.0, qtyToShip: 0),
+        $order = $this->createOrder(515.0, [
+            $this->createItem(1, qtyOrdered: 2, rowTotal: 300.0, qtyToShip: 0),
         ]);
 
         self::assertSame(
             515.0,
-            $this->amounts([])->getShipmentValue($order),
+            $this->createCalculator([])->getShipmentValue($order),
             'A replacement for an order already shipped.',
         );
     }
@@ -202,8 +212,14 @@ class OrderAmountCalculatorTest extends TestCase
     public function testAnOrderInEurosOfAShopInZlotyIsConvertedAtItsRate(): void
     {
         // 1 zł = 0.25 €: the order's 100 € are 400 zł.
-        $order = $this->order(100.0, [$this->item(1, qtyOrdered: 2, rowTotal: 60.0, qtyToShip: 2)], 'EUR', 'PLN', 0.25);
-        $amounts = $this->amounts([50.0]);
+        $order = $this->createOrder(
+            100.0,
+            [$this->createItem(1, qtyOrdered: 2, rowTotal: 60.0, qtyToShip: 2)],
+            'EUR',
+            'PLN',
+            0.25,
+        );
+        $amounts = $this->createCalculator([50.0]);
 
         self::assertTrue($amounts->isPriced($order));
         self::assertSame(400.0, $amounts->getGrandTotal($order));
@@ -213,15 +229,20 @@ class OrderAmountCalculatorTest extends TestCase
 
     public function testAnOrderInZlotyOfAShopInEurosIsTakenAsItIs(): void
     {
-        $order = $this->order(400.0, [], 'PLN', 'EUR', 4.0);
+        $order = $this->createOrder(400.0, [], 'PLN', 'EUR', 4.0);
 
-        self::assertSame(400.0, $this->amounts([])->getGrandTotal($order));
+        self::assertSame(400.0, $this->createCalculator([])->getGrandTotal($order));
     }
 
     public function testAnOrderWithNoZlotyAnywhereIsNotPriced(): void
     {
-        $order = $this->order(100.0, [$this->item(1, qtyOrdered: 1, rowTotal: 100.0, qtyToShip: 1)], 'EUR', 'EUR');
-        $amounts = $this->amounts([]);
+        $order = $this->createOrder(
+            100.0,
+            [$this->createItem(1, qtyOrdered: 1, rowTotal: 100.0, qtyToShip: 1)],
+            'EUR',
+            'EUR',
+        );
+        $amounts = $this->createCalculator([]);
 
         self::assertFalse($amounts->isPriced($order));
         self::assertSame(0.0, $amounts->getCodRemaining($order), 'Nothing to collect is filled in.');
@@ -230,20 +251,23 @@ class OrderAmountCalculatorTest extends TestCase
 
     public function testItemsWeighInKilogramsWhateverTheStoresUnit(): void
     {
-        $order = $this->order(100.0, [$this->item(1, qtyOrdered: 1, rowTotal: 100.0, qtyToShip: 1, weight: 2.0)]);
+        $order = $this->createOrder(
+            100.0,
+            [$this->createItem(1, qtyOrdered: 1, rowTotal: 100.0, qtyToShip: 1, weight: 2.0)],
+        );
 
-        self::assertSame(2.0, $this->amounts([])->getItems($order)[1]['weight']);
-        self::assertSame(0.907, $this->amounts([], 'lbs')->getItems($order)[1]['weight'], '2 lb.');
+        self::assertSame(2.0, $this->createCalculator([])->getItems($order)[1]['weight']);
+        self::assertSame(0.907, $this->createCalculator([], 'lbs')->getItems($order)[1]['weight'], '2 lb.');
     }
 
     public function testVirtualItemsAreNotShippedAndCancelledOnesNotCounted(): void
     {
-        $order = $this->order(300.0, [
-            $this->item(1, qtyOrdered: 3, rowTotal: 150.0, qtyToShip: 1, canceled: 2),
-            $this->item(2, qtyOrdered: 1, rowTotal: 150.0, qtyToShip: 1, virtual: true),
+        $order = $this->createOrder(300.0, [
+            $this->createItem(1, qtyOrdered: 3, rowTotal: 150.0, qtyToShip: 1, canceled: 2),
+            $this->createItem(2, qtyOrdered: 1, rowTotal: 150.0, qtyToShip: 1, virtual: true),
         ]);
 
-        $items = $this->amounts([])->getItems($order);
+        $items = $this->createCalculator([])->getItems($order);
 
         self::assertSame([1], \array_keys($items), 'A download has nothing to ship.');
         self::assertSame(1.0, $items[1]['qty'], 'Three ordered, two cancelled.');
@@ -253,7 +277,7 @@ class OrderAmountCalculatorTest extends TestCase
     /**
      * @param float[] $codAmounts of the order's Polkurier orders that collect
      */
-    private function amounts(
+    private function createCalculator(
         array $codAmounts,
         string $weightUnit = 'kgs',
         bool $shippingIncluded = false,
@@ -266,21 +290,21 @@ class OrderAmountCalculatorTest extends TestCase
             return $shipment;
         }, $codAmounts);
         $finder = $this->createStub(ShipmentFinder::class);
-        $finder->method('forOrder')->willReturn($shipments);
+        $finder->method('findForOrder')->willReturn($shipments);
 
         $scopeConfig = $this->createStub(ScopeConfigInterface::class);
         $scopeConfig->method('getValue')->willReturn($weightUnit);
 
         return new OrderAmountCalculator(
             $finder,
-            new WeightUnitConverter($scopeConfig, MagentoMeasures::carrierHelper()),
+            new WeightUnitConverter($scopeConfig, MagentoMeasures::createCarrierHelper()),
         );
     }
 
     /**
      * @param Item[] $items
      */
-    private function order(
+    private function createOrder(
         float $grandTotal,
         array $items,
         string $currency = 'PLN',
@@ -302,7 +326,7 @@ class OrderAmountCalculatorTest extends TestCase
         return $order;
     }
 
-    private function item(
+    private function createItem(
         int $id,
         float $qtyOrdered,
         float $rowTotal,

@@ -53,7 +53,7 @@ readonly class PrepareLabelledShipmentObserver implements ObserverInterface
         $magentoTitle = $this->configProvider->getTitle((int)$shipment->getStoreId());
         $order = $shipment->getOrder();
         if ($carrierCode === '') {
-            $carrierCode = (string)Polkurier::methodCodeOf((string)$order->getShippingMethod());
+            $carrierCode = (string)Polkurier::extractMethodCode((string)$order->getShippingMethod());
         }
         $seen = [];
         $kept = [];

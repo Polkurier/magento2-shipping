@@ -18,17 +18,17 @@ class MoneyBoxOrderFinderTest extends TestCase
 {
     public function testNumbersNotKnownAsInTheMoneyBoxAreNamed(): void
     {
-        $orders = $this->moneyBoxOrders(['24680-10', '24680-12']);
+        $orders = $this->createFinder(['24680-10', '24680-12']);
 
-        self::assertSame(['24680-10', '24680-12'], $orders->numbers());
-        self::assertSame(['24680-99', '24680-19'], $orders->unknown(['24680-10', '24680-99', '24680-19']));
-        self::assertSame([], $orders->unknown([]), 'Nothing typed in: everything available is paid out.');
+        self::assertSame(['24680-10', '24680-12'], $orders->findNumbers());
+        self::assertSame(['24680-99', '24680-19'], $orders->findUnknown(['24680-10', '24680-99', '24680-19']));
+        self::assertSame([], $orders->findUnknown([]), 'Nothing typed in: everything available is paid out.');
     }
 
     /**
      * @param string[] $inMoneyBox
      */
-    private function moneyBoxOrders(array $inMoneyBox): MoneyBoxOrderFinder
+    private function createFinder(array $inMoneyBox): MoneyBoxOrderFinder
     {
         $items = \array_map(function (string $number): ShipmentInterface {
             $shipment = $this->createStub(ShipmentInterface::class);
@@ -37,7 +37,7 @@ class MoneyBoxOrderFinderTest extends TestCase
             return $shipment;
         }, $inMoneyBox);
         $finder = $this->createStub(ShipmentFinder::class);
-        $finder->method('withCodStatus')->willReturn($items);
+        $finder->method('findWithCodStatus')->willReturn($items);
 
         return new MoneyBoxOrderFinder($finder);
     }

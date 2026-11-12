@@ -63,7 +63,7 @@ readonly class ShipmentSavePlugin
      */
     private function findPending(int $orderId): ?ShipmentInterface
     {
-        $shipments = $this->shipmentFinder->forOrder($orderId, [
+        $shipments = $this->shipmentFinder->findForOrder($orderId, [
             ShipmentInterface::STATE_PENDING,
             ShipmentInterface::STATE_UNKNOWN,
             ShipmentInterface::STATE_CREATED,

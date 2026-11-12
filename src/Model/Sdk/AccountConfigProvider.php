@@ -56,7 +56,7 @@ readonly class AccountConfigProvider implements ConfigProviderInterface
             'logPersonalData' => $this->configProvider->isPersonalDataLoggingEnabled(),
             'logFiles' => $this->configProvider->isFileLoggingEnabled(),
             // This month's, so a month's files can be dealt with together.
-            'logFilesDirectory' => $this->logFilesDirectoryResolver->ofMonth(
+            'logFilesDirectory' => $this->logFilesDirectoryResolver->resolveForMonth(
                 $this->logFilesDirectoryResolver->resolve($this->configProvider->getLogFilesDirectory()),
                 $this->dateTime->gmtTimestamp(),
             ),

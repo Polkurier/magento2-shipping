@@ -34,7 +34,7 @@ readonly class PostButton implements ButtonProviderInterface
         return [
             'label' => __($this->label),
             'class' => $this->class,
-            'on_click' => $this->onClickScriptBuilder->post($this->url->getUrl($this->path)),
+            'on_click' => $this->onClickScriptBuilder->buildPost($this->url->getUrl($this->path)),
             'sort_order' => $this->sortOrder,
         ];
     }

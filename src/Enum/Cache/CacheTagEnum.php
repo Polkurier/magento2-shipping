@@ -55,7 +55,7 @@ enum CacheTagEnum: string
      *
      * @return self[]
      */
-    public static function ofAccount(): array
+    public static function getAccountTags(): array
     {
         return [self::Carriers, self::MapToken, self::Notices, self::Account, self::Failures];
     }

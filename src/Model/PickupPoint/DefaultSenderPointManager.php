@@ -28,8 +28,6 @@ use Polkurier\Webservice\Response\Carrier;
  */
 class DefaultSenderPointManager implements ResetAfterRequestInterface
 {
-    public const int FAILURE_LIFETIME = 90;
-
     /**
      * The points read in this request.
      *
@@ -63,7 +61,7 @@ class DefaultSenderPointManager implements ResetAfterRequestInterface
             $points = $this->polkurierClient->account()->getAccountInfo()->getDefaultSenderPoint();
         } catch (PolkurierException $e) {
             $this->logger->warning('Default drop-off points unavailable', ['exception' => $e]);
-            $this->polkurierCache->save('1', $failureKey, [CacheTagEnum::Failures->value], self::FAILURE_LIFETIME);
+            $this->polkurierCache->save('1', $failureKey, [CacheTagEnum::Failures->value], PolkurierCache::FAILURE_LIFETIME);
 
             return $this->points = [];
         }

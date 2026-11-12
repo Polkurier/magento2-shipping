@@ -24,6 +24,11 @@ class Type extends TagScope
     public const string TYPE_IDENTIFIER = 'polkurier';
     public const string CACHE_TAG = 'POLKURIER';
 
+    /**
+     * How long, in seconds, a failure to ask Polkurier is remembered: meanwhile it isn't asked again.
+     */
+    public const int FAILURE_LIFETIME = 90;
+
     public function __construct(FrontendPool $cacheFrontendPool)
     {
         parent::__construct($cacheFrontendPool->get(self::TYPE_IDENTIFIER), self::CACHE_TAG);

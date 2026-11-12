@@ -96,7 +96,7 @@ class DefaultSenderPointManagerTest extends SdkTestCase
         self::assertSame([], $this->createManager($http, $logger)->get());
         self::assertSame([], $this->createManager($http)->get(), 'The next request is told without asking again.');
         self::assertSame(1, $http->requestCount());
-        self::assertSame([DefaultSenderPointManager::FAILURE_LIFETIME], \array_values($this->lifetimes));
+        self::assertSame([PolkurierCache::FAILURE_LIFETIME], \array_values($this->lifetimes));
     }
 
     public function testAChangedPointIsSentAndReadAgainAfterwards(): void

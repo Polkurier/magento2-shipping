@@ -41,7 +41,6 @@ use Polkurier\Webservice\Response\CourierPoint;
 class CarrierCatalog implements ResetAfterRequestInterface
 {
     public const int CACHE_LIFETIME = 86400;
-    public const int FAILURE_LIFETIME = 90;
 
     /**
      * How long a looked-up point is cached, whether it was found or not.
@@ -122,7 +121,7 @@ class CarrierCatalog implements ResetAfterRequestInterface
                 (string)$this->errorMessageResolver->phrase($e),
                 $key . self::FAILURE_SUFFIX,
                 [CacheTagEnum::Carriers->value, CacheTagEnum::Failures->value],
-                self::FAILURE_LIFETIME,
+                PolkurierCache::FAILURE_LIFETIME,
             );
 
             throw $this->failed[$key] = $e;
@@ -197,7 +196,7 @@ class CarrierCatalog implements ResetAfterRequestInterface
                     (string)$this->errorMessageResolver->phrase($e),
                     $this->pointsFailureKey() . self::FAILURE_SUFFIX,
                     [CacheTagEnum::Points->value, CacheTagEnum::Failures->value],
-                    self::FAILURE_LIFETIME,
+                    PolkurierCache::FAILURE_LIFETIME,
                 );
                 $this->failed[$this->pointsFailureKey()] = $e;
             }

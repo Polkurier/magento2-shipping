@@ -128,7 +128,7 @@ class CarrierCatalogTest extends TestCase
         } catch (RecentFailureException) {
         }
         self::assertSame(['WAW195M'], $this->pointRequests);
-        self::assertContains(CarrierCatalog::FAILURE_LIFETIME, $this->lifetimes);
+        self::assertContains(PolkurierCache::FAILURE_LIFETIME, $this->lifetimes);
     }
 
     public function testAPointRefusedByPolkurierDoesntStopTheOthers(): void
@@ -225,7 +225,7 @@ class CarrierCatalogTest extends TestCase
             );
         }
         self::assertSame(1, $this->requests, 'The next request is told without waiting for the API.');
-        self::assertSame([CarrierCatalog::FAILURE_LIFETIME], \array_values($this->lifetimes));
+        self::assertSame([PolkurierCache::FAILURE_LIFETIME], \array_values($this->lifetimes));
     }
 
     public function testCleaningForgetsTheFailure(): void

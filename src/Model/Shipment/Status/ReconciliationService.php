@@ -86,10 +86,7 @@ readonly class ReconciliationService
      */
     public function settleForOrder(int $orderId): void
     {
-        $unsettled = $this->shipmentFinder->findForOrder(
-            $orderId,
-            [ShipmentInterface::STATE_UNKNOWN, ShipmentInterface::STATE_PENDING],
-        );
+        $unsettled = $this->shipmentFinder->findForOrder($orderId, ShipmentInterface::UNSETTLED_STATES);
         foreach ($unsettled as $shipment) {
             try {
                 $this->reconcile((int)$shipment->getId());
@@ -108,7 +105,7 @@ readonly class ReconciliationService
     public function reconcile(int $shipmentId): ShipmentInterface
     {
         $shipment = $this->shipmentRepository->get($shipmentId);
-        if (!\in_array($shipment->getState(), [ShipmentInterface::STATE_UNKNOWN, ShipmentInterface::STATE_PENDING], true)) {
+        if (!\in_array($shipment->getState(), ShipmentInterface::UNSETTLED_STATES, true)) {
             throw new LocalizedException(__('Only a shipment whose outcome is unknown can be reconciled.'));
         }
         if ($shipment->getState() === ShipmentInterface::STATE_PENDING
@@ -129,7 +126,7 @@ readonly class ReconciliationService
             $possible,
         ): ShipmentInterface {
             $shipment = $this->shipmentRepository->get($shipmentId);
-            if (!\in_array($shipment->getState(), [ShipmentInterface::STATE_UNKNOWN, ShipmentInterface::STATE_PENDING], true)) {
+            if (!\in_array($shipment->getState(), ShipmentInterface::UNSETTLED_STATES, true)) {
                 return $shipment;
             }
 

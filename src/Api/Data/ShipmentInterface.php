@@ -43,6 +43,12 @@ interface ShipmentInterface
      */
     public const array LIVE_STATES = [self::STATE_PENDING, self::STATE_CREATED, self::STATE_UNKNOWN];
 
+    /**
+     * Polkurier orders whose outcome isn't known: whether Polkurier has them is checked
+     * (reconciled) before the order gets another one.
+     */
+    public const array UNSETTLED_STATES = [self::STATE_UNKNOWN, self::STATE_PENDING];
+
     public const string FIELD_ENTITY_ID = 'entity_id';
     public const string FIELD_ORDER_ID = 'order_id';
     public const string FIELD_STORE_ID = 'store_id';

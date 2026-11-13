@@ -166,7 +166,7 @@ readonly class ShipmentFinder
      */
     public function findDueForReconciliation(string $attemptedBefore, string $checkedBefore, int $limit): array
     {
-        $collection = $this->query([ShipmentInterface::STATE_UNKNOWN, ShipmentInterface::STATE_PENDING])
+        $collection = $this->query(ShipmentInterface::UNSETTLED_STATES)
             ->addFieldToFilter(ShipmentInterface::FIELD_CREATED_AT, ['lt' => $attemptedBefore])
             ->addFieldToFilter(ShipmentInterface::FIELD_STATUS_CHECKED_AT, [
                 ['null' => true],

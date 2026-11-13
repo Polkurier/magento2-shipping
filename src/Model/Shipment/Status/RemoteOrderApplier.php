@@ -68,11 +68,7 @@ readonly class RemoteOrderApplier
             ->setDetails($this->mapFromOrder($order))
             ->setDetailsSyncedAt((string)$this->dateTime->gmtDate());
 
-        $notConfirmed = [
-            ShipmentInterface::STATE_UNKNOWN,
-            ShipmentInterface::STATE_PENDING,
-            ShipmentInterface::STATE_FAILED,
-        ];
+        $notConfirmed = [...ShipmentInterface::UNSETTLED_STATES, ShipmentInterface::STATE_FAILED];
         if ($cancelled) {
             $shipment->setState(ShipmentInterface::STATE_CANCELLED);
         } elseif (\in_array($shipment->getState(), $notConfirmed, true)) {

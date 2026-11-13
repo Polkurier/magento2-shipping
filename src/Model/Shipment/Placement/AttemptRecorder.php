@@ -60,10 +60,7 @@ readonly class AttemptRecorder
      */
     public function assertNothingUnresolved(int $orderId): void
     {
-        $unresolved = $this->shipmentFinder->findForOrder(
-            $orderId,
-            [ShipmentInterface::STATE_UNKNOWN, ShipmentInterface::STATE_PENDING],
-        );
+        $unresolved = $this->shipmentFinder->findForOrder($orderId, ShipmentInterface::UNSETTLED_STATES);
         foreach ($unresolved as $earlier) {
             if ($earlier->getState() === ShipmentInterface::STATE_PENDING
                 && $earlier->getCreatedAt() !== null

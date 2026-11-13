@@ -41,7 +41,8 @@ class RequestedShipmentsTest extends TestCase
     public function testTheIdsAreReadFromAListOrAString(mixed $param, array $expected): void
     {
         $request = $this->createStub(RequestInterface::class);
-        $request->method('getParam')->willReturnCallback(static fn(string $name): mixed => $name === 'ids' ? $param : null);
+        $request->method('getParam')
+            ->willReturnCallback(static fn(string $name): mixed => $name === 'ids' ? $param : null);
 
         $requested = new RequestedShipments(
             $this->createStub(ShipmentRepositoryInterface::class),

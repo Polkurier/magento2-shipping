@@ -164,7 +164,16 @@ class SentOrderReaderTest extends TestCase
                 '20',
                 '5',
             ),
-            new OrderAddressMessage('Anna Nowak', 'Długa', 'Kraków', '31-147', 'anna@example.com', '600300400', null, '7'),
+            new OrderAddressMessage(
+                'Anna Nowak',
+                'Długa',
+                'Kraków',
+                '31-147',
+                'anna@example.com',
+                '600300400',
+                null,
+                '7',
+            ),
             coverAddress: new CoverAddressMessage(
                 'Magazyn Północ',
                 'Składowa 3',

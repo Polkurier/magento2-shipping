@@ -192,7 +192,13 @@ readonly class ScreenDataProvider
     /**
      * The order's amounts in złoty, as cash on delivery and insurance start from them.
      *
-     * @return array{grand_total: float, shipping_charged: float, cod_collected: float, cod_remaining: float, shipping_covered: bool}
+     * @return array{
+     *     grand_total: float,
+     *     shipping_charged: float,
+     *     cod_collected: float,
+     *     cod_remaining: float,
+     *     shipping_covered: bool,
+     * }
      */
     public function getAmounts(Order $order): array
     {

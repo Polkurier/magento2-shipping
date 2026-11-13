@@ -176,7 +176,11 @@ class ShipmentManagementTest extends SdkTestCase
     /**
      * Where Magento would take the Polkurier order, or why it can't.
      *
-     * @var array{qtys: array<int, float>, shipment_id: int|null, packages: array<int, array<string, mixed>>}|LocalizedException
+     * @var array{
+     *     qtys: array<int, float>,
+     *     shipment_id: int|null,
+     *     packages: array<int, array<string, mixed>>,
+     * }|LocalizedException
      */
     private array|LocalizedException $target = ['qtys' => [], 'shipment_id' => null, 'packages' => []];
 
@@ -1642,7 +1646,13 @@ class ShipmentManagementTest extends SdkTestCase
     /**
      * The services behind {@see ShipmentManagement}, over the real SDK answering from $this->http.
      *
-     * @return array{placing: PlacementService, reconciliation: ReconciliationService, refresh: StatusRefreshService, cancellation: CancellationService, orders: OrderLoader}
+     * @return array{
+     *     placing: PlacementService,
+     *     reconciliation: ReconciliationService,
+     *     refresh: StatusRefreshService,
+     *     cancellation: CancellationService,
+     *     orders: OrderLoader,
+     * }
      */
     private function listServices(): array
     {
@@ -1942,9 +1952,10 @@ class ShipmentManagementTest extends SdkTestCase
     {
         $sender = $this->createStub(ShipmentSender::class);
         $sender->method('send')->willReturnCallback(function (MagentoShipmentModel $magentoShipment): bool {
+            $shipmentId = (int)$magentoShipment->getEntityId();
             $linked = \array_values(\array_filter(
                 $this->saved,
-                static fn(Shipment $shipment): bool => $shipment->getShipmentId() === (int)$magentoShipment->getEntityId(),
+                static fn(Shipment $shipment): bool => $shipment->getShipmentId() === $shipmentId,
             ));
             $this->emails[] = \sprintf(
                 '%d: %s, %s',

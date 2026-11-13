@@ -56,8 +56,8 @@ class DataProvider extends FormDataProvider
         $meta['payout']['children']['bank_account_choice']['arguments']['data']['config']['options']
             = $this->getAccountOptions();
         // The number field shows only when another account is chosen.
-        $meta['payout']['children']['bank_account_number']['arguments']['data']['config']['shownWhen']['bank_account_choice']
-            = PayoutManager::ANOTHER_ACCOUNT;
+        $meta['payout']['children']['bank_account_number']['arguments']['data']['config']['shownWhen']
+            ['bank_account_choice'] = PayoutManager::ANOTHER_ACCOUNT;
 
         return $meta;
     }

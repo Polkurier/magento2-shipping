@@ -17,8 +17,8 @@ use Polkurier\Shipping\Model\Shipment\Native\NativeFollowUpService;
 use Polkurier\Webservice\Request\Order\OrderIdMessage;
 
 /**
- * Cancels placed Polkurier orders that {@see CancellationRule} lets go. The Magento shipment stays, without the order's label, packages
- * and waybills, for another Polkurier order to go on it
+ * Cancels placed Polkurier orders that {@see CancellationRule} lets go. The Magento shipment stays,
+ * without the order's label, packages and waybills, for another Polkurier order to go on it
  * ({@see NativeFollowUpService::clearShipment()}).
  */
 readonly class CancellationService

@@ -50,7 +50,8 @@ readonly class ConfigProvider
     public const string XML_PATH_LOG_FILES = 'carriers/polkurier/logging/files';
     public const string XML_PATH_LOG_FILES_DIRECTORY = 'carriers/polkurier/logging/files_directory';
     public const string XML_PATH_AVAILABLE_CARRIERS = 'carriers/polkurier/general/available_carriers';
-    public const string XML_PATH_USE_STORE_INFORMATION_ADDRESS = 'carriers/polkurier/sender/use_store_information_address';
+    public const string XML_PATH_USE_STORE_INFORMATION_ADDRESS
+        = 'carriers/polkurier/sender/use_store_information_address';
     public const string XML_PATH_USE_ORIGIN_ADDRESS = 'carriers/polkurier/sender/use_store_origin_address';
     public const string XML_PATH_SENDER_EMAIL = 'carriers/polkurier/sender/default_sender_email';
     public const string XML_PATH_DEFAULT_SERVICES = 'carriers/polkurier/shipment_defaults/default_additional_services';

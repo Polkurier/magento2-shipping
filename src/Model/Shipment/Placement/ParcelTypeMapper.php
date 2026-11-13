@@ -88,7 +88,8 @@ final readonly class ParcelTypeMapper
 
         return match (true) {
             $packType === self::ENVELOPE => ShipmentTypeEnum::Envelope,
-            $packType === self::EURO_PALLET_NON_STANDARD, isset(self::PALLET_SIZES[$packType]) => ShipmentTypeEnum::Palette,
+            $packType === self::EURO_PALLET_NON_STANDARD,
+            isset(self::PALLET_SIZES[$packType]) => ShipmentTypeEnum::Palette,
             default => ShipmentTypeEnum::Box,
         };
     }

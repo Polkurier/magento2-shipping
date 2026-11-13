@@ -87,7 +87,9 @@ class RedirectingActionsTest extends AdminActionTestCase
         $saved = [];
         $repository = $this->createStub(CarrierConfigRepositoryInterface::class);
         $repository->method('save')
-            ->willReturnCallback(static function (CarrierConfigInterface $config) use (&$saved): CarrierConfigInterface {
+            ->willReturnCallback(static function (
+                CarrierConfigInterface $config,
+            ) use (&$saved): CarrierConfigInterface {
                 $saved[] = $config->getCarrierCode();
 
                 return $config;

@@ -31,7 +31,9 @@ class LabelButtonTest extends TestCase
 
         self::assertSame(Container::SPLIT_BUTTON, $data['class_name']);
         self::assertSame('Print label', $data['label']);
-        $defaults = \array_values(\array_filter($data['options'], static fn(array $option): bool => $option['default']));
+        $defaults = \array_values(
+            \array_filter($data['options'], static fn(array $option): bool => $option['default']),
+        );
         self::assertSame('PDF', $defaults[0]['label'], 'What the button itself prints.');
         self::assertStringContainsString('"polkurier\/shipment\/label?id=7"', $defaults[0]['onclick']);
         self::assertStringContainsString('format=EPL', $data['options'][3]['onclick']);

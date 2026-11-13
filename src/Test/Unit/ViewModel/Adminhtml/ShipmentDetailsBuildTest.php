@@ -142,7 +142,10 @@ class ShipmentDetailsBuildTest extends TestCase
             $view['notes'],
         );
         self::assertSame('Read from Polkurier 2026-10-06T08:00:00+00:00.', $view['synced']);
-        self::assertSame(['Order and delivery', 'Sender and recipient', 'Services and handover'], \array_column($view['sections'], 'title'));
+        self::assertSame(
+            ['Order and delivery', 'Sender and recipient', 'Services and handover'],
+            \array_column($view['sections'], 'title'),
+        );
         self::assertSame(
             ['Items shipped', 'Parcels', 'Cost', 'Carrier tracking'],
             \array_column($view['tables'], 'title'),
@@ -242,7 +245,10 @@ class ShipmentDetailsBuildTest extends TestCase
         ], $view['notes']);
         self::assertSame(['The carrier\'s scans could not be read.'], $view['errors']);
         self::assertSame('', $view['synced']);
-        self::assertSame(['Order and delivery', 'Sender and recipient', 'Services and handover'], \array_column($view['sections'], 'title'));
+        self::assertSame(
+            ['Order and delivery', 'Sender and recipient', 'Services and handover'],
+            \array_column($view['sections'], 'title'),
+        );
         self::assertSame(
             ['Items shipped', 'Parcels', 'Carrier tracking'],
             \array_column($view['tables'], 'title'),

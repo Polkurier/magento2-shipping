@@ -137,7 +137,10 @@ class DocumentServiceTest extends TestCase
         $zpl = $this->createService(['18015-2865'])
             ->getLabels([$this->createShipment('18015-2865', 1)], LabelFileFormatEnum::Zpl);
 
-        self::assertSame(['polkurier-labels-18015-2865.pdf', 'application/pdf'], [$zpl['file_name'], $zpl['content_type']]);
+        self::assertSame(
+            ['polkurier-labels-18015-2865.pdf', 'application/pdf'],
+            [$zpl['file_name'], $zpl['content_type']],
+        );
     }
 
     public function testSeveralOrdersInAPrinterLanguageAreAskedForOneByOneAndJoined(): void

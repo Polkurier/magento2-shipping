@@ -425,7 +425,9 @@ class NativeShipmentServiceTest extends TestCase
                                 'eq' => $values[$field] === $condition['eq'],
                                 'in' => \in_array($values[$field], $condition['in'], true),
                                 'nin' => !\in_array($values[$field], $condition['nin'], true),
-                                default => throw new \LogicException('The test collection does not know this condition.'),
+                                default => throw new \LogicException(
+                                    'The test collection does not know this condition.',
+                                ),
                             };
                             if (!$matches) {
                                 return false;

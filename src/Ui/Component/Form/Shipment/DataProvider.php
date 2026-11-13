@@ -308,7 +308,14 @@ class DataProvider extends FormDataProvider
      * it replaces, what the shipment carries, and whether its customer can still be e-mailed about
      * it; null when there is none.
      *
-     * @return array{increment_id: string, replaces: string|null, shipment_value: float, worth: array{products: float, order_total: float, whole: bool, value: float}, qtys: array<int, float>, email_open: bool}|null
+     * @return array{
+     *     increment_id: string,
+     *     replaces: string|null,
+     *     shipment_value: float,
+     *     worth: array{products: float, order_total: float, whole: bool, value: float},
+     *     qtys: array<int, float>,
+     *     email_open: bool,
+     * }|null
      */
     private function getReplaced(Order $order, ?int $targetId): ?array
     {

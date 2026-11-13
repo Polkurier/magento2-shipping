@@ -133,7 +133,16 @@ readonly class OrderAmountCalculator
      * Items that ship as part of another (the options of a configurable product) are left out;
      * the item they belong to carries the price.
      *
-     * @return array<int, array{name: string, sku: string, product_id: int, unit: float, weight: float, qty: float, qty_shipped: float, qty_to_ship: float}>
+     * @return array<int, array{
+     *     name: string,
+     *     sku: string,
+     *     product_id: int,
+     *     unit: float,
+     *     weight: float,
+     *     qty: float,
+     *     qty_shipped: float,
+     *     qty_to_ship: float,
+     * }>
      */
     public function getItems(Order $order): array
     {
@@ -192,7 +201,16 @@ readonly class OrderAmountCalculator
      *     everything the order still has to ship
      * @param bool $withShipping whether part of the order includes the shipping and handling
      *
-     * @return array{products: float, shipping: float, order_total: float, whole: bool, rest: bool, shipping_covered: bool, with_shipping: bool, value: float}
+     * @return array{
+     *     products: float,
+     *     shipping: float,
+     *     order_total: float,
+     *     whole: bool,
+     *     rest: bool,
+     *     shipping_covered: bool,
+     *     with_shipping: bool,
+     *     value: float,
+     * }
      *     rest: whether it carries all the order still has to ship; shipping_covered: whether
      *     another part includes the shipping and handling already
      */

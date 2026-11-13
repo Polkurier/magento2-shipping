@@ -22,10 +22,10 @@
             </span>
             <span class="polkurier-carriers__lacking polkurier-muted" if="lacking" text="lacking"></span>
             <span class="polkurier-carriers__meta">
-                <!-- ko if: pointOnly --><span class="polkurier-badge" translate="'Points only'"></span><!-- /ko -->
-                <!-- ko if: point && !pointOnly --><span class="polkurier-badge" translate="'Points'"></span><!-- /ko -->
-                <!-- ko if: cod --><span class="polkurier-badge" translate="'COD'"></span><!-- /ko -->
-                <!-- ko if: cheapest --><span class="polkurier-badge _cheapest" translate="'Cheapest'"></span><!-- /ko -->
+                <span class="polkurier-badge" if="pointOnly" translate="'Points only'"></span>
+                <span class="polkurier-badge" if="point && !pointOnly" translate="'Points'"></span>
+                <span class="polkurier-badge" if="cod" translate="'COD'"></span>
+                <span class="polkurier-badge _cheapest" if="cheapest" translate="'Cheapest'"></span>
             </span>
         </li>
         <!-- /ko -->

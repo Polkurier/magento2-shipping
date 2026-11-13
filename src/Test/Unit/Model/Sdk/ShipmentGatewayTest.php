@@ -109,6 +109,8 @@ class ShipmentGatewayTest extends TestCase
         $client = $this->createStub(PolkurierClient::class);
         $client->method('getOrders')->willReturn($orders);
 
-        self::assertSame($cancelled, (new ShipmentGateway($client, new ErrorMessageResolver()))->isCancelled('24680-27'));
+        $gateway = new ShipmentGateway($client, new ErrorMessageResolver());
+
+        self::assertSame($cancelled, $gateway->isCancelled('24680-27'));
     }
 }

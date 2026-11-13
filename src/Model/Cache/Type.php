@@ -29,6 +29,8 @@ class Type extends TagScope
      */
     public const int FAILURE_LIFETIME = 90;
 
+    private const string FAILURE_SUFFIX = '_failed';
+
     public function __construct(FrontendPool $cacheFrontendPool)
     {
         parent::__construct($cacheFrontendPool->get(self::TYPE_IDENTIFIER), self::CACHE_TAG);
@@ -43,5 +45,29 @@ class Type extends TagScope
             \Zend_Cache::CLEANING_MODE_MATCHING_ANY_TAG,
             \array_map(static fn(CacheTagEnum $tag): string => $tag->value, $tags),
         );
+    }
+
+    /**
+     * Remembers for {@see self::FAILURE_LIFETIME} that asking Polkurier for the entry under $key
+     * failed, and why. It's cleaned with $tag's entries and with all failures.
+     */
+    public function saveFailure(string $key, string $reason, CacheTagEnum $tag): void
+    {
+        $this->save(
+            $reason,
+            $key . self::FAILURE_SUFFIX,
+            [$tag->value, CacheTagEnum::Failures->value],
+            self::FAILURE_LIFETIME,
+        );
+    }
+
+    /**
+     * Why asking Polkurier for the entry under $key failed a moment ago, or null when it didn't.
+     */
+    public function loadFailure(string $key): ?string
+    {
+        $reason = $this->load($key . self::FAILURE_SUFFIX);
+
+        return \is_string($reason) && $reason !== '' ? $reason : null;
     }
 }

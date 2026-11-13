@@ -11,12 +11,14 @@ use Magento\Framework\Serialize\Serializer\Json;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use Polkurier\Shipping\Exception\RecentFailureException;
+use Polkurier\Shipping\Enum\Cache\CacheTagEnum;
 use Polkurier\Shipping\Logger\Logger;
 use Polkurier\Shipping\Model\Cache\Type as PolkurierCache;
 use Polkurier\Shipping\Model\Config\ConfigProvider;
 use Polkurier\Shipping\Model\PickupPoint\MapTokenProvider;
 use Polkurier\Shipping\Model\Sdk\AccountCache;
 use Polkurier\Shipping\Model\Sdk\ErrorMessageResolver;
+use Polkurier\Shipping\Test\Unit\Support\MemoryPolkurierCache;
 use Polkurier\Shipping\Test\Unit\Support\SdkTestCase;
 use Polkurier\Webservice\Testing\RecordingClient;
 
@@ -26,15 +28,12 @@ class MapTokenProviderTest extends SdkTestCase
 {
     private const int NOW = 1790000000;
 
-    /**
-     * @var array<string, string>
-     */
-    private array $cached = [];
+    private MemoryPolkurierCache $cache;
 
-    /**
-     * @var array<string, int>
-     */
-    private array $lifetimes = [];
+    protected function setUp(): void
+    {
+        $this->cache = new MemoryPolkurierCache();
+    }
 
     public function testATokenIsAskedForOnceAndSharedFromTheCache(): void
     {
@@ -45,7 +44,7 @@ class MapTokenProviderTest extends SdkTestCase
 
         self::assertSame(['map-token', 'map-token'], [$first, $second]);
         self::assertSame(1, $http->requestCount());
-        self::assertSame([MapTokenProvider::CACHE_LIFETIME], \array_values($this->lifetimes));
+        self::assertSame([MapTokenProvider::CACHE_LIFETIME], \array_values($this->cache->lifetimes));
     }
 
     public function testAJwtSaysWhenItRunsOutItself(): void
@@ -98,7 +97,7 @@ class MapTokenProviderTest extends SdkTestCase
             $this->createProvider($http)->getToken();
         } finally {
             self::assertSame(1, $http->requestCount(), 'The next request is told without asking again.');
-            self::assertSame([PolkurierCache::FAILURE_LIFETIME], \array_values($this->lifetimes));
+            self::assertSame([PolkurierCache::FAILURE_LIFETIME], \array_values($this->cache->lifetimes));
         }
     }
 
@@ -111,26 +110,22 @@ class MapTokenProviderTest extends SdkTestCase
 
         self::assertSame(['', ''], [$first, $second]);
         self::assertSame(1, $http->requestCount());
-        self::assertSame([PolkurierCache::FAILURE_LIFETIME], \array_values($this->lifetimes));
+        self::assertSame([PolkurierCache::FAILURE_LIFETIME], \array_values($this->cache->lifetimes));
+        self::assertSame(
+            [[CacheTagEnum::MapToken->value, CacheTagEnum::Failures->value]],
+            \array_values($this->cache->tags),
+            'Forgotten with the other failures when the credentials change.',
+        );
     }
 
     private function createProvider(RecordingClient $http, ?Logger $logger = null): MapTokenProvider
     {
         $config = $this->createStub(ConfigProvider::class);
         $config->method('getLogin')->willReturn(self::LOGIN);
-        $cache = $this->createStub(PolkurierCache::class);
-        $cache->method('load')->willReturnCallback(fn(string $key): string|false => $this->cached[$key] ?? false);
-        $cache->method('save')
-            ->willReturnCallback(function (string $data, string $key, array $tags, int $lifetime): bool {
-                $this->cached[$key] = $data;
-                $this->lifetimes[$key] = $lifetime;
-
-                return true;
-            });
 
         return new MapTokenProvider(
             $this->createClientPool($http),
-            $cache,
+            $this->cache,
             new ErrorMessageResolver(),
             new AccountCache($this->createStub(PolkurierCache::class), new Json(), $config),
             $logger ?? $this->createStub(Logger::class),

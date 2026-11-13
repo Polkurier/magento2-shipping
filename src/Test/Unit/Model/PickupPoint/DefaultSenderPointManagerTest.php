@@ -11,6 +11,7 @@ use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Serialize\Serializer\Json;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
+use Polkurier\Shipping\Enum\Cache\CacheTagEnum;
 use Polkurier\Shipping\Logger\Logger;
 use Polkurier\Shipping\Model\Cache\Type as PolkurierCache;
 use Polkurier\Shipping\Model\Carrier\CarrierFeatureResolver;
@@ -18,6 +19,7 @@ use Polkurier\Shipping\Model\Config\ConfigProvider;
 use Polkurier\Shipping\Model\PickupPoint\DefaultSenderPointManager;
 use Polkurier\Shipping\Model\Sdk\AccountCache;
 use Polkurier\Shipping\Model\Sdk\ErrorMessageResolver;
+use Polkurier\Shipping\Test\Unit\Support\MemoryPolkurierCache;
 use Polkurier\Shipping\Test\Unit\Support\SdkTestCase;
 use Polkurier\Webservice\Enum\Courier\PointRequirementEnum;
 use Polkurier\Webservice\Response\Carrier;
@@ -29,15 +31,12 @@ use Polkurier\Webservice\Testing\RecordingClient;
 #[AllowMockObjectsWithoutExpectations]
 class DefaultSenderPointManagerTest extends SdkTestCase
 {
-    /**
-     * @var array<string, string>
-     */
-    private array $cached = [];
+    private MemoryPolkurierCache $cache;
 
-    /**
-     * @var array<string, int>
-     */
-    private array $lifetimes = [];
+    protected function setUp(): void
+    {
+        $this->cache = new MemoryPolkurierCache();
+    }
 
     public function testEveryCarrierPolkurierKeepsADefaultForIsReadOncePerRequest(): void
     {
@@ -96,7 +95,11 @@ class DefaultSenderPointManagerTest extends SdkTestCase
         self::assertSame([], $this->createManager($http, $logger)->get());
         self::assertSame([], $this->createManager($http)->get(), 'The next request is told without asking again.');
         self::assertSame(1, $http->requestCount());
-        self::assertSame([PolkurierCache::FAILURE_LIFETIME], \array_values($this->lifetimes));
+        self::assertSame([PolkurierCache::FAILURE_LIFETIME], \array_values($this->cache->lifetimes));
+        self::assertSame(
+            [[CacheTagEnum::Account->value, CacheTagEnum::Failures->value]],
+            \array_values($this->cache->tags),
+        );
     }
 
     public function testAChangedPointIsSentAndReadAgainAfterwards(): void
@@ -139,20 +142,11 @@ class DefaultSenderPointManagerTest extends SdkTestCase
     {
         $config = $this->createStub(ConfigProvider::class);
         $config->method('getLogin')->willReturn(self::LOGIN);
-        $cache = $this->createStub(PolkurierCache::class);
-        $cache->method('load')->willReturnCallback(fn(string $key): string|false => $this->cached[$key] ?? false);
-        $cache->method('save')
-            ->willReturnCallback(function (string $data, string $key, array $tags, int $lifetime): bool {
-                $this->cached[$key] = $data;
-                $this->lifetimes[$key] = $lifetime;
-
-                return true;
-            });
 
         return new DefaultSenderPointManager(
             $this->createClientPool($http),
             new CarrierFeatureResolver(),
-            $cache,
+            $this->cache,
             new AccountCache($this->createStub(PolkurierCache::class), new Json(), $config),
             new ErrorMessageResolver(),
             $logger ?? $this->createStub(Logger::class),

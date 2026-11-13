@@ -53,15 +53,19 @@ class DefaultSenderPointManager implements ResetAfterRequestInterface
         if ($this->points !== null) {
             return $this->points;
         }
-        $failureKey = $this->accountCache->buildKey('default_sender_points_failed');
-        if ($this->polkurierCache->load($failureKey)) {
+        $key = $this->accountCache->buildKey('default_sender_points');
+        if ($this->polkurierCache->loadFailure($key) !== null) {
             return $this->points = [];
         }
         try {
             $points = $this->polkurierClient->getAccount()->getAccountInfo()->getDefaultSenderPoint();
         } catch (PolkurierException $e) {
             $this->logger->warning('Default drop-off points unavailable', ['exception' => $e]);
-            $this->polkurierCache->save('1', $failureKey, [CacheTagEnum::Failures->value], PolkurierCache::FAILURE_LIFETIME);
+            $this->polkurierCache->saveFailure(
+                $key,
+                (string)$this->errorMessageResolver->createPhrase($e),
+                CacheTagEnum::Account,
+            );
 
             return $this->points = [];
         }

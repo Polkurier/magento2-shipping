@@ -27,6 +27,7 @@ use Polkurier\Webservice\Exception\WebserviceException;
 use Polkurier\Webservice\Http\Response\ErrorMessage;
 use Polkurier\Webservice\Response\Carrier;
 use Polkurier\Webservice\Response\CourierPoint;
+use Polkurier\Shipping\Test\Unit\Support\MemoryPolkurierCache;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
 
@@ -34,22 +35,9 @@ use Psr\Http\Message\ResponseInterface;
 #[AllowMockObjectsWithoutExpectations]
 class CarrierCatalogTest extends TestCase
 {
-    /**
-     * @var array<string, string> what the cache holds, by key
-     */
-    private array $cached = [];
+    private MemoryPolkurierCache $cache;
     private int $requests = 0;
     private ?\Throwable $failure = null;
-
-    /**
-     * @var array<string, int> cache lifetimes, by key
-     */
-    private array $lifetimes = [];
-
-    /**
-     * @var array<string, string[]> cache tags, by key
-     */
-    private array $tags = [];
 
     /**
      * @var string[] the points asked of Polkurier
@@ -57,6 +45,11 @@ class CarrierCatalogTest extends TestCase
     private array $pointRequests = [];
 
     private ?\Throwable $pointFailure = null;
+
+    protected function setUp(): void
+    {
+        $this->cache = new MemoryPolkurierCache();
+    }
 
     public function testAPointIsAskedForOnceAndKeptForADay(): void
     {
@@ -66,8 +59,8 @@ class CarrierCatalogTest extends TestCase
         self::assertSame('WAW195M', $point?->getId());
         self::assertSame('WAW195M', $again?->getId());
         self::assertSame(['WAW195M'], $this->pointRequests);
-        self::assertContains(CarrierCatalog::POINT_LIFETIME, $this->lifetimes);
-        self::assertContains([CacheTagEnum::Points->value], $this->tags, 'Under the points\' own tag.');
+        self::assertContains(CarrierCatalog::POINT_LIFETIME, $this->cache->lifetimes);
+        self::assertContains([CacheTagEnum::Points->value], $this->cache->tags, 'Under the points\' own tag.');
     }
 
     public function testAPointThatDoesntExistIsRememberedTooForADay(): void
@@ -76,7 +69,7 @@ class CarrierCatalogTest extends TestCase
         self::assertNull($this->createCatalog()->findPoint('NOPE01', ['INPOST']));
 
         self::assertSame(['NOPE01'], $this->pointRequests);
-        self::assertContains(CarrierCatalog::POINT_LIFETIME, $this->lifetimes);
+        self::assertContains(CarrierCatalog::POINT_LIFETIME, $this->cache->lifetimes);
     }
 
     public function testTheProvidersOrderMakesNoOtherEntry(): void
@@ -128,7 +121,7 @@ class CarrierCatalogTest extends TestCase
         } catch (RecentFailureException) {
         }
         self::assertSame(['WAW195M'], $this->pointRequests);
-        self::assertContains(PolkurierCache::FAILURE_LIFETIME, $this->lifetimes);
+        self::assertContains(PolkurierCache::FAILURE_LIFETIME, $this->cache->lifetimes);
     }
 
     public function testAPointRefusedByPolkurierDoesntStopTheOthers(): void
@@ -159,8 +152,8 @@ class CarrierCatalogTest extends TestCase
     public function testAnEntryNamingAClassOutsideTheSdkIsDroppedAndFetchedAgain(): void
     {
         $this->createCatalog()->getAccountCarriers();
-        $key = \array_key_first($this->cached);
-        $this->cached[$key] = \serialize(['DPD' => new \ArrayObject()]);
+        $key = \array_key_first($this->cache->entries);
+        $this->cache->entries[$key] = \serialize(['DPD' => new \ArrayObject()]);
 
         $carriers = $this->createCatalog()->getAccountCarriers();
 
@@ -171,8 +164,8 @@ class CarrierCatalogTest extends TestCase
     public function testAnEntryNamingAClassThatNoLongerExistsIsDroppedAndFetchedAgain(): void
     {
         $this->createCatalog()->getAccountCarriers();
-        $key = \array_key_first($this->cached);
-        $this->cached[$key] = 'a:1:{s:3:"DPD";O:41:"Polkurier\Webservice\Response\GoneCarrier":0:{}}';
+        $key = \array_key_first($this->cache->entries);
+        $this->cache->entries[$key] = 'a:1:{s:3:"DPD";O:41:"Polkurier\Webservice\Response\GoneCarrier":0:{}}';
 
         $carriers = $this->createCatalog()->getAccountCarriers();
 
@@ -183,8 +176,8 @@ class CarrierCatalogTest extends TestCase
     public function testAnUnreadableEntryIsFetchedAgain(): void
     {
         $this->createCatalog()->getAccountCarriers();
-        $key = \array_key_first($this->cached);
-        $this->cached[$key] = 'not serialized';
+        $key = \array_key_first($this->cache->entries);
+        $this->cache->entries[$key] = 'not serialized';
 
         $this->createCatalog()->getAccountCarriers();
 
@@ -225,7 +218,7 @@ class CarrierCatalogTest extends TestCase
             );
         }
         self::assertSame(1, $this->requests, 'The next request is told without waiting for the API.');
-        self::assertSame([PolkurierCache::FAILURE_LIFETIME], \array_values($this->lifetimes));
+        self::assertSame([PolkurierCache::FAILURE_LIFETIME], \array_values($this->cache->lifetimes));
     }
 
     public function testCleaningForgetsTheFailure(): void
@@ -294,35 +287,9 @@ class CarrierCatalogTest extends TestCase
         $config = $this->createStub(ConfigProvider::class);
         $config->method('getLogin')->willReturn('12345');
 
-        $cache = $this->createStub(PolkurierCache::class);
-        $cache->method('load')->willReturnCallback(fn(string $key): string|false => $this->cached[$key] ?? false);
-        $cache->method('save')
-            ->willReturnCallback(function (string $data, string $key, array $tags, int $lifetime): bool {
-                $this->cached[$key] = $data;
-                $this->lifetimes[$key] = $lifetime;
-                $this->tags[$key] = $tags;
-
-                return true;
-            });
-        $cache->method('cleanTags')->willReturnCallback(function (CacheTagEnum ...$kinds): bool {
-            $tags = \array_map(static fn(CacheTagEnum $tag): string => $tag->value, $kinds);
-            foreach (\array_keys($this->cached) as $key) {
-                if ($tags === [] || \array_intersect($tags, $this->tags[$key] ?? []) !== []) {
-                    unset($this->cached[$key]);
-                }
-            }
-
-            return true;
-        });
-        $cache->method('remove')->willReturnCallback(function (string $key): bool {
-            unset($this->cached[$key]);
-
-            return true;
-        });
-
         return new CarrierCatalog(
             $clientPool,
-            $cache,
+            $this->cache,
             new ErrorMessageResolver(),
             new AvailableCarrierFilter($config),
             new AccountCache($this->createStub(PolkurierCache::class), new Json(), $config),

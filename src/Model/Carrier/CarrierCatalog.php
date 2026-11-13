@@ -56,7 +56,6 @@ class CarrierCatalog implements ResetAfterRequestInterface
     ];
 
     private const string SDK_PACKAGE = 'polkurier/polkurier-sdk';
-    private const string FAILURE_SUFFIX = '_failed';
     private const string NO_POINT = 'none';
 
     /**
@@ -109,19 +108,18 @@ class CarrierCatalog implements ResetAfterRequestInterface
         if ($carriers !== null) {
             return $this->loaded[$key] = $carriers;
         }
-        $failure = $this->polkurierCache->load($key . self::FAILURE_SUFFIX);
-        if (\is_string($failure) && $failure !== '') {
+        $failure = $this->polkurierCache->loadFailure($key);
+        if ($failure !== null) {
             throw $this->failed[$key] = new RecentFailureException($failure);
         }
 
         try {
             $carriers = $this->fetch();
         } catch (PolkurierException $e) {
-            $this->polkurierCache->save(
+            $this->polkurierCache->saveFailure(
+                $key,
                 (string)$this->errorMessageResolver->createPhrase($e),
-                $key . self::FAILURE_SUFFIX,
-                [CacheTagEnum::Carriers->value, CacheTagEnum::Failures->value],
-                PolkurierCache::FAILURE_LIFETIME,
+                CacheTagEnum::Carriers,
             );
 
             throw $this->failed[$key] = $e;
@@ -177,11 +175,11 @@ class CarrierCatalog implements ResetAfterRequestInterface
             return $point;
         }
         foreach ([$this->getCacheKey(), $this->getPointsFailureKey()] as $failing) {
-            $failure = $this->failed[$failing] ?? $this->polkurierCache->load($failing . self::FAILURE_SUFFIX);
+            $failure = $this->failed[$failing] ?? $this->polkurierCache->loadFailure($failing);
             if ($failure instanceof PolkurierException) {
                 throw $failure;
             }
-            if (\is_string($failure) && $failure !== '') {
+            if ($failure !== null) {
                 throw new RecentFailureException($failure);
             }
         }
@@ -192,11 +190,10 @@ class CarrierCatalog implements ResetAfterRequestInterface
             // Polkurier unreachable or busy: not asked again for a while. A refusal of this point
             // says nothing of the next one.
             if ($this->errorMessageResolver->isTransient($e)) {
-                $this->polkurierCache->save(
+                $this->polkurierCache->saveFailure(
+                    $this->getPointsFailureKey(),
                     (string)$this->errorMessageResolver->createPhrase($e),
-                    $this->getPointsFailureKey() . self::FAILURE_SUFFIX,
-                    [CacheTagEnum::Points->value, CacheTagEnum::Failures->value],
-                    PolkurierCache::FAILURE_LIFETIME,
+                    CacheTagEnum::Points,
                 );
                 $this->failed[$this->getPointsFailureKey()] = $e;
             }

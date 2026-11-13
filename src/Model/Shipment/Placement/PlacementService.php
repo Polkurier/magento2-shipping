@@ -24,7 +24,7 @@ use Polkurier\Shipping\Model\Shipment\Native\NativeShipmentService;
 use Polkurier\Shipping\Model\Shipment\OrderLoader;
 use Polkurier\Shipping\Model\Shipment\OrderLock;
 use Polkurier\Shipping\Model\Shipment\Status\ReconciliationService;
-use Polkurier\Webservice\Request\Order\CreateOrderMessage;
+use Polkurier\Webservice\Dto\Request\Order\CreateOrderMessage;
 
 /**
  * Places Polkurier orders. An attempt is recorded before it's sent
@@ -169,7 +169,7 @@ readonly class PlacementService
             'id' => $externalIds['id'],
             'number' => (string)$order->getIncrementId(),
         ]);
-        $this->draftValidator->assertCarrierTakes($draft->getCarrierCode(), $message->getShipmentType());
+        $this->draftValidator->assertCarrierTakes($draft->getCarrierCode(), $message->order->getShipmentType());
 
         return ['message' => $message] + $this->attemptRecorder->record(
             $notPlaced,

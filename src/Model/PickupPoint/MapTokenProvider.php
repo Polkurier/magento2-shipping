@@ -71,7 +71,7 @@ class MapTokenProvider implements ResetAfterRequestInterface
         }
 
         try {
-            $token = $this->polkurierClient->getGeo()->getMapToken()->getToken();
+            $token = $this->polkurierClient->getGeo()->getMapToken()->token;
         } catch (PolkurierException $e) {
             $this->polkurierCache->saveFailure(
                 $key,

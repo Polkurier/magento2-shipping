@@ -15,10 +15,10 @@ use Polkurier\Shipping\Exception\RecentFailureException;
 use Polkurier\Shipping\Model\Cache\Type as PolkurierCache;
 use Polkurier\Shipping\Model\Sdk\AccountCache;
 use Polkurier\Shipping\Model\Sdk\ErrorMessageResolver;
+use Polkurier\Webservice\Dto\Request\Courier\AvailableCarriersMessage;
+use Polkurier\Webservice\Dto\Response\Carrier;
+use Polkurier\Webservice\Dto\Response\CourierPoint;
 use Polkurier\Webservice\Exception\Exception as PolkurierException;
-use Polkurier\Webservice\Request\Courier\AvailableCarriersMessage;
-use Polkurier\Webservice\Response\Carrier;
-use Polkurier\Webservice\Response\CourierPoint;
 
 /**
  * The carriers the Polkurier account may ship with, and what each supports.
@@ -51,7 +51,7 @@ class CarrierCatalog implements ResetAfterRequestInterface
      * The only namespaces a cached carrier list may hold objects of.
      */
     private const array CACHED_NAMESPACES = [
-        'Polkurier\\Webservice\\Response\\',
+        'Polkurier\\Webservice\\Dto\\Response\\',
         'Polkurier\\Webservice\\Enum\\',
     ];
 
@@ -233,7 +233,7 @@ class CarrierCatalog implements ResetAfterRequestInterface
         $message = new AvailableCarriersMessage(additionalData: true);
         $available = $this->polkurierClient->getCourier()->availableCarriers($message);
         foreach ($available as $carrier) {
-            $carriers[$carrier->getServiceCode()] = $carrier;
+            $carriers[$carrier->serviceCode] = $carrier;
         }
 
         return $carriers;

@@ -99,8 +99,8 @@ readonly class ActualShippingUpdater
             $cod = $current->getPointCod();
         } elseif ($point !== '') {
             $found = $this->screenDataProvider->findRecipientPoint($carrier, $point);
-            $label = $found ? $found->getAddress() : null;
-            $cod = $found?->isCod();
+            $label = $found ? $found->address : null;
+            $cod = $found ? $found->cod : null;
         }
         $description = $this->describe($order, $carrier, $point, $label);
         $this->write($order, Polkurier::buildShippingMethod($carrier), $description);

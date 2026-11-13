@@ -10,6 +10,7 @@ namespace Polkurier\Shipping\Model\Sdk;
 use Magento\Framework\ObjectManager\ResetAfterRequestInterface;
 use Polkurier\Shipping\Api\PolkurierClientInterface;
 use Polkurier\Shipping\Logger\Logger;
+use Polkurier\Webservice\Api\SerializerInterface;
 use Polkurier\Webservice\Api\Service\AccountServiceInterface;
 use Polkurier\Webservice\Api\Service\AccountVerificationServiceInterface;
 use Polkurier\Webservice\Api\Service\AddressesServiceInterface;
@@ -27,9 +28,9 @@ use Polkurier\Webservice\Api\Service\TicketsServiceInterface;
 use Polkurier\Webservice\Api\Service\TwoFactorTokenServiceInterface;
 use Polkurier\Webservice\Api\Service\UtilsServiceInterface;
 use Polkurier\Webservice\Api\Validation\ValidatorInterface;
+use Polkurier\Webservice\Api\Webhook\OrderReaderInterface;
 use Polkurier\Webservice\PolkurierWebservice;
 use Polkurier\Webservice\PolkurierWebserviceFactory;
-use Polkurier\Webservice\Serializer\SerializerProviderInterface;
 
 /**
  * Hands out the SDK's services for the Polkurier account.
@@ -46,7 +47,7 @@ class PolkurierClient implements PolkurierClientInterface, ResetAfterRequestInte
     public function __construct(
         private readonly PolkurierWebserviceFactory $webserviceFactory,
         private readonly AccountConfigProviderFactory $configProviderFactory,
-        private readonly SerializerProviderInterface $serializerProvider,
+        private readonly SerializerConfigProvider $serializerConfigProvider,
         private readonly ValidatorInterface $validator,
         private readonly Logger $logger,
     ) {}
@@ -131,6 +132,16 @@ class PolkurierClient implements PolkurierClientInterface, ResetAfterRequestInte
         return $this->getClient()->moneyBox();
     }
 
+    public function getOrderReader(): OrderReaderInterface
+    {
+        return $this->getClient()->orderReader();
+    }
+
+    public function getSerializer(): SerializerInterface
+    {
+        return $this->getClient()->serializer();
+    }
+
     /**
      * Forgets the clients built so far, e.g. after the credentials were changed in this request.
      */
@@ -151,7 +162,7 @@ class PolkurierClient implements PolkurierClientInterface, ResetAfterRequestInte
             $this->client = $this->webserviceFactory->create([
                 'config' => $configProvider->getConfig(),
                 'logger' => $this->logger,
-                'serializerProvider' => $this->serializerProvider,
+                'serializerConfig' => $this->serializerConfigProvider->getConfig(),
                 'configProvider' => $configProvider,
                 'validator' => $this->validator,
             ]);

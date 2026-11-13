@@ -9,11 +9,10 @@ namespace Polkurier\Shipping\Model\PackTemplate;
 
 use Polkurier\Shipping\Api\Data\PackTemplateInterface;
 use Polkurier\Shipping\Model\Shipment\Placement\ParcelTypeMapper;
-use Polkurier\Webservice\Builder\PackTemplate\SaveMessageBuilderFactory;
+use Polkurier\Webservice\Builder\Entity\PackTemplateBuilderFactory;
+use Polkurier\Webservice\Dto\Request\Common\DeleteMessage;
+use Polkurier\Webservice\Entity\PackTemplate;
 use Polkurier\Webservice\Enum\Order\AdditionalServiceEnum;
-use Polkurier\Webservice\Request\Common\DeleteMessage;
-use Polkurier\Webservice\Request\PackTemplate\SaveMessage;
-use Polkurier\Webservice\Response\PackTemplate;
 
 /**
  * Maps pack templates between Magento and the Polkurier account.
@@ -21,7 +20,7 @@ use Polkurier\Webservice\Response\PackTemplate;
 readonly class PackTemplateMapper
 {
     public function __construct(
-        private SaveMessageBuilderFactory $saveMessageBuilderFactory,
+        private PackTemplateBuilderFactory $packTemplateBuilderFactory,
     ) {}
 
     /**
@@ -76,9 +75,9 @@ readonly class PackTemplateMapper
             ->setServices((array)$remote[PackTemplateInterface::FIELD_SERVICES]);
     }
 
-    public function mapToSaveMessage(PackTemplateInterface $template): SaveMessage
+    public function mapToRecord(PackTemplateInterface $template): PackTemplate
     {
-        return $this->saveMessageBuilderFactory->create()
+        return $this->packTemplateBuilderFactory->create()
             ->name($template->getName())
             ->length($template->getLength())
             ->width($template->getWidth())

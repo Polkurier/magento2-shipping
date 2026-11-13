@@ -12,14 +12,14 @@ use Magento\Framework\ObjectManager\ResetAfterRequestInterface;
 use Polkurier\Shipping\Api\PolkurierClientInterface;
 use Polkurier\Shipping\Enum\Cache\CacheTagEnum;
 use Polkurier\Shipping\Logger\Logger;
-use Polkurier\Shipping\Model\Carrier\CarrierFeatureResolver;
 use Polkurier\Shipping\Model\Cache\Type as PolkurierCache;
+use Polkurier\Shipping\Model\Carrier\CarrierFeatureResolver;
 use Polkurier\Shipping\Model\Sdk\AccountCache;
 use Polkurier\Shipping\Model\Sdk\ErrorMessageResolver;
+use Polkurier\Webservice\Dto\Request\Account\ChangeDefaultSenderPointMessage;
+use Polkurier\Webservice\Dto\Response\Carrier;
 use Polkurier\Webservice\Enum\Courier\PointRequirementEnum;
 use Polkurier\Webservice\Exception\Exception as PolkurierException;
-use Polkurier\Webservice\Request\Account\ChangeDefaultSenderPointMessage;
-use Polkurier\Webservice\Response\Carrier;
 
 /**
  * The account's default drop-off point for each carrier. Polkurier keeps one per point network,
@@ -58,7 +58,7 @@ class DefaultSenderPointManager implements ResetAfterRequestInterface
             return $this->points = [];
         }
         try {
-            $points = $this->polkurierClient->getAccount()->getAccountInfo()->getDefaultSenderPoint();
+            $points = $this->polkurierClient->getAccount()->getAccountInfo()->defaultSenderPoint;
         } catch (PolkurierException $e) {
             $this->logger->warning('Default drop-off points unavailable', ['exception' => $e]);
             $this->polkurierCache->saveFailure(
@@ -83,7 +83,7 @@ class DefaultSenderPointManager implements ResetAfterRequestInterface
             return null;
         }
 
-        return $this->get()[$carrier->getServiceCode()] ?? null;
+        return $this->get()[$carrier->serviceCode] ?? null;
     }
 
     /**

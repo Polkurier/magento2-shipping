@@ -32,6 +32,6 @@ class SendCode extends AbstractJsonAction
     {
         $token = $this->payoutManager->requestCode();
 
-        return ['token' => $token->getId(), 'message' => FlashMessageCollector::formatCodeSent($token)];
+        return ['token' => $token->id, 'message' => FlashMessageCollector::formatCodeSent($token)];
     }
 }

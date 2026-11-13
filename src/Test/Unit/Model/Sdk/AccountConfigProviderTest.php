@@ -20,8 +20,8 @@ use Polkurier\Shipping\Model\Sdk\LogFilesDirectoryResolver;
 use Polkurier\Shipping\Test\Unit\Support\FixedDateTime;
 use Polkurier\Shipping\Test\Unit\Support\NewingObjectManager;
 use Polkurier\Webservice\ConfigFactory as SdkConfigFactory;
+use Polkurier\Webservice\Dto\Request\AuthorizationMessageFactory;
 use Polkurier\Webservice\Enum\Http\ApiMethodEnum;
-use Polkurier\Webservice\Http\Request\AuthorizationMessageFactory;
 
 #[CoversClass(AccountConfigProvider::class)]
 #[CoversClass(ConfigProvider::class)]
@@ -47,7 +47,7 @@ class AccountConfigProviderTest extends TestCase
         $config = $this->createProvider()->getConfig();
 
         self::assertSame('11111', $config->getAuthorization()->getLogin());
-        self::assertSame('token-one', $config->getAuthorization()->getToken());
+        self::assertSame('token-one', $config->getAuthorization()->token);
         self::assertTrue($config->isSandbox());
         self::assertSame(45, $config->getApiTimeout());
         self::assertTrue($config->isLoggingEnabled());
@@ -142,7 +142,7 @@ class AccountConfigProviderTest extends TestCase
         $provider = $this->createProvider();
         $this->values[ConfigProvider::XML_PATH_TOKEN] = 'enc:rotated';
 
-        self::assertSame('rotated', $provider->getConfig()->getAuthorization()->getToken());
+        self::assertSame('rotated', $provider->getConfig()->getAuthorization()->token);
     }
 
     public static function createDirectoryList(): DirectoryList

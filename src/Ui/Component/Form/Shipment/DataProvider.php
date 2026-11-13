@@ -38,7 +38,7 @@ use Polkurier\Shipping\Model\Shipment\Screen\ScreenDataProvider;
 use Polkurier\Shipping\Model\Shipment\Screen\ShipmentOptionsProvider;
 use Polkurier\Shipping\Model\Shipment\Valuation\OrderAmountCalculator;
 use Polkurier\Shipping\Ui\Component\Form\FormDataProvider;
-use Polkurier\Webservice\Request\Order\OrderAddressMessage;
+use Polkurier\Webservice\Entity\Order\Address;
 
 /**
  * Data of the Polkurier shipment form: the draft for the order, the options it is put together
@@ -429,7 +429,7 @@ class DataProvider extends FormDataProvider
     /**
      * @return array<string, string>
      */
-    private function describeMessage(OrderAddressMessage $address): array
+    private function describeMessage(Address $address): array
     {
         return [
             'label' => (string)__('The store\'s address'),

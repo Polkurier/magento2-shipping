@@ -16,10 +16,10 @@ use Polkurier\Shipping\Enum\Sdk\ApiEventEnum;
 use Polkurier\Shipping\Model\Sdk\ApiEventDispatcher;
 use Polkurier\Shipping\Model\Sdk\ErrorMessageResolver;
 use Polkurier\Shipping\Model\Sync\SyncEngine;
+use Polkurier\Webservice\Dto\Request\TwoFactorToken\RegisterMessage;
+use Polkurier\Webservice\Dto\Response\TwoFactorToken;
 use Polkurier\Webservice\Enum\TwoFactorToken\TwoFactorNamespaceEnum;
 use Polkurier\Webservice\Exception\Exception as PolkurierException;
-use Polkurier\Webservice\Request\TwoFactorToken\RegisterMessage;
-use Polkurier\Webservice\Response\TwoFactorToken;
 
 /**
  * Sends bank account changes to Polkurier, with the confirmation Polkurier requires for them.
@@ -50,7 +50,7 @@ readonly class Publisher
     public function isPinLocked(): bool
     {
         try {
-            return (bool)$this->polkurierClient->getAccount()->getAccountInfo()->getPinLocks()?->isBankAccountsEdit();
+            return (bool)$this->polkurierClient->getAccount()->getAccountInfo()->pinLocks?->bankAccountsEdit;
         } catch (PolkurierException $e) {
             throw $this->errorMessageResolver->createException($e);
         }

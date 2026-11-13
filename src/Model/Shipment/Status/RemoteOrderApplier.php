@@ -12,11 +12,11 @@ use Magento\Framework\Stdlib\DateTime as DateFormat;
 use Magento\Framework\Stdlib\DateTime\DateTime;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Model\Sdk\ShipmentGateway;
+use Polkurier\Webservice\Dto\Response\Order\OrderStatusMessage;
+use Polkurier\Webservice\Entity\Order;
+use Polkurier\Webservice\Entity\Order\Address;
 use Polkurier\Webservice\Enum\Order\CodStatusEnum;
 use Polkurier\Webservice\Enum\Order\OrderStatusCodeEnum;
-use Polkurier\Webservice\Response\BaseAddress;
-use Polkurier\Webservice\Response\Order;
-use Polkurier\Webservice\Response\Order\OrderStatusMessage;
 
 /**
  * Copies what Polkurier reports about an order onto the local shipment record, with a full copy
@@ -50,7 +50,7 @@ readonly class RemoteOrderApplier
             && $this->isCancelled($order, $shipment);
         $waybills = [];
         foreach ($order->getWaybills() as $waybill) {
-            $waybills[] = $waybill->getNumber();
+            $waybills[] = $waybill->number;
         }
 
         $shipment->setPolkurierNumber($order->getNumber() ?? $shipment->getPolkurierNumber())
@@ -133,7 +133,7 @@ readonly class RemoteOrderApplier
     {
         $waybills = [];
         foreach ($order->getWaybills() as $waybill) {
-            $waybills[] = ['number' => $waybill->getNumber(), 'is_default' => $waybill->isDefault()];
+            $waybills[] = ['number' => $waybill->number, 'is_default' => $waybill->default];
         }
         $packs = [];
         foreach ($order->getPacks() as $pack) {
@@ -151,11 +151,11 @@ readonly class RemoteOrderApplier
         $items = [];
         foreach ($order->getItems() as $item) {
             $items[] = [
-                'description' => $item->getDescription(),
-                'type' => $item->getType()->value,
-                'amount' => $item->getAmount(),
-                'value_net' => $item->getValueNet(),
-                'value_gross' => $item->getValueGross(),
+                'description' => $item->description,
+                'type' => $item->type->value,
+                'amount' => $item->amount,
+                'value_net' => $item->valueNet,
+                'value_gross' => $item->valueGross,
             ];
         }
         $cod = $order->getCod();
@@ -184,7 +184,7 @@ readonly class RemoteOrderApplier
                 'bank_account' => $cod->getBankAccount(),
                 'status' => $cod->getStatus()->value,
             ],
-            'insurance' => $order->getInsuranceAmount(),
+            'insurance' => $order->getInsurance(),
             'pickup' => $pickup === null ? null : [
                 'date' => $pickup->getPickupDate()?->format('Y-m-d'),
                 'time_from' => $pickup->getPickupTimeFrom()?->format('H:i'),
@@ -193,7 +193,7 @@ readonly class RemoteOrderApplier
                 'multi_pickup' => $pickup->isMultiPickup(),
                 'pickup_number' => $pickup->getPickupNumber(),
             ],
-            'services' => \array_values(\array_map('strval', $order->getCourierService() ?? [])),
+            'services' => \array_values(\array_map('strval', $order->getCourierServiceNames() ?? [])),
             'additional_fields' => \array_map('strval', $order->getAdditionalFields() ?? []),
             'packs' => $packs,
             'items' => $items,
@@ -217,14 +217,14 @@ readonly class RemoteOrderApplier
     public function mapTracking(OrderStatusMessage $status): array
     {
         $events = [];
-        foreach ($status->getTracking() as $event) {
-            $carrierWording = $event->getTrackingStatus() !== $event->getStatus() ? $event->getTrackingStatus() : '';
+        foreach ($status->tracking as $event) {
+            $carrierWording = $event->trackingStatus !== $event->status ? $event->trackingStatus : '';
             $events[] = [
-                'date' => (string)$event->getStatusDate()?->format(DateFormat::DATETIME_PHP_FORMAT),
-                'status_code' => $event->getStatusCode(),
-                'status' => $event->getStatus(),
-                'location' => $event->getLocation(),
-                'description' => $event->getDescription() ?: $carrierWording,
+                'date' => (string)$event->statusDate?->format(DateFormat::DATETIME_PHP_FORMAT),
+                'status_code' => $event->statusCode,
+                'status' => $event->status,
+                'location' => $event->location,
+                'description' => $event->description ?: $carrierWording,
             ];
         }
         \usort($events, static fn(array $a, array $b): int => \strcmp($b['date'], $a['date']));
@@ -242,7 +242,7 @@ readonly class RemoteOrderApplier
     /**
      * @return array<string, string|null>
      */
-    private function mapAddress(BaseAddress $address): array
+    private function mapAddress(Address $address): array
     {
         $point = $address->getPoint();
 
@@ -259,8 +259,8 @@ readonly class RemoteOrderApplier
             'point_id' => $address->getPointId() ?: null,
             'point_label' => $point === null
                 ? null
-                : ($point->getAddress()
-                    ?: \trim($point->getStreet() . ', ' . $point->getZip() . ' ' . $point->getCity(), ', ')),
+                : ($point->address
+                    ?: \trim($point->street . ', ' . $point->zip . ' ' . $point->city, ', ')),
         ];
     }
 }

@@ -48,8 +48,8 @@ tests need no database.
 
 The most tests go where a mistake costs money or data: placing, reconciliation and duplicates,
 when a shipment counts as finished, the status refresh and webhook, Magento's label flow, the sync
-engine and bank account confirmation, documents and collective pickups, payload mapping, pricing and
-secret masking. [`AdminActionsAclTest`](../../src/Test/Unit/Controller/Adminhtml/AdminActionsAclTest.php)
+engine and bank account confirmation, documents and collective pickups, payload mapping and pricing.
+[`AdminActionsAclTest`](../../src/Test/Unit/Controller/Adminhtml/AdminActionsAclTest.php)
 checks that every admin action declares an existing ACL resource of its own, and
 [`ConfigProviderTest`](../../src/Test/Unit/Model/Config/ConfigProviderTest.php) checks every setting
 against the scopes the configuration page offers. The multi-address checkout's tests are in the

@@ -13,15 +13,15 @@ use Magento\Framework\Stdlib\DateTime\DateTime;
 use Magento\Sales\Model\Order;
 use Polkurier\Shipping\Api\Data\ShipmentDraftInterface;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
+use Polkurier\Shipping\Api\PolkurierClientInterface;
 use Polkurier\Shipping\Api\ShipmentRepositoryInterface;
 use Polkurier\Shipping\Model\Shipment;
 use Polkurier\Shipping\Model\Shipment\Draft\DraftHydrator;
 use Polkurier\Shipping\Model\Shipment\ShipmentAgeChecker;
 use Polkurier\Shipping\Model\Shipment\ShipmentFinder;
 use Polkurier\Shipping\Model\ShipmentFactory;
-use Polkurier\Webservice\Request\Order\CreateOrderMessage;
-use Polkurier\Webservice\Response\Order\CreatedOrderMessage;
-use Polkurier\Webservice\Serializer\SerializerProviderInterface;
+use Polkurier\Webservice\Dto\Request\Order\CreateOrderMessage;
+use Polkurier\Webservice\Dto\Response\Order\CreatedOrderMessage;
 
 /**
  * Records an attempt to place a Polkurier order, and what came of it. An order has one shipment
@@ -36,7 +36,7 @@ readonly class AttemptRecorder
         private ShipmentFinder $shipmentFinder,
         private ShipmentFactory $shipmentFactory,
         private ShipmentRepositoryInterface $shipmentRepository,
-        private SerializerProviderInterface $serializerProvider,
+        private PolkurierClientInterface $polkurierClient,
         private DraftHydrator $draftHydrator,
         private ShipmentAgeChecker $shipmentAgeChecker,
         private DateTime $dateTime,
@@ -111,21 +111,21 @@ readonly class AttemptRecorder
             ->setOrderId((int)$order->getEntityId())
             ->setStoreId((int)$order->getStoreId())
             ->setState(ShipmentInterface::STATE_PENDING)
-            ->setCarrierCode($message->getCourier())
-            ->setDescription((string)$message->getDescription())
-            ->setRecipientPostcode($message->getRecipient()->getPostcode())
-            ->setRecipientPhone($message->getRecipient()->getPhone())
+            ->setCarrierCode($message->order->getCourier())
+            ->setDescription((string)$message->order->getDescription())
+            ->setRecipientPostcode($message->order->getRecipient()->getPostcode())
+            ->setRecipientPhone($message->order->getRecipient()->getPhone())
             ->setPackCount($this->countPacks($message))
-            ->setInsuranceAmount($message->getInsurance() ?: null)
-            ->setCodAmount($message->getCod()?->getAmount() ?: null)
-            ->setMultiPickup((bool)$message->getPickup()?->isMultiPickup())
+            ->setInsuranceAmount($message->order->getInsurance() ?: null)
+            ->setCodAmount($message->order->getCod()?->getAmount() ?: null)
+            ->setMultiPickup((bool)$message->order->getPickup()?->isMultiPickup())
             ->setWaybills([])
             ->setShipItems($target['qtys'] ?: null)
             ->setTargetShipmentId($target['shipment_id'])
             ->setExternalOrderId($externalIds['id'])
             ->setReservedShipmentNumber($externalIds['reserved'])
             ->setShipPackages($target['packages'] ?: null)
-            ->setRequest($this->serializerProvider->getSerializer()->serialize($message, 'json'))
+            ->setRequest($this->polkurierClient->getSerializer()->encode($message))
             // What sending it again starts from, should it fail on Polkurier's side.
             ->setDraft($this->draftHydrator->convertToArray($draft))
             ->setLastError(null)
@@ -174,18 +174,18 @@ readonly class AttemptRecorder
     public function recordPlaced(ShipmentInterface $shipment, CreatedOrderMessage $created): void
     {
         $this->shipmentRepository->save($shipment->setState(ShipmentInterface::STATE_CREATED)
-            ->setPolkurierNumber($created->getOrderNumber())
-            ->setWaybills(\array_values(\array_filter(\array_map('strval', $created->getLabel()))))
-            ->setPriceNet($created->getPriceNet())
-            ->setPriceGross($created->getPriceGross())
-            ->setTrackingUrl($created->getTrackingUri())
+            ->setPolkurierNumber($created->orderNumber)
+            ->setWaybills(\array_values(\array_filter(\array_map('strval', $created->label))))
+            ->setPriceNet($created->priceNet)
+            ->setPriceGross($created->priceGross)
+            ->setTrackingUrl($created->trackingUri)
             ->setLastError(null));
     }
 
     private function countPacks(CreateOrderMessage $message): int
     {
         $count = 0;
-        foreach ($message->getPacks() as $pack) {
+        foreach ($message->order->getPacks() as $pack) {
             $count += $pack->getAmount();
         }
 

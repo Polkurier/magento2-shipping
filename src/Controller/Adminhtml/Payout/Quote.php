@@ -43,16 +43,16 @@ class Quote extends AbstractJsonAction
             'available' => $this->payoutManager->getAvailableBalance(),
             // Polkurier silently leaves out what it can't pay out.
             'unknown' => $this->moneyBoxOrderFinder->findUnknown($numbers),
-            'fee' => $fee->getFee(),
-            'fee_net' => $fee->getFeeNett(),
-            'free_left' => $fee->getFreePayoutsLeft(),
-            'free_total' => $fee->getFreePayoutsTotal(),
+            'fee' => $fee->fee,
+            'fee_net' => $fee->feeNet,
+            'free_left' => $fee->freePayoutsLeft,
+            'free_total' => $fee->freePayoutsTotal,
             'message' => (string)__(
                 'Fee: %1 PLN gross (%2 PLN net). Free payouts left: %3 of %4.',
-                \number_format($fee->getFee(), 2),
-                \number_format($fee->getFeeNett(), 2),
-                $fee->getFreePayoutsLeft(),
-                $fee->getFreePayoutsTotal(),
+                \number_format($fee->fee, 2),
+                \number_format($fee->feeNet, 2),
+                $fee->freePayoutsLeft,
+                $fee->freePayoutsTotal,
             ),
         ];
     }

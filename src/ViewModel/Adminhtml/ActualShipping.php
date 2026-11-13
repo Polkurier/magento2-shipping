@@ -111,7 +111,7 @@ readonly class ActualShipping implements ArgumentInterface
             }
             if ($changed && $label === '' && $point !== '') {
                 $found = $this->screenDataProvider->findRecipientPoint($shipment->getCarrierCode(), $point);
-                $label = $found ? (string)$found->getAddress() : '';
+                $label = $found ? $found->address : '';
             }
             $shipped[$key] = [
                 'carrier' => $this->carrierNameProvider->get($shipment->getCarrierCode()),

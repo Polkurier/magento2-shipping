@@ -21,10 +21,10 @@ use Polkurier\Shipping\Model\Shipment\Status\RemoteOrderMatcher;
 use Polkurier\Shipping\Test\Unit\Support\FixedDateTime;
 use Polkurier\Shipping\Test\Unit\Support\NewingObjectManager;
 use Polkurier\Shipping\Test\Unit\Support\SdkTestCase;
-use Polkurier\Webservice\Builder\Order\GetOrdersMessageBuilderFactory;
-use Polkurier\Webservice\Request\Order\GetOrdersMessage;
-use Polkurier\Webservice\Response\Order as RemoteOrder;
-use Polkurier\Webservice\Response\Order\OrderListMessage;
+use Polkurier\Webservice\Builder\Request\Order\GetOrdersMessageBuilderFactory;
+use Polkurier\Webservice\Dto\Request\Order\GetOrdersMessage;
+use Polkurier\Webservice\Dto\Response\Order\OrderListMessage;
+use Polkurier\Webservice\Entity\Order as RemoteOrder;
 use Polkurier\Webservice\Testing\RecordingClient;
 
 #[CoversClass(RemoteOrderMatcher::class)]
@@ -52,9 +52,9 @@ class RemoteOrderMatcherTest extends SdkTestCase
 
         self::assertSame('18015-1001', $order->getNumber());
         self::assertSame([1, 2], $this->collectAskedPages(), 'No page is read after the one it is on.');
-        self::assertSame('18015-1001', $this->asked[0]->getSearchPhrase());
-        self::assertSame(GetOrdersMessage::MAX_PAGE_SIZE, $this->asked[0]->getPageSize());
-        self::assertTrue($this->asked[0]->isPacks() && $this->asked[0]->isItems(), 'Read with its parcels and items.');
+        self::assertSame('18015-1001', $this->asked[0]->searchPhrase);
+        self::assertSame(GetOrdersMessage::MAX_PAGE_SIZE, $this->asked[0]->pageSize);
+        self::assertTrue($this->asked[0]->packs && $this->asked[0]->items, 'Read with its parcels and items.');
     }
 
     public function testALongerNumberHoldingTheSearchedOneIsNotTakenForIt(): void
@@ -75,7 +75,7 @@ class RemoteOrderMatcherTest extends SdkTestCase
         ])];
 
         self::assertSame('18015-1001', $this->createMatcher()->findByWaybill('WB-1001')?->getNumber());
-        self::assertSame('WB-1001', $this->asked[0]->getSearchPhrase());
+        self::assertSame('WB-1001', $this->asked[0]->searchPhrase);
     }
 
     public function testALiveOrderWithTheWaybillGoesBeforeACancelledOne(): void
@@ -200,13 +200,13 @@ class RemoteOrderMatcherTest extends SdkTestCase
         self::assertSame('18015-1002', $orders['18015-1002']->getNumber());
         self::assertCount(1, $this->asked);
         $asked = $this->asked[0];
-        self::assertSame('magento2-0123456789ab', $asked->getExternalApplicationId());
-        self::assertNull($asked->getExternalOrderId());
-        self::assertNull($asked->getSearchPhrase());
-        self::assertSame('2026-09-30 23:30', $asked->getDateFrom()?->format('Y-m-d H:i'), 'A day before the first.');
-        self::assertSame('2026-10-06 08:00', $asked->getDateTo()?->format('Y-m-d H:i'), 'A day after the last.');
-        self::assertSame(GetOrdersMessage::MAX_PAGE_SIZE, $asked->getPageSize());
-        self::assertTrue($asked->isPacks() && $asked->isItems(), 'Read as by its number.');
+        self::assertSame('magento2-0123456789ab', $asked->externalApplicationId);
+        self::assertNull($asked->externalOrderId);
+        self::assertNull($asked->searchPhrase);
+        self::assertSame('2026-09-30 23:30', $asked->dateFrom?->format('Y-m-d H:i'), 'A day before the first.');
+        self::assertSame('2026-10-06 08:00', $asked->dateTo?->format('Y-m-d H:i'), 'A day after the last.');
+        self::assertSame(GetOrdersMessage::MAX_PAGE_SIZE, $asked->pageSize);
+        self::assertTrue($asked->packs && $asked->items, 'Read as by its number.');
     }
 
     public function testTheListIsReadUntilEveryOrderIsFound(): void
@@ -281,7 +281,7 @@ class RemoteOrderMatcherTest extends SdkTestCase
         $gateway = $this->createStub(ShipmentGateway::class);
         $gateway->method('findOrders')->willReturnCallback(function (GetOrdersMessage $message): OrderListMessage {
             $this->asked[] = $message;
-            $page = $this->pages[(int)$message->getPage()] ?? $this->createOrderListMessage(50, '18015-10011');
+            $page = $this->pages[(int)$message->page] ?? $this->createOrderListMessage(50, '18015-10011');
 
             return $page instanceof LocalizedException ? throw $page : $page;
         });
@@ -378,6 +378,6 @@ class RemoteOrderMatcherTest extends SdkTestCase
      */
     private function collectAskedPages(): array
     {
-        return \array_map(static fn(GetOrdersMessage $message): int => (int)$message->getPage(), $this->asked);
+        return \array_map(static fn(GetOrdersMessage $message): int => (int)$message->page, $this->asked);
     }
 }

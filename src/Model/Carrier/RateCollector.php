@@ -26,8 +26,8 @@ use Polkurier\Shipping\Model\Carrier\Pricing\PriceCalculatorInterface;
 use Polkurier\Shipping\Model\CarrierConfig\CarrierConfigProvider;
 use Polkurier\Shipping\Model\Config\ConfigProvider;
 use Polkurier\Shipping\Model\PickupPoint\MapTokenProvider;
+use Polkurier\Webservice\Dto\Response\Carrier;
 use Polkurier\Webservice\Exception\Exception as PolkurierException;
-use Polkurier\Webservice\Response\Carrier;
 
 /**
  * The checkout rates of the merchant's Polkurier carriers, priced by the merchant's own rules.
@@ -88,7 +88,7 @@ readonly class RateCollector
             $carrier = $carriers[$code] ?? null;
             // Carriers for abroad ship only abroad, the others only within Poland: Polkurier prices
             // neither the other way. Without the list, a carrier is assumed to be domestic.
-            if ($foreign !== (bool)$carrier?->isForeignShipments()) {
+            if ($foreign !== (bool)$carrier?->foreignShipments) {
                 continue;
             }
             if ($carrier !== null && $this->carrierFeatureResolver->isRecipientPointRequired($carrier)

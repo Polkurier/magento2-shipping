@@ -69,16 +69,16 @@ readonly class CarrierNoticeProvider
         $notices = [];
         foreach ($messages as $message) {
             $notices[] = [
-                'carrier' => $message->getCourier(),
+                'carrier' => $message->courier,
                 'html' => self::openLinksInNewTab(
-                    $this->escaper->escapeHtml($message->getMessage(), self::ALLOWED_TAGS),
+                    $this->escaper->escapeHtml($message->message, self::ALLOWED_TAGS),
                 ),
-                'severity' => match ($message->getSeverity()) {
+                'severity' => match ($message->severity) {
                     CourierMessageSeverityEnum::Success => 'success',
                     CourierMessageSeverityEnum::Danger => 'error',
                     default => 'warning',
                 },
-                'alert' => $message->getType() === CourierMessageTypeEnum::Alert,
+                'alert' => $message->type === CourierMessageTypeEnum::Alert,
             ];
         }
         $this->polkurierCache->save(

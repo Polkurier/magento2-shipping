@@ -6,20 +6,14 @@
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
     <!-- Polkurier SDK -->
-    <preference for="Polkurier\Webservice\Serializer\SerializerProviderInterface"
-                type="Polkurier\Shipping\Model\Sdk\SerializerProvider" />
     <preference for="Polkurier\Webservice\Api\Validation\ValidatorInterface"
                 type="Polkurier\Shipping\Model\Sdk\Validator" />
-    <type name="Polkurier\Shipping\Model\Sdk\SerializerProvider" shared="true" />
 
     <!-- The module's log, in its own files -->
     <type name="Polkurier\Shipping\Logger\Logger">
         <arguments>
             <argument name="handlers" xsi:type="array">
                 <item name="file" xsi:type="object">Polkurier\Shipping\Logger\Handler</item>
-            </argument>
-            <argument name="processors" xsi:type="array">
-                <item name="redact_token" xsi:type="object">Polkurier\Shipping\Logger\TokenRedactingProcessor</item>
             </argument>
         </arguments>
     </type>

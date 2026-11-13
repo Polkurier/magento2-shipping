@@ -8,9 +8,8 @@
 
 The module logs only to `var/log/polkurier`, through its own PSR logger,
 [`Polkurier\Shipping\Logger\Logger`](../../src/Logger/Logger.php): a Monolog logger whose handler
-and processor are set in `etc/di.xml`. It has none of Magento's handlers, so nothing is copied into
-`system.log`. Inject it by type if your code works alongside the module, so your records land in the
-same files and get the same masking:
+is set in `etc/di.xml`. It has none of Magento's handlers, so nothing is copied into `system.log`.
+Inject it by type if your code works alongside the module, so your records land in the same files:
 
 ```php
 public function __construct(private readonly \Polkurier\Shipping\Logger\Logger $logger) {}
@@ -19,7 +18,7 @@ public function __construct(private readonly \Polkurier\Shipping\Logger\Logger $
 Its handler, [`Logger\Handler`](../../src/Logger/Handler.php), writes a pair of files a month:
 records below a warning (requests and answers) to `YYYY-MM-access.log` (e.g. `2026-10-access.log`),
 warnings and above (failed requests, the module's own problems) to `YYYY-MM-error.log`. Old months'
-files aren't deleted. Secrets are always masked (see [Secrets](#secrets)), so with *Log personal
+files aren't deleted. Secrets are always hidden (see [Secrets](#secrets)), so with *Log personal
 data* and *Save files* off, the files are safe to send to Polkurier support.
 
 ## What gets logged
@@ -49,12 +48,8 @@ The request logging is the SDK's own, pointed at this logger and set by the **Lo
 
 ## Secrets
 
-[`Logger\TokenRedactingProcessor`](../../src/Logger/TokenRedactingProcessor.php) masks the API
-token, two-factor and access tokens, security PINs, passwords and confirmation codes wherever they
-appear as JSON fields: in the message, in string values of the context, and in the body of a PSR-7
-request passed in the context. In context arrays, a value under a key with one of those names is
-masked too. Other objects in the context aren't inspected, so don't put secrets in them. Records
-reach any handler you add to this logger already masked. Don't log such values through another
-logger.
+The SDK hides the API token, passwords, PINs, two-factor codes and tokens, and access tokens in every
+request and answer it logs, unless its `logSensitiveData` setting is on; the module never turns it on.
+What the module or your code logs itself isn't masked, so don't log such values.
 
 Next: [Service contracts](service-contracts.md)

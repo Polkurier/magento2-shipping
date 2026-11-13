@@ -19,8 +19,8 @@ use Polkurier\Shipping\Model\Shipment\OrderLoader;
 use Polkurier\Shipping\Model\Shipment\OrderLock;
 use Polkurier\Shipping\Model\Shipment\ShipmentAgeChecker;
 use Polkurier\Shipping\Model\Shipment\ShipmentFinder;
+use Polkurier\Webservice\Entity\Order;
 use Polkurier\Webservice\Enum\Order\OrderStatusCodeEnum;
-use Polkurier\Webservice\Response\Order;
 
 /**
  * Settles attempts whose outcome is unknown: finds the Polkurier order they placed, if any, or

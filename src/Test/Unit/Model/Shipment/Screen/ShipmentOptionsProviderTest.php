@@ -22,10 +22,10 @@ use Polkurier\Shipping\Model\PickupPoint\DefaultSenderPointManager;
 use Polkurier\Shipping\Model\Sdk\ErrorMessageResolver;
 use Polkurier\Shipping\Model\Shipment\Placement\SenderMapper;
 use Polkurier\Shipping\Model\Shipment\Screen\ShipmentOptionsProvider;
+use Polkurier\Shipping\Test\Unit\Support\SdkSerializer;
+use Polkurier\Webservice\Dto\Response\Carrier;
+use Polkurier\Webservice\Entity\Order\Address;
 use Polkurier\Webservice\Exception\ConnectionException;
-use Polkurier\Webservice\Request\Order\OrderAddressMessage;
-use Polkurier\Webservice\Response\Carrier;
-use Polkurier\Webservice\Serializer\SerializerProvider;
 
 #[CoversClass(ShipmentOptionsProvider::class)]
 #[AllowMockObjectsWithoutExpectations]
@@ -154,8 +154,8 @@ class ShipmentOptionsProviderTest extends TestCase
         ]);
         $senders = $this->createStub(SenderMapper::class);
         $senders->method('mapFromStore')->willReturnCallback(
-            static fn(int $storeId): ?OrderAddressMessage => $storeId === 1
-                ? new OrderAddressMessage(
+            static fn(int $storeId): ?Address => $storeId === 1
+                ? new Address(
                     'Sklep',
                     'Prosta',
                     'Warszawa',
@@ -239,16 +239,14 @@ class ShipmentOptionsProviderTest extends TestCase
      */
     private function loadFixtureCarriers(): array
     {
-        $serializer = (new SerializerProvider())->getSerializer();
+        $serializer = SdkSerializer::create();
         $answer = (array)\json_decode(
             (string)\file_get_contents(__DIR__ . '/../../../_files/available_carriers.json'),
             true,
         );
         $carriers = [];
         foreach ((array)$answer['response'] as $data) {
-            $carrier = $serializer->deserialize((string)\json_encode($data), Carrier::class, 'json');
-            self::assertInstanceOf(Carrier::class, $carrier);
-            $carriers[(string)$data['servicecode']] = $carrier;
+            $carriers[(string)$data['servicecode']] = $serializer->decode((string)\json_encode($data), Carrier::class);
         }
 
         return $carriers;
@@ -302,7 +300,7 @@ class ShipmentOptionsProviderTest extends TestCase
         });
         $defaultSenderPoints = $this->createStub(DefaultSenderPointManager::class);
         $defaultSenderPoints->method('getForCarrier')->willReturnCallback(
-            static fn(Carrier $carrier): ?string => $carrier->getServiceCode() === 'INPOST_PACZKOMAT' ? 'KRA01M' : null,
+            static fn(Carrier $carrier): ?string => $carrier->serviceCode === 'INPOST_PACZKOMAT' ? 'KRA01M' : null,
         );
 
         return new ShipmentOptionsProvider(

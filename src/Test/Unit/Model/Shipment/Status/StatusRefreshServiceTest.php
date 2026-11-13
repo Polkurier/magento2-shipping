@@ -33,7 +33,7 @@ use Polkurier\Shipping\Model\Shipment\Status\RemoteOrderMatcher;
 use Polkurier\Shipping\Model\Shipment\Status\StatusRefreshService;
 use Polkurier\Shipping\Test\Unit\Support\FixedDateTime;
 use Polkurier\Shipping\Test\Unit\Support\MemoryLocks;
-use Polkurier\Webservice\Response\Order as RemoteOrder;
+use Polkurier\Webservice\Entity\Order as RemoteOrder;
 
 #[CoversClass(StatusRefreshService::class)]
 #[AllowMockObjectsWithoutExpectations]

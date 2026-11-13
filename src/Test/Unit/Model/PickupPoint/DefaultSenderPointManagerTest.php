@@ -20,11 +20,12 @@ use Polkurier\Shipping\Model\PickupPoint\DefaultSenderPointManager;
 use Polkurier\Shipping\Model\Sdk\AccountCache;
 use Polkurier\Shipping\Model\Sdk\ErrorMessageResolver;
 use Polkurier\Shipping\Test\Unit\Support\MemoryPolkurierCache;
+use Polkurier\Shipping\Test\Unit\Support\SdkConfig;
 use Polkurier\Shipping\Test\Unit\Support\SdkTestCase;
+use Polkurier\Webservice\Dto\Response\Carrier;
+use Polkurier\Webservice\Dto\Response\Carrier\AdditionalData;
+use Polkurier\Webservice\Dto\Response\Carrier\AdditionalData\PointsMap;
 use Polkurier\Webservice\Enum\Courier\PointRequirementEnum;
-use Polkurier\Webservice\Response\Carrier;
-use Polkurier\Webservice\Response\Carrier\AdditionalData;
-use Polkurier\Webservice\Response\Carrier\AdditionalData\PointsMap;
 use Polkurier\Webservice\Testing\RecordingClient;
 
 #[CoversClass(DefaultSenderPointManager::class)]
@@ -141,7 +142,7 @@ class DefaultSenderPointManagerTest extends SdkTestCase
     private function createManager(RecordingClient $http, ?Logger $logger = null): DefaultSenderPointManager
     {
         $config = $this->createStub(ConfigProvider::class);
-        $config->method('getLogin')->willReturn(self::LOGIN);
+        $config->method('getLogin')->willReturn(SdkConfig::LOGIN);
 
         return new DefaultSenderPointManager(
             $this->createClientPool($http),

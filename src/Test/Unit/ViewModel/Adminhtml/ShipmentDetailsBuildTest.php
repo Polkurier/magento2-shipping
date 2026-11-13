@@ -33,18 +33,19 @@ use Polkurier\Shipping\Model\Shipment\Details\OptionLabelProvider;
 use Polkurier\Shipping\Model\Shipment\Details\SentOrderReader;
 use Polkurier\Shipping\Model\Shipment\OrderLoader;
 use Polkurier\Shipping\Model\Shipment\Valuation\OrderAmountCalculator;
+use Polkurier\Shipping\Test\Unit\Support\SdkSerializer;
 use Polkurier\Shipping\ViewModel\Adminhtml\ShipmentDetails;
+use Polkurier\Webservice\Dto\Request\Order\CreateOrderMessage;
+use Polkurier\Webservice\Entity\Order as RemoteOrder;
+use Polkurier\Webservice\Entity\Order\Address;
+use Polkurier\Webservice\Entity\Order\Cod;
+use Polkurier\Webservice\Entity\Order\PackItem;
+use Polkurier\Webservice\Entity\Order\Pickup;
 use Polkurier\Webservice\Enum\Order\AdditionalServiceEnum;
 use Polkurier\Webservice\Enum\Order\CodReturnTypeEnum;
 use Polkurier\Webservice\Enum\Order\CodTypeEnum;
 use Polkurier\Webservice\Enum\Order\PackTypeEnum;
 use Polkurier\Webservice\Enum\Order\ShipmentTypeEnum;
-use Polkurier\Webservice\Request\Order\CodMessage;
-use Polkurier\Webservice\Request\Order\CreateOrderMessage;
-use Polkurier\Webservice\Request\Order\OrderAddressMessage;
-use Polkurier\Webservice\Request\Order\PackMessage;
-use Polkurier\Webservice\Request\Order\PickupMessage;
-use Polkurier\Webservice\Serializer\SerializerProvider;
 
 /**
  * The details page as build() puts it together, of a shipment read back from Polkurier and of one
@@ -415,11 +416,11 @@ class ShipmentDetailsBuildTest extends TestCase
      */
     private function buildSentRequest(): string
     {
-        $message = new CreateOrderMessage(
+        $message = new CreateOrderMessage(new RemoteOrder(
             'DPD',
             ShipmentTypeEnum::Box,
-            [new PackMessage(40, 30, 20, 2.5, PackTypeEnum::Standard)],
-            new OrderAddressMessage(
+            [new PackItem(40, 30, 20, 2.5, PackTypeEnum::Standard)],
+            new Address(
                 'Jan Kowalski',
                 'Prosta',
                 'Warszawa',
@@ -430,7 +431,7 @@ class ShipmentDetailsBuildTest extends TestCase
                 '20',
                 '5',
             ),
-            new OrderAddressMessage(
+            new Address(
                 'Anna Nowak',
                 'Długa',
                 'Kraków',
@@ -441,19 +442,19 @@ class ShipmentDetailsBuildTest extends TestCase
                 '7',
                 pointId: 'KRA01M',
             ),
-            new CodMessage(149.99, '61109010140000071219812874', CodTypeEnum::Standard, CodReturnTypeEnum::BankAccount),
+            new Cod(149.99, '61109010140000071219812874', CodTypeEnum::Standard, CodReturnTypeEnum::BankAccount),
             500.0,
             null,
-            new PickupMessage(
+            new Pickup(
                 new \DateTimeImmutable('2026-10-08'),
                 new \DateTimeImmutable('2026-10-08 10:00'),
                 new \DateTimeImmutable('2026-10-08 16:00'),
             ),
             [AdditionalServiceEnum::SmsOnDispatch],
             description: 'Order #000000052',
-        );
+        ));
 
-        return (new SerializerProvider())->getSerializer()->serialize($message, 'json');
+        return SdkSerializer::create()->encode($message);
     }
 
     private function createView(bool $order): ShipmentDetails

@@ -18,20 +18,21 @@ use Polkurier\Shipping\Model\BankAccount\BankAccountMapper;
 use Polkurier\Shipping\Model\Carrier\Polkurier;
 use Polkurier\Shipping\Model\Config\ConfigProvider;
 use Polkurier\Shipping\Model\Sdk\PolkurierTimeZone;
-use Polkurier\Webservice\Builder\Order\CodMessageBuilderFactory;
-use Polkurier\Webservice\Builder\Order\CreateOrderMessageBuilderFactory;
-use Polkurier\Webservice\Builder\Order\OrderAddressMessageBuilderFactory;
-use Polkurier\Webservice\Builder\Order\PackMessageBuilderFactory;
-use Polkurier\Webservice\Builder\Order\PickupMessageBuilderFactory;
+use Polkurier\Webservice\Builder\Entity\Order\AddressBuilderFactory;
+use Polkurier\Webservice\Builder\Entity\Order\CodBuilderFactory;
+use Polkurier\Webservice\Builder\Entity\Order\PackItemBuilderFactory;
+use Polkurier\Webservice\Builder\Entity\Order\PickupBuilderFactory;
+use Polkurier\Webservice\Builder\Entity\OrderBuilderFactory;
+use Polkurier\Webservice\Dto\Request\Order\CreateOrderMessage;
+use Polkurier\Webservice\Entity\Order;
+use Polkurier\Webservice\Entity\Order\Address;
+use Polkurier\Webservice\Entity\Order\Cod;
+use Polkurier\Webservice\Entity\Order\PackItem;
+use Polkurier\Webservice\Entity\Order\Pickup;
 use Polkurier\Webservice\Enum\Order\AdditionalServiceEnum;
 use Polkurier\Webservice\Enum\Order\CodReturnTypeEnum;
 use Polkurier\Webservice\Enum\Order\CodTypeEnum;
 use Polkurier\Webservice\Enum\Order\ShipmentTypeEnum;
-use Polkurier\Webservice\Request\Order\CodMessage;
-use Polkurier\Webservice\Request\Order\CreateOrderMessage;
-use Polkurier\Webservice\Request\Order\OrderAddressMessage;
-use Polkurier\Webservice\Request\Order\PackMessage;
-use Polkurier\Webservice\Request\Order\PickupMessage;
 
 /**
  * Builds the create_order payload from a shipment draft.
@@ -45,11 +46,11 @@ readonly class CreateOrderMessageMapper
         private AddressRepositoryInterface $addressRepository,
         private BankAccountRepositoryInterface $bankAccountRepository,
         private ConfigProvider $configProvider,
-        private CreateOrderMessageBuilderFactory $createOrderMessageBuilderFactory,
-        private PackMessageBuilderFactory $packMessageBuilderFactory,
-        private OrderAddressMessageBuilderFactory $orderAddressMessageBuilderFactory,
-        private CodMessageBuilderFactory $codMessageBuilderFactory,
-        private PickupMessageBuilderFactory $pickupMessageBuilderFactory,
+        private OrderBuilderFactory $orderBuilderFactory,
+        private PackItemBuilderFactory $packItemBuilderFactory,
+        private AddressBuilderFactory $addressBuilderFactory,
+        private CodBuilderFactory $codBuilderFactory,
+        private PickupBuilderFactory $pickupBuilderFactory,
     ) {}
 
     /**
@@ -71,7 +72,7 @@ readonly class CreateOrderMessageMapper
                 'Parcels, envelopes and pallets can\'t go in one shipment: keep to one of them.',
             ));
         }
-        $builder = $this->createOrderMessageBuilderFactory->create()
+        $builder = $this->orderBuilderFactory->create()
             ->courier($draft->getCarrierCode())
             ->shipmentType($types[0] ?? ShipmentTypeEnum::tryFrom($draft->getShipmentType()) ?? ShipmentTypeEnum::Box)
             ->packs(\array_map($this->mapPack(...), $draft->getPacks()))
@@ -79,7 +80,7 @@ readonly class CreateOrderMessageMapper
             ->recipient($this->mapRecipient($draft))
             // The API requires a description although the SDK does not.
             ->description(
-                (string)\mb_substr((string)$draft->getDescription(), 0, CreateOrderMessage::DESCRIPTION_MAX_LENGTH),
+                (string)\mb_substr((string)$draft->getDescription(), 0, Order::DESCRIPTION_MAX_LENGTH),
             );
 
         if ((float)$draft->getCodAmount() > 0) {
@@ -90,7 +91,7 @@ readonly class CreateOrderMessageMapper
         }
         if ($draft->getCoverAddressId()) {
             $builder->coverAddress(
-                $this->senderMapper->mapToCoverAddress($this->loadAddress($draft->getCoverAddressId())),
+                $this->senderMapper->mapFromAddress($this->loadAddress($draft->getCoverAddressId()), null),
             );
         }
         $pickup = $this->mapPickup($draft);
@@ -119,7 +120,7 @@ readonly class CreateOrderMessageMapper
             $builder->additionalFields($fields);
         }
 
-        return $builder->build();
+        return new CreateOrderMessage($builder->build());
     }
 
     /**
@@ -161,9 +162,9 @@ readonly class CreateOrderMessageMapper
         return \array_values($services);
     }
 
-    public function mapPack(PackInterface $pack): PackMessage
+    public function mapPack(PackInterface $pack): PackItem
     {
-        return $this->packMessageBuilderFactory->create()
+        return $this->packItemBuilderFactory->create()
             ->length($pack->getLength())
             ->width($pack->getWidth())
             ->height($pack->getHeight())
@@ -173,9 +174,9 @@ readonly class CreateOrderMessageMapper
             ->build();
     }
 
-    public function mapRecipient(ShipmentDraftInterface $draft): OrderAddressMessage
+    public function mapRecipient(ShipmentDraftInterface $draft): Address
     {
-        $builder = $this->orderAddressMessageBuilderFactory->create()
+        $builder = $this->addressBuilderFactory->create()
             ->person($draft->getRecipientPerson())
             ->street($draft->getRecipientStreet())
             ->city($draft->getRecipientCity())
@@ -202,7 +203,7 @@ readonly class CreateOrderMessageMapper
     /**
      * @throws LocalizedException
      */
-    private function mapSender(ShipmentDraftInterface $draft, int $storeId): OrderAddressMessage
+    private function mapSender(ShipmentDraftInterface $draft, int $storeId): Address
     {
         // The point the parcels are handed over at is the shipment's, whichever the sender is. It
         // counts only when they're dropped off: a courier or a collective pickup collects them from
@@ -262,11 +263,11 @@ readonly class CreateOrderMessageMapper
      *
      * @throws LocalizedException
      */
-    private function mapCod(ShipmentDraftInterface $draft, int $storeId): CodMessage
+    private function mapCod(ShipmentDraftInterface $draft, int $storeId): Cod
     {
         $returnType = CodReturnTypeEnum::tryFrom((string)$draft->getCodReturnType())
             ?? $this->configProvider->getDefaultCodReturnType($storeId);
-        $builder = $this->codMessageBuilderFactory->create()
+        $builder = $this->codBuilderFactory->create()
             ->amount(\round((float)$draft->getCodAmount(), 2))
             ->type(
                 CodTypeEnum::tryFrom((string)$draft->getCodType())
@@ -295,29 +296,29 @@ readonly class CreateOrderMessageMapper
         return $builder->build();
     }
 
-    private function mapPickup(ShipmentDraftInterface $draft): ?PickupMessage
+    private function mapPickup(ShipmentDraftInterface $draft): ?Pickup
     {
         // Dropped off, at a point or not, so no courier comes. Stated explicitly, since otherwise
         // Polkurier books a courier for some point carriers when the order is placed.
         return match ($draft->getPickupMode()) {
-            ShipmentDraftInterface::PICKUP_DROP_OFF => $this->pickupMessageBuilderFactory->create()
+            ShipmentDraftInterface::PICKUP_DROP_OFF => $this->pickupBuilderFactory->create()
                 ->noCourierOrder(true)
                 ->build(),
-            ShipmentDraftInterface::PICKUP_MULTI => $this->pickupMessageBuilderFactory->create()
+            ShipmentDraftInterface::PICKUP_MULTI => $this->pickupBuilderFactory->create()
                 ->multiPickup(true)
                 ->build(),
             default => $this->mapCourierPickup($draft),
         };
     }
 
-    private function mapCourierPickup(ShipmentDraftInterface $draft): ?PickupMessage
+    private function mapCourierPickup(ShipmentDraftInterface $draft): ?Pickup
     {
         if (!$draft->getPickupDate()) {
             return null;
         }
         // The date and window are Polish time, as Polkurier offers them, whatever PHP's own zone.
         $zone = PolkurierTimeZone::getZone();
-        $builder = $this->pickupMessageBuilderFactory->create()
+        $builder = $this->pickupBuilderFactory->create()
             ->pickupDate(new \DateTimeImmutable($draft->getPickupDate(), $zone));
         if ($draft->getPickupTimeFrom()) {
             $builder->pickupTimeFrom(

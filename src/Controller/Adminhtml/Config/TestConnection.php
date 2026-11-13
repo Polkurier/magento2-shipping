@@ -15,9 +15,9 @@ use Polkurier\Shipping\Controller\Adminhtml\AbstractJsonAction;
 use Polkurier\Shipping\Model\Config\ConfigProvider;
 use Polkurier\Shipping\Model\RequestParam;
 use Polkurier\Shipping\Model\Sdk\ErrorMessageResolver;
+use Polkurier\Webservice\Dto\Request\AuthorizationMessageFactory;
 use Polkurier\Webservice\Exception\AuthorizationException;
 use Polkurier\Webservice\Exception\Exception as PolkurierException;
-use Polkurier\Webservice\Http\Request\AuthorizationMessageFactory;
 
 /**
  * Checks credentials as typed in the configuration form, before they are saved.
@@ -59,7 +59,7 @@ class TestConnection extends AbstractJsonAction
             // Shown next to the fields: the usual message's way to them would lead back here.
             throw new LocalizedException(__(
                 'Polkurier did not accept this customer ID and API token. (%1)',
-                $e->getErrorMessage()->getResponse(),
+                $e->getErrorMessage()->response,
             ), $e);
         } catch (PolkurierException $e) {
             throw $this->errorMessageResolver->createException($e);

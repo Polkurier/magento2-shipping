@@ -23,8 +23,8 @@ use Polkurier\Shipping\Model\Carrier\CarrierCatalog;
 use Polkurier\Shipping\Model\Carrier\CarrierFeatureResolver;
 use Polkurier\Shipping\Model\Config\ConfigProvider;
 use Polkurier\Shipping\Observer\Checkout\RestrictCashOnDeliveryObserver;
+use Polkurier\Webservice\Dto\Response\Carrier;
 use Polkurier\Webservice\Exception\ConnectionException;
-use Polkurier\Webservice\Response\Carrier;
 
 #[CoversClass(RestrictCashOnDeliveryObserver::class)]
 #[AllowMockObjectsWithoutExpectations]
@@ -196,7 +196,7 @@ class RestrictCashOnDeliveryObserverTest extends TestCase
         });
         $features = $this->createStub(CarrierFeatureResolver::class);
         $features->method('isCodAvailable')
-            ->willReturnCallback(fn(Carrier $carrier): bool => $this->collects[$carrier->getServiceCode()]);
+            ->willReturnCallback(fn(Carrier $carrier): bool => $this->collects[$carrier->serviceCode]);
         $store = $this->createStub(QuotePointRepositoryInterface::class);
         $store->method('getForQuote')
             ->willReturnCallback(function (int $quoteId, int $addressId): ?QuotePointInterface {

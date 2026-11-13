@@ -13,9 +13,9 @@ use Monolog\LoggerFactory as MonologLoggerFactory;
 use Psr\Log\AbstractLogger;
 
 /**
- * The module's log: var/log/polkurier, with API tokens masked. Its handler and processor are set in
- * etc/di.xml. It hands records to a plain Monolog logger of its own: Magento's logger type, or a
- * class extending it, would also get Magento's handlers and copy every record into system.log.
+ * The module's log: var/log/polkurier. Its handler is set in etc/di.xml. It hands records to a plain
+ * Monolog logger of its own: Magento's logger type, or a class extending it, would also get
+ * Magento's handlers and copy every record into system.log.
  */
 class Logger extends AbstractLogger
 {

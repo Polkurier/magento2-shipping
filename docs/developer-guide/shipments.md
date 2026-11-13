@@ -110,7 +110,7 @@ Parcels of more than one kind are refused, and so is a type the carrier doesn't 
 `sender/use_store_origin_address` is on, whichever is complete first. If neither can be used, the
 shipment is refused before anything is sent.
 
-**Validation.** The draft becomes the SDK's `Polkurier\Webservice\Request\Order\CreateOrderMessage`,
+**Validation.** The draft becomes the SDK's `Polkurier\Webservice\Dto\Request\Order\CreateOrderMessage`,
 and the SDK validates it before anything is sent, so an incomplete draft fails with field-level
 errors without reaching Polkurier. To change the message, see
 [Extending the module](extending.md#changing-whats-sent).

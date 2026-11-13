@@ -15,7 +15,7 @@ use Magento\Framework\App\RequestInterface;
 use Magento\Framework\Controller\Result\Raw;
 use Magento\Framework\Controller\Result\RawFactory;
 use Polkurier\Shipping\Model\Shipment\Status\StatusWebhookHandler;
-use Polkurier\Webservice\Webhook\OrderWebhookReader;
+use Polkurier\Webservice\Api\Webhook\OrderReaderInterface;
 
 /**
  * Polkurier's status webhook: the URL to give in the Polkurier panel. Polkurier takes an event as
@@ -45,7 +45,7 @@ class Update implements HttpPostActionInterface, CsrfAwareActionInterface
         $result->setHeader('Cache-Control', 'no-store', true);
 
         return match ($outcome) {
-            StatusWebhookHandler::RECEIVED => $result->setContents(OrderWebhookReader::ACKNOWLEDGEMENT),
+            StatusWebhookHandler::RECEIVED => $result->setContents(OrderReaderInterface::ACKNOWLEDGEMENT),
             StatusWebhookHandler::REFUSED => $result->setHttpResponseCode(403)->setContents('Forbidden'),
             default => $result->setHttpResponseCode(503)->setContents('Not updated'),
         };

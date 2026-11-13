@@ -26,7 +26,8 @@ use Polkurier\Shipping\Model\Sync\SyncEngine;
 use Polkurier\Shipping\Test\Unit\Support\NewingObjectManager;
 use Polkurier\Shipping\Test\Unit\Support\RecordingEventManager;
 use Polkurier\Shipping\Test\Unit\Support\SdkTestCase;
-use Polkurier\Webservice\Builder\BankAccount\SaveMessageBuilderFactory;
+use Polkurier\Webservice\Builder\Entity\BankAccountBuilderFactory;
+use Polkurier\Webservice\Builder\Request\BankAccount\SaveBankAccountMessageBuilderFactory;
 use Polkurier\Webservice\Testing\RecordingClient;
 
 #[CoversClass(Publisher::class)]
@@ -143,7 +144,10 @@ class PublisherTest extends SdkTestCase
 
         return new Publisher(
             $this->createClientPool($http),
-            new BankAccountMapper(NewingObjectManager::createFactory(SaveMessageBuilderFactory::class)),
+            new BankAccountMapper(
+                NewingObjectManager::createFactory(BankAccountBuilderFactory::class),
+                NewingObjectManager::createFactory(SaveBankAccountMessageBuilderFactory::class),
+            ),
             $this->createStub(BankAccountSyncAdapter::class),
             $engine,
             $repository,

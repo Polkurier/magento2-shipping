@@ -11,8 +11,8 @@ use Magento\Framework\Message\ManagerInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Polkurier\Shipping\Model\Admin\FlashMessageCollector;
-use Polkurier\Webservice\Response\TwoFactorToken;
-use Polkurier\Webservice\Response\TwoFactorToken\TransportMethodMessage;
+use Polkurier\Webservice\Dto\Response\TwoFactorToken;
+use Polkurier\Webservice\Dto\Response\TwoFactorToken\TransportMethodMessage;
 
 #[CoversClass(FlashMessageCollector::class)]
 class FlashMessageCollectorTest extends TestCase

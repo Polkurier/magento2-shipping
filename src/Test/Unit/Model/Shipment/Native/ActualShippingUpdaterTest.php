@@ -31,7 +31,7 @@ use Polkurier\Shipping\Model\Shipment\Screen\ScreenDataProvider;
 use Polkurier\Shipping\Model\Shipment\ShipmentFinder;
 use Polkurier\Shipping\Model\ShippingChoice;
 use Polkurier\Shipping\Model\ShippingChoice\ShippingChoiceRepository;
-use Polkurier\Webservice\Response\CourierPoint;
+use Polkurier\Webservice\Dto\Response\CourierPoint;
 
 #[CoversClass(ActualShippingUpdater::class)]
 #[AllowMockObjectsWithoutExpectations]
@@ -41,6 +41,11 @@ class ActualShippingUpdaterTest extends TestCase
     private ?ShippingChoice $choice = null;
     private ?OrderPointInterface $point = null;
     private ?Shipment $placed = null;
+
+    /**
+     * The point Polkurier answers with: false when it's closed.
+     */
+    private CourierPoint|false|null $found = null;
 
     /**
      * @var string[] what was written, in order
@@ -65,6 +70,18 @@ class ActualShippingUpdaterTest extends TestCase
             'point INPOST_PACZKOMAT KRA235M 31-870 Kraków, 2 Pułku Lotniczego 44 cod',
             'comment',
         ], $this->log);
+    }
+
+    public function testAClosedPointBecomesTheOrdersWithoutItsAddress(): void
+    {
+        $this->placed = $this->createShipment('INPOST_PACZKOMAT', 'KRA235M');
+        $this->found = false;
+
+        $this->createService()->sync(15);
+
+        self::assertSame('polkurier_INPOST_PACZKOMAT', $this->order->getShippingMethod());
+        self::assertSame('Paczkomat InPost, pickup point KRA235M', $this->order->getShippingDescription());
+        self::assertContains('point INPOST_PACZKOMAT KRA235M', $this->log);
     }
 
     public function testAtPlacingTheChangeIsLeftToThePlacedOrdersOwnNote(): void
@@ -127,6 +144,7 @@ class ActualShippingUpdaterTest extends TestCase
 
     protected function setUp(): void
     {
+        $this->found = new CourierPoint('KRA01M', address: '31-870 Kraków, 2 Pułku Lotniczego 44', cod: true);
         $this->order = $this->getMockBuilder(Order::class)
             ->disableOriginalConstructor()
             ->onlyMethods(['getStoreId'])
@@ -171,7 +189,7 @@ class ActualShippingUpdaterTest extends TestCase
         $points = $this->createStub(OrderPointRepositoryInterface::class);
         $points->method('getForOrder')->willReturnCallback(fn(): ?OrderPointInterface => $this->point);
         $points->method('replaceForOrder')->willReturnCallback(
-            function (int $orderId, string $method, string $pointId, ?string $label, bool $cod): void {
+            function (int $orderId, string $method, string $pointId, ?string $label, ?bool $cod): void {
                 $this->log[] = \trim("point $method $pointId $label" . ($cod ? ' cod' : ''));
             },
         );
@@ -179,11 +197,8 @@ class ActualShippingUpdaterTest extends TestCase
             $this->log[] = 'no point';
         });
 
-        $found = $this->createStub(CourierPoint::class);
-        $found->method('getAddress')->willReturn('31-870 Kraków, 2 Pułku Lotniczego 44');
-        $found->method('isCod')->willReturn(true);
         $context = $this->createStub(ScreenDataProvider::class);
-        $context->method('findRecipientPoint')->willReturn($found);
+        $context->method('findRecipientPoint')->willReturnCallback(fn(): CourierPoint|false|null => $this->found);
         $titles = $this->createStub(NativeShipmentService::class);
         $titles->method('getTrackTitle')->willReturnCallback(
             static fn(Order $order, string $carrier): string => match ($carrier) {

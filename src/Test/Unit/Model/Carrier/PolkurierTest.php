@@ -45,6 +45,7 @@ use Polkurier\Shipping\Model\Sdk\ErrorMessageResolver;
 use Polkurier\Shipping\Model\Shipment\Native\NativeLabelService;
 use Polkurier\Shipping\Model\Shipment\ShipmentFinder;
 use Polkurier\Shipping\Test\Unit\Support\MagentoMeasures;
+use Polkurier\Shipping\Test\Unit\Support\SdkConfig;
 use Polkurier\Shipping\Test\Unit\Support\SdkTestCase;
 use Polkurier\Webservice\Exception\ConnectionException;
 use Polkurier\Webservice\Testing\RecordingClient;
@@ -89,7 +90,7 @@ class PolkurierTest extends SdkTestCase
         $payload = $this->http->lastPayload();
         self::assertSame('available_carriers', $payload['apimethod']);
         self::assertTrue($payload['data']['additional_data']);
-        self::assertSame(self::LOGIN, $payload['authorization']['login']);
+        self::assertSame(SdkConfig::LOGIN, $payload['authorization']['login']);
     }
 
     public function testTiersFollowTheCart(): void

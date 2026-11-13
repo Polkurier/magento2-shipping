@@ -11,8 +11,8 @@ use Polkurier\Shipping\Exception\RecentFailureException;
 use Polkurier\Shipping\Logger\Logger;
 use Polkurier\Shipping\Model\Carrier\CarrierCatalog;
 use Polkurier\Shipping\Model\Carrier\CarrierFeatureResolver;
+use Polkurier\Webservice\Dto\Response\CourierPoint;
 use Polkurier\Webservice\Exception\Exception as PolkurierException;
-use Polkurier\Webservice\Response\CourierPoint;
 
 /**
  * Looks points up by code on Polkurier, and describes them as they're shown next to their codes.
@@ -69,7 +69,7 @@ readonly class PointFinder
     public function describe(CourierPoint $point): array
     {
         return [
-            'name' => $point->getName() !== '' ? $point->getName() : $point->getDescription(),
+            'name' => $point->name !== '' ? $point->name : $point->description,
             'label' => $this->formatAddress($point),
         ];
     }
@@ -79,8 +79,8 @@ readonly class PointFinder
      */
     public function formatAddress(CourierPoint $point): string
     {
-        $town = \trim($point->getZip() . ' ' . $point->getCity());
+        $town = \trim($point->zip . ' ' . $point->city);
 
-        return $point->getAddress() ?: \implode(', ', \array_filter([\trim((string)$point->getStreet()), $town]));
+        return $point->address ?: \implode(', ', \array_filter([\trim($point->street), $town]));
     }
 }

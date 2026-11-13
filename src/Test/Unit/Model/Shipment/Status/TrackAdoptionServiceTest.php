@@ -31,7 +31,7 @@ use Polkurier\Shipping\Model\Shipment\Status\StatusRefreshService;
 use Polkurier\Shipping\Model\Shipment\Status\TrackAdoptionService;
 use Polkurier\Shipping\Model\ShipmentFactory;
 use Polkurier\Shipping\Test\Unit\Support\MemoryLocks;
-use Polkurier\Webservice\Response\Order as RemoteOrder;
+use Polkurier\Webservice\Entity\Order as RemoteOrder;
 
 #[CoversClass(TrackAdoptionService::class)]
 #[AllowMockObjectsWithoutExpectations]

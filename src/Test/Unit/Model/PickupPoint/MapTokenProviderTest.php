@@ -19,6 +19,7 @@ use Polkurier\Shipping\Model\PickupPoint\MapTokenProvider;
 use Polkurier\Shipping\Model\Sdk\AccountCache;
 use Polkurier\Shipping\Model\Sdk\ErrorMessageResolver;
 use Polkurier\Shipping\Test\Unit\Support\MemoryPolkurierCache;
+use Polkurier\Shipping\Test\Unit\Support\SdkConfig;
 use Polkurier\Shipping\Test\Unit\Support\SdkTestCase;
 use Polkurier\Webservice\Testing\RecordingClient;
 
@@ -121,7 +122,7 @@ class MapTokenProviderTest extends SdkTestCase
     private function createProvider(RecordingClient $http, ?Logger $logger = null): MapTokenProvider
     {
         $config = $this->createStub(ConfigProvider::class);
-        $config->method('getLogin')->willReturn(self::LOGIN);
+        $config->method('getLogin')->willReturn(SdkConfig::LOGIN);
 
         return new MapTokenProvider(
             $this->createClientPool($http),

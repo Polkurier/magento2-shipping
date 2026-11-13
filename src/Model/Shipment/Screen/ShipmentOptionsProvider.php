@@ -18,9 +18,9 @@ use Polkurier\Shipping\Model\Carrier\CarrierFeatureResolver;
 use Polkurier\Shipping\Model\PickupPoint\DefaultSenderPointManager;
 use Polkurier\Shipping\Model\Sdk\ErrorMessageResolver;
 use Polkurier\Shipping\Model\Shipment\Placement\SenderMapper;
+use Polkurier\Webservice\Dto\Response\Carrier;
 use Polkurier\Webservice\Enum\Courier\PointRequirementEnum;
 use Polkurier\Webservice\Exception\Exception as PolkurierException;
-use Polkurier\Webservice\Response\Carrier;
 
 /**
  * The choices a shipment is put together from, for the admin pages that edit shipment options:
@@ -83,12 +83,12 @@ class ShipmentOptionsProvider implements ResetAfterRequestInterface
         $features = [];
         foreach ($this->getCarriers() as $code => $carrier) {
             $features[$code] = [
-                'name' => $carrier->getName(),
+                'name' => $carrier->name,
                 'services' => \array_map(
                     static fn($service): string => $service->value,
                     $this->carrierFeatureResolver->getServices($carrier),
                 ),
-                'point' => $carrier->getAdditionalData()?->getPointsMap()?->getRecipientPoint()->value
+                'point' => $carrier->additionalData?->pointsMap?->recipientPoint->value
                     ?? PointRequirementEnum::None->value,
                 'providers' => $this->carrierFeatureResolver->getPointProviders($carrier),
                 // Whether the parcels are handed over at a point: NONE, OPTIONAL or REQUIRED.
@@ -107,10 +107,10 @@ class ShipmentOptionsProvider implements ResetAfterRequestInterface
                     $this->carrierFeatureResolver->getShipmentTypes($carrier),
                 ),
                 'fields' => \array_map(static fn($field): array => [
-                    'name' => $field->getName(),
-                    'label' => $field->getLabel(),
-                    'description' => $field->getDescription(),
-                    'required' => $field->isRequired(),
+                    'name' => $field->name,
+                    'label' => $field->label,
+                    'description' => $field->description,
+                    'required' => $field->required,
                 ], $this->carrierFeatureResolver->getAdditionalFields($carrier)),
             ];
         }
@@ -127,7 +127,7 @@ class ShipmentOptionsProvider implements ResetAfterRequestInterface
         foreach ($this->getCarriers() as $code => $carrier) {
             $options[] = [
                 'value' => (string)$code,
-                'label' => $carrier->getName() !== '' ? $carrier->getName() : (string)$code,
+                'label' => $carrier->name !== '' ? $carrier->name : (string)$code,
             ];
         }
 

@@ -20,14 +20,14 @@ use Polkurier\Shipping\Model\Config\ConfigProvider;
 use Polkurier\Shipping\Model\Sdk\AccountCache;
 use Polkurier\Shipping\Model\Sdk\ErrorMessageResolver;
 use Polkurier\Shipping\Model\Sdk\PolkurierClient;
+use Polkurier\Shipping\Test\Unit\Support\MemoryPolkurierCache;
 use Polkurier\Webservice\Api\Service\CourierServiceInterface;
+use Polkurier\Webservice\Dto\Response\Carrier;
+use Polkurier\Webservice\Dto\Response\CourierPoint;
+use Polkurier\Webservice\Dto\Response\ErrorMessage;
 use Polkurier\Webservice\Enum\Http\ResponseStatusEnum;
 use Polkurier\Webservice\Exception\ConnectionException;
 use Polkurier\Webservice\Exception\WebserviceException;
-use Polkurier\Webservice\Http\Response\ErrorMessage;
-use Polkurier\Webservice\Response\Carrier;
-use Polkurier\Webservice\Response\CourierPoint;
-use Polkurier\Shipping\Test\Unit\Support\MemoryPolkurierCache;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
 
@@ -56,8 +56,8 @@ class CarrierCatalogTest extends TestCase
         $point = $this->createCatalog()->findPoint('WAW195M', ['INPOST']);
         $again = $this->createCatalog()->findPoint('WAW195M', ['INPOST']);
 
-        self::assertSame('WAW195M', $point?->getId());
-        self::assertSame('WAW195M', $again?->getId());
+        self::assertSame('WAW195M', $point?->id);
+        self::assertSame('WAW195M', $again?->id);
         self::assertSame(['WAW195M'], $this->pointRequests);
         self::assertContains(CarrierCatalog::POINT_LIFETIME, $this->cache->lifetimes);
         self::assertContains([CacheTagEnum::Points->value], $this->cache->tags, 'Under the points\' own tag.');
@@ -137,7 +137,7 @@ class CarrierCatalogTest extends TestCase
         }
         $this->pointFailure = null;
 
-        self::assertSame('KRA01M', $this->createCatalog()->findPoint('KRA01M', ['INPOST'])?->getId());
+        self::assertSame('KRA01M', $this->createCatalog()->findPoint('KRA01M', ['INPOST'])?->id);
     }
 
     public function testTheListIsAskedForOnceAndThenReadFromTheCache(): void
@@ -146,7 +146,7 @@ class CarrierCatalogTest extends TestCase
         $carriers = $this->createCatalog()->getAccountCarriers();
 
         self::assertSame(1, $this->requests);
-        self::assertSame('DPD', $carriers['DPD']->getServiceCode());
+        self::assertSame('DPD', $carriers['DPD']->serviceCode);
     }
 
     public function testAnEntryNamingAClassOutsideTheSdkIsDroppedAndFetchedAgain(): void
@@ -165,7 +165,7 @@ class CarrierCatalogTest extends TestCase
     {
         $this->createCatalog()->getAccountCarriers();
         $key = \array_key_first($this->cache->entries);
-        $this->cache->entries[$key] = 'a:1:{s:3:"DPD";O:41:"Polkurier\Webservice\Response\GoneCarrier":0:{}}';
+        $this->cache->entries[$key] = 'a:1:{s:3:"DPD";O:45:"Polkurier\Webservice\Dto\Response\GoneCarrier":0:{}}';
 
         $carriers = $this->createCatalog()->getAccountCarriers();
 

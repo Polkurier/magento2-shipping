@@ -22,7 +22,7 @@ use Polkurier\Shipping\Model\PickupPoint\PointFinder;
 use Polkurier\Shipping\Model\Shipment\Draft\DefaultDraftBuilder;
 use Polkurier\Shipping\Model\Shipment\Draft\DraftHydrator;
 use Polkurier\Shipping\Model\Shipment\Valuation\OrderAmountCalculator;
-use Polkurier\Webservice\Response\CourierPoint;
+use Polkurier\Webservice\Dto\Response\CourierPoint;
 
 /**
  * What both shipment screens start from: the Polkurier shipment screen and the shipping label
@@ -110,7 +110,7 @@ readonly class ScreenDataProvider
     {
         $point = $this->pointFinder->find($pointId, $carrierCode);
 
-        return $point && !$point->isAvailable() ? false : $point;
+        return $point && !$point->available ? false : $point;
     }
 
     /**

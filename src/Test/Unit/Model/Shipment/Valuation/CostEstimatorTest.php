@@ -16,12 +16,13 @@ use Polkurier\Shipping\Model\Shipment\Draft;
 use Polkurier\Shipping\Model\Shipment\Placement\CreateOrderMessageMapper;
 use Polkurier\Shipping\Model\Shipment\Valuation\CostEstimator;
 use Polkurier\Shipping\Test\Unit\Support\SdkTestCase;
+use Polkurier\Webservice\Dto\Request\Order\CreateOrderMessage;
+use Polkurier\Webservice\Dto\Response\Order\ValuationMessage;
+use Polkurier\Webservice\Entity\Order;
+use Polkurier\Webservice\Entity\Order\Address;
+use Polkurier\Webservice\Entity\Order\PackItem;
 use Polkurier\Webservice\Enum\Order\PackTypeEnum;
 use Polkurier\Webservice\Enum\Order\ShipmentTypeEnum;
-use Polkurier\Webservice\Request\Order\CreateOrderMessage;
-use Polkurier\Webservice\Request\Order\OrderAddressMessage;
-use Polkurier\Webservice\Request\Order\PackMessage;
-use Polkurier\Webservice\Response\Order\ValuationMessage;
 use Polkurier\Webservice\Testing\RecordingClient;
 
 #[CoversClass(CostEstimator::class)]
@@ -82,9 +83,9 @@ class CostEstimatorTest extends SdkTestCase
         ];
     }
 
-    private static function createAddress(string $person, string $postcode): OrderAddressMessage
+    private static function createAddress(string $person, string $postcode): Address
     {
-        return new OrderAddressMessage(
+        return new Address(
             $person,
             'Prosta',
             'Warszawa',
@@ -99,13 +100,13 @@ class CostEstimatorTest extends SdkTestCase
     private function createEstimator(string $answer, int $status = 200): CostEstimator
     {
         $mapper = $this->createStub(CreateOrderMessageMapper::class);
-        $mapper->method('map')->willReturn(new CreateOrderMessage(
+        $mapper->method('map')->willReturn(new CreateOrderMessage(new Order(
             'DPD',
             ShipmentTypeEnum::Box,
-            [new PackMessage(40, 30, 20, 2.5, PackTypeEnum::Standard, 1)],
+            [new PackItem(40, 30, 20, 2.5, PackTypeEnum::Standard, 1)],
             self::createAddress('Jan Kowalski', '00-838'),
             self::createAddress('Anna Nowak', '31-147'),
-        ));
+        )));
         $client = $this->createClientPool(new RecordingClient($answer, $status));
 
         return new CostEstimator($mapper, new ShipmentGateway($client, new ErrorMessageResolver()));

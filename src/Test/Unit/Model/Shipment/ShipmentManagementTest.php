@@ -14,7 +14,6 @@ use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Framework\Lock\LockManagerInterface;
 use Magento\Framework\TestFramework\Unit\Helper\ObjectManager;
-use Magento\SalesSequence\Model\Manager as SequenceManager;
 use Magento\Sales\Api\Data\ShipmentCommentInterfaceFactory;
 use Magento\Sales\Api\Data\ShipmentInterface as MagentoShipmentInterface;
 use Magento\Sales\Api\OrderRepositoryInterface;
@@ -26,6 +25,7 @@ use Magento\Sales\Model\Order;
 use Magento\Sales\Model\Order\Email\Sender\ShipmentSender;
 use Magento\Sales\Model\Order\Shipment as MagentoShipmentModel;
 use Magento\Sales\Model\Order\Shipment\Comment as ShipmentComment;
+use Magento\SalesSequence\Model\Manager as SequenceManager;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -51,17 +51,16 @@ use Polkurier\Shipping\Model\Sdk\ErrorMessageResolver;
 use Polkurier\Shipping\Model\Sdk\ShipmentGateway;
 use Polkurier\Shipping\Model\Sdk\Validator;
 use Polkurier\Shipping\Model\Shipment;
-use Polkurier\Shipping\Model\ShipmentFactory;
 use Polkurier\Shipping\Model\Shipment\CancellationService;
 use Polkurier\Shipping\Model\Shipment\Details\Formatter;
 use Polkurier\Shipping\Model\Shipment\Draft;
-use Polkurier\Shipping\Model\Shipment\DraftFactory;
 use Polkurier\Shipping\Model\Shipment\Draft\DefaultDraftBuilder;
 use Polkurier\Shipping\Model\Shipment\Draft\DraftHydrator;
 use Polkurier\Shipping\Model\Shipment\Draft\Item;
 use Polkurier\Shipping\Model\Shipment\Draft\ItemFactory;
 use Polkurier\Shipping\Model\Shipment\Draft\Pack;
 use Polkurier\Shipping\Model\Shipment\Draft\PackFactory;
+use Polkurier\Shipping\Model\Shipment\DraftFactory;
 use Polkurier\Shipping\Model\Shipment\Native\NativeFollowUpService;
 use Polkurier\Shipping\Model\Shipment\Native\NativeShipmentService;
 use Polkurier\Shipping\Model\Shipment\OrderLoader;
@@ -81,24 +80,24 @@ use Polkurier\Shipping\Model\Shipment\Status\ReconciliationService;
 use Polkurier\Shipping\Model\Shipment\Status\RemoteOrderApplier;
 use Polkurier\Shipping\Model\Shipment\Status\RemoteOrderMatcher;
 use Polkurier\Shipping\Model\Shipment\Status\StatusRefreshService;
+use Polkurier\Shipping\Model\ShipmentFactory;
 use Polkurier\Shipping\Model\ShippingChoice\ShippingChoiceRepository;
 use Polkurier\Shipping\Test\Unit\Support\FixedDateTime;
 use Polkurier\Shipping\Test\Unit\Support\NewingObjectManager;
 use Polkurier\Shipping\Test\Unit\Support\RecordingEventManager;
+use Polkurier\Shipping\Test\Unit\Support\SdkConfig;
 use Polkurier\Shipping\Test\Unit\Support\SdkTestCase;
-use Polkurier\Webservice\Builder\Order\CodMessageBuilderFactory;
-use Polkurier\Webservice\Builder\Order\CoverAddressMessageBuilderFactory;
-use Polkurier\Webservice\Builder\Order\CreateOrderMessageBuilderFactory;
-use Polkurier\Webservice\Builder\Order\GetOrdersMessageBuilderFactory;
-use Polkurier\Webservice\Builder\Order\OrderAddressMessageBuilderFactory;
-use Polkurier\Webservice\Builder\Order\PackMessageBuilderFactory;
-use Polkurier\Webservice\Builder\Order\PickupMessageBuilderFactory;
+use Polkurier\Webservice\Builder\Entity\Order\AddressBuilderFactory;
+use Polkurier\Webservice\Builder\Entity\Order\CodBuilderFactory;
+use Polkurier\Webservice\Builder\Entity\Order\PackItemBuilderFactory;
+use Polkurier\Webservice\Builder\Entity\Order\PickupBuilderFactory;
+use Polkurier\Webservice\Builder\Entity\OrderBuilderFactory;
+use Polkurier\Webservice\Builder\Request\Order\GetOrdersMessageBuilderFactory;
+use Polkurier\Webservice\Dto\Response\Carrier;
+use Polkurier\Webservice\Dto\Response\Carrier\AdditionalData;
+use Polkurier\Webservice\Dto\Response\Carrier\AdditionalData\PointsMap;
+use Polkurier\Webservice\Dto\Response\Order\CreatedOrderMessage;
 use Polkurier\Webservice\Enum\Courier\PointRequirementEnum;
-use Polkurier\Webservice\Response\Carrier;
-use Polkurier\Webservice\Response\Carrier\AdditionalData;
-use Polkurier\Webservice\Response\Carrier\AdditionalData\PointsMap;
-use Polkurier\Webservice\Response\Order\CreatedOrderMessage;
-use Polkurier\Webservice\Serializer\SerializerProvider;
 use Polkurier\Webservice\Testing\RecordingClient;
 
 #[CoversClass(ShipmentManagement::class)]
@@ -270,7 +269,7 @@ class ShipmentManagementTest extends SdkTestCase
 
         $payload = $this->http->lastPayload();
         self::assertSame('create_order', $payload['apimethod']);
-        self::assertSame(self::TOKEN, $payload['authorization']['token']);
+        self::assertSame(SdkConfig::TOKEN, $payload['authorization']['token']);
         self::assertSame('DPD', $payload['data']['courier']);
         self::assertSame('Zam. 000000042', $payload['data']['description']);
         self::assertSame('00-001', $payload['data']['recipient']['postcode']);
@@ -297,7 +296,7 @@ class ShipmentManagementTest extends SdkTestCase
         self::assertSame($this->order, $events[0]['order']);
         self::assertSame('create', $events[0]['source']);
         self::assertInstanceOf(CreatedOrderMessage::class, $events[0]['response']);
-        self::assertSame('18015-1001', $events[0]['response']->getOrderNumber());
+        self::assertSame('18015-1001', $events[0]['response']->orderNumber);
     }
 
     public function testAFailingListenerDoesNotUndoAPlacedOrder(): void
@@ -1733,7 +1732,7 @@ class ShipmentManagementTest extends SdkTestCase
                     $finder,
                     $shipmentFactory,
                     $this->createRepository(),
-                    new SerializerProvider(),
+                    $this->createClientPool($this->http),
                     new DraftHydrator(
                         $this->createStub(DraftFactory::class),
                         $this->createStub(PackFactory::class),
@@ -1820,17 +1819,16 @@ class ShipmentManagementTest extends SdkTestCase
                 $scopeConfig,
                 $config,
                 new StreetParser(),
-                NewingObjectManager::createFactory(OrderAddressMessageBuilderFactory::class),
-                NewingObjectManager::createFactory(CoverAddressMessageBuilderFactory::class),
+                NewingObjectManager::createFactory(AddressBuilderFactory::class),
             ),
             $this->createStub(AddressRepositoryInterface::class),
             $this->createStub(BankAccountRepositoryInterface::class),
             $config,
-            NewingObjectManager::createFactory(CreateOrderMessageBuilderFactory::class),
-            NewingObjectManager::createFactory(PackMessageBuilderFactory::class),
-            NewingObjectManager::createFactory(OrderAddressMessageBuilderFactory::class),
-            NewingObjectManager::createFactory(CodMessageBuilderFactory::class),
-            NewingObjectManager::createFactory(PickupMessageBuilderFactory::class),
+            NewingObjectManager::createFactory(OrderBuilderFactory::class),
+            NewingObjectManager::createFactory(PackItemBuilderFactory::class),
+            NewingObjectManager::createFactory(AddressBuilderFactory::class),
+            NewingObjectManager::createFactory(CodBuilderFactory::class),
+            NewingObjectManager::createFactory(PickupBuilderFactory::class),
         );
     }
 

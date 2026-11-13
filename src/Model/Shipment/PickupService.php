@@ -17,11 +17,11 @@ use Polkurier\Shipping\Model\Sdk\ApiEventDispatcher;
 use Polkurier\Shipping\Model\Sdk\PolkurierTimeZone;
 use Polkurier\Shipping\Model\Sdk\ShipmentGateway;
 use Polkurier\Shipping\Model\Shipment\Placement\SenderMapper;
-use Polkurier\Webservice\Builder\Courier\GetPickupTimeMessageBuilderFactory;
-use Polkurier\Webservice\Builder\Order\MultiPickupAvailabilityRequestMessageBuilderFactory;
-use Polkurier\Webservice\Builder\Order\MultiPickupRequestMessageBuilderFactory;
+use Polkurier\Webservice\Builder\Request\Courier\GetPickupTimeMessageBuilderFactory;
+use Polkurier\Webservice\Builder\Request\Order\MultiPickupAvailabilityRequestMessageBuilderFactory;
+use Polkurier\Webservice\Builder\Request\Order\MultiPickupRequestMessageBuilderFactory;
+use Polkurier\Webservice\Entity\Order\PackItem;
 use Polkurier\Webservice\Enum\Order\ShipmentTypeEnum;
-use Polkurier\Webservice\Request\Order\PackMessage;
 
 /**
  * Collections: when a courier can come, and one collection for several shipments.
@@ -62,13 +62,13 @@ readonly class PickupService
         $result = [];
         foreach ($days as $day) {
             $windows = [];
-            foreach ($day->getTime() as $window) {
+            foreach ($day->time as $window) {
                 $windows[] = [
-                    'from' => $window->getTimeFrom()->format('H:i'),
-                    'to' => $window->getTimeTo()->format('H:i'),
+                    'from' => $window->timeFrom->format('H:i'),
+                    'to' => $window->timeTo->format('H:i'),
                 ];
             }
-            $result[] = ['date' => $day->getPickupDate()->format('Y-m-d'), 'windows' => $windows];
+            $result[] = ['date' => $day->pickupDate->format('Y-m-d'), 'windows' => $windows];
         }
 
         return $result;
@@ -78,7 +78,7 @@ readonly class PickupService
      * Whether Polkurier can collect a shipment with others later, for its carrier and parcels.
      * It answers no as well when it can't tell.
      *
-     * @param PackMessage[] $packs
+     * @param PackItem[] $packs
      *
      * @throws LocalizedException
      */
@@ -181,7 +181,7 @@ readonly class PickupService
             ->build();
         $result = $this->shipmentGateway->bookMultiPickup($request);
 
-        $booked = \array_map('strval', $result->getSuccess());
+        $booked = \array_map('strval', $result->success);
         $bookedShipments = [];
         foreach ($booked as $number) {
             if (isset($numbers[$number])) {
@@ -189,7 +189,7 @@ readonly class PickupService
                 $bookedShipments[] = $numbers[$number];
             }
         }
-        $failed = \array_map('strval', $result->getFailed());
+        $failed = \array_map('strval', $result->failed);
         if ($bookedShipments !== []) {
             $this->apiEventDispatcher->dispatch(ApiEventEnum::PickupCreateAfter, null, [
                 'shipments' => $bookedShipments,

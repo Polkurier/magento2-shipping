@@ -42,13 +42,13 @@ use Polkurier\Shipping\Model\Shipment\Valuation\OrderAmountCalculator;
 use Polkurier\Shipping\Test\Unit\Support\AdminActionTestCase;
 use Polkurier\Shipping\Test\Unit\Support\NewingObjectManager;
 use Polkurier\Webservice\Api\Service\UtilsServiceInterface;
+use Polkurier\Webservice\Dto\Request\AuthorizationMessage;
+use Polkurier\Webservice\Dto\Request\AuthorizationMessageFactory;
+use Polkurier\Webservice\Dto\Response\ErrorMessage;
+use Polkurier\Webservice\Dto\Response\Util\AuthConfirmationMessage;
 use Polkurier\Webservice\Enum\Http\ResponseStatusEnum;
 use Polkurier\Webservice\Exception\AuthorizationException;
 use Polkurier\Webservice\Exception\ConnectionException;
-use Polkurier\Webservice\Http\Request\AuthorizationMessage;
-use Polkurier\Webservice\Http\Request\AuthorizationMessageFactory;
-use Polkurier\Webservice\Http\Response\ErrorMessage;
-use Polkurier\Webservice\Response\Util\AuthConfirmationMessage;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
 
@@ -244,7 +244,7 @@ class ShipmentActionsTest extends AdminActionTestCase
             return new AuthConfirmationMessage(true);
         })->execute();
 
-        self::assertSame(['12345', 'saved-token'], [$asked?->getLogin(), $asked?->getToken()]);
+        self::assertSame(['12345', 'saved-token'], [$asked?->getLogin(), $asked?->token]);
         self::assertSame(['error' => false, 'message' => 'Polkurier accepted the credentials.'], $this->json);
     }
 

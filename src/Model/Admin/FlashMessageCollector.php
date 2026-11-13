@@ -9,7 +9,7 @@ namespace Polkurier\Shipping\Model\Admin;
 
 use Magento\Framework\Message\ManagerInterface;
 use Magento\Framework\Phrase;
-use Polkurier\Webservice\Response\TwoFactorToken;
+use Polkurier\Webservice\Dto\Response\TwoFactorToken;
 
 /**
  * Collects everything an admin action has to report into one message, however many things the
@@ -77,8 +77,8 @@ class FlashMessageCollector
      */
     public static function formatCodeSent(TwoFactorToken $token): string
     {
-        $where = \trim((string)$token->getTransportMethod()?->getName()) ?: \trim($token->getPhoneNumber());
-        $until = $token->getExpiresAt()->format('H:i');
+        $where = \trim((string)$token->transportMethod?->name) ?: \trim($token->phoneNumber);
+        $until = $token->expiresAt->format('H:i');
 
         return $where !== ''
             ? (string)__('Code sent to %1; valid until %2.', $where, $until)

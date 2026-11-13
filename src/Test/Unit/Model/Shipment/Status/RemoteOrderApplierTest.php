@@ -18,8 +18,8 @@ use Polkurier\Shipping\Model\Shipment;
 use Polkurier\Shipping\Model\Shipment\Status\RemoteOrderApplier;
 use Polkurier\Shipping\Test\Unit\Support\FixedDateTime;
 use Polkurier\Shipping\Test\Unit\Support\SdkTestCase;
-use Polkurier\Webservice\Request\Order\GetOrdersMessage;
-use Polkurier\Webservice\Response\Order;
+use Polkurier\Webservice\Dto\Request\Order\GetOrdersMessage;
+use Polkurier\Webservice\Entity\Order;
 use Polkurier\Webservice\Testing\RecordingClient;
 
 #[CoversClass(RemoteOrderApplier::class)]
@@ -153,7 +153,7 @@ class RemoteOrderApplierTest extends SdkTestCase
         return $this->createClientPool($http)
             ->getOrders()
             ->getOrders(new GetOrdersMessage(searchPhrase: '12345-678'))
-            ->getResult()[0];
+            ->result[0];
     }
 
     private function createApplier(FixedDateTime $clock, ?bool $cancelled = true): RemoteOrderApplier

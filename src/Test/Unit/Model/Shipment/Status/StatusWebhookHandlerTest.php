@@ -12,12 +12,13 @@ use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
+use Polkurier\Shipping\Api\PolkurierClientInterface;
 use Polkurier\Shipping\Api\ShipmentManagementInterface;
 use Polkurier\Shipping\Logger\Logger;
 use Polkurier\Shipping\Model\Config\ConfigProvider;
 use Polkurier\Shipping\Model\Shipment\ShipmentFinder;
 use Polkurier\Shipping\Model\Shipment\Status\StatusWebhookHandler;
-use Polkurier\Webservice\Webhook\OrderWebhookReader;
+use Polkurier\Webservice\Webhook\OrderReader;
 
 #[CoversClass(StatusWebhookHandler::class)]
 #[AllowMockObjectsWithoutExpectations]
@@ -164,11 +165,14 @@ class StatusWebhookHandlerTest extends TestCase
             return $this->createStub(ShipmentInterface::class);
         });
 
+        $client = $this->createStub(PolkurierClientInterface::class);
+        $client->method('getOrderReader')->willReturn(new OrderReader());
+
         return new StatusWebhookHandler(
             $config,
             $finder,
             $management,
-            new OrderWebhookReader(),
+            $client,
             $this->createStub(Logger::class),
         );
     }

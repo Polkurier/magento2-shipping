@@ -27,6 +27,7 @@ use Polkurier\Shipping\Model\Shipment\OrderLoader;
 use Polkurier\Shipping\Model\Shipment\Placement\FailedShipmentManager;
 use Polkurier\Shipping\Model\Shipment\Screen\RetriableShipmentFinder;
 use Polkurier\Shipping\Test\Unit\Support\AdminActionTestCase;
+use Polkurier\Webservice\Dto\Response\MoneyBox\MoneyBoxPayoutMessage;
 
 #[CoversClass(Create::class)]
 #[CoversClass(Edit::class)]
@@ -119,7 +120,8 @@ class RedirectingActionsTest extends AdminActionTestCase
     {
         $this->params = ['number' => 'W-1'];
         $payouts = $this->createMock(PayoutManager::class);
-        $payouts->expects(self::once())->method('cancelPayout')->with('W-1');
+        $payouts->expects(self::once())->method('cancelPayout')->with('W-1')
+            ->willReturn(new MoneyBoxPayoutMessage(number: 'W-1'));
 
         (new Cancel($this->createContext(), $payouts))->execute();
 

@@ -12,10 +12,8 @@ use Magento\Store\Model\ScopeInterface;
 use Polkurier\Shipping\Api\Data\AddressInterface;
 use Polkurier\Shipping\Model\Carrier\Polkurier;
 use Polkurier\Shipping\Model\Config\ConfigProvider;
-use Polkurier\Webservice\Builder\Order\CoverAddressMessageBuilderFactory;
-use Polkurier\Webservice\Builder\Order\OrderAddressMessageBuilderFactory;
-use Polkurier\Webservice\Request\Order\CoverAddressMessage;
-use Polkurier\Webservice\Request\Order\OrderAddressMessage;
+use Polkurier\Webservice\Builder\Entity\Order\AddressBuilderFactory;
+use Polkurier\Webservice\Entity\Order\Address;
 
 /**
  * Builds the sender of an order: an address book entry, the store's address or its shipping origin.
@@ -26,14 +24,13 @@ readonly class SenderMapper
         private ScopeConfigInterface $scopeConfig,
         private ConfigProvider $configProvider,
         private StreetParser $streetParser,
-        private OrderAddressMessageBuilderFactory $orderAddressMessageBuilderFactory,
-        private CoverAddressMessageBuilderFactory $coverAddressMessageBuilderFactory,
+        private AddressBuilderFactory $addressBuilderFactory,
     ) {}
 
     /**
      * An address book entry, handing the parcels over at the point given, or at none.
      */
-    public function mapFromAddress(AddressInterface $address, ?string $pointId): OrderAddressMessage
+    public function mapFromAddress(AddressInterface $address, ?string $pointId): Address
     {
         return $this->mapFromFields([
             AddressInterface::FIELD_PERSON => $address->getPerson(),
@@ -55,10 +52,10 @@ readonly class SenderMapper
      *
      * @param array<string, string> $fields by address field
      */
-    public function mapFromFields(array $fields, ?string $pointId = null): OrderAddressMessage
+    public function mapFromFields(array $fields, ?string $pointId = null): Address
     {
         $value = static fn(string $field): string => \trim((string)($fields[$field] ?? ''));
-        $builder = $this->orderAddressMessageBuilderFactory->create()
+        $builder = $this->addressBuilderFactory->create()
             ->person($value(AddressInterface::FIELD_PERSON))
             ->street($value(AddressInterface::FIELD_STREET))
             ->houseNumber($value(AddressInterface::FIELD_HOUSE_NUMBER))
@@ -84,7 +81,7 @@ readonly class SenderMapper
      * The store's address or shipping origin, as configured, handing the parcels over at the
      * point given, or at none; null when neither is used and filled in.
      */
-    public function mapFromStore(int $storeId, ?string $pointId = null): ?OrderAddressMessage
+    public function mapFromStore(int $storeId, ?string $pointId = null): ?Address
     {
         $fromInformation = $this->configProvider->isUseStoreInformationAddress($storeId)
             ? $this->mapFromStoreInformation($storeId, $pointId)
@@ -96,35 +93,10 @@ readonly class SenderMapper
     }
 
     /**
-     * The address a failed delivery goes back to instead of the sender.
-     *
-     * The cover address has no house number of its own in the SDK, so it goes at the end of the
-     * street, which is also how the API prints it.
-     */
-    public function mapToCoverAddress(AddressInterface $address): CoverAddressMessage
-    {
-        $builder = $this->coverAddressMessageBuilderFactory->create()
-            ->person($address->getPerson())
-            ->street(\trim($address->getStreet() . ' ' . $address->getHouseNumber()))
-            ->city($address->getCity())
-            ->postcode($address->getPostcode())
-            ->email($address->getEmail())
-            ->phone($address->getPhone());
-        if ($address->getCompany()) {
-            $builder->company($address->getCompany());
-        }
-        if ($address->getFlatNumber()) {
-            $builder->flatNumber($address->getFlatNumber());
-        }
-
-        return $builder->build();
-    }
-
-    /**
      * The store's address (General > Store Information), with the store's name, phone and the
      * configured store e-mail, or null when it isn't filled in.
      */
-    private function mapFromStoreInformation(int $storeId, ?string $pointId): ?OrderAddressMessage
+    private function mapFromStoreInformation(int $storeId, ?string $pointId): ?Address
     {
         return $this->mapFromStoreAddress('general/store_information', $storeId, $pointId);
     }
@@ -133,12 +105,12 @@ readonly class SenderMapper
      * The shipping origin (Sales > Shipping Settings > Origin), with the store's name, phone and
      * the configured store e-mail, or null when it isn't filled in.
      */
-    private function mapFromStoreOrigin(int $storeId, ?string $pointId): ?OrderAddressMessage
+    private function mapFromStoreOrigin(int $storeId, ?string $pointId): ?Address
     {
         return $this->mapFromStoreAddress('shipping/origin', $storeId, $pointId);
     }
 
-    private function mapFromStoreAddress(string $prefix, int $storeId, ?string $pointId): ?OrderAddressMessage
+    private function mapFromStoreAddress(string $prefix, int $storeId, ?string $pointId): ?Address
     {
         $street = $this->streetParser->parse([
             $this->getConfigValue($prefix . '/street_line1', $storeId),
@@ -150,7 +122,7 @@ readonly class SenderMapper
             return null;
         }
         $name = $this->getConfigValue('general/store_information/name', $storeId);
-        $builder = $this->orderAddressMessageBuilderFactory->create()
+        $builder = $this->addressBuilderFactory->create()
             ->person($name)
             ->street($street['street'])
             ->houseNumber((string)$street['house_number'])

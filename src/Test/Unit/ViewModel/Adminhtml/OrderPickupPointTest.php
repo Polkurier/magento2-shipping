@@ -17,8 +17,8 @@ use Polkurier\Shipping\Model\Carrier\CarrierCatalog;
 use Polkurier\Shipping\Model\Carrier\CarrierFeatureResolver;
 use Polkurier\Shipping\Model\PickupPoint\PointDescriptionBuilder;
 use Polkurier\Shipping\ViewModel\Adminhtml\OrderPickupPoint;
+use Polkurier\Webservice\Dto\Response\Carrier;
 use Polkurier\Webservice\Exception\ConnectionException;
-use Polkurier\Webservice\Response\Carrier;
 
 #[CoversClass(OrderPickupPoint::class)]
 #[AllowMockObjectsWithoutExpectations]

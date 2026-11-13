@@ -15,9 +15,9 @@ use Polkurier\Shipping\Controller\Adminhtml\Payout\Save;
 use Polkurier\Shipping\Enum\Adminhtml\FormMemoryEnum;
 use Polkurier\Shipping\Model\Payout\PayoutManager;
 use Polkurier\Shipping\Test\Unit\Support\AdminActionTestCase;
+use Polkurier\Webservice\Dto\Response\MoneyBox\MoneyBoxPayoutMessage;
 use Polkurier\Webservice\Enum\MoneyBox\MoneyBoxFeePaymentTypeEnum;
 use Polkurier\Webservice\Enum\MoneyBox\MoneyBoxPayoutTypeEnum;
-use Polkurier\Webservice\Response\MoneyBox\MoneyBoxPayoutMessage;
 
 #[CoversClass(Save::class)]
 #[AllowMockObjectsWithoutExpectations]
@@ -130,11 +130,7 @@ class PayoutSaveTest extends AdminActionTestCase
                 if ($refusal !== null) {
                     throw $refusal;
                 }
-                $payout = $this->createStub(MoneyBoxPayoutMessage::class);
-                $payout->method('getNumber')->willReturn('W-17');
-                $payout->method('getAmount')->willReturn(120.5);
-
-                return $payout;
+                return new MoneyBoxPayoutMessage(number: 'W-17', amount: 120.5);
             });
         $persistor = $this->createStub(DataPersistorInterface::class);
         $persistor->method('set')->willReturnCallback(function (string $key, mixed $value): void {

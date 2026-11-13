@@ -26,8 +26,8 @@ use Polkurier\Shipping\Model\PickupPoint\PointFinder;
 use Polkurier\Shipping\Model\ResourceModel\CarrierConfig\Collection;
 use Polkurier\Shipping\Model\ResourceModel\CarrierConfig\CollectionFactory;
 use Polkurier\Shipping\Ui\Component\Form\FormDataProvider;
+use Polkurier\Webservice\Dto\Response\Carrier;
 use Polkurier\Webservice\Exception\Exception as PolkurierException;
-use Polkurier\Webservice\Response\Carrier;
 
 /**
  * A carrier's checkout settings, with its price_info spread into the form's price and tier rows,

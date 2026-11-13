@@ -18,8 +18,8 @@ use Polkurier\Shipping\Model\ResourceModel\Address\CollectionFactory;
 use Polkurier\Shipping\Model\Sdk\ApiEventDispatcher;
 use Polkurier\Shipping\Model\Sync\MatchedByNameTrait;
 use Polkurier\Shipping\Model\Sync\PushableAdapterInterface;
+use Polkurier\Webservice\Dto\Request\Address\GetMessage;
 use Polkurier\Webservice\Enum\Address\AddressTypeEnum;
-use Polkurier\Webservice\Request\Address\GetMessage;
 
 /**
  * Sender addresses of the address book. Recipient entries are left to the Polkurier panel.
@@ -76,7 +76,7 @@ readonly class AddressSyncAdapter implements PushableAdapterInterface
     public function push(SyncableInterface $local): array
     {
         /** @var AddressInterface $local */
-        $request = $this->addressBookMapper->mapToSaveMessage($local);
+        $request = $this->addressBookMapper->mapToRecord($local);
         $isNew = $local->getExtId() === null;
         $response = $this->polkurierClient->getAddresses()->saveAddress($request);
         $this->apiEventDispatcher->dispatch(ApiEventEnum::AddressSaveAfter, null, [

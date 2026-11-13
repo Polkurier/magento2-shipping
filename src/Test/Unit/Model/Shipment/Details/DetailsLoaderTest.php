@@ -21,7 +21,7 @@ use Polkurier\Shipping\Model\Shipment\Details\DetailsLoader;
 use Polkurier\Shipping\Model\Shipment\Status\RemoteOrderApplier;
 use Polkurier\Shipping\Model\Shipment\Status\StatusRefreshService;
 use Polkurier\Shipping\Test\Unit\Support\FixedDateTime;
-use Polkurier\Webservice\Response\Order\OrderStatusMessage;
+use Polkurier\Webservice\Dto\Response\Order\OrderStatusMessage;
 
 #[CoversClass(DetailsLoader::class)]
 #[AllowMockObjectsWithoutExpectations]
@@ -286,7 +286,7 @@ class DetailsLoaderTest extends TestCase
                 }
                 $this->read[] = $number;
 
-                return $this->createStub(OrderStatusMessage::class);
+                return new OrderStatusMessage();
             },
         );
         $resource = $this->createStub(ShipmentResource::class);

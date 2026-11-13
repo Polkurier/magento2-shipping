@@ -26,8 +26,8 @@ use Polkurier\Shipping\Model\CarrierConfig\CarrierConfigSynchronizer;
 use Polkurier\Shipping\Model\CarrierConfigFactory;
 use Polkurier\Shipping\Model\ResourceModel\CarrierConfig as CarrierConfigResource;
 use Polkurier\Shipping\Model\Sdk\ErrorMessageResolver;
+use Polkurier\Webservice\Dto\Response\Carrier;
 use Polkurier\Webservice\Exception\ConnectionException;
-use Polkurier\Webservice\Response\Carrier;
 
 #[CoversClass(CarrierConfigSynchronizer::class)]
 #[AllowMockObjectsWithoutExpectations]

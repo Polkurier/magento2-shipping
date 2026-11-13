@@ -12,29 +12,24 @@ use Magento\Framework\Filesystem\DirectoryList as Directories;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Polkurier\Shipping\Model\Sdk\SerializerProvider;
+use Polkurier\Shipping\Model\Sdk\SerializerConfigProvider;
 use Polkurier\Webservice\Serializer\SerializerConfig;
 use Polkurier\Webservice\Serializer\SerializerConfigFactory;
-use Polkurier\Webservice\Serializer\SerializerProviderFactory;
-use Polkurier\Webservice\Serializer\SerializerProviderInterface;
 use Symfony\Component\Cache\Adapter\PhpFilesAdapter;
 use Symfony\Component\Cache\Adapter\PhpFilesAdapterFactory;
-use Symfony\Component\Serializer\Serializer;
 
-#[CoversClass(SerializerProvider::class)]
+#[CoversClass(SerializerConfigProvider::class)]
 #[AllowMockObjectsWithoutExpectations]
-class SerializerProviderTest extends TestCase
+class SerializerConfigProviderTest extends TestCase
 {
-    public function testTheMetadataIsCachedPerSdkVersion(): void
+    public function testTheMetadataIsCachedPerSdkVersionAndTimesArePolish(): void
     {
         $directories = $this->createStub(Directories::class);
         $directories->method('getPath')->willReturn('/shop/var/cache');
         $configs = $this->createStub(SerializerConfigFactory::class);
-        $configs->method('create')->willReturn($this->createStub(SerializerConfig::class));
-        $inner = $this->createStub(SerializerProviderInterface::class);
-        $inner->method('getSerializer')->willReturn(new Serializer());
-        $providers = $this->createStub(SerializerProviderFactory::class);
-        $providers->method('create')->willReturn($inner);
+        $configs->method('create')->willReturnCallback(
+            static fn(array $arguments): SerializerConfig => new SerializerConfig(...$arguments),
+        );
         $cache = null;
         $caches = $this->createStub(PhpFilesAdapterFactory::class);
         $caches->method('create')->willReturnCallback(function (array $arguments) use (&$cache): PhpFilesAdapter {
@@ -43,12 +38,14 @@ class SerializerProviderTest extends TestCase
             return $this->createStub(PhpFilesAdapter::class);
         });
 
-        (new SerializerProvider($directories, $providers, $configs, $caches))->getSerializer();
+        $provider = new SerializerConfigProvider($directories, $configs, $caches);
 
+        self::assertSame($provider->getConfig(), $provider->getConfig(), 'Built once.');
         $version = InstalledVersions::getVersion('polkurier/polkurier-sdk');
         self::assertIsString($version);
         self::assertStringStartsWith('polkurier-' . $version . '-', $cache['namespace'] ?? '');
         self::assertMatchesRegularExpression('/^[-+_.A-Za-z0-9]+$/', $cache['namespace']);
         self::assertSame('/shop/var/cache/polkurier', $cache['directory'] ?? null);
+        self::assertSame('Europe/Warsaw', $provider->getConfig()->getTimezone()?->getName());
     }
 }

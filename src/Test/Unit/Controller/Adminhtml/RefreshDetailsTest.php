@@ -26,7 +26,7 @@ use Polkurier\Shipping\Model\Shipment\Status\StatusRefreshService;
 use Polkurier\Shipping\Test\Unit\Support\AdminActionTestCase;
 use Polkurier\Shipping\Test\Unit\Support\FixedDateTime;
 use Polkurier\Shipping\ViewModel\Adminhtml\ShipmentDetails;
-use Polkurier\Webservice\Response\Order\OrderStatusMessage;
+use Polkurier\Webservice\Dto\Response\Order\OrderStatusMessage;
 
 /**
  * The shipment details page's background refresh: what it reads from Polkurier, what it stores,
@@ -149,7 +149,7 @@ class RefreshDetailsTest extends AdminActionTestCase
             }
             $this->scansRead[] = $number;
 
-            return $this->createStub(OrderStatusMessage::class);
+            return new OrderStatusMessage();
         });
         $resource = $this->createStub(ShipmentResource::class);
         $resource->method('updateColumns')->willReturnCallback(function (int $id, array $values): void {

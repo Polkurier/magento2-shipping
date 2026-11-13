@@ -16,11 +16,11 @@ use Polkurier\Shipping\Model\Config\ConfigProvider;
 use Polkurier\Shipping\Model\Sdk\ApplicationIdProvider;
 use Polkurier\Shipping\Model\Sdk\ShipmentGateway;
 use Polkurier\Shipping\Model\Shipment\ShipmentFinder;
-use Polkurier\Webservice\Builder\Order\GetOrdersMessageBuilder;
-use Polkurier\Webservice\Builder\Order\GetOrdersMessageBuilderFactory;
+use Polkurier\Webservice\Builder\Request\Order\GetOrdersMessageBuilder;
+use Polkurier\Webservice\Builder\Request\Order\GetOrdersMessageBuilderFactory;
+use Polkurier\Webservice\Dto\Request\Order\GetOrdersMessage;
+use Polkurier\Webservice\Entity\Order;
 use Polkurier\Webservice\Enum\Order\OrderStatusCodeEnum;
-use Polkurier\Webservice\Request\Order\GetOrdersMessage;
-use Polkurier\Webservice\Response\Order;
 
 /**
  * Finds this installation's orders on the Polkurier account: the one an unanswered attempt may have
@@ -194,14 +194,14 @@ readonly class RemoteOrderMatcher
             } catch (LocalizedException) {
                 break;
             }
-            foreach ($list->getResult() as $order) {
+            foreach ($list->result as $order) {
                 $number = (string)$order->getNumber();
                 if (isset($wanted[$number])) {
                     $found[$number] = $order;
                     unset($wanted[$number]);
                 }
             }
-            if ($page >= $list->getTotalPages() || ($page === 1 && $list->getTotalPages() >= $count)) {
+            if ($page >= $list->totalPages || ($page === 1 && $list->totalPages >= $count)) {
                 break;
             }
         }
@@ -265,10 +265,10 @@ readonly class RemoteOrderMatcher
                 ->page($page)
                 ->packs(true);
             $list = $this->shipmentGateway->findOrders($filter($builder)->build());
-            foreach ($list->getResult() as $order) {
+            foreach ($list->result as $order) {
                 yield $order;
             }
-            if ($page >= $list->getTotalPages()) {
+            if ($page >= $list->totalPages) {
                 break;
             }
         }
@@ -316,7 +316,7 @@ readonly class RemoteOrderMatcher
     private static function hasWaybill(Order $order, string $waybill): bool
     {
         foreach ($order->getWaybills() as $candidate) {
-            if (\strcasecmp((string)$candidate->getNumber(), $waybill) === 0) {
+            if (\strcasecmp($candidate->number, $waybill) === 0) {
                 return true;
             }
         }

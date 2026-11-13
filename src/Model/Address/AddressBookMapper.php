@@ -9,11 +9,10 @@ namespace Polkurier\Shipping\Model\Address;
 
 use Polkurier\Shipping\Api\Data\AddressInterface;
 use Polkurier\Shipping\Model\Carrier\Polkurier;
-use Polkurier\Webservice\Builder\Address\SaveMessageBuilderFactory;
+use Polkurier\Webservice\Builder\Entity\AddressBuilderFactory;
+use Polkurier\Webservice\Dto\Request\Address\DeleteMessage;
+use Polkurier\Webservice\Entity\Address;
 use Polkurier\Webservice\Enum\Address\AddressTypeEnum;
-use Polkurier\Webservice\Request\Address\DeleteMessage;
-use Polkurier\Webservice\Request\Address\SaveMessage;
-use Polkurier\Webservice\Response\Address;
 
 /**
  * Maps address book entries between Magento and the Polkurier account.
@@ -21,7 +20,7 @@ use Polkurier\Webservice\Response\Address;
 readonly class AddressBookMapper
 {
     public function __construct(
-        private SaveMessageBuilderFactory $saveMessageBuilderFactory,
+        private AddressBuilderFactory $addressBuilderFactory,
     ) {}
 
     /**
@@ -79,9 +78,9 @@ readonly class AddressBookMapper
             ->setShared((bool)$remote[AddressInterface::FIELD_SHARED]);
     }
 
-    public function mapToSaveMessage(AddressInterface $address): SaveMessage
+    public function mapToRecord(AddressInterface $address): Address
     {
-        return $this->saveMessageBuilderFactory->create()
+        return $this->addressBuilderFactory->create()
             ->name($address->getName())
             ->person($address->getPerson())
             ->street($address->getStreet())

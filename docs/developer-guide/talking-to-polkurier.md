@@ -38,7 +38,9 @@ public function execute(): void
 | `getGeo()`, `getUtils()` | geographic lookups and helpers |
 | `getMoneyBox()` | cash on delivery balance and payouts |
 | `getOrders()` | placing, cancelling, labels, protocols, statuses, collective pickups |
+| `getOrderReader()` | checking and reading the order events Polkurier posts to the webhook |
 | `getPackTemplates()` | pack templates |
+| `getSerializer()` | writing a payload as the client sends it, and reading one back |
 | `getSystem()` | service information, the carriers' current notices, coupon validation |
 | `getTwoFactorToken()` | sending two-factor codes |
 

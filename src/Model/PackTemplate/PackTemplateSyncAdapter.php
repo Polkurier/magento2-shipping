@@ -72,7 +72,7 @@ readonly class PackTemplateSyncAdapter implements PushableAdapterInterface
     public function push(SyncableInterface $local): array
     {
         /** @var PackTemplateInterface $local */
-        $request = $this->packTemplateMapper->mapToSaveMessage($local);
+        $request = $this->packTemplateMapper->mapToRecord($local);
         $isNew = $local->getExtId() === null;
         $response = $this->polkurierClient->getPackTemplates()->savePackTemplates($request);
         $this->apiEventDispatcher->dispatch(ApiEventEnum::PackTemplateSaveAfter, null, [

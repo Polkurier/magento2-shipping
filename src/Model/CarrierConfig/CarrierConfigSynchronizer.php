@@ -19,8 +19,8 @@ use Polkurier\Shipping\Model\Carrier\CarrierNameProvider;
 use Polkurier\Shipping\Model\CarrierConfigFactory;
 use Polkurier\Shipping\Model\ResourceModel\CarrierConfig as CarrierConfigResource;
 use Polkurier\Shipping\Model\Sdk\ErrorMessageResolver;
+use Polkurier\Webservice\Dto\Response\Carrier;
 use Polkurier\Webservice\Exception\Exception as PolkurierException;
-use Polkurier\Webservice\Response\Carrier;
 
 /**
  * Keeps one settings row per carrier the account offers.
@@ -90,7 +90,7 @@ readonly class CarrierConfigSynchronizer
     {
         foreach ($carriers as $code => $carrier) {
             if ($existing !== [] && !($existing[$code] ?? null)?->isAvailable()) {
-                $added[] = CarrierNameProvider::resolveName($carrier->getName(), $code);
+                $added[] = CarrierNameProvider::resolveName($carrier->name, $code);
             }
             $config = $existing[$code] ?? $this->carrierConfigFactory->create()
                 ->setCarrierCode($code)
@@ -99,7 +99,7 @@ readonly class CarrierConfigSynchronizer
                 ->setActive(false)
                 ->setPricingModel(PricingModelEnum::Fixed->value)
                 ->setPriceInfo([]);
-            $config->setCarrierName($carrier->getName());
+            $config->setCarrierName($carrier->name);
             $config->setAvailable(true);
             $this->carrierConfigRepository->save($config);
         }

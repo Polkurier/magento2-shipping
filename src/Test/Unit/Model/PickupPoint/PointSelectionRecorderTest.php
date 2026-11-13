@@ -22,10 +22,10 @@ use Polkurier\Shipping\Model\PickupPoint\PointFinder;
 use Polkurier\Shipping\Model\PickupPoint\PointSelectionRecorder;
 use Polkurier\Shipping\Model\QuotePoint;
 use Polkurier\Shipping\Model\QuotePointFactory;
+use Polkurier\Webservice\Dto\Response\Carrier;
+use Polkurier\Webservice\Dto\Response\CourierPoint;
 use Polkurier\Webservice\Enum\Courier\PointFunctionEnum;
 use Polkurier\Webservice\Exception\ConnectionException;
-use Polkurier\Webservice\Response\Carrier;
-use Polkurier\Webservice\Response\CourierPoint;
 
 #[CoversClass(PointSelectionRecorder::class)]
 #[CoversClass(PointFinder::class)]
@@ -57,7 +57,7 @@ class PointSelectionRecorderTest extends TestCase
         $this->createRecorder(new CourierPoint(
             'WAW195M',
             available: true,
-            functions: [PointFunctionEnum::Collect->value, PointFunctionEnum::Send->value],
+            functions: [PointFunctionEnum::Collect, PointFunctionEnum::Send],
             address: 'Krótka 5, Warszawa',
         ))
             ->select($this->quote(), 'polkurier', 'INPOST_PACZKOMAT', 'WAW195M');
@@ -74,7 +74,7 @@ class PointSelectionRecorderTest extends TestCase
             zip: '00-001',
             city: 'Warszawa',
             available: true,
-            functions: [PointFunctionEnum::Collect->value],
+            functions: [PointFunctionEnum::Collect],
         ))
             ->select($this->quote(), 'polkurier', 'INPOST_PACZKOMAT', 'WAW195M');
 
@@ -86,7 +86,7 @@ class PointSelectionRecorderTest extends TestCase
         $this->expectException(InputException::class);
 
         $this->createRecorder(
-            new CourierPoint('WAW195M', available: false, functions: [PointFunctionEnum::Collect->value]),
+            new CourierPoint('WAW195M', available: false, functions: [PointFunctionEnum::Collect]),
         )
             ->select($this->quote(), 'polkurier', 'INPOST_PACZKOMAT', 'WAW195M');
     }
@@ -95,7 +95,7 @@ class PointSelectionRecorderTest extends TestCase
     {
         try {
             $this->createRecorder(
-                new CourierPoint('WAW01N', available: true, functions: [PointFunctionEnum::Send->value]),
+                new CourierPoint('WAW01N', available: true, functions: [PointFunctionEnum::Send]),
             )
                 ->select($this->quote(), 'polkurier', 'INPOST_PACZKOMAT', 'WAW01N');
             self::fail('The customer could not collect the parcel there.');
@@ -167,7 +167,7 @@ class PointSelectionRecorderTest extends TestCase
         $this->createRecorder(new CourierPoint(
             'WAW195M',
             available: true,
-            functions: [PointFunctionEnum::Collect->value],
+            functions: [PointFunctionEnum::Collect],
             cod: true,
         ))
             ->select($this->quote(), 'polkurier', 'INPOST_PACZKOMAT', 'WAW195M', 12);
@@ -234,7 +234,7 @@ class PointSelectionRecorderTest extends TestCase
             return $point ?? new CourierPoint(
                 'WAW195M',
                 available: true,
-                functions: [PointFunctionEnum::Collect->value],
+                functions: [PointFunctionEnum::Collect],
             );
         });
         $features = $this->createStub(CarrierFeatureResolver::class);

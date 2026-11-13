@@ -7,6 +7,7 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Api;
 
+use Polkurier\Webservice\Api\SerializerInterface;
 use Polkurier\Webservice\Api\Service\AccountServiceInterface;
 use Polkurier\Webservice\Api\Service\AccountVerificationServiceInterface;
 use Polkurier\Webservice\Api\Service\AddressesServiceInterface;
@@ -23,6 +24,7 @@ use Polkurier\Webservice\Api\Service\SystemServiceInterface;
 use Polkurier\Webservice\Api\Service\TicketsServiceInterface;
 use Polkurier\Webservice\Api\Service\TwoFactorTokenServiceInterface;
 use Polkurier\Webservice\Api\Service\UtilsServiceInterface;
+use Polkurier\Webservice\Api\Webhook\OrderReaderInterface;
 
 /**
  * The Polkurier API with the shop's account: every service of the SDK, set up as the module uses
@@ -64,4 +66,8 @@ interface PolkurierClientInterface
     public function getKnowledgeBase(): KnowledgeBaseServiceInterface;
 
     public function getMoneyBox(): MoneyBoxServiceInterface;
+
+    public function getOrderReader(): OrderReaderInterface;
+
+    public function getSerializer(): SerializerInterface;
 }

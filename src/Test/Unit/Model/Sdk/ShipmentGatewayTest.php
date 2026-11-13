@@ -17,12 +17,13 @@ use Polkurier\Shipping\Model\Sdk\ErrorMessageResolver;
 use Polkurier\Shipping\Model\Sdk\PolkurierClient;
 use Polkurier\Shipping\Model\Sdk\ShipmentGateway;
 use Polkurier\Webservice\Api\Service\OrdersServiceInterface;
+use Polkurier\Webservice\Dto\Request\Order\CreateOrderMessage;
+use Polkurier\Webservice\Dto\Response\ErrorMessage;
+use Polkurier\Webservice\Dto\Response\Order\OrderStatusMessage;
+use Polkurier\Webservice\Entity\Order;
 use Polkurier\Webservice\Enum\Http\ResponseStatusEnum;
 use Polkurier\Webservice\Exception\ConnectionException;
 use Polkurier\Webservice\Exception\WebserviceException;
-use Polkurier\Webservice\Http\Response\ErrorMessage;
-use Polkurier\Webservice\Request\Order\CreateOrderMessage;
-use Polkurier\Webservice\Response\Order\OrderStatusMessage;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
 
@@ -61,7 +62,7 @@ class ShipmentGatewayTest extends TestCase
 
         try {
             (new ShipmentGateway($client, new ErrorMessageResolver()))
-                ->placeOrder($this->createStub(CreateOrderMessage::class));
+                ->placeOrder(new CreateOrderMessage(new Order('DPD')));
             self::fail('The failure is reported.');
         } catch (LocalizedException $e) {
             self::assertSame($uncertain, $e instanceof PlacementUncertainException);
@@ -81,7 +82,7 @@ class ShipmentGatewayTest extends TestCase
 
         return [
             'a status: a live order' => [
-                static fn(self $test): OrderStatusMessage => $test->createStub(OrderStatusMessage::class),
+                static fn(): OrderStatusMessage => new OrderStatusMessage(),
                 false,
             ],
             'refused as cancelled' => [$refusal('Zamówienie anulowane'), true],

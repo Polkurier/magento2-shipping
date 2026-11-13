@@ -25,8 +25,8 @@ use Polkurier\Shipping\Model\Shipment\Native\NativeFollowUpService;
 use Polkurier\Shipping\Model\Shipment\OrderLoader;
 use Polkurier\Shipping\Model\Shipment\OrderLock;
 use Polkurier\Shipping\Test\Unit\Support\MemoryLocks;
-use Polkurier\Webservice\Request\Order\OrderIdMessage;
-use Polkurier\Webservice\Response\Order\CancellationMessage;
+use Polkurier\Webservice\Dto\Request\Order\CancelOrderMessage;
+use Polkurier\Webservice\Dto\Response\Order\CancellationMessage;
 
 #[CoversClass(CancellationService::class)]
 #[AllowMockObjectsWithoutExpectations]
@@ -128,8 +128,8 @@ class CancellationServiceTest extends TestCase
         });
         $gateway = $this->createStub(ShipmentGateway::class);
         $gateway->method('cancelOrder')->willReturnCallback(
-            function (OrderIdMessage $message) use ($cancelled): CancellationMessage {
-                $this->happened[] = 'cancel ' . $message->getOrderNo();
+            function (CancelOrderMessage $message) use ($cancelled): CancellationMessage {
+                $this->happened[] = 'cancel ' . $message->orderNo;
 
                 return new CancellationMessage($cancelled);
             },

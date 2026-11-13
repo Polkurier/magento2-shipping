@@ -13,20 +13,20 @@ use Polkurier\Shipping\Enum\Sdk\ApiEventEnum;
 use Polkurier\Shipping\Model\BankAccount\BankAccountMapper;
 use Polkurier\Shipping\Model\Sdk\ApiEventDispatcher;
 use Polkurier\Shipping\Model\Sdk\ErrorMessageResolver;
-use Polkurier\Webservice\Builder\MoneyBox\CreateMoneyBoxPayoutMessageBuilderFactory;
-use Polkurier\Webservice\Builder\MoneyBox\GetMoneyBoxPayoutsMessageBuilderFactory;
+use Polkurier\Webservice\Builder\Request\MoneyBox\CreateMoneyBoxPayoutMessageBuilderFactory;
+use Polkurier\Webservice\Builder\Request\MoneyBox\GetMoneyBoxPayoutsMessageBuilderFactory;
+use Polkurier\Webservice\Dto\Request\MoneyBox\CalculateMoneyBoxPayoutFeeMessage;
+use Polkurier\Webservice\Dto\Request\MoneyBox\CancelMoneyBoxPayoutMessage;
+use Polkurier\Webservice\Dto\Request\TwoFactorToken\RegisterMessage;
+use Polkurier\Webservice\Dto\Response\MoneyBox\MoneyBoxConfigMessage;
+use Polkurier\Webservice\Dto\Response\MoneyBox\MoneyBoxFeeMessage;
+use Polkurier\Webservice\Dto\Response\MoneyBox\MoneyBoxPayoutListMessage;
+use Polkurier\Webservice\Dto\Response\MoneyBox\MoneyBoxPayoutMessage;
+use Polkurier\Webservice\Dto\Response\TwoFactorToken;
 use Polkurier\Webservice\Enum\MoneyBox\MoneyBoxFeePaymentTypeEnum;
 use Polkurier\Webservice\Enum\MoneyBox\MoneyBoxPayoutTypeEnum;
 use Polkurier\Webservice\Enum\TwoFactorToken\TwoFactorNamespaceEnum;
 use Polkurier\Webservice\Exception\Exception as PolkurierException;
-use Polkurier\Webservice\Request\MoneyBox\CalculateMoneyBoxPayoutFeeMessage;
-use Polkurier\Webservice\Request\MoneyBox\CancelMoneyBoxPayoutMessage;
-use Polkurier\Webservice\Request\TwoFactorToken\RegisterMessage;
-use Polkurier\Webservice\Response\MoneyBox\MoneyBoxConfigMessage;
-use Polkurier\Webservice\Response\MoneyBox\MoneyBoxFeeMessage;
-use Polkurier\Webservice\Response\MoneyBox\MoneyBoxPayoutListMessage;
-use Polkurier\Webservice\Response\MoneyBox\MoneyBoxPayoutMessage;
-use Polkurier\Webservice\Response\TwoFactorToken;
 
 /**
  * Cash collected on delivery and held in the Polkurier money box, and paying it out.
@@ -76,7 +76,7 @@ readonly class PayoutManager
             return $this->call(
                 fn(): float => $this->polkurierClient->getAccount()
                     ->getAccountInfo()
-                    ->getMoneyBoxPayoutAvailableBalance(),
+                    ->moneyBoxPayoutAvailableBalance,
             );
         } catch (LocalizedException) {
             return null;

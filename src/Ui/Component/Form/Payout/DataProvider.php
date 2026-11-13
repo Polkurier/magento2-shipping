@@ -73,9 +73,9 @@ class DataProvider extends FormDataProvider
         if ($this->configProvider->hasCredentials()) {
             try {
                 $config = $this->payoutManager->getConfig();
-                $data['payout_type'] = $config->getPayoutType()->value;
-                $data['fee_payment_type'] = $config->getFeePayment()->value;
-                $data['bank_account_number'] = BankAccountMapper::normalizeNumber((string)$config->getIban());
+                $data['payout_type'] = $config->payoutType->value;
+                $data['fee_payment_type'] = $config->feePayment->value;
+                $data['bank_account_number'] = BankAccountMapper::normalizeNumber($config->bankAccountNumber);
             } catch (LocalizedException) {
                 // The form still opens; Polkurier reports the problem again on submit.
             }

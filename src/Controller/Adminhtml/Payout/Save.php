@@ -67,8 +67,8 @@ class Save extends Action implements HttpPostActionInterface
             );
             $this->messageManager->addSuccessMessage(__(
                 'Payout %1 requested: %2 PLN.',
-                $payout->getNumber(),
-                \number_format($payout->getAmount(), 2),
+                $payout->number,
+                \number_format($payout->amount, 2),
             ));
         } catch (LocalizedException $e) {
             $this->messageManager->addErrorMessage($e->getMessage());

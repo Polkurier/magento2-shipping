@@ -10,11 +10,11 @@ namespace Polkurier\Shipping\Test\Unit\Model\Carrier;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Polkurier\Shipping\Model\Carrier\CarrierFeatureResolver;
-use Polkurier\Webservice\Response\Carrier;
-use Polkurier\Webservice\Response\Carrier\AdditionalData;
-use Polkurier\Webservice\Response\Carrier\AdditionalData\Pickup;
-use Polkurier\Webservice\Response\Carrier\AdditionalData\Property;
-use Polkurier\Webservice\Response\Carrier\AdditionalData\ShipmentType;
+use Polkurier\Webservice\Dto\Response\Carrier;
+use Polkurier\Webservice\Dto\Response\Carrier\AdditionalData;
+use Polkurier\Webservice\Dto\Response\Carrier\AdditionalData\Pickup;
+use Polkurier\Webservice\Dto\Response\Carrier\AdditionalData\Property;
+use Polkurier\Webservice\Dto\Response\Carrier\AdditionalData\ShipmentType;
 
 #[CoversClass(CarrierFeatureResolver::class)]
 class CarrierFeatureResolverTest extends TestCase

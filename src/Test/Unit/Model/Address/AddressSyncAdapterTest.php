@@ -23,9 +23,9 @@ use Polkurier\Shipping\Model\Sdk\ApiEventDispatcher;
 use Polkurier\Shipping\Test\Unit\Support\NewingObjectManager;
 use Polkurier\Shipping\Test\Unit\Support\RecordingEventManager;
 use Polkurier\Shipping\Test\Unit\Support\SdkTestCase;
-use Polkurier\Webservice\Builder\Address\SaveMessageBuilderFactory;
-use Polkurier\Webservice\Request\Address\DeleteMessage;
-use Polkurier\Webservice\Request\Address\SaveMessage;
+use Polkurier\Webservice\Builder\Entity\AddressBuilderFactory;
+use Polkurier\Webservice\Dto\Request\Address\DeleteMessage;
+use Polkurier\Webservice\Entity\Address as SdkAddress;
 use Polkurier\Webservice\Testing\RecordingClient;
 
 #[CoversClass(AddressSyncAdapter::class)]
@@ -55,7 +55,7 @@ class AddressSyncAdapterTest extends SdkTestCase
         self::assertNull($events[0]['store_id'], 'The account\'s, not a store\'s.');
         self::assertSame($address, $events[0]['address']);
         self::assertTrue($events[0]['is_new']);
-        self::assertInstanceOf(SaveMessage::class, $events[0]['request']);
+        self::assertInstanceOf(SdkAddress::class, $events[0]['request']);
         self::assertSame('aZ3k', $events[0]['response']->getId());
     }
 
@@ -82,7 +82,7 @@ class AddressSyncAdapterTest extends SdkTestCase
     {
         return new AddressSyncAdapter(
             $this->createClientPool($http),
-            new AddressBookMapper(NewingObjectManager::createFactory(SaveMessageBuilderFactory::class)),
+            new AddressBookMapper(NewingObjectManager::createFactory(AddressBuilderFactory::class)),
             $this->createStub(CollectionFactory::class),
             $this->createStub(AddressFactory::class),
             $this->createStub(AddressRepositoryInterface::class),

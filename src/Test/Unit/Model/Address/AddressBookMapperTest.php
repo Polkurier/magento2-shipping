@@ -15,9 +15,9 @@ use Polkurier\Shipping\Model\Address;
 use Polkurier\Shipping\Model\Address\AddressBookMapper;
 use Polkurier\Shipping\Test\Unit\Support\NewingObjectManager;
 use Polkurier\Shipping\Test\Unit\Support\SdkTestCase;
-use Polkurier\Webservice\Builder\Address\SaveMessageBuilderFactory;
+use Polkurier\Webservice\Builder\Entity\AddressBuilderFactory;
+use Polkurier\Webservice\Dto\Request\Address\GetMessage;
 use Polkurier\Webservice\Enum\Address\AddressTypeEnum;
-use Polkurier\Webservice\Request\Address\GetMessage;
 use Polkurier\Webservice\Testing\RecordingClient;
 
 #[CoversClass(AddressBookMapper::class)]
@@ -90,7 +90,7 @@ class AddressBookMapperTest extends SdkTestCase
             ->setDefault(true)
             ->setCover(true);
 
-        $saved = $this->createClientPool($http)->getAddresses()->saveAddress($mapper->mapToSaveMessage($local));
+        $saved = $this->createClientPool($http)->getAddresses()->saveAddress($mapper->mapToRecord($local));
         $data = $http->lastPayload()['data'];
 
         self::assertSame('aZ3k', $data['id'], 'An entry already in Polkurier is updated, not duplicated.');
@@ -108,6 +108,6 @@ class AddressBookMapperTest extends SdkTestCase
 
     private static function createMapper(): AddressBookMapper
     {
-        return new AddressBookMapper(NewingObjectManager::createFactory(SaveMessageBuilderFactory::class));
+        return new AddressBookMapper(NewingObjectManager::createFactory(AddressBuilderFactory::class));
     }
 }

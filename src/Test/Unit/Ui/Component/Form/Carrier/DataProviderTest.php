@@ -26,12 +26,12 @@ use Polkurier\Shipping\Model\PickupPoint\PointFinder;
 use Polkurier\Shipping\Model\ResourceModel\CarrierConfig\Collection;
 use Polkurier\Shipping\Model\ResourceModel\CarrierConfig\CollectionFactory;
 use Polkurier\Shipping\Ui\Component\Form\Carrier\DataProvider;
+use Polkurier\Webservice\Dto\Response\Carrier;
+use Polkurier\Webservice\Dto\Response\Carrier\AdditionalData;
+use Polkurier\Webservice\Dto\Response\Carrier\AdditionalData\PointsMap;
+use Polkurier\Webservice\Dto\Response\CourierPoint;
 use Polkurier\Webservice\Enum\Courier\PointRequirementEnum;
 use Polkurier\Webservice\Exception\ConnectionException;
-use Polkurier\Webservice\Response\Carrier;
-use Polkurier\Webservice\Response\Carrier\AdditionalData;
-use Polkurier\Webservice\Response\Carrier\AdditionalData\PointsMap;
-use Polkurier\Webservice\Response\CourierPoint;
 
 #[CoversClass(DataProvider::class)]
 #[AllowMockObjectsWithoutExpectations]

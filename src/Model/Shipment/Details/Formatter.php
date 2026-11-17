@@ -11,7 +11,7 @@ use Magento\Framework\Locale\ResolverInterface;
 use Magento\Framework\Pricing\PriceCurrencyInterface;
 use Magento\Framework\Stdlib\DateTime\TimezoneInterface;
 use Polkurier\Shipping\Model\Carrier\Polkurier;
-use Polkurier\Shipping\Model\Sdk\PolkurierTimeZone;
+use Polkurier\Shipping\Model\Sdk\PolkurierTimeZoneProvider;
 use Polkurier\Shipping\Model\Shipment\Valuation\OrderAmountCalculator;
 
 /**
@@ -61,7 +61,7 @@ readonly class Formatter
             return self::NONE;
         }
         try {
-            $time = (new \DateTimeImmutable($value, PolkurierTimeZone::getZone()))
+            $time = (new \DateTimeImmutable($value, PolkurierTimeZoneProvider::getZone()))
                 ->setTimezone(new \DateTimeZone('UTC'));
         } catch (\DateMalformedStringException) {
             return $value;

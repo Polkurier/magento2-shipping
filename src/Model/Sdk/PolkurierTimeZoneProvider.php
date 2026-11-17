@@ -11,7 +11,7 @@ namespace Polkurier\Shipping\Model\Sdk;
  * Polish time, which Polkurier's dates and times are in: statuses, deliveries, carrier scans,
  * collection dates and windows. The module stores status and delivery times in UTC.
  */
-final class PolkurierTimeZone
+final class PolkurierTimeZoneProvider
 {
     public const string ZONE = 'Europe/Warsaw';
 

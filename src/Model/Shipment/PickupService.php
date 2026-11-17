@@ -14,7 +14,7 @@ use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Api\ShipmentRepositoryInterface;
 use Polkurier\Shipping\Enum\Sdk\ApiEventEnum;
 use Polkurier\Shipping\Model\Sdk\ApiEventDispatcher;
-use Polkurier\Shipping\Model\Sdk\PolkurierTimeZone;
+use Polkurier\Shipping\Model\Sdk\PolkurierTimeZoneProvider;
 use Polkurier\Shipping\Model\Sdk\ShipmentGateway;
 use Polkurier\Shipping\Model\Shipment\Placement\SenderMapper;
 use Polkurier\Webservice\Builder\Request\Courier\GetPickupTimeMessageBuilderFactory;
@@ -242,7 +242,7 @@ readonly class PickupService
      */
     private static function parse(string $format, string $value): ?\DateTimeImmutable
     {
-        $parsed = \DateTimeImmutable::createFromFormat($format, $value, PolkurierTimeZone::getZone());
+        $parsed = \DateTimeImmutable::createFromFormat($format, $value, PolkurierTimeZoneProvider::getZone());
         $errors = \DateTimeImmutable::getLastErrors();
 
         return $parsed !== false

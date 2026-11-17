@@ -41,7 +41,7 @@ class SerializerConfigProvider
                 'defaultLifetime' => 0,
                 'directory' => $this->directoryList->getPath(DirectoryList::CACHE) . '/' . self::CACHE_DIRECTORY,
             ]),
-            'timezone' => PolkurierTimeZone::getZone(),
+            'timezone' => PolkurierTimeZoneProvider::getZone(),
         ]);
     }
 

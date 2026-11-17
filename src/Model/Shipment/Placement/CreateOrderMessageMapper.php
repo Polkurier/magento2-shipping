@@ -17,7 +17,7 @@ use Polkurier\Shipping\Api\Data\ShipmentDraftInterface;
 use Polkurier\Shipping\Model\BankAccount\BankAccountMapper;
 use Polkurier\Shipping\Model\Carrier\Polkurier;
 use Polkurier\Shipping\Model\Config\ConfigProvider;
-use Polkurier\Shipping\Model\Sdk\PolkurierTimeZone;
+use Polkurier\Shipping\Model\Sdk\PolkurierTimeZoneProvider;
 use Polkurier\Webservice\Builder\Entity\Order\AddressBuilderFactory;
 use Polkurier\Webservice\Builder\Entity\Order\CodBuilderFactory;
 use Polkurier\Webservice\Builder\Entity\Order\PackItemBuilderFactory;
@@ -318,7 +318,7 @@ readonly class CreateOrderMessageMapper
             return null;
         }
         // The date and window are Polish time, as Polkurier offers them, whatever PHP's own zone.
-        $zone = PolkurierTimeZone::getZone();
+        $zone = PolkurierTimeZoneProvider::getZone();
         $builder = $this->pickupBuilderFactory->create()
             ->pickupDate(new \DateTimeImmutable($draft->getPickupDate(), $zone));
         if ($draft->getPickupTimeFrom()) {

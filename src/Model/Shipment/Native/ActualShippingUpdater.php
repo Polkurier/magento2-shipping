@@ -14,19 +14,19 @@ use Magento\Sales\Model\ResourceModel\GridInterface;
 use Magento\Store\Model\App\Emulation;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Api\OrderPointRepositoryInterface;
+use Polkurier\Shipping\Api\ShippingChoiceRepositoryInterface;
 use Polkurier\Shipping\Model\Carrier\Polkurier;
 use Polkurier\Shipping\Model\PickupPoint\PointDescriptionBuilder;
 use Polkurier\Shipping\Model\Shipment\Details\SentOrderReader;
 use Polkurier\Shipping\Model\Shipment\OrderLoader;
 use Polkurier\Shipping\Model\Shipment\Screen\ScreenDataProvider;
 use Polkurier\Shipping\Model\Shipment\ShipmentFinder;
-use Polkurier\Shipping\Model\ShippingChoice\ShippingChoiceRepository;
 
 /**
  * Keeps the order's shipping matching what was actually sent: its shipping method, its description
  * and its pickup point follow the carrier and point of its latest placed Polkurier order, so the
  * order page, the order grid, e-mails and the API all show them. The customer's choice is kept on
- * the side ({@see ShippingChoiceRepository}) and comes back once no placed Polkurier order is left.
+ * the side ({@see ShippingChoiceRepositoryInterface}) and comes back once no placed Polkurier order is left.
  * The shipping amount the customer paid stays as it was. An order placed with another carrier's
  * method follows a Polkurier order linked to it as well
  * ({@see \Polkurier\Shipping\Model\Shipment\Status\TrackAdoptionService}).
@@ -39,7 +39,7 @@ readonly class ActualShippingUpdater
     public function __construct(
         private OrderLoader $orderLoader,
         private ShipmentFinder $shipmentFinder,
-        private ShippingChoiceRepository $shippingChoiceRepository,
+        private ShippingChoiceRepositoryInterface $shippingChoiceRepository,
         private OrderPointRepositoryInterface $orderPointRepository,
         private SentOrderReader $sentOrderReader,
         private ScreenDataProvider $screenDataProvider,
@@ -86,7 +86,7 @@ readonly class ActualShippingUpdater
             return;
         }
 
-        $this->shippingChoiceRepository->keep(
+        $this->shippingChoiceRepository->keepForOrder(
             $orderId,
             $order->getShippingMethod(),
             $order->getShippingDescription(),

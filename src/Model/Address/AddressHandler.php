@@ -17,7 +17,7 @@ use Polkurier\Shipping\Model\ResourceModel\Address as AddressResource;
 use Polkurier\Shipping\Model\Sdk\ErrorMessageResolver;
 use Polkurier\Shipping\Model\Sync\SyncableEntityHandler;
 use Polkurier\Shipping\Model\Sync\SyncEngine;
-use Polkurier\Shipping\Model\Sync\Synchronization;
+use Polkurier\Shipping\Model\Sync\SettingsSynchronizer;
 use Polkurier\Shipping\Model\Sync\SyncLock;
 use Polkurier\Shipping\Model\Sync\SyncResultFactory;
 
@@ -30,7 +30,7 @@ readonly class AddressHandler extends SyncableEntityHandler
         private AddressRepositoryInterface $addressRepository,
         AddressSyncAdapter $addressSyncAdapter,
         SyncEngine $syncEngine,
-        Synchronization $synchronization,
+        SettingsSynchronizer $settingsSynchronizer,
         ErrorMessageResolver $errorMessageResolver,
         DateTime $dateTime,
         SyncLock $syncLock,
@@ -40,7 +40,7 @@ readonly class AddressHandler extends SyncableEntityHandler
         parent::__construct(
             $addressSyncAdapter,
             $syncEngine,
-            $synchronization,
+            $settingsSynchronizer,
             $errorMessageResolver,
             $dateTime,
             $syncLock,

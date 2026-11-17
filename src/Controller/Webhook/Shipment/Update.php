@@ -25,12 +25,6 @@ use Polkurier\Webservice\Api\Webhook\OrderReaderInterface;
  */
 class Update implements HttpPostActionInterface, CsrfAwareActionInterface
 {
-    /**
-     * Its path under the store's base URL: the route's frontName, the controller, and the action,
-     * whose underscore Magento reads as this class's namespace.
-     */
-    public const string PATH = 'polkurier/webhook/shipment_update';
-
     public function __construct(
         private readonly Http $request,
         private readonly RawFactory $rawFactory,

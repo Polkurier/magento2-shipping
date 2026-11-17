@@ -12,7 +12,7 @@ kind of entry at a time. The kinds are fixed:
 [`Enum\Sync\SyncEntityEnum`](../../src/Enum/Sync/SyncEntityEnum.php) lists `Address`,
 `BankAccount` and `PackTemplate`.
 
-To run it from code, call [`Model\Sync\Synchronization`](../../src/Model/Sync/Synchronization.php)
+To run it from code, call [`Model\Sync\SettingsSynchronizer`](../../src/Model/Sync/SettingsSynchronizer.php)
 with the kinds you want, or none for all:
 
 ```php

@@ -99,7 +99,7 @@
                         <label>Installation ID</label>
                         <frontend_model>Polkurier\Shipping\Block\Adminhtml\System\Config\InstallationId</frontend_model>
                         <backend_model>Polkurier\Shipping\Model\Config\Backend\ApplicationId</backend_model>
-                        <comment>Leave empty. Change it only on a copy of this shop, such as a staging copy, that uses the same Polkurier account.</comment>
+                        <comment>Set only on a copy of this shop that uses the same Polkurier account.</comment>
                     </field>
                     <field id="available_carriers" translate="label comment" type="multiselect" sortOrder="80"
                            showInDefault="1">
@@ -141,7 +141,7 @@
                     <field id="description_format" translate="label comment" type="text" sortOrder="100"
                            showInDefault="1" showInWebsite="1" showInStore="1" canRestore="1">
                         <label>Shipment description</label>
-                        <comment>%s is replaced with the order number; without %s, every shipment gets this text as it is.</comment>
+                        <comment>%s becomes the order number; without it, every shipment gets this text.</comment>
                     </field>
                 </group>
                 <group id="sender" translate="label" sortOrder="21" showInDefault="1" showInWebsite="1">
@@ -176,7 +176,7 @@
                            showInDefault="1" showInWebsite="1" canRestore="1">
                         <label>Pack new shipments automatically</label>
                         <source_model>Magento\Config\Model\Config\Source\Yesno</source_model>
-                        <comment>Pack the items into your pack templates when a shipment is started. No: one parcel of the default template.</comment>
+                        <comment>Packs the items into your pack templates. No: one parcel of the default template.</comment>
                     </field>
                     <field id="packing_margin" translate="label comment" type="text" sortOrder="65"
                            showInDefault="1" showInWebsite="1" canRestore="1">

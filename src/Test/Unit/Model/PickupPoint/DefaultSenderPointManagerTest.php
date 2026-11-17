@@ -12,14 +12,17 @@ use Magento\Framework\Serialize\Serializer\Json;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use Polkurier\Shipping\Enum\Cache\CacheTagEnum;
+use Polkurier\Shipping\Enum\Sdk\ApiEventEnum;
 use Polkurier\Shipping\Logger\Logger;
 use Polkurier\Shipping\Model\Cache\Type as PolkurierCache;
 use Polkurier\Shipping\Model\Carrier\CarrierFeatureResolver;
 use Polkurier\Shipping\Model\Config\ConfigProvider;
 use Polkurier\Shipping\Model\PickupPoint\DefaultSenderPointManager;
 use Polkurier\Shipping\Model\Sdk\AccountCache;
+use Polkurier\Shipping\Model\Sdk\ApiEventDispatcher;
 use Polkurier\Shipping\Model\Sdk\ErrorMessageResolver;
 use Polkurier\Shipping\Test\Unit\Support\MemoryPolkurierCache;
+use Polkurier\Shipping\Test\Unit\Support\RecordingEventManager;
 use Polkurier\Shipping\Test\Unit\Support\SdkConfig;
 use Polkurier\Shipping\Test\Unit\Support\SdkTestCase;
 use Polkurier\Webservice\Dto\Response\Carrier;
@@ -33,10 +36,12 @@ use Polkurier\Webservice\Testing\RecordingClient;
 class DefaultSenderPointManagerTest extends SdkTestCase
 {
     private MemoryPolkurierCache $cache;
+    private RecordingEventManager $events;
 
     protected function setUp(): void
     {
         $this->cache = new MemoryPolkurierCache();
+        $this->events = new RecordingEventManager();
     }
 
     public function testEveryCarrierPolkurierKeepsADefaultForIsReadOncePerRequest(): void
@@ -116,6 +121,11 @@ class DefaultSenderPointManagerTest extends SdkTestCase
         self::assertSame(['courier' => 'UPS_AP_POINT_POINT', 'point' => 'U02842068'], $http->lastPayload()['data']);
         $http->willAnswerWith(self::encodeSuccess(['default_sender_point' => ['UPS_AP_POINT_POINT' => 'U02842068']]));
         self::assertSame(['UPS_AP_POINT_POINT' => 'U02842068'], $manager->get(), 'Read again after the change.');
+        self::assertSame(
+            [ApiEventEnum::DefaultSenderPointChangeAfter->value],
+            \array_column($this->events->dispatched, 'name'),
+        );
+        self::assertSame('U02842068', $this->events->dispatched[0]['data']['request']->point);
     }
 
     public function testARefusalIsToldInPolkuriersWords(): void
@@ -129,7 +139,11 @@ class DefaultSenderPointManagerTest extends SdkTestCase
 
         $this->expectException(LocalizedException::class);
         $this->expectExceptionMessageMatches('/Punkt PL63197 jest nieprawidłowy/');
-        $this->createManager($http)->change('UPS_AP_POINT_POINT', 'PL63197');
+        try {
+            $this->createManager($http)->change('UPS_AP_POINT_POINT', 'PL63197');
+        } finally {
+            self::assertSame([], $this->events->dispatched, 'Nothing changed, so nothing is dispatched.');
+        }
     }
 
     private static function createCarrier(string $code, PointRequirementEnum $senderPoint): Carrier
@@ -151,6 +165,7 @@ class DefaultSenderPointManagerTest extends SdkTestCase
             new AccountCache($this->createStub(PolkurierCache::class), new Json(), $config),
             new ErrorMessageResolver(),
             $logger ?? $this->createStub(Logger::class),
+            new ApiEventDispatcher($this->events, $this->createStub(Logger::class)),
         );
     }
 }

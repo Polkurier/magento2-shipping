@@ -10,7 +10,7 @@ namespace Polkurier\Shipping\Cron;
 use Polkurier\Shipping\Exception\SynchronizationFailedException;
 use Polkurier\Shipping\Logger\Logger;
 use Polkurier\Shipping\Model\Config\ConfigProvider;
-use Polkurier\Shipping\Model\Sync\Synchronization;
+use Polkurier\Shipping\Model\Sync\SettingsSynchronizer;
 
 /**
  * Hourly synchronization of the address book, bank accounts and pack templates, once the
@@ -20,7 +20,7 @@ use Polkurier\Shipping\Model\Sync\Synchronization;
 readonly class SynchronizeTask
 {
     public function __construct(
-        private Synchronization $synchronization,
+        private SettingsSynchronizer $settingsSynchronizer,
         private ConfigProvider $configProvider,
         private Logger $logger,
     ) {}
@@ -32,7 +32,7 @@ readonly class SynchronizeTask
         }
         // Logged rather than thrown: the next run tries again.
         try {
-            foreach ($this->synchronization->synchronize() as $line) {
+            foreach ($this->settingsSynchronizer->synchronize() as $line) {
                 $this->logger->info('Polkurier synchronization: ' . $line);
             }
         } catch (SynchronizationFailedException) {

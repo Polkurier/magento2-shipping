@@ -11,10 +11,10 @@ use Magento\Framework\App\RequestInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use Polkurier\Shipping\Model\RequestParam;
+use Polkurier\Shipping\Model\RequestParamReader;
 
-#[CoversClass(RequestParam::class)]
-class RequestParamTest extends TestCase
+#[CoversClass(RequestParamReader::class)]
+class RequestParamReaderTest extends TestCase
 {
     /**
      * @return array<string, array{mixed, string}>
@@ -37,6 +37,6 @@ class RequestParamTest extends TestCase
             static fn(string $name, mixed $default = null): mixed => $param ?? $default,
         );
 
-        self::assertSame($expected, RequestParam::getString($request, 'format', 'fallback'));
+        self::assertSame($expected, RequestParamReader::getString($request, 'format', 'fallback'));
     }
 }

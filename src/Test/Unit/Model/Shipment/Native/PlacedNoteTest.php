@@ -21,6 +21,7 @@ use PHPUnit\Framework\Attributes\CoversMethod;
 use PHPUnit\Framework\TestCase;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Api\ShipmentRepositoryInterface;
+use Polkurier\Shipping\Api\ShippingChoiceRepositoryInterface;
 use Polkurier\Shipping\Logger\Logger;
 use Polkurier\Shipping\Model\Carrier\CarrierNameProvider;
 use Polkurier\Shipping\Model\Sdk\ApiEventDispatcher;
@@ -30,7 +31,6 @@ use Polkurier\Shipping\Model\Shipment\Native\NativeShipmentService;
 use Polkurier\Shipping\Model\Shipment\OrderLoader;
 use Polkurier\Shipping\Model\Shipment\ShipmentFinder;
 use Polkurier\Shipping\Model\ShippingChoice;
-use Polkurier\Shipping\Model\ShippingChoice\ShippingChoiceRepository;
 
 #[CoversMethod(NativeFollowUpService::class, 'notePlaced')]
 #[AllowMockObjectsWithoutExpectations]
@@ -88,7 +88,7 @@ class PlacedNoteTest extends TestCase
      */
     private function followUp(?string $choice): NativeFollowUpService
     {
-        $choices = $this->createStub(ShippingChoiceRepository::class);
+        $choices = $this->createStub(ShippingChoiceRepositoryInterface::class);
         $choices->method('getForOrder')->willReturn(
             $choice === null ? null : new ShippingChoice(['order_id' => 15, 'shipping_description' => $choice]),
         );

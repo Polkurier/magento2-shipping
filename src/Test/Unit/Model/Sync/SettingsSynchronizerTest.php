@@ -20,16 +20,16 @@ use Polkurier\Shipping\Model\PackTemplate\PackTemplateSyncAdapter;
 use Polkurier\Shipping\Model\Sdk\ErrorMessageResolver;
 use Polkurier\Shipping\Model\Sync\AdapterInterface;
 use Polkurier\Shipping\Model\Sync\SyncEngine;
-use Polkurier\Shipping\Model\Sync\Synchronization;
+use Polkurier\Shipping\Model\Sync\SettingsSynchronizer;
 use Polkurier\Shipping\Model\Sync\SyncLock;
 use Polkurier\Shipping\Model\Sync\SyncResult;
 
-#[CoversClass(Synchronization::class)]
+#[CoversClass(SettingsSynchronizer::class)]
 #[CoversClass(SyncResult::class)]
 #[CoversClass(SyncEntityEnum::class)]
 #[CoversClass(SyncLock::class)]
 #[AllowMockObjectsWithoutExpectations]
-class SynchronizationTest extends TestCase
+class SettingsSynchronizerTest extends TestCase
 {
     /**
      * @var SyncEntityEnum[]
@@ -49,7 +49,7 @@ class SynchronizationTest extends TestCase
 
     public function testEveryKindRunsWhenNoneIsNamed(): void
     {
-        $summary = $this->createSynchronization()->synchronize();
+        $summary = $this->createSettingsSynchronizer()->synchronize();
 
         self::assertSame(
             [SyncEntityEnum::Address, SyncEntityEnum::BankAccount, SyncEntityEnum::PackTemplate],
@@ -61,7 +61,7 @@ class SynchronizationTest extends TestCase
 
     public function testOnlyTheNamedKindsRun(): void
     {
-        $summary = $this->createSynchronization()->synchronize([SyncEntityEnum::PackTemplate]);
+        $summary = $this->createSettingsSynchronizer()->synchronize([SyncEntityEnum::PackTemplate]);
 
         self::assertSame([SyncEntityEnum::PackTemplate], $this->ran);
         self::assertStringStartsWith('Pack templates:', $summary[0]);
@@ -72,7 +72,7 @@ class SynchronizationTest extends TestCase
         $this->busy = true;
 
         try {
-            $this->createSynchronization()->synchronize();
+            $this->createSettingsSynchronizer()->synchronize();
             self::fail('A synchronization is running.');
         } catch (LocalizedException $e) {
             self::assertStringContainsString('already running', $e->getMessage());
@@ -82,7 +82,7 @@ class SynchronizationTest extends TestCase
 
     public function testTheLockIsFreeAgainAfterwards(): void
     {
-        $this->createSynchronization()->synchronize([SyncEntityEnum::PackTemplate]);
+        $this->createSettingsSynchronizer()->synchronize([SyncEntityEnum::PackTemplate]);
 
         self::assertSame(['lock polkurier_sync', 'unlock polkurier_sync'], $this->lockLog);
     }
@@ -91,7 +91,7 @@ class SynchronizationTest extends TestCase
     {
         $this->failing = [SyncEntityEnum::Address];
 
-        $summary = $this->createSynchronization()->synchronize();
+        $summary = $this->createSettingsSynchronizer()->synchronize();
 
         self::assertSame(
             [SyncEntityEnum::Address, SyncEntityEnum::BankAccount, SyncEntityEnum::PackTemplate],
@@ -108,7 +108,7 @@ class SynchronizationTest extends TestCase
         $this->expectException(LocalizedException::class);
         $this->expectExceptionMessage('Pack templates: Unreadable.');
 
-        $this->createSynchronization()->synchronize([SyncEntityEnum::PackTemplate]);
+        $this->createSettingsSynchronizer()->synchronize([SyncEntityEnum::PackTemplate]);
     }
 
     private function createLockManager(): LockManagerInterface
@@ -128,7 +128,7 @@ class SynchronizationTest extends TestCase
         return $locks;
     }
 
-    private function createSynchronization(): Synchronization
+    private function createSettingsSynchronizer(): SettingsSynchronizer
     {
         $engine = $this->createStub(SyncEngine::class);
         $engine->method('run')
@@ -141,7 +141,7 @@ class SynchronizationTest extends TestCase
                 return new SyncResult($adapter->getEntityType());
             });
 
-        return new Synchronization(
+        return new SettingsSynchronizer(
             $engine,
             new ErrorMessageResolver(),
             new SyncLock($this->createLockManager()),

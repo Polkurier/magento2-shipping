@@ -13,7 +13,7 @@ use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Polkurier\Shipping\Controller\Adminhtml\Shipment\Label;
-use Polkurier\Shipping\Controller\Adminhtml\Shipment\RequestedShipments;
+use Polkurier\Shipping\Controller\Adminhtml\Shipment\RequestedShipmentResolver;
 use Polkurier\Shipping\Model\Shipment\DocumentService;
 use Polkurier\Shipping\Test\Unit\Support\AdminActionTestCase;
 use Polkurier\Webservice\Enum\Order\LabelFileFormatEnum;
@@ -84,7 +84,7 @@ class LabelActionTest extends AdminActionTestCase
 
     private function createLabel(DocumentService $documents): Label
     {
-        $requested = $this->createStub(RequestedShipments::class);
+        $requested = $this->createStub(RequestedShipmentResolver::class);
         $requested->method('getSelected')->willReturn([]);
         $files = $this->createStub(FileFactory::class);
         $files->method('create')->willReturnCallback(

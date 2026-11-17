@@ -18,8 +18,8 @@ use PHPUnit\Framework\TestCase;
 use Polkurier\Shipping\Api\Data\OrderPointInterface;
 use Polkurier\Shipping\Api\Data\ShippingChoiceInterface;
 use Polkurier\Shipping\Api\OrderPointRepositoryInterface;
+use Polkurier\Shipping\Api\ShippingChoiceRepositoryInterface;
 use Polkurier\Shipping\Model\Sdk\ApplicationIdProvider;
-use Polkurier\Shipping\Model\ShippingChoice\ShippingChoiceRepository;
 use Polkurier\Shipping\Plugin\Sales\OrderRepositoryPlugin;
 use Polkurier\Shipping\Test\Unit\Support\OrderExtensionWithPoint;
 
@@ -34,7 +34,7 @@ class OrderRepositoryPluginTest extends TestCase
         $store = $this->createMock(OrderPointRepositoryInterface::class);
         $store->expects(self::never())->method('getForOrder');
         $store->expects(self::once())->method('getForOrders')->with([7, 8, 9])->willReturn([8 => $point]);
-        $choices = $this->createMock(ShippingChoiceRepository::class);
+        $choices = $this->createMock(ShippingChoiceRepositoryInterface::class);
         $choices->expects(self::once())->method('getForOrders')->with([7, 8, 9])->willReturn([9 => $choice]);
         $orders = [$this->createOrder(7), $this->createOrder(8), $this->createOrder(9)];
         $result = $this->createStub(OrderSearchResultInterface::class);
@@ -61,7 +61,7 @@ class OrderRepositoryPluginTest extends TestCase
 
         $plugin = $this->createPlugin(
             $this->createStub(OrderPointRepositoryInterface::class),
-            $this->createStub(ShippingChoiceRepository::class),
+            $this->createStub(ShippingChoiceRepositoryInterface::class),
         );
         $plugin->afterGetList($this->createStub(OrderRepositoryInterface::class), $result);
 
@@ -79,7 +79,7 @@ class OrderRepositoryPluginTest extends TestCase
         $store->method('getForOrders')->willReturn([7 => $point]);
         $order = $this->createOrder(7);
 
-        $this->createPlugin($store, $this->createStub(ShippingChoiceRepository::class))
+        $this->createPlugin($store, $this->createStub(ShippingChoiceRepositoryInterface::class))
             ->afterGet($this->createStub(OrderRepositoryInterface::class), $order);
 
         self::assertSame($point, $order->getExtensionAttributes()?->getPolkurierPoint());
@@ -87,7 +87,7 @@ class OrderRepositoryPluginTest extends TestCase
 
     private function createPlugin(
         OrderPointRepositoryInterface $store,
-        ShippingChoiceRepository $choices,
+        ShippingChoiceRepositoryInterface $choices,
     ): OrderRepositoryPlugin {
         $factory = $this->createStub(OrderExtensionFactory::class);
         $factory->method('create')->willReturnCallback(fn(): OrderExtensionInterface => $this->createExtension());

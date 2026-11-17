@@ -19,7 +19,7 @@ use Polkurier\Shipping\Model\Shipment\ShipmentFinder;
 /**
  * The Polkurier shipments an admin request is about: one by id, a list of ids, or a grid selection.
  */
-readonly class RequestedShipments
+readonly class RequestedShipmentResolver
 {
     public function __construct(
         private ShipmentRepositoryInterface $shipmentRepository,

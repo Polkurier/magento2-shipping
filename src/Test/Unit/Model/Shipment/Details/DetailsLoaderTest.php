@@ -90,7 +90,7 @@ class DetailsLoaderTest extends TestCase
     {
         $shipment = $this->createShipment()->setDetails(['number' => '18015-2865'])->setIsFinal(true);
 
-        self::assertFalse($this->createLoader()->needsRefresh($shipment));
+        self::assertFalse($this->createLoader()->isRefreshDue($shipment));
         $loaded = $this->createLoader()->refresh($shipment);
 
         self::assertSame($shipment, $loaded['shipment']);
@@ -100,16 +100,16 @@ class DetailsLoaderTest extends TestCase
 
     public function testAShipmentOnItsWayIsRefreshedEachTime(): void
     {
-        self::assertTrue($this->createLoader()->needsRefresh($this->createShipment()), 'No copy yet.');
+        self::assertTrue($this->createLoader()->isRefreshDue($this->createShipment()), 'No copy yet.');
         self::assertTrue(
-            $this->createLoader()->needsRefresh($this->createShipment()->setDetails(['number' => '18015-2865'])),
+            $this->createLoader()->isRefreshDue($this->createShipment()->setDetails(['number' => '18015-2865'])),
             'Read just now, and may have moved on since.',
         );
     }
 
     public function testACancelledShipmentWithItsCopyNeedsNoRefresh(): void
     {
-        self::assertFalse($this->createLoader()->needsRefresh(
+        self::assertFalse($this->createLoader()->isRefreshDue(
             $this->createShipment()
                 ->setDetails(['number' => '18015-2865'])
                 ->setState(ShipmentInterface::STATE_CANCELLED)

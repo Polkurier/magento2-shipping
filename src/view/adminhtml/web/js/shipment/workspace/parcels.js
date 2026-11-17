@@ -326,7 +326,7 @@ define([
             }
             this.closeChooser();
             // Starts from what the order's products weigh, when their weight is known.
-            this.openEditor(-1, {pack_type: 'ST', weight: weight > 0 ? weight : ''});
+            this.openEditor(-1, {pack_type: this.get('default_pack_type'), weight: weight > 0 ? weight : ''});
         },
 
         /**
@@ -413,7 +413,7 @@ define([
             editor.templateWeight = this.getTemplateWeight(editor.templateId);
             editor.origin = pack;
             editor.shipmentType = shipmentType || null;
-            editor.packType(pack.pack_type || 'ST');
+            editor.packType(pack.pack_type || this.get('default_pack_type'));
             FIELDS.forEach(function (field) {
                 editor[field](pack[field] === undefined || pack[field] === null ? '' : String(pack[field]));
             });

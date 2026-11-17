@@ -133,8 +133,8 @@ class AccountConfigProviderTest extends TestCase
             'No endpoint configured: the sandbox flag decides.',
         );
 
-        $this->values[ConfigProvider::XML_PATH_API_URL] = 'http://api.local/';
-        self::assertSame('http://api.local', $this->createProvider()->getConfig()->getApiUrl());
+        $this->values[ConfigProvider::XML_PATH_API_URL] = 'http://api.test/';
+        self::assertSame('http://api.test', $this->createProvider()->getConfig()->getApiUrl());
     }
 
     public function testResolvesAtCallTimeNotAtConstruction(): void

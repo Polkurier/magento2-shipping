@@ -16,7 +16,7 @@ use Polkurier\Shipping\Controller\Adminhtml\Shipment\Discard;
 use Polkurier\Shipping\Controller\Adminhtml\Shipment\MassRefresh;
 use Polkurier\Shipping\Controller\Adminhtml\Shipment\Pickup;
 use Polkurier\Shipping\Controller\Adminhtml\Shipment\Refresh;
-use Polkurier\Shipping\Controller\Adminhtml\Shipment\RequestedShipments;
+use Polkurier\Shipping\Controller\Adminhtml\Shipment\RequestedShipmentResolver;
 use Polkurier\Shipping\Model\Shipment\Details\DetailsLoader;
 use Polkurier\Shipping\Model\Shipment\PickupService;
 use Polkurier\Shipping\Model\Shipment\Placement\FailedShipmentManager;
@@ -48,7 +48,7 @@ class FollowingShipmentsActionsTest extends AdminActionTestCase
 
         (new Pickup(
             $this->createContext(),
-            $this->createRequestedShipments([]),
+            $this->createRequestedShipmentResolver([]),
             $pickups,
             $this->createFlashMessageCollectorFactory(),
         ))->execute();
@@ -68,7 +68,7 @@ class FollowingShipmentsActionsTest extends AdminActionTestCase
 
         (new Pickup(
             $this->createContext(),
-            $this->createRequestedShipments([]),
+            $this->createRequestedShipmentResolver([]),
             $this->createStub(PickupService::class),
             $this->createFlashMessageCollectorFactory(),
         ))->execute();
@@ -85,7 +85,7 @@ class FollowingShipmentsActionsTest extends AdminActionTestCase
 
         (new Pickup(
             $this->createContext(),
-            $this->createRequestedShipments([]),
+            $this->createRequestedShipmentResolver([]),
             $pickups,
             $this->createFlashMessageCollectorFactory(),
         ))->execute();
@@ -107,7 +107,7 @@ class FollowingShipmentsActionsTest extends AdminActionTestCase
 
         (new Pickup(
             $this->createContext(),
-            $this->createRequestedShipments([]),
+            $this->createRequestedShipmentResolver([]),
             $pickups,
             $this->createFlashMessageCollectorFactory(),
         ))->execute();
@@ -131,7 +131,7 @@ class FollowingShipmentsActionsTest extends AdminActionTestCase
 
         (new MassRefresh(
             $this->createContext(),
-            $this->createRequestedShipments($selected),
+            $this->createRequestedShipmentResolver($selected),
             $refresher,
             $this->createFlashMessageCollectorFactory(),
         ))->execute();
@@ -152,7 +152,10 @@ class FollowingShipmentsActionsTest extends AdminActionTestCase
 
         (new Refresh(
             $this->createContext(),
-            $this->createRequestedShipments([], $this->createShipment(4, ShipmentInterface::STATE_CREATED, '24680-4')),
+            $this->createRequestedShipmentResolver(
+                [],
+                $this->createShipment(4, ShipmentInterface::STATE_CREATED, '24680-4'),
+            ),
             $management,
             $details,
             $this->createFlashMessageCollectorFactory(),
@@ -172,7 +175,10 @@ class FollowingShipmentsActionsTest extends AdminActionTestCase
 
         (new Refresh(
             $this->createContext(),
-            $this->createRequestedShipments([], $this->createShipment(4, ShipmentInterface::STATE_CREATED, '24680-4')),
+            $this->createRequestedShipmentResolver(
+                [],
+                $this->createShipment(4, ShipmentInterface::STATE_CREATED, '24680-4'),
+            ),
             $management,
             $details,
             $this->createFlashMessageCollectorFactory(),
@@ -191,7 +197,7 @@ class FollowingShipmentsActionsTest extends AdminActionTestCase
 
         (new Discard(
             $this->createContext(),
-            $this->createRequestedShipments([], $this->createShipment(4, ShipmentInterface::STATE_FAILED, null)),
+            $this->createRequestedShipmentResolver([], $this->createShipment(4, ShipmentInterface::STATE_FAILED, null)),
             $failedShipmentManager,
         ))->execute();
 
@@ -207,7 +213,10 @@ class FollowingShipmentsActionsTest extends AdminActionTestCase
 
         (new Discard(
             $this->createContext(),
-            $this->createRequestedShipments([], $this->createShipment(4, ShipmentInterface::STATE_CREATED, '24680-4')),
+            $this->createRequestedShipmentResolver(
+                [],
+                $this->createShipment(4, ShipmentInterface::STATE_CREATED, '24680-4'),
+            ),
             $failedShipmentManager,
         ))->execute();
 
@@ -217,9 +226,12 @@ class FollowingShipmentsActionsTest extends AdminActionTestCase
     /**
      * @param ShipmentInterface[] $selected
      */
-    private function createRequestedShipments(array $selected, ?ShipmentInterface $one = null): RequestedShipments
+    private function createRequestedShipmentResolver(
+        array $selected,
+        ?ShipmentInterface $one = null,
+    ): RequestedShipmentResolver
     {
-        $requested = $this->createStub(RequestedShipments::class);
+        $requested = $this->createStub(RequestedShipmentResolver::class);
         $requested->method('getSelected')->willReturn($selected);
         if ($one !== null) {
             $requested->method('getOne')->willReturn($one);

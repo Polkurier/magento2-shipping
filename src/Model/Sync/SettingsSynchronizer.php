@@ -21,7 +21,7 @@ use Polkurier\Shipping\Model\Sdk\ErrorMessageResolver;
  * kind that can't be synchronized doesn't stop the others: its failure is logged and reported with
  * their summaries. It's an error only when every kind asked for failed.
  */
-readonly class Synchronization
+readonly class SettingsSynchronizer
 {
     /**
      * @var AdapterInterface[] one per kind, in the order they run

@@ -14,7 +14,7 @@ use Polkurier\Shipping\Cron\SynchronizeTask;
 use Polkurier\Shipping\Exception\SynchronizationFailedException;
 use Polkurier\Shipping\Logger\Logger;
 use Polkurier\Shipping\Model\Config\ConfigProvider;
-use Polkurier\Shipping\Model\Sync\Synchronization;
+use Polkurier\Shipping\Model\Sync\SettingsSynchronizer;
 
 #[CoversClass(SynchronizeTask::class)]
 class SynchronizeTaskTest extends TestCase
@@ -40,12 +40,12 @@ class SynchronizeTaskTest extends TestCase
 
     private function runFailing(\Throwable $failure): void
     {
-        $synchronization = $this->createStub(Synchronization::class);
-        $synchronization->method('synchronize')->willThrowException($failure);
-        $this->createTask($synchronization)->execute();
+        $settingsSynchronizer = $this->createStub(SettingsSynchronizer::class);
+        $settingsSynchronizer->method('synchronize')->willThrowException($failure);
+        $this->createTask($settingsSynchronizer)->execute();
     }
 
-    private function createTask(Synchronization $synchronization): SynchronizeTask
+    private function createTask(SettingsSynchronizer $settingsSynchronizer): SynchronizeTask
     {
         $config = $this->createStub(ConfigProvider::class);
         $config->method('isSyncEnabled')->willReturn(true);
@@ -56,7 +56,7 @@ class SynchronizeTaskTest extends TestCase
                 $this->logged[] = ['warning', (string)$message, $context];
             });
 
-        return new SynchronizeTask($synchronization, $config, $logger);
+        return new SynchronizeTask($settingsSynchronizer, $config, $logger);
     }
 
     /**

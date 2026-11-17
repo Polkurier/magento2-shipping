@@ -12,7 +12,6 @@ use Magento\Framework\Escaper;
 use Magento\Framework\UrlInterface;
 use Magento\Store\Model\Store;
 use Magento\Store\Model\StoreManagerInterface;
-use Polkurier\Shipping\Controller\Webhook\Shipment\Update as WebhookAction;
 
 /**
  * The comment under the status webhook's secret: the URL to give the webhook in the Polkurier
@@ -20,6 +19,12 @@ use Polkurier\Shipping\Controller\Webhook\Shipment\Update as WebhookAction;
  */
 readonly class WebhookUrl implements CommentInterface
 {
+    /**
+     * The webhook's path under the store's base URL: the route's frontName, the controller, and the
+     * action, whose underscore Magento reads as {@see \Polkurier\Shipping\Controller\Webhook\Shipment\Update}.
+     */
+    public const string PATH = 'polkurier/webhook/shipment_update';
+
     public function __construct(
         private StoreManagerInterface $storeManager,
         private Escaper $escaper,
@@ -36,7 +41,7 @@ readonly class WebhookUrl implements CommentInterface
 
         return (string)__(
             'In the Polkurier panel, add a webhook with the URL %1 and paste its secret here.',
-            '<code>' . $this->escaper->escapeHtml($base . WebhookAction::PATH) . '</code>',
+            '<code>' . $this->escaper->escapeHtml($base . self::PATH) . '</code>',
         );
     }
 }

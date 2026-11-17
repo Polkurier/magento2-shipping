@@ -27,6 +27,7 @@ use Polkurier\Shipping\Model\Config\Source\CodType;
 use Polkurier\Shipping\Model\Config\Source\PackType;
 use Polkurier\Shipping\Model\Config\Source\PickupMode;
 use Polkurier\Shipping\Model\Config\Source\ShipmentType;
+use Polkurier\Shipping\Model\PickupPoint\AdminMapConfigProvider;
 use Polkurier\Shipping\Model\ResourceModel\Shipment\CollectionFactory;
 use Polkurier\Shipping\Model\Shipment\Native\NativeShipmentService;
 use Polkurier\Shipping\Model\Shipment\OrderLoader;
@@ -40,6 +41,7 @@ use Polkurier\Shipping\Model\Shipment\Valuation\OrderAmountCalculator;
 use Polkurier\Shipping\Ui\Component\Form\FormDataProvider;
 use Polkurier\Webservice\Entity\Order as RemoteOrder;
 use Polkurier\Webservice\Entity\Order\Address;
+use Polkurier\Webservice\Enum\Order\PackTypeEnum;
 
 /**
  * Data of the Polkurier shipment form: the draft for the order, the options it is put together
@@ -77,6 +79,7 @@ class DataProvider extends FormDataProvider
         private readonly RetriableShipmentFinder $retriableShipmentFinder,
         private readonly ConfigProvider $configProvider,
         private readonly SalesData $salesData,
+        private readonly AdminMapConfigProvider $adminMapConfigProvider,
         array $meta = [],
         array $data = [],
     ) {
@@ -219,9 +222,11 @@ class DataProvider extends FormDataProvider
         $data['carriers'] = $this->shipmentOptionsProvider->getCarrierFeatures();
         // Offered for pallet shipments only.
         $data['pallet_services'] = $this->screenDataProvider->getPalletServices();
+        // What a parcel typed in starts as.
+        $data['default_pack_type'] = PackTypeEnum::Standard->value;
         $data['carriers_error'] = $this->shipmentOptionsProvider->getCarriersError();
         $data['description_max_length'] = RemoteOrder::DESCRIPTION_MAX_LENGTH;
-        $data['map'] = $this->screenDataProvider->getMap();
+        $data['map'] = $this->adminMapConfigProvider->getMapConfig(true);
         // The pickup point as Polkurier has it now: its name and address today, or, when it's gone
         // or closed since the order was placed, a problem to fix before placing.
         $point = $this->screenDataProvider->describeRecipientPoint(

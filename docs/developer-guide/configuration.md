@@ -28,6 +28,7 @@ the default scope only.
 | `logging/failed_requests`, `logging/methods` | `isLoggingEnabled()`, `getMethodsToLog()` |
 | `logging/personal_data`, `logging/files`, `logging/files_directory` | `isPersonalDataLoggingEnabled()`, `isFileLoggingEnabled()`, `getLogFilesDirectory()` |
 | `sync/enabled`, `sync/status_enabled` | `isSyncEnabled()`, `isStatusSyncEnabled()` |
+| `sync/status_schedule` | `getStatusIntervalMinutes()` |
 | `sync/webhook_secret` | `getWebhookSecret()` |
 
 [Shipments](shipments.md#reconciliation) describes the installation ID and the external order ID
@@ -47,6 +48,7 @@ scope. The admin shows each setting down to the scope in the table.
 | `sender/use_store_information_address`, `sender/use_store_origin_address`, `sender/default_sender_email` | `isUseStoreInformationAddress()`, `isUseStoreOriginAddress()`, `getSenderEmailIdentity()` | website |
 | `shipment_defaults/default_additional_services` | `getDefaultServices()` | website |
 | `shipment_defaults/insure_by_default` | `isInsureByDefault()` | website |
+| `shipment_defaults/default_cover_address` | `getDefaultCoverAddressId()` | website |
 | `packing/parcel_weight` | `getParcelWeight()` | website |
 | `packing/pack_new_shipments` | `isPackingNewShipments()` | website |
 | `packing/packing_margin` | `getPackingMargin()` | website |

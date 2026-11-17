@@ -24,7 +24,7 @@ call yourself, whatever the switches say:
   see [Following a shipment](shipments.md#following-a-shipment);
 - [`Model\Shipment\Status\ReconciliationService::reconcilePending()`](../../src/Model/Shipment/Status/ReconciliationService.php):
   see [Reconciliation](shipments.md#reconciliation);
-- [`Model\Sync\Synchronization::synchronize()`](../../src/Model/Sync/Synchronization.php): see
+- [`Model\Sync\SettingsSynchronizer::synchronize()`](../../src/Model/Sync/SettingsSynchronizer.php): see
   [Synchronization](synchronization.md);
 - [`Model\CarrierConfig\CarrierConfigSynchronizer::synchronize()`](../../src/Model/CarrierConfig/CarrierConfigSynchronizer.php):
   see [Synchronization](synchronization.md#when-it-runs).

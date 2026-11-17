@@ -7,9 +7,9 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Test\Unit\Ui\Component\Form\Carrier;
 
+use Magento\Backend\Model\UrlInterface;
 use Magento\Framework\App\Request\DataPersistorInterface;
 use Magento\Framework\App\RequestInterface;
-use Magento\Framework\UrlInterface;
 use Magento\Store\Model\StoreManagerInterface;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -21,7 +21,9 @@ use Polkurier\Shipping\Model\Carrier\CarrierCatalog;
 use Polkurier\Shipping\Model\Carrier\CarrierFeatureResolver;
 use Polkurier\Shipping\Model\Carrier\CarrierLogoStorage;
 use Polkurier\Shipping\Model\Config\ConfigProvider;
+use Polkurier\Shipping\Model\PickupPoint\AdminMapConfigProvider;
 use Polkurier\Shipping\Model\PickupPoint\DefaultSenderPointManager;
+use Polkurier\Shipping\Model\PickupPoint\MapTokenProvider;
 use Polkurier\Shipping\Model\PickupPoint\PointFinder;
 use Polkurier\Shipping\Model\ResourceModel\CarrierConfig\Collection;
 use Polkurier\Shipping\Model\ResourceModel\CarrierConfig\CollectionFactory;
@@ -134,6 +136,7 @@ class DataProviderTest extends TestCase
         $settings->method('getMapUrl')->willReturn('https://maps.example');
         $url = $this->createStub(UrlInterface::class);
         $url->method('getUrl')->willReturnArgument(0);
+        $maps = new AdminMapConfigProvider($settings, $url, $this->createStub(MapTokenProvider::class));
 
         return new DataProvider(
             'polkurier_carrier_form_data_source',
@@ -149,8 +152,7 @@ class DataProviderTest extends TestCase
             $defaults,
             $finder,
             $addresses,
-            $settings,
-            $url,
+            $maps,
         );
     }
 }

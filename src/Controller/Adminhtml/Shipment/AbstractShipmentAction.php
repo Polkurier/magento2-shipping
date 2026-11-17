@@ -26,7 +26,7 @@ abstract class AbstractShipmentAction extends Action
 
     public function __construct(
         Context $context,
-        private readonly RequestedShipments $requestedShipments,
+        private readonly RequestedShipmentResolver $requestedShipmentResolver,
     ) {
         parent::__construct($context);
     }
@@ -34,7 +34,7 @@ abstract class AbstractShipmentAction extends Action
     protected function getShipment(): ?ShipmentInterface
     {
         try {
-            return $this->requestedShipments->getOne($this->getRequest());
+            return $this->requestedShipmentResolver->getOne($this->getRequest());
         } catch (NoSuchEntityException $e) {
             $this->messageManager->addErrorMessage($e->getMessage());
 
@@ -50,7 +50,7 @@ abstract class AbstractShipmentAction extends Action
      */
     protected function getSelectedShipments(): array
     {
-        return $this->requestedShipments->getSelected($this->getRequest());
+        return $this->requestedShipmentResolver->getSelected($this->getRequest());
     }
 
     /**

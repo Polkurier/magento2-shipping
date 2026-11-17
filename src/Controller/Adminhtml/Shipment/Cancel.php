@@ -22,10 +22,10 @@ class Cancel extends AbstractShipmentAction implements HttpPostActionInterface
 
     public function __construct(
         Context $context,
-        RequestedShipments $requestedShipments,
+        RequestedShipmentResolver $requestedShipmentResolver,
         private readonly ShipmentManagementInterface $shipmentManagement,
     ) {
-        parent::__construct($context, $requestedShipments);
+        parent::__construct($context, $requestedShipmentResolver);
     }
 
     public function execute(): Redirect

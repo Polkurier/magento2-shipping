@@ -24,12 +24,12 @@ class RefreshAll extends AbstractShipmentAction implements HttpPostActionInterfa
 
     public function __construct(
         Context $context,
-        RequestedShipments $requestedShipments,
+        RequestedShipmentResolver $requestedShipmentResolver,
         private readonly StatusRefreshService $statusRefreshService,
         private readonly ConfigProvider $configProvider,
         private readonly FlashMessageCollectorFactory $flashMessageCollectorFactory,
     ) {
-        parent::__construct($context, $requestedShipments);
+        parent::__construct($context, $requestedShipmentResolver);
     }
 
     public function execute(): Redirect

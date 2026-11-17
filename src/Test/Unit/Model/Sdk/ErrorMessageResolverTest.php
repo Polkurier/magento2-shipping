@@ -13,8 +13,14 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Polkurier\Shipping\Exception\RecentFailureException;
 use Polkurier\Shipping\Model\Sdk\ErrorMessageResolver;
+use Polkurier\Webservice\Dto\Request\Order\CreateOrderMessage;
 use Polkurier\Webservice\Dto\Response\ErrorMessage;
+use Polkurier\Webservice\Entity\Order;
+use Polkurier\Webservice\Entity\Order\Address;
+use Polkurier\Webservice\Entity\Order\PackItem;
 use Polkurier\Webservice\Enum\Http\ResponseStatusEnum;
+use Polkurier\Webservice\Enum\Order\PackTypeEnum;
+use Polkurier\Webservice\Enum\Order\ShipmentTypeEnum;
 use Polkurier\Webservice\Exception\AuthorizationException;
 use Polkurier\Webservice\Exception\ConnectionException;
 use Polkurier\Webservice\Exception\Exception as PolkurierException;
@@ -22,6 +28,7 @@ use Polkurier\Webservice\Exception\InvalidArgumentException;
 use Polkurier\Webservice\Exception\MalformedResponseException;
 use Polkurier\Webservice\Exception\ValidationException;
 use Polkurier\Webservice\Exception\WebserviceException;
+use Polkurier\Webservice\Validator\DefaultValidatorRegistryFactory;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
 
@@ -35,12 +42,38 @@ class ErrorMessageResolverTest extends TestCase
         self::assertSame('Recipient: Phone', $messages->getFieldLabel('recipient.phone'));
         self::assertSame('Sender: House number', $messages->getFieldLabel('sender.housenumber'));
         self::assertSame('Parcel 2: Weight', $messages->getFieldLabel('packs.1.weight'));
+        self::assertSame('Parcel 2: Weight', $messages->getFieldLabel('packs[1].weight'));
+        self::assertSame('Sender on the label: Flat number', $messages->getFieldLabel('cover_address.flat_number'));
+        self::assertSame('Cash on delivery: Amount', $messages->getFieldLabel('COD.codamount'));
+        self::assertSame('Shipment type', $messages->getFieldLabel('shipmenttype'));
+        self::assertSame('Carrier field: locker_size', $messages->getFieldLabel('additional_fields.locker_size'));
         self::assertSame('Shipment description', $messages->getFieldLabel('description'));
         self::assertSame(
             'something.else',
             $messages->getFieldLabel('something.else'),
             'One it doesn\'t know stays as it is.',
         );
+    }
+
+    public function testTheSdksOwnValidationNamesTheFieldsAsTheScreenDoes(): void
+    {
+        $order = new Order(
+            'DPD',
+            ShipmentTypeEnum::Box,
+            [new PackItem(10, 10, 10, 0.0, PackTypeEnum::Standard, 1)],
+            new Address('Jan Nadawca', 'Prosta', 'Warszawa', '00-838', 'jan@example.com', '600100200', null, '1'),
+            new Address('Anna Odbiorca', 'Długa', 'Kraków', '31-147', 'anna@example.com', '600300400', null, '2'),
+            description: 'Zam. 000000042',
+        );
+        try {
+            DefaultValidatorRegistryFactory::create()->validate(new CreateOrderMessage($order));
+            self::fail('A parcel weighing nothing is refused.');
+        } catch (ValidationException $e) {
+            self::assertStringContainsString(
+                'Parcel 1: Weight',
+                (string)(new ErrorMessageResolver())->createPhrase($e),
+            );
+        }
     }
 
     public function testEachKindOfFailureIsSaidInItsOwnWords(): void

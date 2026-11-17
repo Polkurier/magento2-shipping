@@ -13,7 +13,7 @@ use Magento\Framework\App\RequestInterface;
  * A request parameter read as text. A parameter sent as a list (name[]=…) reads as empty, rather
  * than as "Array" with a PHP warning, which Magento turns into an error page.
  */
-final class RequestParam
+final class RequestParamReader
 {
     public static function getString(RequestInterface $request, string $name, string $default = ''): string
     {

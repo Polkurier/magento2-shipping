@@ -14,13 +14,13 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Polkurier\Shipping\Api\ShipmentRepositoryInterface;
-use Polkurier\Shipping\Controller\Adminhtml\Shipment\RequestedShipments;
+use Polkurier\Shipping\Controller\Adminhtml\Shipment\RequestedShipmentResolver;
 use Polkurier\Shipping\Model\ResourceModel\Shipment\CollectionFactory;
 use Polkurier\Shipping\Model\Shipment\ShipmentFinder;
 
-#[CoversClass(RequestedShipments::class)]
+#[CoversClass(RequestedShipmentResolver::class)]
 #[AllowMockObjectsWithoutExpectations]
-class RequestedShipmentsTest extends TestCase
+class RequestedShipmentResolverTest extends TestCase
 {
     /**
      * @return iterable<string, array{mixed, int[]}>
@@ -44,7 +44,7 @@ class RequestedShipmentsTest extends TestCase
         $request->method('getParam')
             ->willReturnCallback(static fn(string $name): mixed => $name === 'ids' ? $param : null);
 
-        $requested = new RequestedShipments(
+        $requested = new RequestedShipmentResolver(
             $this->createStub(ShipmentRepositoryInterface::class),
             $this->createStub(ShipmentFinder::class),
             $this->createStub(CollectionFactory::class),

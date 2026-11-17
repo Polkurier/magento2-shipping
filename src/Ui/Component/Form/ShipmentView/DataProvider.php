@@ -57,7 +57,7 @@ class DataProvider extends FormDataProvider
             $id => [
                 'view' => $this->shipmentDetails->build($shipment),
                 'state' => $shipment->getState(),
-                'refresh' => $this->detailsLoader->needsRefresh($shipment),
+                'refresh' => $this->detailsLoader->isRefreshDue($shipment),
                 'urls' => ['refresh' => $this->url->getUrl('polkurier/shipment/refreshDetails', ['id' => $id])],
             ],
         ];

@@ -9,7 +9,6 @@ namespace Polkurier\Shipping\Ui\Component\Form\Carrier;
 
 use Magento\Framework\App\Request\DataPersistorInterface;
 use Magento\Framework\App\RequestInterface;
-use Magento\Framework\UrlInterface;
 use Magento\Store\Model\StoreManagerInterface;
 use Polkurier\Shipping\Api\AddressRepositoryInterface;
 use Polkurier\Shipping\Api\Data\CarrierConfigInterface;
@@ -20,7 +19,7 @@ use Polkurier\Shipping\Model\Carrier\CarrierFeatureResolver;
 use Polkurier\Shipping\Model\Carrier\CarrierLogoStorage;
 use Polkurier\Shipping\Model\Carrier\Pricing\FixedPriceCalculator;
 use Polkurier\Shipping\Model\Carrier\Pricing\TieredPriceCalculator;
-use Polkurier\Shipping\Model\Config\ConfigProvider;
+use Polkurier\Shipping\Model\PickupPoint\AdminMapConfigProvider;
 use Polkurier\Shipping\Model\PickupPoint\DefaultSenderPointManager;
 use Polkurier\Shipping\Model\PickupPoint\PointFinder;
 use Polkurier\Shipping\Model\ResourceModel\CarrierConfig\Collection;
@@ -63,8 +62,7 @@ class DataProvider extends FormDataProvider
         private readonly DefaultSenderPointManager $defaultSenderPointManager,
         private readonly PointFinder $pointFinder,
         private readonly AddressRepositoryInterface $addressRepository,
-        private readonly ConfigProvider $configProvider,
-        private readonly UrlInterface $url,
+        private readonly AdminMapConfigProvider $adminMapConfigProvider,
         array $meta = [],
         array $data = [],
     ) {
@@ -93,10 +91,7 @@ class DataProvider extends FormDataProvider
             $found = $this->pointFinder->find($point, $code);
             $meta['general']['children'][self::FIELD_DEFAULT_SENDER_POINT]['arguments']['data']['config'] = [
                 'visible' => true,
-                'map' => [
-                    'baseUrl' => $this->configProvider->getMapUrl() . '/',
-                    'tokenUrl' => $this->url->getUrl('polkurier/shipment/mapToken'),
-                ],
+                'map' => $this->adminMapConfigProvider->getMapConfig(false),
                 'providers' => $this->carrierFeatureResolver->getPointProviders($carrier),
                 'postcode' => (string)$this->addressRepository->getDefaultSenderAddress()?->getPostcode(),
                 'pointDetails' => (object)($found ? [$point => $this->pointFinder->describe($found)] : []),

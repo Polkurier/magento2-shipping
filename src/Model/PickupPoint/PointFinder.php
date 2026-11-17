@@ -70,14 +70,14 @@ readonly class PointFinder
     {
         return [
             'name' => $point->name !== '' ? $point->name : $point->description,
-            'label' => $this->formatAddress($point),
+            'label' => self::formatAddress($point),
         ];
     }
 
     /**
      * The point's address in one line, as the map shows it after choosing.
      */
-    public function formatAddress(CourierPoint $point): string
+    public static function formatAddress(CourierPoint $point): string
     {
         $town = \trim($point->zip . ' ' . $point->city);
 

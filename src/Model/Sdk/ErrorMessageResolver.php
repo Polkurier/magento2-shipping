@@ -126,23 +126,9 @@ readonly class ErrorMessageResolver
     }
 
     /**
-     * Field errors keyed by wire name, as both the SDK and the API report them.
-     *
-     * @return array<string, string[]>
-     */
-    public function getFieldErrors(\Throwable $e): array
-    {
-        return match (true) {
-            $e instanceof ValidationException => $e->getValidationErrors(),
-            $e instanceof WebserviceException => $e->getErrorMessage()->validationErrors ?? [],
-            default => [],
-        };
-    }
-
-    /**
-     * A field as the shipment screen calls it, from its wire name, e.g. "recipient.phone" as
-     * "Recipient: Phone" and "packs.0.weight" as "Parcel 1: Weight". A name it doesn't know stays
-     * as it is.
+     * A field as the shipment screen calls it, from its path in the payload, e.g. "recipient.phone"
+     * as "Recipient: Phone", and "packs[1].weight" or "packs.1.weight" as "Parcel 2: Weight". A
+     * name it doesn't know stays as it is.
      */
     public function getFieldLabel(string $field): string
     {
@@ -153,6 +139,7 @@ readonly class ErrorMessageResolver
             Order::FIELD_PACKS => __('Parcel'),
             Order::FIELD_CASH_ON_DELIVERY => __('Cash on delivery'),
             Order::FIELD_PICKUP => __('Collection'),
+            Order::FIELD_ADDITIONAL_FIELDS => __('Carrier field'),
         ];
         $names = [
             Address::FIELD_PERSON => __('Name'),
@@ -160,8 +147,10 @@ readonly class ErrorMessageResolver
             Address::FIELD_STREET => __('Street'),
             Address::FIELD_HOUSE_NUMBER => __('House number'),
             Address::FIELD_FLAT_NUMBER => __('Flat number'),
+            Address::FIELD_COVER_FLAT_NUMBER => __('Flat number'),
             Address::FIELD_POSTCODE => __('Postcode'),
             Address::FIELD_CITY => __('City'),
+            Address::FIELD_PROVINCE => __('Province'),
             Address::FIELD_PHONE => __('Phone'),
             Address::FIELD_EMAIL => __('E-mail'),
             Address::FIELD_POINT_ID => __('Point'),
@@ -173,6 +162,8 @@ readonly class ErrorMessageResolver
             PackItem::FIELD_TYPE => __('Type'),
             PackItem::FIELD_AMOUNT => __('Amount'),
             Cod::FIELD_AMOUNT => __('Amount'),
+            Cod::FIELD_TYPE => __('Type'),
+            Cod::FIELD_RETURN_TYPE => __('Paid out to'),
             Cod::FIELD_BANK_ACCOUNT => __('Bank account'),
             Pickup::FIELD_PICKUP_DATE => __('Date'),
             Pickup::FIELD_PICKUP_TIME_FROM => __('From'),
@@ -180,8 +171,11 @@ readonly class ErrorMessageResolver
             Order::FIELD_DESCRIPTION => __('Shipment description'),
             Order::FIELD_INSURANCE => __('Insurance'),
             Order::FIELD_COURIER => __('Carrier'),
+            Order::FIELD_SHIPMENT_TYPE => __('Shipment type'),
+            Order::FIELD_COURIER_SERVICE => __('Additional services'),
         ];
-        $parts = \explode('.', $field);
+        // A list's entry comes numbered in brackets, packs[1], or as a part of its own, packs.1.
+        $parts = \explode('.', (string)\preg_replace('/\[(\d+)]/', '.$1', $field));
         $group = $groups[$parts[0]] ?? null;
         if ($group === null) {
             return \count($parts) === 1 && isset($names[$field]) ? (string)$names[$field] : $field;

@@ -23,6 +23,7 @@ use Polkurier\Shipping\Model\Config\Source\AdditionalService;
 use Polkurier\Shipping\Model\Config\Source\CodReturnType;
 use Polkurier\Shipping\Model\Config\Source\CodType;
 use Polkurier\Shipping\Model\Config\Source\PickupMode;
+use Polkurier\Shipping\Model\PickupPoint\AdminMapConfigProvider;
 use Polkurier\Shipping\Model\Shipment\Native\NativeLabelService;
 use Polkurier\Shipping\Model\Shipment\Native\NativeShipmentService;
 use Polkurier\Shipping\Model\Shipment\OrderLoader;
@@ -67,6 +68,7 @@ class LabelOptions implements ArgumentInterface, ResetAfterRequestInterface
         private readonly RetriableShipmentFinder $retriableShipmentFinder,
         private readonly FailedShipmentManager $failedShipmentManager,
         private readonly UrlInterface $url,
+        private readonly AdminMapConfigProvider $adminMapConfigProvider,
     ) {}
 
     /**
@@ -178,7 +180,7 @@ class LabelOptions implements ArgumentInterface, ResetAfterRequestInterface
             'items' => (object)$this->orderAmountCalculator->getItems($order),
             'carriers' => (object)$this->shipmentOptionsProvider->getCarrierFeatures(),
             'carriersError' => $this->shipmentOptionsProvider->getCarriersError(),
-            'map' => $this->screenDataProvider->getMap(),
+            'map' => $this->adminMapConfigProvider->getMapConfig(true),
             // The shipment type each parcel type makes, for checking the packages.
             'packShipmentTypes' => (object)ParcelTypeMapper::getShipmentTypeMap(),
             // Services for pallets, which only pallets may have.

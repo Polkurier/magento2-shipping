@@ -8,15 +8,12 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Test\Unit\Ui\Component\Listing\SalesShipment;
 
 use Magento\Framework\AuthorizationInterface;
-use Magento\Framework\Escaper;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Framework\TestFramework\Unit\Helper\ObjectManager;
-use Magento\Framework\Translate\InlineInterface;
 use Magento\Framework\UrlInterface;
 use Magento\Framework\View\Element\UiComponent\ContextInterface;
 use Magento\Framework\View\Element\UiComponent\Processor;
 use Magento\Framework\View\Element\UiComponentFactory;
-use Magento\Framework\ZendEscaper;
 use Magento\Sales\Api\OrderRepositoryInterface;
 use Magento\Sales\Model\Order;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
@@ -29,6 +26,7 @@ use Polkurier\Shipping\Model\ResourceModel\Shipment\CollectionFactory;
 use Polkurier\Shipping\Model\Shipment;
 use Polkurier\Shipping\Model\Shipment\OrderLoader;
 use Polkurier\Shipping\Model\Shipment\ShipmentFinder;
+use Polkurier\Shipping\Test\Unit\Support\StandaloneEscaper;
 use Polkurier\Shipping\Ui\Component\Listing\SalesShipment\PolkurierOrderColumn;
 
 #[CoversClass(PolkurierOrderColumn::class)]
@@ -158,11 +156,7 @@ class PolkurierOrderColumnTest extends TestCase
 
             return $order->setShippingMethod($method);
         });
-        $escaper = new Escaper();
-        $properties = ['escaper' => new ZendEscaper(), 'translateInline' => $this->createStub(InlineInterface::class)];
-        foreach ($properties as $property => $value) {
-            (new \ReflectionProperty(Escaper::class, $property))->setValue($escaper, $value);
-        }
+        $escaper = StandaloneEscaper::create();
 
         return new PolkurierOrderColumn(
             $context,

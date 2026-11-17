@@ -22,10 +22,10 @@ class Discard extends AbstractShipmentAction implements HttpPostActionInterface
 
     public function __construct(
         Context $context,
-        RequestedShipments $requestedShipments,
+        RequestedShipmentResolver $requestedShipmentResolver,
         private readonly FailedShipmentManager $failedShipmentManager,
     ) {
-        parent::__construct($context, $requestedShipments);
+        parent::__construct($context, $requestedShipmentResolver);
     }
 
     public function execute(): Redirect

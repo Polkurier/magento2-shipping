@@ -115,6 +115,15 @@ enum ApiEventEnum: string
     case TwoFactorCodeRequestAfter = 'polkurier_api_two_factor_code_request_after';
 
     /**
+     * A carrier's default drop-off point was set on the account, or cleared. Polkurier keeps one
+     * per point network, so the carriers of the same network have it too.
+     *
+     * Keys: "request" ({@see \Polkurier\Webservice\Dto\Request\Account\ChangeDefaultSenderPointMessage}:
+     * the carrier and the point, '' for none).
+     */
+    case DefaultSenderPointChangeAfter = 'polkurier_api_default_sender_point_change_after';
+
+    /**
      * A cash on delivery payout was requested. Money is moving.
      *
      * Keys: "order_numbers" (string[], empty for everything available),

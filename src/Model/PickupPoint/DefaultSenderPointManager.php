@@ -11,10 +11,12 @@ use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\ObjectManager\ResetAfterRequestInterface;
 use Polkurier\Shipping\Api\PolkurierClientInterface;
 use Polkurier\Shipping\Enum\Cache\CacheTagEnum;
+use Polkurier\Shipping\Enum\Sdk\ApiEventEnum;
 use Polkurier\Shipping\Logger\Logger;
 use Polkurier\Shipping\Model\Cache\Type as PolkurierCache;
 use Polkurier\Shipping\Model\Carrier\CarrierFeatureResolver;
 use Polkurier\Shipping\Model\Sdk\AccountCache;
+use Polkurier\Shipping\Model\Sdk\ApiEventDispatcher;
 use Polkurier\Shipping\Model\Sdk\ErrorMessageResolver;
 use Polkurier\Webservice\Dto\Request\Account\ChangeDefaultSenderPointMessage;
 use Polkurier\Webservice\Dto\Response\Carrier;
@@ -42,6 +44,7 @@ class DefaultSenderPointManager implements ResetAfterRequestInterface
         private readonly AccountCache $accountCache,
         private readonly ErrorMessageResolver $errorMessageResolver,
         private readonly Logger $logger,
+        private readonly ApiEventDispatcher $apiEventDispatcher,
     ) {}
 
     /**
@@ -93,13 +96,15 @@ class DefaultSenderPointManager implements ResetAfterRequestInterface
      */
     public function change(string $carrierCode, string $pointId): void
     {
+        $request = new ChangeDefaultSenderPointMessage($carrierCode, $pointId);
         try {
-            $this->polkurierClient->getAccount()->changeDefaultSenderPoint(
-                new ChangeDefaultSenderPointMessage($carrierCode, $pointId),
-            );
+            $this->polkurierClient->getAccount()->changeDefaultSenderPoint($request);
         } catch (PolkurierException $e) {
             throw $this->errorMessageResolver->createException($e);
         }
+        $this->apiEventDispatcher->dispatch(ApiEventEnum::DefaultSenderPointChangeAfter, null, [
+            'request' => $request,
+        ]);
         // The other carriers of the network have changed too.
         $this->points = null;
     }

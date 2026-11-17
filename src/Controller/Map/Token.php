@@ -20,11 +20,6 @@ use Polkurier\Shipping\Model\PickupPoint\MapTokenProvider;
  */
 class Token implements HttpGetActionInterface
 {
-    /**
-     * The route, by its id: Magento's URLs turn it into the frontName pickup-points.
-     */
-    public const string ROUTE = 'polkurier_points/map/token';
-
     public function __construct(
         private readonly JsonFactory $jsonFactory,
         private readonly MapTokenProvider $mapTokenProvider,

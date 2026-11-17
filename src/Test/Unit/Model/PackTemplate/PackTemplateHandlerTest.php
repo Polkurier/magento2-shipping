@@ -24,7 +24,7 @@ use Polkurier\Shipping\Model\Sdk\ErrorMessageResolver;
 use Polkurier\Shipping\Model\Sync\AdapterInterface;
 use Polkurier\Shipping\Model\Sync\SyncableEntityHandler;
 use Polkurier\Shipping\Model\Sync\SyncEngine;
-use Polkurier\Shipping\Model\Sync\Synchronization;
+use Polkurier\Shipping\Model\Sync\SettingsSynchronizer;
 use Polkurier\Shipping\Model\Sync\SyncLock;
 use Polkurier\Shipping\Model\Sync\SyncResult;
 use Polkurier\Shipping\Model\Sync\SyncResultFactory;
@@ -187,7 +187,7 @@ class PackTemplateHandlerTest extends TestCase
             $this->createStub(PackTemplateRepositoryInterface::class),
             $adapter,
             $engine,
-            $this->createStub(Synchronization::class),
+            $this->createStub(SettingsSynchronizer::class),
             new ErrorMessageResolver(),
             new FixedDateTime((int)\strtotime('2026-09-30 10:00:00 UTC')),
             new SyncLock($locks),

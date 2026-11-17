@@ -24,11 +24,11 @@ class MassPickup extends AbstractShipmentAction implements HttpPostActionInterfa
 
     public function __construct(
         Context $context,
-        RequestedShipments $requestedShipments,
+        RequestedShipmentResolver $requestedShipmentResolver,
         private readonly EncoderInterface $urlEncoder,
         private readonly PickupService $pickupService,
     ) {
-        parent::__construct($context, $requestedShipments);
+        parent::__construct($context, $requestedShipmentResolver);
     }
 
     public function execute(): Redirect

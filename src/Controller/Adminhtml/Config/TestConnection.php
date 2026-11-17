@@ -13,7 +13,7 @@ use Magento\Framework\Exception\LocalizedException;
 use Polkurier\Shipping\Api\PolkurierClientInterface;
 use Polkurier\Shipping\Controller\Adminhtml\AbstractJsonAction;
 use Polkurier\Shipping\Model\Config\ConfigProvider;
-use Polkurier\Shipping\Model\RequestParam;
+use Polkurier\Shipping\Model\RequestParamReader;
 use Polkurier\Shipping\Model\Sdk\ErrorMessageResolver;
 use Polkurier\Webservice\Dto\Request\AuthorizationMessageFactory;
 use Polkurier\Webservice\Exception\AuthorizationException;
@@ -44,8 +44,8 @@ class TestConnection extends AbstractJsonAction
 
     protected function answer(): array
     {
-        $login = \trim(RequestParam::getString($this->getRequest(), 'customer_id'));
-        $token = \trim(RequestParam::getString($this->getRequest(), 'api_token'));
+        $login = \trim(RequestParamReader::getString($this->getRequest(), 'customer_id'));
+        $token = \trim(RequestParamReader::getString($this->getRequest(), 'api_token'));
         $login = $login === '' || $login === self::MASK ? $this->configProvider->getLogin() : $login;
         $token = $token === '' || $token === self::MASK ? $this->configProvider->getToken() : $token;
         if ($login === '' || $token === '') {

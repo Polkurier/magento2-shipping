@@ -17,6 +17,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Polkurier\Shipping\Api\Data\OrderPointInterface;
 use Polkurier\Shipping\Api\OrderPointRepositoryInterface;
+use Polkurier\Shipping\Api\ShippingChoiceRepositoryInterface;
 use Polkurier\Shipping\Model\OrderPoint;
 use Polkurier\Shipping\Model\PickupPoint\PointDescriptionBuilder;
 use Polkurier\Shipping\Model\ResourceModel\Shipment\Collection;
@@ -30,7 +31,6 @@ use Polkurier\Shipping\Model\Shipment\OrderLoader;
 use Polkurier\Shipping\Model\Shipment\Screen\ScreenDataProvider;
 use Polkurier\Shipping\Model\Shipment\ShipmentFinder;
 use Polkurier\Shipping\Model\ShippingChoice;
-use Polkurier\Shipping\Model\ShippingChoice\ShippingChoiceRepository;
 use Polkurier\Webservice\Dto\Response\CourierPoint;
 
 #[CoversClass(ActualShippingUpdater::class)]
@@ -172,9 +172,9 @@ class ActualShippingUpdaterTest extends TestCase
         $collections = $this->createStub(CollectionFactory::class);
         $collections->method('create')->willReturn($collection);
 
-        $choices = $this->createStub(ShippingChoiceRepository::class);
+        $choices = $this->createStub(ShippingChoiceRepositoryInterface::class);
         $choices->method('getForOrder')->willReturnCallback(fn(): ?ShippingChoice => $this->choice);
-        $choices->method('keep')->willReturnCallback(
+        $choices->method('keepForOrder')->willReturnCallback(
             function (int $orderId, ?string $method, ?string $description, ?OrderPointInterface $point): void {
                 $this->log[] = 'keep ' . $method . '|' . $description . '|' . $point?->getPointId();
                 $this->choice = new ShippingChoice([

@@ -21,7 +21,7 @@ use Polkurier\Shipping\Api\ShipmentManagementInterface;
 use Polkurier\Shipping\Controller\Adminhtml\Config\TestConnection;
 use Polkurier\Shipping\Controller\Adminhtml\Shipment\MassPickup;
 use Polkurier\Shipping\Controller\Adminhtml\Shipment\Pack;
-use Polkurier\Shipping\Controller\Adminhtml\Shipment\RequestedShipments;
+use Polkurier\Shipping\Controller\Adminhtml\Shipment\RequestedShipmentResolver;
 use Polkurier\Shipping\Controller\Adminhtml\Shipment\Save;
 use Polkurier\Shipping\Model\Config\ConfigProvider;
 use Polkurier\Shipping\Model\Sdk\ErrorMessageResolver;
@@ -320,7 +320,7 @@ class ShipmentActionsTest extends AdminActionTestCase
      */
     private function createMassPickup(array $selected): MassPickup
     {
-        $requested = $this->createStub(RequestedShipments::class);
+        $requested = $this->createStub(RequestedShipmentResolver::class);
         $requested->method('getSelected')->willReturn($selected);
 
         return new MassPickup(

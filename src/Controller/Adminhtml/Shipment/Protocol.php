@@ -26,11 +26,11 @@ class Protocol extends AbstractShipmentAction implements HttpGetActionInterface,
 
     public function __construct(
         Context $context,
-        RequestedShipments $requestedShipments,
+        RequestedShipmentResolver $requestedShipmentResolver,
         private readonly DocumentService $documentService,
         private readonly FileFactory $fileFactory,
     ) {
-        parent::__construct($context, $requestedShipments);
+        parent::__construct($context, $requestedShipmentResolver);
     }
 
     public function execute(): ResponseInterface|ResultInterface

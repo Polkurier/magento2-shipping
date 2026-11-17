@@ -223,7 +223,7 @@ readonly class StatusRefreshService
         ) {
             // Placed here, but the Magento shipment failed back then: try again with every refresh. One
             // placed elsewhere and linked from its track goes without one when that's taken
-            // ({@see TrackAdoptionService}).
+            // ({@see \Polkurier\Shipping\Model\Shipment\Status\TrackAdoptionService}).
             $this->nativeFollowUpService->ship($this->orderLoader->get($shipment->getOrderId()), $shipment);
 
             return $shipment;

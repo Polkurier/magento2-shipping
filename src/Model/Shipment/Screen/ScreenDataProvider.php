@@ -7,17 +7,14 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Model\Shipment\Screen;
 
-use Magento\Backend\Model\UrlInterface;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Sales\Model\Order;
 use Polkurier\Shipping\Api\AddressRepositoryInterface;
 use Polkurier\Shipping\Api\OrderPointRepositoryInterface;
 use Polkurier\Shipping\Api\PackTemplateRepositoryInterface;
 use Polkurier\Shipping\Model\Carrier\CarrierFeatureResolver;
-use Polkurier\Shipping\Model\Config\ConfigProvider;
 use Polkurier\Shipping\Model\Config\Source\PackType;
 use Polkurier\Shipping\Model\PickupPoint\DefaultSenderPointManager;
-use Polkurier\Shipping\Model\PickupPoint\MapTokenProvider;
 use Polkurier\Shipping\Model\PickupPoint\PointFinder;
 use Polkurier\Shipping\Model\Shipment\Draft\DefaultDraftBuilder;
 use Polkurier\Shipping\Model\Shipment\Draft\DraftHydrator;
@@ -36,13 +33,10 @@ readonly class ScreenDataProvider
         private PackTemplateRepositoryInterface $packTemplateRepository,
         private AddressRepositoryInterface $addressRepository,
         private PackType $packTypes,
-        private MapTokenProvider $mapTokenProvider,
-        private ConfigProvider $configProvider,
         private OrderAmountCalculator $orderAmountCalculator,
         private PointFinder $pointFinder,
         private DefaultDraftBuilder $defaultDraftBuilder,
         private OrderPointRepositoryInterface $orderPointRepository,
-        private UrlInterface $url,
         private DefaultSenderPointManager $defaultSenderPointManager,
     ) {}
 
@@ -186,20 +180,6 @@ readonly class ScreenDataProvider
         }
 
         return $templates;
-    }
-
-    /**
-     * Where the pickup point map is, its token and when that runs out (empty and 0 when it can't be
-     * obtained), and where the screen asks for a fresh one.
-     *
-     * @return array{token: string, expires: int, baseUrl: string, tokenUrl: string}
-     */
-    public function getMap(): array
-    {
-        return $this->mapTokenProvider->getTokenWithExpiry() + [
-            'baseUrl' => $this->configProvider->getMapUrl() . '/',
-            'tokenUrl' => $this->url->getUrl('polkurier/shipment/mapToken'),
-        ];
     }
 
     /**

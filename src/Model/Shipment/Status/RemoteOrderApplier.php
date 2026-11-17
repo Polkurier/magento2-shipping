@@ -11,6 +11,7 @@ use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Stdlib\DateTime as DateFormat;
 use Magento\Framework\Stdlib\DateTime\DateTime;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
+use Polkurier\Shipping\Model\PickupPoint\PointFinder;
 use Polkurier\Shipping\Model\Sdk\ShipmentGateway;
 use Polkurier\Webservice\Dto\Response\Order\OrderStatusMessage;
 use Polkurier\Webservice\Entity\Order;
@@ -265,10 +266,7 @@ readonly class RemoteOrderApplier
             'phone' => $address->getPhone(),
             'email' => $address->getEmail(),
             'point_id' => $address->getPointId() ?: null,
-            'point_label' => $point === null
-                ? null
-                : ($point->address
-                    ?: \trim($point->street . ', ' . $point->zip . ' ' . $point->city, ', ')),
+            'point_label' => $point !== null ? PointFinder::formatAddress($point) : null,
         ];
     }
 }

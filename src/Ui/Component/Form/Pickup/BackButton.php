@@ -11,7 +11,7 @@ use Magento\Framework\App\RequestInterface;
 use Magento\Framework\Url\DecoderInterface;
 use Magento\Framework\UrlInterface;
 use Magento\Framework\View\Element\UiComponent\Control\ButtonProviderInterface;
-use Polkurier\Shipping\Model\RequestParam;
+use Polkurier\Shipping\Model\RequestParamReader;
 use Polkurier\Shipping\Ui\Component\Control\OnClickScriptBuilder;
 
 /**
@@ -33,7 +33,7 @@ readonly class BackButton implements ButtonProviderInterface
     public function getButtonData(): array
     {
         $orderId = (int)$this->request->getParam('order_id');
-        $from = RequestParam::getString($this->request, 'uenc');
+        $from = RequestParamReader::getString($this->request, 'uenc');
         $back = $from !== '' ? (string)$this->urlDecoder->decode($from) : '';
 
         return [

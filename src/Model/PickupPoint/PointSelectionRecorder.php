@@ -91,7 +91,7 @@ readonly class PointSelectionRecorder
         }
         if ($point !== null) {
             // The same as the map shows after choosing: the address, the point's id beside it.
-            $label = $this->pointFinder->formatAddress($point);
+            $label = PointFinder::formatAddress($point);
             $cod = $point->cod;
         }
 

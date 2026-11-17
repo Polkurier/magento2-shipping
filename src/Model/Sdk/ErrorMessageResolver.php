@@ -16,6 +16,7 @@ use Polkurier\Webservice\Entity\Order\Cod;
 use Polkurier\Webservice\Entity\Order\PackItem;
 use Polkurier\Webservice\Entity\Order\Pickup;
 use Polkurier\Webservice\Enum\Http\ApiErrorCodeEnum;
+use Polkurier\Webservice\Enum\Validator\ValidationErrorCodeEnum;
 use Polkurier\Webservice\Exception\AuthorizationException;
 use Polkurier\Webservice\Exception\ConnectionException;
 use Polkurier\Webservice\Exception\Exception as PolkurierException;
@@ -23,6 +24,7 @@ use Polkurier\Webservice\Exception\InvalidArgumentException;
 use Polkurier\Webservice\Exception\MalformedResponseException;
 use Polkurier\Webservice\Exception\ValidationException;
 use Polkurier\Webservice\Exception\WebserviceException;
+use Polkurier\Webservice\Validator\Violation;
 
 /**
  * Turns SDK failures into messages a merchant can act on.
@@ -67,7 +69,9 @@ readonly class ErrorMessageResolver
         return match (true) {
             $e instanceof ValidationException => __(
                 'Polkurier would not accept this. Check: %1',
-                $this->formatFields($e->getValidationErrors()),
+                $e->getViolations() !== []
+                    ? $this->formatViolations($e->getViolations())
+                    : $this->formatFields($e->getValidationErrors()),
             ),
             $e instanceof InvalidArgumentException => __(
                 'The request to Polkurier could not be built: %1',
@@ -198,6 +202,121 @@ readonly class ErrorMessageResolver
         return $fields
             ? __('Polkurier refused: %1 Check: %2', $error->response, $this->formatFields($fields))
             : __('Polkurier refused: %1', $error->response);
+    }
+
+    /**
+     * The SDK's own refusal, each reason in the admin's language. A reason the module has no words
+     * for (one the SDK reports only in English, or one a later SDK adds) stays in English.
+     *
+     * @param list<Violation> $violations
+     */
+    private function formatViolations(array $violations): string
+    {
+        $reasons = [];
+        foreach ($violations as $violation) {
+            $reasons[$violation->path][] = $this->describeViolation($violation);
+        }
+
+        return $this->formatFields($reasons);
+    }
+
+    /**
+     * Why the field was refused, worded to follow its name.
+     */
+    private function describeViolation(Violation $violation): string
+    {
+        $parameters = $violation->parameters;
+
+        return (string)match ($violation->code) {
+            ValidationErrorCodeEnum::Blank => $this->describeBlank($violation),
+            ValidationErrorCodeEnum::NotAnEmail => __('must be an e-mail address'),
+            ValidationErrorCodeEnum::NotAPostcode => __('must be a postcode of %1', $parameters['country'] ?? ''),
+            ValidationErrorCodeEnum::NotAnOrderNumber => __('must be a Polkurier order number'),
+            ValidationErrorCodeEnum::NotAPhoneNumber => __('must be a phone number'),
+            ValidationErrorCodeEnum::PhoneNumberTooShort => __(
+                'has too few digits (at least %1)',
+                $parameters['minimum'] ?? '',
+            ),
+            ValidationErrorCodeEnum::NotABankAccount => __('must be a bank account number'),
+            ValidationErrorCodeEnum::BankAccountBadCharacters => __('may contain only letters and digits'),
+            ValidationErrorCodeEnum::BankAccountWrongLength => __(
+                'must have %1 characters for %2',
+                $parameters['expected'] ?? '',
+                $parameters['country'] ?? '',
+            ),
+            ValidationErrorCodeEnum::BankAccountWrongCountry => __(
+                'must be an account of %1',
+                $parameters['country'] ?? '',
+            ),
+            ValidationErrorCodeEnum::BankAccountBadChecksum => __('has a wrong check digit: check the number'),
+            ValidationErrorCodeEnum::NotAWholeNumber => __('must be a whole number'),
+            ValidationErrorCodeEnum::NotANumber => __('must be a number'),
+            ValidationErrorCodeEnum::OutOfRange => $this->describeRange($parameters) ?? $violation->message,
+            ValidationErrorCodeEnum::NotAList => __('must be a list'),
+            ValidationErrorCodeEnum::EmptyList => __('must have at least one entry'),
+            ValidationErrorCodeEnum::WrongType => __('has a value of the wrong type'),
+            ValidationErrorCodeEnum::OutOfOrder => isset($parameters['field'])
+                ? __('must not exceed %1', $this->getSiblingLabel($violation, $parameters['field']))
+                : $violation->message,
+            default => $violation->message,
+        };
+    }
+
+    /**
+     * A required field left empty, and what about another field made it required, if anything.
+     */
+    private function describeBlank(Violation $violation): Phrase
+    {
+        $field = $violation->parameters['field'] ?? null;
+        if ($field === null) {
+            return __('must not be empty');
+        }
+        $label = $this->getSiblingLabel($violation, $field);
+
+        return match ($violation->parameters['condition'] ?? null) {
+            'set' => __('is required when %1 is filled in', $label),
+            'not_set' => __('is required when %1 is not set', $label),
+            'empty' => __('is required when %1 is empty', $label),
+            // The value is a code (e.g. "BA"), which says nothing to the merchant.
+            'equals' => __('is required for the chosen %1', $label),
+            default => __('is required because of %1', $label),
+        };
+    }
+
+    /**
+     * The range a number must be in, from the bounds it has; null without any.
+     *
+     * @param array<string, scalar> $parameters
+     */
+    private function describeRange(array $parameters): ?Phrase
+    {
+        $minimum = $parameters['minimum'] ?? null;
+        $maximum = $parameters['maximum'] ?? null;
+        $exclusive = !empty($parameters['exclusiveMinimum']);
+
+        return match (true) {
+            $minimum !== null && $maximum !== null => $exclusive
+                ? __('must be more than %1 and at most %2', $minimum, $maximum)
+                : __('must be from %1 to %2', $minimum, $maximum),
+            $minimum !== null => $exclusive
+                ? __('must be more than %1', $minimum)
+                : __('must be at least %1', $minimum),
+            $maximum !== null => __('must be at most %1', $maximum),
+            default => null,
+        };
+    }
+
+    /**
+     * The label of the field a violation names in its parameters: a wire name beside the refused
+     * field, e.g. "return_cod" for "COD.codbankaccount".
+     */
+    private function getSiblingLabel(Violation $violation, int|float|string|bool $field): string
+    {
+        $parent = \strrpos($violation->path, '.');
+
+        return $this->getFieldLabel(
+            ($parent === false ? '' : \substr($violation->path, 0, $parent + 1)) . $field,
+        );
     }
 
     /**

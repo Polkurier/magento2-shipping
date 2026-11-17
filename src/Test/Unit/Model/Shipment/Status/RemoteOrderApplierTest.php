@@ -85,6 +85,30 @@ class RemoteOrderApplierTest extends SdkTestCase
         self::assertNotNull($shipment->getTrackingUrl());
     }
 
+    public function testAnOrderMissingWhatPolkurierUsuallySendsIsStillCopied(): void
+    {
+        $json = (array)\json_decode(self::loadFixture('get_orders.json'), true);
+        unset(
+            $json['response']['result'][0]['date'],
+            $json['response']['result'][0]['status_date'],
+            $json['response']['result'][0]['shipmenttype'],
+            $json['response']['result'][0]['sender'],
+            $json['response']['result'][0]['items'][0]['type'],
+        );
+        $shipment = $this->createShipment()->setStatusDate('2026-06-24 08:00:00');
+
+        $this->createApplier(new FixedDateTime())->apply($this->createOrder((string)\json_encode($json)), $shipment);
+
+        self::assertSame('2026-06-24 08:00:00', $shipment->getStatusDate(), 'The last known status date stays.');
+        $details = $shipment->getDetails();
+        self::assertNull($details['date']);
+        self::assertNull($details['status_date']);
+        self::assertNull($details['shipment_type']);
+        self::assertNull($details['sender']);
+        self::assertSame('Anna Odbiorca', $details['recipient']['person'] ?? null);
+        self::assertNull($details['items'][0]['type'] ?? null);
+    }
+
     public function testACancelledPolkurierOrderCancelsTheShipment(): void
     {
         $json = (string)\json_encode(\array_replace_recursive(

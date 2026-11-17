@@ -140,6 +140,30 @@ class RemoteOrderMatcherTest extends SdkTestCase
         );
     }
 
+    public function testAnOrderWithoutARecipientIsNotTakenForTheAttempt(): void
+    {
+        $shipment = $this->createStub(ShipmentInterface::class);
+        $shipment->method('getExternalOrderId')->willReturn('000000031');
+        $shipment->method('getCarrierCode')->willReturn('DPD');
+        $shipment->method('getDescription')->willReturn('Books');
+        $shipment->method('getRecipientPostcode')->willReturn('00-001');
+        $shipment->method('getRecipientPhone')->willReturn('600300400');
+        $shipment->method('getPackCount')->willReturn(1);
+        $placed = ['external_application_id' => 'magento2-0123456789ab', 'external_order_id' => '000000031'];
+        $this->pages = [1 => $this->list(
+            ['number' => '18015-1'] + $placed,
+            ['number' => '18015-2', 'recipient' => null] + $placed,
+        )];
+
+        $found = $this->createMatcher()->findCandidates($shipment);
+
+        self::assertSame(
+            ['18015-1'],
+            \array_map(static fn(RemoteOrder $order): ?string => $order->getNumber(), $found['sure']),
+        );
+        self::assertSame([], $found['possible']);
+    }
+
     public function testTheSearchStopsAtTheLastPage(): void
     {
         $this->pages = [

@@ -58,13 +58,18 @@ readonly class RemoteOrderApplier
             ->setStatusCode($order->getStatusCode())
             ->setStatusLabel($order->getStatus())
             // In UTC, as every time the module stores: Polkurier reports them in Polish time.
-            ->setStatusDate(self::formatUtc($order->getStatusDate()))
+            // None without a waybill or before its first status: the date known so far stays.
+            ->setStatusDate(
+                $order->getStatusDate() !== null
+                    ? self::formatUtc($order->getStatusDate())
+                    : $shipment->getStatusDate(),
+            )
             ->setDeliveredAt($order->getDeliveredDate() !== null ? self::formatUtc($order->getDeliveredDate()) : null)
             ->setTrackingUrl($order->getTrackingUri() ?: $shipment->getTrackingUrl())
             ->setPriceNet($order->getPriceNet())
             ->setPriceGross($order->getPriceGross())
             ->setCodAmount($order->getCod()?->getAmount() ?: null)
-            ->setCodStatus($order->getCod()?->getStatus()->value)
+            ->setCodStatus($order->getCod()?->getStatus()?->value)
             ->setDetails($this->mapFromOrder($order))
             ->setDetailsSyncedAt((string)$this->dateTime->gmtDate());
 
@@ -138,7 +143,7 @@ readonly class RemoteOrderApplier
         $packs = [];
         foreach ($order->getPacks() as $pack) {
             $packs[] = [
-                'type' => $pack->getType()->value,
+                'type' => $pack->getType()?->value,
                 'length' => $pack->getLength(),
                 'width' => $pack->getWidth(),
                 'height' => $pack->getHeight(),
@@ -152,7 +157,7 @@ readonly class RemoteOrderApplier
         foreach ($order->getItems() as $item) {
             $items[] = [
                 'description' => $item->description,
-                'type' => $item->type->value,
+                'type' => $item->type?->value,
                 'amount' => $item->amount,
                 'value_net' => $item->valueNet,
                 'value_gross' => $item->valueGross,
@@ -163,26 +168,26 @@ readonly class RemoteOrderApplier
 
         return [
             'number' => $order->getNumber(),
-            'date' => $order->getDate()->format(DateFormat::DATETIME_PHP_FORMAT),
+            'date' => $order->getDate()?->format(DateFormat::DATETIME_PHP_FORMAT),
             'description' => $order->getDescription(),
             'carrier' => $order->getCourier(),
             'carrier_name' => $order->getCourierName(),
-            'shipment_type' => $order->getShipmentType()->value,
+            'shipment_type' => $order->getShipmentType()?->value,
             'status' => $order->getStatus(),
             'status_code' => $order->getStatusCode(),
-            'status_date' => $order->getStatusDate()->format(DateFormat::DATETIME_PHP_FORMAT),
+            'status_date' => $order->getStatusDate()?->format(DateFormat::DATETIME_PHP_FORMAT),
             'delivered_date' => $order->getDeliveredDate()?->format(DateFormat::DATETIME_PHP_FORMAT),
             'tracking_url' => $order->getTrackingUri(),
             'waybills' => $waybills,
             'sender' => $this->mapAddress($order->getSender()),
             'recipient' => $this->mapAddress($order->getRecipient()),
-            'cover_address' => $order->getCoverAddress() === null ? null : $this->mapAddress($order->getCoverAddress()),
+            'cover_address' => $this->mapAddress($order->getCoverAddress()),
             'cod' => $cod === null ? null : [
                 'amount' => $cod->getAmount(),
-                'type' => $cod->getType()->value,
-                'return_type' => $cod->getReturnType()->value,
+                'type' => $cod->getType()?->value,
+                'return_type' => $cod->getReturnType()?->value,
                 'bank_account' => $cod->getBankAccount(),
-                'status' => $cod->getStatus()->value,
+                'status' => $cod->getStatus()?->value,
             ],
             'insurance' => $order->getInsurance(),
             'pickup' => $pickup === null ? null : [
@@ -240,10 +245,13 @@ readonly class RemoteOrderApplier
     }
 
     /**
-     * @return array<string, string|null>
+     * @return array<string, string|null>|null
      */
-    private function mapAddress(Address $address): array
+    private function mapAddress(?Address $address): ?array
     {
+        if ($address === null) {
+            return null;
+        }
         $point = $address->getPoint();
 
         return [

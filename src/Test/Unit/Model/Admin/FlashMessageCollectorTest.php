@@ -65,6 +65,17 @@ class FlashMessageCollectorTest extends TestCase
         );
     }
 
+    public function testWithoutAnExpiryItSaysOnlyWhere(): void
+    {
+        self::assertSame(
+            'Code sent to +48 *** *** 701.',
+            FlashMessageCollector::formatCodeSent(
+                $this->createToken(new TransportMethodMessage(id: '1', name: '+48 *** *** 701'), expires: false),
+            ),
+        );
+        self::assertSame('Code sent.', FlashMessageCollector::formatCodeSent($this->createToken(null, expires: false)));
+    }
+
     private function createMessageManager(): ManagerInterface
     {
         $messages = $this->createStub(ManagerInterface::class);
@@ -80,10 +91,12 @@ class FlashMessageCollectorTest extends TestCase
         return $messages;
     }
 
-    private function createToken(?TransportMethodMessage $method): TwoFactorToken
+    private function createToken(?TransportMethodMessage $method, bool $expires = true): TwoFactorToken
     {
         $now = new \DateTimeImmutable('2026-10-05 14:30:00');
 
-        return new TwoFactorToken('t1', '', 'Wypłata', 1, $now, $now, $now->modify('+5 minutes'), $method);
+        $expiresAt = $expires ? $now->modify('+5 minutes') : null;
+
+        return new TwoFactorToken('t1', '', 'Wypłata', 1, $now, $now, $expiresAt, $method);
     }
 }

@@ -103,9 +103,9 @@ readonly class CarrierFeatureResolver
         }
 
         return \array_values(\array_filter([
-            $types->envelope->available ? ShipmentTypeEnum::Envelope : null,
-            $types->box->available ? ShipmentTypeEnum::Box : null,
-            $types->palette->available ? ShipmentTypeEnum::Palette : null,
+            $types->envelope?->available ? ShipmentTypeEnum::Envelope : null,
+            $types->box?->available ? ShipmentTypeEnum::Box : null,
+            $types->palette?->available ? ShipmentTypeEnum::Palette : null,
         ]));
     }
 

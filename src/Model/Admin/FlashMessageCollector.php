@@ -78,11 +78,13 @@ class FlashMessageCollector
     public static function formatCodeSent(TwoFactorToken $token): string
     {
         $where = \trim((string)$token->transportMethod?->name) ?: \trim($token->phoneNumber);
-        $until = $token->expiresAt->format('H:i');
+        $until = $token->expiresAt?->format('H:i');
 
-        return $where !== ''
-            ? (string)__('Code sent to %1; valid until %2.', $where, $until)
-            : (string)__('Code sent; valid until %1.', $until);
+        return match (true) {
+            $until === null => $where !== '' ? (string)__('Code sent to %1.', $where) : (string)__('Code sent.'),
+            $where !== '' => (string)__('Code sent to %1; valid until %2.', $where, $until),
+            default => (string)__('Code sent; valid until %1.', $until),
+        };
     }
 
     private function add(Phrase|string $text, int $level): self

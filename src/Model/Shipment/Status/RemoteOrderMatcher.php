@@ -279,12 +279,14 @@ readonly class RemoteOrderMatcher
      */
     private function match(ShipmentInterface $shipment, Order $order): string
     {
-        if (!$this->isPlacedFor($shipment, $order)
+        $recipient = $order->getRecipient();
+        if ($recipient === null
+            || !$this->isPlacedFor($shipment, $order)
             || $order->getCourier() !== $shipment->getCarrierCode()
             || \trim((string)$order->getDescription()) !== \trim($shipment->getDescription())
-            || self::normalizePostcode($order->getRecipient()->getPostcode())
+            || self::normalizePostcode($recipient->getPostcode())
                 !== self::normalizePostcode((string)$shipment->getRecipientPostcode())
-            || self::normalizePhone($order->getRecipient()->getPhone())
+            || self::normalizePhone((string)$recipient->getPhone())
                 !== self::normalizePhone((string)$shipment->getRecipientPhone())
         ) {
             return self::NO_MATCH;

@@ -33,7 +33,8 @@ readonly class AddressBookMapper
         return [
             AddressInterface::FIELD_EXT_ID => $address->getId(),
             AddressInterface::FIELD_NAME => $address->getName(),
-            AddressInterface::FIELD_TYPE => $address->getType()->value,
+            // Only sender addresses are asked for and saved.
+            AddressInterface::FIELD_TYPE => $address->getType()->value ?? AddressInterface::TYPE_SENDER,
             AddressInterface::FIELD_PERSON => $address->getPerson(),
             AddressInterface::FIELD_COMPANY => $address->getCompany() ?: null,
             AddressInterface::FIELD_STREET => $address->getStreet(),

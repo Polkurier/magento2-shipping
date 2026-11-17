@@ -17,6 +17,7 @@ use Polkurier\Shipping\Test\Unit\Support\NewingObjectManager;
 use Polkurier\Shipping\Test\Unit\Support\SdkTestCase;
 use Polkurier\Webservice\Builder\Entity\AddressBuilderFactory;
 use Polkurier\Webservice\Dto\Request\Address\GetMessage;
+use Polkurier\Webservice\Entity\Address as RemoteAddress;
 use Polkurier\Webservice\Enum\Address\AddressTypeEnum;
 use Polkurier\Webservice\Testing\RecordingClient;
 
@@ -51,6 +52,27 @@ class AddressBookMapperTest extends SdkTestCase
         self::assertTrue($local->isCover());
         self::assertSame('get_addresses', $http->lastPayload()['apimethod']);
         self::assertSame('SENDER', $http->lastPayload()['data']['type']);
+    }
+
+    public function testAnAddressWithoutATypeIsTakenAsASender(): void
+    {
+        $remote = new RemoteAddress(
+            'Magazyn',
+            'Jan Kowalski',
+            'Fabryczna',
+            '7',
+            '90-001',
+            'Łódź',
+            'magazyn@example.com',
+            '501501501',
+            id: 'aZ3k',
+            type: null,
+        );
+
+        self::assertSame(
+            AddressInterface::TYPE_SENDER,
+            self::createMapper()->normalize($remote)[AddressInterface::FIELD_TYPE],
+        );
     }
 
     public function testAProvincePolkurierCantKeepStaysAsMagentoHasIt(): void

@@ -58,6 +58,11 @@ class PickupServiceTest extends TestCase
 
     private RecordingEventManager $events;
 
+    /**
+     * @var PickupTimeMessage[] the collection days Polkurier offers
+     */
+    private array $pickupDays = [];
+
     public function testCollectionTimesAreDaysWithTheirWindows(): void
     {
         $times = $this->createService()->getPickupTimes('DPD', '05-620', '', 'box');
@@ -73,6 +78,28 @@ class PickupServiceTest extends TestCase
             ],
             ['date' => '2026-10-02', 'windows' => []],
         ], $times);
+    }
+
+    public function testADayOrWindowWithoutItsTimesIsLeftOut(): void
+    {
+        $this->pickupDays = [
+            new PickupTimeMessage(null, [
+                new TimeIntervalMessage(new \DateTimeImmutable('09:00'), new \DateTimeImmutable('12:00')),
+            ]),
+            new PickupTimeMessage(new \DateTimeImmutable('2026-10-01'), [
+                new TimeIntervalMessage(null, new \DateTimeImmutable('2026-10-01 12:00')),
+                new TimeIntervalMessage(new \DateTimeImmutable('2026-10-01 12:00'), null),
+                new TimeIntervalMessage(
+                    new \DateTimeImmutable('2026-10-01 12:00'),
+                    new \DateTimeImmutable('2026-10-01 16:00'),
+                ),
+            ]),
+        ];
+
+        self::assertSame(
+            [['date' => '2026-10-01', 'windows' => [['from' => '12:00', 'to' => '16:00']]]],
+            $this->createService()->getPickupTimes('DPD', '05-620', '', 'box'),
+        );
     }
 
     public function testACollectivePickupIsBookedForTheShipmentsAwaitingOne(): void
@@ -196,6 +223,19 @@ class PickupServiceTest extends TestCase
     protected function setUp(): void
     {
         $this->events = new RecordingEventManager();
+        $this->pickupDays = [
+            new PickupTimeMessage(new \DateTimeImmutable('2026-10-01'), [
+                new TimeIntervalMessage(
+                    new \DateTimeImmutable('2026-10-01 09:00'),
+                    new \DateTimeImmutable('2026-10-01 12:00'),
+                ),
+                new TimeIntervalMessage(
+                    new \DateTimeImmutable('2026-10-01 12:00'),
+                    new \DateTimeImmutable('2026-10-01 16:00'),
+                ),
+            ]),
+            new PickupTimeMessage(new \DateTimeImmutable('2026-10-02')),
+        ];
     }
 
     private function createService(): PickupService
@@ -204,19 +244,7 @@ class PickupServiceTest extends TestCase
         $gateway->method('getPickupTimes')->willReturnCallback(function (GetPickupTimeMessage $message): array {
             $this->timesAsked = $message;
 
-            return [
-                new PickupTimeMessage(new \DateTimeImmutable('2026-10-01'), [
-                    new TimeIntervalMessage(
-                        new \DateTimeImmutable('2026-10-01 09:00'),
-                        new \DateTimeImmutable('2026-10-01 12:00'),
-                    ),
-                    new TimeIntervalMessage(
-                        new \DateTimeImmutable('2026-10-01 12:00'),
-                        new \DateTimeImmutable('2026-10-01 16:00'),
-                    ),
-                ]),
-                new PickupTimeMessage(new \DateTimeImmutable('2026-10-02')),
-            ];
+            return $this->pickupDays;
         });
         $gateway->method('isMultiPickupAvailable')->willReturnCallback(
             function (MultiPickupAvailabilityRequestMessage $message): bool {

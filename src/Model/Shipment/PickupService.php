@@ -61,12 +61,18 @@ readonly class PickupService
 
         $result = [];
         foreach ($days as $day) {
+            // A day or a window Polkurier gives without its date or times can't be booked.
+            if ($day->pickupDate === null) {
+                continue;
+            }
             $windows = [];
             foreach ($day->time as $window) {
-                $windows[] = [
-                    'from' => $window->timeFrom->format('H:i'),
-                    'to' => $window->timeTo->format('H:i'),
-                ];
+                if ($window->timeFrom !== null && $window->timeTo !== null) {
+                    $windows[] = [
+                        'from' => $window->timeFrom->format('H:i'),
+                        'to' => $window->timeTo->format('H:i'),
+                    ];
+                }
             }
             $result[] = ['date' => $day->pickupDate->format('Y-m-d'), 'windows' => $windows];
         }

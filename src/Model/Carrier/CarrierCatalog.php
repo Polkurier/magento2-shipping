@@ -7,7 +7,6 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Model\Carrier;
 
-use Composer\InstalledVersions;
 use Magento\Framework\ObjectManager\ResetAfterRequestInterface;
 use Polkurier\Shipping\Api\PolkurierClientInterface;
 use Polkurier\Shipping\Enum\Cache\CacheTagEnum;
@@ -15,6 +14,7 @@ use Polkurier\Shipping\Exception\RecentFailureException;
 use Polkurier\Shipping\Model\Cache\Type as PolkurierCache;
 use Polkurier\Shipping\Model\Sdk\AccountCache;
 use Polkurier\Shipping\Model\Sdk\ErrorMessageResolver;
+use Polkurier\Shipping\Model\Sdk\SdkVersionProvider;
 use Polkurier\Webservice\Dto\Request\Courier\AvailableCarriersMessage;
 use Polkurier\Webservice\Dto\Response\Carrier;
 use Polkurier\Webservice\Dto\Response\CourierPoint;
@@ -55,7 +55,6 @@ class CarrierCatalog implements ResetAfterRequestInterface
         'Polkurier\\Webservice\\Enum\\',
     ];
 
-    private const string SDK_PACKAGE = 'polkurier/polkurier-sdk';
     private const string NO_POINT = 'none';
 
     /**
@@ -165,7 +164,12 @@ class CarrierCatalog implements ResetAfterRequestInterface
             return null;
         }
         \sort($providers);
-        $key = $this->accountCache->buildKey('point', $this->getSdkVersion(), $pointId, \implode(',', $providers));
+        $key = $this->accountCache->buildKey(
+            'point',
+            SdkVersionProvider::getInstalledVersion(),
+            $pointId,
+            \implode(',', $providers),
+        );
         $cached = $this->polkurierCache->load($key);
         if ($cached === self::NO_POINT) {
             return null;
@@ -316,19 +320,6 @@ class CarrierCatalog implements ResetAfterRequestInterface
 
     private function getCacheKey(): string
     {
-        return $this->accountCache->buildKey('carriers', $this->getSdkVersion());
-    }
-
-    /**
-     * Cached lists of an earlier SDK may no longer fit its classes.
-     */
-    private function getSdkVersion(): string
-    {
-        try {
-            return InstalledVersions::getVersion(self::SDK_PACKAGE)
-                . '@' . InstalledVersions::getReference(self::SDK_PACKAGE);
-        } catch (\OutOfBoundsException) {
-            return '';
-        }
+        return $this->accountCache->buildKey('carriers', SdkVersionProvider::getInstalledVersion());
     }
 }

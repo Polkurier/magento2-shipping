@@ -7,7 +7,6 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Model\Sdk;
 
-use Composer\InstalledVersions;
 use Magento\Framework\App\Filesystem\DirectoryList;
 use Magento\Framework\Filesystem\DirectoryList as Directories;
 use Polkurier\Webservice\Api\SerializerConfigInterface;
@@ -25,8 +24,6 @@ use Symfony\Component\Cache\Adapter\PhpFilesAdapterFactory;
 class SerializerConfigProvider
 {
     public const string CACHE_DIRECTORY = 'polkurier';
-
-    private const string SDK_PACKAGE = 'polkurier/polkurier-sdk';
 
     private ?SerializerConfigInterface $config = null;
 
@@ -48,17 +45,9 @@ class SerializerConfigProvider
         ]);
     }
 
-    /**
-     * The metadata of an earlier SDK may no longer fit its classes, so each version has its own.
-     */
     private function getCacheNamespace(): string
     {
-        try {
-            $version = InstalledVersions::getVersion(self::SDK_PACKAGE)
-                . '-' . InstalledVersions::getReference(self::SDK_PACKAGE);
-        } catch (\OutOfBoundsException) {
-            $version = '';
-        }
+        $version = SdkVersionProvider::getInstalledVersion();
 
         // The characters a cache namespace may have.
         return self::CACHE_DIRECTORY . '-' . \preg_replace('/[^-+_.A-Za-z0-9]/', '_', $version);

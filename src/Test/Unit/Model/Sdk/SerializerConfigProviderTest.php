@@ -12,6 +12,7 @@ use Magento\Framework\Filesystem\DirectoryList as Directories;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use Polkurier\Shipping\Model\Sdk\SdkVersionProvider;
 use Polkurier\Shipping\Model\Sdk\SerializerConfigProvider;
 use Polkurier\Webservice\Serializer\SerializerConfig;
 use Polkurier\Webservice\Serializer\SerializerConfigFactory;
@@ -41,9 +42,9 @@ class SerializerConfigProviderTest extends TestCase
         $provider = new SerializerConfigProvider($directories, $configs, $caches);
 
         self::assertSame($provider->getConfig(), $provider->getConfig(), 'Built once.');
-        $version = InstalledVersions::getVersion('polkurier/polkurier-sdk');
+        $version = InstalledVersions::getVersion(SdkVersionProvider::PACKAGE);
         self::assertIsString($version);
-        self::assertStringStartsWith('polkurier-' . $version . '-', $cache['namespace'] ?? '');
+        self::assertStringStartsWith('polkurier-' . $version . '_', $cache['namespace'] ?? '');
         self::assertMatchesRegularExpression('/^[-+_.A-Za-z0-9]+$/', $cache['namespace']);
         self::assertSame('/shop/var/cache/polkurier', $cache['directory'] ?? null);
         self::assertSame('Europe/Warsaw', $provider->getConfig()->getTimezone()?->getName());

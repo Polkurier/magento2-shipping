@@ -13,6 +13,7 @@ use Magento\Framework\Controller\Result\Redirect;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Controller\Adminhtml\ReturnsBackTrait;
+use Polkurier\Shipping\Controller\Adminhtml\Shipment\Index as ShipmentIndex;
 
 /**
  * Shared plumbing of the actions on existing Polkurier shipments: reaching the shipments a request
@@ -65,6 +66,6 @@ abstract class AbstractShipmentAction extends Action
 
         return $orderId
             ? $this->returnBack('sales/order/view', ['order_id' => $orderId], $gone)
-            : $this->returnBack('polkurier/shipment/index', [], $gone);
+            : $this->returnBack(ShipmentIndex::ROUTE, [], $gone);
     }
 }

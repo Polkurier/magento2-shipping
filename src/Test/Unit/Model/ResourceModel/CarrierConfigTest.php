@@ -17,9 +17,9 @@ use PHPUnit\Framework\TestCase;
 use Polkurier\Shipping\Api\Data\CarrierLabelInterfaceFactory;
 use Polkurier\Shipping\Model\CarrierConfig;
 use Polkurier\Shipping\Model\CarrierConfig\CarrierLabel;
-use Polkurier\Shipping\Model\ResourceModel\CarrierConfig as Resource;
+use Polkurier\Shipping\Model\ResourceModel\CarrierConfig as CarrierConfigResource;
 
-#[CoversClass(Resource::class)]
+#[CoversClass(CarrierConfigResource::class)]
 #[AllowMockObjectsWithoutExpectations]
 class CarrierConfigTest extends TestCase
 {
@@ -65,7 +65,7 @@ class CarrierConfigTest extends TestCase
         self::assertSame(['delete'], $this->writes);
     }
 
-    private function createResource(): Resource
+    private function createResource(): CarrierConfigResource
     {
         $connection = $this->createStub(AdapterInterface::class);
         $connection->method('delete')->willReturnCallback(function (): int {
@@ -84,7 +84,7 @@ class CarrierConfigTest extends TestCase
         $context = $this->createStub(Context::class);
         $context->method('getResources')->willReturn($resources);
 
-        return new Resource($context, $this->createStub(CarrierLabelInterfaceFactory::class));
+        return new CarrierConfigResource($context, $this->createStub(CarrierLabelInterfaceFactory::class));
     }
 
     private function createConfig(): CarrierConfig
@@ -100,7 +100,7 @@ class CarrierConfigTest extends TestCase
         return (new CarrierLabel())->setStoreId($storeId)->setLabel($label);
     }
 
-    private function afterSave(Resource $resource, CarrierConfig $config): void
+    private function afterSave(CarrierConfigResource $resource, CarrierConfig $config): void
     {
         (new \ReflectionMethod($resource, '_afterSave'))->invoke($resource, $config);
     }

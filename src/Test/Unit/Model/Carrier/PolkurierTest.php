@@ -279,6 +279,7 @@ class PolkurierTest extends SdkTestCase
             new ErrorMessageResolver(),
             new AvailableCarrierFilter($config),
             new AccountCache($this->createStub(PolkurierCache::class), new Json(), $config),
+            new Json(),
         );
 
         $resultFactory = $this->createStub(ResultFactory::class);

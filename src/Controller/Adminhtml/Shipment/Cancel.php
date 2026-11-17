@@ -19,6 +19,7 @@ use Polkurier\Shipping\Api\ShipmentManagementInterface;
 class Cancel extends AbstractShipmentAction implements HttpPostActionInterface
 {
     public const string ADMIN_RESOURCE = 'Polkurier_Shipping::shipment_cancel';
+    public const string ROUTE = 'polkurier/shipment/cancel';
 
     public function __construct(
         Context $context,

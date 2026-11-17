@@ -23,6 +23,7 @@ use Polkurier\Shipping\Model\Shipment\Valuation\CostEstimator;
 class Calculate extends AbstractJsonAction
 {
     public const string ADMIN_RESOURCE = 'Magento_Sales::ship';
+    public const string ROUTE = 'polkurier/shipment/calculate';
 
     public function __construct(
         Context $context,

@@ -27,6 +27,9 @@ use Polkurier\Webservice\Exception\Exception as PolkurierException;
  */
 class MapTokenProvider implements ResetAfterRequestInterface
 {
+    /**
+     * How long a token is cached: less than the four hours it works for.
+     */
     public const int CACHE_LIFETIME = 3 * 3600;
 
     /**

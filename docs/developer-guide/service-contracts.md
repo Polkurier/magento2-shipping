@@ -28,6 +28,8 @@ One enum is part of the API too, also `@api`:
 as values (see [Events](events.md)).
 
 Data interfaces are in `Api/Data`: [`ShipmentInterface`](../../src/Api/Data/ShipmentInterface.php),
+with the keys of its stored order copy and scans in
+[`ShipmentDetailsInterface`](../../src/Api/Data/ShipmentDetailsInterface.php),
 [`ShipmentDraftInterface`](../../src/Api/Data/ShipmentDraftInterface.php) with
 [`ShipmentDraft\PackInterface`](../../src/Api/Data/ShipmentDraft/PackInterface.php),
 [`CarrierConfigInterface`](../../src/Api/Data/CarrierConfigInterface.php) with

@@ -8,7 +8,7 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Test\Unit\Model\Sdk;
 
 use Composer\InstalledVersions;
-use Magento\Framework\Filesystem\DirectoryList as Directories;
+use Magento\Framework\App\Filesystem\DirectoryList;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
@@ -25,8 +25,8 @@ class SerializerConfigProviderTest extends TestCase
 {
     public function testTheMetadataIsCachedPerSdkVersionAndTimesArePolish(): void
     {
-        $directories = $this->createStub(Directories::class);
-        $directories->method('getPath')->willReturn('/shop/var/cache');
+        $directoryList = $this->createStub(DirectoryList::class);
+        $directoryList->method('getPath')->willReturn('/shop/var/cache');
         $configs = $this->createStub(SerializerConfigFactory::class);
         $configs->method('create')->willReturnCallback(
             static fn(array $arguments): SerializerConfig => new SerializerConfig(...$arguments),
@@ -39,7 +39,7 @@ class SerializerConfigProviderTest extends TestCase
             return $this->createStub(PhpFilesAdapter::class);
         });
 
-        $provider = new SerializerConfigProvider($directories, $configs, $caches);
+        $provider = new SerializerConfigProvider($directoryList, $configs, $caches);
 
         self::assertSame($provider->getConfig(), $provider->getConfig(), 'Built once.');
         $version = InstalledVersions::getVersion(SdkVersionProvider::PACKAGE);

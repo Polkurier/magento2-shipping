@@ -9,7 +9,7 @@ namespace Polkurier\Shipping\Test\Unit\Model\Shipment\Status;
 
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Sales\Model\Order as MagentoOrder;
-use Magento\Sales\Model\Order\Shipment as MagentoShipment;
+use Magento\Sales\Model\Order\Shipment as MagentoShipmentModel;
 use PHPUnit\Framework\Attributes\CoversClass;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Enum\Config\ExternalOrderIdEnum;
@@ -388,7 +388,7 @@ class RemoteOrderMatcherTest extends SdkTestCase
      */
     private function createMagentoOrder(): MagentoOrder
     {
-        $shipment = $this->createStub(MagentoShipment::class);
+        $shipment = $this->createStub(MagentoShipmentModel::class);
         $shipment->method('getIncrementId')->willReturn('000000027');
         $order = $this->createStub(MagentoOrder::class);
         $order->method('getIncrementId')->willReturn('000000031');

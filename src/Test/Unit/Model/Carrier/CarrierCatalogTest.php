@@ -21,12 +21,15 @@ use Polkurier\Shipping\Model\Sdk\AccountCache;
 use Polkurier\Shipping\Model\Sdk\ErrorMessageResolver;
 use Polkurier\Shipping\Model\Sdk\PolkurierClient;
 use Polkurier\Shipping\Test\Unit\Support\MemoryPolkurierCache;
+use Polkurier\Shipping\Test\Unit\Support\SdkSerializer;
+use Polkurier\Webservice\Api\SerializerInterface;
 use Polkurier\Webservice\Api\Service\CourierServiceInterface;
 use Polkurier\Webservice\Dto\Response\Carrier;
 use Polkurier\Webservice\Dto\Response\CourierPoint;
 use Polkurier\Webservice\Dto\Response\ErrorMessage;
 use Polkurier\Webservice\Enum\Http\ResponseStatusEnum;
 use Polkurier\Webservice\Exception\ConnectionException;
+use Polkurier\Webservice\Exception\InvalidArgumentException;
 use Polkurier\Webservice\Exception\WebserviceException;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
@@ -46,10 +49,10 @@ class CarrierCatalogTest extends TestCase
 
     private ?\Throwable $pointFailure = null;
 
-    protected function setUp(): void
-    {
-        $this->cache = new MemoryPolkurierCache();
-    }
+    /**
+     * Whether the SDK fails to write what it is given.
+     */
+    private bool $unwritable = false;
 
     public function testAPointIsAskedForOnceAndKeptForADay(): void
     {
@@ -149,11 +152,11 @@ class CarrierCatalogTest extends TestCase
         self::assertSame('DPD', $carriers['DPD']->serviceCode);
     }
 
-    public function testAnEntryNamingAClassOutsideTheSdkIsDroppedAndFetchedAgain(): void
+    public function testAnEntryTheSdkCannotReadBackIsDroppedAndFetchedAgain(): void
     {
         $this->createCatalog()->getAccountCarriers();
         $key = \array_key_first($this->cache->entries);
-        $this->cache->entries[$key] = \serialize(['DPD' => new \ArrayObject()]);
+        $this->cache->entries[$key] = '{"DPD":"{\\"servicecode\\":[]}"}';
 
         $carriers = $this->createCatalog()->getAccountCarriers();
 
@@ -161,16 +164,31 @@ class CarrierCatalogTest extends TestCase
         self::assertInstanceOf(Carrier::class, $carriers['DPD']);
     }
 
-    public function testAnEntryNamingAClassThatNoLongerExistsIsDroppedAndFetchedAgain(): void
+    public function testAnUnreadablePointIsLookedUpAgain(): void
     {
-        $this->createCatalog()->getAccountCarriers();
-        $key = \array_key_first($this->cache->entries);
-        $this->cache->entries[$key] = 'a:1:{s:3:"DPD";O:45:"Polkurier\Webservice\Dto\Response\GoneCarrier":0:{}}';
+        $this->createCatalog()->findPoint('KRA01M', ['inpost']);
+        foreach ($this->cache->entries as $key => $entry) {
+            $this->cache->entries[$key] = 'not a point';
+        }
+
+        $point = $this->createCatalog()->findPoint('KRA01M', ['inpost']);
+
+        self::assertSame(['KRA01M', 'KRA01M'], $this->pointRequests);
+        self::assertSame('KRA01M', $point?->id);
+    }
+
+    public function testWhatTheSdkCannotWriteIsReturnedUncachedAndAskedForAgain(): void
+    {
+        $this->unwritable = true;
 
         $carriers = $this->createCatalog()->getAccountCarriers();
+        $point = $this->createCatalog()->findPoint('KRA01M', ['inpost']);
+        $this->createCatalog()->getAccountCarriers();
+        $this->createCatalog()->findPoint('KRA01M', ['inpost']);
 
-        self::assertSame(2, $this->requests, 'It would come back as an incomplete object.');
-        self::assertInstanceOf(Carrier::class, $carriers['DPD']);
+        self::assertSame(['DPD'], \array_keys($carriers));
+        self::assertSame('KRA01M', $point?->id);
+        self::assertSame([2, ['KRA01M', 'KRA01M']], [$this->requests, $this->pointRequests]);
     }
 
     public function testAnUnreadableEntryIsFetchedAgain(): void
@@ -263,6 +281,11 @@ class CarrierCatalogTest extends TestCase
         self::assertSame(2, $this->requests);
     }
 
+    protected function setUp(): void
+    {
+        $this->cache = new MemoryPolkurierCache();
+    }
+
     private function createCatalog(): CarrierCatalog
     {
         $courier = $this->createStub(CourierServiceInterface::class);
@@ -284,6 +307,12 @@ class CarrierCatalogTest extends TestCase
         });
         $clientPool = $this->createStub(PolkurierClient::class);
         $clientPool->method('getCourier')->willReturn($courier);
+        $serializer = SdkSerializer::create();
+        if ($this->unwritable) {
+            $serializer = $this->createStub(SerializerInterface::class);
+            $serializer->method('encode')->willThrowException(new InvalidArgumentException('Not writable.'));
+        }
+        $clientPool->method('getSerializer')->willReturn($serializer);
         $config = $this->createStub(ConfigProvider::class);
         $config->method('getLogin')->willReturn('12345');
 
@@ -293,6 +322,7 @@ class CarrierCatalogTest extends TestCase
             new ErrorMessageResolver(),
             new AvailableCarrierFilter($config),
             new AccountCache($this->createStub(PolkurierCache::class), new Json(), $config),
+            new Json(),
         );
     }
 }

@@ -91,6 +91,8 @@ role can't use aren't shown.
 ## Controllers
 
 The controllers are internal. Every one that changes data accepts POST only and needs the form key.
+Each declares its `ADMIN_RESOURCE` and its `ROUTE`; buttons, links and other permission checks use
+those constants.
 After an action, the admin returns to the page it started from.
 
 Next: [Scheduled jobs](cron.md)

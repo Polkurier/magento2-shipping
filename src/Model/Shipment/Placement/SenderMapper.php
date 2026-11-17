@@ -83,11 +83,11 @@ readonly class SenderMapper
      */
     public function mapFromStore(int $storeId, ?string $pointId = null): ?Address
     {
-        $fromInformation = $this->configProvider->isUseStoreInformationAddress($storeId)
+        $fromInformation = $this->configProvider->shouldUseStoreInformationAddress($storeId)
             ? $this->mapFromStoreInformation($storeId, $pointId)
             : null;
 
-        $useOrigin = $this->configProvider->isUseStoreOriginAddress($storeId);
+        $useOrigin = $this->configProvider->shouldUseStoreOriginAddress($storeId);
 
         return $fromInformation ?? ($useOrigin ? $this->mapFromStoreOrigin($storeId, $pointId) : null);
     }

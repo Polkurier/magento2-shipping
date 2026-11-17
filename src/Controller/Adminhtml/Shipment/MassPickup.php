@@ -21,6 +21,7 @@ use Polkurier\Shipping\Model\Shipment\PickupService;
 class MassPickup extends AbstractShipmentAction implements HttpPostActionInterface
 {
     public const string ADMIN_RESOURCE = 'Magento_Sales::ship';
+    public const string ROUTE = 'polkurier/shipment/massPickup';
 
     public function __construct(
         Context $context,

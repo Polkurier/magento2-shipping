@@ -25,6 +25,7 @@ use Polkurier\Webservice\Exception\Exception as PolkurierException;
 class TestConnection extends AbstractJsonAction
 {
     public const string ADMIN_RESOURCE = 'Magento_Shipping::carriers';
+    public const string ROUTE = 'polkurier/config/testConnection';
 
     /**
      * What an obscured field shows instead of a saved value.

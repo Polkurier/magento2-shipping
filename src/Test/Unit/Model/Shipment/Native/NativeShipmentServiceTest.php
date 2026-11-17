@@ -257,8 +257,8 @@ class NativeShipmentServiceTest extends TestCase
     {
         $cancelled = $this->createPolkurierShipment(11, 4, ShipmentInterface::STATE_CANCELLED, ['WB-OLD']);
         $this->linked = [$cancelled];
-        $oldTrack = $this->track('WB-OLD');
-        $otherTrack = $this->track('OTHER', 'dhl');
+        $oldTrack = $this->createTrack('WB-OLD');
+        $otherTrack = $this->createTrack('OTHER', 'dhl');
         $this->magentoShipments[4] = [$oldTrack, $otherTrack];
         $replacement = $this->createStub(ShipmentInterface::class);
         $replacement->method('getWaybills')->willReturn(['WB-NEW']);
@@ -504,7 +504,7 @@ class NativeShipmentServiceTest extends TestCase
         return $shipment;
     }
 
-    private function track(string $number, string $carrierCode = 'polkurier'): ShipmentTrackInterface
+    private function createTrack(string $number, string $carrierCode = 'polkurier'): ShipmentTrackInterface
     {
         $track = $this->createStub(ShipmentTrackInterface::class);
         $track->method('getTrackNumber')->willReturn($number);

@@ -86,7 +86,9 @@ readonly class ShipmentGateway
      */
     public function cancelOrder(CancelOrderMessage $message): CancellationMessage
     {
-        return $this->call(fn(): CancellationMessage => $this->polkurierClient->getOrders()->cancelOrder($message));
+        return $this->errorMessageResolver->callTranslated(
+            fn(): CancellationMessage => $this->polkurierClient->getOrders()->cancelOrder($message),
+        );
     }
 
     /**
@@ -94,7 +96,9 @@ readonly class ShipmentGateway
      */
     public function findOrders(GetOrdersMessage $message): OrderListMessage
     {
-        return $this->call(fn(): OrderListMessage => $this->polkurierClient->getOrders()->getOrders($message));
+        return $this->errorMessageResolver->callTranslated(
+            fn(): OrderListMessage => $this->polkurierClient->getOrders()->getOrders($message),
+        );
     }
 
     /**
@@ -102,9 +106,11 @@ readonly class ShipmentGateway
      */
     public function getStatus(string $number, bool $tracking): OrderStatusMessage
     {
-        return $this->call(fn(): OrderStatusMessage => $this->polkurierClient->getOrders()->getStatus(
-            new GetStatusMessage($number, tracking: $tracking),
-        ));
+        return $this->errorMessageResolver->callTranslated(
+            fn(): OrderStatusMessage => $this->polkurierClient->getOrders()->getStatus(
+                new GetStatusMessage($number, tracking: $tracking),
+            ),
+        );
     }
 
     /**
@@ -133,7 +139,9 @@ readonly class ShipmentGateway
      */
     public function getLabel(GetDocumentMessage $message): DocumentMessage
     {
-        return $this->call(fn(): DocumentMessage => $this->polkurierClient->getOrders()->getLabel($message));
+        return $this->errorMessageResolver->callTranslated(
+            fn(): DocumentMessage => $this->polkurierClient->getOrders()->getLabel($message),
+        );
     }
 
     /**
@@ -141,7 +149,9 @@ readonly class ShipmentGateway
      */
     public function getProtocol(GetDocumentMessage $message): DocumentMessage
     {
-        return $this->call(fn(): DocumentMessage => $this->polkurierClient->getOrders()->getProtocol($message));
+        return $this->errorMessageResolver->callTranslated(
+            fn(): DocumentMessage => $this->polkurierClient->getOrders()->getProtocol($message),
+        );
     }
 
     /**
@@ -152,7 +162,9 @@ readonly class ShipmentGateway
      */
     public function valuate(CreateOrderMessage $message): array
     {
-        return $this->call(fn(): array => $this->polkurierClient->getOrders()->orderValuation($message));
+        return $this->errorMessageResolver->callTranslated(
+            fn(): array => $this->polkurierClient->getOrders()->orderValuation($message),
+        );
     }
 
     /**
@@ -161,7 +173,9 @@ readonly class ShipmentGateway
      */
     public function getPickupTimes(GetPickupTimeMessage $message): array
     {
-        return $this->call(fn(): array => $this->polkurierClient->getCourier()->getCourierPickupTime($message));
+        return $this->errorMessageResolver->callTranslated(
+            fn(): array => $this->polkurierClient->getCourier()->getCourierPickupTime($message),
+        );
     }
 
     /**
@@ -172,7 +186,7 @@ readonly class ShipmentGateway
      */
     public function isMultiPickupAvailable(MultiPickupAvailabilityRequestMessage $message): bool
     {
-        return $this->call(
+        return $this->errorMessageResolver->callTranslated(
             fn(): bool => $this->polkurierClient->getOrders()->isMultiPickupAvailable($message)->available,
         );
     }
@@ -182,27 +196,11 @@ readonly class ShipmentGateway
      */
     public function bookMultiPickup(MultiPickupRequestMessage $message): MultiPickupResultMessage
     {
-        return $this->call(
+        return $this->errorMessageResolver->callTranslated(
             fn(): MultiPickupResultMessage => $this->polkurierClient->getOrders()->createMultiOrderPickup($message),
         );
     }
 
-    /**
-     * @template T
-     *
-     * @param callable(): T $request
-     *
-     * @return T
-     * @throws LocalizedException
-     */
-    private function call(callable $request): mixed
-    {
-        try {
-            return $request();
-        } catch (PolkurierException $e) {
-            throw $this->errorMessageResolver->createException($e);
-        }
-    }
 
     /**
      * Placing an order isn't idempotent, so an order is taken as possibly placed unless the

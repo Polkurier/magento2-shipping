@@ -23,6 +23,7 @@ use Polkurier\Shipping\Model\Shipment\PickupService;
 class Pickup extends AbstractShipmentAction implements HttpPostActionInterface
 {
     public const string ADMIN_RESOURCE = 'Magento_Sales::ship';
+    public const string ROUTE = 'polkurier/shipment/pickup';
 
     public function __construct(
         Context $context,

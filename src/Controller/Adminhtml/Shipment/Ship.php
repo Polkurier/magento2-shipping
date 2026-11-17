@@ -19,6 +19,7 @@ use Polkurier\Shipping\Api\ShipmentManagementInterface;
 class Ship extends AbstractShipmentAction implements HttpPostActionInterface
 {
     public const string ADMIN_RESOURCE = 'Magento_Sales::ship';
+    public const string ROUTE = 'polkurier/shipment/ship';
 
     public function __construct(
         Context $context,

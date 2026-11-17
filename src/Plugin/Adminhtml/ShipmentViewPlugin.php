@@ -10,6 +10,8 @@ namespace Polkurier\Shipping\Plugin\Adminhtml;
 use Magento\Framework\AuthorizationInterface;
 use Magento\Sales\Model\Order;
 use Magento\Shipping\Block\Adminhtml\View;
+use Polkurier\Shipping\Controller\Adminhtml\Shipment\Create as ShipmentCreate;
+use Polkurier\Shipping\Controller\Adminhtml\Shipment\View as ShipmentView;
 use Polkurier\Shipping\Model\Carrier\Polkurier;
 use Polkurier\Shipping\Model\Shipment\Native\NativeShipmentService;
 use Polkurier\Shipping\Model\Shipment\ShipmentFinder;
@@ -25,7 +27,7 @@ use Polkurier\Shipping\Model\Shipment\ShipmentFinder;
  */
 readonly class ShipmentViewPlugin
 {
-    public const string BUTTON = 'polkurier_add_order';
+    public const string ADD_BUTTON = 'polkurier_add_order';
     public const string VIEW_BUTTON = 'polkurier_view_order';
 
     public function __construct(
@@ -53,19 +55,19 @@ readonly class ShipmentViewPlugin
                 'label' => __('Polkurier order'),
                 'onclick' => \sprintf(
                     "setLocation('%s')",
-                    $subject->getUrl('polkurier/shipment/view', ['id' => $linked->getId()]),
+                    $subject->getUrl(ShipmentView::ROUTE, ['id' => $linked->getId()]),
                 ),
                 'class' => 'polkurier-view-order',
             ]);
         }
-        if (!$this->authorization->isAllowed('Magento_Sales::ship')
+        if (!$this->authorization->isAllowed(ShipmentCreate::ADMIN_RESOURCE)
             || !isset($this->nativeShipmentService->getFreeShipments($order)[(int)$shipment->getId()])
         ) {
             return [$layout];
         }
-        $subject->addButton(self::BUTTON, [
+        $subject->addButton(self::ADD_BUTTON, [
             'label' => __('Add a Polkurier order'),
-            'onclick' => \sprintf("setLocation('%s')", $subject->getUrl('polkurier/shipment/create', [
+            'onclick' => \sprintf("setLocation('%s')", $subject->getUrl(ShipmentCreate::ROUTE, [
                 'order_id' => $order->getId(),
                 'shipment_id' => $shipment->getId(),
             ])),

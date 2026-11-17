@@ -8,6 +8,7 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Model\PickupPoint;
 
 use Magento\Backend\Model\UrlInterface;
+use Polkurier\Shipping\Controller\Adminhtml\Shipment\MapToken as ShipmentMapToken;
 use Polkurier\Shipping\Model\Config\ConfigProvider;
 
 /**
@@ -15,11 +16,6 @@ use Polkurier\Shipping\Model\Config\ConfigProvider;
  */
 readonly class AdminMapConfigProvider
 {
-    /**
-     * The admin action a page asks for a fresh token.
-     */
-    public const string TOKEN_ROUTE = 'polkurier/shipment/mapToken';
-
     public function __construct(
         private ConfigProvider $configProvider,
         private UrlInterface $url,
@@ -36,7 +32,7 @@ readonly class AdminMapConfigProvider
     {
         $config = [
             'baseUrl' => $this->configProvider->getMapUrl() . '/',
-            'tokenUrl' => $this->url->getUrl(self::TOKEN_ROUTE),
+            'tokenUrl' => $this->url->getUrl(ShipmentMapToken::ROUTE),
         ];
         if (!$withToken) {
             return $config;

@@ -22,6 +22,7 @@ use Polkurier\Shipping\Model\Shipment\Packing\AutoPacker;
 class Pack extends AbstractJsonAction
 {
     public const string ADMIN_RESOURCE = 'Magento_Sales::ship';
+    public const string ROUTE = 'polkurier/shipment/pack';
 
     public function __construct(
         Context $context,

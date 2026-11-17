@@ -18,6 +18,7 @@ use Polkurier\Shipping\Model\PackTemplate\PackTemplateHandler;
 class Save extends AbstractSave
 {
     public const string ADMIN_RESOURCE = 'Polkurier_Shipping::pack_templates';
+    public const string ROUTE = 'polkurier/packtemplate/save';
 
     public function __construct(
         Context $context,

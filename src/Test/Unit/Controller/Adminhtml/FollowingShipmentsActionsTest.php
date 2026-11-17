@@ -16,7 +16,9 @@ use Polkurier\Shipping\Controller\Adminhtml\Shipment\Discard;
 use Polkurier\Shipping\Controller\Adminhtml\Shipment\MassRefresh;
 use Polkurier\Shipping\Controller\Adminhtml\Shipment\Pickup;
 use Polkurier\Shipping\Controller\Adminhtml\Shipment\Refresh;
+use Polkurier\Shipping\Controller\Adminhtml\Shipment\RefreshAll;
 use Polkurier\Shipping\Controller\Adminhtml\Shipment\RequestedShipmentResolver;
+use Polkurier\Shipping\Model\Config\ConfigProvider;
 use Polkurier\Shipping\Model\Shipment\Details\DetailsLoader;
 use Polkurier\Shipping\Model\Shipment\PickupService;
 use Polkurier\Shipping\Model\Shipment\Placement\FailedShipmentManager;
@@ -29,6 +31,7 @@ use Polkurier\Shipping\Test\Unit\Support\AdminActionTestCase;
  */
 #[CoversClass(Pickup::class)]
 #[CoversClass(MassRefresh::class)]
+#[CoversClass(RefreshAll::class)]
 #[CoversClass(Refresh::class)]
 #[CoversClass(Discard::class)]
 #[AllowMockObjectsWithoutExpectations]
@@ -142,6 +145,29 @@ class FollowingShipmentsActionsTest extends AdminActionTestCase
         );
     }
 
+    public function testUpdatingEveryShipmentSaysHowManyWereAndWerent(): void
+    {
+        self::assertSame(['success' => ['3 shipment(s) updated.']], $this->refreshAll(3, 0));
+        self::assertSame(
+            ['warning' => ['3 shipment(s) updated, 1 not: see the Polkurier log.']],
+            $this->refreshAll(3, 1),
+        );
+        self::assertSame(
+            ['error' => ['0 shipment(s) updated, 2 not: see the Polkurier log.']],
+            $this->refreshAll(0, 2),
+        );
+    }
+
+    public function testUpdatingEveryShipmentWithoutCredentialsAsksForThem(): void
+    {
+        $refresher = $this->createMock(StatusRefreshService::class);
+        $refresher->expects(self::never())->method('refreshNow');
+
+        $messages = $this->refreshAll(0, 0, false, $refresher);
+
+        self::assertSame([(string)ConfigProvider::describeMissingCredentials()], $messages['error'] ?? null);
+    }
+
     public function testUpdatingOneShipmentSaysItsStatusAndReadsItsScans(): void
     {
         $management = $this->createStub(ShipmentManagementInterface::class);
@@ -221,6 +247,34 @@ class FollowingShipmentsActionsTest extends AdminActionTestCase
         ))->execute();
 
         self::assertSame(['Only a shipment that wasn\'t placed can be discarded.'], $this->messages['error']);
+    }
+
+    /**
+     * @return array<string, string[]> the messages shown, by type
+     */
+    private function refreshAll(
+        int $refreshed,
+        int $failed,
+        bool $hasCredentials = true,
+        ?StatusRefreshService $refresher = null,
+    ): array {
+        $this->messages = [];
+        if ($refresher === null) {
+            $refresher = $this->createStub(StatusRefreshService::class);
+            $refresher->method('refreshNow')->willReturn(['refreshed' => $refreshed, 'failed' => $failed]);
+        }
+        $config = $this->createStub(ConfigProvider::class);
+        $config->method('hasCredentials')->willReturn($hasCredentials);
+
+        (new RefreshAll(
+            $this->createContext(),
+            $this->createRequestedShipmentResolver([]),
+            $refresher,
+            $config,
+            $this->createFlashMessageCollectorFactory(),
+        ))->execute();
+
+        return $this->messages;
     }
 
     /**

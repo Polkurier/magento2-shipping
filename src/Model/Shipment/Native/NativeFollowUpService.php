@@ -39,14 +39,14 @@ use Polkurier\Shipping\Model\Shipment\ShipmentFinder;
 readonly class NativeFollowUpService
 {
     /**
-     * Magento's setting for sending sales e-mails from its cron job rather than at once.
-     */
-    private const string ASYNC_SENDING = 'sales_email/general/async_sending';
-
-    /**
      * Class of the links in comments that lead outside the admin.
      */
     public const string EXTERNAL_LINK = 'polkurier-external';
+
+    /**
+     * Magento's setting for sending sales e-mails from its cron job rather than at once.
+     */
+    private const string ASYNC_SENDING = 'sales_email/general/async_sending';
 
     public function __construct(
         private OrderLoader $orderLoader,

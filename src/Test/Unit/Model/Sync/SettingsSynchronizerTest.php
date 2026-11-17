@@ -19,8 +19,8 @@ use Polkurier\Shipping\Model\BankAccount\BankAccountSyncAdapter;
 use Polkurier\Shipping\Model\PackTemplate\PackTemplateSyncAdapter;
 use Polkurier\Shipping\Model\Sdk\ErrorMessageResolver;
 use Polkurier\Shipping\Model\Sync\AdapterInterface;
-use Polkurier\Shipping\Model\Sync\SyncEngine;
 use Polkurier\Shipping\Model\Sync\SettingsSynchronizer;
+use Polkurier\Shipping\Model\Sync\SyncEngine;
 use Polkurier\Shipping\Model\Sync\SyncLock;
 use Polkurier\Shipping\Model\Sync\SyncResult;
 

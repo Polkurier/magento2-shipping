@@ -11,6 +11,7 @@ use Magento\Framework\App\RequestInterface;
 use Magento\Framework\Url\DecoderInterface;
 use Magento\Framework\UrlInterface;
 use Magento\Framework\View\Element\UiComponent\Control\ButtonProviderInterface;
+use Polkurier\Shipping\Controller\Adminhtml\Shipment\Index as ShipmentIndex;
 use Polkurier\Shipping\Model\RequestParamReader;
 use Polkurier\Shipping\Ui\Component\Control\OnClickScriptBuilder;
 
@@ -43,7 +44,7 @@ readonly class BackButton implements ButtonProviderInterface
                 // further.
                 \str_starts_with($back, (string)$this->url->getBaseUrl()) => $back,
                 $orderId > 0 => $this->url->getUrl('sales/order/view', ['order_id' => $orderId]),
-                default => $this->url->getUrl('polkurier/shipment/index'),
+                default => $this->url->getUrl(ShipmentIndex::ROUTE),
             }),
             'class' => 'back',
             'sort_order' => 10,

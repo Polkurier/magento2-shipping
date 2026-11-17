@@ -18,6 +18,7 @@ use Magento\Framework\Controller\ResultFactory;
 class PickupForm extends Action implements HttpGetActionInterface
 {
     public const string ADMIN_RESOURCE = 'Magento_Sales::ship';
+    public const string ROUTE = 'polkurier/shipment/pickupForm';
 
     public function execute(): Page
     {

@@ -38,12 +38,6 @@ class DefaultSenderPointManagerTest extends SdkTestCase
     private MemoryPolkurierCache $cache;
     private RecordingEventManager $events;
 
-    protected function setUp(): void
-    {
-        $this->cache = new MemoryPolkurierCache();
-        $this->events = new RecordingEventManager();
-    }
-
     public function testEveryCarrierPolkurierKeepsADefaultForIsReadOncePerRequest(): void
     {
         $http = new RecordingClient(self::encodeSuccess([
@@ -144,6 +138,12 @@ class DefaultSenderPointManagerTest extends SdkTestCase
         } finally {
             self::assertSame([], $this->events->dispatched, 'Nothing changed, so nothing is dispatched.');
         }
+    }
+
+    protected function setUp(): void
+    {
+        $this->cache = new MemoryPolkurierCache();
+        $this->events = new RecordingEventManager();
     }
 
     private static function createCarrier(string $code, PointRequirementEnum $senderPoint): Carrier

@@ -18,6 +18,7 @@ use Polkurier\Shipping\Model\Address\AddressHandler;
 class Save extends AbstractSave
 {
     public const string ADMIN_RESOURCE = 'Polkurier_Shipping::addresses';
+    public const string ROUTE = 'polkurier/address/save';
 
     public function __construct(
         Context $context,

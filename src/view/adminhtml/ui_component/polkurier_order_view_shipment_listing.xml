@@ -56,7 +56,7 @@
                 <settings>
                     <type>label</type>
                     <label translate="true">Print labels</label>
-                    <actions class="Polkurier\Shipping\Ui\Component\Listing\Shipment\LabelFormatActions"/>
+                    <actions class="Polkurier\Shipping\Ui\Component\Listing\Shipment\LabelFormatActionProvider"/>
                 </settings>
             </action>
             <action name="protocol" class="Polkurier\Shipping\Ui\Component\Listing\Shipment\OrderScopedMassAction">

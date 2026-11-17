@@ -16,7 +16,7 @@ use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Api\Data\ShipmentSearchResultsInterface;
 use Polkurier\Shipping\Api\Data\ShipmentSearchResultsInterfaceFactory;
 use Polkurier\Shipping\Api\ShipmentRepositoryInterface;
-use Polkurier\Shipping\Model\ResourceModel\Shipment as ResourceModel;
+use Polkurier\Shipping\Model\ResourceModel\Shipment as ShipmentResource;
 use Polkurier\Shipping\Model\ResourceModel\Shipment\CollectionFactory;
 use Polkurier\Shipping\Model\Shipment;
 use Polkurier\Shipping\Model\ShipmentFactory;
@@ -28,7 +28,7 @@ readonly class ShipmentRepository implements ShipmentRepositoryInterface
 {
     public function __construct(
         private ShipmentFactory $shipmentFactory,
-        private ResourceModel $resource,
+        private ShipmentResource $shipmentResource,
         private CollectionFactory $collectionFactory,
         private CollectionProcessorInterface $collectionProcessor,
         private ShipmentSearchResultsInterfaceFactory $searchResultsFactory,
@@ -37,7 +37,7 @@ readonly class ShipmentRepository implements ShipmentRepositoryInterface
     public function get(int $id): ShipmentInterface
     {
         $entity = $this->shipmentFactory->create();
-        $this->resource->load($entity, $id);
+        $this->shipmentResource->load($entity, $id);
         if (!$entity->getId()) {
             throw new NoSuchEntityException(__('The shipment with id "%1" does not exist.', $id));
         }
@@ -62,7 +62,7 @@ readonly class ShipmentRepository implements ShipmentRepositoryInterface
     {
         try {
             /** @var Shipment $entity */
-            $this->resource->save($entity);
+            $this->shipmentResource->save($entity);
         } catch (\Exception $e) {
             throw new CouldNotSaveException(__('Could not save the shipment: %1', $e->getMessage()), $e);
         }
@@ -74,7 +74,7 @@ readonly class ShipmentRepository implements ShipmentRepositoryInterface
     {
         try {
             /** @var Shipment $entity */
-            $this->resource->delete($entity);
+            $this->shipmentResource->delete($entity);
         } catch (\Exception $e) {
             throw new CouldNotDeleteException(__('Could not delete the shipment: %1', $e->getMessage()), $e);
         }

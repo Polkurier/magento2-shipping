@@ -24,6 +24,7 @@ use Polkurier\Shipping\ViewModel\Adminhtml\ShipmentDetails;
 class RefreshDetails extends AbstractJsonAction
 {
     public const string ADMIN_RESOURCE = 'Magento_Sales::shipment';
+    public const string ROUTE = 'polkurier/shipment/refreshDetails';
 
     public function __construct(
         Context $context,
@@ -44,7 +45,7 @@ class RefreshDetails extends AbstractJsonAction
         }
 
         return [
-            'view' => $this->shipmentDetails->build($refreshed, $errors),
+            'view' => $this->shipmentDetails->buildPage($refreshed, $errors),
             'state' => $refreshed->getState(),
             'errors' => $errors,
         ];

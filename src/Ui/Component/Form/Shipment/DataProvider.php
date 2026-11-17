@@ -12,12 +12,18 @@ use Magento\Framework\Pricing\PriceCurrencyInterface;
 use Magento\Framework\UrlInterface;
 use Magento\Sales\Helper\Data as SalesData;
 use Magento\Sales\Model\Order;
-use Magento\Sales\Model\Order\Shipment as MagentoShipment;
+use Magento\Sales\Model\Order\Shipment as MagentoShipmentModel;
 use Polkurier\Shipping\Api\AddressRepositoryInterface;
 use Polkurier\Shipping\Api\Data\AddressInterface;
 use Polkurier\Shipping\Api\Data\ShipmentDraft\ItemInterface;
 use Polkurier\Shipping\Api\Data\ShipmentDraft\PackInterface;
 use Polkurier\Shipping\Api\Data\ShipmentDraftInterface;
+use Polkurier\Shipping\Controller\Adminhtml\Address\Index as AddressIndex;
+use Polkurier\Shipping\Controller\Adminhtml\Packtemplate\Index as PacktemplateIndex;
+use Polkurier\Shipping\Controller\Adminhtml\Shipment\Calculate as ShipmentCalculate;
+use Polkurier\Shipping\Controller\Adminhtml\Shipment\CollectivePickup as ShipmentCollectivePickup;
+use Polkurier\Shipping\Controller\Adminhtml\Shipment\Pack as ShipmentPack;
+use Polkurier\Shipping\Controller\Adminhtml\Shipment\PickupTimes as ShipmentPickupTimes;
 use Polkurier\Shipping\Model\Carrier\CarrierNoticeProvider;
 use Polkurier\Shipping\Model\Carrier\Polkurier;
 use Polkurier\Shipping\Model\Config\ConfigProvider;
@@ -254,12 +260,12 @@ class DataProvider extends FormDataProvider
         // An address abroad is shown with its country.
         $data['home_country'] = Polkurier::HOME_COUNTRY;
         $data['urls'] = [
-            'calculate' => $this->url->getUrl('polkurier/shipment/calculate'),
-            'pickup_times' => $this->url->getUrl('polkurier/shipment/pickupTimes'),
-            'collective_pickup' => $this->url->getUrl('polkurier/shipment/collectivePickup'),
-            'pack' => $this->url->getUrl('polkurier/shipment/pack'),
-            'pack_templates' => $this->url->getUrl('polkurier/packtemplate/index'),
-            'addresses' => $this->url->getUrl('polkurier/address/index'),
+            'calculate' => $this->url->getUrl(ShipmentCalculate::ROUTE),
+            'pickup_times' => $this->url->getUrl(ShipmentPickupTimes::ROUTE),
+            'collective_pickup' => $this->url->getUrl(ShipmentCollectivePickup::ROUTE),
+            'pack' => $this->url->getUrl(ShipmentPack::ROUTE),
+            'pack_templates' => $this->url->getUrl(PacktemplateIndex::ROUTE),
+            'addresses' => $this->url->getUrl(AddressIndex::ROUTE),
         ];
 
         return [$orderId => $data];
@@ -347,7 +353,7 @@ class DataProvider extends FormDataProvider
             'shipment_value' => $worth['value'],
             'worth' => $worth,
             'qtys' => $qtys,
-            'email_open' => $magentoShipment instanceof MagentoShipment
+            'email_open' => $magentoShipment instanceof MagentoShipmentModel
                 && NativeShipmentService::isEmailOpen($magentoShipment),
         ];
     }

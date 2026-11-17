@@ -22,6 +22,7 @@ use Polkurier\Shipping\Api\CarrierConfigRepositoryInterface;
 class Edit extends Action implements HttpGetActionInterface
 {
     public const string ADMIN_RESOURCE = 'Magento_Shipping::carriers';
+    public const string ROUTE = 'polkurier/carrier/edit';
 
     public function __construct(
         Context $context,

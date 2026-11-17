@@ -45,9 +45,9 @@ scope. The admin shows each setting down to the scope in the table.
 | `title` | `getTitle()` | store view |
 | `checkout/tier_cart_value` | `getTierCartValue()` | website |
 | `shipment_defaults/default_shipment_type` | `getDefaultShipmentType()` | website |
-| `sender/use_store_information_address`, `sender/use_store_origin_address`, `sender/default_sender_email` | `isUseStoreInformationAddress()`, `isUseStoreOriginAddress()`, `getSenderEmailIdentity()` | website |
+| `sender/use_store_information_address`, `sender/use_store_origin_address`, `sender/default_sender_email` | `shouldUseStoreInformationAddress()`, `shouldUseStoreOriginAddress()`, `getSenderEmailIdentity()` | website |
 | `shipment_defaults/default_additional_services` | `getDefaultServices()` | website |
-| `shipment_defaults/insure_by_default` | `isInsureByDefault()` | website |
+| `shipment_defaults/insure_by_default` | `shouldInsureByDefault()` | website |
 | `shipment_defaults/default_cover_address` | `getDefaultCoverAddressId()` | website |
 | `packing/parcel_weight` | `getParcelWeight()` | website |
 | `packing/pack_new_shipments` | `isPackingNewShipments()` | website |
@@ -57,7 +57,7 @@ scope. The admin shows each setting down to the scope in the table.
 | `cod/default_cod_type`, `cod/default_cod_refund_type` | `getDefaultCodType()`, `getDefaultCodReturnType()` | website |
 | `shipment_defaults/description_format` | `getDescriptionFormat()` | store view |
 | `map/default_latitude`, `map/default_longitude`, `map/default_zoom` | `getMapLatitude()` … | store view |
-| `map/show_list`, `map/show_search_input` | `isMapShowList()`, `isMapShowSearch()` | store view |
+| `map/show_list`, `map/show_search_input` | `shouldShowMapList()`, `shouldShowMapSearch()` | store view |
 | `map/required_point_functions` | `getMapPointFunctions()` | website |
 
 Magento's standard carrier settings (`sallowspecific`, `specificcountry`, `showmethod`,

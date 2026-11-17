@@ -15,7 +15,7 @@ use Magento\Framework\Model\ResourceModel\Db\Collection\AbstractCollection;
  * an underscore and the method's. The module's index on sales_order.shipping_method keeps the
  * prefix match from reading every order.
  */
-readonly class CarrierOrderSelectBuilder
+final class CarrierOrderSelectBuilder
 {
     public static function buildSelect(AbstractCollection $collection, string $carrierCode): Select
     {

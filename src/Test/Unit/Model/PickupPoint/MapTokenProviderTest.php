@@ -10,8 +10,8 @@ namespace Polkurier\Shipping\Test\Unit\Model\PickupPoint;
 use Magento\Framework\Serialize\Serializer\Json;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
-use Polkurier\Shipping\Exception\RecentFailureException;
 use Polkurier\Shipping\Enum\Cache\CacheTagEnum;
+use Polkurier\Shipping\Exception\RecentFailureException;
 use Polkurier\Shipping\Logger\Logger;
 use Polkurier\Shipping\Model\Cache\Type as PolkurierCache;
 use Polkurier\Shipping\Model\Config\ConfigProvider;
@@ -30,11 +30,6 @@ class MapTokenProviderTest extends SdkTestCase
     private const int NOW = 1790000000;
 
     private MemoryPolkurierCache $cache;
-
-    protected function setUp(): void
-    {
-        $this->cache = new MemoryPolkurierCache();
-    }
 
     public function testATokenIsAskedForOnceAndSharedFromTheCache(): void
     {
@@ -117,6 +112,11 @@ class MapTokenProviderTest extends SdkTestCase
             \array_values($this->cache->tags),
             'Forgotten with the other failures when the credentials change.',
         );
+    }
+
+    protected function setUp(): void
+    {
+        $this->cache = new MemoryPolkurierCache();
     }
 
     private function createProvider(RecordingClient $http, ?Logger $logger = null): MapTokenProvider

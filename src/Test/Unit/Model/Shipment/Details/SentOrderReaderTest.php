@@ -142,7 +142,7 @@ class SentOrderReaderTest extends TestCase
             'services' => ['SMS notification when dispatched', 'Another sender on the label'],
             'additional_fields' => ['external_transport_security' => 'YES'],
             'packs' => [
-                ['amount' => 2, 'length' => 40, 'width' => 30, 'height' => 20, 'weight' => 2.5, 'type' => 'ST'],
+                ['type' => 'ST', 'length' => 40, 'width' => 30, 'height' => 20, 'weight' => 2.5, 'amount' => 2],
             ],
         ], $this->createReader()->read($request));
     }

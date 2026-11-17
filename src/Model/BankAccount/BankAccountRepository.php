@@ -19,7 +19,7 @@ use Polkurier\Shipping\Api\Data\BankAccountSearchResultsInterfaceFactory;
 use Polkurier\Shipping\Api\Data\SyncableInterface;
 use Polkurier\Shipping\Model\BankAccount;
 use Polkurier\Shipping\Model\BankAccountFactory;
-use Polkurier\Shipping\Model\ResourceModel\BankAccount as ResourceModel;
+use Polkurier\Shipping\Model\ResourceModel\BankAccount as BankAccountResource;
 use Polkurier\Shipping\Model\ResourceModel\BankAccount\CollectionFactory;
 
 /**
@@ -29,7 +29,7 @@ readonly class BankAccountRepository implements BankAccountRepositoryInterface
 {
     public function __construct(
         private BankAccountFactory $bankAccountFactory,
-        private ResourceModel $resource,
+        private BankAccountResource $bankAccountResource,
         private CollectionFactory $collectionFactory,
         private CollectionProcessorInterface $collectionProcessor,
         private BankAccountSearchResultsInterfaceFactory $searchResultsFactory,
@@ -38,7 +38,7 @@ readonly class BankAccountRepository implements BankAccountRepositoryInterface
     public function get(int $id): BankAccountInterface
     {
         $entity = $this->bankAccountFactory->create();
-        $this->resource->load($entity, $id);
+        $this->bankAccountResource->load($entity, $id);
         if (!$entity->getId()) {
             throw new NoSuchEntityException(__('The bank account with id "%1" does not exist.', $id));
         }
@@ -63,7 +63,7 @@ readonly class BankAccountRepository implements BankAccountRepositoryInterface
     {
         try {
             /** @var BankAccount $entity */
-            $this->resource->save($entity);
+            $this->bankAccountResource->save($entity);
         } catch (\Exception $e) {
             throw new CouldNotSaveException(__('Could not save the bank account: %1', $e->getMessage()), $e);
         }
@@ -75,7 +75,7 @@ readonly class BankAccountRepository implements BankAccountRepositoryInterface
     {
         try {
             /** @var BankAccount $entity */
-            $this->resource->delete($entity);
+            $this->bankAccountResource->delete($entity);
         } catch (\Exception $e) {
             throw new CouldNotDeleteException(__('Could not delete the bank account: %1', $e->getMessage()), $e);
         }

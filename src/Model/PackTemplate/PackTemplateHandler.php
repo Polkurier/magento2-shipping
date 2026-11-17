@@ -15,9 +15,9 @@ use Polkurier\Shipping\Api\PackTemplateRepositoryInterface;
 use Polkurier\Shipping\Enum\Adminhtml\FormMemoryEnum;
 use Polkurier\Shipping\Model\ResourceModel\PackTemplate as PackTemplateResource;
 use Polkurier\Shipping\Model\Sdk\ErrorMessageResolver;
+use Polkurier\Shipping\Model\Sync\SettingsSynchronizer;
 use Polkurier\Shipping\Model\Sync\SyncableEntityHandler;
 use Polkurier\Shipping\Model\Sync\SyncEngine;
-use Polkurier\Shipping\Model\Sync\SettingsSynchronizer;
 use Polkurier\Shipping\Model\Sync\SyncLock;
 use Polkurier\Shipping\Model\Sync\SyncResultFactory;
 
@@ -35,7 +35,7 @@ readonly class PackTemplateHandler extends SyncableEntityHandler
         DateTime $dateTime,
         SyncLock $syncLock,
         SyncResultFactory $syncResultFactory,
-        private PackTemplateResource $resource,
+        private PackTemplateResource $packTemplateResource,
     ) {
         parent::__construct(
             $packTemplateSyncAdapter,
@@ -67,7 +67,7 @@ readonly class PackTemplateHandler extends SyncableEntityHandler
     {
         /** @var PackTemplateInterface $entity */
         $id = $entity->getId() ? (int)$entity->getId() : null;
-        if ($this->resource->isNameTaken($entity->getName(), $id)) {
+        if ($this->packTemplateResource->isNameTaken($entity->getName(), $id)) {
             throw new LocalizedException(__(
                 'A pack template named "%1" already exists. Choose another name.',
                 $entity->getName(),

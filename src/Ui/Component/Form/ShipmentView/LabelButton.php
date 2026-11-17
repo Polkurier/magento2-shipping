@@ -12,6 +12,7 @@ use Magento\Framework\AuthorizationInterface;
 use Magento\Framework\UrlInterface;
 use Magento\Ui\Component\Control\Container;
 use Polkurier\Shipping\Api\ShipmentRepositoryInterface;
+use Polkurier\Shipping\Controller\Adminhtml\Shipment\Label as ShipmentLabel;
 use Polkurier\Shipping\Model\Config\Source\LabelFormat;
 use Polkurier\Shipping\Ui\Component\Control\OnClickScriptBuilder;
 
@@ -45,7 +46,7 @@ class LabelButton extends AbstractButton
                 'id' => 'format-' . \strtolower($format ?: 'pdf'),
                 'label' => $name,
                 'onclick' => $this->onClickScriptBuilder->buildLocation(
-                    $this->getActionUrl('label', $format !== '' ? ['format' => $format] : []),
+                    $this->getActionUrl(ShipmentLabel::ROUTE, $format !== '' ? ['format' => $format] : []),
                 ),
                 // What the button itself prints.
                 'default' => $format === '',

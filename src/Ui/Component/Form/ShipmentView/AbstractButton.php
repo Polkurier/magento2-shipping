@@ -51,12 +51,13 @@ abstract class AbstractButton implements ButtonProviderInterface
     }
 
     /**
+     * @param string $route the action's route: its controller's ROUTE
      * @param array<string, string> $params besides the shipment's id
      */
-    protected function getActionUrl(string $action, array $params = []): string
+    protected function getActionUrl(string $route, array $params = []): string
     {
         return $this->url->getUrl(
-            'polkurier/shipment/' . $action,
+            $route,
             ['id' => (int)$this->getShipment()?->getId()] + $params,
         );
     }
@@ -66,7 +67,7 @@ abstract class AbstractButton implements ButtonProviderInterface
      */
     protected function buildLinkButton(
         string $label,
-        string $action,
+        string $route,
         int $sortOrder,
         string $class = 'secondary',
     ): array
@@ -74,7 +75,7 @@ abstract class AbstractButton implements ButtonProviderInterface
         return [
             'label' => $label,
             'class' => $class,
-            'on_click' => $this->onClickScriptBuilder->buildLocation($this->getActionUrl($action)),
+            'on_click' => $this->onClickScriptBuilder->buildLocation($this->getActionUrl($route)),
             'sort_order' => $sortOrder,
         ];
     }
@@ -86,7 +87,7 @@ abstract class AbstractButton implements ButtonProviderInterface
      */
     protected function buildPostButton(
         string $label,
-        string $action,
+        string $route,
         int $sortOrder,
         ?string $confirmTitle = null,
         ?string $confirmText = null,
@@ -95,7 +96,7 @@ abstract class AbstractButton implements ButtonProviderInterface
             'label' => $label,
             'class' => 'secondary',
             'on_click' => $this->onClickScriptBuilder->buildPost(
-                $this->getActionUrl($action),
+                $this->getActionUrl($route),
                 $confirmTitle,
                 $confirmText,
             ),

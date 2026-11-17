@@ -220,12 +220,12 @@ readonly class ConfigProvider
      * Whether a shipment without a sender from the address book is sent from the store's address
      * (General > Store Information).
      */
-    public function isUseStoreInformationAddress(?int $storeId = null): bool
+    public function shouldUseStoreInformationAddress(?int $storeId = null): bool
     {
         return $this->isFlagSet(self::XML_PATH_USE_STORE_INFORMATION_ADDRESS, $storeId);
     }
 
-    public function isUseStoreOriginAddress(?int $storeId = null): bool
+    public function shouldUseStoreOriginAddress(?int $storeId = null): bool
     {
         return $this->isFlagSet(self::XML_PATH_USE_ORIGIN_ADDRESS, $storeId);
     }
@@ -269,7 +269,7 @@ readonly class ConfigProvider
             ?? ShipmentTypeEnum::Box;
     }
 
-    public function isInsureByDefault(?int $storeId = null): bool
+    public function shouldInsureByDefault(?int $storeId = null): bool
     {
         return $this->isFlagSet(self::XML_PATH_INSURE_BY_DEFAULT, $storeId);
     }
@@ -360,12 +360,12 @@ readonly class ConfigProvider
         return (int)$this->getValue(self::XML_PATH_MAP_ZOOM, $storeId);
     }
 
-    public function isMapShowList(?int $storeId = null): bool
+    public function shouldShowMapList(?int $storeId = null): bool
     {
         return $this->isFlagSet(self::XML_PATH_MAP_SHOW_LIST, $storeId);
     }
 
-    public function isMapShowSearch(?int $storeId = null): bool
+    public function shouldShowMapSearch(?int $storeId = null): bool
     {
         return $this->isFlagSet(self::XML_PATH_MAP_SHOW_SEARCH, $storeId);
     }

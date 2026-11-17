@@ -19,6 +19,7 @@ use Polkurier\Shipping\Model\Payout\PayoutManager;
 class SendCode extends AbstractJsonAction
 {
     public const string ADMIN_RESOURCE = 'Polkurier_Shipping::payout_request';
+    public const string ROUTE = 'polkurier/payout/sendCode';
 
     public function __construct(
         Context $context,

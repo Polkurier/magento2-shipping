@@ -11,6 +11,7 @@ use Magento\Framework\App\RequestInterface;
 use Magento\Framework\AuthorizationInterface;
 use Magento\Framework\UrlInterface;
 use Polkurier\Shipping\Api\ShipmentRepositoryInterface;
+use Polkurier\Shipping\Controller\Adminhtml\Shipment\Create as ShipmentCreate;
 use Polkurier\Shipping\Model\Shipment\Screen\RetriableShipmentFinder;
 use Polkurier\Shipping\Ui\Component\Control\OnClickScriptBuilder;
 
@@ -37,7 +38,7 @@ class SendAgainButton extends AbstractButton
     {
         $shipment = $this->getShipment();
         if ($shipment === null
-            || !$this->authorization->isAllowed('Magento_Sales::ship')
+            || !$this->authorization->isAllowed(ShipmentCreate::ADMIN_RESOURCE)
             || !$this->retriableShipmentFinder->isPossible($shipment)
         ) {
             return [];
@@ -47,7 +48,7 @@ class SendAgainButton extends AbstractButton
             'label' => (string)__('Send again'),
             'class' => 'primary',
             'on_click' => $this->onClickScriptBuilder->buildLocation(
-                $this->url->getUrl('polkurier/shipment/create', [
+                $this->url->getUrl(ShipmentCreate::ROUTE, [
                     'order_id' => $shipment->getOrderId(),
                     RetriableShipmentFinder::PARAM => (int)$shipment->getId(),
                 ]),

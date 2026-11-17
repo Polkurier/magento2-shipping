@@ -15,9 +15,9 @@ use Polkurier\Shipping\Api\Data\SyncableInterface;
 use Polkurier\Shipping\Enum\Adminhtml\FormMemoryEnum;
 use Polkurier\Shipping\Model\ResourceModel\Address as AddressResource;
 use Polkurier\Shipping\Model\Sdk\ErrorMessageResolver;
+use Polkurier\Shipping\Model\Sync\SettingsSynchronizer;
 use Polkurier\Shipping\Model\Sync\SyncableEntityHandler;
 use Polkurier\Shipping\Model\Sync\SyncEngine;
-use Polkurier\Shipping\Model\Sync\SettingsSynchronizer;
 use Polkurier\Shipping\Model\Sync\SyncLock;
 use Polkurier\Shipping\Model\Sync\SyncResultFactory;
 
@@ -35,7 +35,7 @@ readonly class AddressHandler extends SyncableEntityHandler
         DateTime $dateTime,
         SyncLock $syncLock,
         SyncResultFactory $syncResultFactory,
-        private AddressResource $resource,
+        private AddressResource $addressResource,
     ) {
         parent::__construct(
             $addressSyncAdapter,
@@ -67,7 +67,7 @@ readonly class AddressHandler extends SyncableEntityHandler
     {
         /** @var AddressInterface $entity */
         $id = $entity->getId() ? (int)$entity->getId() : null;
-        if ($this->resource->isNameTaken($entity->getName(), $id)) {
+        if ($this->addressResource->isNameTaken($entity->getName(), $id)) {
             throw new LocalizedException(__(
                 'An address labelled "%1" already exists. Choose another label.',
                 $entity->getName(),

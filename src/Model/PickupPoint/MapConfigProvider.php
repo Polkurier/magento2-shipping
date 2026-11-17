@@ -13,6 +13,7 @@ use Magento\Framework\UrlInterface;
 use Magento\Store\Model\StoreManagerInterface;
 use Polkurier\Shipping\Api\Data\QuotePointInterface;
 use Polkurier\Shipping\Api\QuotePointRepositoryInterface;
+use Polkurier\Shipping\Controller\Map\Token;
 use Polkurier\Shipping\Logger\Logger;
 use Polkurier\Shipping\Model\Carrier\CarrierCatalog;
 use Polkurier\Shipping\Model\Carrier\CarrierFeatureResolver;
@@ -32,12 +33,6 @@ use Polkurier\Webservice\Exception\Exception as PolkurierException;
  */
 readonly class MapConfigProvider implements ConfigProviderInterface
 {
-    /**
-     * Where a checkout page asks for a fresh token ({@see \Polkurier\Shipping\Controller\Map\Token}), by
-     * the route's id: Magento's URLs turn it into the frontName pickup-points.
-     */
-    public const string TOKEN_ROUTE = 'polkurier_points/map/token';
-
     public function __construct(
         private ConfigProvider $configProvider,
         private CarrierConfigProvider $carrierConfigProvider,
@@ -106,13 +101,13 @@ readonly class MapConfigProvider implements ConfigProviderInterface
             'methods' => (object)$methods,
             'token' => $token['token'],
             'tokenExpires' => $token['expires'],
-            'tokenUrl' => $this->url->getUrl(self::TOKEN_ROUTE),
+            'tokenUrl' => $this->url->getUrl(Token::ROUTE),
             'baseUrl' => $this->configProvider->getMapUrl() . '/',
             'latitude' => $this->configProvider->getMapLatitude($storeId),
             'longitude' => $this->configProvider->getMapLongitude($storeId),
             'zoom' => $this->configProvider->getMapZoom($storeId),
-            'showList' => $this->configProvider->isMapShowList($storeId),
-            'showSearch' => $this->configProvider->isMapShowSearch($storeId),
+            'showList' => $this->configProvider->shouldShowMapList($storeId),
+            'showSearch' => $this->configProvider->shouldShowMapSearch($storeId),
             'functions' => \array_map(
                 static fn(PointFunctionEnum $function): string => $function->value,
                 $this->configProvider->getMapPointFunctions($storeId),

@@ -8,12 +8,13 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Ui\Component\Listing\Shipment;
 
 use Magento\Framework\UrlInterface;
+use Polkurier\Shipping\Controller\Adminhtml\Shipment\Label as ShipmentLabel;
 use Polkurier\Shipping\Model\Config\Source\LabelFormat;
 
 /**
  * The submenu of the "Print labels" mass action: one entry per label format, PDF first.
  */
-readonly class LabelFormatActions implements \JsonSerializable
+readonly class LabelFormatActionProvider implements \JsonSerializable
 {
     public function __construct(
         private UrlInterface $url,
@@ -31,7 +32,7 @@ readonly class LabelFormatActions implements \JsonSerializable
                 'type' => 'label_' . \strtolower($format ?: 'pdf'),
                 'label' => (string)$name,
                 'url' => $this->url->getUrl(
-                    'polkurier/shipment/label',
+                    ShipmentLabel::ROUTE,
                     $format !== '' ? ['format' => $format] : [],
                 ),
             ];

@@ -430,7 +430,7 @@ interface ShipmentInterface
 
     /**
      * The local copy of the order as Polkurier last reported it, or an empty array before it has
-     * been read. See {@see \Polkurier\Shipping\Model\Shipment\Status\RemoteOrderApplier::mapFromOrder()} for its shape.
+     * been read. Its keys are {@see \Polkurier\Shipping\Api\Data\ShipmentDetailsInterface}'s.
      *
      * @return array<string, mixed>
      */
@@ -457,7 +457,8 @@ interface ShipmentInterface
 
     /**
      * The local copy of the carrier's scan history, newest first, or an empty array before it
-     * has been read.
+     * has been read. Each scan's keys are {@see \Polkurier\Shipping\Api\Data\ShipmentDetailsInterface}'s
+     * FIELD_SCAN_*.
      *
      * @return array<int, array<string, string>>
      */

@@ -13,7 +13,7 @@ use Magento\Framework\Pricing\PriceCurrencyInterface;
 use Magento\Framework\Serialize\Serializer\Json;
 use Magento\Framework\Stdlib\DateTime\TimezoneInterface;
 use Magento\Framework\UrlInterface;
-use Magento\Sales\Api\Data\ShipmentInterface as MagentoShipment;
+use Magento\Sales\Api\Data\ShipmentInterface as MagentoShipmentInterface;
 use Magento\Sales\Api\ShipmentRepositoryInterface as MagentoShipmentRepository;
 use Magento\Sales\Model\Order;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
@@ -53,7 +53,7 @@ use Polkurier\Webservice\Enum\Order\ShipmentTypeEnum;
  */
 #[CoversClass(ShipmentDetails::class)]
 #[AllowMockObjectsWithoutExpectations]
-class ShipmentDetailsBuildTest extends TestCase
+class ShipmentDetailsBuildPageTest extends TestCase
 {
     public function testAShipmentReadFromPolkurierIsShownAsPolkurierReportsIt(): void
     {
@@ -135,7 +135,7 @@ class ShipmentDetailsBuildTest extends TestCase
             'has_invoice' => false,
         ], shipmentId: 31, lastError: null);
 
-        $view = $this->createView(order: true)->build($shipment);
+        $view = $this->createView(order: true)->buildPage($shipment);
 
         self::assertSame('Shipment details 24680-4', $view['title']);
         self::assertSame(
@@ -237,7 +237,7 @@ class ShipmentDetailsBuildTest extends TestCase
             lastError: 'Polkurier did not answer in time.',
         );
 
-        $view = $this->createView(order: false)->build($shipment, ['The carrier\'s scans could not be read.']);
+        $view = $this->createView(order: false)->buildPage($shipment, ['The carrier\'s scans could not be read.']);
 
         self::assertSame('Shipment details #41', $view['title']);
         self::assertSame([
@@ -307,7 +307,7 @@ class ShipmentDetailsBuildTest extends TestCase
         $dropOff = ['no_courier_order' => true, 'multi_pickup' => false, 'pickup_number' => 'DPD-PU-2'];
         $atPoint = $this->createView(
             order: true,
-        )->build($this->createShipment(ShipmentInterface::STATE_CREATED, '24680-12', [
+        )->buildPage($this->createShipment(ShipmentInterface::STATE_CREATED, '24680-12', [
             'sender' => ['person' => 'Jan Kowalski', 'point_id' => 'PL63197', 'point_label' => 'Kiosk, Prosta 1'],
             'pickup' => $dropOff,
         ], shipmentId: 31, lastError: null));
@@ -340,7 +340,7 @@ class ShipmentDetailsBuildTest extends TestCase
 
         $anyPoint = $this->createView(
             order: true,
-        )->build($this->createShipment(ShipmentInterface::STATE_CREATED, '24680-15', [
+        )->buildPage($this->createShipment(ShipmentInterface::STATE_CREATED, '24680-15', [
             'sender' => ['person' => 'Jan Kowalski', 'point_id' => null],
             'pickup' => $dropOff,
         ], shipmentId: 31, lastError: null));
@@ -490,10 +490,10 @@ class ShipmentDetailsBuildTest extends TestCase
         $amounts = $this->createStub(OrderAmountCalculator::class);
         $amounts->method('getItems')->willReturn([5 => ['name' => 'Mug', 'sku' => 'MUG-1']]);
 
-        $magentoShipment = $this->createStub(MagentoShipment::class);
+        $magentoShipment = $this->createStub(MagentoShipmentInterface::class);
         $magentoShipment->method('getIncrementId')->willReturn('000000031');
         $magentoShipments = $this->createStub(MagentoShipmentRepository::class);
-        $magentoShipments->method('get')->willReturnCallback(static fn(int $id): MagentoShipment => $id === 31
+        $magentoShipments->method('get')->willReturnCallback(static fn(int $id): MagentoShipmentInterface => $id === 31
             ? $magentoShipment
             : throw new NoSuchEntityException(__('The entity that was requested doesn\'t exist.')));
 

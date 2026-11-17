@@ -12,6 +12,7 @@ use Magento\Sales\Model\Order;
 use Magento\Sales\Model\ResourceModel\Attribute as SalesAttribute;
 use Magento\Sales\Model\ResourceModel\GridInterface;
 use Magento\Store\Model\App\Emulation;
+use Polkurier\Shipping\Api\Data\ShipmentDetailsInterface;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Api\OrderPointRepositoryInterface;
 use Polkurier\Shipping\Api\ShippingChoiceRepositoryInterface;
@@ -186,8 +187,12 @@ readonly class ActualShippingUpdater
     {
         // As Polkurier reports it, or as it was sent while that's not been read yet.
         $details = $shipment->getDetails() ?: $this->sentOrderReader->read((string)$shipment->getRequest());
-        $recipient = \is_array($details['recipient'] ?? null) ? $details['recipient'] : [];
+        $recipient = $details[ShipmentDetailsInterface::FIELD_RECIPIENT] ?? null;
+        $recipient = \is_array($recipient) ? $recipient : [];
 
-        return [$shipment->getCarrierCode(), (string)($recipient['point_id'] ?? '')];
+        return [
+            $shipment->getCarrierCode(),
+            (string)($recipient[ShipmentDetailsInterface::FIELD_ADDRESS_POINT_ID] ?? ''),
+        ];
     }
 }

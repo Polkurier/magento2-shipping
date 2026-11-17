@@ -13,6 +13,7 @@ use Magento\Framework\View\Element\UiComponent\ContextInterface;
 use Magento\Framework\View\Element\UiComponentFactory;
 use Magento\Ui\Component\Listing\Columns\Column;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
+use Polkurier\Shipping\Controller\Adminhtml\Shipment\View as ShipmentView;
 use Polkurier\Shipping\Model\Carrier\Polkurier;
 use Polkurier\Shipping\Model\Config\Source\ShipmentState;
 use Polkurier\Shipping\Model\Shipment\OrderLoader;
@@ -113,7 +114,7 @@ class PolkurierOrderColumn extends Column
             $links[$magentoShipmentId] = \sprintf(
                 '<a href="%s">%s</a>',
                 $this->escaper->escapeUrl(
-                    $this->url->getUrl('polkurier/shipment/view', ['id' => (int)$shipment->getId()]),
+                    $this->url->getUrl(ShipmentView::ROUTE, ['id' => (int)$shipment->getId()]),
                 ),
                 $this->escaper->escapeHtml($label),
             );

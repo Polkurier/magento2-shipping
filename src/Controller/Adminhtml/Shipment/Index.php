@@ -18,6 +18,7 @@ use Magento\Framework\Controller\ResultFactory;
 class Index extends Action implements HttpGetActionInterface
 {
     public const string ADMIN_RESOURCE = 'Magento_Sales::shipment';
+    public const string ROUTE = 'polkurier/shipment/index';
 
     public function execute(): Page
     {

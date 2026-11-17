@@ -26,6 +26,7 @@ use Polkurier\Webservice\Enum\Order\LabelFileFormatEnum;
 class Label extends AbstractShipmentAction implements HttpGetActionInterface, HttpPostActionInterface
 {
     public const string ADMIN_RESOURCE = 'Magento_Sales::shipment';
+    public const string ROUTE = 'polkurier/shipment/label';
 
     public function __construct(
         Context $context,

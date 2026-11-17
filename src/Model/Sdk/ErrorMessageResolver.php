@@ -52,6 +52,25 @@ readonly class ErrorMessageResolver
     private const string TRANSIENT_HINT = '/spr[oó]b(uj|ować)\s+ponownie|chwilow|za\s+chwil|później|przeciąż/iu';
 
     /**
+     * What $call returns. An SDK failure on the way comes out as an exception to show the merchant.
+     *
+     * @template T
+     *
+     * @param callable(): T $call
+     *
+     * @return T
+     * @throws LocalizedException
+     */
+    public function callTranslated(callable $call): mixed
+    {
+        try {
+            return $call();
+        } catch (PolkurierException $e) {
+            throw $this->createException($e);
+        }
+    }
+
+    /**
      * The failure as an exception to show the merchant, with the message described.
      */
     public function createException(\Exception $e): LocalizedException

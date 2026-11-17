@@ -27,6 +27,7 @@ class Save extends Action implements HttpPostActionInterface
     use ReadsPostDataTrait;
 
     public const string ADMIN_RESOURCE = 'Polkurier_Shipping::payout_request';
+    public const string ROUTE = 'polkurier/payout/save';
 
     private const array KEPT_FIELDS = [
         'orders',

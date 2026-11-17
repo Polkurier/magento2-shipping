@@ -183,7 +183,7 @@ class NativeLabelServiceTest extends TestCase
         $this->createService()->request($this->createLabelRequest($this->createMagentoShipment(null), []));
 
         self::assertTrue(
-            $this->getPlacedDraft()->isNotifyCustomer(),
+            $this->getPlacedDraft()->shouldNotifyCustomer(),
             'For a Magento shipment made later, if it comes to it.',
         );
     }
@@ -194,7 +194,7 @@ class NativeLabelServiceTest extends TestCase
 
         $this->createService()->request($this->createLabelRequest($this->createMagentoShipment(31), []));
 
-        self::assertFalse($this->getPlacedDraft()->isNotifyCustomer());
+        self::assertFalse($this->getPlacedDraft()->shouldNotifyCustomer());
     }
 
     public function testAShipmentWithAPolkurierOrderGetsItsLabelWithoutPlacingAnother(): void

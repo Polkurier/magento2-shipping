@@ -351,7 +351,7 @@ interface ShipmentDraftInterface
      *
      * @return bool
      */
-    public function isPacksEstimated(): bool;
+    public function hasEstimatedPacks(): bool;
 
     /**
      * @param bool $estimated
@@ -651,7 +651,7 @@ interface ShipmentDraftInterface
      *
      * @return bool
      */
-    public function isNotifyCustomer(): bool;
+    public function shouldNotifyCustomer(): bool;
 
     /**
      * @param bool $notify

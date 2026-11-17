@@ -13,6 +13,7 @@ use Magento\Framework\Registry;
 use Magento\Framework\View\Element\Context;
 use Magento\Framework\View\Element\Text\ListText;
 use Magento\Sales\Model\Order;
+use Polkurier\Shipping\Controller\Adminhtml\Shipment\Index as ShipmentIndex;
 use Polkurier\Shipping\Model\Carrier\Polkurier;
 
 /**
@@ -50,7 +51,7 @@ class PolkurierShipments extends ListText implements TabInterface
 
         return $order instanceof Order
             && Polkurier::isOrderOf($order)
-            && $this->authorization->isAllowed('Magento_Sales::shipment');
+            && $this->authorization->isAllowed(ShipmentIndex::ADMIN_RESOURCE);
     }
 
     public function isHidden(): bool

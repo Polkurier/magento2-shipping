@@ -10,6 +10,7 @@ namespace Polkurier\Shipping\Model\Shipment\Status;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Stdlib\DateTime as DateFormat;
 use Magento\Framework\Stdlib\DateTime\DateTime;
+use Polkurier\Shipping\Api\Data\ShipmentDetailsInterface;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Model\PickupPoint\PointFinder;
 use Polkurier\Shipping\Model\Sdk\ShipmentGateway;
@@ -84,30 +85,6 @@ readonly class RemoteOrderApplier
     }
 
     /**
-     * Whether an order the listing reports as cancelled is: the listing reports a cancelled waybill
-     * of a live order alike.
-     *
-     * @throws LocalizedException
-     */
-    private function isCancelled(Order $order, ShipmentInterface $shipment): bool
-    {
-        if ($shipment->getState() === ShipmentInterface::STATE_CANCELLED) {
-            return true;
-        }
-        $number = (string)($order->getNumber() ?? $shipment->getPolkurierNumber());
-        $cancelled = $this->shipmentGateway->isCancelled($number);
-        if ($cancelled === null) {
-            throw new LocalizedException(__(
-                'Polkurier reports order %1 as cancelled, but couldn\'t confirm it. '
-                . 'It is checked again with the next status update.',
-                $number,
-            ));
-        }
-
-        return $cancelled;
-    }
-
-    /**
      * Whether nothing about the order will change any more.
      */
     public function isFinal(ShipmentInterface $shipment): bool
@@ -139,78 +116,89 @@ readonly class RemoteOrderApplier
     {
         $waybills = [];
         foreach ($order->getWaybills() as $waybill) {
-            $waybills[] = ['number' => $waybill->number, 'is_default' => $waybill->default];
+            $waybills[] = [
+                ShipmentDetailsInterface::FIELD_WAYBILL_NUMBER => $waybill->number,
+                ShipmentDetailsInterface::FIELD_WAYBILL_IS_DEFAULT => $waybill->default,
+            ];
         }
         $packs = [];
         foreach ($order->getPacks() as $pack) {
             $packs[] = [
-                'type' => $pack->getType()?->value,
-                'length' => $pack->getLength(),
-                'width' => $pack->getWidth(),
-                'height' => $pack->getHeight(),
-                'weight' => $pack->getWeight(),
-                'amount' => $pack->getAmount(),
-                'price_net' => $pack->getPriceNet(),
-                'price_gross' => $pack->getPriceGross(),
+                ShipmentDetailsInterface::FIELD_PACK_TYPE => $pack->getType()?->value,
+                ShipmentDetailsInterface::FIELD_PACK_LENGTH => $pack->getLength(),
+                ShipmentDetailsInterface::FIELD_PACK_WIDTH => $pack->getWidth(),
+                ShipmentDetailsInterface::FIELD_PACK_HEIGHT => $pack->getHeight(),
+                ShipmentDetailsInterface::FIELD_PACK_WEIGHT => $pack->getWeight(),
+                ShipmentDetailsInterface::FIELD_PACK_AMOUNT => $pack->getAmount(),
+                ShipmentDetailsInterface::FIELD_PACK_PRICE_NET => $pack->getPriceNet(),
+                ShipmentDetailsInterface::FIELD_PACK_PRICE_GROSS => $pack->getPriceGross(),
             ];
         }
         $items = [];
         foreach ($order->getItems() as $item) {
             $items[] = [
-                'description' => $item->description,
-                'type' => $item->type?->value,
-                'amount' => $item->amount,
-                'value_net' => $item->valueNet,
-                'value_gross' => $item->valueGross,
+                ShipmentDetailsInterface::FIELD_ITEM_DESCRIPTION => $item->description,
+                ShipmentDetailsInterface::FIELD_ITEM_TYPE => $item->type?->value,
+                ShipmentDetailsInterface::FIELD_ITEM_AMOUNT => $item->amount,
+                ShipmentDetailsInterface::FIELD_ITEM_VALUE_NET => $item->valueNet,
+                ShipmentDetailsInterface::FIELD_ITEM_VALUE_GROSS => $item->valueGross,
             ];
         }
         $cod = $order->getCod();
         $pickup = $order->getPickup();
 
         return [
-            'number' => $order->getNumber(),
-            'date' => $order->getDate()?->format(DateFormat::DATETIME_PHP_FORMAT),
-            'description' => $order->getDescription(),
-            'carrier' => $order->getCourier(),
-            'carrier_name' => $order->getCourierName(),
-            'shipment_type' => $order->getShipmentType()?->value,
-            'status' => $order->getStatus(),
-            'status_code' => $order->getStatusCode(),
-            'status_date' => $order->getStatusDate()?->format(DateFormat::DATETIME_PHP_FORMAT),
-            'delivered_date' => $order->getDeliveredDate()?->format(DateFormat::DATETIME_PHP_FORMAT),
-            'tracking_url' => $order->getTrackingUri(),
-            'waybills' => $waybills,
-            'sender' => $this->mapAddress($order->getSender()),
-            'recipient' => $this->mapAddress($order->getRecipient()),
-            'cover_address' => $this->mapAddress($order->getCoverAddress()),
-            'cod' => $cod === null ? null : [
-                'amount' => $cod->getAmount(),
-                'type' => $cod->getType()?->value,
-                'return_type' => $cod->getReturnType()?->value,
-                'bank_account' => $cod->getBankAccount(),
-                'status' => $cod->getStatus()?->value,
+            ShipmentDetailsInterface::FIELD_NUMBER => $order->getNumber(),
+            ShipmentDetailsInterface::FIELD_DATE => $order->getDate()
+                ?->format(DateFormat::DATETIME_PHP_FORMAT),
+            ShipmentDetailsInterface::FIELD_DESCRIPTION => $order->getDescription(),
+            ShipmentDetailsInterface::FIELD_CARRIER => $order->getCourier(),
+            ShipmentDetailsInterface::FIELD_CARRIER_NAME => $order->getCourierName(),
+            ShipmentDetailsInterface::FIELD_SHIPMENT_TYPE => $order->getShipmentType()?->value,
+            ShipmentDetailsInterface::FIELD_STATUS => $order->getStatus(),
+            ShipmentDetailsInterface::FIELD_STATUS_CODE => $order->getStatusCode(),
+            ShipmentDetailsInterface::FIELD_STATUS_DATE => $order->getStatusDate()
+                ?->format(DateFormat::DATETIME_PHP_FORMAT),
+            ShipmentDetailsInterface::FIELD_DELIVERED_DATE => $order->getDeliveredDate()
+                ?->format(DateFormat::DATETIME_PHP_FORMAT),
+            ShipmentDetailsInterface::FIELD_TRACKING_URL => $order->getTrackingUri(),
+            ShipmentDetailsInterface::FIELD_WAYBILLS => $waybills,
+            ShipmentDetailsInterface::FIELD_SENDER => $this->mapAddress($order->getSender()),
+            ShipmentDetailsInterface::FIELD_RECIPIENT => $this->mapAddress($order->getRecipient()),
+            ShipmentDetailsInterface::FIELD_COVER_ADDRESS => $this->mapAddress($order->getCoverAddress()),
+            ShipmentDetailsInterface::FIELD_COD => $cod === null ? null : [
+                ShipmentDetailsInterface::FIELD_COD_AMOUNT => $cod->getAmount(),
+                ShipmentDetailsInterface::FIELD_COD_TYPE => $cod->getType()?->value,
+                ShipmentDetailsInterface::FIELD_COD_RETURN_TYPE => $cod->getReturnType()?->value,
+                ShipmentDetailsInterface::FIELD_COD_BANK_ACCOUNT => $cod->getBankAccount(),
+                ShipmentDetailsInterface::FIELD_COD_STATUS => $cod->getStatus()?->value,
             ],
-            'insurance' => $order->getInsurance(),
-            'pickup' => $pickup === null ? null : [
-                'date' => $pickup->getPickupDate()?->format('Y-m-d'),
-                'time_from' => $pickup->getPickupTimeFrom()?->format('H:i'),
-                'time_to' => $pickup->getPickupTimeTo()?->format('H:i'),
-                'no_courier_order' => $pickup->isNoCourierOrder(),
-                'multi_pickup' => $pickup->isMultiPickup(),
-                'pickup_number' => $pickup->getPickupNumber(),
+            ShipmentDetailsInterface::FIELD_INSURANCE => $order->getInsurance(),
+            ShipmentDetailsInterface::FIELD_PICKUP => $pickup === null ? null : [
+                ShipmentDetailsInterface::FIELD_PICKUP_DATE => $pickup->getPickupDate()?->format('Y-m-d'),
+                ShipmentDetailsInterface::FIELD_PICKUP_TIME_FROM => $pickup->getPickupTimeFrom()?->format('H:i'),
+                ShipmentDetailsInterface::FIELD_PICKUP_TIME_TO => $pickup->getPickupTimeTo()?->format('H:i'),
+                ShipmentDetailsInterface::FIELD_PICKUP_NO_COURIER_ORDER => $pickup->isNoCourierOrder(),
+                ShipmentDetailsInterface::FIELD_PICKUP_MULTI_PICKUP => $pickup->isMultiPickup(),
+                ShipmentDetailsInterface::FIELD_PICKUP_NUMBER => $pickup->getPickupNumber(),
             ],
-            'services' => \array_values(\array_map('strval', $order->getCourierServiceNames() ?? [])),
-            'additional_fields' => \array_map('strval', $order->getAdditionalFields() ?? []),
-            'packs' => $packs,
-            'items' => $items,
-            'price_net' => $order->getPriceNet(),
-            'price_gross' => $order->getPriceGross(),
-            'rebate_net' => $order->getRebateNet(),
-            'rebate_gross' => $order->getRebateGross(),
-            'vat_rate' => $order->getVatRate(),
-            'is_paid' => $order->isPaid(),
-            'has_invoice' => $order->hasInvoice(),
-            'unpaid_amount' => $order->getUnpaidAmount(),
+            ShipmentDetailsInterface::FIELD_SERVICES => \array_values(
+                \array_map('strval', $order->getCourierServiceNames() ?? []),
+            ),
+            ShipmentDetailsInterface::FIELD_ADDITIONAL_FIELDS => \array_map(
+                'strval',
+                $order->getAdditionalFields() ?? [],
+            ),
+            ShipmentDetailsInterface::FIELD_PACKS => $packs,
+            ShipmentDetailsInterface::FIELD_ITEMS => $items,
+            ShipmentDetailsInterface::FIELD_PRICE_NET => $order->getPriceNet(),
+            ShipmentDetailsInterface::FIELD_PRICE_GROSS => $order->getPriceGross(),
+            ShipmentDetailsInterface::FIELD_REBATE_NET => $order->getRebateNet(),
+            ShipmentDetailsInterface::FIELD_REBATE_GROSS => $order->getRebateGross(),
+            ShipmentDetailsInterface::FIELD_VAT_RATE => $order->getVatRate(),
+            ShipmentDetailsInterface::FIELD_IS_PAID => $order->isPaid(),
+            ShipmentDetailsInterface::FIELD_HAS_INVOICE => $order->hasInvoice(),
+            ShipmentDetailsInterface::FIELD_UNPAID_AMOUNT => $order->getUnpaidAmount(),
         ];
     }
 
@@ -226,16 +214,44 @@ readonly class RemoteOrderApplier
         foreach ($status->tracking as $event) {
             $carrierWording = $event->trackingStatus !== $event->status ? $event->trackingStatus : '';
             $events[] = [
-                'date' => (string)$event->statusDate?->format(DateFormat::DATETIME_PHP_FORMAT),
-                'status_code' => $event->statusCode,
-                'status' => $event->status,
-                'location' => $event->location,
-                'description' => $event->description ?: $carrierWording,
+                ShipmentDetailsInterface::FIELD_SCAN_DATE => (string)$event->statusDate
+                    ?->format(DateFormat::DATETIME_PHP_FORMAT),
+                ShipmentDetailsInterface::FIELD_SCAN_STATUS_CODE => $event->statusCode,
+                ShipmentDetailsInterface::FIELD_SCAN_STATUS => $event->status,
+                ShipmentDetailsInterface::FIELD_SCAN_LOCATION => $event->location,
+                ShipmentDetailsInterface::FIELD_SCAN_DESCRIPTION => $event->description ?: $carrierWording,
             ];
         }
-        \usort($events, static fn(array $a, array $b): int => \strcmp($b['date'], $a['date']));
+        \usort($events, static fn(array $a, array $b): int => \strcmp(
+            $b[ShipmentDetailsInterface::FIELD_SCAN_DATE],
+            $a[ShipmentDetailsInterface::FIELD_SCAN_DATE],
+        ));
 
         return $events;
+    }
+
+    /**
+     * Whether an order the listing reports as cancelled is: the listing reports a cancelled waybill
+     * of a live order alike.
+     *
+     * @throws LocalizedException
+     */
+    private function isCancelled(Order $order, ShipmentInterface $shipment): bool
+    {
+        if ($shipment->getState() === ShipmentInterface::STATE_CANCELLED) {
+            return true;
+        }
+        $number = (string)($order->getNumber() ?? $shipment->getPolkurierNumber());
+        $cancelled = $this->shipmentGateway->isCancelled($number);
+        if ($cancelled === null) {
+            throw new LocalizedException(__(
+                'Polkurier reports order %1 as cancelled, but couldn\'t confirm it. '
+                . 'It is checked again with the next status update.',
+                $number,
+            ));
+        }
+
+        return $cancelled;
     }
 
     private static function formatUtc(\DateTimeInterface $time): string
@@ -256,17 +272,19 @@ readonly class RemoteOrderApplier
         $point = $address->getPoint();
 
         return [
-            'person' => $address->getPerson(),
-            'company' => $address->getCompany(),
-            'street' => $address->getStreet(),
-            'postcode' => $address->getPostcode(),
-            'city' => $address->getCity(),
-            'province' => $address->getProvince(),
-            'country' => $address->getCountry(),
-            'phone' => $address->getPhone(),
-            'email' => $address->getEmail(),
-            'point_id' => $address->getPointId() ?: null,
-            'point_label' => $point !== null ? PointFinder::formatAddress($point) : null,
+            ShipmentDetailsInterface::FIELD_ADDRESS_PERSON => $address->getPerson(),
+            ShipmentDetailsInterface::FIELD_ADDRESS_COMPANY => $address->getCompany(),
+            ShipmentDetailsInterface::FIELD_ADDRESS_STREET => $address->getStreet(),
+            ShipmentDetailsInterface::FIELD_ADDRESS_POSTCODE => $address->getPostcode(),
+            ShipmentDetailsInterface::FIELD_ADDRESS_CITY => $address->getCity(),
+            ShipmentDetailsInterface::FIELD_ADDRESS_PROVINCE => $address->getProvince(),
+            ShipmentDetailsInterface::FIELD_ADDRESS_COUNTRY => $address->getCountry(),
+            ShipmentDetailsInterface::FIELD_ADDRESS_PHONE => $address->getPhone(),
+            ShipmentDetailsInterface::FIELD_ADDRESS_EMAIL => $address->getEmail(),
+            ShipmentDetailsInterface::FIELD_ADDRESS_POINT_ID => $address->getPointId() ?: null,
+            ShipmentDetailsInterface::FIELD_ADDRESS_POINT_LABEL => $point !== null
+                ? PointFinder::formatAddress($point)
+                : null,
         ];
     }
 }

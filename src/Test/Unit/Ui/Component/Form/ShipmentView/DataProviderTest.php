@@ -42,7 +42,7 @@ class DataProviderTest extends TestCase
         $gateway = $this->createMock(ShipmentGateway::class);
         $gateway->expects(self::never())->method('getStatus');
         $details = $this->createMock(ShipmentDetails::class);
-        $details->expects(self::once())->method('build')->with($shipment, [])->willReturn(['title' => 'Stored']);
+        $details->expects(self::once())->method('buildPage')->with($shipment, [])->willReturn(['title' => 'Stored']);
 
         $data = $this->createProvider($shipment, $details, $statusRefresh, $gateway)->getData();
 

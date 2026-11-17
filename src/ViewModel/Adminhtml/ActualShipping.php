@@ -9,6 +9,7 @@ namespace Polkurier\Shipping\ViewModel\Adminhtml;
 
 use Magento\Framework\View\Element\Block\ArgumentInterface;
 use Magento\Sales\Model\Order;
+use Polkurier\Shipping\Api\Data\ShipmentDetailsInterface;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Api\OrderPointRepositoryInterface;
 use Polkurier\Shipping\Api\ShippingChoiceRepositoryInterface;
@@ -95,9 +96,10 @@ readonly class ActualShipping implements ArgumentInterface
         foreach ($shipments as $shipment) {
             // As Polkurier reports it, or as it was sent until Polkurier's copy has been read.
             $details = $shipment->getDetails() ?: $this->sentOrderReader->read((string)$shipment->getRequest());
-            $recipient = \is_array($details['recipient'] ?? null) ? $details['recipient'] : [];
-            $point = (string)($recipient['point_id'] ?? '');
-            $label = (string)($recipient['point_label'] ?? '');
+            $recipient = $details[ShipmentDetailsInterface::FIELD_RECIPIENT] ?? null;
+            $recipient = \is_array($recipient) ? $recipient : [];
+            $point = (string)($recipient[ShipmentDetailsInterface::FIELD_ADDRESS_POINT_ID] ?? '');
+            $label = (string)($recipient[ShipmentDetailsInterface::FIELD_ADDRESS_POINT_LABEL] ?? '');
             $key = $shipment->getCarrierCode() . '|' . $point;
             if (isset($shipped[$key])) {
                 continue;

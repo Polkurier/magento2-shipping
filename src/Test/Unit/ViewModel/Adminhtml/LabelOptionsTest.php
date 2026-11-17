@@ -13,7 +13,7 @@ use Magento\Framework\AuthorizationInterface;
 use Magento\Framework\Serialize\Serializer\Json;
 use Magento\Sales\Api\ShipmentRepositoryInterface;
 use Magento\Sales\Model\Order;
-use Magento\Sales\Model\Order\Shipment as MagentoShipment;
+use Magento\Sales\Model\Order\Shipment as MagentoShipmentModel;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
@@ -46,7 +46,7 @@ class LabelOptionsTest extends TestCase
      */
     private array $params = ['order_id' => 15];
 
-    private ?MagentoShipment $existing = null;
+    private ?MagentoShipmentModel $existing = null;
 
     /**
      * @var array<int, mixed> the order's Magento shipments that can take a Polkurier order, by id
@@ -105,9 +105,9 @@ class LabelOptionsTest extends TestCase
         self::assertNull($this->createViewModel()->getFailedAttempt(), 'No attempt waits to be sent again.');
     }
 
-    private function createShipment(?string $label): MagentoShipment
+    private function createShipment(?string $label): MagentoShipmentModel
     {
-        $shipment = $this->createStub(MagentoShipment::class);
+        $shipment = $this->createStub(MagentoShipmentModel::class);
         $shipment->method('getId')->willReturn(7);
         $shipment->method('getOrderId')->willReturn(15);
         $shipment->method('getShippingLabel')->willReturn($label);
@@ -141,7 +141,7 @@ class LabelOptionsTest extends TestCase
         $screen->method('describePoints')->willReturn([]);
         $screen->method('getTemplates')->willReturn([]);
         $shipments = $this->createStub(ShipmentRepositoryInterface::class);
-        $shipments->method('get')->willReturnCallback(fn(): ?MagentoShipment => $this->existing);
+        $shipments->method('get')->willReturnCallback(fn(): ?MagentoShipmentModel => $this->existing);
         $native = $this->createStub(NativeShipmentService::class);
         $native->method('getFreeShipments')->willReturnCallback(fn(): array => $this->free);
         $native->method('getShipmentQuantities')->willReturn([]);

@@ -97,11 +97,9 @@ class DefaultSenderPointManager implements ResetAfterRequestInterface
     public function change(string $carrierCode, string $pointId): void
     {
         $request = new ChangeDefaultSenderPointMessage($carrierCode, $pointId);
-        try {
-            $this->polkurierClient->getAccount()->changeDefaultSenderPoint($request);
-        } catch (PolkurierException $e) {
-            throw $this->errorMessageResolver->createException($e);
-        }
+        $this->errorMessageResolver->callTranslated(
+            fn(): mixed => $this->polkurierClient->getAccount()->changeDefaultSenderPoint($request),
+        );
         $this->apiEventDispatcher->dispatch(ApiEventEnum::DefaultSenderPointChangeAfter, null, [
             'request' => $request,
         ]);

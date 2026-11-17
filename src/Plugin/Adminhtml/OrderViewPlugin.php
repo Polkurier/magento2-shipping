@@ -9,6 +9,7 @@ namespace Polkurier\Shipping\Plugin\Adminhtml;
 
 use Magento\Framework\AuthorizationInterface;
 use Magento\Sales\Block\Adminhtml\Order\View;
+use Polkurier\Shipping\Controller\Adminhtml\Shipment\Create as ShipmentCreate;
 use Polkurier\Shipping\Model\Carrier\Polkurier;
 use Polkurier\Shipping\Model\Shipment\Native\NativeShipmentService;
 
@@ -39,7 +40,7 @@ readonly class OrderViewPlugin
         // Orders of other carriers are left to their own integrations.
         if ($order === null
             || !Polkurier::isOrderOf($order)
-            || !$this->authorization->isAllowed('Magento_Sales::ship')
+            || !$this->authorization->isAllowed(ShipmentCreate::ADMIN_RESOURCE)
         ) {
             return [$layout];
         }
@@ -53,7 +54,7 @@ readonly class OrderViewPlugin
             'label' => __('Ship with Polkurier'),
             'onclick' => \sprintf(
                 "setLocation('%s')",
-                $subject->getUrl('polkurier/shipment/create', ['order_id' => $order->getId()]),
+                $subject->getUrl(ShipmentCreate::ROUTE, ['order_id' => $order->getId()]),
             ),
             'class' => 'ship',
         ]);

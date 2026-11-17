@@ -24,6 +24,7 @@ class Cancel extends Action implements HttpPostActionInterface
     use ReturnsBackTrait;
 
     public const string ADMIN_RESOURCE = 'Polkurier_Shipping::payout_request';
+    public const string ROUTE = 'polkurier/payout/cancel';
 
     public function __construct(
         Context $context,

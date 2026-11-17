@@ -19,6 +19,7 @@ use Polkurier\Shipping\Model\PackTemplate\PackTemplateHandler;
 class InlineEdit extends AbstractInlineEdit
 {
     public const string ADMIN_RESOURCE = 'Polkurier_Shipping::pack_templates';
+    public const string ROUTE = 'polkurier/packtemplate/inlineEdit';
 
     public function __construct(
         Context $context,

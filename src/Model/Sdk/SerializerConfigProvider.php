@@ -8,7 +8,6 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Model\Sdk;
 
 use Magento\Framework\App\Filesystem\DirectoryList;
-use Magento\Framework\Filesystem\DirectoryList as Directories;
 use Polkurier\Webservice\Api\SerializerConfigInterface;
 use Polkurier\Webservice\Serializer\SerializerConfigFactory;
 use Symfony\Component\Cache\Adapter\PhpFilesAdapterFactory;
@@ -28,7 +27,7 @@ class SerializerConfigProvider
     private ?SerializerConfigInterface $config = null;
 
     public function __construct(
-        private readonly Directories $directoryList,
+        private readonly DirectoryList $directoryList,
         private readonly SerializerConfigFactory $serializerConfigFactory,
         private readonly PhpFilesAdapterFactory $phpFilesAdapterFactory,
     ) {}

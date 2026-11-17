@@ -12,11 +12,11 @@ use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Polkurier\Shipping\Model\Config\Source\LabelFormat;
-use Polkurier\Shipping\Ui\Component\Listing\Shipment\LabelFormatActions;
+use Polkurier\Shipping\Ui\Component\Listing\Shipment\LabelFormatActionProvider;
 
-#[CoversClass(LabelFormatActions::class)]
+#[CoversClass(LabelFormatActionProvider::class)]
 #[AllowMockObjectsWithoutExpectations]
-class LabelFormatActionsTest extends TestCase
+class LabelFormatActionProviderTest extends TestCase
 {
     public function testEachFormatPrintsWithItsOwnUrlPdfFirst(): void
     {
@@ -25,7 +25,7 @@ class LabelFormatActionsTest extends TestCase
             static fn(string $path, array $params = []): string => $path . \http_build_query($params, '', '/'),
         );
 
-        $actions = (new LabelFormatActions($url, new LabelFormat()))->jsonSerialize();
+        $actions = (new LabelFormatActionProvider($url, new LabelFormat()))->jsonSerialize();
 
         self::assertSame(['type' => 'label_pdf', 'label' => 'PDF', 'url' => 'polkurier/shipment/label'], $actions[0]);
         self::assertSame('polkurier/shipment/labelformat=ZPL300', $actions[2]['url']);

@@ -19,6 +19,7 @@ use Polkurier\Shipping\Model\Shipment\Placement\FailedShipmentManager;
 class Discard extends AbstractShipmentAction implements HttpPostActionInterface
 {
     public const string ADMIN_RESOURCE = 'Magento_Sales::ship';
+    public const string ROUTE = 'polkurier/shipment/discard';
 
     public function __construct(
         Context $context,

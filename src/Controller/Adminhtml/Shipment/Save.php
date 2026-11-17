@@ -33,6 +33,7 @@ class Save extends Action implements HttpPostActionInterface
     use ReadsPostDataTrait;
 
     public const string ADMIN_RESOURCE = 'Magento_Sales::ship';
+    public const string ROUTE = 'polkurier/shipment/save';
 
     public function __construct(
         Context $context,

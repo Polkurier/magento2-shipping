@@ -11,6 +11,7 @@ use Magento\Backend\Model\UrlInterface;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use Polkurier\Shipping\Controller\Adminhtml\Shipment\MapToken;
 use Polkurier\Shipping\Model\Config\ConfigProvider;
 use Polkurier\Shipping\Model\PickupPoint\AdminMapConfigProvider;
 use Polkurier\Shipping\Model\PickupPoint\MapTokenProvider;
@@ -30,13 +31,13 @@ class AdminMapConfigProviderTest extends TestCase
         $maps = new AdminMapConfigProvider($settings, $url, $tokens);
 
         self::assertSame(
-            ['baseUrl' => 'https://maps.example/', 'tokenUrl' => AdminMapConfigProvider::TOKEN_ROUTE],
+            ['baseUrl' => 'https://maps.example/', 'tokenUrl' => MapToken::ROUTE],
             $maps->getMapConfig(false),
         );
         self::assertSame(
             [
                 'baseUrl' => 'https://maps.example/',
-                'tokenUrl' => AdminMapConfigProvider::TOKEN_ROUTE,
+                'tokenUrl' => MapToken::ROUTE,
                 'token' => 'map-token',
                 'tokenExpires' => 1790014400,
             ],

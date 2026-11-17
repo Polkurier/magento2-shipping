@@ -18,7 +18,7 @@ use Polkurier\Webservice\Enum\Order\ShipmentTypeEnum;
  * Under a pallet shipment Polkurier reads ST and NST as the EURO pallet (120 × 80) and its
  * non-standard variant, so those two have codes of their own here, as the envelope has.
  */
-final readonly class ParcelTypeMapper
+final class ParcelTypeMapper
 {
     /**
      * An envelope, which Polkurier knows only as a shipment type: its parcels go as standard.

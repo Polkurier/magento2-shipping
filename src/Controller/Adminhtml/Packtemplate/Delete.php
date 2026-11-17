@@ -17,6 +17,7 @@ use Polkurier\Shipping\Model\PackTemplate\PackTemplateHandler;
 class Delete extends AbstractDelete
 {
     public const string ADMIN_RESOURCE = 'Polkurier_Shipping::pack_templates';
+    public const string ROUTE = 'polkurier/packtemplate/delete';
 
     public function __construct(
         Context $context,

@@ -9,6 +9,7 @@ namespace Polkurier\Shipping\Block\Adminhtml\System\Config;
 
 use Magento\Config\Block\System\Config\Form\Field;
 use Magento\Framework\Data\Form\Element\AbstractElement;
+use Polkurier\Shipping\Controller\Adminhtml\Config\TestConnection as ConfigTestConnection;
 
 /**
  * "Test connection" in the Polkurier configuration: checks the credentials as typed, before they
@@ -38,7 +39,7 @@ class TestConnection extends Field
 
     public function getTestUrl(): string
     {
-        return $this->getUrl('polkurier/config/testConnection');
+        return $this->getUrl(ConfigTestConnection::ROUTE);
     }
 
     /**

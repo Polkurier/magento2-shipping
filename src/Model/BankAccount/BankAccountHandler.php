@@ -56,7 +56,7 @@ readonly class BankAccountHandler implements EntityHandlerInterface
         private SettingsSynchronizer $settingsSynchronizer,
         private DateTime $dateTime,
         private SyncLock $syncLock,
-        private BankAccountResource $resource,
+        private BankAccountResource $bankAccountResource,
         private SyncResultFactory $syncResultFactory,
     ) {}
 
@@ -158,7 +158,7 @@ readonly class BankAccountHandler implements EntityHandlerInterface
     {
         /** @var BankAccountInterface $entity */
         $id = $entity->getId() ? (int)$entity->getId() : null;
-        if ($this->resource->isNameTaken($entity->getName(), $id)) {
+        if ($this->bankAccountResource->isNameTaken($entity->getName(), $id)) {
             throw new LocalizedException(__(
                 'A bank account named "%1" already exists. Choose another name.',
                 $entity->getName(),

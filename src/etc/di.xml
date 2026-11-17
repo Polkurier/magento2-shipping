@@ -66,6 +66,8 @@
                 type="Polkurier\Shipping\Model\ShippingChoice\ShippingChoiceRepository" />
     <preference for="Polkurier\Shipping\Api\Data\OrderPointInterface" type="Polkurier\Shipping\Model\OrderPoint" />
     <preference for="Polkurier\Shipping\Api\Data\QuotePointInterface" type="Polkurier\Shipping\Model\QuotePoint" />
+    <preference for="Polkurier\Shipping\Api\Data\ShippingChoiceInterface"
+                type="Polkurier\Shipping\Model\ShippingChoice" />
     <preference for="Polkurier\Shipping\Api\Data\ShipmentDraftInterface"
                 type="Polkurier\Shipping\Model\Shipment\Draft" />
     <preference for="Polkurier\Shipping\Api\Data\ShipmentDraft\PackInterface"

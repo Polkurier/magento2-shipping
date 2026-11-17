@@ -25,7 +25,7 @@ use Polkurier\Shipping\Test\Unit\Support\RecordingEventManager;
 use Polkurier\Shipping\Test\Unit\Support\SdkTestCase;
 use Polkurier\Webservice\Builder\Entity\AddressBuilderFactory;
 use Polkurier\Webservice\Dto\Request\Address\DeleteMessage;
-use Polkurier\Webservice\Entity\Address as SdkAddress;
+use Polkurier\Webservice\Entity\Address as RemoteAddress;
 use Polkurier\Webservice\Testing\RecordingClient;
 
 #[CoversClass(AddressSyncAdapter::class)]
@@ -55,7 +55,7 @@ class AddressSyncAdapterTest extends SdkTestCase
         self::assertNull($events[0]['store_id'], 'The account\'s, not a store\'s.');
         self::assertSame($address, $events[0]['address']);
         self::assertTrue($events[0]['is_new']);
-        self::assertInstanceOf(SdkAddress::class, $events[0]['request']);
+        self::assertInstanceOf(RemoteAddress::class, $events[0]['request']);
         self::assertSame('aZ3k', $events[0]['response']->getId());
     }
 

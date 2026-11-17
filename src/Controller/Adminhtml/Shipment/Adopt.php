@@ -20,6 +20,7 @@ use Polkurier\Shipping\Model\RequestParamReader;
 class Adopt extends AbstractShipmentAction implements HttpPostActionInterface
 {
     public const string ADMIN_RESOURCE = 'Magento_Sales::ship';
+    public const string ROUTE = 'polkurier/shipment/adopt';
 
     public function __construct(
         Context $context,

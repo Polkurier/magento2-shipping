@@ -11,6 +11,8 @@ use Magento\Framework\App\Request\DataPersistorInterface;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\UrlInterface;
 use Polkurier\Shipping\Api\BankAccountRepositoryInterface;
+use Polkurier\Shipping\Controller\Adminhtml\Payout\Quote as PayoutQuote;
+use Polkurier\Shipping\Controller\Adminhtml\Payout\SendCode as PayoutSendCode;
 use Polkurier\Shipping\Enum\Adminhtml\FormMemoryEnum;
 use Polkurier\Shipping\Model\BankAccount\BankAccountMapper;
 use Polkurier\Shipping\Model\Config\ConfigProvider;
@@ -66,8 +68,8 @@ class DataProvider extends FormDataProvider
     {
         $data = [
             'urls' => [
-                'quote' => $this->url->getUrl('polkurier/payout/quote'),
-                'send_code' => $this->url->getUrl('polkurier/payout/sendCode'),
+                'quote' => $this->url->getUrl(PayoutQuote::ROUTE),
+                'send_code' => $this->url->getUrl(PayoutSendCode::ROUTE),
             ],
         ];
         if ($this->configProvider->hasCredentials()) {

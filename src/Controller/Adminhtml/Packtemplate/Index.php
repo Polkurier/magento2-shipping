@@ -17,6 +17,7 @@ use Polkurier\Shipping\Model\PackTemplate\PackTemplateHandler;
 class Index extends AbstractIndex
 {
     public const string ADMIN_RESOURCE = 'Polkurier_Shipping::pack_templates';
+    public const string ROUTE = 'polkurier/packtemplate/index';
 
     public function __construct(
         Context $context,

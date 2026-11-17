@@ -17,6 +17,9 @@ use Magento\Sales\Api\ShipmentRepositoryInterface;
 use Magento\Sales\Model\Order;
 use Magento\Sales\Model\Order\Shipment as MagentoShipmentModel;
 use Polkurier\Shipping\Api\Data\ShipmentDraftInterface;
+use Polkurier\Shipping\Controller\Adminhtml\Shipment\Pack as ShipmentPack;
+use Polkurier\Shipping\Controller\Adminhtml\Shipment\PickupTimes as ShipmentPickupTimes;
+use Polkurier\Shipping\Controller\Adminhtml\Shipment\Save as ShipmentSave;
 use Polkurier\Shipping\Model\Carrier\Polkurier;
 use Polkurier\Shipping\Model\Config\ConfigProvider;
 use Polkurier\Shipping\Model\Config\Source\AdditionalService;
@@ -82,7 +85,7 @@ class LabelOptions implements ArgumentInterface, ResetAfterRequestInterface
 
         return $order !== null
             && $this->isPolkurierOrder()
-            && $this->authorization->isAllowed('Magento_Sales::ship')
+            && $this->authorization->isAllowed(ShipmentSave::ADMIN_RESOURCE)
             // On a shipment's page: one that can take a Polkurier order, and has no label yet.
             && ($existing === null || (!$existing->getShippingLabel()
                 && isset($this->nativeShipmentService->getFreeShipments($order)[(int)$existing->getId()])));
@@ -191,7 +194,7 @@ class LabelOptions implements ArgumentInterface, ResetAfterRequestInterface
             'senderPostcodes' => (object)$this->screenDataProvider->getSenderPostcodes(),
             // The collection dates and windows, as the Polkurier shipment screen asks for them.
             'pickupTimes' => [
-                'url' => $this->url->getUrl('polkurier/shipment/pickupTimes'),
+                'url' => $this->url->getUrl(ShipmentPickupTimes::ROUTE),
                 'orderId' => (int)$order->getEntityId(),
                 'recipientPostcode' => \trim((string)$order->getShippingAddress()?->getPostcode()),
             ],
@@ -246,7 +249,7 @@ class LabelOptions implements ArgumentInterface, ResetAfterRequestInterface
         $existing = $this->getExistingShipment();
 
         return [
-            'url' => $this->url->getUrl('polkurier/shipment/pack'),
+            'url' => $this->url->getUrl(ShipmentPack::ROUTE),
             'orderId' => (int)$order->getEntityId(),
             'shipmentId' => $existing !== null ? (int)$existing->getId() : null,
             'onOpen' => $this->configProvider->isPackingNewShipments((int)$order->getStoreId()),

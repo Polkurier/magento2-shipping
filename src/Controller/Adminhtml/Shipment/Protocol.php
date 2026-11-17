@@ -23,6 +23,7 @@ use Polkurier\Shipping\Model\Shipment\DocumentService;
 class Protocol extends AbstractShipmentAction implements HttpGetActionInterface, HttpPostActionInterface
 {
     public const string ADMIN_RESOURCE = 'Magento_Sales::shipment';
+    public const string ROUTE = 'polkurier/shipment/protocol';
 
     public function __construct(
         Context $context,

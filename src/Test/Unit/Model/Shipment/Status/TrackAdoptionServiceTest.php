@@ -12,7 +12,7 @@ use Magento\Framework\Phrase;
 use Magento\Framework\TestFramework\Unit\Helper\ObjectManager;
 use Magento\Sales\Api\ShipmentRepositoryInterface as MagentoShipmentRepository;
 use Magento\Sales\Model\Order;
-use Magento\Sales\Model\Order\Shipment as MagentoShipment;
+use Magento\Sales\Model\Order\Shipment as MagentoShipmentModel;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
@@ -188,7 +188,7 @@ class TrackAdoptionServiceTest extends TestCase
 
             return $shipment;
         });
-        $magentoShipment = $this->createStub(MagentoShipment::class);
+        $magentoShipment = $this->createStub(MagentoShipmentModel::class);
         $magentoShipment->method('getOrderId')->willReturn(31);
         $magentoShipments = $this->createStub(MagentoShipmentRepository::class);
         $magentoShipments->method('get')->willReturn($magentoShipment);

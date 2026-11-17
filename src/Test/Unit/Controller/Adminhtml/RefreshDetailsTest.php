@@ -156,7 +156,7 @@ class RefreshDetailsTest extends AdminActionTestCase
             $this->written[$id] = $values;
         });
         $details = $this->createStub(ShipmentDetails::class);
-        $details->method('build')->willReturnCallback(
+        $details->method('buildPage')->willReturnCallback(
             static fn(ShipmentInterface $built, array $errors): array => ['built from' => $built, 'errors' => $errors],
         );
 

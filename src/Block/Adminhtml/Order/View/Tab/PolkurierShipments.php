@@ -50,7 +50,7 @@ class PolkurierShipments extends ListText implements TabInterface
 
         return $order instanceof Order
             && Polkurier::isOrderOf($order)
-            && $this->authorization->isAllowed('Polkurier_Shipping::shipments');
+            && $this->authorization->isAllowed('Magento_Sales::shipment');
     }
 
     public function isHidden(): bool

@@ -20,7 +20,7 @@ use Polkurier\Shipping\Model\Shipment\Status\StatusRefreshService;
  */
 class RefreshAll extends AbstractShipmentAction implements HttpPostActionInterface
 {
-    public const string ADMIN_RESOURCE = 'Polkurier_Shipping::shipments';
+    public const string ADMIN_RESOURCE = 'Magento_Sales::shipment';
 
     public function __construct(
         Context $context,

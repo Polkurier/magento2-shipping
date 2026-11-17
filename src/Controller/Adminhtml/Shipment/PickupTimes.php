@@ -20,7 +20,7 @@ use Polkurier\Shipping\Model\Shipment\PickupService;
  */
 class PickupTimes extends AbstractJsonAction
 {
-    public const string ADMIN_RESOURCE = 'Polkurier_Shipping::shipment_create';
+    public const string ADMIN_RESOURCE = 'Magento_Sales::ship';
 
     public function __construct(
         Context $context,

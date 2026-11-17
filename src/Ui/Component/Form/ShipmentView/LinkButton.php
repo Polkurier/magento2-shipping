@@ -24,7 +24,7 @@ class LinkButton extends AbstractButton
         // Only an order sent with the shipment's ids can be linked to it.
         if ($shipment === null || $shipment->getState() !== ShipmentInterface::STATE_UNKNOWN
             || $shipment->getExternalOrderId() === null
-            || !$this->authorization->isAllowed('Polkurier_Shipping::shipment_create')
+            || !$this->authorization->isAllowed('Magento_Sales::ship')
         ) {
             return [];
         }

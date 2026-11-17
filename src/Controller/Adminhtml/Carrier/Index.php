@@ -17,7 +17,7 @@ use Magento\Framework\Controller\ResultFactory;
  */
 class Index extends Action implements HttpGetActionInterface
 {
-    public const string ADMIN_RESOURCE = 'Polkurier_Shipping::carriers';
+    public const string ADMIN_RESOURCE = 'Magento_Shipping::carriers';
 
     /**
      * Opened from the admin's notifications, whose links have no secret key.

@@ -21,7 +21,7 @@ use Polkurier\Shipping\Model\Shipment\Details\DetailsLoader;
  */
 class Refresh extends AbstractShipmentAction implements HttpPostActionInterface
 {
-    public const string ADMIN_RESOURCE = 'Polkurier_Shipping::shipments';
+    public const string ADMIN_RESOURCE = 'Magento_Sales::shipment';
 
     public function __construct(
         Context $context,

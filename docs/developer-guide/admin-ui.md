@@ -58,27 +58,32 @@ adds it back to links of the `polkurier-external` class once Magento has escaped
 
 ## Permissions
 
-Resources are declared in `etc/acl.xml`, under `Magento_Backend::admin`. Below the root, `::name`
-stands for `Polkurier_Shipping::name`:
+Shipments use Magento's resources: `Magento_Sales::shipment` for viewing shipments, labels and
+protocols and refreshing statuses, and `Magento_Sales::ship` for placing, discarding, adopting and
+shipping, collective pickups and labels on Magento's shipment pages. Cancelling has a resource of its own,
+`Polkurier_Shipping::shipment_cancel`, under `Magento_Sales::shipment`.
+
+The module's other resources are declared in `etc/acl.xml`, under `Magento_Backend::admin`. Below
+the root, `::name` stands for `Polkurier_Shipping::name`:
 
 ```
-Polkurier_Shipping::root       the Polkurier menu
-├── ::sales                    the Sales menu; its Orders item is Magento's orders list,
-│   │                          under Magento_Sales::sales_order
-│   ├── ::shipments            viewing shipments, labels and protocols; refreshing statuses
-│   │   ├── ::shipment_create  placing, adopting and shipping; collective pickups;
-│   │   │                      labels on Magento's shipment pages
-│   │   └── ::shipment_cancel  cancelling shipments
+Polkurier_Shipping::root       the Polkurier resources
+├── ::sales
 │   └── ::payouts              viewing payouts
 │       └── ::payout_request   requesting and cancelling payouts
-└── ::settings                 the Settings menu
-    ├── ::carriers             the Carriers screen
+└── ::settings
     ├── ::addresses            the Addresses screen
     ├── ::bank_accounts        the Bank accounts screen
     └── ::pack_templates       the Pack templates screen
 ```
 
-The configuration is in Magento's `carriers` section, so it uses `Magento_Shipping::carriers`.
+The Polkurier menu and its Sales group open with `Magento_Sales::sales`, so roles with Magento's
+shipment resources reach the shipments list; each item checks its own resource. The Sales group's
+Orders item is Magento's orders list, under `Magento_Sales::sales_order`.
+
+The configuration is in Magento's `carriers` section, so it uses `Magento_Shipping::carriers`; so
+do the Carriers screen, which sets up the same delivery methods, and the Settings menu group that
+holds both.
 
 Permissions are checked in the controllers, not in the services behind them. Buttons and actions a
 role can't use aren't shown.

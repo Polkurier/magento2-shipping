@@ -29,7 +29,7 @@ class ActionsColumnTest extends TestCase
     /**
      * @var string[] the ACL resources allowed
      */
-    private array $allowed = ['Polkurier_Shipping::shipment_create', 'Polkurier_Shipping::shipment_cancel'];
+    private array $allowed = ['Magento_Sales::ship', 'Polkurier_Shipping::shipment_cancel'];
 
     public function testAPlacedOrderPrintsFollowsAndCancels(): void
     {

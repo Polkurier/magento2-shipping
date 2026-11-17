@@ -37,7 +37,7 @@ class SendAgainButton extends AbstractButton
     {
         $shipment = $this->getShipment();
         if ($shipment === null
-            || !$this->authorization->isAllowed('Polkurier_Shipping::shipment_create')
+            || !$this->authorization->isAllowed('Magento_Sales::ship')
             || !$this->retriableShipmentFinder->isPossible($shipment)
         ) {
             return [];

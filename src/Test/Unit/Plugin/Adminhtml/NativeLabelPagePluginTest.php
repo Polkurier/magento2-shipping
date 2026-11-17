@@ -76,7 +76,7 @@ class NativeLabelPagePluginTest extends TestCase
             ],
         ];
 
-        self::assertSame('proceeded', $this->execute(Save::class, allowed: ['Polkurier_Shipping::shipment_create']));
+        self::assertSame('proceeded', $this->execute(Save::class, allowed: ['Magento_Sales::ship']));
         self::assertSame(
             [1 => ['params' => ['container' => 'ST']], 2 => ['params' => ['container' => 'ST']]],
             $this->params['packages'],
@@ -96,7 +96,7 @@ class NativeLabelPagePluginTest extends TestCase
             'proceeded',
             $this->execute(
                 Save::class,
-                allowed: ['Polkurier_Shipping::shipment_create', 'Polkurier_Shipping::pack_templates'],
+                allowed: ['Magento_Sales::ship', 'Polkurier_Shipping::pack_templates'],
             ),
         );
         self::assertSame($packages, $this->params['packages']);
@@ -110,7 +110,7 @@ class NativeLabelPagePluginTest extends TestCase
 
         $this->execute(
             Save::class,
-            allowed: ['Polkurier_Shipping::shipment_create', 'Polkurier_Shipping::pack_templates'],
+            allowed: ['Magento_Sales::ship', 'Polkurier_Shipping::pack_templates'],
         );
 
         self::assertSame(['"Tuba" was saved to pack templates.'], $this->successes);

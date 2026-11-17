@@ -21,7 +21,7 @@ class DiscardButton extends AbstractButton
     public function getButtonData(): array
     {
         if ($this->getShipment()?->getState() !== ShipmentInterface::STATE_FAILED
-            || !$this->authorization->isAllowed('Polkurier_Shipping::shipment_create')
+            || !$this->authorization->isAllowed('Magento_Sales::ship')
         ) {
             return [];
         }

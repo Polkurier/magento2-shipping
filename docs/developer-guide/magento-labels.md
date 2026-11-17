@@ -81,7 +81,7 @@ its shipment, so `shipment_id` isn't set yet at that point.
 
 ## Permissions
 
-A label request from an admin without `Polkurier_Shipping::shipment_create` gets an error. An admin
+A label request from an admin without `Magento_Sales::ship` gets an error. An admin
 without `Polkurier_Shipping::pack_templates` loses the packages' pack template names, with a warning.
 See [Admin UI](admin-ui.md#permissions) for the other resources.
 

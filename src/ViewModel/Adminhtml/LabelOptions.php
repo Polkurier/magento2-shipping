@@ -82,7 +82,7 @@ class LabelOptions implements ArgumentInterface, ResetAfterRequestInterface
 
         return $order !== null
             && $this->isPolkurierOrder()
-            && $this->authorization->isAllowed('Polkurier_Shipping::shipment_create')
+            && $this->authorization->isAllowed('Magento_Sales::ship')
             // On a shipment's page: one that can take a Polkurier order, and has no label yet.
             && ($existing === null || (!$existing->getShippingLabel()
                 && isset($this->nativeShipmentService->getFreeShipments($order)[(int)$existing->getId()])));

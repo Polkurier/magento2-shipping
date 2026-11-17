@@ -7,7 +7,6 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Test\Unit\Ui\Component\Listing\SalesShipment;
 
-use Magento\Framework\AuthorizationInterface;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Framework\TestFramework\Unit\Helper\ObjectManager;
 use Magento\Framework\UrlInterface;
@@ -33,8 +32,6 @@ use Polkurier\Shipping\Ui\Component\Listing\SalesShipment\PolkurierOrderColumn;
 #[AllowMockObjectsWithoutExpectations]
 class PolkurierOrderColumnTest extends TestCase
 {
-    private bool $allowed = true;
-
     public function testEachMagentoShipmentLinksItsPlacedPolkurierOrder(): void
     {
         $cells = $this->renderCells([
@@ -70,15 +67,6 @@ class PolkurierOrderColumnTest extends TestCase
         self::assertSame(['<a href="polkurier/shipment/view/2">24680-21</a>'], $cells);
     }
 
-    public function testWithoutThePermissionTheCellsStayAsTheyAre(): void
-    {
-        $this->allowed = false;
-
-        self::assertSame(
-            [null],
-            $this->renderCells([$this->createShipment(2, 11, ShipmentInterface::STATE_CREATED, '24680-21')], [11]),
-        );
-    }
 
     public function testTheColumnShowsOnlyForAPolkurierOrdersShipments(): void
     {
@@ -86,8 +74,6 @@ class PolkurierOrderColumnTest extends TestCase
         self::assertTrue($this->isDisabled('flatrate_flatrate'));
         self::assertTrue($this->isDisabled(null), 'An order that is gone.');
         self::assertFalse($this->isDisabled(false), 'The list of every shipment.');
-        $this->allowed = false;
-        self::assertTrue($this->isDisabled('polkurier_DPD'));
     }
 
     /**
@@ -138,8 +124,6 @@ class PolkurierOrderColumnTest extends TestCase
         $url = $this->createStub(UrlInterface::class);
         $url->method('getUrl')
             ->willReturnCallback(static fn(string $path, array $params): string => $path . '/' . $params['id']);
-        $authorization = $this->createStub(AuthorizationInterface::class);
-        $authorization->method('isAllowed')->willReturnCallback(fn(): bool => $this->allowed);
         $states = $this->createStub(ShipmentState::class);
         $states->method('toArray')
             ->willReturn([
@@ -163,7 +147,6 @@ class PolkurierOrderColumnTest extends TestCase
             $this->createStub(UiComponentFactory::class),
             new ShipmentFinder($factory),
             $url,
-            $authorization,
             $states,
             new OrderLoader($orders),
             $escaper,

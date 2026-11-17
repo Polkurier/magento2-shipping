@@ -7,7 +7,6 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Test\Unit\Ui\Component\Listing\Shipment;
 
-use Magento\Framework\AuthorizationInterface;
 use Magento\Framework\DataObject;
 use Magento\Framework\UrlInterface;
 use Magento\Framework\View\Element\UiComponent\ContextInterface;
@@ -25,18 +24,13 @@ use Polkurier\Shipping\Ui\Component\Listing\Shipment\MagentoShipmentLinkColumn;
 #[AllowMockObjectsWithoutExpectations]
 class MagentoShipmentLinkColumnTest extends TestCase
 {
-    public function testAShipmentLinksToItsMagentoShipmentWhenTheAdminMayOpenIt(): void
+    public function testAShipmentLinksToItsMagentoShipment(): void
     {
         self::assertSame(
             ['<a href="adminhtml/order_shipment/view?shipment_id=7">#000000027</a>', ''],
-            $this->renderCells(true, [7, null]),
+            $this->renderCells([7, null]),
             'One that went on none shows nothing.',
         );
-    }
-
-    public function testWithoutThePermissionTheNumberIsShownUnlinked(): void
-    {
-        self::assertSame(['#000000027'], $this->renderCells(false, [7]));
     }
 
     /**
@@ -44,7 +38,7 @@ class MagentoShipmentLinkColumnTest extends TestCase
      *
      * @return string[] the cells
      */
-    private function renderCells(bool $allowed, array $shipmentIds): array
+    private function renderCells(array $shipmentIds): array
     {
         $context = $this->createStub(ContextInterface::class);
         $context->method('getProcessor')->willReturn($this->createStub(Processor::class));
@@ -57,14 +51,11 @@ class MagentoShipmentLinkColumnTest extends TestCase
         $url->method('getUrl')->willReturnCallback(
             static fn(string $path, array $params): string => $path . '?' . \http_build_query($params),
         );
-        $authorization = $this->createStub(AuthorizationInterface::class);
-        $authorization->method('isAllowed')->willReturn($allowed);
         $column = new MagentoShipmentLinkColumn(
             $context,
             $this->createStub(UiComponentFactory::class),
             $collections,
             $url,
-            $authorization,
             StandaloneEscaper::create(),
             [],
             ['name' => 'magento_shipment'],

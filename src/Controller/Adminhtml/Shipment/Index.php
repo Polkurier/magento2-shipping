@@ -17,7 +17,7 @@ use Magento\Framework\Controller\ResultFactory;
  */
 class Index extends Action implements HttpGetActionInterface
 {
-    public const string ADMIN_RESOURCE = 'Polkurier_Shipping::shipments';
+    public const string ADMIN_RESOURCE = 'Magento_Sales::shipment';
 
     public function execute(): Page
     {

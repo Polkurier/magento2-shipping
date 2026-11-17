@@ -26,7 +26,7 @@
             </storageConfig>
             <updateUrl path="mui/index/render"/>
         </settings>
-        <aclResource>Polkurier_Shipping::carriers</aclResource>
+        <aclResource>Magento_Shipping::carriers</aclResource>
         <dataProvider class="Magento\Framework\View\Element\UiComponent\DataProvider\DataProvider"
                       name="polkurier_carrier_listing_data_source">
             <settings>

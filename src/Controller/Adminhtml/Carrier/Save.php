@@ -29,7 +29,7 @@ class Save extends Action implements HttpPostActionInterface
 {
     use ReadsPostDataTrait;
 
-    public const string ADMIN_RESOURCE = 'Polkurier_Shipping::carriers';
+    public const string ADMIN_RESOURCE = 'Magento_Shipping::carriers';
 
     public function __construct(
         Context $context,

@@ -32,7 +32,7 @@
         <settings>
             <submitUrl path="polkurier/shipment/save"/>
         </settings>
-        <aclResource>Polkurier_Shipping::shipment_create</aclResource>
+        <aclResource>Magento_Sales::ship</aclResource>
         <dataProvider class="Polkurier\Shipping\Ui\Component\Form\Shipment\DataProvider"
                       name="polkurier_shipment_form_data_source">
             <settings>

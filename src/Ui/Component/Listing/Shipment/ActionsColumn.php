@@ -85,7 +85,7 @@ class ActionsColumn extends Column
                         'post' => true,
                     ];
                     if (empty($item[ShipmentInterface::FIELD_SHIPMENT_ID])
-                        && $this->authorization->isAllowed('Polkurier_Shipping::shipment_create')
+                        && $this->authorization->isAllowed('Magento_Sales::ship')
                     ) {
                         $actions['ship'] = [
                             'href' => $this->url->getUrl('polkurier/shipment/ship', $params),
@@ -107,7 +107,7 @@ class ActionsColumn extends Column
                     }
                     break;
                 case ShipmentInterface::STATE_FAILED:
-                    if ($this->authorization->isAllowed('Polkurier_Shipping::shipment_create')
+                    if ($this->authorization->isAllowed('Magento_Sales::ship')
                         && $this->retriableShipmentFinder->isPossibleFor(
                             $id,
                             (int)$item[ShipmentInterface::FIELD_ORDER_ID],
@@ -122,7 +122,7 @@ class ActionsColumn extends Column
                             'label' => __('Send again'),
                         ];
                     }
-                    if ($this->authorization->isAllowed('Polkurier_Shipping::shipment_create')) {
+                    if ($this->authorization->isAllowed('Magento_Sales::ship')) {
                         $actions['discard'] = [
                             'href' => $this->url->getUrl('polkurier/shipment/discard', $params),
                             'label' => __('Discard'),

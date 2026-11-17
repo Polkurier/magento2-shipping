@@ -28,7 +28,7 @@
             </filterUrlParams>
             <updateUrl path="mui/index/render"/>
         </settings>
-        <aclResource>Polkurier_Shipping::shipments</aclResource>
+        <aclResource>Magento_Sales::shipment</aclResource>
         <dataProvider class="Polkurier\Shipping\Ui\Component\DataProvider\GridDataProviderVirtual"
                       name="polkurier_magento_shipment_listing_data_source">
             <settings>

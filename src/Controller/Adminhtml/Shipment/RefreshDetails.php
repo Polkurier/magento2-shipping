@@ -23,7 +23,7 @@ use Polkurier\Shipping\ViewModel\Adminhtml\ShipmentDetails;
  */
 class RefreshDetails extends AbstractJsonAction
 {
-    public const string ADMIN_RESOURCE = 'Polkurier_Shipping::shipments';
+    public const string ADMIN_RESOURCE = 'Magento_Sales::shipment';
 
     public function __construct(
         Context $context,

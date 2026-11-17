@@ -48,7 +48,7 @@ readonly class ShipmentViewPlugin
         }
         // If it has had several (one cancelled, another placed on it since), the latest.
         $linked = $this->shipmentFinder->findLatestLinkedTo((int)$shipment->getId());
-        if ($linked !== null && $this->authorization->isAllowed('Polkurier_Shipping::shipments')) {
+        if ($linked !== null) {
             $subject->addButton(self::VIEW_BUTTON, [
                 'label' => __('Polkurier order'),
                 'onclick' => \sprintf(
@@ -58,7 +58,7 @@ readonly class ShipmentViewPlugin
                 'class' => 'polkurier-view-order',
             ]);
         }
-        if (!$this->authorization->isAllowed('Polkurier_Shipping::shipment_create')
+        if (!$this->authorization->isAllowed('Magento_Sales::ship')
             || !isset($this->nativeShipmentService->getFreeShipments($order)[(int)$shipment->getId()])
         ) {
             return [$layout];

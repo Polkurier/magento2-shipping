@@ -39,7 +39,7 @@ readonly class OrderViewPlugin
         // Orders of other carriers are left to their own integrations.
         if ($order === null
             || !Polkurier::isOrderOf($order)
-            || !$this->authorization->isAllowed('Polkurier_Shipping::shipment_create')
+            || !$this->authorization->isAllowed('Magento_Sales::ship')
         ) {
             return [$layout];
         }

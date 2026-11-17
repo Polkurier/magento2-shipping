@@ -23,7 +23,7 @@ use Polkurier\Shipping\Model\RequestParamReader;
  */
 class UploadLogo extends Action implements HttpPostActionInterface
 {
-    public const string ADMIN_RESOURCE = 'Polkurier_Shipping::carriers';
+    public const string ADMIN_RESOURCE = 'Magento_Shipping::carriers';
 
     public function __construct(
         Context $context,

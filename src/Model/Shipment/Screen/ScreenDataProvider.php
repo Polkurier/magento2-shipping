@@ -23,6 +23,7 @@ use Polkurier\Shipping\Model\Shipment\Draft\DefaultDraftBuilder;
 use Polkurier\Shipping\Model\Shipment\Draft\DraftHydrator;
 use Polkurier\Shipping\Model\Shipment\Valuation\OrderAmountCalculator;
 use Polkurier\Webservice\Dto\Response\CourierPoint;
+use Polkurier\Webservice\Entity\Order as RemoteOrder;
 
 /**
  * What both shipment screens start from: the Polkurier shipment screen and the shipping label
@@ -89,6 +90,18 @@ readonly class ScreenDataProvider
         }
 
         return $points;
+    }
+
+    /**
+     * The note under the shipment description, with how much of it Polkurier keeps.
+     */
+    public function getDescriptionNotice(): string
+    {
+        return (string)__(
+            'Printed on the label; Polkurier keeps up to %1 bytes, and letters such as ą or ż take two each. '
+            . 'It starts as the order number, as the shipment description format in the configuration says.',
+            RemoteOrder::DESCRIPTION_MAX_LENGTH,
+        );
     }
 
     /**

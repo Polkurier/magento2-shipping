@@ -170,7 +170,21 @@ class CreateOrderMessageMapperTest extends TestCase
     {
         $message = $this->createMapper()->map($this->createDraft()->setDescription(\str_repeat('x', 40)), 1);
 
-        self::assertSame(Order::DESCRIPTION_MAX_LENGTH, \mb_strlen((string)$message->order->getDescription()));
+        self::assertSame(Order::DESCRIPTION_MAX_LENGTH, \strlen((string)$message->order->getDescription()));
+    }
+
+    public function testDescriptionIsCutInBytesWithoutSplittingALetter(): void
+    {
+        $message = $this->createMapper()->map(
+            $this->createDraft()->setDescription('x' . \str_repeat('ż', 20)),
+            1,
+        );
+
+        self::assertSame(
+            'x' . \str_repeat('ż', 14),
+            $message->order->getDescription(),
+            '29 bytes: a 15th ż would be split.',
+        );
     }
 
     public function testCashOnDeliveryToABankAccountNeedsOne(): void

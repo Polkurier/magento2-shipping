@@ -154,6 +154,32 @@ define(['mage/translate'], function ($t) {
     }
 
     /**
+     * The start of a text that fits in a number of bytes of UTF-8, without splitting a letter, as
+     * Polkurier cuts the shipment description.
+     *
+     * @param {String} text
+     * @param {Number} bytes
+     * @returns {String}
+     */
+    function cutToBytes(text, bytes) {
+        const encoder = new TextEncoder();
+        let kept = '',
+            used = 0;
+
+        Array.from(String(text)).every(function (letter) {
+            used += encoder.encode(letter).length;
+            if (used > bytes) {
+                return false;
+            }
+            kept += letter;
+
+            return true;
+        });
+
+        return kept;
+    }
+
+    /**
      * @param {*} value
      * @returns {Number}
      */
@@ -519,6 +545,7 @@ define(['mage/translate'], function ($t) {
         describeKindProblem: describeKindProblem,
         buildFeatures: buildFeatures,
         swapPoint: swapPoint,
+        cutToBytes: cutToBytes,
 
         /**
          * @param {Object} data the form's data
@@ -614,6 +641,18 @@ define(['mage/translate'], function ($t) {
                     'sender_address_id',
                     'sender',
                     $t('Fill in the sender\'s %1.').replace('%1', findMissingSenderFields(data).join(', '))
+                );
+            }
+            // Not blocking: the description is cut when the shipment is placed.
+            if (data.description_max_length
+                && cutToBytes(data.description || '', data.description_max_length) !== String(data.description || '')
+            ) {
+                add(
+                    'description',
+                    'description',
+                    $t('Only the start of the description fits on the label: "%1".')
+                        .replace('%1', cutToBytes(data.description, data.description_max_length)),
+                    false
                 );
             }
             if (!isFilled(data.recipient_phone)) {

@@ -32,6 +32,7 @@ use Polkurier\Shipping\Model\Shipment\Screen\RetriableShipmentFinder;
 use Polkurier\Shipping\Model\Shipment\Screen\ScreenDataProvider;
 use Polkurier\Shipping\Model\Shipment\Screen\ShipmentOptionsProvider;
 use Polkurier\Shipping\Model\Shipment\Valuation\OrderAmountCalculator;
+use Polkurier\Webservice\Entity\Order as RemoteOrder;
 
 /**
  * The Polkurier options of a shipping label, on Magento's New Shipment page, and on the page of a
@@ -193,6 +194,10 @@ class LabelOptions implements ArgumentInterface, ResetAfterRequestInterface
                 'recipientPostcode' => \trim((string)$order->getShippingAddress()?->getPostcode()),
             ],
             'point' => $point,
+            'description' => [
+                'maxLength' => RemoteOrder::DESCRIPTION_MAX_LENGTH,
+                'notice' => $this->screenDataProvider->getDescriptionNotice(),
+            ],
             // Names and addresses by point code; points chosen on the map are added to them.
             'pointDetails' => (object)$this->screenDataProvider->describePoints(
                 $point,

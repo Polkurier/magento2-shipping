@@ -38,6 +38,7 @@ use Polkurier\Shipping\Model\Shipment\Screen\ScreenDataProvider;
 use Polkurier\Shipping\Model\Shipment\Screen\ShipmentOptionsProvider;
 use Polkurier\Shipping\Model\Shipment\Valuation\OrderAmountCalculator;
 use Polkurier\Shipping\Ui\Component\Form\FormDataProvider;
+use Polkurier\Webservice\Entity\Order as RemoteOrder;
 use Polkurier\Webservice\Entity\Order\Address;
 
 /**
@@ -109,6 +110,13 @@ class DataProvider extends FormDataProvider
             ShipmentDraftInterface::FIELD_COD_BANK_ACCOUNT_ID,
             'options',
             $this->shipmentOptionsProvider->getBankAccountChoices(),
+        );
+        self::setFieldConfig(
+            $meta,
+            'shipment',
+            ShipmentDraftInterface::FIELD_DESCRIPTION,
+            'notice',
+            $this->screenDataProvider->getDescriptionNotice(),
         );
         self::setFieldConfig(
             $meta,
@@ -212,6 +220,7 @@ class DataProvider extends FormDataProvider
         // Offered for pallet shipments only.
         $data['pallet_services'] = $this->screenDataProvider->getPalletServices();
         $data['carriers_error'] = $this->shipmentOptionsProvider->getCarriersError();
+        $data['description_max_length'] = RemoteOrder::DESCRIPTION_MAX_LENGTH;
         $data['map'] = $this->screenDataProvider->getMap();
         // The pickup point as Polkurier has it now: its name and address today, or, when it's gone
         // or closed since the order was placed, a problem to fix before placing.

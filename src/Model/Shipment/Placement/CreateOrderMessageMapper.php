@@ -78,9 +78,10 @@ readonly class CreateOrderMessageMapper
             ->packs(\array_map($this->mapPack(...), $draft->getPacks()))
             ->sender($this->mapSender($draft, $storeId))
             ->recipient($this->mapRecipient($draft))
-            // The API requires a description although the SDK does not.
+            // The API requires a description although the SDK does not. Its limit counts bytes, so
+            // the cut does too, without splitting a letter.
             ->description(
-                (string)\mb_substr((string)$draft->getDescription(), 0, Order::DESCRIPTION_MAX_LENGTH),
+                \mb_strcut((string)$draft->getDescription(), 0, Order::DESCRIPTION_MAX_LENGTH),
             );
 
         if ((float)$draft->getCodAmount() > 0) {

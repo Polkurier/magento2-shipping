@@ -207,6 +207,7 @@ define([
                     currency: config.currency,
                     cod_collected: config.codCollected,
                     cod_remaining: config.codRemaining,
+                    description_max_length: config.description.maxLength,
                     recipient_point_closed: config.point && config.point.closed ? config.point.id : ''
                 })).filter(function (issue) {
                     return names.indexOf(issue.field) !== -1 && (!blockingOnly || issue.blocking);

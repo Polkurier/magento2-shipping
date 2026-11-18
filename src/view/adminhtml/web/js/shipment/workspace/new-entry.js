@@ -80,7 +80,7 @@ define([
                     row.value(value);
                 }
             });
-            this.keep(Boolean(data[this.keepField]) && data[this.keepField] !== '0');
+            this.keep(Boolean(data[this.keepField]));
             this.keptName(
                 data[this.nameField] === undefined || data[this.nameField] === null ? '' : String(data[this.nameField])
             );

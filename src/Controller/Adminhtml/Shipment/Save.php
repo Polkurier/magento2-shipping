@@ -51,15 +51,14 @@ class Save extends Action implements HttpPostActionInterface
         $data = $this->getPostData();
         $orderId = (int)($data['order_id'] ?? 0);
         $redirect = $this->resultRedirectFactory->create();
+        $draft = $this->keepOnlyAllowed($this->draftHydrator->createFromArray($data));
 
         try {
-            $shipment = $this->shipmentManagement->create(
-                $orderId,
-                $this->keepOnlyAllowed($this->draftHydrator->createFromArray($data)),
-            );
+            $shipment = $this->shipmentManagement->create($orderId, $draft);
         } catch (LocalizedException $e) {
             $this->messageManager->addErrorMessage($e->getMessage());
-            $this->rejectedDraftStorage->keep($data);
+            // Typed as a stored draft, as the screen reads one: a posted "0" is not a ticked box.
+            $this->rejectedDraftStorage->keep(['order_id' => $orderId] + $this->draftHydrator->convertToArray($draft));
 
             return $redirect->setPath('*/*/create', ['order_id' => $orderId]);
         }

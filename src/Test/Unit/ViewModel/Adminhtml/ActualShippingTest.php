@@ -90,7 +90,7 @@ class ActualShippingTest extends TestCase
     private function createShipment(string $carrier, string $point): Shipment
     {
         /** @var Shipment $shipment */
-        $shipment = (new ObjectManager($this))->getObject(Shipment::class);
+        $shipment = (new ObjectManager($this))->getObject(Shipment::class, ['json' => new Json()]);
 
         return $shipment->setOrderId(15)
             ->setCarrierCode($carrier)

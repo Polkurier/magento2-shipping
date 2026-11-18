@@ -8,6 +8,7 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Test\Unit\Ui\Component\Listing\Shipment;
 
 use Magento\Framework\AuthorizationInterface;
+use Magento\Framework\Serialize\Serializer\Json;
 use Magento\Framework\TestFramework\Unit\Helper\ObjectManager;
 use Magento\Framework\UrlInterface;
 use Magento\Framework\View\Element\UiComponent\ContextInterface;
@@ -156,7 +157,7 @@ class ActionsColumnTest extends TestCase
         $factory = $this->createStub(ShipmentFactory::class);
         $factory->method('create')->willReturnCallback(function (array $arguments): Shipment {
             /** @var Shipment $shipment */
-            $shipment = (new ObjectManager($this))->getObject(Shipment::class);
+            $shipment = (new ObjectManager($this))->getObject(Shipment::class, ['json' => new Json()]);
 
             return $shipment->setData($arguments['data']);
         });

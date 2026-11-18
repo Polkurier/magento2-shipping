@@ -10,6 +10,7 @@ namespace Polkurier\Shipping\Test\Unit\Model\ResourceModel;
 use Magento\Framework\App\ResourceConnection;
 use Magento\Framework\DB\Adapter\AdapterInterface;
 use Magento\Framework\Model\ResourceModel\Db\Context;
+use Magento\Framework\Serialize\Serializer\Json;
 use Magento\Framework\TestFramework\Unit\Helper\ObjectManager;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -89,7 +90,7 @@ class CarrierConfigTest extends TestCase
 
     private function createConfig(): CarrierConfig
     {
-        $config = (new ObjectManager($this))->getObject(CarrierConfig::class);
+        $config = (new ObjectManager($this))->getObject(CarrierConfig::class, ['json' => new Json()]);
         $config->setId(7);
 
         return $config;

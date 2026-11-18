@@ -8,6 +8,7 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Test\Unit\Model\CarrierConfig;
 
 use Magento\Framework\Exception\LocalizedException;
+use Magento\Framework\Serialize\Serializer\Json;
 use Magento\Framework\TestFramework\Unit\Helper\ObjectManager;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -68,7 +69,7 @@ class CarrierSortOrderUpdaterTest extends TestCase
     {
         foreach (['DPD' => 0, 'GLS' => 0, 'INPOST' => 30, 'UPS' => 40] as $code => $sortOrder) {
             /** @var CarrierConfig $config */
-            $config = (new ObjectManager($this))->getObject(CarrierConfig::class);
+            $config = (new ObjectManager($this))->getObject(CarrierConfig::class, ['json' => new Json()]);
             $config->setId(\count($this->configs) + 1);
             $this->configs[$code] = $config->setCarrierCode($code)->setSortOrder($sortOrder);
         }

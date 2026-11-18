@@ -14,6 +14,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use Polkurier\Shipping\Controller\Adminhtml\Payout\Save;
 use Polkurier\Shipping\Enum\Adminhtml\FormMemoryEnum;
 use Polkurier\Shipping\Model\Payout\PayoutManager;
+use Polkurier\Shipping\Model\Shipment\Details\Formatter;
 use Polkurier\Shipping\Test\Unit\Support\AdminActionTestCase;
 use Polkurier\Webservice\Dto\Response\MoneyBox\MoneyBoxPayoutMessage;
 use Polkurier\Webservice\Enum\MoneyBox\MoneyBoxFeePaymentTypeEnum;
@@ -138,6 +139,10 @@ class PayoutSaveTest extends AdminActionTestCase
             $this->kept = $value;
         });
 
-        return new Save($this->createContext(), $payouts, $persistor);
+        $formatter = $this->createStub(Formatter::class);
+        $formatter->method('formatMoney')
+            ->willReturnCallback(static fn(float $amount): string => \number_format($amount, 2) . ' PLN');
+
+        return new Save($this->createContext(), $payouts, $persistor, $formatter);
     }
 }

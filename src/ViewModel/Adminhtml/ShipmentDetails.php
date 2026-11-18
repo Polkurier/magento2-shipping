@@ -455,8 +455,10 @@ readonly class ShipmentDetails implements ArgumentInterface
         } else {
             $mode = (string)__('A courier collects them');
         }
-        $from = (string)($pickup[ShipmentDetailsInterface::FIELD_PICKUP_TIME_FROM] ?? '');
-        $window = \trim($from . '–' . ($pickup[ShipmentDetailsInterface::FIELD_PICKUP_TIME_TO] ?? ''), '–');
+        $window = \implode('–', \array_filter([
+            (string)($pickup[ShipmentDetailsInterface::FIELD_PICKUP_TIME_FROM] ?? ''),
+            (string)($pickup[ShipmentDetailsInterface::FIELD_PICKUP_TIME_TO] ?? ''),
+        ], static fn(string $time): bool => $time !== ''));
 
         return $this->formatter->formatRows([
             [
@@ -716,8 +718,8 @@ readonly class ShipmentDetails implements ArgumentInterface
      * @param array<string, mixed> $copy
      * @param array<string, mixed> $sent
      * @param array<string, true> $asSent the paths taken from what was sent, e.g. "recipient.email"
-     *
      * @param-out array<string, true> $asSent
+     *
      * @return array<string, mixed>
      */
     private static function fillGaps(array $copy, array $sent, string $prefix, array &$asSent): array

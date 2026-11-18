@@ -16,6 +16,7 @@ use Magento\Framework\Exception\LocalizedException;
 use Polkurier\Shipping\Controller\Adminhtml\ReadsPostDataTrait;
 use Polkurier\Shipping\Enum\Adminhtml\FormMemoryEnum;
 use Polkurier\Shipping\Model\Payout\PayoutManager;
+use Polkurier\Shipping\Model\Shipment\Details\Formatter;
 use Polkurier\Webservice\Enum\MoneyBox\MoneyBoxFeePaymentTypeEnum;
 use Polkurier\Webservice\Enum\MoneyBox\MoneyBoxPayoutTypeEnum;
 
@@ -41,6 +42,7 @@ class Save extends Action implements HttpPostActionInterface
         Context $context,
         private readonly PayoutManager $payoutManager,
         private readonly DataPersistorInterface $dataPersistor,
+        private readonly Formatter $formatter,
     ) {
         parent::__construct($context);
     }
@@ -67,9 +69,9 @@ class Save extends Action implements HttpPostActionInterface
                     : null,
             );
             $this->messageManager->addSuccessMessage(__(
-                'Payout %1 requested: %2 PLN.',
+                'Payout %1 requested: %2.',
                 $payout->number,
-                \number_format($payout->amount, 2),
+                $this->formatter->formatMoney($payout->amount),
             ));
         } catch (LocalizedException $e) {
             $this->messageManager->addErrorMessage($e->getMessage());

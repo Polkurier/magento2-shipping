@@ -9,6 +9,7 @@ namespace Polkurier\Shipping\Test\Unit\Controller\Adminhtml;
 
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Exception\NoSuchEntityException;
+use Magento\Framework\Serialize\Serializer\Json;
 use Magento\Framework\TestFramework\Unit\Helper\ObjectManager;
 use Magento\Ui\Component\MassAction\Filter;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
@@ -132,7 +133,7 @@ class RedirectingActionsTest extends AdminActionTestCase
     private function createCarrier(string $code, bool $active): CarrierConfig
     {
         /** @var CarrierConfig $config */
-        $config = (new ObjectManager($this))->getObject(CarrierConfig::class);
+        $config = (new ObjectManager($this))->getObject(CarrierConfig::class, ['json' => new Json()]);
 
         return $config->setCarrierCode($code)->setActive($active);
     }

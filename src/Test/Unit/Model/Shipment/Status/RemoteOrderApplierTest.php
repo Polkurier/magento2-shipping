@@ -8,6 +8,7 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Test\Unit\Model\Shipment\Status;
 
 use Magento\Framework\Exception\LocalizedException;
+use Magento\Framework\Serialize\Serializer\Json;
 use Magento\Framework\TestFramework\Unit\Helper\ObjectManager;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -165,7 +166,7 @@ class RemoteOrderApplierTest extends SdkTestCase
     private function createShipment(): Shipment
     {
         /** @var Shipment $shipment */
-        $shipment = (new ObjectManager($this))->getObject(Shipment::class);
+        $shipment = (new ObjectManager($this))->getObject(Shipment::class, ['json' => new Json()]);
 
         return $shipment->setState(ShipmentInterface::STATE_CREATED);
     }

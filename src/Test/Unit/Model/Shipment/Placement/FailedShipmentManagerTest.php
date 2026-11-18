@@ -9,6 +9,8 @@ namespace Polkurier\Shipping\Test\Unit\Model\Shipment\Placement;
 
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Phrase;
+use Magento\Framework\Serialize\Serializer\Json;
+use Magento\Framework\TestFramework\Unit\Helper\ObjectManager;
 use Magento\Sales\Model\Order;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -132,7 +134,7 @@ class FailedShipmentManagerTest extends TestCase
 
     private function createShipment(string $state, string $error): Shipment
     {
-        $shipment = $this->getMockBuilder(Shipment::class)->disableOriginalConstructor()->onlyMethods([])->getMock();
+        $shipment = (new ObjectManager($this))->getObject(Shipment::class, ['json' => new Json()]);
         $shipment
             ->setData([
                 'state' => $state,

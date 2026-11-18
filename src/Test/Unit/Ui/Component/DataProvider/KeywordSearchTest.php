@@ -8,9 +8,9 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Test\Unit\Ui\Component\DataProvider;
 
 use Magento\Framework\Api\Filter;
-use Magento\Framework\Data\Collection\AbstractDb;
 use Magento\Framework\DB\Adapter\AdapterInterface;
 use Magento\Framework\DB\Select;
+use Magento\Framework\Model\ResourceModel\Db\Collection\AbstractCollection;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
@@ -31,6 +31,14 @@ class KeywordSearchTest extends TestCase
         );
     }
 
+    public function testTheGridIsKnownByItsTableWithTheShopsPrefix(): void
+    {
+        self::assertSame(
+            ["main_table.name LIKE '%Karton%'"],
+            $this->search('shop_polkurier_pack_template', 'Karton', 'shop_'),
+        );
+    }
+
     public function testWildcardsTypedInAreSearchedForAsThemselves(): void
     {
         self::assertSame(
@@ -48,7 +56,7 @@ class KeywordSearchTest extends TestCase
     /**
      * @return string[] the conditions added, one per word
      */
-    private function search(string $mainTable, string $keyword): array
+    private function search(string $mainTable, string $keyword, string $prefix = ''): array
     {
         $conditions = [];
         $select = $this->createStub(Select::class);
@@ -59,11 +67,11 @@ class KeywordSearchTest extends TestCase
             return $select;
         });
         $connection = $this->createStub(AdapterInterface::class);
-        $connection->method('getTableName')->willReturnArgument(0);
         $connection->method('quoteInto')->willReturnCallback(
             static fn(string $text, string $value): string => \str_replace('?', "'" . $value . "'", $text),
         );
-        $collection = $this->createStub(AbstractDb::class);
+        $collection = $this->createStub(AbstractCollection::class);
+        $collection->method('getTable')->willReturnCallback(static fn(string $table): string => $prefix . $table);
         $collection->method('getSelect')->willReturn($select);
         $collection->method('getConnection')->willReturn($connection);
 

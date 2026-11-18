@@ -8,6 +8,7 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Test\Unit\Model\Shipment\Native;
 
 use Magento\Framework\Exception\LocalizedException;
+use Magento\Framework\Serialize\Serializer\Json;
 use Magento\Framework\TestFramework\Unit\Helper\ObjectManager;
 use Magento\Sales\Api\Data\ShipmentItemCreationInterface;
 use Magento\Sales\Api\Data\ShipmentItemCreationInterfaceFactory;
@@ -539,7 +540,7 @@ class NativeShipmentServiceTest extends TestCase
     private function createCarrierConfigProvider(): CarrierConfigProvider
     {
         /** @var CarrierConfig $inpost */
-        $inpost = (new ObjectManager($this))->getObject(CarrierConfig::class);
+        $inpost = (new ObjectManager($this))->getObject(CarrierConfig::class, ['json' => new Json()]);
         $inpost->setCarrierCode('INPOST')->setCustomLabel('Kurier InPost');
         // Only the settings are stubbed: the label is read from them as in the shop.
         $configs = $this->createPartialMock(CarrierConfigProvider::class, ['get']);

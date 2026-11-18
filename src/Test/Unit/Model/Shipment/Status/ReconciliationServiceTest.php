@@ -9,6 +9,7 @@ namespace Polkurier\Shipping\Test\Unit\Model\Shipment\Status;
 
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Phrase;
+use Magento\Framework\Serialize\Serializer\Json;
 use Magento\Framework\TestFramework\Unit\Helper\ObjectManager;
 use Magento\Sales\Model\Order;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
@@ -201,7 +202,7 @@ class ReconciliationServiceTest extends TestCase
         $repository = $this->createStub(ShipmentRepositoryInterface::class);
         $repository->method('get')->willReturnCallback(function () use ($state, $meanwhile, $ids, &$reads): Shipment {
             /** @var Shipment $shipment */
-            $shipment = (new ObjectManager($this))->getObject(Shipment::class);
+            $shipment = (new ObjectManager($this))->getObject(Shipment::class, ['json' => new Json()]);
 
             return $shipment
                 ->setId(5)

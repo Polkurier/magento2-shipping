@@ -40,7 +40,7 @@ interface ShipmentDraftInterface
 
     /**
      * The point the parcels are handed over at, for carriers that take them at points; it starts
-     * as the sender address's drop-off point.
+     * as the carrier's default drop-off point.
      */
     public const string FIELD_SENDER_POINT_ID = 'sender_point_id';
 

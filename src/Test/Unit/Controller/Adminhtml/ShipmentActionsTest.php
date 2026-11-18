@@ -150,7 +150,7 @@ class ShipmentActionsTest extends AdminActionTestCase
                 'unweighed_own' => [],
             ]);
 
-        $this->pack($packer)->execute();
+        $this->createPack($packer)->execute();
 
         self::assertFalse($this->json['error'] ?? true);
         self::assertSame(
@@ -171,7 +171,7 @@ class ShipmentActionsTest extends AdminActionTestCase
                 'unweighed_own' => ['Rug'],
             ]);
 
-        $this->pack($packer)->execute();
+        $this->createPack($packer)->execute();
 
         self::assertSame(
             'These products have no weight, so their parcels take the pack template\'s weight: Mug. '
@@ -187,7 +187,7 @@ class ShipmentActionsTest extends AdminActionTestCase
         $packer = $this->createPacker([]);
         $packer->expects(self::never())->method('pack');
 
-        $this->pack($packer)->execute();
+        $this->createPack($packer)->execute();
 
         self::assertSame(['error' => true, 'message' => 'Everything in this order is shipped already.'], $this->json);
     }
@@ -205,7 +205,7 @@ class ShipmentActionsTest extends AdminActionTestCase
                 'unweighed_own' => [],
             ]);
 
-        $this->pack($packer)->execute();
+        $this->createPack($packer)->execute();
 
         self::assertFalse($this->json['error'] ?? true);
     }
@@ -222,7 +222,7 @@ class ShipmentActionsTest extends AdminActionTestCase
                 'unweighed_own' => [],
             ]);
 
-        $this->pack($packer)->execute();
+        $this->createPack($packer)->execute();
 
         self::assertSame(
             [
@@ -362,7 +362,7 @@ class ShipmentActionsTest extends AdminActionTestCase
         );
     }
 
-    private function pack(AutoPacker $packer): Pack
+    private function createPack(AutoPacker $packer): Pack
     {
         $orders = $this->createStub(OrderLoader::class);
         $orders->method('getForPolkurier')->willReturn($this->createStub(Order::class));

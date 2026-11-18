@@ -84,7 +84,7 @@ class PolkurierTest extends SdkTestCase
 
     public function testOffersTheMerchantsCarriersAtTheMerchantsPrices(): void
     {
-        $methods = $this->collectRates($this->request('PL', 120.0, 2.0));
+        $methods = $this->collectRates($this->createRequest('PL', 120.0, 2.0));
 
         self::assertSame(['INPOST_PACZKOMAT' => 12.99, 'DPD' => 14.99], $methods);
         $payload = $this->http->lastPayload();
@@ -97,7 +97,7 @@ class PolkurierTest extends SdkTestCase
     {
         self::assertSame(
             ['INPOST_PACZKOMAT' => 12.99, 'DPD' => 0.0],
-            $this->collectRates($this->request('PL', 300.0, 2.0)),
+            $this->collectRates($this->createRequest('PL', 300.0, 2.0)),
         );
     }
 
@@ -109,13 +109,13 @@ class PolkurierTest extends SdkTestCase
             ['servicecode' => 'DPD', 'name' => 'DPD Export', 'foreign_shipments' => true],
         ]));
 
-        self::assertSame(['DPD' => 14.99], $this->collectRates($this->request('DE', 120.0, 2.0)));
-        self::assertSame(['INPOST_PACZKOMAT' => 12.99], $this->collectRates($this->request('PL', 120.0, 2.0)));
+        self::assertSame(['DPD' => 14.99], $this->collectRates($this->createRequest('DE', 120.0, 2.0)));
+        self::assertSame(['INPOST_PACZKOMAT' => 12.99], $this->collectRates($this->createRequest('PL', 120.0, 2.0)));
     }
 
     public function testFreeShippingZeroesThePrice(): void
     {
-        $request = $this->request('PL', 120.0, 2.0);
+        $request = $this->createRequest('PL', 120.0, 2.0);
         $request->setFreeShipping(true);
 
         self::assertSame(['INPOST_PACZKOMAT' => 0.0, 'DPD' => 0.0], $this->collectRates($request));
@@ -124,7 +124,7 @@ class PolkurierTest extends SdkTestCase
     public function testFreeShippingDoesNotOfferAMethodTheCartIsNotPricedFor(): void
     {
         $this->dpdTiers = [['subtotal_from' => 50, 'price' => 14.99]];
-        $request = $this->request('PL', 20.0, 2.0);
+        $request = $this->createRequest('PL', 20.0, 2.0);
         $request->setFreeShipping(true);
 
         self::assertSame(['INPOST_PACZKOMAT' => 0.0], $this->collectRates($request));
@@ -139,7 +139,7 @@ class PolkurierTest extends SdkTestCase
         // 10 lb are 4.5 kg: still the first tier.
         self::assertSame(
             ['INPOST_PACZKOMAT' => 12.99, 'DPD' => 14.99],
-            $this->collectRates($this->request('PL', 120.0, 10.0)),
+            $this->collectRates($this->createRequest('PL', 120.0, 10.0)),
         );
     }
 
@@ -149,7 +149,7 @@ class PolkurierTest extends SdkTestCase
             ['servicecode' => 'DPD', 'name' => 'DPD Classic', 'foreign_shipments' => false],
         ]));
 
-        self::assertSame(['DPD' => 14.99], $this->collectRates($this->request('PL', 120.0, 2.0)));
+        self::assertSame(['DPD' => 14.99], $this->collectRates($this->createRequest('PL', 120.0, 2.0)));
     }
 
     public function testAnUnreachableApiStillOffersDomesticMethodsAndNeverThrows(): void
@@ -158,9 +158,9 @@ class PolkurierTest extends SdkTestCase
 
         self::assertSame(
             ['INPOST_PACZKOMAT' => 12.99, 'DPD' => 14.99],
-            $this->collectRates($this->request('PL', 120.0, 2.0)),
+            $this->collectRates($this->createRequest('PL', 120.0, 2.0)),
         );
-        self::assertSame([], $this->collectRates($this->request('DE', 120.0, 2.0)));
+        self::assertSame([], $this->collectRates($this->createRequest('DE', 120.0, 2.0)));
     }
 
     public function testAPickupPointOnlyCarrierIsLeftOutWhileTheMapCantOpen(): void
@@ -168,7 +168,7 @@ class PolkurierTest extends SdkTestCase
         foreach (['', new ConnectionException('Timed out.')] as $token) {
             $this->mapToken = $token;
 
-            self::assertSame(['DPD' => 14.99], $this->collectRates($this->request('PL', 120.0, 2.0)));
+            self::assertSame(['DPD' => 14.99], $this->collectRates($this->createRequest('PL', 120.0, 2.0)));
         }
     }
 
@@ -179,7 +179,7 @@ class PolkurierTest extends SdkTestCase
 
         self::assertSame(
             ['INPOST_PACZKOMAT' => 12.99, 'DPD' => 14.99],
-            $this->collectRates($this->request('PL', 120.0, 2.0)),
+            $this->collectRates($this->createRequest('PL', 120.0, 2.0)),
         );
     }
 
@@ -211,7 +211,7 @@ class PolkurierTest extends SdkTestCase
     {
         $this->active = false;
 
-        self::assertFalse($this->createCarrier()->collectRates($this->request('PL', 120.0, 2.0)));
+        self::assertFalse($this->createCarrier()->collectRates($this->createRequest('PL', 120.0, 2.0)));
         self::assertSame(0, $this->http->requestCount());
     }
 
@@ -237,7 +237,7 @@ class PolkurierTest extends SdkTestCase
         return $methods;
     }
 
-    private function request(string $country, float $subtotal, float $weight): RateRequest
+    private function createRequest(string $country, float $subtotal, float $weight): RateRequest
     {
         return new RateRequest([
             'dest_country_id' => $country,

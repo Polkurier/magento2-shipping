@@ -39,7 +39,7 @@ class ShippingMethodLogoPluginTest extends TestCase
         $this->createPlugin('shipping/carrier_logos/dpd.png')->afterModelToDataObject(
             $this->createStub(ShippingMethodConverter::class),
             $method,
-            $this->rate(),
+            $this->createRate(),
             'PLN',
         );
 
@@ -57,13 +57,13 @@ class ShippingMethodLogoPluginTest extends TestCase
         $this->createPlugin(null)->afterModelToDataObject(
             $this->createStub(ShippingMethodConverter::class),
             $withoutLogo,
-            $this->rate(),
+            $this->createRate(),
             'PLN',
         );
         $this->createPlugin('shipping/carrier_logos/dpd.png')->afterModelToDataObject(
             $this->createStub(ShippingMethodConverter::class),
             $other,
-            $this->rate(),
+            $this->createRate(),
             'PLN',
         );
 
@@ -86,6 +86,7 @@ class ShippingMethodLogoPluginTest extends TestCase
         $config = (new CarrierConfig(
             $this->createStub(\Magento\Framework\Model\Context::class),
             $this->createStub(\Magento\Framework\Registry::class),
+            new \Magento\Framework\Serialize\Serializer\Json(),
             $this->createStub(\Polkurier\Shipping\Model\ResourceModel\CarrierConfig::class),
         ))->setLogo($file);
         $configs = $this->createStub(CarrierConfigProvider::class);
@@ -152,7 +153,7 @@ class ShippingMethodLogoPluginTest extends TestCase
         return $method->setCarrierCode($carrier)->setMethodCode($code);
     }
 
-    private function rate(): Rate
+    private function createRate(): Rate
     {
         return $this->createStub(Rate::class);
     }

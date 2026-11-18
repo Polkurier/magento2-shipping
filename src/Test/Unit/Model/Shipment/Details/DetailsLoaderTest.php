@@ -8,6 +8,7 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Test\Unit\Model\Shipment\Details;
 
 use Magento\Framework\Exception\LocalizedException;
+use Magento\Framework\Serialize\Serializer\Json;
 use Magento\Framework\TestFramework\Unit\Helper\ObjectManager;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -310,7 +311,7 @@ class DetailsLoaderTest extends TestCase
     private function createShipment(): Shipment
     {
         /** @var Shipment $shipment */
-        $shipment = (new ObjectManager($this))->getObject(Shipment::class);
+        $shipment = (new ObjectManager($this))->getObject(Shipment::class, ['json' => new Json()]);
 
         return $shipment->setId(3)
             ->setState(ShipmentInterface::STATE_CREATED)

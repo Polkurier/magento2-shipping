@@ -8,6 +8,7 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Test\Unit\Model\Shipment;
 
 use Magento\Framework\Exception\LocalizedException;
+use Magento\Framework\Serialize\Serializer\Json;
 use Magento\Framework\TestFramework\Unit\Helper\ObjectManager;
 use Magento\Sales\Model\Order;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
@@ -105,7 +106,7 @@ class CancellationServiceTest extends TestCase
         bool $cancelled = true,
         bool $cancelledMeanwhile = false,
     ): CancellationService {
-        $this->shipment = (new ObjectManager($this))->getObject(Shipment::class);
+        $this->shipment = (new ObjectManager($this))->getObject(Shipment::class, ['json' => new Json()]);
         $this->shipment
             ->setId(5)
             ->setOrderId(29)

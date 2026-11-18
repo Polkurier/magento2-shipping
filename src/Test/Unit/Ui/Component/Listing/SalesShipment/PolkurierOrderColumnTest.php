@@ -8,6 +8,7 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Test\Unit\Ui\Component\Listing\SalesShipment;
 
 use Magento\Framework\Exception\NoSuchEntityException;
+use Magento\Framework\Serialize\Serializer\Json;
 use Magento\Framework\TestFramework\Unit\Helper\ObjectManager;
 use Magento\Framework\UrlInterface;
 use Magento\Framework\View\Element\UiComponent\ContextInterface;
@@ -161,7 +162,7 @@ class PolkurierOrderColumnTest extends TestCase
     private function createShipment(int $id, int $magentoShipmentId, string $state, ?string $number): Shipment
     {
         /** @var Shipment $shipment */
-        $shipment = (new ObjectManager($this))->getObject(Shipment::class);
+        $shipment = (new ObjectManager($this))->getObject(Shipment::class, ['json' => new Json()]);
 
         return $shipment->setId($id)->setShipmentId($magentoShipmentId)->setState($state)->setPolkurierNumber($number);
     }

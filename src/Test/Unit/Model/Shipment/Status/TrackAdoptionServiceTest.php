@@ -9,6 +9,7 @@ namespace Polkurier\Shipping\Test\Unit\Model\Shipment\Status;
 
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Phrase;
+use Magento\Framework\Serialize\Serializer\Json;
 use Magento\Framework\TestFramework\Unit\Helper\ObjectManager;
 use Magento\Sales\Api\ShipmentRepositoryInterface as MagentoShipmentRepository;
 use Magento\Sales\Model\Order;
@@ -180,7 +181,7 @@ class TrackAdoptionServiceTest extends TestCase
         $finder->method('findByNumbers')->willReturn($heldOrder !== null ? [$held] : []);
         $factory = $this->createStub(ShipmentFactory::class);
         $factory->method('create')->willReturnCallback(
-            fn(): Shipment => (new ObjectManager($this))->getObject(Shipment::class),
+            fn(): Shipment => (new ObjectManager($this))->getObject(Shipment::class, ['json' => new Json()]),
         );
         $repository = $this->createStub(ShipmentRepositoryInterface::class);
         $repository->method('save')->willReturnCallback(function (ShipmentInterface $shipment): ShipmentInterface {

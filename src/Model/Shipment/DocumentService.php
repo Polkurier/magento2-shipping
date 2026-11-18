@@ -127,8 +127,8 @@ readonly class DocumentService
      * there), and drops those Polkurier no longer has as placed.
      *
      * @param array<string, ShipmentInterface> $placed by Polkurier number
-     *
      * @param-out array<string, ShipmentInterface> $placed
+     *
      * @return string[] why each was left out
      */
     private function leaveOutUnplaced(array &$placed): array

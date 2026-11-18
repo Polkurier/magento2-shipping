@@ -13,6 +13,7 @@ use Magento\Framework\App\RequestInterface;
 use Magento\Framework\Message\Collection;
 use Magento\Framework\Message\ManagerInterface;
 use Magento\Framework\Message\MessageInterface;
+use Magento\Framework\Serialize\Serializer\Json;
 use Magento\Framework\TestFramework\Unit\Helper\ObjectManager;
 use Magento\Sales\Api\OrderRepositoryInterface;
 use Magento\Sales\Model\Order;
@@ -204,7 +205,7 @@ class ShipmentSavePluginTest extends TestCase
         ?int $target = null,
     ): Shipment {
         /** @var Shipment $shipment */
-        $shipment = (new ObjectManager($this))->getObject(Shipment::class);
+        $shipment = (new ObjectManager($this))->getObject(Shipment::class, ['json' => new Json()]);
         $placed = $state === ShipmentInterface::STATE_CREATED;
 
         return $shipment->setState($state)

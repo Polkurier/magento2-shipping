@@ -13,6 +13,7 @@ use Magento\Framework\Encryption\EncryptorInterface;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Framework\Lock\LockManagerInterface;
+use Magento\Framework\Serialize\Serializer\Json;
 use Magento\Framework\TestFramework\Unit\Helper\ObjectManager;
 use Magento\Sales\Api\Data\ShipmentCommentInterfaceFactory;
 use Magento\Sales\Api\Data\ShipmentInterface as MagentoShipmentInterface;
@@ -1997,7 +1998,7 @@ class ShipmentManagementTest extends SdkTestCase
 
     private function createNewShipment(): Shipment
     {
-        return (new ObjectManager($this))->getObject(Shipment::class);
+        return (new ObjectManager($this))->getObject(Shipment::class, ['json' => new Json()]);
     }
 
     private function createOnlyShipment(): Shipment

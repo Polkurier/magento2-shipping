@@ -16,9 +16,8 @@ use Polkurier\Shipping\Controller\Adminhtml\Carrier\Save as CarrierSave;
 use Polkurier\Shipping\Model\PickupPoint\MapTokenProvider;
 
 /**
- * A fresh token for the pickup point map: for a shipment screen or label window whose token is
- * gone or about to run out, and for the address form's drop-off point, which asks for one when the
- * map opens.
+ * A fresh token for the pickup point map, for a shipment screen, label window or carrier page whose
+ * token is missing or about to run out.
  */
 class MapToken extends Action implements HttpGetActionInterface
 {

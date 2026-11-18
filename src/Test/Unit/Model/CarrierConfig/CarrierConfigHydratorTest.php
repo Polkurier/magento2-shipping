@@ -8,6 +8,7 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Test\Unit\Model\CarrierConfig;
 
 use Magento\Framework\Exception\LocalizedException;
+use Magento\Framework\Serialize\Serializer\Json;
 use Magento\Framework\TestFramework\Unit\Helper\ObjectManager;
 use Magento\Store\Model\StoreManagerInterface;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
@@ -100,7 +101,7 @@ class CarrierConfigHydratorTest extends TestCase
     private function createConfig(): CarrierConfig
     {
         /** @var CarrierConfig $config */
-        $config = (new ObjectManager($this))->getObject(CarrierConfig::class);
+        $config = (new ObjectManager($this))->getObject(CarrierConfig::class, ['json' => new Json()]);
 
         return $config;
     }

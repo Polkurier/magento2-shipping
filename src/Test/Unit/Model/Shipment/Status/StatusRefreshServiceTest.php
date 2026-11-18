@@ -10,6 +10,7 @@ namespace Polkurier\Shipping\Test\Unit\Model\Shipment\Status;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Framework\Phrase;
+use Magento\Framework\Serialize\Serializer\Json;
 use Magento\Framework\TestFramework\Unit\Helper\ObjectManager;
 use Magento\Sales\Model\Order;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
@@ -54,7 +55,7 @@ class StatusRefreshServiceTest extends TestCase
 
     public function testTheShipmentTakesWhatPolkurierSaysAndWhenItWasChecked(): void
     {
-        $shipment = $this->refresh(11, ['waybills' => ['W1']])->refresh(5);
+        $shipment = $this->createServiceForShipment(11, ['waybills' => ['W1']])->refresh(5);
 
         self::assertSame('2026-10-06 10:00:00', $shipment->getStatusCheckedAt());
         self::assertNull($shipment->getLastError());
@@ -63,7 +64,7 @@ class StatusRefreshServiceTest extends TestCase
 
     public function testADeliveryIsNotedOnTheMagentoShipmentOnce(): void
     {
-        $this->refresh(11, ['delivered' => '2026-10-06 09:00:00'])->refresh(5);
+        $this->createServiceForShipment(11, ['delivered' => '2026-10-06 09:00:00'])->refresh(5);
 
         self::assertSame(
             ['save', 'remark 11: Polkurier order 24680-27 delivered: 2026-10-06 09:00:00.'],
@@ -71,28 +72,32 @@ class StatusRefreshServiceTest extends TestCase
         );
 
         $this->happened = [];
-        $this->refresh(11, ['delivered' => '2026-10-06 09:00:00'], deliveredBefore: '2026-10-06 09:00:00')->refresh(5);
+        $this->createServiceForShipment(
+            11,
+            ['delivered' => '2026-10-06 09:00:00'],
+            deliveredBefore: '2026-10-06 09:00:00',
+        )->refresh(5);
 
         self::assertSame(['save'], $this->happened);
     }
 
     public function testACancellationInThePanelReleasesTheMagentoShipment(): void
     {
-        $this->refresh(11, ['state' => ShipmentInterface::STATE_CANCELLED])->refresh(5);
+        $this->createServiceForShipment(11, ['state' => ShipmentInterface::STATE_CANCELLED])->refresh(5);
 
         self::assertSame(['save', 'cancelled in Polkurier'], $this->happened);
     }
 
     public function testAPlacedOrderWithoutItsMagentoShipmentIsShippedAgain(): void
     {
-        $this->refresh(null, [])->refresh(5);
+        $this->createServiceForShipment(null, [])->refresh(5);
 
         self::assertSame(['save', 'ship'], $this->happened);
     }
 
     public function testAnOrderLinkedFromItsTrackWithoutAMagentoShipmentIsLeftWithout(): void
     {
-        $this->refresh(null, [], request: null)->refresh(5);
+        $this->createServiceForShipment(null, [], request: null)->refresh(5);
 
         self::assertSame(['save'], $this->happened);
     }
@@ -100,14 +105,14 @@ class StatusRefreshServiceTest extends TestCase
     public function testAPlacedOrderJustPlacedIsLeftForItsOwnRequestToShip(): void
     {
         // Magento saves a shipment made with a shipping label once the label is back.
-        $this->refresh(null, [], old: false)->refresh(5);
+        $this->createServiceForShipment(null, [], old: false)->refresh(5);
 
         self::assertSame(['save'], $this->happened);
     }
 
     public function testNewWaybillsGoOnTheMagentoShipmentAndThenTheCustomerMayBeEmailed(): void
     {
-        $this->refresh(11, ['waybills' => ['W1', 'W2']])->refresh(5);
+        $this->createServiceForShipment(11, ['waybills' => ['W1', 'W2']])->refresh(5);
 
         self::assertSame(
             [
@@ -122,7 +127,7 @@ class StatusRefreshServiceTest extends TestCase
 
     public function testAReturnOrAnExceptionIsNotedOnTheOrderOnce(): void
     {
-        $this->refresh(11, ['status' => ['Z', 'Zwrot do nadawcy']])->refresh(5);
+        $this->createServiceForShipment(11, ['status' => ['Z', 'Zwrot do nadawcy']])->refresh(5);
 
         self::assertSame(
             ['save', 'comment: Polkurier order 24680-27 status: Zwrot do nadawcy.'],
@@ -130,26 +135,26 @@ class StatusRefreshServiceTest extends TestCase
         );
 
         $this->happened = [];
-        $this->refresh(11, ['status' => ['Z', 'Zwrot do nadawcy']], statusBefore: 'Z')->refresh(5);
+        $this->createServiceForShipment(11, ['status' => ['Z', 'Zwrot do nadawcy']], statusBefore: 'Z')->refresh(5);
 
         self::assertSame(['save'], $this->happened, 'Still being returned: noted already.');
 
         $this->happened = [];
-        $this->refresh(11, ['status' => ['WP', 'W drodze']])->refresh(5);
+        $this->createServiceForShipment(11, ['status' => ['WP', 'W drodze']])->refresh(5);
 
         self::assertSame(['save'], $this->happened, 'Other statuses are not noted.');
     }
 
     public function testWithoutNewWaybillsTheCustomerIsNotEmailedHere(): void
     {
-        $this->refresh(11, ['waybills' => ['W1']])->refresh(5);
+        $this->createServiceForShipment(11, ['waybills' => ['W1']])->refresh(5);
 
         self::assertSame(['save'], $this->happened);
     }
 
     public function testWhatPolkurierSaidIsKeptWhenAddingTheWaybillsFailsAfterwards(): void
     {
-        $refresher = $this->refresh(
+        $refresher = $this->createServiceForShipment(
             11,
             ['waybills' => ['W1', 'W2']],
             tracksError: new LocalizedException(__('The shipment is locked.')),
@@ -173,12 +178,12 @@ class StatusRefreshServiceTest extends TestCase
     {
         $this->expectExceptionMessage('This shipment has no Polkurier order to read.');
 
-        $this->refresh(11, [], number: null)->refresh(5);
+        $this->createServiceForShipment(11, [], number: null)->refresh(5);
     }
 
     public function testShippingTheOrderClearsTheErrorItRecorded(): void
     {
-        $shipment = $this->refresh(null, [])->shipOrder(5);
+        $shipment = $this->createServiceForShipment(null, [])->shipOrder(5);
 
         self::assertNull($shipment->getLastError());
         self::assertSame(['ship', 'save'], $this->happened);
@@ -187,7 +192,7 @@ class StatusRefreshServiceTest extends TestCase
     public function testShippingTheOrderSaysWhyItFailed(): void
     {
         try {
-            $this->refresh(null, [], shipError: 'Not enough items')->shipOrder(5);
+            $this->createServiceForShipment(null, [], shipError: 'Not enough items')->shipOrder(5);
             self::fail('The failure is said.');
         } catch (LocalizedException $e) {
             self::assertSame('The Magento shipment could not be created: Not enough items', $e->getMessage());
@@ -198,13 +203,13 @@ class StatusRefreshServiceTest extends TestCase
     public function testOnlyAPlacedOrderNotShippedYetCanBeShipped(): void
     {
         try {
-            $this->refresh(11, [])->shipOrder(5);
+            $this->createServiceForShipment(11, [])->shipOrder(5);
             self::fail('Shipped already.');
         } catch (LocalizedException $e) {
             self::assertSame('The Magento order is already shipped with this Polkurier order.', $e->getMessage());
         }
         try {
-            $this->refresh(null, [], state: ShipmentInterface::STATE_UNKNOWN)->shipOrder(5);
+            $this->createServiceForShipment(null, [], state: ShipmentInterface::STATE_UNKNOWN)->shipOrder(5);
             self::fail('Not placed.');
         } catch (LocalizedException $e) {
             self::assertSame('Only a placed Polkurier order can be shipped in Magento.', $e->getMessage());
@@ -262,7 +267,7 @@ class StatusRefreshServiceTest extends TestCase
      * @param string|null $statusBefore the status code the shipment had before
      * @param string|null $request the create_order payload the module sent; null for one linked from its track
      */
-    private function refresh(
+    private function createServiceForShipment(
         ?int $magentoShipmentId,
         array $remote,
         ?string $deliveredBefore = null,
@@ -274,7 +279,7 @@ class StatusRefreshServiceTest extends TestCase
         ?string $statusBefore = null,
         ?string $request = '{"courier":"DPD"}',
     ): StatusRefreshService {
-        $this->shipment = (new ObjectManager($this))->getObject(Shipment::class);
+        $this->shipment = (new ObjectManager($this))->getObject(Shipment::class, ['json' => new Json()]);
         $this->shipment->setId(5)->setOrderId(29)->setState($state)->setPolkurierNumber($number)
             ->setShipmentId($magentoShipmentId)->setWaybills(['W1'])->setDeliveredAt($deliveredBefore)
             ->setStatusCode($statusBefore)->setRequest($request)
@@ -382,7 +387,7 @@ class StatusRefreshServiceTest extends TestCase
                 throw new NoSuchEntityException(__('No such shipment.'));
             }
             /** @var Shipment $shipment */
-            $shipment = (new ObjectManager($this))->getObject(Shipment::class);
+            $shipment = (new ObjectManager($this))->getObject(Shipment::class, ['json' => new Json()]);
 
             return $shipment->setId($id)->setOrderId(29)->setState(ShipmentInterface::STATE_CREATED)
                 ->setPolkurierNumber($id === 5 ? null : '24680-' . $id)->setShipmentId(11)->setWaybills(['W1']);

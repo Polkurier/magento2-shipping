@@ -7,7 +7,12 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Model;
 
+use Magento\Framework\Data\Collection\AbstractDb;
 use Magento\Framework\Model\AbstractModel;
+use Magento\Framework\Model\Context;
+use Magento\Framework\Model\ResourceModel\AbstractResource;
+use Magento\Framework\Registry;
+use Magento\Framework\Serialize\Serializer\Json;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 
 /**
@@ -26,6 +31,20 @@ class Shipment extends AbstractModel implements ShipmentInterface
      * @var string
      */
     protected $_eventObject = 'shipment';
+
+    /**
+     * @param array<string, mixed> $data
+     */
+    public function __construct(
+        Context $context,
+        Registry $registry,
+        private readonly Json $json,
+        ?AbstractResource $resource = null,
+        ?AbstractDb $resourceCollection = null,
+        array $data = [],
+    ) {
+        parent::__construct($context, $registry, $resource, $resourceCollection, $data);
+    }
 
     public function getOrderId(): int
     {
@@ -298,7 +317,7 @@ class Shipment extends AbstractModel implements ShipmentInterface
     public function getDraft(): array
     {
         $draft = [];
-        foreach (self::decode($this->getData(self::FIELD_DRAFT)) as $key => $value) {
+        foreach ($this->decode($this->getData(self::FIELD_DRAFT)) as $key => $value) {
             $draft[(string)$key] = $value;
         }
 
@@ -308,18 +327,18 @@ class Shipment extends AbstractModel implements ShipmentInterface
     public function setDraft(?array $draft): static
     {
         // Nothing filled in means no draft.
-        return $this->setData(self::FIELD_DRAFT, $draft ? self::encode($draft) : null);
+        return $this->setData(self::FIELD_DRAFT, $draft ? $this->encode($draft) : null);
     }
 
     public function getDetails(): array
     {
-        return self::decode($this->getData(self::FIELD_DETAILS));
+        return $this->decode($this->getData(self::FIELD_DETAILS));
     }
 
     public function setDetails(?array $details): static
     {
         // Empty is read, with nothing to show; null is not read yet.
-        return $this->setData(self::FIELD_DETAILS, $details === null ? null : self::encode($details));
+        return $this->setData(self::FIELD_DETAILS, $details === null ? null : $this->encode($details));
     }
 
     public function getDetailsSyncedAt(): ?string
@@ -334,13 +353,16 @@ class Shipment extends AbstractModel implements ShipmentInterface
 
     public function getTracking(): array
     {
-        return \array_values(self::decode($this->getData(self::FIELD_TRACKING)));
+        return \array_values($this->decode($this->getData(self::FIELD_TRACKING)));
     }
 
     public function setTracking(?array $tracking): static
     {
         // Empty is read, with no events yet; null is not read yet.
-        return $this->setData(self::FIELD_TRACKING, $tracking === null ? null : self::encode(\array_values($tracking)));
+        return $this->setData(
+            self::FIELD_TRACKING,
+            $tracking === null ? null : $this->encode(\array_values($tracking)),
+        );
     }
 
     public function getTrackingSyncedAt(): ?string
@@ -356,7 +378,7 @@ class Shipment extends AbstractModel implements ShipmentInterface
     public function getShipItems(): array
     {
         $qtys = [];
-        foreach (self::decode($this->getData(self::FIELD_SHIP_ITEMS)) as $id => $qty) {
+        foreach ($this->decode($this->getData(self::FIELD_SHIP_ITEMS)) as $id => $qty) {
             $qtys[(int)$id] = (float)$qty;
         }
 
@@ -365,7 +387,7 @@ class Shipment extends AbstractModel implements ShipmentInterface
 
     public function setShipItems(?array $qtys): static
     {
-        return $this->setData(self::FIELD_SHIP_ITEMS, $qtys ? self::encode((object)$qtys) : null);
+        return $this->setData(self::FIELD_SHIP_ITEMS, $qtys ? $this->encode((object)$qtys) : null);
     }
 
     public function getTargetShipmentId(): ?int
@@ -401,7 +423,7 @@ class Shipment extends AbstractModel implements ShipmentInterface
     public function getShipPackages(): array
     {
         $packages = [];
-        foreach (self::decode($this->getData(self::FIELD_SHIP_PACKAGES)) as $number => $package) {
+        foreach ($this->decode($this->getData(self::FIELD_SHIP_PACKAGES)) as $number => $package) {
             $packages[(int)$number] = $package;
         }
 
@@ -410,7 +432,7 @@ class Shipment extends AbstractModel implements ShipmentInterface
 
     public function setShipPackages(?array $packages): static
     {
-        return $this->setData(self::FIELD_SHIP_PACKAGES, $packages ? self::encode((object)$packages) : null);
+        return $this->setData(self::FIELD_SHIP_PACKAGES, $packages ? $this->encode((object)$packages) : null);
     }
 
     public function getLastError(): ?string
@@ -461,22 +483,26 @@ class Shipment extends AbstractModel implements ShipmentInterface
     /**
      * @param array<mixed>|object $value an object for keys that are numbers
      *
-     * @throws \JsonException when the value can't be encoded; it's never stored as something else
+     * @throws \InvalidArgumentException when the value can't be encoded; it's never stored as something else
      */
-    private static function encode(array|object $value): string
+    private function encode(array|object $value): string
     {
-        return \json_encode($value, \JSON_UNESCAPED_UNICODE | \JSON_THROW_ON_ERROR);
+        return (string)$this->json->serialize($value);
     }
 
     /**
      * @return array<mixed>
      */
-    private static function decode(mixed $value): array
+    private function decode(mixed $value): array
     {
         if (\is_array($value)) {
             return $value;
         }
-        $decoded = \is_string($value) && $value !== '' ? \json_decode($value, true) : null;
+        try {
+            $decoded = \is_string($value) && $value !== '' ? $this->json->unserialize($value) : null;
+        } catch (\InvalidArgumentException) {
+            $decoded = null;
+        }
 
         return \is_array($decoded) ? $decoded : [];
     }

@@ -32,11 +32,11 @@ class CostEstimatorTest extends SdkTestCase
     public function testEveryCarrierThatCanCarryTheShipmentIsPriced(): void
     {
         $quotes = $this->createEstimator(self::encodeSuccess([
-            self::quote('DPD', 17.87, 21.98),
-            self::quote('INPOST_PACZKOMAT', 12.06, 14.83),
-            self::quote('UPS', 120.0, 147.6, available: false),
+            self::buildQuote('DPD', 17.87, 21.98),
+            self::buildQuote('INPOST_PACZKOMAT', 12.06, 14.83),
+            self::buildQuote('UPS', 120.0, 147.6, available: false),
             // Quoted at 0 when it can't carry it, which would otherwise be the cheapest.
-            self::quote('GLS', 0.0, 0.0, shipment: false),
+            self::buildQuote('GLS', 0.0, 0.0, shipment: false),
         ]))->quoteAll((new Draft())->setCarrierCode('DPD'), 1);
 
         self::assertSame([
@@ -66,7 +66,7 @@ class CostEstimatorTest extends SdkTestCase
     /**
      * @return array<string, mixed> one carrier's quote as the API sends it
      */
-    private static function quote(
+    private static function buildQuote(
         string $code,
         float $net,
         float $gross,

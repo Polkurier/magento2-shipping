@@ -14,6 +14,7 @@ use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Model\Context;
 use Magento\Framework\Notification\NotifierInterface;
 use Magento\Framework\Registry;
+use Magento\Framework\Serialize\Serializer\Json;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
@@ -144,6 +145,7 @@ class CarrierConfigSynchronizerTest extends TestCase
         return new CarrierConfig(
             $this->createStub(Context::class),
             $this->createStub(Registry::class),
+            new Json(),
             $this->createStub(CarrierConfigResource::class),
         );
     }

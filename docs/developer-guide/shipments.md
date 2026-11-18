@@ -360,7 +360,8 @@ copy was read, and the update while it runs.
 
 Times Polkurier reports are in Polish time
 ([`Model\Sdk\PolkurierTimeZoneProvider::ZONE`](../../src/Model/Sdk/PolkurierTimeZoneProvider.php)).
-The status and delivery times are stored in UTC, like every time the module stores.
+The shipment's status and delivery times are stored in UTC, like the module's other times. The copy
+of the Polkurier order and the carrier's scans keep Polish time.
 
 A shipment is finished when it's:
 

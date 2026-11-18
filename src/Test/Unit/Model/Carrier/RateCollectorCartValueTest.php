@@ -103,7 +103,7 @@ class RateCollectorCartValueTest extends TestCase
     {
         $request = new RateRequest(['store_id' => 1, 'package_value_with_discount' => 42.5]);
 
-        self::assertSame(42.5, $this->rateCollector()->getCartValue($request));
+        self::assertSame(42.5, $this->createRateCollector()->getCartValue($request));
     }
 
     /**
@@ -111,7 +111,7 @@ class RateCollectorCartValueTest extends TestCase
      */
     private function calculateValue(array $items): float
     {
-        return $this->rateCollector()->getCartValue(new RateRequest(['store_id' => 1, 'all_items' => $items]));
+        return $this->createRateCollector()->getCartValue(new RateRequest(['store_id' => 1, 'all_items' => $items]));
     }
 
     private function createItem(float $rowTotal, ?float $rowTotalInclTax, float $discount = 0.0): Item
@@ -127,7 +127,7 @@ class RateCollectorCartValueTest extends TestCase
         return $item;
     }
 
-    private function rateCollector(): RateCollector
+    private function createRateCollector(): RateCollector
     {
         $scopeConfig = $this->createStub(ScopeConfigInterface::class);
         $scopeConfig->method('getValue')->willReturnCallback(

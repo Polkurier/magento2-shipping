@@ -7,6 +7,8 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Test\Unit\Model\Shipment\Native;
 
+use Magento\Framework\Serialize\Serializer\Json;
+use Magento\Framework\TestFramework\Unit\Helper\ObjectManager;
 use Magento\Sales\Api\OrderRepositoryInterface;
 use Magento\Sales\Model\Order;
 use Magento\Sales\Model\ResourceModel\Attribute as SalesAttribute;
@@ -246,7 +248,7 @@ class ActualShippingUpdaterTest extends TestCase
 
     private function createShipment(string $carrier, string $point): Shipment
     {
-        $shipment = $this->getMockBuilder(Shipment::class)->disableOriginalConstructor()->onlyMethods([])->getMock();
+        $shipment = (new ObjectManager($this))->getObject(Shipment::class, ['json' => new Json()]);
         $shipment->setData([
             'carrier_code' => $carrier,
             'polkurier_number' => '18015-2877',

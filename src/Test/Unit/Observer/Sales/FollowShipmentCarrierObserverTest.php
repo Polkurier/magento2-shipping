@@ -9,6 +9,7 @@ namespace Polkurier\Shipping\Test\Unit\Observer\Sales;
 
 use Magento\Framework\Event;
 use Magento\Framework\Event\Observer;
+use Magento\Framework\Serialize\Serializer\Json;
 use Magento\Framework\TestFramework\Unit\Helper\ObjectManager;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -76,7 +77,7 @@ class FollowShipmentCarrierObserverTest extends TestCase
     private function createEvent(?string $was, string $is): Observer
     {
         /** @var Shipment $shipment */
-        $shipment = (new ObjectManager($this))->getObject(Shipment::class);
+        $shipment = (new ObjectManager($this))->getObject(Shipment::class, ['json' => new Json()]);
         $shipment->setOrderId(29);
         if ($was !== null) {
             $shipment->setState($was);

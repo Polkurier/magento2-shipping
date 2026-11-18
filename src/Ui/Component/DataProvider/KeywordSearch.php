@@ -9,8 +9,8 @@ namespace Polkurier\Shipping\Ui\Component\DataProvider;
 
 use Magento\Framework\Api\Filter;
 use Magento\Framework\Data\Collection;
-use Magento\Framework\Data\Collection\AbstractDb;
 use Magento\Framework\DB\Select;
+use Magento\Framework\Model\ResourceModel\Db\Collection\AbstractCollection;
 use Magento\Framework\View\Element\UiComponent\DataProvider\FilterApplierInterface;
 use Polkurier\Shipping\Api\Data\AddressInterface;
 use Polkurier\Shipping\Api\Data\BankAccountInterface;
@@ -67,14 +67,14 @@ readonly class KeywordSearch implements FilterApplierInterface
 
     public function apply(Collection $collection, Filter $filter): void
     {
-        if (!$collection instanceof AbstractDb) {
-            throw new \InvalidArgumentException('Database collection required.');
+        if (!$collection instanceof AbstractCollection) {
+            throw new \InvalidArgumentException('Resource model collection required.');
         }
         $from = $collection->getSelect()->getPart(Select::FROM);
         $mainTable = (string)($from['main_table']['tableName'] ?? '');
         $fields = [];
         foreach (self::FIELDS as $table => $tableFields) {
-            if ($collection->getConnection()->getTableName($table) === $mainTable) {
+            if ($collection->getTable($table) === $mainTable) {
                 $fields = $tableFields;
             }
         }

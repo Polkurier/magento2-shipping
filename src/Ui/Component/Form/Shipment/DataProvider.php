@@ -8,7 +8,6 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Ui\Component\Form\Shipment;
 
 use Magento\Framework\App\RequestInterface;
-use Magento\Framework\Pricing\PriceCurrencyInterface;
 use Magento\Framework\UrlInterface;
 use Magento\Sales\Helper\Data as SalesData;
 use Magento\Sales\Model\Order;
@@ -35,6 +34,7 @@ use Polkurier\Shipping\Model\Config\Source\PickupMode;
 use Polkurier\Shipping\Model\Config\Source\ShipmentType;
 use Polkurier\Shipping\Model\PickupPoint\AdminMapConfigProvider;
 use Polkurier\Shipping\Model\ResourceModel\Shipment\CollectionFactory;
+use Polkurier\Shipping\Model\Shipment\Details\Formatter;
 use Polkurier\Shipping\Model\Shipment\Native\NativeShipmentService;
 use Polkurier\Shipping\Model\Shipment\OrderLoader;
 use Polkurier\Shipping\Model\Shipment\Placement\ParcelTypeMapper;
@@ -78,7 +78,7 @@ class DataProvider extends FormDataProvider
         private readonly SenderMapper $senderMapper,
         private readonly CarrierNoticeProvider $carrierNoticeProvider,
         private readonly OrderAmountCalculator $orderAmountCalculator,
-        private readonly PriceCurrencyInterface $priceCurrency,
+        private readonly Formatter $formatter,
         private readonly NativeShipmentService $nativeShipmentService,
         private readonly ScreenDataProvider $screenDataProvider,
         private readonly PackType $packTypes,
@@ -374,14 +374,8 @@ class DataProvider extends FormDataProvider
         return (string)__(
             '0 or empty: no cash on delivery. Order total: '
             . '%1, of which the order\'s other Polkurier orders collect %2.',
-            $this->priceCurrency->format(
-                $this->orderAmountCalculator->getGrandTotal($order),
-                false,
-                2,
-                null,
-                OrderAmountCalculator::CURRENCY,
-            ),
-            $this->priceCurrency->format($collected, false, 2, null, OrderAmountCalculator::CURRENCY),
+            $this->formatter->formatMoney($this->orderAmountCalculator->getGrandTotal($order)),
+            $this->formatter->formatMoney($collected),
         );
     }
 

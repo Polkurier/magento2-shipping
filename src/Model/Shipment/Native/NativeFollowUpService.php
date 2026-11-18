@@ -23,13 +23,13 @@ use Magento\Sales\Model\Order\Shipment as MagentoShipmentModel;
 use Polkurier\Shipping\Api\Data\ShipmentDraftInterface;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Api\ShipmentRepositoryInterface;
+use Polkurier\Shipping\Api\ShippingChoiceRepositoryInterface;
 use Polkurier\Shipping\Enum\Sdk\ApiEventEnum;
 use Polkurier\Shipping\Logger\Logger;
 use Polkurier\Shipping\Model\Carrier\CarrierNameProvider;
 use Polkurier\Shipping\Model\Sdk\ApiEventDispatcher;
 use Polkurier\Shipping\Model\Shipment\OrderLoader;
 use Polkurier\Shipping\Model\Shipment\ShipmentFinder;
-use Polkurier\Shipping\Model\ShippingChoice\ShippingChoiceRepository;
 
 /**
  * What follows on the Magento side once a Polkurier order is known: the Magento order's shipment
@@ -39,14 +39,14 @@ use Polkurier\Shipping\Model\ShippingChoice\ShippingChoiceRepository;
 readonly class NativeFollowUpService
 {
     /**
-     * Magento's setting for sending sales e-mails from its cron job rather than at once.
-     */
-    private const string ASYNC_SENDING = 'sales_email/general/async_sending';
-
-    /**
      * Class of the links in comments that lead outside the admin.
      */
     public const string EXTERNAL_LINK = 'polkurier-external';
+
+    /**
+     * Magento's setting for sending sales e-mails from its cron job rather than at once.
+     */
+    private const string ASYNC_SENDING = 'sales_email/general/async_sending';
 
     public function __construct(
         private OrderLoader $orderLoader,
@@ -63,7 +63,7 @@ readonly class NativeFollowUpService
         private ShipmentSender $shipmentSender,
         private SalesData $salesData,
         private ScopeConfigInterface $scopeConfig,
-        private ShippingChoiceRepository $shippingChoiceRepository,
+        private ShippingChoiceRepositoryInterface $shippingChoiceRepository,
     ) {}
 
     /**
@@ -266,7 +266,8 @@ readonly class NativeFollowUpService
 
     /**
      * Notes a placed Polkurier order on the order: its number, carrier and waybills, and what the
-     * customer chose when it went with another carrier or point ({@see ActualShippingUpdater}).
+     * customer chose when it went with another carrier or point
+     * ({@see \Polkurier\Shipping\Model\Shipment\Native\ActualShippingUpdater}).
      *
      * @param bool $byHand linked by hand to an unconfirmed attempt rather than placed or found; noted
      *     as linked, as on the Magento shipment

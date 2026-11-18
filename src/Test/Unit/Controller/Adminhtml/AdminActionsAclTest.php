@@ -22,7 +22,11 @@ class AdminActionsAclTest extends TestCase
     /**
      * Magento's own resources the module's actions may use.
      */
-    private const array MAGENTO_RESOURCES = ['Magento_Shipping::carriers'];
+    private const array MAGENTO_RESOURCES = [
+        'Magento_Sales::ship',
+        'Magento_Sales::shipment',
+        'Magento_Shipping::carriers',
+    ];
 
     /**
      * @return array<string, array{class-string<AbstractAction>}>

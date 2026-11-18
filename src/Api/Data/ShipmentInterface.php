@@ -43,6 +43,12 @@ interface ShipmentInterface
      */
     public const array LIVE_STATES = [self::STATE_PENDING, self::STATE_CREATED, self::STATE_UNKNOWN];
 
+    /**
+     * Polkurier orders whose outcome isn't known: whether Polkurier has them is checked
+     * (reconciled) before the order gets another one.
+     */
+    public const array UNSETTLED_STATES = [self::STATE_UNKNOWN, self::STATE_PENDING];
+
     public const string FIELD_ENTITY_ID = 'entity_id';
     public const string FIELD_ORDER_ID = 'order_id';
     public const string FIELD_STORE_ID = 'store_id';
@@ -424,7 +430,7 @@ interface ShipmentInterface
 
     /**
      * The local copy of the order as Polkurier last reported it, or an empty array before it has
-     * been read. See {@see \Polkurier\Shipping\Model\Shipment\Status\RemoteOrderApplier::mapFromOrder()} for its shape.
+     * been read. Its keys are {@see \Polkurier\Shipping\Api\Data\ShipmentDetailsInterface}'s.
      *
      * @return array<string, mixed>
      */
@@ -451,7 +457,8 @@ interface ShipmentInterface
 
     /**
      * The local copy of the carrier's scan history, newest first, or an empty array before it
-     * has been read.
+     * has been read. Each scan's keys are {@see \Polkurier\Shipping\Api\Data\ShipmentDetailsInterface}'s
+     * FIELD_SCAN_*.
      *
      * @return array<int, array<string, string>>
      */

@@ -13,14 +13,14 @@ use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Notification\NotifierInterface;
 use Polkurier\Shipping\Api\CarrierConfigRepositoryInterface;
 use Polkurier\Shipping\Api\Data\CarrierConfigInterface;
+use Polkurier\Shipping\Controller\Adminhtml\Carrier\Index as CarrierIndex;
 use Polkurier\Shipping\Enum\CarrierConfig\PricingModelEnum;
 use Polkurier\Shipping\Model\Carrier\CarrierCatalog;
 use Polkurier\Shipping\Model\Carrier\CarrierNameProvider;
 use Polkurier\Shipping\Model\CarrierConfigFactory;
 use Polkurier\Shipping\Model\ResourceModel\CarrierConfig as CarrierConfigResource;
 use Polkurier\Shipping\Model\Sdk\ErrorMessageResolver;
-use Polkurier\Webservice\Exception\Exception as PolkurierException;
-use Polkurier\Webservice\Response\Carrier;
+use Polkurier\Webservice\Dto\Response\Carrier;
 
 /**
  * Keeps one settings row per carrier the account offers.
@@ -36,7 +36,7 @@ readonly class CarrierConfigSynchronizer
         private CarrierConfigProvider $carrierConfigProvider,
         private CarrierConfigRepositoryInterface $carrierConfigRepository,
         private CarrierConfigFactory $carrierConfigFactory,
-        private CarrierConfigResource $resource,
+        private CarrierConfigResource $carrierConfigResource,
         private ErrorMessageResolver $errorMessageResolver,
         private NotifierInterface $notifier,
         private UrlInterface $url,
@@ -49,11 +49,9 @@ readonly class CarrierConfigSynchronizer
      */
     public function synchronize(): int
     {
-        try {
-            $carriers = $this->carrierCatalog->refreshAccountCarriers();
-        } catch (PolkurierException $e) {
-            throw $this->errorMessageResolver->createException($e);
-        }
+        $carriers = $this->errorMessageResolver->callTranslated(
+            fn(): array => $this->carrierCatalog->refreshAccountCarriers(),
+        );
         $this->carrierConfigProvider->reset();
         $existing = $this->carrierConfigProvider->getAll();
         $last = \array_reduce($existing, static fn(int $max, $config): int => \max($max, $config->getSortOrder()), 0);
@@ -62,7 +60,7 @@ readonly class CarrierConfigSynchronizer
         $added = [];
         $revoked = [];
         // All rows or none: a failure halfway would leave carriers neither offered nor withdrawn.
-        $connection = $this->resource->getConnection();
+        $connection = $this->carrierConfigResource->getConnection();
         $connection->beginTransaction();
         try {
             $this->apply($carriers, $existing, $last, $added, $revoked);
@@ -90,7 +88,7 @@ readonly class CarrierConfigSynchronizer
     {
         foreach ($carriers as $code => $carrier) {
             if ($existing !== [] && !($existing[$code] ?? null)?->isAvailable()) {
-                $added[] = CarrierNameProvider::resolveName($carrier->getName(), $code);
+                $added[] = CarrierNameProvider::resolveName($carrier->name, $code);
             }
             $config = $existing[$code] ?? $this->carrierConfigFactory->create()
                 ->setCarrierCode($code)
@@ -99,7 +97,7 @@ readonly class CarrierConfigSynchronizer
                 ->setActive(false)
                 ->setPricingModel(PricingModelEnum::Fixed->value)
                 ->setPriceInfo([]);
-            $config->setCarrierName($carrier->getName());
+            $config->setCarrierName($carrier->name);
             $config->setAvailable(true);
             $this->carrierConfigRepository->save($config);
         }
@@ -121,7 +119,7 @@ readonly class CarrierConfigSynchronizer
     private function tell(array $added, array $revoked): void
     {
         // Without the secret key: a notification outlives the admin session it was made in.
-        $url = $this->url->getUrl('polkurier/carrier/index', ['_nosecret' => true]);
+        $url = $this->url->getUrl(CarrierIndex::ROUTE, ['_nosecret' => true]);
         if ($added !== []) {
             $this->notifier->addNotice(
                 (string)__('Polkurier: new carriers on your account'),

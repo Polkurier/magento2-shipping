@@ -26,7 +26,7 @@ class OrderLockTest extends TestCase
 
     public function testWorkInsideWorkOnTheSameOrderTakesTheLockOnce(): void
     {
-        $lock = $this->lock();
+        $lock = $this->createLock();
 
         $result = $lock->run(42, fn(): string => $lock->run(42, fn(): string => 'shipped'));
 
@@ -36,7 +36,7 @@ class OrderLockTest extends TestCase
 
     public function testEachOrderHasALockOfItsOwn(): void
     {
-        $lock = $this->lock();
+        $lock = $this->createLock();
 
         $lock->run(42, fn(): bool => $lock->run(43, static fn(): bool => true));
 
@@ -51,7 +51,7 @@ class OrderLockTest extends TestCase
     public function testAnotherRequestHoldingItIsReported(): void
     {
         try {
-            $this->lock(taken: true)->run(42, static fn(): bool => true);
+            $this->createLock(taken: true)->run(42, static fn(): bool => true);
             self::fail('The work waits for the other request.');
         } catch (LocalizedException $e) {
             self::assertSame(
@@ -64,7 +64,7 @@ class OrderLockTest extends TestCase
 
     public function testTheLockIsReleasedWhenTheWorkFails(): void
     {
-        $lock = $this->lock();
+        $lock = $this->createLock();
         $this->fail = true;
         $work = function (): bool {
             if ($this->fail) {
@@ -89,7 +89,7 @@ class OrderLockTest extends TestCase
 
     public function testLocksStillHeldWhenTheRequestEndsAreLetGo(): void
     {
-        $lock = $this->lock();
+        $lock = $this->createLock();
         $reset = static function () use ($lock): bool {
             $lock->_resetState();
 
@@ -106,7 +106,7 @@ class OrderLockTest extends TestCase
         ], $this->log, 'Once each, and not again when the work then finishes.');
     }
 
-    private function lock(bool $taken = false): OrderLock
+    private function createLock(bool $taken = false): OrderLock
     {
         $locks = $this->createStub(LockManagerInterface::class);
         $locks->method('lock')->willReturnCallback(function (string $name) use ($taken): bool {

@@ -34,6 +34,7 @@ and there is one account for the whole installation, so their `store_id` is null
 | `polkurier_api_bank_account_save_after` | a bank account was created or updated, with confirmation | `bank_account`, `is_new`, `response` |
 | `polkurier_api_bank_account_delete_after` | a bank account was deleted | `bank_account` |
 | `polkurier_api_two_factor_code_request_after` | a two-factor code was sent to the account holder | `namespace` (what the code is for) |
+| `polkurier_api_default_sender_point_change_after` | a carrier's default drop-off point was set or cleared | `request` |
 | `polkurier_api_payout_create_after` | a cash on delivery payout was requested | `order_numbers` (empty for everything available), `payout_type`, `fee_payment_type`, `response` |
 | `polkurier_api_payout_cancel_after` | a payout was cancelled | `request`, `response` |
 

@@ -7,13 +7,13 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Ui\Component\Listing\SalesShipment;
 
-use Magento\Framework\AuthorizationInterface;
 use Magento\Framework\Escaper;
 use Magento\Framework\UrlInterface;
 use Magento\Framework\View\Element\UiComponent\ContextInterface;
 use Magento\Framework\View\Element\UiComponentFactory;
 use Magento\Ui\Component\Listing\Columns\Column;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
+use Polkurier\Shipping\Controller\Adminhtml\Shipment\View as ShipmentView;
 use Polkurier\Shipping\Model\Carrier\Polkurier;
 use Polkurier\Shipping\Model\Config\Source\ShipmentState;
 use Polkurier\Shipping\Model\Shipment\OrderLoader;
@@ -25,8 +25,6 @@ use Polkurier\Shipping\Model\Shipment\ShipmentFinder;
  */
 class PolkurierOrderColumn extends Column
 {
-    private const string ACL_RESOURCE = 'Polkurier_Shipping::shipments';
-
     /**
      * @param array<string, mixed> $components
      * @param array<string, mixed> $data
@@ -36,7 +34,6 @@ class PolkurierOrderColumn extends Column
         UiComponentFactory $uiComponentFactory,
         private readonly ShipmentFinder $shipmentFinder,
         private readonly UrlInterface $url,
-        private readonly AuthorizationInterface $authorization,
         private readonly ShipmentState $states,
         private readonly OrderLoader $orderLoader,
         private readonly Escaper $escaper,
@@ -49,7 +46,7 @@ class PolkurierOrderColumn extends Column
     public function prepare(): void
     {
         parent::prepare();
-        if (!$this->authorization->isAllowed(self::ACL_RESOURCE) || !$this->isForPolkurierOrder()) {
+        if (!$this->isForPolkurierOrder()) {
             $this->_data['config']['componentDisabled'] = true;
         }
     }
@@ -61,7 +58,7 @@ class PolkurierOrderColumn extends Column
      */
     public function prepareDataSource(array $dataSource): array
     {
-        if (!isset($dataSource['data']['items']) || !$this->authorization->isAllowed(self::ACL_RESOURCE)) {
+        if (!isset($dataSource['data']['items'])) {
             return $dataSource;
         }
         $ids = \array_filter(\array_map(
@@ -117,7 +114,7 @@ class PolkurierOrderColumn extends Column
             $links[$magentoShipmentId] = \sprintf(
                 '<a href="%s">%s</a>',
                 $this->escaper->escapeUrl(
-                    $this->url->getUrl('polkurier/shipment/view', ['id' => (int)$shipment->getId()]),
+                    $this->url->getUrl(ShipmentView::ROUTE, ['id' => (int)$shipment->getId()]),
                 ),
                 $this->escaper->escapeHtml($label),
             );

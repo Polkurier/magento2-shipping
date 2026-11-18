@@ -21,7 +21,7 @@ use Polkurier\Shipping\Api\ShipmentManagementInterface;
 use Polkurier\Shipping\Controller\Adminhtml\Config\TestConnection;
 use Polkurier\Shipping\Controller\Adminhtml\Shipment\MassPickup;
 use Polkurier\Shipping\Controller\Adminhtml\Shipment\Pack;
-use Polkurier\Shipping\Controller\Adminhtml\Shipment\RequestedShipments;
+use Polkurier\Shipping\Controller\Adminhtml\Shipment\RequestedShipmentResolver;
 use Polkurier\Shipping\Controller\Adminhtml\Shipment\Save;
 use Polkurier\Shipping\Model\Config\ConfigProvider;
 use Polkurier\Shipping\Model\Sdk\ErrorMessageResolver;
@@ -42,13 +42,13 @@ use Polkurier\Shipping\Model\Shipment\Valuation\OrderAmountCalculator;
 use Polkurier\Shipping\Test\Unit\Support\AdminActionTestCase;
 use Polkurier\Shipping\Test\Unit\Support\NewingObjectManager;
 use Polkurier\Webservice\Api\Service\UtilsServiceInterface;
+use Polkurier\Webservice\Dto\Request\AuthorizationMessage;
+use Polkurier\Webservice\Dto\Request\AuthorizationMessageFactory;
+use Polkurier\Webservice\Dto\Response\ErrorMessage;
+use Polkurier\Webservice\Dto\Response\Util\AuthConfirmationMessage;
 use Polkurier\Webservice\Enum\Http\ResponseStatusEnum;
 use Polkurier\Webservice\Exception\AuthorizationException;
 use Polkurier\Webservice\Exception\ConnectionException;
-use Polkurier\Webservice\Http\Request\AuthorizationMessage;
-use Polkurier\Webservice\Http\Request\AuthorizationMessageFactory;
-use Polkurier\Webservice\Http\Response\ErrorMessage;
-use Polkurier\Webservice\Response\Util\AuthConfirmationMessage;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
 
@@ -150,7 +150,7 @@ class ShipmentActionsTest extends AdminActionTestCase
                 'unweighed_own' => [],
             ]);
 
-        $this->pack($packer)->execute();
+        $this->createPack($packer)->execute();
 
         self::assertFalse($this->json['error'] ?? true);
         self::assertSame(
@@ -171,7 +171,7 @@ class ShipmentActionsTest extends AdminActionTestCase
                 'unweighed_own' => ['Rug'],
             ]);
 
-        $this->pack($packer)->execute();
+        $this->createPack($packer)->execute();
 
         self::assertSame(
             'These products have no weight, so their parcels take the pack template\'s weight: Mug. '
@@ -187,7 +187,7 @@ class ShipmentActionsTest extends AdminActionTestCase
         $packer = $this->createPacker([]);
         $packer->expects(self::never())->method('pack');
 
-        $this->pack($packer)->execute();
+        $this->createPack($packer)->execute();
 
         self::assertSame(['error' => true, 'message' => 'Everything in this order is shipped already.'], $this->json);
     }
@@ -205,7 +205,7 @@ class ShipmentActionsTest extends AdminActionTestCase
                 'unweighed_own' => [],
             ]);
 
-        $this->pack($packer)->execute();
+        $this->createPack($packer)->execute();
 
         self::assertFalse($this->json['error'] ?? true);
     }
@@ -222,7 +222,7 @@ class ShipmentActionsTest extends AdminActionTestCase
                 'unweighed_own' => [],
             ]);
 
-        $this->pack($packer)->execute();
+        $this->createPack($packer)->execute();
 
         self::assertSame(
             [
@@ -244,7 +244,7 @@ class ShipmentActionsTest extends AdminActionTestCase
             return new AuthConfirmationMessage(true);
         })->execute();
 
-        self::assertSame(['12345', 'saved-token'], [$asked?->getLogin(), $asked?->getToken()]);
+        self::assertSame(['12345', 'saved-token'], [$asked?->login, $asked?->token]);
         self::assertSame(['error' => false, 'message' => 'Polkurier accepted the credentials.'], $this->json);
     }
 
@@ -320,7 +320,7 @@ class ShipmentActionsTest extends AdminActionTestCase
      */
     private function createMassPickup(array $selected): MassPickup
     {
-        $requested = $this->createStub(RequestedShipments::class);
+        $requested = $this->createStub(RequestedShipmentResolver::class);
         $requested->method('getSelected')->willReturn($selected);
 
         return new MassPickup(
@@ -362,7 +362,7 @@ class ShipmentActionsTest extends AdminActionTestCase
         );
     }
 
-    private function pack(AutoPacker $packer): Pack
+    private function createPack(AutoPacker $packer): Pack
     {
         $orders = $this->createStub(OrderLoader::class);
         $orders->method('getForPolkurier')->willReturn($this->createStub(Order::class));

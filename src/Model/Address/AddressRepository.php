@@ -19,7 +19,7 @@ use Polkurier\Shipping\Api\Data\AddressSearchResultsInterfaceFactory;
 use Polkurier\Shipping\Api\Data\SyncableInterface;
 use Polkurier\Shipping\Model\Address;
 use Polkurier\Shipping\Model\AddressFactory;
-use Polkurier\Shipping\Model\ResourceModel\Address as ResourceModel;
+use Polkurier\Shipping\Model\ResourceModel\Address as AddressResource;
 use Polkurier\Shipping\Model\ResourceModel\Address\CollectionFactory;
 
 /**
@@ -29,7 +29,7 @@ readonly class AddressRepository implements AddressRepositoryInterface
 {
     public function __construct(
         private AddressFactory $addressFactory,
-        private ResourceModel $resource,
+        private AddressResource $addressResource,
         private CollectionFactory $collectionFactory,
         private CollectionProcessorInterface $collectionProcessor,
         private AddressSearchResultsInterfaceFactory $searchResultsFactory,
@@ -38,7 +38,7 @@ readonly class AddressRepository implements AddressRepositoryInterface
     public function get(int $id): AddressInterface
     {
         $entity = $this->addressFactory->create();
-        $this->resource->load($entity, $id);
+        $this->addressResource->load($entity, $id);
         if (!$entity->getId()) {
             throw new NoSuchEntityException(__('The address with id "%1" does not exist.', $id));
         }
@@ -63,7 +63,7 @@ readonly class AddressRepository implements AddressRepositoryInterface
     {
         try {
             /** @var Address $entity */
-            $this->resource->save($entity);
+            $this->addressResource->save($entity);
         } catch (\Exception $e) {
             throw new CouldNotSaveException(__('Could not save the address: %1', $e->getMessage()), $e);
         }
@@ -75,7 +75,7 @@ readonly class AddressRepository implements AddressRepositoryInterface
     {
         try {
             /** @var Address $entity */
-            $this->resource->delete($entity);
+            $this->addressResource->delete($entity);
         } catch (\Exception $e) {
             throw new CouldNotDeleteException(__('Could not delete the address: %1', $e->getMessage()), $e);
         }

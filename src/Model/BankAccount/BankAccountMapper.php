@@ -8,10 +8,11 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Model\BankAccount;
 
 use Polkurier\Shipping\Api\Data\BankAccountInterface;
-use Polkurier\Webservice\Builder\BankAccount\SaveMessageBuilderFactory;
-use Polkurier\Webservice\Request\BankAccount\DeleteBankAccountMessage;
-use Polkurier\Webservice\Request\BankAccount\SaveMessage;
-use Polkurier\Webservice\Response\BankAccount;
+use Polkurier\Webservice\Builder\Entity\BankAccountBuilderFactory;
+use Polkurier\Webservice\Builder\Request\BankAccount\SaveBankAccountMessageBuilderFactory;
+use Polkurier\Webservice\Dto\Request\BankAccount\DeleteBankAccountMessage;
+use Polkurier\Webservice\Dto\Request\BankAccount\SaveBankAccountMessage;
+use Polkurier\Webservice\Entity\BankAccount;
 
 /**
  * Maps bank accounts between Magento and the Polkurier account.
@@ -19,7 +20,8 @@ use Polkurier\Webservice\Response\BankAccount;
 readonly class BankAccountMapper
 {
     public function __construct(
-        private SaveMessageBuilderFactory $saveMessageBuilderFactory,
+        private BankAccountBuilderFactory $bankAccountBuilderFactory,
+        private SaveBankAccountMessageBuilderFactory $saveBankAccountMessageBuilderFactory,
     ) {}
 
     /**
@@ -31,15 +33,19 @@ readonly class BankAccountMapper
         ?string $twoFactorToken = null,
         ?string $twoFactorCode = null,
         ?string $pin = null,
-    ): SaveMessage {
-        return $this->saveMessageBuilderFactory->create()
-            ->name($account->getName())
-            ->number(self::normalizeNumber($account->getNumber()))
-            ->id($account->getExtId())
-            ->default($account->isDefault())
-            ->twoFactorToken($pin ? null : ($twoFactorToken ?: null))
-            ->twoFactorCode($pin ? null : ($twoFactorCode ?: null))
-            ->accessPin($pin ?: null)
+    ): SaveBankAccountMessage {
+        return $this->saveBankAccountMessageBuilderFactory->create()
+            ->setBankAccount(
+                $this->bankAccountBuilderFactory->create()
+                    ->setName($account->getName())
+                    ->setNumber(self::normalizeNumber($account->getNumber()))
+                    ->setId($account->getExtId())
+                    ->setDefault($account->isDefault())
+                    ->build(),
+            )
+            ->setTwoFactorToken($pin ? null : ($twoFactorToken ?: null))
+            ->setTwoFactorCode($pin ? null : ($twoFactorCode ?: null))
+            ->setAccessPin($pin ?: null)
             ->build();
     }
 

@@ -21,13 +21,13 @@ use Polkurier\Shipping\Test\Unit\Support\NewingObjectManager;
 use Polkurier\Shipping\Test\Unit\Support\RecordingEventManager;
 use Polkurier\Webservice\Api\Service\AccountServiceInterface;
 use Polkurier\Webservice\Api\Service\TwoFactorTokenServiceInterface;
-use Polkurier\Webservice\Builder\MoneyBox\CreateMoneyBoxPayoutMessageBuilderFactory;
-use Polkurier\Webservice\Builder\MoneyBox\GetMoneyBoxPayoutsMessageBuilderFactory;
+use Polkurier\Webservice\Builder\Request\MoneyBox\CreateMoneyBoxPayoutMessageBuilderFactory;
+use Polkurier\Webservice\Builder\Request\MoneyBox\GetMoneyBoxPayoutsMessageBuilderFactory;
+use Polkurier\Webservice\Dto\Response\Account\AccountInfoMessage;
+use Polkurier\Webservice\Dto\Response\TwoFactorToken;
 use Polkurier\Webservice\Enum\MoneyBox\MoneyBoxFeePaymentTypeEnum;
 use Polkurier\Webservice\Enum\MoneyBox\MoneyBoxPayoutTypeEnum;
 use Polkurier\Webservice\Exception\ConnectionException;
-use Polkurier\Webservice\Response\Account\AccountInfoMessage;
-use Polkurier\Webservice\Response\TwoFactorToken;
 
 #[CoversClass(PayoutManager::class)]
 #[AllowMockObjectsWithoutExpectations]
@@ -130,8 +130,7 @@ class PayoutManagerTest extends TestCase
 
     private function createManager(?float $available): PayoutManager
     {
-        $info = $this->createStub(AccountInfoMessage::class);
-        $info->method('getMoneyBoxPayoutAvailableBalance')->willReturn((float)$available);
+        $info = new AccountInfoMessage(moneyBoxPayoutAvailableBalance: (float)$available);
         $account = $this->createStub(AccountServiceInterface::class);
         $account->method('getAccountInfo')->willReturnCallback(
             static fn(): AccountInfoMessage => $available === null
@@ -140,7 +139,7 @@ class PayoutManagerTest extends TestCase
         );
         $now = new \DateTimeImmutable('2026-10-05 14:30');
         $tokens = $this->createStub(TwoFactorTokenServiceInterface::class);
-        $tokens->method('twoFactorTokenRegister')->willReturnCallback(function () use ($now): TwoFactorToken {
+        $tokens->method('register')->willReturnCallback(function () use ($now): TwoFactorToken {
             $this->codesSent++;
 
             return new TwoFactorToken('t1', '', 'Wypłata', 1, $now, $now, $now->modify('+5 minutes'));

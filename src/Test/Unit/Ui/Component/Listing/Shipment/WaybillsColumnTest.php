@@ -7,15 +7,13 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Test\Unit\Ui\Component\Listing\Shipment;
 
-use Magento\Framework\Escaper;
-use Magento\Framework\Translate\InlineInterface;
 use Magento\Framework\View\Element\UiComponent\ContextInterface;
 use Magento\Framework\View\Element\UiComponent\Processor;
 use Magento\Framework\View\Element\UiComponentFactory;
-use Magento\Framework\ZendEscaper;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use Polkurier\Shipping\Test\Unit\Support\StandaloneEscaper;
 use Polkurier\Shipping\Ui\Component\Listing\Shipment\WaybillsColumn;
 
 #[CoversClass(WaybillsColumn::class)]
@@ -46,7 +44,7 @@ class WaybillsColumnTest extends TestCase
         $column = new WaybillsColumn(
             $context,
             $this->createStub(UiComponentFactory::class),
-            $this->createEscaper(),
+            StandaloneEscaper::create(),
             [],
             ['name' => 'waybills'],
         );
@@ -56,19 +54,5 @@ class WaybillsColumnTest extends TestCase
         ]);
 
         return (string)$source['data']['items'][0]['waybills'];
-    }
-
-    /**
-     * Magento's escaper, given the helpers it would otherwise take from the object manager.
-     */
-    private function createEscaper(): Escaper
-    {
-        $escaper = new Escaper();
-        $properties = ['escaper' => new ZendEscaper(), 'translateInline' => $this->createStub(InlineInterface::class)];
-        foreach ($properties as $property => $value) {
-            (new \ReflectionProperty(Escaper::class, $property))->setValue($escaper, $value);
-        }
-
-        return $escaper;
     }
 }

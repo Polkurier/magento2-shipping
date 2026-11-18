@@ -7,7 +7,6 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Test\Unit\Model\Shipment\Screen;
 
-use Magento\Backend\Model\UrlInterface;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
@@ -18,21 +17,19 @@ use Polkurier\Shipping\Api\PackTemplateRepositoryInterface;
 use Polkurier\Shipping\Logger\Logger;
 use Polkurier\Shipping\Model\Carrier\CarrierCatalog;
 use Polkurier\Shipping\Model\Carrier\CarrierFeatureResolver;
-use Polkurier\Shipping\Model\Config\ConfigProvider;
 use Polkurier\Shipping\Model\Config\Source\PackType;
 use Polkurier\Shipping\Model\PickupPoint\DefaultSenderPointManager;
-use Polkurier\Shipping\Model\PickupPoint\MapTokenProvider;
 use Polkurier\Shipping\Model\PickupPoint\PointFinder;
 use Polkurier\Shipping\Model\Shipment\Draft\DefaultDraftBuilder;
 use Polkurier\Shipping\Model\Shipment\Draft\DraftHydrator;
 use Polkurier\Shipping\Model\Shipment\Screen\ScreenDataProvider;
 use Polkurier\Shipping\Model\Shipment\Valuation\OrderAmountCalculator;
+use Polkurier\Webservice\Dto\Response\Carrier;
+use Polkurier\Webservice\Dto\Response\Carrier\AdditionalData;
+use Polkurier\Webservice\Dto\Response\Carrier\AdditionalData\PointsMap;
+use Polkurier\Webservice\Dto\Response\CourierPoint;
 use Polkurier\Webservice\Enum\Courier\PointRequirementEnum;
 use Polkurier\Webservice\Exception\ConnectionException;
-use Polkurier\Webservice\Response\Carrier;
-use Polkurier\Webservice\Response\Carrier\AdditionalData;
-use Polkurier\Webservice\Response\Carrier\AdditionalData\PointsMap;
-use Polkurier\Webservice\Response\CourierPoint;
 
 #[CoversClass(ScreenDataProvider::class)]
 #[CoversClass(PointFinder::class)]
@@ -178,13 +175,10 @@ class ScreenDataProviderTest extends TestCase
             $this->createStub(PackTemplateRepositoryInterface::class),
             $this->createStub(AddressRepositoryInterface::class),
             $this->createStub(PackType::class),
-            $this->createStub(MapTokenProvider::class),
-            $this->createStub(ConfigProvider::class),
             $this->createStub(OrderAmountCalculator::class),
             new PointFinder($catalog, new CarrierFeatureResolver(), $this->createStub(Logger::class)),
             $this->createStub(DefaultDraftBuilder::class),
             $points,
-            $this->createStub(UrlInterface::class),
             $defaults,
         );
     }

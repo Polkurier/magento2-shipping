@@ -59,7 +59,7 @@ define([
         getAllTiles: function () {
             const carriers = this.source.get('data.carriers') || {},
                 quotes = this.quotes,
-                currency = this.source.get('data.currency') || 'PLN',
+                priceFormat = this.source.get('data.price_format'),
                 query = this.search().trim().toLowerCase(),
                 selected = this.value();
 
@@ -85,9 +85,9 @@ define([
                     priced: !!quote,
                     gross: quote ? quote.gross : null,
                     priceText: quote
-                        ? rules.formatMoney(quote.net, currency) + ' ' + $t('net')
+                        ? rules.formatMoney(quote.net, priceFormat) + ' ' + $t('net')
                         : (quotes ? $t('not available') : '—'),
-                    grossText: quote ? rules.formatMoney(quote.gross, currency) + ' ' + $t('gross') : '',
+                    grossText: quote ? rules.formatMoney(quote.gross, priceFormat) + ' ' + $t('gross') : '',
                     point: carrier.point && carrier.point !== 'NONE',
                     pointOnly: carrier.point === 'REQUIRED',
                     cod: !!carrier.cod,

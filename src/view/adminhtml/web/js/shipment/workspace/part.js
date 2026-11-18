@@ -104,7 +104,7 @@ define([
          * @returns {String}
          */
         formatMoney: function (value) {
-            return rules.formatMoney(value, this.get('currency'));
+            return rules.formatMoney(value, this.get('price_format'));
         },
 
         /**

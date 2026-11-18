@@ -9,6 +9,7 @@ namespace Polkurier\Shipping\Test\Unit\Controller\Adminhtml;
 
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Exception\NoSuchEntityException;
+use Magento\Framework\Serialize\Serializer\Json;
 use Magento\Framework\TestFramework\Unit\Helper\ObjectManager;
 use Magento\Ui\Component\MassAction\Filter;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
@@ -27,6 +28,7 @@ use Polkurier\Shipping\Model\Shipment\OrderLoader;
 use Polkurier\Shipping\Model\Shipment\Placement\FailedShipmentManager;
 use Polkurier\Shipping\Model\Shipment\Screen\RetriableShipmentFinder;
 use Polkurier\Shipping\Test\Unit\Support\AdminActionTestCase;
+use Polkurier\Webservice\Dto\Response\MoneyBox\MoneyBoxPayoutMessage;
 
 #[CoversClass(Create::class)]
 #[CoversClass(Edit::class)]
@@ -87,7 +89,9 @@ class RedirectingActionsTest extends AdminActionTestCase
         $saved = [];
         $repository = $this->createStub(CarrierConfigRepositoryInterface::class);
         $repository->method('save')
-            ->willReturnCallback(static function (CarrierConfigInterface $config) use (&$saved): CarrierConfigInterface {
+            ->willReturnCallback(static function (
+                CarrierConfigInterface $config,
+            ) use (&$saved): CarrierConfigInterface {
                 $saved[] = $config->getCarrierCode();
 
                 return $config;
@@ -117,7 +121,8 @@ class RedirectingActionsTest extends AdminActionTestCase
     {
         $this->params = ['number' => 'W-1'];
         $payouts = $this->createMock(PayoutManager::class);
-        $payouts->expects(self::once())->method('cancelPayout')->with('W-1');
+        $payouts->expects(self::once())->method('cancelPayout')->with('W-1')
+            ->willReturn(new MoneyBoxPayoutMessage(number: 'W-1'));
 
         (new Cancel($this->createContext(), $payouts))->execute();
 
@@ -128,7 +133,7 @@ class RedirectingActionsTest extends AdminActionTestCase
     private function createCarrier(string $code, bool $active): CarrierConfig
     {
         /** @var CarrierConfig $config */
-        $config = (new ObjectManager($this))->getObject(CarrierConfig::class);
+        $config = (new ObjectManager($this))->getObject(CarrierConfig::class, ['json' => new Json()]);
 
         return $config->setCarrierCode($code)->setActive($active);
     }

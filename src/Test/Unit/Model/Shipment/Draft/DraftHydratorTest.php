@@ -77,9 +77,9 @@ class DraftHydratorTest extends TestCase
             $this->createStub(ItemFactory::class),
         );
 
-        self::assertTrue($hydrator->createFromArray(['notify_customer' => '1'])->isNotifyCustomer());
-        self::assertFalse($hydrator->createFromArray(['notify_customer' => '0'])->isNotifyCustomer());
-        self::assertFalse($hydrator->createFromArray([])->isNotifyCustomer());
+        self::assertTrue($hydrator->createFromArray(['notify_customer' => '1'])->shouldNotifyCustomer());
+        self::assertFalse($hydrator->createFromArray(['notify_customer' => '0'])->shouldNotifyCustomer());
+        self::assertFalse($hydrator->createFromArray([])->shouldNotifyCustomer());
         self::assertTrue($hydrator->convertToArray((new Draft())->setNotifyCustomer(true))['notify_customer']);
     }
 }

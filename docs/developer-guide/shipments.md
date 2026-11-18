@@ -110,7 +110,7 @@ Parcels of more than one kind are refused, and so is a type the carrier doesn't 
 `sender/use_store_origin_address` is on, whichever is complete first. If neither can be used, the
 shipment is refused before anything is sent.
 
-**Validation.** The draft becomes the SDK's `Polkurier\Webservice\Request\Order\CreateOrderMessage`,
+**Validation.** The draft becomes the SDK's `Polkurier\Webservice\Dto\Request\Order\CreateOrderMessage`,
 and the SDK validates it before anything is sent, so an incomplete draft fails with field-level
 errors without reaching Polkurier. To change the message, see
 [Extending the module](extending.md#changing-whats-sent).
@@ -359,8 +359,9 @@ copy that's missing, or of a shipment on its way (`created` and not final), is r
 copy was read, and the update while it runs.
 
 Times Polkurier reports are in Polish time
-([`Model\Sdk\PolkurierTimeZone::ZONE`](../../src/Model/Sdk/PolkurierTimeZone.php)). The status and
-delivery times are stored in UTC, like every time the module stores.
+([`Model\Sdk\PolkurierTimeZoneProvider::ZONE`](../../src/Model/Sdk/PolkurierTimeZoneProvider.php)).
+The shipment's status and delivery times are stored in UTC, like the module's other times. The copy
+of the Polkurier order and the carrier's scans keep Polish time.
 
 A shipment is finished when it's:
 

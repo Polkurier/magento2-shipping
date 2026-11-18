@@ -11,10 +11,7 @@
 The interfaces in `Api/` are the module's public PHP API, marked `@api`; the module has no REST
 routes of its own. Prefer them, and plugins on them, over the classes behind them. Parts only the
 module itself uses have no interface there, such as the synchronization with the Polkurier account
-([`Model\Sync\Synchronization`](../../src/Model/Sync/Synchronization.php)) or the customer's
-original shipping choice
-([`Model\ShippingChoice\ShippingChoiceRepository`](../../src/Model/ShippingChoice/ShippingChoiceRepository.php)),
-which is read through the order's `polkurier_shipping_choice` extension attribute.
+([`Model\Sync\SettingsSynchronizer`](../../src/Model/Sync/SettingsSynchronizer.php)).
 
 | Interface | Purpose |
 |---|---|
@@ -24,12 +21,15 @@ which is read through the order's `polkurier_shipping_choice` extension attribut
 | [`AddressRepositoryInterface`](../../src/Api/AddressRepositoryInterface.php), [`BankAccountRepositoryInterface`](../../src/Api/BankAccountRepositoryInterface.php), [`PackTemplateRepositoryInterface`](../../src/Api/PackTemplateRepositoryInterface.php) | the synced settings; saving through a repository doesn't push to Polkurier. Besides `getList()`, these methods return the entries a shipment can use, default first, then by name, leaving out entries deleted but not yet synchronized: `getSenderAddresses()` and `getDefaultSenderAddress()`, [`BankAccountRepositoryInterface::getAvailable()`](../../src/Api/BankAccountRepositoryInterface.php) and `getPreferred()` (the default, or else the first), [`PackTemplateRepositoryInterface::getAvailable()`](../../src/Api/PackTemplateRepositoryInterface.php) and `getDefault()` |
 | [`PolkurierClientInterface`](../../src/Api/PolkurierClientInterface.php) | the Polkurier API with the shop's account: every service of the SDK (`getCourier()`, `getOrders()`, `getInvoices()`, `getTickets()`…), set up as the module uses them; see [Extending](extending.md#calling-polkurier-from-your-own-code) |
 | [`OrderPointRepositoryInterface`](../../src/Api/OrderPointRepositoryInterface.php), [`QuotePointRepositoryInterface`](../../src/Api/QuotePointRepositoryInterface.php) | the pickup point of an order, and the one chosen at checkout (per shipping address in multi-address checkout); `copyFromQuote()` copies the checkout's point to the order |
+| [`ShippingChoiceRepositoryInterface`](../../src/Api/ShippingChoiceRepositoryInterface.php) | the shipping the customer chose, kept while the order shows the carrier or point it was actually sent with; orders also carry it in their `polkurier_shipping_choice` extension attribute |
 
 One enum is part of the API too, also `@api`:
 [`Enum\Sdk\ApiEventEnum`](../../src/Enum/Sdk/ApiEventEnum.php), the module's events with their names
 as values (see [Events](events.md)).
 
 Data interfaces are in `Api/Data`: [`ShipmentInterface`](../../src/Api/Data/ShipmentInterface.php),
+with the keys of its stored order copy and scans in
+[`ShipmentDetailsInterface`](../../src/Api/Data/ShipmentDetailsInterface.php),
 [`ShipmentDraftInterface`](../../src/Api/Data/ShipmentDraftInterface.php) with
 [`ShipmentDraft\PackInterface`](../../src/Api/Data/ShipmentDraft/PackInterface.php),
 [`CarrierConfigInterface`](../../src/Api/Data/CarrierConfigInterface.php) with

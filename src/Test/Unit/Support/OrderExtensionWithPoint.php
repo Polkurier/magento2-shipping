@@ -13,7 +13,8 @@ use Polkurier\Shipping\Api\Data\ShippingChoiceInterface;
 
 /**
  * The order's extension attributes with the module's pickup point, shipping choice and installation
- * id, as Magento generates them from extension_attributes.xml. Declared here so that tests don't depend on the generated code.
+ * id, as Magento generates them from extension_attributes.xml. Declared here so that tests don't
+ * depend on the generated code.
  */
 interface OrderExtensionWithPoint extends OrderExtensionInterface
 {

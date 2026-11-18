@@ -9,6 +9,7 @@ namespace Polkurier\Shipping\Test\Unit\Model;
 
 use Magento\Framework\Model\Context;
 use Magento\Framework\Registry;
+use Magento\Framework\Serialize\Serializer\Json;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Polkurier\Shipping\Model\CarrierConfig;
@@ -48,6 +49,7 @@ class CarrierConfigTest extends TestCase
         $config = new CarrierConfig(
             $this->createStub(Context::class),
             $this->createStub(Registry::class),
+            new Json(),
             $this->createStub(CarrierConfigResource::class),
         );
 

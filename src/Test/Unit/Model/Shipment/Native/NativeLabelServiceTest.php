@@ -21,6 +21,7 @@ use PHPUnit\Framework\TestCase;
 use Polkurier\Shipping\Api\Data\ShipmentDraftInterface;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Logger\Logger;
+use Polkurier\Shipping\Model\Shipment;
 use Polkurier\Shipping\Model\Shipment\DocumentService;
 use Polkurier\Shipping\Model\Shipment\Draft;
 use Polkurier\Shipping\Model\Shipment\Draft\DefaultDraftBuilder;
@@ -183,7 +184,7 @@ class NativeLabelServiceTest extends TestCase
         $this->createService()->request($this->createLabelRequest($this->createMagentoShipment(null), []));
 
         self::assertTrue(
-            $this->getPlacedDraft()->isNotifyCustomer(),
+            $this->getPlacedDraft()->shouldNotifyCustomer(),
             'For a Magento shipment made later, if it comes to it.',
         );
     }
@@ -194,7 +195,7 @@ class NativeLabelServiceTest extends TestCase
 
         $this->createService()->request($this->createLabelRequest($this->createMagentoShipment(31), []));
 
-        self::assertFalse($this->getPlacedDraft()->isNotifyCustomer());
+        self::assertFalse($this->getPlacedDraft()->shouldNotifyCustomer());
     }
 
     public function testAShipmentWithAPolkurierOrderGetsItsLabelWithoutPlacingAnother(): void
@@ -302,7 +303,7 @@ class NativeLabelServiceTest extends TestCase
      */
     private function createPolkurierShipment(array $waybills): ShipmentInterface
     {
-        $shipment = $this->createStub(\Polkurier\Shipping\Model\Shipment::class);
+        $shipment = $this->createStub(Shipment::class);
         $shipment->method('getId')->willReturn(7);
         $shipment->method('getWaybills')->willReturn($waybills);
         $shipment->method('getCarrierCode')->willReturn('DPD');

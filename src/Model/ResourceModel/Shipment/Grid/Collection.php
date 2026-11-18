@@ -22,15 +22,19 @@ class Collection extends SearchResult
         parent::_initSelect();
         $this->getSelect()->joinLeft(
             ['sales_order' => $this->getTable('sales_order')],
-            'sales_order.entity_id = main_table.order_id',
+            'sales_order.entity_id = main_table.' . ShipmentInterface::FIELD_ORDER_ID,
             ['increment_id' => 'sales_order.increment_id'],
         );
-        $this->addFilterToMap(ShipmentInterface::FIELD_ENTITY_ID, 'main_table.entity_id');
-        $this->addFilterToMap(ShipmentInterface::FIELD_ORDER_ID, 'main_table.order_id');
-        $this->addFilterToMap(ShipmentInterface::FIELD_SHIPMENT_ID, 'main_table.shipment_id');
-        $this->addFilterToMap(ShipmentInterface::FIELD_CREATED_AT, 'main_table.created_at');
-        $this->addFilterToMap(ShipmentInterface::FIELD_STATE, 'main_table.state');
-        $this->addFilterToMap(ShipmentInterface::FIELD_STORE_ID, 'main_table.store_id');
+        foreach ([
+            ShipmentInterface::FIELD_ENTITY_ID,
+            ShipmentInterface::FIELD_ORDER_ID,
+            ShipmentInterface::FIELD_SHIPMENT_ID,
+            ShipmentInterface::FIELD_CREATED_AT,
+            ShipmentInterface::FIELD_STATE,
+            ShipmentInterface::FIELD_STORE_ID,
+        ] as $field) {
+            $this->addFilterToMap($field, 'main_table.' . $field);
+        }
         $this->addFilterToMap('increment_id', 'sales_order.increment_id');
 
         return $this;
@@ -43,8 +47,8 @@ class Collection extends SearchResult
     protected function _beforeLoad(): static
     {
         if ($this->_orders === []) {
-            $this->setOrder('main_table.created_at', DataCollection::SORT_ORDER_DESC);
-            $this->setOrder('main_table.entity_id', DataCollection::SORT_ORDER_DESC);
+            $this->setOrder('main_table.' . ShipmentInterface::FIELD_CREATED_AT, DataCollection::SORT_ORDER_DESC);
+            $this->setOrder('main_table.' . ShipmentInterface::FIELD_ENTITY_ID, DataCollection::SORT_ORDER_DESC);
         }
 
         return parent::_beforeLoad();

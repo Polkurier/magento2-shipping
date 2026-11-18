@@ -16,9 +16,9 @@ use Polkurier\Shipping\Model\Carrier\CarrierFeatureResolver;
 use Polkurier\Shipping\Model\Carrier\Polkurier;
 use Polkurier\Shipping\Model\Config\ConfigProvider;
 use Polkurier\Shipping\Model\QuotePointFactory;
+use Polkurier\Webservice\Dto\Response\CourierPoint;
 use Polkurier\Webservice\Enum\Courier\PointFunctionEnum;
 use Polkurier\Webservice\Exception\Exception as PolkurierException;
-use Polkurier\Webservice\Response\CourierPoint;
 
 /**
  * Records the pickup point a customer chose, after checking it with Polkurier.
@@ -91,8 +91,8 @@ readonly class PointSelectionRecorder
         }
         if ($point !== null) {
             // The same as the map shows after choosing: the address, the point's id beside it.
-            $label = $this->pointFinder->formatAddress($point);
-            $cod = $point->isCod();
+            $label = PointFinder::formatAddress($point);
+            $cod = $point->cod;
         }
 
         $point = $this->quotePointRepository->getForQuote($quoteId, $quoteAddressId)
@@ -134,12 +134,12 @@ readonly class PointSelectionRecorder
      */
     private function isUsable(CourierPoint $point, int $storeId): bool
     {
-        if (!$point->isAvailable()) {
+        if (!$point->available) {
             return false;
         }
         $functions = \array_map(
             static fn(PointFunctionEnum $function): string => $function->value,
-            $point->getFunctions(),
+            $point->functions,
         );
         foreach ($this->configProvider->getMapPointFunctions($storeId) as $required) {
             if (!\in_array($required->value, $functions, true)) {

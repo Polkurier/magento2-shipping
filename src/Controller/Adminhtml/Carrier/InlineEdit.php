@@ -21,7 +21,8 @@ use Polkurier\Shipping\Model\CarrierConfig\CarrierConfigHydrator;
  */
 class InlineEdit extends Action implements HttpPostActionInterface
 {
-    public const string ADMIN_RESOURCE = 'Polkurier_Shipping::carriers';
+    public const string ADMIN_RESOURCE = 'Magento_Shipping::carriers';
+    public const string ROUTE = 'polkurier/carrier/inlineEdit';
 
     public function __construct(
         Context $context,

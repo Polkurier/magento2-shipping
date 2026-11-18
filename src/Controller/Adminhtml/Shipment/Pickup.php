@@ -13,7 +13,7 @@ use Magento\Framework\App\ActionInterface;
 use Magento\Framework\Controller\Result\Redirect;
 use Magento\Framework\Exception\LocalizedException;
 use Polkurier\Shipping\Model\Admin\FlashMessageCollectorFactory;
-use Polkurier\Shipping\Model\RequestParam;
+use Polkurier\Shipping\Model\RequestParamReader;
 use Polkurier\Shipping\Model\Shipment\PickupService;
 
 /**
@@ -22,22 +22,23 @@ use Polkurier\Shipping\Model\Shipment\PickupService;
  */
 class Pickup extends AbstractShipmentAction implements HttpPostActionInterface
 {
-    public const string ADMIN_RESOURCE = 'Polkurier_Shipping::shipment_create';
+    public const string ADMIN_RESOURCE = 'Magento_Sales::ship';
+    public const string ROUTE = 'polkurier/shipment/pickup';
 
     public function __construct(
         Context $context,
-        RequestedShipments $requestedShipments,
+        RequestedShipmentResolver $requestedShipmentResolver,
         private readonly PickupService $pickupService,
         private readonly FlashMessageCollectorFactory $flashMessageCollectorFactory,
     ) {
-        parent::__construct($context, $requestedShipments);
+        parent::__construct($context, $requestedShipmentResolver);
     }
 
     public function execute(): Redirect
     {
-        $date = RequestParam::getString($this->getRequest(), 'pickup_date');
-        $from = RequestParam::getString($this->getRequest(), 'pickup_time_from');
-        $to = RequestParam::getString($this->getRequest(), 'pickup_time_to');
+        $date = RequestParamReader::getString($this->getRequest(), 'pickup_date');
+        $from = RequestParamReader::getString($this->getRequest(), 'pickup_time_from');
+        $to = RequestParamReader::getString($this->getRequest(), 'pickup_time_to');
         try {
             PickupService::buildWindow($date, $from, $to);
         } catch (LocalizedException $e) {
@@ -45,10 +46,12 @@ class Pickup extends AbstractShipmentAction implements HttpPostActionInterface
 
             // Back to the form, with the shipments chosen.
             return $this->resultRedirectFactory->create()->setPath('*/*/pickupForm', \array_filter([
-                'ids' => RequestParam::getString($this->getRequest(), 'ids') ?: null,
+                'ids' => RequestParamReader::getString($this->getRequest(), 'ids') ?: null,
                 'order_id' => (int)$this->getRequest()->getParam('order_id') ?: null,
-                ActionInterface::PARAM_NAME_URL_ENCODED
-                    => RequestParam::getString($this->getRequest(), ActionInterface::PARAM_NAME_URL_ENCODED) ?: null,
+                ActionInterface::PARAM_NAME_URL_ENCODED => RequestParamReader::getString(
+                    $this->getRequest(),
+                    ActionInterface::PARAM_NAME_URL_ENCODED,
+                ) ?: null,
             ]));
         }
         $flash = $this->flashMessageCollectorFactory->create();

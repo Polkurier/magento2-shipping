@@ -146,6 +146,9 @@ define([
             },
             {
                 title: $t('Shipment description'),
+                getWarning: function () {
+                    return state.findIssues(['description']);
+                },
                 getSummary: function () {
                     return isFilled(values.description) ? values.description : $t('None');
                 },
@@ -154,8 +157,7 @@ define([
                         name: 'description',
                         label: $t('Description'),
                         type: 'text',
-                        maxlength: 30,
-                        note: $t('Printed on the label; up to 30 characters. It starts as the order number, as the shipment description format in the configuration says.')
+                        note: config.description.notice
                     }
                 ]
             },

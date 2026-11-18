@@ -14,6 +14,7 @@ use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Model\Context;
 use Magento\Framework\Notification\NotifierInterface;
 use Magento\Framework\Registry;
+use Magento\Framework\Serialize\Serializer\Json;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
@@ -26,8 +27,8 @@ use Polkurier\Shipping\Model\CarrierConfig\CarrierConfigSynchronizer;
 use Polkurier\Shipping\Model\CarrierConfigFactory;
 use Polkurier\Shipping\Model\ResourceModel\CarrierConfig as CarrierConfigResource;
 use Polkurier\Shipping\Model\Sdk\ErrorMessageResolver;
+use Polkurier\Webservice\Dto\Response\Carrier;
 use Polkurier\Webservice\Exception\ConnectionException;
-use Polkurier\Webservice\Response\Carrier;
 
 #[CoversClass(CarrierConfigSynchronizer::class)]
 #[AllowMockObjectsWithoutExpectations]
@@ -144,6 +145,7 @@ class CarrierConfigSynchronizerTest extends TestCase
         return new CarrierConfig(
             $this->createStub(Context::class),
             $this->createStub(Registry::class),
+            new Json(),
             $this->createStub(CarrierConfigResource::class),
         );
     }

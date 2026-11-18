@@ -8,6 +8,7 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Model\Shipment;
 
 use Magento\Framework\Phrase;
+use Polkurier\Shipping\Api\Data\ShipmentDetailsInterface;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Webservice\Enum\Order\OrderStatusCodeEnum;
 
@@ -18,7 +19,7 @@ use Polkurier\Webservice\Enum\Order\OrderStatusCodeEnum;
  * the panel would cancel may be refused here, never the other way round; Polkurier still has the
  * last word when the order is cancelled.
  */
-class CancellationRule
+final class CancellationRule
 {
     /**
      * Freight, which the panel cancels only before Polkurier confirms it.
@@ -45,7 +46,7 @@ class CancellationRule
             return __('Only a placed Polkurier order can be cancelled.');
         }
         $status = $shipment->getStatusCode();
-        if (!empty($shipment->getDetails()['has_invoice'])) {
+        if (!empty($shipment->getDetails()[ShipmentDetailsInterface::FIELD_HAS_INVOICE])) {
             return __('Polkurier order %1 is invoiced, so it can\'t be cancelled.', $number);
         }
         if (\in_array($status, self::WITH_THE_CARRIER, true)) {

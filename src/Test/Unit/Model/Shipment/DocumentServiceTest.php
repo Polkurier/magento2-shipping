@@ -17,9 +17,9 @@ use Polkurier\Shipping\Model\Sdk\ShipmentGateway;
 use Polkurier\Shipping\Model\Shipment\DocumentService;
 use Polkurier\Shipping\Model\Shipment\Status\StatusRefreshService;
 use Polkurier\Shipping\Test\Unit\Support\FixedDateTime;
+use Polkurier\Webservice\Dto\Request\Order\GetDocumentMessage;
+use Polkurier\Webservice\Dto\Response\Order\DocumentMessage;
 use Polkurier\Webservice\Enum\Order\LabelFileFormatEnum;
-use Polkurier\Webservice\Request\Order\GetDocumentMessage;
-use Polkurier\Webservice\Response\Order\DocumentMessage;
 
 #[CoversClass(DocumentService::class)]
 #[AllowMockObjectsWithoutExpectations]
@@ -59,8 +59,8 @@ class DocumentServiceTest extends TestCase
             $this->createShipment('18015-2867', 1, ShipmentInterface::STATE_CANCELLED),
         ]);
 
-        self::assertSame(['18015-2865', '18015-2866'], $this->asked?->getOrderNo());
-        self::assertNull($this->asked->getFileFormat());
+        self::assertSame(['18015-2865', '18015-2866'], $this->asked?->orderNo);
+        self::assertNull($this->asked->fileFormat);
         self::assertSame([
             'file_name' => 'polkurier-labels-20260930-100000.pdf',
             'content' => '%PDF-1.4',
@@ -86,7 +86,7 @@ class DocumentServiceTest extends TestCase
         self::assertSame([[1, 2, 3]], $this->refreshed, 'Read together.');
         self::assertSame(
             ['24680-24'],
-            $this->asked?->getOrderNo(),
+            $this->asked?->orderNo,
             'Polkurier fails a whole protocol over one number it doesn\'t know.',
         );
         self::assertSame([
@@ -124,11 +124,11 @@ class DocumentServiceTest extends TestCase
         $documents = $this->createService();
 
         $zpl = $documents->getLabels([$this->createShipment('18015-2865', 1)], LabelFileFormatEnum::Zpl);
-        self::assertSame(LabelFileFormatEnum::Zpl, $this->asked?->getFileFormat());
+        self::assertSame(LabelFileFormatEnum::Zpl, $this->asked?->fileFormat);
         self::assertSame(['polkurier-labels-18015-2865.txt', 'text/plain'], [$zpl['file_name'], $zpl['content_type']]);
 
         $pdf = $documents->getLabels([$this->createShipment('18015-2865', 1)]);
-        self::assertNull($this->asked->getFileFormat());
+        self::assertNull($this->asked->fileFormat);
         self::assertSame('application/pdf', $pdf['content_type']);
     }
 
@@ -137,7 +137,10 @@ class DocumentServiceTest extends TestCase
         $zpl = $this->createService(['18015-2865'])
             ->getLabels([$this->createShipment('18015-2865', 1)], LabelFileFormatEnum::Zpl);
 
-        self::assertSame(['polkurier-labels-18015-2865.pdf', 'application/pdf'], [$zpl['file_name'], $zpl['content_type']]);
+        self::assertSame(
+            ['polkurier-labels-18015-2865.pdf', 'application/pdf'],
+            [$zpl['file_name'], $zpl['content_type']],
+        );
     }
 
     public function testSeveralOrdersInAPrinterLanguageAreAskedForOneByOneAndJoined(): void
@@ -149,7 +152,7 @@ class DocumentServiceTest extends TestCase
 
         self::assertSame(
             [['18015-2865'], ['18015-2866']],
-            \array_map(fn(GetDocumentMessage $m): array => $m->getOrderNo(), $this->askedAll),
+            \array_map(fn(GetDocumentMessage $m): array => $m->orderNo, $this->askedAll),
         );
         self::assertSame("^XA^FD18015-2865^FS^XZ\n^XA^FD18015-2866^FS^XZ", $zpl['content']);
         self::assertSame('text/plain', $zpl['content_type']);
@@ -162,8 +165,8 @@ class DocumentServiceTest extends TestCase
             LabelFileFormatEnum::Epl,
         );
 
-        self::assertSame(['18015-2865', '18015-2866'], $this->asked?->getOrderNo());
-        self::assertNull($this->asked->getFileFormat());
+        self::assertSame(['18015-2865', '18015-2866'], $this->asked?->orderNo);
+        self::assertNull($this->asked->fileFormat);
         self::assertSame(['%PDF-1.4', 'application/pdf'], [$file['content'], $file['content_type']]);
     }
 
@@ -233,8 +236,8 @@ class DocumentServiceTest extends TestCase
             LabelFileFormatEnum::Zpl,
         );
 
-        self::assertSame(['18015-2866', '18015-2867'], $this->asked?->getOrderNo());
-        self::assertNull($this->asked->getFileFormat());
+        self::assertSame(['18015-2866', '18015-2867'], $this->asked?->orderNo);
+        self::assertNull($this->asked->fileFormat);
         self::assertSame('application/pdf', $file['content_type']);
         self::assertSame(['Polkurier order 18015-2865 was left out: The label isn\'t ready yet.'], $file['left_out']);
     }
@@ -314,7 +317,7 @@ class DocumentServiceTest extends TestCase
         $file = $this->createService()->getLabels($this->createShipments(51));
 
         self::assertCount(1, $this->askedAll);
-        self::assertCount(51, $this->asked?->getOrderNo() ?? []);
+        self::assertCount(51, $this->asked->orderNo ?? []);
         self::assertSame('application/pdf', $file['content_type']);
     }
 
@@ -345,18 +348,18 @@ class DocumentServiceTest extends TestCase
         $answer = function (GetDocumentMessage $message) use ($pdfFor): DocumentMessage {
             $this->asked = $message;
             $this->askedAll[] = $message;
-            $orders = $message->getOrderNo();
+            $orders = $message->orderNo;
             $label = \count($orders) === 1 ? $this->labels[$orders[0]] ?? null : null;
             if ($label instanceof LocalizedException) {
                 throw $label;
             }
             if ($label !== null) {
-                return new DocumentMessage(\base64_encode($label));
+                return new DocumentMessage($label);
             }
-            $printer = $message->getFileFormat() !== null && \count($orders) === 1
+            $printer = $message->fileFormat !== null && \count($orders) === 1
                 && !\in_array($orders[0], $pdfFor, true);
 
-            return new DocumentMessage(\base64_encode($printer ? '^XA^FD' . $orders[0] . '^FS^XZ' : '%PDF-1.4'));
+            return new DocumentMessage($printer ? '^XA^FD' . $orders[0] . '^FS^XZ' : '%PDF-1.4');
         };
         $gateway->method('getLabel')->willReturnCallback($answer);
         $gateway->method('getProtocol')->willReturnCallback($answer);

@@ -8,6 +8,7 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Test\Unit\Model\Shipment\Native;
 
 use Magento\Framework\Exception\LocalizedException;
+use Magento\Framework\Serialize\Serializer\Json;
 use Magento\Framework\TestFramework\Unit\Helper\ObjectManager;
 use Magento\Sales\Api\Data\ShipmentItemCreationInterface;
 use Magento\Sales\Api\Data\ShipmentItemCreationInterfaceFactory;
@@ -21,6 +22,7 @@ use Magento\Sales\Model\Order;
 use Magento\Sales\Model\Order\Shipment as MagentoShipmentModel;
 use Magento\Sales\Model\Order\Shipment\ItemCreation;
 use Magento\Sales\Model\Order\Shipment\Track;
+use Magento\Sales\Model\Order\Shipment\TrackCreation;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
@@ -257,8 +259,8 @@ class NativeShipmentServiceTest extends TestCase
     {
         $cancelled = $this->createPolkurierShipment(11, 4, ShipmentInterface::STATE_CANCELLED, ['WB-OLD']);
         $this->linked = [$cancelled];
-        $oldTrack = $this->track('WB-OLD');
-        $otherTrack = $this->track('OTHER', 'dhl');
+        $oldTrack = $this->createTrack('WB-OLD');
+        $otherTrack = $this->createTrack('OTHER', 'dhl');
         $this->magentoShipments[4] = [$oldTrack, $otherTrack];
         $replacement = $this->createStub(ShipmentInterface::class);
         $replacement->method('getWaybills')->willReturn(['WB-NEW']);
@@ -394,7 +396,7 @@ class NativeShipmentServiceTest extends TestCase
         $amounts->method('getItems')->willReturn(self::ITEMS);
         $tracks = $this->createStub(ShipmentTrackCreationInterfaceFactory::class);
         $tracks->method('create')->willReturnCallback(
-            fn() => $this->getMockBuilder(\Magento\Sales\Model\Order\Shipment\TrackCreation::class)
+            fn() => $this->getMockBuilder(TrackCreation::class)
                 ->disableOriginalConstructor()
                 ->onlyMethods([])
                 ->getMock(),
@@ -425,7 +427,9 @@ class NativeShipmentServiceTest extends TestCase
                                 'eq' => $values[$field] === $condition['eq'],
                                 'in' => \in_array($values[$field], $condition['in'], true),
                                 'nin' => !\in_array($values[$field], $condition['nin'], true),
-                                default => throw new \LogicException('The test collection does not know this condition.'),
+                                default => throw new \LogicException(
+                                    'The test collection does not know this condition.',
+                                ),
                             };
                             if (!$matches) {
                                 return false;
@@ -502,7 +506,7 @@ class NativeShipmentServiceTest extends TestCase
         return $shipment;
     }
 
-    private function track(string $number, string $carrierCode = 'polkurier'): ShipmentTrackInterface
+    private function createTrack(string $number, string $carrierCode = 'polkurier'): ShipmentTrackInterface
     {
         $track = $this->createStub(ShipmentTrackInterface::class);
         $track->method('getTrackNumber')->willReturn($number);
@@ -537,7 +541,7 @@ class NativeShipmentServiceTest extends TestCase
     private function createCarrierConfigProvider(): CarrierConfigProvider
     {
         /** @var CarrierConfig $inpost */
-        $inpost = (new ObjectManager($this))->getObject(CarrierConfig::class);
+        $inpost = (new ObjectManager($this))->getObject(CarrierConfig::class, ['json' => new Json()]);
         $inpost->setCarrierCode('INPOST')->setCustomLabel('Kurier InPost');
         // Only the settings are stubbed: the label is read from them as in the shop.
         $configs = $this->createPartialMock(CarrierConfigProvider::class, ['get']);

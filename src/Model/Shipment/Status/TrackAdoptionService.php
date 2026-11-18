@@ -19,7 +19,7 @@ use Polkurier\Shipping\Model\Shipment\OrderLoader;
 use Polkurier\Shipping\Model\Shipment\OrderLock;
 use Polkurier\Shipping\Model\Shipment\ShipmentFinder;
 use Polkurier\Shipping\Model\ShipmentFactory;
-use Polkurier\Webservice\Response\Order;
+use Polkurier\Webservice\Entity\Order;
 
 /**
  * Links the Polkurier orders of tracking numbers added to a Magento shipment from elsewhere, e.g.

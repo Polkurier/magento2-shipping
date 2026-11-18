@@ -14,7 +14,7 @@ use Magento\Framework\Controller\Result\Redirect;
 use Magento\Framework\Exception\LocalizedException;
 use Polkurier\Shipping\Controller\Adminhtml\ReturnsBackTrait;
 use Polkurier\Shipping\Model\Payout\PayoutManager;
-use Polkurier\Shipping\Model\RequestParam;
+use Polkurier\Shipping\Model\RequestParamReader;
 
 /**
  * Withdraws a payout request Polkurier has not sent yet.
@@ -24,6 +24,7 @@ class Cancel extends Action implements HttpPostActionInterface
     use ReturnsBackTrait;
 
     public const string ADMIN_RESOURCE = 'Polkurier_Shipping::payout_request';
+    public const string ROUTE = 'polkurier/payout/cancel';
 
     public function __construct(
         Context $context,
@@ -34,7 +35,7 @@ class Cancel extends Action implements HttpPostActionInterface
 
     public function execute(): Redirect
     {
-        $number = RequestParam::getString($this->getRequest(), 'number');
+        $number = RequestParamReader::getString($this->getRequest(), 'number');
         try {
             if ($number === '') {
                 throw new LocalizedException(__('No payout to cancel.'));

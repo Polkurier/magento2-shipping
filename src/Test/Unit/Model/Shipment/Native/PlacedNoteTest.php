@@ -8,6 +8,8 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Test\Unit\Model\Shipment\Native;
 
 use Magento\Framework\App\Config\ScopeConfigInterface;
+use Magento\Framework\Serialize\Serializer\Json;
+use Magento\Framework\TestFramework\Unit\Helper\ObjectManager;
 use Magento\Sales\Api\Data\OrderStatusHistoryInterface;
 use Magento\Sales\Api\Data\ShipmentCommentInterfaceFactory;
 use Magento\Sales\Api\OrderStatusHistoryRepositoryInterface;
@@ -21,6 +23,7 @@ use PHPUnit\Framework\Attributes\CoversMethod;
 use PHPUnit\Framework\TestCase;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Api\ShipmentRepositoryInterface;
+use Polkurier\Shipping\Api\ShippingChoiceRepositoryInterface;
 use Polkurier\Shipping\Logger\Logger;
 use Polkurier\Shipping\Model\Carrier\CarrierNameProvider;
 use Polkurier\Shipping\Model\Sdk\ApiEventDispatcher;
@@ -30,7 +33,6 @@ use Polkurier\Shipping\Model\Shipment\Native\NativeShipmentService;
 use Polkurier\Shipping\Model\Shipment\OrderLoader;
 use Polkurier\Shipping\Model\Shipment\ShipmentFinder;
 use Polkurier\Shipping\Model\ShippingChoice;
-use Polkurier\Shipping\Model\ShippingChoice\ShippingChoiceRepository;
 
 #[CoversMethod(NativeFollowUpService::class, 'notePlaced')]
 #[AllowMockObjectsWithoutExpectations]
@@ -88,7 +90,7 @@ class PlacedNoteTest extends TestCase
      */
     private function followUp(?string $choice): NativeFollowUpService
     {
-        $choices = $this->createStub(ShippingChoiceRepository::class);
+        $choices = $this->createStub(ShippingChoiceRepositoryInterface::class);
         $choices->method('getForOrder')->willReturn(
             $choice === null ? null : new ShippingChoice(['order_id' => 15, 'shipping_description' => $choice]),
         );
@@ -135,7 +137,7 @@ class PlacedNoteTest extends TestCase
      */
     private function createPlacedShipment(array $waybills): Shipment
     {
-        $shipment = $this->getMockBuilder(Shipment::class)->disableOriginalConstructor()->onlyMethods([])->getMock();
+        $shipment = (new ObjectManager($this))->getObject(Shipment::class, ['json' => new Json()]);
         $shipment->setState(ShipmentInterface::STATE_CREATED)
             ->setPolkurierNumber('24680-36')
             ->setCarrierCode('DPD')

@@ -13,11 +13,11 @@ use Magento\Framework\Exception\LocalizedException;
 use Polkurier\Shipping\Api\PolkurierClientInterface;
 use Polkurier\Shipping\Controller\Adminhtml\AbstractJsonAction;
 use Polkurier\Shipping\Model\Config\ConfigProvider;
-use Polkurier\Shipping\Model\RequestParam;
+use Polkurier\Shipping\Model\RequestParamReader;
 use Polkurier\Shipping\Model\Sdk\ErrorMessageResolver;
+use Polkurier\Webservice\Dto\Request\AuthorizationMessageFactory;
 use Polkurier\Webservice\Exception\AuthorizationException;
 use Polkurier\Webservice\Exception\Exception as PolkurierException;
-use Polkurier\Webservice\Http\Request\AuthorizationMessageFactory;
 
 /**
  * Checks credentials as typed in the configuration form, before they are saved.
@@ -25,6 +25,7 @@ use Polkurier\Webservice\Http\Request\AuthorizationMessageFactory;
 class TestConnection extends AbstractJsonAction
 {
     public const string ADMIN_RESOURCE = 'Magento_Shipping::carriers';
+    public const string ROUTE = 'polkurier/config/testConnection';
 
     /**
      * What an obscured field shows instead of a saved value.
@@ -44,8 +45,8 @@ class TestConnection extends AbstractJsonAction
 
     protected function answer(): array
     {
-        $login = \trim(RequestParam::getString($this->getRequest(), 'customer_id'));
-        $token = \trim(RequestParam::getString($this->getRequest(), 'api_token'));
+        $login = \trim(RequestParamReader::getString($this->getRequest(), 'customer_id'));
+        $token = \trim(RequestParamReader::getString($this->getRequest(), 'api_token'));
         $login = $login === '' || $login === self::MASK ? $this->configProvider->getLogin() : $login;
         $token = $token === '' || $token === self::MASK ? $this->configProvider->getToken() : $token;
         if ($login === '' || $token === '') {
@@ -59,7 +60,7 @@ class TestConnection extends AbstractJsonAction
             // Shown next to the fields: the usual message's way to them would lead back here.
             throw new LocalizedException(__(
                 'Polkurier did not accept this customer ID and API token. (%1)',
-                $e->getErrorMessage()->getResponse(),
+                $e->getErrorMessage()->response,
             ), $e);
         } catch (PolkurierException $e) {
             throw $this->errorMessageResolver->createException($e);

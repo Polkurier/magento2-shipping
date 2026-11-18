@@ -10,6 +10,7 @@ namespace Polkurier\Shipping\Controller\Adminhtml\Payout;
 use Magento\Backend\App\Action\Context;
 use Magento\Framework\Controller\Result\JsonFactory;
 use Polkurier\Shipping\Controller\Adminhtml\AbstractJsonAction;
+use Polkurier\Shipping\Model\Admin\Formatter;
 use Polkurier\Shipping\Model\Payout\MoneyBoxOrderFinder;
 use Polkurier\Shipping\Model\Payout\PayoutManager;
 use Polkurier\Webservice\Enum\MoneyBox\MoneyBoxPayoutTypeEnum;
@@ -20,12 +21,14 @@ use Polkurier\Webservice\Enum\MoneyBox\MoneyBoxPayoutTypeEnum;
 class Quote extends AbstractJsonAction
 {
     public const string ADMIN_RESOURCE = 'Polkurier_Shipping::payout_request';
+    public const string ROUTE = 'polkurier/payout/quote';
 
     public function __construct(
         Context $context,
         JsonFactory $jsonFactory,
         private readonly PayoutManager $payoutManager,
         private readonly MoneyBoxOrderFinder $moneyBoxOrderFinder,
+        private readonly Formatter $formatter,
     ) {
         parent::__construct($context, $jsonFactory);
     }
@@ -43,16 +46,16 @@ class Quote extends AbstractJsonAction
             'available' => $this->payoutManager->getAvailableBalance(),
             // Polkurier silently leaves out what it can't pay out.
             'unknown' => $this->moneyBoxOrderFinder->findUnknown($numbers),
-            'fee' => $fee->getFee(),
-            'fee_net' => $fee->getFeeNett(),
-            'free_left' => $fee->getFreePayoutsLeft(),
-            'free_total' => $fee->getFreePayoutsTotal(),
+            'fee' => $fee->fee,
+            'fee_net' => $fee->feeNet,
+            'free_left' => $fee->freePayoutsLeft,
+            'free_total' => $fee->freePayoutsTotal,
             'message' => (string)__(
-                'Fee: %1 PLN gross (%2 PLN net). Free payouts left: %3 of %4.',
-                \number_format($fee->getFee(), 2),
-                \number_format($fee->getFeeNett(), 2),
-                $fee->getFreePayoutsLeft(),
-                $fee->getFreePayoutsTotal(),
+                'Fee: %1 gross (%2 net). Free payouts left: %3 of %4.',
+                $this->formatter->formatMoney($fee->fee),
+                $this->formatter->formatMoney($fee->feeNet),
+                $fee->freePayoutsLeft,
+                $fee->freePayoutsTotal,
             ),
         ];
     }

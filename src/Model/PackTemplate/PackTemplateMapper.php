@@ -9,11 +9,10 @@ namespace Polkurier\Shipping\Model\PackTemplate;
 
 use Polkurier\Shipping\Api\Data\PackTemplateInterface;
 use Polkurier\Shipping\Model\Shipment\Placement\ParcelTypeMapper;
-use Polkurier\Webservice\Builder\PackTemplate\SaveMessageBuilderFactory;
+use Polkurier\Webservice\Builder\Entity\PackTemplateBuilderFactory;
+use Polkurier\Webservice\Dto\Request\Common\DeleteMessage;
+use Polkurier\Webservice\Entity\PackTemplate;
 use Polkurier\Webservice\Enum\Order\AdditionalServiceEnum;
-use Polkurier\Webservice\Request\Common\DeleteMessage;
-use Polkurier\Webservice\Request\PackTemplate\SaveMessage;
-use Polkurier\Webservice\Response\PackTemplate;
 
 /**
  * Maps pack templates between Magento and the Polkurier account.
@@ -21,7 +20,7 @@ use Polkurier\Webservice\Response\PackTemplate;
 readonly class PackTemplateMapper
 {
     public function __construct(
-        private SaveMessageBuilderFactory $saveMessageBuilderFactory,
+        private PackTemplateBuilderFactory $packTemplateBuilderFactory,
     ) {}
 
     /**
@@ -76,22 +75,22 @@ readonly class PackTemplateMapper
             ->setServices((array)$remote[PackTemplateInterface::FIELD_SERVICES]);
     }
 
-    public function mapToSaveMessage(PackTemplateInterface $template): SaveMessage
+    public function mapToRecord(PackTemplateInterface $template): PackTemplate
     {
-        return $this->saveMessageBuilderFactory->create()
-            ->name($template->getName())
-            ->length($template->getLength())
-            ->width($template->getWidth())
-            ->height($template->getHeight())
-            ->weight($template->getWeight())
-            ->shipmentType(ParcelTypeMapper::mapShipmentType($template->getPackType()))
-            ->type(ParcelTypeMapper::mapPolkurierType($template->getPackType()))
-            ->id($template->getExtId())
-            ->cod($template->getCodAmount())
-            ->insurance($template->getInsuranceAmount())
-            ->description((string)$template->getDescription())
-            ->courier($template->getCarrierCode() ?: null)
-            ->services(\array_values(\array_filter(\array_map(
+        return $this->packTemplateBuilderFactory->create()
+            ->setName($template->getName())
+            ->setLength($template->getLength())
+            ->setWidth($template->getWidth())
+            ->setHeight($template->getHeight())
+            ->setWeight($template->getWeight())
+            ->setShipmentType(ParcelTypeMapper::mapShipmentType($template->getPackType()))
+            ->setType(ParcelTypeMapper::mapPolkurierType($template->getPackType()))
+            ->setId($template->getExtId())
+            ->setCod($template->getCodAmount())
+            ->setInsurance($template->getInsuranceAmount())
+            ->setDescription((string)$template->getDescription())
+            ->setCourier($template->getCarrierCode() ?: null)
+            ->setServices(\array_values(\array_filter(\array_map(
                 static fn(string $service): ?AdditionalServiceEnum => AdditionalServiceEnum::tryFrom($service),
                 $template->getServices(),
             ))))

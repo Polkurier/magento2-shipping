@@ -35,16 +35,16 @@ enum ApiEventEnum: string
      * shipment page, whose Magento shipment is saved right after; "reconcile" or "adopt" when an
      * unconfirmed attempt turned out to have been placed; "track" when one placed elsewhere was
      * linked from a tracking number added to a Magento shipment),
-     * "request" ({@see \Polkurier\Webservice\Request\Order\CreateOrderMessage}, only for "create" and "label"),
-     * "response" ({@see \Polkurier\Webservice\Response\Order\CreatedOrderMessage}, only for "create" and "label").
+     * "request" ({@see \Polkurier\Webservice\Dto\Request\Order\CreateOrderMessage}, only for "create" and "label"),
+     * "response" ({@see \Polkurier\Webservice\Dto\Response\Order\CreatedOrderMessage}, only for "create" and "label").
      */
     case OrderCreateAfter = 'polkurier_api_order_create_after';
 
     /**
      * A Polkurier order was cancelled.
      *
-     * Keys: "shipment", "order", "request" ({@see \Polkurier\Webservice\Request\Order\OrderIdMessage}),
-     * "response" ({@see \Polkurier\Webservice\Response\Order\CancellationMessage}).
+     * Keys: "shipment", "order", "request" ({@see \Polkurier\Webservice\Dto\Request\Order\CancelOrderMessage}),
+     * "response" ({@see \Polkurier\Webservice\Dto\Response\Order\CancellationMessage}).
      */
     case OrderCancelAfter = 'polkurier_api_order_cancel_after';
 
@@ -53,8 +53,8 @@ enum ApiEventEnum: string
      *
      * Keys: "shipments" ({@see \Polkurier\Shipping\Api\Data\ShipmentInterface}[], those booked),
      * "failed" (array<string, string>, reasons by Polkurier order number),
-     * "request" ({@see \Polkurier\Webservice\Request\Order\MultiPickupRequestMessage}),
-     * "response" ({@see \Polkurier\Webservice\Response\Order\MultiPickupResultMessage}).
+     * "request" ({@see \Polkurier\Webservice\Dto\Request\Order\MultiPickupRequestMessage}),
+     * "response" ({@see \Polkurier\Webservice\Dto\Response\Order\MultiPickupResultMessage}).
      */
     case PickupCreateAfter = 'polkurier_api_pickup_create_after';
 
@@ -62,8 +62,7 @@ enum ApiEventEnum: string
      * A sender address was created or updated on the account.
      *
      * Keys: "address" ({@see \Polkurier\Shipping\Api\Data\AddressInterface}), "is_new" (bool),
-     * "request" ({@see \Polkurier\Webservice\Request\Address\SaveMessage}),
-     * "response" (the SDK's {@see \Polkurier\Webservice\Response\Address}).
+     * "request" and "response" (both {@see \Polkurier\Webservice\Entity\Address}).
      */
     case AddressSaveAfter = 'polkurier_api_address_save_after';
 
@@ -71,7 +70,7 @@ enum ApiEventEnum: string
      * A sender address was deleted from the account.
      *
      * Keys: "address" ({@see \Polkurier\Shipping\Api\Data\AddressInterface}),
-     * "request" ({@see \Polkurier\Webservice\Request\Address\DeleteMessage}).
+     * "request" ({@see \Polkurier\Webservice\Dto\Request\Address\DeleteMessage}).
      */
     case AddressDeleteAfter = 'polkurier_api_address_delete_after';
 
@@ -79,8 +78,7 @@ enum ApiEventEnum: string
      * A pack template was created or updated on the account.
      *
      * Keys: "pack_template" ({@see \Polkurier\Shipping\Api\Data\PackTemplateInterface}), "is_new" (bool),
-     * "request" ({@see \Polkurier\Webservice\Request\PackTemplate\SaveMessage}),
-     * "response" (the SDK's {@see \Polkurier\Webservice\Response\PackTemplate}).
+     * "request" and "response" (both {@see \Polkurier\Webservice\Entity\PackTemplate}).
      */
     case PackTemplateSaveAfter = 'polkurier_api_pack_template_save_after';
 
@@ -88,7 +86,7 @@ enum ApiEventEnum: string
      * A pack template was deleted from the account.
      *
      * Keys: "pack_template" ({@see \Polkurier\Shipping\Api\Data\PackTemplateInterface}),
-     * "request" ({@see \Polkurier\Webservice\Request\Common\DeleteMessage}).
+     * "request" ({@see \Polkurier\Webservice\Dto\Request\Common\DeleteMessage}).
      */
     case PackTemplateDeleteAfter = 'polkurier_api_pack_template_delete_after';
 
@@ -96,7 +94,7 @@ enum ApiEventEnum: string
      * A bank account was created or updated on the account, with the merchant's confirmation.
      *
      * Keys: "bank_account" ({@see \Polkurier\Shipping\Api\Data\BankAccountInterface}), "is_new" (bool),
-     * "response" (the SDK's {@see \Polkurier\Webservice\Response\BankAccount}). The request is left
+     * "response" (the SDK's {@see \Polkurier\Webservice\Entity\BankAccount}). The request is left
      * out: it carries the code or PIN.
      */
     case BankAccountSaveAfter = 'polkurier_api_bank_account_save_after';
@@ -117,12 +115,21 @@ enum ApiEventEnum: string
     case TwoFactorCodeRequestAfter = 'polkurier_api_two_factor_code_request_after';
 
     /**
+     * A carrier's default drop-off point was set on the account, or cleared. Polkurier keeps one
+     * per point network, so the carriers of the same network have it too.
+     *
+     * Keys: "request" ({@see \Polkurier\Webservice\Dto\Request\Account\ChangeDefaultSenderPointMessage}:
+     * the carrier and the point, '' for none).
+     */
+    case DefaultSenderPointChangeAfter = 'polkurier_api_default_sender_point_change_after';
+
+    /**
      * A cash on delivery payout was requested. Money is moving.
      *
      * Keys: "order_numbers" (string[], empty for everything available),
      * "payout_type" ({@see \Polkurier\Webservice\Enum\MoneyBox\MoneyBoxPayoutTypeEnum}),
      * "fee_payment_type" ({@see \Polkurier\Webservice\Enum\MoneyBox\MoneyBoxFeePaymentTypeEnum}),
-     * "response" ({@see \Polkurier\Webservice\Response\MoneyBox\MoneyBoxPayoutMessage}). The request is
+     * "response" ({@see \Polkurier\Webservice\Dto\Response\MoneyBox\MoneyBoxPayoutMessage}). The request is
      * left out: it carries the code and PIN.
      */
     case PayoutCreateAfter = 'polkurier_api_payout_create_after';
@@ -130,8 +137,8 @@ enum ApiEventEnum: string
     /**
      * A cash on delivery payout was cancelled.
      *
-     * Keys: "request" ({@see \Polkurier\Webservice\Request\MoneyBox\CancelMoneyBoxPayoutMessage}),
-     * "response" ({@see \Polkurier\Webservice\Response\MoneyBox\MoneyBoxPayoutMessage}).
+     * Keys: "request" ({@see \Polkurier\Webservice\Dto\Request\MoneyBox\CancelMoneyBoxPayoutMessage}),
+     * "response" ({@see \Polkurier\Webservice\Dto\Response\MoneyBox\MoneyBoxPayoutMessage}).
      */
     case PayoutCancelAfter = 'polkurier_api_payout_cancel_after';
 }

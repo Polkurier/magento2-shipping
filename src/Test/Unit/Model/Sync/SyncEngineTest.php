@@ -19,6 +19,7 @@ use Polkurier\Shipping\Model\PackTemplate;
 use Polkurier\Shipping\Model\Sdk\ErrorMessageResolver;
 use Polkurier\Shipping\Model\Sync\AdapterInterface;
 use Polkurier\Shipping\Model\Sync\SyncEngine;
+use Polkurier\Shipping\Model\Sync\SyncResult;
 use Polkurier\Shipping\Model\Sync\SyncResultFactory;
 use Polkurier\Shipping\Test\Unit\Support\FakePushableSyncAdapter;
 use Polkurier\Shipping\Test\Unit\Support\FakeSyncAdapter;
@@ -400,7 +401,7 @@ class SyncEngineTest extends TestCase
         return null;
     }
 
-    private function synchronize(?SyncableInterface $only = null): \Polkurier\Shipping\Model\Sync\SyncResult
+    private function synchronize(?SyncableInterface $only = null): SyncResult
     {
         $dateTime = $this->createStub(DateTime::class);
         $dateTime->method('gmtTimestamp')->willReturn((int)\strtotime(self::NOW . ' UTC'));

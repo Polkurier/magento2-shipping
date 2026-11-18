@@ -16,10 +16,9 @@ use Polkurier\Shipping\Enum\Sdk\ApiEventEnum;
 use Polkurier\Shipping\Model\Sdk\ApiEventDispatcher;
 use Polkurier\Shipping\Model\Sdk\ErrorMessageResolver;
 use Polkurier\Shipping\Model\Sync\SyncEngine;
+use Polkurier\Webservice\Dto\Request\TwoFactorToken\RegisterMessage;
+use Polkurier\Webservice\Dto\Response\TwoFactorToken;
 use Polkurier\Webservice\Enum\TwoFactorToken\TwoFactorNamespaceEnum;
-use Polkurier\Webservice\Exception\Exception as PolkurierException;
-use Polkurier\Webservice\Request\TwoFactorToken\RegisterMessage;
-use Polkurier\Webservice\Response\TwoFactorToken;
 
 /**
  * Sends bank account changes to Polkurier, with the confirmation Polkurier requires for them.
@@ -49,11 +48,9 @@ readonly class Publisher
      */
     public function isPinLocked(): bool
     {
-        try {
-            return (bool)$this->polkurierClient->getAccount()->getAccountInfo()->getPinLocks()?->isBankAccountsEdit();
-        } catch (PolkurierException $e) {
-            throw $this->errorMessageResolver->createException($e);
-        }
+        return (bool)$this->errorMessageResolver->callTranslated(
+            fn(): ?bool => $this->polkurierClient->getAccount()->getAccountInfo()->pinLocks?->bankAccountsEdit,
+        );
     }
 
     /**
@@ -64,13 +61,11 @@ readonly class Publisher
      */
     public function requestCode(): TwoFactorToken
     {
-        try {
-            $token = $this->polkurierClient->getTwoFactorToken()->twoFactorTokenRegister(
+        $token = $this->errorMessageResolver->callTranslated(
+            fn(): TwoFactorToken => $this->polkurierClient->getTwoFactorToken()->register(
                 new RegisterMessage(TwoFactorNamespaceEnum::ChangeBankAccountNumber),
-            );
-        } catch (PolkurierException $e) {
-            throw $this->errorMessageResolver->createException($e);
-        }
+            ),
+        );
         $this->apiEventDispatcher->dispatch(ApiEventEnum::TwoFactorCodeRequestAfter, null, [
             'namespace' => TwoFactorNamespaceEnum::ChangeBankAccountNumber,
         ]);
@@ -90,17 +85,11 @@ readonly class Publisher
         ?string $pin,
     ): void {
         $isNew = $account->getExtId() === null;
-        try {
-            $bankAccounts = $this->polkurierClient->getBankAccounts();
-            $stored = $bankAccounts->saveBankAccount($this->bankAccountMapper->mapToSaveMessage(
-                $account,
-                $twoFactorToken,
-                $twoFactorCode,
-                $pin,
-            ));
-        } catch (PolkurierException $e) {
-            throw $this->errorMessageResolver->createException($e);
-        }
+        $stored = $this->errorMessageResolver->callTranslated(
+            fn() => $this->polkurierClient->getBankAccounts()->saveBankAccount(
+                $this->bankAccountMapper->mapToSaveMessage($account, $twoFactorToken, $twoFactorCode, $pin),
+            ),
+        );
         $normalized = $this->bankAccountMapper->normalize($stored);
         $this->syncEngine->recordPushed($this->bankAccountSyncAdapter, $account, $normalized, $this->getNow());
         $this->apiEventDispatcher->dispatch(ApiEventEnum::BankAccountSaveAfter, null, [
@@ -118,12 +107,11 @@ readonly class Publisher
     public function delete(BankAccountInterface $account, ?string $pin = null): void
     {
         if ($account->getExtId() !== null) {
-            try {
-                $message = $this->bankAccountMapper->mapToDeleteMessage($account, $pin);
-                $this->polkurierClient->getBankAccounts()->deleteBankAccount($message);
-            } catch (PolkurierException $e) {
-                throw $this->errorMessageResolver->createException($e);
-            }
+            $this->errorMessageResolver->callTranslated(
+                fn(): mixed => $this->polkurierClient->getBankAccounts()->deleteBankAccount(
+                    $this->bankAccountMapper->mapToDeleteMessage($account, $pin),
+                ),
+            );
             $this->apiEventDispatcher->dispatch(
                 ApiEventEnum::BankAccountDeleteAfter,
                 null,

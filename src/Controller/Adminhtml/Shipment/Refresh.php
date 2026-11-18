@@ -21,16 +21,17 @@ use Polkurier\Shipping\Model\Shipment\Details\DetailsLoader;
  */
 class Refresh extends AbstractShipmentAction implements HttpPostActionInterface
 {
-    public const string ADMIN_RESOURCE = 'Polkurier_Shipping::shipments';
+    public const string ADMIN_RESOURCE = 'Magento_Sales::shipment';
+    public const string ROUTE = 'polkurier/shipment/refresh';
 
     public function __construct(
         Context $context,
-        RequestedShipments $requestedShipments,
+        RequestedShipmentResolver $requestedShipmentResolver,
         private readonly ShipmentManagementInterface $shipmentManagement,
         private readonly DetailsLoader $detailsLoader,
         private readonly FlashMessageCollectorFactory $flashMessageCollectorFactory,
     ) {
-        parent::__construct($context, $requestedShipments);
+        parent::__construct($context, $requestedShipmentResolver);
     }
 
     public function execute(): Redirect

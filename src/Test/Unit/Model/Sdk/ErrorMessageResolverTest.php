@@ -13,7 +13,17 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Polkurier\Shipping\Exception\RecentFailureException;
 use Polkurier\Shipping\Model\Sdk\ErrorMessageResolver;
+use Polkurier\Webservice\Dto\Request\Order\CreateOrderMessage;
+use Polkurier\Webservice\Dto\Response\ErrorMessage;
+use Polkurier\Webservice\Entity\Order;
+use Polkurier\Webservice\Entity\Order\Address;
+use Polkurier\Webservice\Entity\Order\Cod;
+use Polkurier\Webservice\Entity\Order\PackItem;
+use Polkurier\Webservice\Entity\Order\Pickup;
 use Polkurier\Webservice\Enum\Http\ResponseStatusEnum;
+use Polkurier\Webservice\Enum\Order\PackTypeEnum;
+use Polkurier\Webservice\Enum\Order\ShipmentTypeEnum;
+use Polkurier\Webservice\Enum\Validator\ValidationErrorCodeEnum;
 use Polkurier\Webservice\Exception\AuthorizationException;
 use Polkurier\Webservice\Exception\ConnectionException;
 use Polkurier\Webservice\Exception\Exception as PolkurierException;
@@ -21,7 +31,8 @@ use Polkurier\Webservice\Exception\InvalidArgumentException;
 use Polkurier\Webservice\Exception\MalformedResponseException;
 use Polkurier\Webservice\Exception\ValidationException;
 use Polkurier\Webservice\Exception\WebserviceException;
-use Polkurier\Webservice\Http\Response\ErrorMessage;
+use Polkurier\Webservice\Validator\DefaultValidatorRegistryFactory;
+use Polkurier\Webservice\Validator\Violation;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
 
@@ -35,12 +46,140 @@ class ErrorMessageResolverTest extends TestCase
         self::assertSame('Recipient: Phone', $messages->getFieldLabel('recipient.phone'));
         self::assertSame('Sender: House number', $messages->getFieldLabel('sender.housenumber'));
         self::assertSame('Parcel 2: Weight', $messages->getFieldLabel('packs.1.weight'));
+        self::assertSame('Parcel 2: Weight', $messages->getFieldLabel('packs[1].weight'));
+        self::assertSame('Sender on the label: Flat number', $messages->getFieldLabel('cover_address.flat_number'));
+        self::assertSame('Cash on delivery: Amount', $messages->getFieldLabel('COD.codamount'));
+        self::assertSame('Shipment type', $messages->getFieldLabel('shipmenttype'));
+        self::assertSame('Carrier field: locker_size', $messages->getFieldLabel('additional_fields.locker_size'));
         self::assertSame('Shipment description', $messages->getFieldLabel('description'));
         self::assertSame(
             'something.else',
             $messages->getFieldLabel('something.else'),
             'One it doesn\'t know stays as it is.',
         );
+    }
+
+    public function testTheSdksOwnValidationNamesTheFieldsAsTheScreenDoes(): void
+    {
+        $order = new Order(
+            'DPD',
+            ShipmentTypeEnum::Box,
+            [new PackItem(10, 10, 10, 0.0, PackTypeEnum::Standard, 1)],
+            new Address('Jan Nadawca', 'Prosta', 'Warszawa', '00-838', 'jan@example.com', '600100200', null, '1'),
+            new Address('Anna Odbiorca', 'Długa', 'Kraków', '31-147', 'anna@example.com', '600300400', null, '2'),
+            description: 'Zam. 000000042',
+        );
+        try {
+            DefaultValidatorRegistryFactory::create()->validate(new CreateOrderMessage($order));
+            self::fail('A parcel weighing nothing is refused.');
+        } catch (ValidationException $e) {
+            self::assertStringContainsString(
+                'Parcel 1: Weight',
+                (string)(new ErrorMessageResolver())->createPhrase($e),
+            );
+        }
+    }
+
+    public function testTheSdksReasonsAreWordedByTheModule(): void
+    {
+        $day = new \DateTimeImmutable('2026-11-20');
+        $order = new Order(
+            'DPD',
+            ShipmentTypeEnum::Box,
+            [new PackItem(10, 10, 10, 0.0, PackTypeEnum::Standard, 1)],
+            new Address('Jan Nadawca', 'Prosta', 'Warszawa', '00838', 'jan', '12', null, '1'),
+            new Address('Anna Odbiorca', 'Długa', 'Kraków', '31-147', 'anna@example.com', '600300400', null, '2'),
+            description: 'Zam. 000000042',
+            cod: new Cod(100.0),
+            pickup: new Pickup($day, $day->setTime(15, 0), $day->setTime(10, 0)),
+        );
+        try {
+            DefaultValidatorRegistryFactory::create()->validate(new CreateOrderMessage($order));
+            self::fail('The order is refused.');
+        } catch (ValidationException $e) {
+            $phrase = (string)(new ErrorMessageResolver())->createPhrase($e);
+        }
+
+        foreach ([
+            'Parcel 1: Weight must be more than 0',
+            'Sender: E-mail must be an e-mail address',
+            'Sender: Phone has too few digits (at least 4)',
+            'Sender: Postcode must be a postcode of PL',
+            'Cash on delivery: Bank account is required for the chosen Cash on delivery: Paid out to',
+            'Collection: From must not exceed Collection: To',
+        ] as $reason) {
+            self::assertStringContainsString($reason, $phrase);
+        }
+    }
+
+    /**
+     * @param array<string, scalar> $parameters
+     */
+    #[DataProvider('provideWordedViolations')]
+    public function testEachShapeOfAReasonIsWorded(
+        ValidationErrorCodeEnum $code,
+        array $parameters,
+        string $expected,
+    ): void {
+        $phrase = (new ErrorMessageResolver())->createPhrase(new ValidationException(
+            ['packs[0].weight' => ['English']],
+            violations: [new Violation('packs[0].weight', $code, 'English', $parameters)],
+        ));
+
+        self::assertSame('Polkurier would not accept this. Check: Parcel 1: Weight ' . $expected, (string)$phrase);
+    }
+
+    /**
+     * @return array<string, array{ValidationErrorCodeEnum, array<string, scalar>, string}>
+     */
+    public static function provideWordedViolations(): array
+    {
+        $range = ValidationErrorCodeEnum::OutOfRange;
+        $blank = ValidationErrorCodeEnum::Blank;
+
+        return [
+            'both bounds' => [$range, ['minimum' => 1, 'maximum' => 100], 'must be from 1 to 100'],
+            'above a bound' => [$range, ['minimum' => 0, 'exclusiveMinimum' => true], 'must be more than 0'],
+            'above one, up to another' => [
+                $range,
+                ['minimum' => 0, 'maximum' => 5, 'exclusiveMinimum' => true],
+                'must be more than 0 and at most 5',
+            ],
+            'from a bound' => [$range, ['minimum' => 0], 'must be at least 0'],
+            'up to a bound' => [$range, ['maximum' => 30], 'must be at most 30'],
+            'no bound' => [$range, [], 'English'],
+            'always required' => [$blank, [], 'must not be empty'],
+            'required with another' => [
+                $blank,
+                ['field' => 'type', 'condition' => 'set'],
+                'is required when Parcel 1: Type is filled in',
+            ],
+            'required without another' => [
+                $blank,
+                ['field' => 'type', 'condition' => 'not_set'],
+                'is required when Parcel 1: Type is not set',
+            ],
+            'required when another is empty' => [
+                $blank,
+                ['field' => 'type', 'condition' => 'empty'],
+                'is required when Parcel 1: Type is empty',
+            ],
+            'required by a value' => [
+                $blank,
+                ['field' => 'type', 'condition' => 'equals', 'equals' => 'PAL'],
+                'is required for the chosen Parcel 1: Type',
+            ],
+        ];
+    }
+
+    public function testAReasonWithoutWordsOfItsOwnStaysInEnglish(): void
+    {
+        $phrase = (new ErrorMessageResolver())->createPhrase(new ValidationException(
+            ['recipient.phone' => ['is odd']],
+            violations: [new Violation('recipient.phone', ValidationErrorCodeEnum::Other, 'is odd')],
+        ));
+
+        self::assertSame('Polkurier would not accept this. Check: Recipient: Phone is odd', (string)$phrase);
     }
 
     public function testEachKindOfFailureIsSaidInItsOwnWords(): void

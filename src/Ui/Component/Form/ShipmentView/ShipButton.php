@@ -7,6 +7,8 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Ui\Component\Form\ShipmentView;
 
+use Polkurier\Shipping\Controller\Adminhtml\Shipment\Ship as ShipmentShip;
+
 /**
  * Creates the Magento shipment of a placed Polkurier order that has none.
  */
@@ -19,8 +21,8 @@ class ShipButton extends AbstractButton
     {
         return $this->isCreated()
             && $this->getShipment()?->getShipmentId() === null
-            && $this->authorization->isAllowed('Polkurier_Shipping::shipment_create')
-            ? $this->buildPostButton((string)__('Create Magento shipment'), 'ship', 60)
+            && $this->authorization->isAllowed(ShipmentShip::ADMIN_RESOURCE)
+            ? $this->buildPostButton((string)__('Create Magento shipment'), ShipmentShip::ROUTE, 60)
             : [];
     }
 }

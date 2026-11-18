@@ -10,27 +10,27 @@ namespace Polkurier\Shipping\Model\Sdk;
 use Magento\Framework\Exception\LocalizedException;
 use Polkurier\Shipping\Api\PolkurierClientInterface;
 use Polkurier\Shipping\Exception\PlacementUncertainException;
+use Polkurier\Webservice\Dto\Request\Courier\GetPickupTimeMessage;
+use Polkurier\Webservice\Dto\Request\Order\CancelOrderMessage;
+use Polkurier\Webservice\Dto\Request\Order\CreateOrderMessage;
+use Polkurier\Webservice\Dto\Request\Order\GetDocumentMessage;
+use Polkurier\Webservice\Dto\Request\Order\GetOrdersMessage;
+use Polkurier\Webservice\Dto\Request\Order\GetStatusMessage;
+use Polkurier\Webservice\Dto\Request\Order\MultiPickupAvailabilityRequestMessage;
+use Polkurier\Webservice\Dto\Request\Order\MultiPickupRequestMessage;
+use Polkurier\Webservice\Dto\Response\Courier\PickupTimeMessage;
+use Polkurier\Webservice\Dto\Response\Order\CancellationMessage;
+use Polkurier\Webservice\Dto\Response\Order\CreatedOrderMessage;
+use Polkurier\Webservice\Dto\Response\Order\DocumentMessage;
+use Polkurier\Webservice\Dto\Response\Order\MultiPickupResultMessage;
+use Polkurier\Webservice\Dto\Response\Order\OrderListMessage;
+use Polkurier\Webservice\Dto\Response\Order\OrderStatusMessage;
+use Polkurier\Webservice\Dto\Response\Order\ValuationMessage;
 use Polkurier\Webservice\Enum\Http\ApiErrorCodeEnum;
 use Polkurier\Webservice\Exception\ConnectionException;
 use Polkurier\Webservice\Exception\Exception as PolkurierException;
 use Polkurier\Webservice\Exception\MalformedResponseException;
 use Polkurier\Webservice\Exception\WebserviceException;
-use Polkurier\Webservice\Request\Courier\GetPickupTimeMessage;
-use Polkurier\Webservice\Request\Order\CreateOrderMessage;
-use Polkurier\Webservice\Request\Order\GetDocumentMessage;
-use Polkurier\Webservice\Request\Order\GetOrdersMessage;
-use Polkurier\Webservice\Request\Order\GetStatusMessage;
-use Polkurier\Webservice\Request\Order\MultiPickupAvailabilityRequestMessage;
-use Polkurier\Webservice\Request\Order\MultiPickupRequestMessage;
-use Polkurier\Webservice\Request\Order\OrderIdMessage;
-use Polkurier\Webservice\Response\Courier\PickupTimeMessage;
-use Polkurier\Webservice\Response\Order\CancellationMessage;
-use Polkurier\Webservice\Response\Order\CreatedOrderMessage;
-use Polkurier\Webservice\Response\Order\DocumentMessage;
-use Polkurier\Webservice\Response\Order\MultiPickupResultMessage;
-use Polkurier\Webservice\Response\Order\OrderListMessage;
-use Polkurier\Webservice\Response\Order\OrderStatusMessage;
-use Polkurier\Webservice\Response\Order\ValuationMessage;
 
 /**
  * The Polkurier calls the shipment side of the module makes, over
@@ -84,9 +84,11 @@ readonly class ShipmentGateway
     /**
      * @throws LocalizedException
      */
-    public function cancelOrder(OrderIdMessage $message): CancellationMessage
+    public function cancelOrder(CancelOrderMessage $message): CancellationMessage
     {
-        return $this->call(fn(): CancellationMessage => $this->polkurierClient->getOrders()->cancelOrder($message));
+        return $this->errorMessageResolver->callTranslated(
+            fn(): CancellationMessage => $this->polkurierClient->getOrders()->cancelOrder($message),
+        );
     }
 
     /**
@@ -94,7 +96,9 @@ readonly class ShipmentGateway
      */
     public function findOrders(GetOrdersMessage $message): OrderListMessage
     {
-        return $this->call(fn(): OrderListMessage => $this->polkurierClient->getOrders()->getOrders($message));
+        return $this->errorMessageResolver->callTranslated(
+            fn(): OrderListMessage => $this->polkurierClient->getOrders()->getOrders($message),
+        );
     }
 
     /**
@@ -102,9 +106,11 @@ readonly class ShipmentGateway
      */
     public function getStatus(string $number, bool $tracking): OrderStatusMessage
     {
-        return $this->call(fn(): OrderStatusMessage => $this->polkurierClient->getOrders()->getStatus(
-            new GetStatusMessage($number, tracking: $tracking),
-        ));
+        return $this->errorMessageResolver->callTranslated(
+            fn(): OrderStatusMessage => $this->polkurierClient->getOrders()->getStatus(
+                new GetStatusMessage($number, tracking: $tracking),
+            ),
+        );
     }
 
     /**
@@ -120,9 +126,9 @@ readonly class ShipmentGateway
 
             return false;
         } catch (WebserviceException $e) {
-            $answer = $e->getErrorMessage()->getResponse();
+            $answer = $e->getErrorMessage()->response;
 
-            return \is_string($answer) && \trim($answer) === self::CANCELLED_ORDER ? true : null;
+            return \trim($answer) === self::CANCELLED_ORDER ? true : null;
         } catch (PolkurierException) {
             return null;
         }
@@ -133,7 +139,9 @@ readonly class ShipmentGateway
      */
     public function getLabel(GetDocumentMessage $message): DocumentMessage
     {
-        return $this->call(fn(): DocumentMessage => $this->polkurierClient->getOrders()->getLabel($message));
+        return $this->errorMessageResolver->callTranslated(
+            fn(): DocumentMessage => $this->polkurierClient->getOrders()->getLabel($message),
+        );
     }
 
     /**
@@ -141,7 +149,9 @@ readonly class ShipmentGateway
      */
     public function getProtocol(GetDocumentMessage $message): DocumentMessage
     {
-        return $this->call(fn(): DocumentMessage => $this->polkurierClient->getOrders()->getProtocol($message));
+        return $this->errorMessageResolver->callTranslated(
+            fn(): DocumentMessage => $this->polkurierClient->getOrders()->getProtocol($message),
+        );
     }
 
     /**
@@ -152,7 +162,9 @@ readonly class ShipmentGateway
      */
     public function valuate(CreateOrderMessage $message): array
     {
-        return $this->call(fn(): array => $this->polkurierClient->getOrders()->orderValuation($message));
+        return $this->errorMessageResolver->callTranslated(
+            fn(): array => $this->polkurierClient->getOrders()->orderValuation($message),
+        );
     }
 
     /**
@@ -161,7 +173,9 @@ readonly class ShipmentGateway
      */
     public function getPickupTimes(GetPickupTimeMessage $message): array
     {
-        return $this->call(fn(): array => $this->polkurierClient->getCourier()->getCourierPickupTime($message));
+        return $this->errorMessageResolver->callTranslated(
+            fn(): array => $this->polkurierClient->getCourier()->getCourierPickupTime($message),
+        );
     }
 
     /**
@@ -172,8 +186,8 @@ readonly class ShipmentGateway
      */
     public function isMultiPickupAvailable(MultiPickupAvailabilityRequestMessage $message): bool
     {
-        return $this->call(
-            fn(): bool => $this->polkurierClient->getOrders()->isMultiPickupAvailable($message)->isAvailable(),
+        return $this->errorMessageResolver->callTranslated(
+            fn(): bool => $this->polkurierClient->getOrders()->isMultiPickupAvailable($message)->available,
         );
     }
 
@@ -182,27 +196,11 @@ readonly class ShipmentGateway
      */
     public function bookMultiPickup(MultiPickupRequestMessage $message): MultiPickupResultMessage
     {
-        return $this->call(
+        return $this->errorMessageResolver->callTranslated(
             fn(): MultiPickupResultMessage => $this->polkurierClient->getOrders()->createMultiOrderPickup($message),
         );
     }
 
-    /**
-     * @template T
-     *
-     * @param callable(): T $request
-     *
-     * @return T
-     * @throws LocalizedException
-     */
-    private function call(callable $request): mixed
-    {
-        try {
-            return $request();
-        } catch (PolkurierException $e) {
-            throw $this->errorMessageResolver->createException($e);
-        }
-    }
 
     /**
      * Placing an order isn't idempotent, so an order is taken as possibly placed unless the
@@ -222,14 +220,14 @@ readonly class ShipmentGateway
             return false;
         }
         $error = $e->getErrorMessage();
-        $code = (string)$error->getErrorCode();
+        $code = (string)$error->errorCode;
         if ($code === ApiErrorCodeEnum::UnknownError->value) {
             return true;
         }
         if ($code !== '') {
             return false;
         }
-        $reason = \trim(\is_string($error->getResponse()) ? $error->getResponse() : '');
+        $reason = \trim($error->response);
 
         return $reason === '' || \str_starts_with($reason, self::FATAL_PREFIX);
     }

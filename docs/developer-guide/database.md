@@ -98,11 +98,11 @@ adding one (see [Placing](shipments.md#placing)). A request refused as it stands
 | `attention_notified_at` | when the admin was told about this shipment needing attention (see [Shipments](shipments.md#shipments-that-need-attention)); cleared by a new attempt |
 | `draft` | the shipment as it was filled in (JSON, see [The draft](shipments.md#the-draft)); sending it again starts from this |
 | `request` | the serialized request as sent, without credentials; null for an order placed elsewhere and linked from its waybill |
-| `details`, `details_synced_at` | the local copy of the order as Polkurier reports it (JSON), and when it was read |
+| `details`, `details_synced_at` | the local copy of the order as Polkurier reports it (JSON, keyed as [`ShipmentDetailsInterface`](../../src/Api/Data/ShipmentDetailsInterface.php) says), and when it was read |
 | `ship_items` | the quantities the Magento shipment carries, by order item id (JSON); empty means everything left to ship |
 | `ship_packages` | the packages of the Magento shipment, as Magento keeps them (JSON): each parcel and what it holds |
 | `target_shipment_id` | when the order has nothing left to ship: the existing Magento shipment the Polkurier order is added to once placed |
-| `tracking`, `tracking_synced_at` | the local copy of the carrier's scans, newest first (JSON), and when they were read |
+| `tracking`, `tracking_synced_at` | the local copy of the carrier's scans, newest first (JSON, keyed by `ShipmentDetailsInterface::FIELD_SCAN_*`), and when they were read |
 | `last_error` | why the last action failed, or a warning such as probable duplicates |
 
 The stored request, the order copy and the scans contain the recipient's personal data. If your

@@ -12,16 +12,17 @@ use Magento\Backend\App\Action\Context;
 use Magento\Framework\App\Action\HttpGetActionInterface;
 use Magento\Framework\Controller\Result\Json;
 use Magento\Framework\Controller\Result\JsonFactory;
+use Polkurier\Shipping\Controller\Adminhtml\Carrier\Save as CarrierSave;
 use Polkurier\Shipping\Model\PickupPoint\MapTokenProvider;
 
 /**
- * A fresh token for the pickup point map: for a shipment screen or label window whose token is
- * gone or about to run out, and for the address form's drop-off point, which asks for one when the
- * map opens.
+ * A fresh token for the pickup point map, for a shipment screen, label window or carrier page whose
+ * token is missing or about to run out.
  */
 class MapToken extends Action implements HttpGetActionInterface
 {
-    public const string ADMIN_RESOURCE = 'Polkurier_Shipping::shipment_create';
+    public const string ADMIN_RESOURCE = 'Magento_Sales::ship';
+    public const string ROUTE = 'polkurier/shipment/mapToken';
 
     public function __construct(
         Context $context,
@@ -31,16 +32,16 @@ class MapToken extends Action implements HttpGetActionInterface
         parent::__construct($context);
     }
 
+    public function execute(): Json
+    {
+        return $this->jsonFactory->create()->setData($this->mapTokenProvider->getTokenWithExpiry());
+    }
+
     /**
      * Also for choosing a carrier's default drop-off point.
      */
     protected function _isAllowed(): bool
     {
-        return parent::_isAllowed() || $this->_authorization->isAllowed('Polkurier_Shipping::carriers');
-    }
-
-    public function execute(): Json
-    {
-        return $this->jsonFactory->create()->setData($this->mapTokenProvider->getTokenWithExpiry());
+        return parent::_isAllowed() || $this->_authorization->isAllowed(CarrierSave::ADMIN_RESOURCE);
     }
 }

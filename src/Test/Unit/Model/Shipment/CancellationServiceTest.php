@@ -8,6 +8,7 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Test\Unit\Model\Shipment;
 
 use Magento\Framework\Exception\LocalizedException;
+use Magento\Framework\Serialize\Serializer\Json;
 use Magento\Framework\TestFramework\Unit\Helper\ObjectManager;
 use Magento\Sales\Model\Order;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
@@ -25,8 +26,8 @@ use Polkurier\Shipping\Model\Shipment\Native\NativeFollowUpService;
 use Polkurier\Shipping\Model\Shipment\OrderLoader;
 use Polkurier\Shipping\Model\Shipment\OrderLock;
 use Polkurier\Shipping\Test\Unit\Support\MemoryLocks;
-use Polkurier\Webservice\Request\Order\OrderIdMessage;
-use Polkurier\Webservice\Response\Order\CancellationMessage;
+use Polkurier\Webservice\Dto\Request\Order\CancelOrderMessage;
+use Polkurier\Webservice\Dto\Response\Order\CancellationMessage;
 
 #[CoversClass(CancellationService::class)]
 #[AllowMockObjectsWithoutExpectations]
@@ -105,7 +106,7 @@ class CancellationServiceTest extends TestCase
         bool $cancelled = true,
         bool $cancelledMeanwhile = false,
     ): CancellationService {
-        $this->shipment = (new ObjectManager($this))->getObject(Shipment::class);
+        $this->shipment = (new ObjectManager($this))->getObject(Shipment::class, ['json' => new Json()]);
         $this->shipment
             ->setId(5)
             ->setOrderId(29)
@@ -128,8 +129,8 @@ class CancellationServiceTest extends TestCase
         });
         $gateway = $this->createStub(ShipmentGateway::class);
         $gateway->method('cancelOrder')->willReturnCallback(
-            function (OrderIdMessage $message) use ($cancelled): CancellationMessage {
-                $this->happened[] = 'cancel ' . $message->getOrderNo();
+            function (CancelOrderMessage $message) use ($cancelled): CancellationMessage {
+                $this->happened[] = 'cancel ' . $message->orderNo;
 
                 return new CancellationMessage($cancelled);
             },

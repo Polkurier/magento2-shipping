@@ -19,6 +19,7 @@ use Polkurier\Shipping\Model\Config\ConfigProvider;
 class Sync extends AbstractSync
 {
     public const string ADMIN_RESOURCE = 'Polkurier_Shipping::bank_accounts';
+    public const string ROUTE = 'polkurier/bankaccount/sync';
 
     public function __construct(
         Context $context,

@@ -8,15 +8,18 @@
     <acl>
         <resources>
             <resource id="Magento_Backend::admin">
+                <!-- Creating and viewing Polkurier orders use Magento's Ship and Shipments -->
+                <resource id="Magento_Sales::sales">
+                    <resource id="Magento_Sales::sales_operation">
+                        <resource id="Magento_Sales::shipment">
+                            <resource id="Polkurier_Shipping::shipment_cancel"
+                                      title="Cancel Polkurier orders" translate="title" sortOrder="1000" />
+                        </resource>
+                    </resource>
+                </resource>
                 <resource id="Polkurier_Shipping::root" title="Polkurier" translate="title" sortOrder="1000">
                     <!-- As the menu has them -->
                     <resource id="Polkurier_Shipping::sales" title="Sales" translate="title" sortOrder="10">
-                        <resource id="Polkurier_Shipping::shipments" title="Shipments" translate="title" sortOrder="10">
-                            <resource id="Polkurier_Shipping::shipment_create"
-                                      title="Create shipments" translate="title" sortOrder="10" />
-                            <resource id="Polkurier_Shipping::shipment_cancel"
-                                      title="Cancel shipments" translate="title" sortOrder="20" />
-                        </resource>
                         <resource id="Polkurier_Shipping::payouts"
                                   title="Cash on delivery payouts" translate="title" sortOrder="20">
                             <resource id="Polkurier_Shipping::payout_request"
@@ -24,7 +27,6 @@
                         </resource>
                     </resource>
                     <resource id="Polkurier_Shipping::settings" title="Settings" translate="title" sortOrder="30">
-                        <resource id="Polkurier_Shipping::carriers" title="Carriers" translate="title" sortOrder="10" />
                         <resource id="Polkurier_Shipping::addresses"
                                   title="Addresses" translate="title" sortOrder="20" />
                         <resource id="Polkurier_Shipping::bank_accounts"

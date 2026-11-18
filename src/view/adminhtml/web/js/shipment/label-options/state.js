@@ -63,7 +63,7 @@ define([
             },
 
             formatMoney: function (amount) {
-                return rules.formatMoney(amount, config.currency);
+                return rules.formatMoney(amount, config.priceFormat);
             },
 
             /**
@@ -204,9 +204,10 @@ define([
                     carriers: config.carriers,
                     carriers_error: config.carriersError,
                     choices: {services: services},
-                    currency: config.currency,
+                    price_format: config.priceFormat,
                     cod_collected: config.codCollected,
                     cod_remaining: config.codRemaining,
+                    description_max_length: config.description.maxLength,
                     recipient_point_closed: config.point && config.point.closed ? config.point.id : ''
                 })).filter(function (issue) {
                     return names.indexOf(issue.field) !== -1 && (!blockingOnly || issue.blocking);
@@ -339,26 +340,26 @@ define([
 
             getCodNote: function () {
                 if (Number(config.codCollected) > 0) {
-                    return $t('Leave empty for none. Order total: %1, of which the order\'s other Polkurier orders collect %2.')
+                    return $t('0 or empty: no cash on delivery. Order total: %1, of which the order\'s other Polkurier orders collect %2.')
                         .replace('%1', state.formatMoney(config.grandTotal))
                         .replace('%2', state.formatMoney(config.codCollected));
                 }
 
-                return $t('Leave empty for none. Order total: %1').replace('%1', state.formatMoney(config.grandTotal));
+                return $t('0 or empty: no cash on delivery. Order total: %1.').replace('%1', state.formatMoney(config.grandTotal));
             },
 
             getInsuranceNote: function () {
                 const worth = state.getShipmentWorth();
 
                 if (worth === null) {
-                    return $t('Leave empty for none.');
+                    return $t('0 or empty: no insurance.');
                 }
 
                 return (worth.whole || worth.products <= 0
-                    ? $t('Leave empty for none. Shipment value: %1, the order total, as all of the order ships; it includes the %3 the customer was charged for shipping and handling.')
+                    ? $t('0 or empty: no insurance. Shipment value: %1, the order total, as all of the order ships; it includes the %3 the customer was charged for shipping and handling.')
                     : (worth.with_shipping
-                        ? $t('Leave empty for none. Shipment value: %1, the products with tax and after discounts and the shipping and handling, as this part carries the rest of the order (order total: %2, of which shipping and handling: %3).')
-                        : $t('Leave empty for none. Shipment value: %1, the products with tax and after discounts, as only part of the order ships (order total: %2, of which shipping and handling: %3).')))
+                        ? $t('0 or empty: no insurance. Shipment value: %1, the products with tax and after discounts and the shipping and handling, as this part carries the rest of the order (order total: %2, of which shipping and handling: %3).')
+                        : $t('0 or empty: no insurance. Shipment value: %1, the products with tax and after discounts, as only part of the order ships (order total: %2, of which shipping and handling: %3).')))
                     .replace('%1', state.formatMoney(worth.value))
                     .replace('%2', state.formatMoney(config.grandTotal))
                     .replace('%3', state.formatMoney(config.shippingCharged));

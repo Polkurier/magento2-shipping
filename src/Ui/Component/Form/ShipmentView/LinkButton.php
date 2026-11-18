@@ -8,6 +8,7 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Ui\Component\Form\ShipmentView;
 
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
+use Polkurier\Shipping\Controller\Adminhtml\Shipment\Adopt as ShipmentAdopt;
 
 /**
  * Links a shipment whose outcome is unknown to the Polkurier order the merchant found for it, among
@@ -24,7 +25,7 @@ class LinkButton extends AbstractButton
         // Only an order sent with the shipment's ids can be linked to it.
         if ($shipment === null || $shipment->getState() !== ShipmentInterface::STATE_UNKNOWN
             || $shipment->getExternalOrderId() === null
-            || !$this->authorization->isAllowed('Polkurier_Shipping::shipment_create')
+            || !$this->authorization->isAllowed(ShipmentAdopt::ADMIN_RESOURCE)
         ) {
             return [];
         }
@@ -32,7 +33,7 @@ class LinkButton extends AbstractButton
             'label' => (string)__('Link to a Polkurier order'),
             'class' => 'secondary',
             'on_click' => $this->onClickScriptBuilder->buildPrompt(
-                $this->getActionUrl('adopt'),
+                $this->getActionUrl(ShipmentAdopt::ROUTE),
                 (string)__('Link to a Polkurier order'),
                 (string)__(
                     'The number of the Polkurier order this shop placed for this shipment, '

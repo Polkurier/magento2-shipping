@@ -15,8 +15,8 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use Polkurier\Shipping\Api\CarrierConfigRepositoryInterface;
 use Polkurier\Shipping\Api\Data\CarrierConfigInterface;
 use Polkurier\Shipping\Controller\Adminhtml\Carrier\Save;
+use Polkurier\Shipping\Enum\Adminhtml\AfterSaveEnum;
 use Polkurier\Shipping\Enum\Adminhtml\FormMemoryEnum;
-use Polkurier\Shipping\Model\Admin\FormActions;
 use Polkurier\Shipping\Model\CarrierConfig\CarrierConfigHydrator;
 use Polkurier\Shipping\Model\PickupPoint\DefaultSenderPointManager;
 use Polkurier\Shipping\Test\Unit\Support\AdminActionTestCase;
@@ -49,7 +49,7 @@ class CarrierSaveTest extends AdminActionTestCase
     public function testSaveAndContinueEditComesBackToTheForm(): void
     {
         $this->post = ['id' => '7', 'pricing_model' => 'FIXED'];
-        $this->params = [FormActions::BACK_PARAM => FormActions::SAVE_AND_CONTINUE];
+        $this->params = [AfterSaveEnum::PARAM => AfterSaveEnum::BackToForm->value];
 
         $this->save()->execute();
 

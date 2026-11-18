@@ -142,7 +142,7 @@ readonly class DraftHydrator
             $draft->getPacks(),
         );
         $data[ShipmentDraftInterface::FIELD_ITEMS] = self::buildItemRows($draft->getItems());
-        $data[ShipmentDraftInterface::FIELD_PACKS_ESTIMATED] = $draft->isPacksEstimated();
+        $data[ShipmentDraftInterface::FIELD_PACKS_ESTIMATED] = $draft->hasEstimatedPacks();
         $data[ShipmentDraftInterface::FIELD_SHIPPING_INCLUDED] = $draft->isShippingIncluded();
         // Chosen on the screens as "new", in place of an id.
         if ($draft->isNewSender()) {

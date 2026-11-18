@@ -13,6 +13,7 @@ use Magento\Framework\Controller\Result\Redirect;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Controller\Adminhtml\ReturnsBackTrait;
+use Polkurier\Shipping\Controller\Adminhtml\Shipment\Index as ShipmentIndex;
 
 /**
  * Shared plumbing of the actions on existing Polkurier shipments: reaching the shipments a request
@@ -22,11 +23,11 @@ abstract class AbstractShipmentAction extends Action
 {
     use ReturnsBackTrait;
 
-    public const string ADMIN_RESOURCE = 'Polkurier_Shipping::shipments';
+    public const string ADMIN_RESOURCE = 'Magento_Sales::shipment';
 
     public function __construct(
         Context $context,
-        private readonly RequestedShipments $requestedShipments,
+        private readonly RequestedShipmentResolver $requestedShipmentResolver,
     ) {
         parent::__construct($context);
     }
@@ -34,7 +35,7 @@ abstract class AbstractShipmentAction extends Action
     protected function getShipment(): ?ShipmentInterface
     {
         try {
-            return $this->requestedShipments->getOne($this->getRequest());
+            return $this->requestedShipmentResolver->getOne($this->getRequest());
         } catch (NoSuchEntityException $e) {
             $this->messageManager->addErrorMessage($e->getMessage());
 
@@ -50,7 +51,7 @@ abstract class AbstractShipmentAction extends Action
      */
     protected function getSelectedShipments(): array
     {
-        return $this->requestedShipments->getSelected($this->getRequest());
+        return $this->requestedShipmentResolver->getSelected($this->getRequest());
     }
 
     /**
@@ -65,6 +66,6 @@ abstract class AbstractShipmentAction extends Action
 
         return $orderId
             ? $this->returnBack('sales/order/view', ['order_id' => $orderId], $gone)
-            : $this->returnBack('polkurier/shipment/index', [], $gone);
+            : $this->returnBack(ShipmentIndex::ROUTE, [], $gone);
     }
 }

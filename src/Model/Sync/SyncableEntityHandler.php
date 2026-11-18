@@ -27,7 +27,7 @@ abstract readonly class SyncableEntityHandler implements EntityHandlerInterface
     public function __construct(
         private PushableAdapterInterface $adapter,
         private SyncEngine $syncEngine,
-        private Synchronization $synchronization,
+        private SettingsSynchronizer $settingsSynchronizer,
         private ErrorMessageResolver $errorMessageResolver,
         protected DateTime $dateTime,
         private SyncLock $syncLock,
@@ -81,7 +81,7 @@ abstract readonly class SyncableEntityHandler implements EntityHandlerInterface
      */
     public function synchronize(): array
     {
-        return $this->synchronization->synchronize([$this->adapter->getEntityType()]);
+        return $this->settingsSynchronizer->synchronize([$this->adapter->getEntityType()]);
     }
 
     /**

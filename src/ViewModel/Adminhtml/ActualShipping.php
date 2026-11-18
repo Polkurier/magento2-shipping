@@ -9,14 +9,15 @@ namespace Polkurier\Shipping\ViewModel\Adminhtml;
 
 use Magento\Framework\View\Element\Block\ArgumentInterface;
 use Magento\Sales\Model\Order;
+use Polkurier\Shipping\Api\Data\ShipmentDetailsInterface;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Api\OrderPointRepositoryInterface;
+use Polkurier\Shipping\Api\ShippingChoiceRepositoryInterface;
 use Polkurier\Shipping\Model\Carrier\CarrierNameProvider;
 use Polkurier\Shipping\Model\Carrier\Polkurier;
 use Polkurier\Shipping\Model\Shipment\Details\SentOrderReader;
 use Polkurier\Shipping\Model\Shipment\Screen\ScreenDataProvider;
 use Polkurier\Shipping\Model\Shipment\ShipmentFinder;
-use Polkurier\Shipping\Model\ShippingChoice\ShippingChoiceRepository;
 
 /**
  * For the shipping information of the order and shipment pages. Under the order's shipping, which
@@ -32,7 +33,7 @@ readonly class ActualShipping implements ArgumentInterface
         private OrderPointRepositoryInterface $orderPointRepository,
         private SentOrderReader $sentOrderReader,
         private ScreenDataProvider $screenDataProvider,
-        private ShippingChoiceRepository $shippingChoiceRepository,
+        private ShippingChoiceRepositoryInterface $shippingChoiceRepository,
     ) {}
 
     /**
@@ -95,9 +96,10 @@ readonly class ActualShipping implements ArgumentInterface
         foreach ($shipments as $shipment) {
             // As Polkurier reports it, or as it was sent until Polkurier's copy has been read.
             $details = $shipment->getDetails() ?: $this->sentOrderReader->read((string)$shipment->getRequest());
-            $recipient = \is_array($details['recipient'] ?? null) ? $details['recipient'] : [];
-            $point = (string)($recipient['point_id'] ?? '');
-            $label = (string)($recipient['point_label'] ?? '');
+            $recipient = $details[ShipmentDetailsInterface::FIELD_RECIPIENT] ?? null;
+            $recipient = \is_array($recipient) ? $recipient : [];
+            $point = (string)($recipient[ShipmentDetailsInterface::FIELD_ADDRESS_POINT_ID] ?? '');
+            $label = (string)($recipient[ShipmentDetailsInterface::FIELD_ADDRESS_POINT_LABEL] ?? '');
             $key = $shipment->getCarrierCode() . '|' . $point;
             if (isset($shipped[$key])) {
                 continue;
@@ -111,7 +113,7 @@ readonly class ActualShipping implements ArgumentInterface
             }
             if ($changed && $label === '' && $point !== '') {
                 $found = $this->screenDataProvider->findRecipientPoint($shipment->getCarrierCode(), $point);
-                $label = $found ? (string)$found->getAddress() : '';
+                $label = $found ? $found->address : '';
             }
             $shipped[$key] = [
                 'carrier' => $this->carrierNameProvider->get($shipment->getCarrierCode()),

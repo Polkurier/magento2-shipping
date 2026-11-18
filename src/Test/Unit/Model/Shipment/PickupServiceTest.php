@@ -24,18 +24,18 @@ use Polkurier\Shipping\Model\Shipment\PickupService;
 use Polkurier\Shipping\Model\Shipment\Placement\SenderMapper;
 use Polkurier\Shipping\Test\Unit\Support\NewingObjectManager;
 use Polkurier\Shipping\Test\Unit\Support\RecordingEventManager;
-use Polkurier\Webservice\Builder\Courier\GetPickupTimeMessageBuilderFactory;
-use Polkurier\Webservice\Builder\Order\MultiPickupAvailabilityRequestMessageBuilderFactory;
-use Polkurier\Webservice\Builder\Order\MultiPickupRequestMessageBuilderFactory;
+use Polkurier\Webservice\Builder\Request\Courier\GetPickupTimeMessageBuilderFactory;
+use Polkurier\Webservice\Builder\Request\Order\MultiPickupAvailabilityRequestMessageBuilderFactory;
+use Polkurier\Webservice\Builder\Request\Order\MultiPickupRequestMessageBuilderFactory;
+use Polkurier\Webservice\Dto\Request\Courier\GetPickupTimeMessage;
+use Polkurier\Webservice\Dto\Request\Order\MultiPickupAvailabilityRequestMessage;
+use Polkurier\Webservice\Dto\Request\Order\MultiPickupRequestMessage;
+use Polkurier\Webservice\Dto\Response\Courier\PickupTimeMessage;
+use Polkurier\Webservice\Dto\Response\Courier\TimeIntervalMessage;
+use Polkurier\Webservice\Dto\Response\Order\MultiPickupResultMessage;
+use Polkurier\Webservice\Entity\Order\PackItem;
 use Polkurier\Webservice\Enum\Order\PackTypeEnum;
 use Polkurier\Webservice\Enum\Order\ShipmentTypeEnum;
-use Polkurier\Webservice\Request\Courier\GetPickupTimeMessage;
-use Polkurier\Webservice\Request\Order\MultiPickupAvailabilityRequestMessage;
-use Polkurier\Webservice\Request\Order\MultiPickupRequestMessage;
-use Polkurier\Webservice\Request\Order\PackMessage;
-use Polkurier\Webservice\Response\Courier\PickupTimeMessage;
-use Polkurier\Webservice\Response\Courier\TimeIntervalMessage;
-use Polkurier\Webservice\Response\Order\MultiPickupResultMessage;
 
 #[CoversClass(PickupService::class)]
 #[AllowMockObjectsWithoutExpectations]
@@ -58,14 +58,19 @@ class PickupServiceTest extends TestCase
 
     private RecordingEventManager $events;
 
+    /**
+     * @var PickupTimeMessage[] the collection days Polkurier offers
+     */
+    private array $pickupDays = [];
+
     public function testCollectionTimesAreDaysWithTheirWindows(): void
     {
         $times = $this->createService()->getPickupTimes('DPD', '05-620', '', 'box');
 
-        self::assertSame('DPD', $this->timesAsked?->getCourier());
-        self::assertSame('05-620', $this->timesAsked->getShipFrom());
-        self::assertNull($this->timesAsked->getShipTo(), 'No recipient postcode is sent as none.');
-        self::assertSame(ShipmentTypeEnum::Box, $this->timesAsked->getParcel());
+        self::assertSame('DPD', $this->timesAsked?->courier);
+        self::assertSame('05-620', $this->timesAsked->shipFrom);
+        self::assertNull($this->timesAsked->shipTo, 'No recipient postcode is sent as none.');
+        self::assertSame(ShipmentTypeEnum::Box, $this->timesAsked->parcel);
         self::assertSame([
             [
                 'date' => '2026-10-01',
@@ -73,6 +78,28 @@ class PickupServiceTest extends TestCase
             ],
             ['date' => '2026-10-02', 'windows' => []],
         ], $times);
+    }
+
+    public function testADayOrWindowWithoutItsTimesIsLeftOut(): void
+    {
+        $this->pickupDays = [
+            new PickupTimeMessage(null, [
+                new TimeIntervalMessage(new \DateTimeImmutable('09:00'), new \DateTimeImmutable('12:00')),
+            ]),
+            new PickupTimeMessage(new \DateTimeImmutable('2026-10-01'), [
+                new TimeIntervalMessage(null, new \DateTimeImmutable('2026-10-01 12:00')),
+                new TimeIntervalMessage(new \DateTimeImmutable('2026-10-01 12:00'), null),
+                new TimeIntervalMessage(
+                    new \DateTimeImmutable('2026-10-01 12:00'),
+                    new \DateTimeImmutable('2026-10-01 16:00'),
+                ),
+            ]),
+        ];
+
+        self::assertSame(
+            [['date' => '2026-10-01', 'windows' => [['from' => '12:00', 'to' => '16:00']]]],
+            $this->createService()->getPickupTimes('DPD', '05-620', '', 'box'),
+        );
     }
 
     public function testACollectivePickupIsBookedForTheShipmentsAwaitingOne(): void
@@ -89,9 +116,9 @@ class PickupServiceTest extends TestCase
             $this->createShipment(null, state: ShipmentInterface::STATE_UNKNOWN),
         ], '2026-10-01', '10:00', '16:00');
 
-        self::assertSame(['18015-1', '18015-2'], $this->booking?->getOrders());
-        self::assertSame('2026-10-01 10:00', $this->booking->getPickupTimeFrom()->format('Y-m-d H:i'));
-        self::assertSame('2026-10-01 16:00', $this->booking->getPickupTimeTo()->format('Y-m-d H:i'));
+        self::assertSame(['18015-1', '18015-2'], $this->booking?->orders);
+        self::assertSame('2026-10-01 10:00', $this->booking->pickupTimeFrom->format('Y-m-d H:i'));
+        self::assertSame('2026-10-01 16:00', $this->booking->pickupTimeTo->format('Y-m-d H:i'));
         self::assertSame(['booked' => ['18015-1'], 'failed' => ['18015-2' => 'Za późno']], $result);
         self::assertSame(['18015-1'], $this->saved, 'Only the booked one is marked.');
         self::assertTrue($waiting->isPickupBooked());
@@ -163,7 +190,7 @@ class PickupServiceTest extends TestCase
 
     public function testWhetherACollectivePickupIsPossibleIsAskedForTheShipment(): void
     {
-        $pack = new PackMessage(
+        $pack = new PackItem(
             length: 40,
             width: 30,
             height: 20,
@@ -173,10 +200,10 @@ class PickupServiceTest extends TestCase
         );
 
         self::assertTrue($this->createService()->isCollectiveAvailable('DPD', '31-042', 'box', [$pack]));
-        self::assertSame('DPD', $this->availabilityAsked?->getCourier());
-        self::assertSame('31-042', $this->availabilityAsked->getSenderPostCode());
-        self::assertSame(ShipmentTypeEnum::Box, $this->availabilityAsked->getShipmentType());
-        self::assertSame([$pack], $this->availabilityAsked->getPacks());
+        self::assertSame('DPD', $this->availabilityAsked?->courier);
+        self::assertSame('31-042', $this->availabilityAsked->senderPostCode);
+        self::assertSame(ShipmentTypeEnum::Box, $this->availabilityAsked->shipmentType);
+        self::assertSame([$pack], $this->availabilityAsked->packs);
     }
 
     public function testABookingPolkurierTurnsDownEntirelyIsNotReported(): void
@@ -196,6 +223,19 @@ class PickupServiceTest extends TestCase
     protected function setUp(): void
     {
         $this->events = new RecordingEventManager();
+        $this->pickupDays = [
+            new PickupTimeMessage(new \DateTimeImmutable('2026-10-01'), [
+                new TimeIntervalMessage(
+                    new \DateTimeImmutable('2026-10-01 09:00'),
+                    new \DateTimeImmutable('2026-10-01 12:00'),
+                ),
+                new TimeIntervalMessage(
+                    new \DateTimeImmutable('2026-10-01 12:00'),
+                    new \DateTimeImmutable('2026-10-01 16:00'),
+                ),
+            ]),
+            new PickupTimeMessage(new \DateTimeImmutable('2026-10-02')),
+        ];
     }
 
     private function createService(): PickupService
@@ -204,19 +244,7 @@ class PickupServiceTest extends TestCase
         $gateway->method('getPickupTimes')->willReturnCallback(function (GetPickupTimeMessage $message): array {
             $this->timesAsked = $message;
 
-            return [
-                new PickupTimeMessage(new \DateTimeImmutable('2026-10-01'), [
-                    new TimeIntervalMessage(
-                        new \DateTimeImmutable('2026-10-01 09:00'),
-                        new \DateTimeImmutable('2026-10-01 12:00'),
-                    ),
-                    new TimeIntervalMessage(
-                        new \DateTimeImmutable('2026-10-01 12:00'),
-                        new \DateTimeImmutable('2026-10-01 16:00'),
-                    ),
-                ]),
-                new PickupTimeMessage(new \DateTimeImmutable('2026-10-02')),
-            ];
+            return $this->pickupDays;
         });
         $gateway->method('isMultiPickupAvailable')->willReturnCallback(
             function (MultiPickupAvailabilityRequestMessage $message): bool {
@@ -229,7 +257,7 @@ class PickupServiceTest extends TestCase
             function (MultiPickupRequestMessage $message): MultiPickupResultMessage {
                 $this->booking = $message;
                 $failed = [];
-                foreach (\array_diff($message->getOrders(), $this->bookable) as $number) {
+                foreach (\array_diff($message->orders, $this->bookable) as $number) {
                     $failed[$number] = 'Za późno';
                 }
 

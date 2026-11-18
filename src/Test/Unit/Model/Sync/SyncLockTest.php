@@ -7,6 +7,7 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Test\Unit\Model\Sync;
 
+use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Lock\LockManagerInterface;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -28,16 +29,16 @@ class SyncLockTest extends TestCase
         $this->fail = true;
 
         try {
-            $this->lock(taken: true)->run(static fn(): bool => true);
+            $this->createLock(taken: true)->run(static fn(): bool => true);
             self::fail('The work waits for the other request.');
-        } catch (\Magento\Framework\Exception\LocalizedException $e) {
+        } catch (LocalizedException $e) {
             self::assertStringContainsString('already running', $e->getMessage());
         }
     }
 
     public function testTheLockIsReleasedWhenTheWorkFails(): void
     {
-        $lock = $this->lock();
+        $lock = $this->createLock();
 
         $this->fail = true;
         $work = function (): bool {
@@ -62,7 +63,7 @@ class SyncLockTest extends TestCase
 
     public function testALockStillHeldWhenTheRequestEndsIsLetGoOnce(): void
     {
-        $lock = $this->lock();
+        $lock = $this->createLock();
 
         $lock->run(static fn() => $lock->_resetState());
         $lock->run(static fn(): bool => true);
@@ -73,7 +74,7 @@ class SyncLockTest extends TestCase
         );
     }
 
-    private function lock(bool $taken = false): SyncLock
+    private function createLock(bool $taken = false): SyncLock
     {
         $locks = $this->createStub(LockManagerInterface::class);
         $locks->method('lock')->willReturnCallback(function (string $name) use ($taken): bool {

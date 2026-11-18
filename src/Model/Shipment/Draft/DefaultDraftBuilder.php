@@ -28,10 +28,10 @@ use Polkurier\Shipping\Model\Shipment\Placement\ParcelTypeMapper;
 use Polkurier\Shipping\Model\Shipment\Placement\SenderMapper;
 use Polkurier\Shipping\Model\Shipment\Placement\StreetParser;
 use Polkurier\Shipping\Model\Shipment\Valuation\OrderAmountCalculator;
+use Polkurier\Webservice\Dto\Response\Carrier;
 use Polkurier\Webservice\Enum\Order\AdditionalServiceEnum;
 use Polkurier\Webservice\Enum\Order\ShipmentTypeEnum;
 use Polkurier\Webservice\Exception\Exception as PolkurierException;
-use Polkurier\Webservice\Response\Carrier;
 
 /**
  * Prepares the draft a merchant starts from: what the customer ordered, where to, and the defaults
@@ -128,7 +128,7 @@ readonly class DefaultDraftBuilder
         }
         $insuranceRequired = $cod && $carrier !== null
             && $this->carrierFeatureResolver->isInsuranceRequiredWithCod($carrier);
-        if ($this->configProvider->isInsureByDefault($storeId) || $insuranceRequired) {
+        if ($this->configProvider->shouldInsureByDefault($storeId) || $insuranceRequired) {
             // Insured for what it collects, or else for what it's worth: either way the order's
             // parts add up to its total. 0 when the order's currency can't be converted to złoty,
             // left for the merchant.

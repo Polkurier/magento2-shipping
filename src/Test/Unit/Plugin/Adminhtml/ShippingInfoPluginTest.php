@@ -21,7 +21,11 @@ use Polkurier\Shipping\Plugin\Adminhtml\ShippingInfoPlugin;
 #[AllowMockObjectsWithoutExpectations]
 class ShippingInfoPluginTest extends TestCase
 {
-    private const string SECTION = "<div class=\"order-shipping-method\">\n    <div class=\"admin__page-section-item-content\">\n        <strong>Paczkomat</strong> PLN 14.99\n    </div>\n</div>\n";
+    private const string SECTION = "<div class=\"order-shipping-method\">\n"
+        . "    <div class=\"admin__page-section-item-content\">\n"
+        . "        <strong>Paczkomat</strong> PLN 14.99\n"
+        . "    </div>\n"
+        . "</div>\n";
 
     public function testThePointAndTheCarrierShippedWithGoUnderTheShippingMethod(): void
     {
@@ -34,7 +38,11 @@ class ShippingInfoPluginTest extends TestCase
         );
 
         self::assertSame(
-            "<div class=\"order-shipping-method\">\n    <div class=\"admin__page-section-item-content\">\n        <strong>Paczkomat</strong> PLN 14.99\n    <p>WAW195M</p><p>DPD</p></div>\n</div>\n",
+            "<div class=\"order-shipping-method\">\n"
+            . "    <div class=\"admin__page-section-item-content\">\n"
+            . "        <strong>Paczkomat</strong> PLN 14.99\n"
+            . "    <p>WAW195M</p><p>DPD</p></div>\n"
+            . "</div>\n",
             $html,
         );
     }

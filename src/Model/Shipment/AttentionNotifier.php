@@ -13,8 +13,9 @@ use Magento\Framework\Notification\NotifierInterface;
 use Magento\Framework\Stdlib\DateTime as DateFormat;
 use Magento\Framework\Stdlib\DateTime\DateTime;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
+use Polkurier\Shipping\Controller\Adminhtml\Shipment\View as ShipmentView;
+use Polkurier\Shipping\Model\Admin\Formatter;
 use Polkurier\Shipping\Model\ResourceModel\Shipment as ShipmentResource;
-use Polkurier\Shipping\Model\Shipment\Details\Formatter;
 use Polkurier\Shipping\Model\Shipment\Placement\FailedShipmentManager;
 
 /**
@@ -35,7 +36,6 @@ readonly class AttentionNotifier
     public const int SETTLE_HOURS = 1;
 
     private const string INBOX_TABLE = 'adminnotification_inbox';
-    private const string VIEW_PATH = 'polkurier/shipment/view';
 
     public function __construct(
         private ResourceConnection $resource,
@@ -72,14 +72,14 @@ readonly class AttentionNotifier
             )
             ->joinLeft(
                 ['sales_order' => $this->resource->getTableName('sales_order', 'sales')],
-                'sales_order.entity_id = shipment.order_id',
+                'sales_order.entity_id = shipment.' . ShipmentInterface::FIELD_ORDER_ID,
                 ['increment_id'],
             )
             ->where('shipment.' . ShipmentInterface::FIELD_ATTENTION_NOTIFIED_AT . ' IS NULL')
             ->where($this->buildAttentionCondition($noticeBefore, $settleBefore));
         foreach ($connection->fetchAll($select) as $row) {
             [$title, $description] = $this->describe($row);
-            $this->notifier->addMajor($title, $description, $this->url->getUrl(self::VIEW_PATH, [
+            $this->notifier->addMajor($title, $description, $this->url->getUrl(ShipmentView::ROUTE, [
                 'id' => (int)$row[ShipmentInterface::FIELD_ENTITY_ID],
                 // Followed outside the session it was made in; the page opens without a key.
                 '_nosecret' => true,
@@ -96,19 +96,19 @@ readonly class AttentionNotifier
     private function buildAttentionCondition(string $noticeBefore, string $settleBefore): string
     {
         $connection = $this->resource->getConnection('sales');
+        $state = 'shipment.' . ShipmentInterface::FIELD_STATE;
+        $createdAt = 'shipment.' . ShipmentInterface::FIELD_CREATED_AT;
 
         return \implode(' OR ', [
-            $connection->quoteInto('(shipment.state = ?', ShipmentInterface::STATE_FAILED)
-                . $connection->quoteInto(' AND shipment.created_at < ?)', $noticeBefore),
-            $connection->quoteInto(
-                '(shipment.state IN (?)',
-                [ShipmentInterface::STATE_UNKNOWN, ShipmentInterface::STATE_PENDING],
-            ) . $connection->quoteInto(' AND shipment.created_at < ?)', $settleBefore),
+            $connection->quoteInto("($state = ?", ShipmentInterface::STATE_FAILED)
+                . $connection->quoteInto(" AND $createdAt < ?)", $noticeBefore),
+            $connection->quoteInto("($state IN (?)", ShipmentInterface::UNSETTLED_STATES)
+                . $connection->quoteInto(" AND $createdAt < ?)", $settleBefore),
             // Placed here: one linked from its track goes without a Magento shipment when that's taken.
-            $connection->quoteInto(
-                '(shipment.state = ? AND shipment.shipment_id IS NULL AND shipment.request IS NOT NULL',
-                ShipmentInterface::STATE_CREATED,
-            ) . $connection->quoteInto(' AND shipment.created_at < ?)', $settleBefore),
+            $connection->quoteInto("($state = ?", ShipmentInterface::STATE_CREATED)
+                . ' AND shipment.' . ShipmentInterface::FIELD_SHIPMENT_ID . ' IS NULL'
+                . ' AND shipment.' . ShipmentInterface::FIELD_REQUEST . ' IS NOT NULL'
+                . $connection->quoteInto(" AND $createdAt < ?)", $settleBefore),
         ]);
     }
 
@@ -128,9 +128,9 @@ readonly class AttentionNotifier
             ->from($inboxTable, ['notification_id', 'url'])
             ->where('is_remove = 0')
             // Matched by its link: the title is in the language the admin used when it was added.
-            ->where('url LIKE ?', '%/' . self::VIEW_PATH . '/id/%')) as $notificationId => $url
+            ->where('url LIKE ?', '%/' . ShipmentView::ROUTE . '/id/%')) as $notificationId => $url
         ) {
-            if (\preg_match('#/' . \preg_quote(self::VIEW_PATH, '#') . '/id/(\d+)/?$#', (string)$url, $m)) {
+            if (\preg_match('#/' . \preg_quote(ShipmentView::ROUTE, '#') . '/id/(\d+)/?$#', (string)$url, $m)) {
                 $shown[(int)$notificationId] = (int)$m[1];
             }
         }
@@ -143,7 +143,7 @@ readonly class AttentionNotifier
                 ['shipment' => $this->resource->getTableName(ShipmentResource::TABLE_NAME, 'sales')],
                 [ShipmentInterface::FIELD_ENTITY_ID],
             )
-            ->where('shipment.entity_id IN (?)', \array_values(\array_unique($shown)))
+            ->where('shipment.' . ShipmentInterface::FIELD_ENTITY_ID . ' IN (?)', \array_values(\array_unique($shown)))
             ->where('shipment.' . ShipmentInterface::FIELD_ATTENTION_NOTIFIED_AT . ' IS NOT NULL')
             ->where($this->buildAttentionCondition($noticeBefore, $settleBefore))));
         $settled = \array_keys(\array_diff($shown, $stillNeeded));

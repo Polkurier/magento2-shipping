@@ -23,7 +23,8 @@ use Polkurier\Shipping\Model\Shipment\Screen\RetriableShipmentFinder;
  */
 class Create extends Action implements HttpGetActionInterface
 {
-    public const string ADMIN_RESOURCE = 'Polkurier_Shipping::shipment_create';
+    public const string ADMIN_RESOURCE = 'Magento_Sales::ship';
+    public const string ROUTE = 'polkurier/shipment/create';
 
     public function __construct(
         Context $context,

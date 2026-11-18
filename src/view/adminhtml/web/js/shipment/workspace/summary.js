@@ -89,7 +89,7 @@ define([
                 quotes = this.source.get('quotes') || null,
                 carriers = data.carriers || {},
                 chosen = quotes ? quotes[data.carrier_code] || null : null,
-                currency = data.currency || 'PLN';
+                priceFormat = data.price_format;
             let best = null;
 
             this.carrierName(data.carrier_code ? (carriers[data.carrier_code] || {}).name || data.carrier_code : '');
@@ -97,8 +97,8 @@ define([
             this.notifyCustomer(Boolean(data.notify_customer));
             this.publishIssues();
             this.price(chosen ? {
-                gross: rules.formatMoney(chosen.gross, currency),
-                net: rules.formatMoney(chosen.net, currency)
+                gross: rules.formatMoney(chosen.gross, priceFormat),
+                net: rules.formatMoney(chosen.net, priceFormat)
             } : null);
             _.each(quotes || {}, function (quote, code) {
                 if (code !== data.carrier_code && (!best || quote.gross < best.gross)) {
@@ -109,7 +109,7 @@ define([
                 code: best.code,
                 text: $t('%1 is %2 cheaper.')
                     .replace('%1', (carriers[best.code] || {}).name || best.code)
-                    .replace('%2', rules.formatMoney(chosen.gross - best.gross, currency))
+                    .replace('%2', rules.formatMoney(chosen.gross - best.gross, priceFormat))
             } : null);
         },
 

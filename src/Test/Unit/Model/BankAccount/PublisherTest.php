@@ -26,7 +26,8 @@ use Polkurier\Shipping\Model\Sync\SyncEngine;
 use Polkurier\Shipping\Test\Unit\Support\NewingObjectManager;
 use Polkurier\Shipping\Test\Unit\Support\RecordingEventManager;
 use Polkurier\Shipping\Test\Unit\Support\SdkTestCase;
-use Polkurier\Webservice\Builder\BankAccount\SaveMessageBuilderFactory;
+use Polkurier\Webservice\Builder\Entity\BankAccountBuilderFactory;
+use Polkurier\Webservice\Builder\Request\BankAccount\SaveBankAccountMessageBuilderFactory;
 use Polkurier\Webservice\Testing\RecordingClient;
 
 #[CoversClass(Publisher::class)]
@@ -56,7 +57,7 @@ class PublisherTest extends SdkTestCase
 
         $this->createPublisher($http)->save($account, 'tok', '123456', null);
 
-        $payload = $http->lastPayload();
+        $payload = $http->readLastPayload();
         self::assertSame('save_bank_account', $payload['apimethod']);
         self::assertSame(self::IBAN, $payload['data']['number'], 'Spaces are taken out of the number.');
         self::assertSame('tok', $payload['data']['two_factor_token']);
@@ -85,7 +86,7 @@ class PublisherTest extends SdkTestCase
 
         $this->createPublisher($http)->save($this->createAccount(), 'tok', '1', '9999');
 
-        $data = $http->lastPayload()['data'];
+        $data = $http->readLastPayload()['data'];
         self::assertSame('9999', $data['access_pin']);
         self::assertArrayNotHasKey('two_factor_token', $data, 'Polkurier takes one confirmation, never both.');
     }
@@ -115,8 +116,8 @@ class PublisherTest extends SdkTestCase
 
         $this->createPublisher($http)->delete($account, '9999');
 
-        self::assertSame('delete_bank_account', $http->lastPayload()['apimethod']);
-        self::assertSame('9999', $http->lastPayload()['data']['access_pin']);
+        self::assertSame('delete_bank_account', $http->readLastPayload()['apimethod']);
+        self::assertSame('9999', $http->readLastPayload()['data']['access_pin']);
         self::assertSame([$account], $this->deleted);
         self::assertCount(1, $this->events->listDispatched(ApiEventEnum::BankAccountDeleteAfter));
     }
@@ -143,7 +144,10 @@ class PublisherTest extends SdkTestCase
 
         return new Publisher(
             $this->createClientPool($http),
-            new BankAccountMapper(NewingObjectManager::createFactory(SaveMessageBuilderFactory::class)),
+            new BankAccountMapper(
+                NewingObjectManager::createFactory(BankAccountBuilderFactory::class),
+                NewingObjectManager::createFactory(SaveBankAccountMessageBuilderFactory::class),
+            ),
             $this->createStub(BankAccountSyncAdapter::class),
             $engine,
             $repository,

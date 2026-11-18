@@ -29,7 +29,7 @@ readonly class ShipmentFinder
     public function findLatestForOrder(int $orderId, array $states = []): ?ShipmentInterface
     {
         return $this->loadFirst(
-            $this->query($states)->addFieldToFilter(ShipmentInterface::FIELD_ORDER_ID, ['eq' => $orderId]),
+            $this->createCollection($states)->addFieldToFilter(ShipmentInterface::FIELD_ORDER_ID, ['eq' => $orderId]),
         );
     }
 
@@ -41,7 +41,7 @@ readonly class ShipmentFinder
     public function findForOrder(int $orderId, array $states = []): array
     {
         return $this->loadAll(
-            $this->query($states)->addFieldToFilter(ShipmentInterface::FIELD_ORDER_ID, ['eq' => $orderId]),
+            $this->createCollection($states)->addFieldToFilter(ShipmentInterface::FIELD_ORDER_ID, ['eq' => $orderId]),
         );
     }
 
@@ -55,7 +55,8 @@ readonly class ShipmentFinder
     public function findLatestLinkedTo(int $magentoShipmentId, array $states = []): ?ShipmentInterface
     {
         return $this->loadFirst(
-            $this->query($states)->addFieldToFilter(ShipmentInterface::FIELD_SHIPMENT_ID, ['eq' => $magentoShipmentId]),
+            $this->createCollection($states)
+                ->addFieldToFilter(ShipmentInterface::FIELD_SHIPMENT_ID, ['eq' => $magentoShipmentId]),
         );
     }
 
@@ -73,7 +74,7 @@ readonly class ShipmentFinder
         }
 
         return $this->loadAll(
-            $this->query($states)
+            $this->createCollection($states)
                 ->addFieldToFilter(ShipmentInterface::FIELD_SHIPMENT_ID, ['in' => \array_values($magentoShipmentIds)]),
         );
     }
@@ -92,7 +93,7 @@ readonly class ShipmentFinder
         }
 
         return $this->loadAll(
-            $this->query($states)
+            $this->createCollection($states)
                 ->addFieldToFilter(ShipmentInterface::FIELD_POLKURIER_NUMBER, ['in' => \array_values($numbers)]),
         );
     }
@@ -109,7 +110,8 @@ readonly class ShipmentFinder
         }
 
         return $this->loadAll(
-            $this->query([])->addFieldToFilter(ShipmentInterface::FIELD_ENTITY_ID, ['in' => \array_values($ids)]),
+            $this->createCollection([])
+                ->addFieldToFilter(ShipmentInterface::FIELD_ENTITY_ID, ['in' => \array_values($ids)]),
         );
     }
 
@@ -123,7 +125,7 @@ readonly class ShipmentFinder
         }
 
         return $this->loadFirst(
-            $this->query([])->addFieldToFilter(ShipmentInterface::FIELD_WAYBILLS, ['finset' => $waybill]),
+            $this->createCollection([])->addFieldToFilter(ShipmentInterface::FIELD_WAYBILLS, ['finset' => $waybill]),
         );
     }
 
@@ -133,7 +135,7 @@ readonly class ShipmentFinder
     public function findWithCodStatus(string $codStatus): array
     {
         return $this->loadAll(
-            $this->query([])->addFieldToFilter(ShipmentInterface::FIELD_COD_STATUS, ['eq' => $codStatus]),
+            $this->createCollection([])->addFieldToFilter(ShipmentInterface::FIELD_COD_STATUS, ['eq' => $codStatus]),
         );
     }
 
@@ -146,7 +148,7 @@ readonly class ShipmentFinder
      */
     public function findDueForStatusCheck(?string $checkedBefore, int $limit): array
     {
-        $collection = $this->query([ShipmentInterface::STATE_CREATED])
+        $collection = $this->createCollection([ShipmentInterface::STATE_CREATED])
             ->addFieldToFilter(ShipmentInterface::FIELD_IS_FINAL, ['eq' => 0]);
         if ($checkedBefore !== null) {
             $collection->addFieldToFilter(ShipmentInterface::FIELD_STATUS_CHECKED_AT, [
@@ -166,7 +168,7 @@ readonly class ShipmentFinder
      */
     public function findDueForReconciliation(string $attemptedBefore, string $checkedBefore, int $limit): array
     {
-        $collection = $this->query([ShipmentInterface::STATE_UNKNOWN, ShipmentInterface::STATE_PENDING])
+        $collection = $this->createCollection(ShipmentInterface::UNSETTLED_STATES)
             ->addFieldToFilter(ShipmentInterface::FIELD_CREATED_AT, ['lt' => $attemptedBefore])
             ->addFieldToFilter(ShipmentInterface::FIELD_STATUS_CHECKED_AT, [
                 ['null' => true],
@@ -181,14 +183,14 @@ readonly class ShipmentFinder
      */
     public function findFailedBefore(string $attemptedBefore): array
     {
-        return $this->loadAll($this->query([ShipmentInterface::STATE_FAILED])
+        return $this->loadAll($this->createCollection([ShipmentInterface::STATE_FAILED])
             ->addFieldToFilter(ShipmentInterface::FIELD_CREATED_AT, ['lt' => $attemptedBefore]));
     }
 
     /**
      * @param string[] $states
      */
-    private function query(array $states): Collection
+    private function createCollection(array $states): Collection
     {
         $collection = $this->collectionFactory->create();
         if ($states !== []) {

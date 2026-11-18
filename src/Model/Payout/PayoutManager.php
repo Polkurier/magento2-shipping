@@ -13,20 +13,19 @@ use Polkurier\Shipping\Enum\Sdk\ApiEventEnum;
 use Polkurier\Shipping\Model\BankAccount\BankAccountMapper;
 use Polkurier\Shipping\Model\Sdk\ApiEventDispatcher;
 use Polkurier\Shipping\Model\Sdk\ErrorMessageResolver;
-use Polkurier\Webservice\Builder\MoneyBox\CreateMoneyBoxPayoutMessageBuilderFactory;
-use Polkurier\Webservice\Builder\MoneyBox\GetMoneyBoxPayoutsMessageBuilderFactory;
+use Polkurier\Webservice\Builder\Request\MoneyBox\CreateMoneyBoxPayoutMessageBuilderFactory;
+use Polkurier\Webservice\Builder\Request\MoneyBox\GetMoneyBoxPayoutsMessageBuilderFactory;
+use Polkurier\Webservice\Dto\Request\MoneyBox\CalculateMoneyBoxPayoutFeeMessage;
+use Polkurier\Webservice\Dto\Request\MoneyBox\CancelMoneyBoxPayoutMessage;
+use Polkurier\Webservice\Dto\Request\TwoFactorToken\RegisterMessage;
+use Polkurier\Webservice\Dto\Response\MoneyBox\MoneyBoxConfigMessage;
+use Polkurier\Webservice\Dto\Response\MoneyBox\MoneyBoxFeeMessage;
+use Polkurier\Webservice\Dto\Response\MoneyBox\MoneyBoxPayoutListMessage;
+use Polkurier\Webservice\Dto\Response\MoneyBox\MoneyBoxPayoutMessage;
+use Polkurier\Webservice\Dto\Response\TwoFactorToken;
 use Polkurier\Webservice\Enum\MoneyBox\MoneyBoxFeePaymentTypeEnum;
 use Polkurier\Webservice\Enum\MoneyBox\MoneyBoxPayoutTypeEnum;
 use Polkurier\Webservice\Enum\TwoFactorToken\TwoFactorNamespaceEnum;
-use Polkurier\Webservice\Exception\Exception as PolkurierException;
-use Polkurier\Webservice\Request\MoneyBox\CalculateMoneyBoxPayoutFeeMessage;
-use Polkurier\Webservice\Request\MoneyBox\CancelMoneyBoxPayoutMessage;
-use Polkurier\Webservice\Request\TwoFactorToken\RegisterMessage;
-use Polkurier\Webservice\Response\MoneyBox\MoneyBoxConfigMessage;
-use Polkurier\Webservice\Response\MoneyBox\MoneyBoxFeeMessage;
-use Polkurier\Webservice\Response\MoneyBox\MoneyBoxPayoutListMessage;
-use Polkurier\Webservice\Response\MoneyBox\MoneyBoxPayoutMessage;
-use Polkurier\Webservice\Response\TwoFactorToken;
 
 /**
  * Cash collected on delivery and held in the Polkurier money box, and paying it out.
@@ -54,7 +53,9 @@ readonly class PayoutManager
      */
     public function getConfig(): MoneyBoxConfigMessage
     {
-        return $this->call(fn() => $this->polkurierClient->getMoneyBox()->getConfig());
+        return $this->errorMessageResolver->callTranslated(
+            fn() => $this->polkurierClient->getMoneyBox()->getMoneyBoxConfig(),
+        );
     }
 
     /**
@@ -62,8 +63,8 @@ readonly class PayoutManager
      */
     public function getPayouts(int $page = 1, int $pageSize = 20): MoneyBoxPayoutListMessage
     {
-        return $this->call(fn() => $this->polkurierClient->getMoneyBox()->getPayouts(
-            $this->getMoneyBoxPayoutsMessageBuilderFactory->create()->pageSize($pageSize)->page($page)->build(),
+        return $this->errorMessageResolver->callTranslated(fn() => $this->polkurierClient->getMoneyBox()->getPayouts(
+            $this->getMoneyBoxPayoutsMessageBuilderFactory->create()->setPageSize($pageSize)->setPage($page)->build(),
         ));
     }
 
@@ -73,10 +74,10 @@ readonly class PayoutManager
     public function getAvailableBalance(): ?float
     {
         try {
-            return $this->call(
+            return $this->errorMessageResolver->callTranslated(
                 fn(): float => $this->polkurierClient->getAccount()
                     ->getAccountInfo()
-                    ->getMoneyBoxPayoutAvailableBalance(),
+                    ->moneyBoxPayoutAvailableBalance,
             );
         } catch (LocalizedException) {
             return null;
@@ -107,9 +108,11 @@ readonly class PayoutManager
      */
     public function quote(array $orderNumbers, ?MoneyBoxPayoutTypeEnum $payoutType = null): MoneyBoxFeeMessage
     {
-        return $this->call(fn() => $this->polkurierClient->getMoneyBox()->calculatePayoutFee(
-            new CalculateMoneyBoxPayoutFeeMessage(orders: \array_values($orderNumbers), payoutType: $payoutType),
-        ));
+        return $this->errorMessageResolver->callTranslated(
+            fn() => $this->polkurierClient->getMoneyBox()->calculatePayoutFee(
+                new CalculateMoneyBoxPayoutFeeMessage(orders: \array_values($orderNumbers), payoutType: $payoutType),
+            ),
+        );
     }
 
     /**
@@ -124,9 +127,11 @@ readonly class PayoutManager
         if ($available !== null && $available <= 0) {
             throw new LocalizedException(__('The money box has nothing to pay out yet. No code was sent.'));
         }
-        $token = $this->call(fn() => $this->polkurierClient->getTwoFactorToken()->twoFactorTokenRegister(
-            new RegisterMessage(TwoFactorNamespaceEnum::MoneyBoxPayout),
-        ));
+        $token = $this->errorMessageResolver->callTranslated(
+            fn() => $this->polkurierClient->getTwoFactorToken()->register(
+                new RegisterMessage(TwoFactorNamespaceEnum::MoneyBoxPayout),
+            ),
+        );
         $this->apiEventDispatcher->dispatch(ApiEventEnum::TwoFactorCodeRequestAfter, null, [
             'namespace' => TwoFactorNamespaceEnum::MoneyBoxPayout,
         ]);
@@ -159,15 +164,17 @@ readonly class PayoutManager
             throw new LocalizedException(__('Enter the confirmation code Polkurier sent you.'));
         }
         $message = $this->createMoneyBoxPayoutMessageBuilderFactory->create()
-            ->orders(\array_values($orderNumbers))
-            ->payoutType($payoutType)
-            ->feePaymentType($feePaymentType)
-            ->bankAccountNumber($bankAccountNumber ?: null)
-            ->securityPin($securityPin ?: null)
-            ->twoFactorToken($twoFactorToken)
-            ->twoFactorCode($twoFactorCode)
+            ->setOrders(\array_values($orderNumbers))
+            ->setPayoutType($payoutType)
+            ->setFeePaymentType($feePaymentType)
+            ->setBankAccountNumber($bankAccountNumber ?: null)
+            ->setSecurityPin($securityPin ?: null)
+            ->setTwoFactorToken($twoFactorToken)
+            ->setTwoFactorCode($twoFactorCode)
             ->build();
-        $payout = $this->call(fn() => $this->polkurierClient->getMoneyBox()->createPayout($message));
+        $payout = $this->errorMessageResolver->callTranslated(
+            fn() => $this->polkurierClient->getMoneyBox()->createPayout($message),
+        );
         $this->apiEventDispatcher->dispatch(ApiEventEnum::PayoutCreateAfter, null, [
             'order_numbers' => \array_values($orderNumbers),
             'payout_type' => $payoutType,
@@ -184,7 +191,9 @@ readonly class PayoutManager
     public function cancelPayout(string $payoutNumber): MoneyBoxPayoutMessage
     {
         $request = new CancelMoneyBoxPayoutMessage($payoutNumber);
-        $payout = $this->call(fn() => $this->polkurierClient->getMoneyBox()->cancelPayout($request));
+        $payout = $this->errorMessageResolver->callTranslated(
+            fn() => $this->polkurierClient->getMoneyBox()->cancelPayout($request),
+        );
         $this->apiEventDispatcher->dispatch(ApiEventEnum::PayoutCancelAfter, null, [
             'request' => $request,
             'response' => $payout,
@@ -201,22 +210,5 @@ readonly class PayoutManager
     public static function parseOrderNumbers(string $text): array
     {
         return \array_values(\array_unique(\array_filter(\preg_split('/[\s,;]+/', \trim($text)) ?: [])));
-    }
-
-    /**
-     * @template T
-     *
-     * @param callable(): T $call
-     *
-     * @return T
-     * @throws LocalizedException
-     */
-    private function call(callable $call): mixed
-    {
-        try {
-            return $call();
-        } catch (PolkurierException $e) {
-            throw $this->errorMessageResolver->createException($e);
-        }
     }
 }

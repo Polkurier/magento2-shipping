@@ -14,11 +14,11 @@ use Polkurier\Shipping\Enum\Sdk\ApiEventEnum;
 use Polkurier\Shipping\Model\Sdk\ApiEventDispatcher;
 use Polkurier\Shipping\Model\Sdk\ShipmentGateway;
 use Polkurier\Shipping\Model\Shipment\Native\NativeFollowUpService;
-use Polkurier\Webservice\Request\Order\OrderIdMessage;
+use Polkurier\Webservice\Dto\Request\Order\CancelOrderMessage;
 
 /**
- * Cancels placed Polkurier orders that {@see CancellationRule} lets go. The Magento shipment stays, without the order's label, packages
- * and waybills, for another Polkurier order to go on it
+ * Cancels placed Polkurier orders that {@see CancellationRule} lets go. The Magento shipment stays,
+ * without the order's label, packages and waybills, for another Polkurier order to go on it
  * ({@see NativeFollowUpService::clearShipment()}).
  */
 readonly class CancellationService
@@ -43,9 +43,9 @@ readonly class CancellationService
             throw new LocalizedException($refusal);
         }
         $number = (string)$shipment->getPolkurierNumber();
-        $request = new OrderIdMessage($number);
+        $request = new CancelOrderMessage($number);
         $result = $this->shipmentGateway->cancelOrder($request);
-        if (!$result->isCancelled()) {
+        if (!$result->cancellation) {
             throw new LocalizedException(__('Polkurier did not cancel order %1.', $number));
         }
         // A refresh that saw the cancellation first has cleared its Magento shipment already.

@@ -9,6 +9,7 @@ namespace Polkurier\Shipping\Model\ResourceModel;
 
 use Magento\Framework\Model\AbstractModel;
 use Magento\Framework\Model\ResourceModel\Db\AbstractDb;
+use Polkurier\Shipping\Api\Data\QuotePointInterface;
 
 /**
  * The polkurier_quote_point table: the pickup points chosen in a cart.
@@ -26,8 +27,8 @@ class QuotePoint extends AbstractDb
         $id = $connection->fetchOne(
             $connection->select()
                 ->from($this->getMainTable(), ['entity_id'])
-                ->where('quote_id = ?', $quoteId)
-                ->where('quote_address_id = ?', $quoteAddressId),
+                ->where(QuotePointInterface::FIELD_QUOTE_ID . ' = ?', $quoteId)
+                ->where(QuotePointInterface::FIELD_QUOTE_ADDRESS_ID . ' = ?', $quoteAddressId),
         );
         if ($id !== false) {
             $this->load($point, (int)$id);

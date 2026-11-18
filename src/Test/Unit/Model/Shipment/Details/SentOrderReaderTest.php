@@ -19,29 +19,29 @@ use Polkurier\Shipping\Model\Config\Source\ShipmentState;
 use Polkurier\Shipping\Model\Config\Source\ShipmentType;
 use Polkurier\Shipping\Model\Shipment\Details\OptionLabelProvider;
 use Polkurier\Shipping\Model\Shipment\Details\SentOrderReader;
+use Polkurier\Shipping\Test\Unit\Support\SdkSerializer;
+use Polkurier\Webservice\Dto\Request\Order\CreateOrderMessage;
+use Polkurier\Webservice\Entity\Order;
+use Polkurier\Webservice\Entity\Order\Address;
+use Polkurier\Webservice\Entity\Order\Cod;
+use Polkurier\Webservice\Entity\Order\PackItem;
+use Polkurier\Webservice\Entity\Order\Pickup;
 use Polkurier\Webservice\Enum\Order\AdditionalServiceEnum;
 use Polkurier\Webservice\Enum\Order\CodReturnTypeEnum;
 use Polkurier\Webservice\Enum\Order\CodTypeEnum;
 use Polkurier\Webservice\Enum\Order\PackTypeEnum;
 use Polkurier\Webservice\Enum\Order\ShipmentTypeEnum;
-use Polkurier\Webservice\Request\Order\CodMessage;
-use Polkurier\Webservice\Request\Order\CoverAddressMessage;
-use Polkurier\Webservice\Request\Order\CreateOrderMessage;
-use Polkurier\Webservice\Request\Order\OrderAddressMessage;
-use Polkurier\Webservice\Request\Order\PackMessage;
-use Polkurier\Webservice\Request\Order\PickupMessage;
-use Polkurier\Webservice\Serializer\SerializerProvider;
 
 #[CoversClass(SentOrderReader::class)]
 class SentOrderReaderTest extends TestCase
 {
     public function testAStoredCreateOrderRequestIsReadInTheShapeOfPolkuriersCopy(): void
     {
-        $request = (new SerializerProvider())->getSerializer()->serialize(new CreateOrderMessage(
+        $request = SdkSerializer::create()->encode(new CreateOrderMessage(new Order(
             'DPD',
             ShipmentTypeEnum::Box,
-            [new PackMessage(40, 30, 20, 2.5, PackTypeEnum::Standard, 2)],
-            new OrderAddressMessage(
+            [new PackItem(40, 30, 20, 2.5, PackTypeEnum::Standard, 2)],
+            new Address(
                 'Jan Kowalski',
                 'Prosta',
                 'Warszawa',
@@ -52,7 +52,7 @@ class SentOrderReaderTest extends TestCase
                 '20',
                 '5',
             ),
-            new OrderAddressMessage(
+            new Address(
                 'Anna Nowak',
                 'Długa',
                 'Kraków',
@@ -63,9 +63,9 @@ class SentOrderReaderTest extends TestCase
                 '7',
                 pointId: 'KRA01M',
             ),
-            new CodMessage(149.99, '61109010140000071219812874', CodTypeEnum::OneDay, CodReturnTypeEnum::BankAccount),
+            new Cod(149.99, '61109010140000071219812874', CodTypeEnum::OneDay, CodReturnTypeEnum::BankAccount),
             500.0,
-            new CoverAddressMessage(
+            new Address(
                 'Magazyn Północ',
                 'Składowa 3',
                 'Poznań',
@@ -74,7 +74,7 @@ class SentOrderReaderTest extends TestCase
                 '600500600',
                 'Sklep Sp. z o.o.',
             ),
-            new PickupMessage(
+            new Pickup(
                 new \DateTimeImmutable('2026-10-08'),
                 new \DateTimeImmutable('2026-10-08 10:00'),
                 new \DateTimeImmutable('2026-10-08 16:00'),
@@ -82,7 +82,7 @@ class SentOrderReaderTest extends TestCase
             [AdditionalServiceEnum::SmsOnDispatch, AdditionalServiceEnum::CoverSenderAddress],
             ['external_transport_security' => 'YES'],
             'Order #000000052',
-        ), 'json');
+        )));
 
         self::assertSame([
             'description' => 'Order #000000052',
@@ -142,18 +142,18 @@ class SentOrderReaderTest extends TestCase
             'services' => ['SMS notification when dispatched', 'Another sender on the label'],
             'additional_fields' => ['external_transport_security' => 'YES'],
             'packs' => [
-                ['amount' => 2, 'length' => 40, 'width' => 30, 'height' => 20, 'weight' => 2.5, 'type' => 'ST'],
+                ['type' => 'ST', 'length' => 40, 'width' => 30, 'height' => 20, 'weight' => 2.5, 'amount' => 2],
             ],
         ], $this->createReader()->read($request));
     }
 
-    public function testTheCoverAddressKeepsItsFlatAsTheOthersDo(): void
+    public function testTheCoverAddressReadsItsNumbersAsTheOthersDo(): void
     {
-        $request = (new SerializerProvider())->getSerializer()->serialize(new CreateOrderMessage(
+        $request = SdkSerializer::create()->encode(new CreateOrderMessage(new Order(
             'DPD',
             ShipmentTypeEnum::Box,
-            [new PackMessage(40, 30, 20, 2.5, PackTypeEnum::Standard, 1)],
-            new OrderAddressMessage(
+            [new PackItem(40, 30, 20, 2.5, PackTypeEnum::Standard, 1)],
+            new Address(
                 'Jan Kowalski',
                 'Prosta',
                 'Warszawa',
@@ -164,17 +164,27 @@ class SentOrderReaderTest extends TestCase
                 '20',
                 '5',
             ),
-            new OrderAddressMessage('Anna Nowak', 'Długa', 'Kraków', '31-147', 'anna@example.com', '600300400', null, '7'),
-            coverAddress: new CoverAddressMessage(
+            new Address(
+                'Anna Nowak',
+                'Długa',
+                'Kraków',
+                '31-147',
+                'anna@example.com',
+                '600300400',
+                null,
+                '7',
+            ),
+            coverAddress: new Address(
                 'Magazyn Północ',
-                'Składowa 3',
+                'Składowa',
                 'Poznań',
                 '61-897',
                 'magazyn@example.com',
                 '600500600',
+                houseNumber: '3',
                 flatNumber: '2',
             ),
-        ), 'json');
+        )));
 
         $read = $this->createReader()->read($request);
 
@@ -182,7 +192,7 @@ class SentOrderReaderTest extends TestCase
         self::assertSame(
             'Składowa 3/2',
             $read['cover_address']['street'] ?? null,
-            'Its street holds the house number; the flat follows it.',
+            'Its house number and flat, sent in fields of their own, follow the street.',
         );
     }
 

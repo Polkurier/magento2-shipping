@@ -10,12 +10,13 @@ namespace Polkurier\Shipping\Model\ShippingChoice;
 use Magento\Framework\App\ResourceConnection;
 use Polkurier\Shipping\Api\Data\OrderPointInterface;
 use Polkurier\Shipping\Api\Data\ShippingChoiceInterface;
+use Polkurier\Shipping\Api\ShippingChoiceRepositoryInterface;
 use Polkurier\Shipping\Model\ShippingChoiceFactory;
 
 /**
- * Keeps the shipping the customer chose, on the side, while the order shows another.
+ * The customer's shipping choices, in their own table of the sales database.
  */
-readonly class ShippingChoiceRepository
+readonly class ShippingChoiceRepository implements ShippingChoiceRepositoryInterface
 {
     private const string TABLE = 'polkurier_order_shipping_choice';
 
@@ -24,9 +25,6 @@ readonly class ShippingChoiceRepository
         private ShippingChoiceFactory $shippingChoiceFactory,
     ) {}
 
-    /**
-     * @return ShippingChoiceInterface|null null when the order's shipping is the customer's own
-     */
     public function getForOrder(int $orderId): ?ShippingChoiceInterface
     {
         return $this->getForOrders([$orderId])[$orderId] ?? null;
@@ -35,7 +33,7 @@ readonly class ShippingChoiceRepository
     /**
      * @param int[] $orderIds
      *
-     * @return ShippingChoiceInterface[] by order id, for the orders that have one
+     * @return ShippingChoiceInterface[]
      */
     public function getForOrders(array $orderIds): array
     {
@@ -57,11 +55,7 @@ readonly class ShippingChoiceRepository
         return $choices;
     }
 
-    /**
-     * Keeps the order's shipping as it is now, unless it's kept already: the customer's choice
-     * is what the order had before it was first changed.
-     */
-    public function keep(
+    public function keepForOrder(
         int $orderId,
         ?string $shippingMethod,
         ?string $shippingDescription,

@@ -12,8 +12,8 @@ use Magento\Framework\Stdlib\DateTime\DateTime;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Model\Sdk\ShipmentGateway;
 use Polkurier\Shipping\Model\Shipment\Status\StatusRefreshService;
+use Polkurier\Webservice\Dto\Request\Order\GetDocumentMessage;
 use Polkurier\Webservice\Enum\Order\LabelFileFormatEnum;
-use Polkurier\Webservice\Request\Order\GetDocumentMessage;
 
 /**
  * Labels and handover protocols for Polkurier orders. Several orders of one account come back as
@@ -77,7 +77,7 @@ readonly class DocumentService
 
         return [
             'file_name' => $this->buildFileName('protocol', $numbers, 'pdf'),
-            'content' => $document->getDecodedFile(),
+            'content' => $document->file,
             'content_type' => 'application/pdf',
             'left_out' => $leftOut,
         ];
@@ -127,8 +127,8 @@ readonly class DocumentService
      * there), and drops those Polkurier no longer has as placed.
      *
      * @param array<string, ShipmentInterface> $placed by Polkurier number
-     *
      * @param-out array<string, ShipmentInterface> $placed
+     *
      * @return string[] why each was left out
      */
     private function leaveOutUnplaced(array &$placed): array
@@ -179,7 +179,7 @@ readonly class DocumentService
      */
     private function fetchLabel(array $numbers, ?LabelFileFormatEnum $format): string
     {
-        $content = $this->shipmentGateway->getLabel(new GetDocumentMessage($numbers, $format))->getDecodedFile();
+        $content = $this->shipmentGateway->getLabel(new GetDocumentMessage($numbers, $format))->file;
         if ($content === '') {
             throw new LocalizedException(__('Polkurier returned no label for %1.', \implode(', ', $numbers)));
         }

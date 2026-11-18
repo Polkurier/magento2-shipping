@@ -9,11 +9,10 @@ namespace Polkurier\Shipping\Model\Address;
 
 use Polkurier\Shipping\Api\Data\AddressInterface;
 use Polkurier\Shipping\Model\Carrier\Polkurier;
-use Polkurier\Webservice\Builder\Address\SaveMessageBuilderFactory;
+use Polkurier\Webservice\Builder\Entity\AddressBuilderFactory;
+use Polkurier\Webservice\Dto\Request\Address\DeleteMessage;
+use Polkurier\Webservice\Entity\Address;
 use Polkurier\Webservice\Enum\Address\AddressTypeEnum;
-use Polkurier\Webservice\Request\Address\DeleteMessage;
-use Polkurier\Webservice\Request\Address\SaveMessage;
-use Polkurier\Webservice\Response\Address;
 
 /**
  * Maps address book entries between Magento and the Polkurier account.
@@ -21,7 +20,7 @@ use Polkurier\Webservice\Response\Address;
 readonly class AddressBookMapper
 {
     public function __construct(
-        private SaveMessageBuilderFactory $saveMessageBuilderFactory,
+        private AddressBuilderFactory $addressBuilderFactory,
     ) {}
 
     /**
@@ -34,7 +33,8 @@ readonly class AddressBookMapper
         return [
             AddressInterface::FIELD_EXT_ID => $address->getId(),
             AddressInterface::FIELD_NAME => $address->getName(),
-            AddressInterface::FIELD_TYPE => $address->getType()->value,
+            // Only sender addresses are asked for and saved.
+            AddressInterface::FIELD_TYPE => $address->getType()->value ?? AddressInterface::TYPE_SENDER,
             AddressInterface::FIELD_PERSON => $address->getPerson(),
             AddressInterface::FIELD_COMPANY => $address->getCompany() ?: null,
             AddressInterface::FIELD_STREET => $address->getStreet(),
@@ -79,25 +79,25 @@ readonly class AddressBookMapper
             ->setShared((bool)$remote[AddressInterface::FIELD_SHARED]);
     }
 
-    public function mapToSaveMessage(AddressInterface $address): SaveMessage
+    public function mapToRecord(AddressInterface $address): Address
     {
-        return $this->saveMessageBuilderFactory->create()
-            ->name($address->getName())
-            ->person($address->getPerson())
-            ->street($address->getStreet())
-            ->houseNumber($address->getHouseNumber())
-            ->postcode($address->getPostcode())
-            ->city($address->getCity())
-            ->email($address->getEmail())
-            ->phone($address->getPhone())
-            ->id($address->getExtId())
-            ->type(AddressTypeEnum::tryFrom($address->getType()) ?? AddressTypeEnum::Sender)
-            ->company($address->getCompany() ?: null)
-            ->flatNumber($address->getFlatNumber() ?: null)
-            ->province($address->getProvince() ?: null)
-            ->country($address->getCountry() ?: Polkurier::HOME_COUNTRY)
-            ->default($address->isDefault())
-            ->coverAddress($address->isCover())
+        return $this->addressBuilderFactory->create()
+            ->setName($address->getName())
+            ->setPerson($address->getPerson())
+            ->setStreet($address->getStreet())
+            ->setHouseNumber($address->getHouseNumber())
+            ->setPostcode($address->getPostcode())
+            ->setCity($address->getCity())
+            ->setEmail($address->getEmail())
+            ->setPhone($address->getPhone())
+            ->setId($address->getExtId())
+            ->setType(AddressTypeEnum::tryFrom($address->getType()) ?? AddressTypeEnum::Sender)
+            ->setCompany($address->getCompany() ?: null)
+            ->setFlatNumber($address->getFlatNumber() ?: null)
+            ->setProvince($address->getProvince() ?: null)
+            ->setCountry($address->getCountry() ?: Polkurier::HOME_COUNTRY)
+            ->setDefault($address->isDefault())
+            ->setCoverAddress($address->isCover())
             ->build();
     }
 

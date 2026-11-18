@@ -8,6 +8,7 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Test\Unit\Ui\Component\Form\ShipmentView;
 
 use Magento\Framework\App\RequestInterface;
+use Magento\Framework\Serialize\Serializer\Json;
 use Magento\Framework\TestFramework\Unit\Helper\ObjectManager;
 use Magento\Framework\UrlInterface;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
@@ -42,7 +43,7 @@ class DataProviderTest extends TestCase
         $gateway = $this->createMock(ShipmentGateway::class);
         $gateway->expects(self::never())->method('getStatus');
         $details = $this->createMock(ShipmentDetails::class);
-        $details->expects(self::once())->method('build')->with($shipment, [])->willReturn(['title' => 'Stored']);
+        $details->expects(self::once())->method('buildPage')->with($shipment, [])->willReturn(['title' => 'Stored']);
 
         $data = $this->createProvider($shipment, $details, $statusRefresh, $gateway)->getData();
 
@@ -129,7 +130,7 @@ class DataProviderTest extends TestCase
     private function createShipment(): Shipment
     {
         /** @var Shipment $shipment */
-        $shipment = (new ObjectManager($this))->getObject(Shipment::class);
+        $shipment = (new ObjectManager($this))->getObject(Shipment::class, ['json' => new Json()]);
 
         return $shipment->setId(3)
             ->setState(ShipmentInterface::STATE_CREATED)

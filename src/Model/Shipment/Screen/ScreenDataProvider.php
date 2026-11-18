@@ -7,22 +7,20 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Model\Shipment\Screen;
 
-use Magento\Backend\Model\UrlInterface;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Sales\Model\Order;
 use Polkurier\Shipping\Api\AddressRepositoryInterface;
 use Polkurier\Shipping\Api\OrderPointRepositoryInterface;
 use Polkurier\Shipping\Api\PackTemplateRepositoryInterface;
 use Polkurier\Shipping\Model\Carrier\CarrierFeatureResolver;
-use Polkurier\Shipping\Model\Config\ConfigProvider;
 use Polkurier\Shipping\Model\Config\Source\PackType;
 use Polkurier\Shipping\Model\PickupPoint\DefaultSenderPointManager;
-use Polkurier\Shipping\Model\PickupPoint\MapTokenProvider;
 use Polkurier\Shipping\Model\PickupPoint\PointFinder;
 use Polkurier\Shipping\Model\Shipment\Draft\DefaultDraftBuilder;
 use Polkurier\Shipping\Model\Shipment\Draft\DraftHydrator;
 use Polkurier\Shipping\Model\Shipment\Valuation\OrderAmountCalculator;
-use Polkurier\Webservice\Response\CourierPoint;
+use Polkurier\Webservice\Dto\Response\CourierPoint;
+use Polkurier\Webservice\Entity\Order as RemoteOrder;
 
 /**
  * What both shipment screens start from: the Polkurier shipment screen and the shipping label
@@ -35,13 +33,10 @@ readonly class ScreenDataProvider
         private PackTemplateRepositoryInterface $packTemplateRepository,
         private AddressRepositoryInterface $addressRepository,
         private PackType $packTypes,
-        private MapTokenProvider $mapTokenProvider,
-        private ConfigProvider $configProvider,
         private OrderAmountCalculator $orderAmountCalculator,
         private PointFinder $pointFinder,
         private DefaultDraftBuilder $defaultDraftBuilder,
         private OrderPointRepositoryInterface $orderPointRepository,
-        private UrlInterface $url,
         private DefaultSenderPointManager $defaultSenderPointManager,
     ) {}
 
@@ -92,6 +87,18 @@ readonly class ScreenDataProvider
     }
 
     /**
+     * The note under the shipment description, with how much of it Polkurier keeps.
+     */
+    public function getDescriptionNotice(): string
+    {
+        return (string)__(
+            'Printed on the label; Polkurier keeps up to %1 bytes, and letters such as ą or ż take two each. '
+            . 'It starts as the order number, as the shipment description format in the configuration says.',
+            RemoteOrder::DESCRIPTION_MAX_LENGTH,
+        );
+    }
+
+    /**
      * The additional services only pallets may have.
      *
      * @return string[]
@@ -110,7 +117,7 @@ readonly class ScreenDataProvider
     {
         $point = $this->pointFinder->find($pointId, $carrierCode);
 
-        return $point && !$point->isAvailable() ? false : $point;
+        return $point && !$point->available ? false : $point;
     }
 
     /**
@@ -176,23 +183,15 @@ readonly class ScreenDataProvider
     }
 
     /**
-     * Where the pickup point map is, its token and when that runs out (empty and 0 when it can't be
-     * obtained), and where the screen asks for a fresh one.
-     *
-     * @return array{token: string, expires: int, baseUrl: string, tokenUrl: string}
-     */
-    public function getMap(): array
-    {
-        return $this->mapTokenProvider->getTokenWithExpiry() + [
-            'baseUrl' => $this->configProvider->getMapUrl() . '/',
-            'tokenUrl' => $this->url->getUrl('polkurier/shipment/mapToken'),
-        ];
-    }
-
-    /**
      * The order's amounts in złoty, as cash on delivery and insurance start from them.
      *
-     * @return array{grand_total: float, shipping_charged: float, cod_collected: float, cod_remaining: float, shipping_covered: bool}
+     * @return array{
+     *     grand_total: float,
+     *     shipping_charged: float,
+     *     cod_collected: float,
+     *     cod_remaining: float,
+     *     shipping_covered: bool,
+     * }
      */
     public function getAmounts(Order $order): array
     {

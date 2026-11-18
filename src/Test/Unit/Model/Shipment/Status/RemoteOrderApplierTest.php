@@ -8,6 +8,7 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Test\Unit\Model\Shipment\Status;
 
 use Magento\Framework\Exception\LocalizedException;
+use Magento\Framework\Serialize\Serializer\Json;
 use Magento\Framework\TestFramework\Unit\Helper\ObjectManager;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -18,8 +19,8 @@ use Polkurier\Shipping\Model\Shipment;
 use Polkurier\Shipping\Model\Shipment\Status\RemoteOrderApplier;
 use Polkurier\Shipping\Test\Unit\Support\FixedDateTime;
 use Polkurier\Shipping\Test\Unit\Support\SdkTestCase;
-use Polkurier\Webservice\Request\Order\GetOrdersMessage;
-use Polkurier\Webservice\Response\Order;
+use Polkurier\Webservice\Dto\Request\Order\GetOrdersMessage;
+use Polkurier\Webservice\Entity\Order;
 use Polkurier\Webservice\Testing\RecordingClient;
 
 #[CoversClass(RemoteOrderApplier::class)]
@@ -85,6 +86,30 @@ class RemoteOrderApplierTest extends SdkTestCase
         self::assertNotNull($shipment->getTrackingUrl());
     }
 
+    public function testAnOrderMissingWhatPolkurierUsuallySendsIsStillCopied(): void
+    {
+        $json = (array)\json_decode(self::loadFixture('get_orders.json'), true);
+        unset(
+            $json['response']['result'][0]['date'],
+            $json['response']['result'][0]['status_date'],
+            $json['response']['result'][0]['shipmenttype'],
+            $json['response']['result'][0]['sender'],
+            $json['response']['result'][0]['items'][0]['type'],
+        );
+        $shipment = $this->createShipment()->setStatusDate('2026-06-24 08:00:00');
+
+        $this->createApplier(new FixedDateTime())->apply($this->createOrder((string)\json_encode($json)), $shipment);
+
+        self::assertSame('2026-06-24 08:00:00', $shipment->getStatusDate(), 'The last known status date stays.');
+        $details = $shipment->getDetails();
+        self::assertNull($details['date']);
+        self::assertNull($details['status_date']);
+        self::assertNull($details['shipment_type']);
+        self::assertNull($details['sender']);
+        self::assertSame('Anna Odbiorca', $details['recipient']['person'] ?? null);
+        self::assertNull($details['items'][0]['type'] ?? null);
+    }
+
     public function testACancelledPolkurierOrderCancelsTheShipment(): void
     {
         $json = (string)\json_encode(\array_replace_recursive(
@@ -141,7 +166,7 @@ class RemoteOrderApplierTest extends SdkTestCase
     private function createShipment(): Shipment
     {
         /** @var Shipment $shipment */
-        $shipment = (new ObjectManager($this))->getObject(Shipment::class);
+        $shipment = (new ObjectManager($this))->getObject(Shipment::class, ['json' => new Json()]);
 
         return $shipment->setState(ShipmentInterface::STATE_CREATED);
     }
@@ -153,7 +178,7 @@ class RemoteOrderApplierTest extends SdkTestCase
         return $this->createClientPool($http)
             ->getOrders()
             ->getOrders(new GetOrdersMessage(searchPhrase: '12345-678'))
-            ->getResult()[0];
+            ->result[0];
     }
 
     private function createApplier(FixedDateTime $clock, ?bool $cancelled = true): RemoteOrderApplier

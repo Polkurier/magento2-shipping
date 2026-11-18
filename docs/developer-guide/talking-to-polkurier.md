@@ -25,7 +25,7 @@ public function __construct(private readonly PolkurierClient $polkurierClient) {
 
 public function execute(): void
 {
-    $carriers = $this->polkurierClient->getCourier()->availableCarriers();
+    $carriers = $this->polkurierClient->getCourier()->getAvailableCarriers();
 }
 ```
 
@@ -38,7 +38,9 @@ public function execute(): void
 | `getGeo()`, `getUtils()` | geographic lookups and helpers |
 | `getMoneyBox()` | cash on delivery balance and payouts |
 | `getOrders()` | placing, cancelling, labels, protocols, statuses, collective pickups |
+| `getOrderReader()` | checking and reading the order events Polkurier posts to the webhook |
 | `getPackTemplates()` | pack templates |
+| `getSerializer()` | writing a payload as the client sends it, and reading one back |
 | `getSystem()` | service information, the carriers' current notices, coupon validation |
 | `getTwoFactorToken()` | sending two-factor codes |
 
@@ -84,6 +86,8 @@ It holds the account's carriers and what each supports (for a day), pickup point
 (15 minutes) and recent failures. Each kind has its own tag
 ([`Enum\Cache\CacheTagEnum`](../../src/Enum/Cache/CacheTagEnum.php)), and
 [`Type::cleanTags()`](../../src/Model/Cache/Type.php) removes one kind and keeps the others.
+[`Type::saveFailure()`](../../src/Model/Cache/Type.php) keeps a failure under its kind's tag and
+the failures' tag, so cleaning either forgets it.
 
 Entries are keyed by account, so changing the credentials never serves the old account's entries.
 Saving the carrier settings cleans every kind that belongs to the account: all but the pickup

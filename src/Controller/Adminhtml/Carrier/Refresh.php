@@ -23,7 +23,8 @@ class Refresh extends Action implements HttpPostActionInterface
 {
     use ReturnsBackTrait;
 
-    public const string ADMIN_RESOURCE = 'Polkurier_Shipping::carriers';
+    public const string ADMIN_RESOURCE = 'Magento_Shipping::carriers';
+    public const string ROUTE = 'polkurier/carrier/refresh';
 
     public function __construct(
         Context $context,

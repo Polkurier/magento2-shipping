@@ -24,10 +24,10 @@ use Polkurier\Shipping\Model\Config\ConfigProvider;
 use Polkurier\Shipping\Model\PickupPoint\MapConfigProvider;
 use Polkurier\Shipping\Model\PickupPoint\MapTokenProvider;
 use Polkurier\Shipping\Model\QuotePoint;
+use Polkurier\Webservice\Dto\Response\Carrier;
+use Polkurier\Webservice\Dto\Response\Carrier\AdditionalData;
+use Polkurier\Webservice\Dto\Response\Carrier\AdditionalData\PointsMap;
 use Polkurier\Webservice\Enum\Courier\PointRequirementEnum;
-use Polkurier\Webservice\Response\Carrier;
-use Polkurier\Webservice\Response\Carrier\AdditionalData;
-use Polkurier\Webservice\Response\Carrier\AdditionalData\PointsMap;
 
 #[CoversClass(MapConfigProvider::class)]
 #[AllowMockObjectsWithoutExpectations]

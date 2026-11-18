@@ -200,7 +200,7 @@ class Draft extends DataObject implements ShipmentDraftInterface
         return $this->setData(self::FIELD_ITEMS, $items);
     }
 
-    public function isPacksEstimated(): bool
+    public function hasEstimatedPacks(): bool
     {
         return (bool)$this->getData(self::FIELD_PACKS_ESTIMATED);
     }
@@ -455,7 +455,7 @@ class Draft extends DataObject implements ShipmentDraftInterface
         return $this->setData(self::FIELD_TARGET_SHIPMENT_ID, $targetShipmentId);
     }
 
-    public function isNotifyCustomer(): bool
+    public function shouldNotifyCustomer(): bool
     {
         return (bool)$this->getData(self::FIELD_NOTIFY_CUSTOMER);
     }

@@ -20,15 +20,16 @@ use Polkurier\Shipping\Model\Shipment\Status\StatusRefreshService;
  */
 class MassRefresh extends AbstractShipmentAction implements HttpPostActionInterface
 {
-    public const string ADMIN_RESOURCE = 'Polkurier_Shipping::shipments';
+    public const string ADMIN_RESOURCE = 'Magento_Sales::shipment';
+    public const string ROUTE = 'polkurier/shipment/massRefresh';
 
     public function __construct(
         Context $context,
-        RequestedShipments $requestedShipments,
+        RequestedShipmentResolver $requestedShipmentResolver,
         private readonly StatusRefreshService $statusRefreshService,
         private readonly FlashMessageCollectorFactory $flashMessageCollectorFactory,
     ) {
-        parent::__construct($context, $requestedShipments);
+        parent::__construct($context, $requestedShipmentResolver);
     }
 
     public function execute(): Redirect

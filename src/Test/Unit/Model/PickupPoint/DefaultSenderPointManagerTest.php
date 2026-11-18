@@ -11,33 +11,32 @@ use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Serialize\Serializer\Json;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
+use Polkurier\Shipping\Enum\Cache\CacheTagEnum;
+use Polkurier\Shipping\Enum\Sdk\ApiEventEnum;
 use Polkurier\Shipping\Logger\Logger;
 use Polkurier\Shipping\Model\Cache\Type as PolkurierCache;
 use Polkurier\Shipping\Model\Carrier\CarrierFeatureResolver;
 use Polkurier\Shipping\Model\Config\ConfigProvider;
 use Polkurier\Shipping\Model\PickupPoint\DefaultSenderPointManager;
 use Polkurier\Shipping\Model\Sdk\AccountCache;
+use Polkurier\Shipping\Model\Sdk\ApiEventDispatcher;
 use Polkurier\Shipping\Model\Sdk\ErrorMessageResolver;
+use Polkurier\Shipping\Test\Unit\Support\MemoryPolkurierCache;
+use Polkurier\Shipping\Test\Unit\Support\RecordingEventManager;
+use Polkurier\Shipping\Test\Unit\Support\SdkConfig;
 use Polkurier\Shipping\Test\Unit\Support\SdkTestCase;
+use Polkurier\Webservice\Dto\Response\Carrier;
+use Polkurier\Webservice\Dto\Response\Carrier\AdditionalData;
+use Polkurier\Webservice\Dto\Response\Carrier\AdditionalData\PointsMap;
 use Polkurier\Webservice\Enum\Courier\PointRequirementEnum;
-use Polkurier\Webservice\Response\Carrier;
-use Polkurier\Webservice\Response\Carrier\AdditionalData;
-use Polkurier\Webservice\Response\Carrier\AdditionalData\PointsMap;
 use Polkurier\Webservice\Testing\RecordingClient;
 
 #[CoversClass(DefaultSenderPointManager::class)]
 #[AllowMockObjectsWithoutExpectations]
 class DefaultSenderPointManagerTest extends SdkTestCase
 {
-    /**
-     * @var array<string, string>
-     */
-    private array $cached = [];
-
-    /**
-     * @var array<string, int>
-     */
-    private array $lifetimes = [];
+    private MemoryPolkurierCache $cache;
+    private RecordingEventManager $events;
 
     public function testEveryCarrierPolkurierKeepsADefaultForIsReadOncePerRequest(): void
     {
@@ -55,12 +54,12 @@ class DefaultSenderPointManagerTest extends SdkTestCase
 
         $points = ['INPOST_PACZKOMAT' => 'KRA01M', 'DPD_POINT' => '', 'UPS_AP_POINT_POINT' => ''];
         self::assertSame([$points, $points], [$first, $second]);
-        self::assertSame(1, $http->requestCount());
-        self::assertSame('get_account_info', $http->lastPayload()['apimethod']);
+        self::assertSame(1, $http->countRequests());
+        self::assertSame('get_account_info', $http->readLastPayload()['apimethod']);
 
         $manager->_resetState();
         $manager->get();
-        self::assertSame(2, $http->requestCount(), 'The next request reads them again.');
+        self::assertSame(2, $http->countRequests(), 'The next request reads them again.');
     }
 
     public function testACarrierHasADefaultOnlyWhenItTakesParcelsAtPointsAndPolkurierKeepsOne(): void
@@ -95,8 +94,12 @@ class DefaultSenderPointManagerTest extends SdkTestCase
 
         self::assertSame([], $this->createManager($http, $logger)->get());
         self::assertSame([], $this->createManager($http)->get(), 'The next request is told without asking again.');
-        self::assertSame(1, $http->requestCount());
-        self::assertSame([PolkurierCache::FAILURE_LIFETIME], \array_values($this->lifetimes));
+        self::assertSame(1, $http->countRequests());
+        self::assertSame([PolkurierCache::FAILURE_LIFETIME], \array_values($this->cache->lifetimes));
+        self::assertSame(
+            [[CacheTagEnum::Account->value, CacheTagEnum::Failures->value]],
+            \array_values($this->cache->tags),
+        );
     }
 
     public function testAChangedPointIsSentAndReadAgainAfterwards(): void
@@ -108,10 +111,15 @@ class DefaultSenderPointManagerTest extends SdkTestCase
 
         $manager->change('UPS_AP_POINT_POINT', 'U02842068');
 
-        self::assertSame('change_default_sender_point', $http->lastPayload()['apimethod']);
-        self::assertSame(['courier' => 'UPS_AP_POINT_POINT', 'point' => 'U02842068'], $http->lastPayload()['data']);
+        self::assertSame('change_default_sender_point', $http->readLastPayload()['apimethod']);
+        self::assertSame(['courier' => 'UPS_AP_POINT_POINT', 'point' => 'U02842068'], $http->readLastPayload()['data']);
         $http->willAnswerWith(self::encodeSuccess(['default_sender_point' => ['UPS_AP_POINT_POINT' => 'U02842068']]));
         self::assertSame(['UPS_AP_POINT_POINT' => 'U02842068'], $manager->get(), 'Read again after the change.');
+        self::assertSame(
+            [ApiEventEnum::DefaultSenderPointChangeAfter->value],
+            \array_column($this->events->dispatched, 'name'),
+        );
+        self::assertSame('U02842068', $this->events->dispatched[0]['data']['request']->point);
     }
 
     public function testARefusalIsToldInPolkuriersWords(): void
@@ -125,7 +133,17 @@ class DefaultSenderPointManagerTest extends SdkTestCase
 
         $this->expectException(LocalizedException::class);
         $this->expectExceptionMessageMatches('/Punkt PL63197 jest nieprawidłowy/');
-        $this->createManager($http)->change('UPS_AP_POINT_POINT', 'PL63197');
+        try {
+            $this->createManager($http)->change('UPS_AP_POINT_POINT', 'PL63197');
+        } finally {
+            self::assertSame([], $this->events->dispatched, 'Nothing changed, so nothing is dispatched.');
+        }
+    }
+
+    protected function setUp(): void
+    {
+        $this->cache = new MemoryPolkurierCache();
+        $this->events = new RecordingEventManager();
     }
 
     private static function createCarrier(string $code, PointRequirementEnum $senderPoint): Carrier
@@ -138,24 +156,16 @@ class DefaultSenderPointManagerTest extends SdkTestCase
     private function createManager(RecordingClient $http, ?Logger $logger = null): DefaultSenderPointManager
     {
         $config = $this->createStub(ConfigProvider::class);
-        $config->method('getLogin')->willReturn(self::LOGIN);
-        $cache = $this->createStub(PolkurierCache::class);
-        $cache->method('load')->willReturnCallback(fn(string $key): string|false => $this->cached[$key] ?? false);
-        $cache->method('save')
-            ->willReturnCallback(function (string $data, string $key, array $tags, int $lifetime): bool {
-                $this->cached[$key] = $data;
-                $this->lifetimes[$key] = $lifetime;
-
-                return true;
-            });
+        $config->method('getLogin')->willReturn(SdkConfig::LOGIN);
 
         return new DefaultSenderPointManager(
             $this->createClientPool($http),
             new CarrierFeatureResolver(),
-            $cache,
+            $this->cache,
             new AccountCache($this->createStub(PolkurierCache::class), new Json(), $config),
             new ErrorMessageResolver(),
             $logger ?? $this->createStub(Logger::class),
+            new ApiEventDispatcher($this->events, $this->createStub(Logger::class)),
         );
     }
 }

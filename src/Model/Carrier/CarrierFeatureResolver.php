@@ -7,12 +7,12 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Model\Carrier;
 
+use Polkurier\Webservice\Dto\Response\Carrier;
+use Polkurier\Webservice\Dto\Response\Carrier\AdditionalData\AdditionalField;
+use Polkurier\Webservice\Dto\Response\Carrier\AdditionalData\Property;
 use Polkurier\Webservice\Enum\Courier\PointRequirementEnum;
 use Polkurier\Webservice\Enum\Order\AdditionalServiceEnum;
 use Polkurier\Webservice\Enum\Order\ShipmentTypeEnum;
-use Polkurier\Webservice\Response\Carrier;
-use Polkurier\Webservice\Response\Carrier\AdditionalData\AdditionalField;
-use Polkurier\Webservice\Response\Carrier\AdditionalData\Property;
 
 /**
  * Answers questions about what a carrier supports, from the carrier list's additional data.
@@ -47,7 +47,7 @@ readonly class CarrierFeatureResolver
 
     public function isRecipientPointRequired(Carrier $carrier): bool
     {
-        return $carrier->getAdditionalData()?->getPointsMap()?->getRecipientPoint() === PointRequirementEnum::Required;
+        return $carrier->additionalData?->pointsMap?->recipientPoint === PointRequirementEnum::Required;
     }
 
     /**
@@ -55,12 +55,12 @@ readonly class CarrierFeatureResolver
      */
     public function getSenderPointRequirement(Carrier $carrier): PointRequirementEnum
     {
-        return $carrier->getAdditionalData()?->getPointsMap()?->getSenderPoint() ?? PointRequirementEnum::None;
+        return $carrier->additionalData->pointsMap->senderPoint ?? PointRequirementEnum::None;
     }
 
     public function isRecipientPointAllowed(Carrier $carrier): bool
     {
-        $requirement = $carrier->getAdditionalData()?->getPointsMap()?->getRecipientPoint();
+        $requirement = $carrier->additionalData?->pointsMap?->recipientPoint;
 
         return $requirement !== null && $requirement !== PointRequirementEnum::None;
     }
@@ -73,23 +73,23 @@ readonly class CarrierFeatureResolver
     public function getPointProviders(Carrier $carrier): array
     {
         return \array_values(
-            \array_map('strval', $carrier->getAdditionalData()?->getPointsMap()?->getAvailableProviders() ?? []),
+            \array_map('strval', $carrier->additionalData->pointsMap->availableProviders ?? []),
         );
     }
 
     public function isCodAvailable(Carrier $carrier): bool
     {
-        return (bool)$carrier->getAdditionalData()?->getCod()?->isAvailable();
+        return (bool)$carrier->additionalData?->cod?->available;
     }
 
     public function isInsuranceRequiredWithCod(Carrier $carrier): bool
     {
-        return (bool)$carrier->getAdditionalData()?->getCod()?->isRequireInsurance();
+        return (bool)$carrier->additionalData?->cod?->requireInsurance;
     }
 
     public function isInsuranceAvailable(Carrier $carrier): bool
     {
-        return (bool)$carrier->getAdditionalData()?->getInsurance()?->isAvailable();
+        return (bool)$carrier->additionalData?->insurance?->available;
     }
 
     /**
@@ -97,33 +97,33 @@ readonly class CarrierFeatureResolver
      */
     public function getShipmentTypes(Carrier $carrier): array
     {
-        $types = $carrier->getAdditionalData()?->getShipmentType();
+        $types = $carrier->additionalData?->shipmentType;
         if ($types === null) {
             return [ShipmentTypeEnum::Box];
         }
 
         return \array_values(\array_filter([
-            $types->getEnvelope()->isAvailable() ? ShipmentTypeEnum::Envelope : null,
-            $types->getBox()->isAvailable() ? ShipmentTypeEnum::Box : null,
-            $types->getPalette()->isAvailable() ? ShipmentTypeEnum::Palette : null,
+            $types->envelope?->available ? ShipmentTypeEnum::Envelope : null,
+            $types->box?->available ? ShipmentTypeEnum::Box : null,
+            $types->palette?->available ? ShipmentTypeEnum::Palette : null,
         ]));
     }
 
     public function isPickupDateRequired(Carrier $carrier): bool
     {
-        return (bool)$carrier->getAdditionalData()?->getPickup()?->getPickupDate()?->isRequired();
+        return (bool)$carrier->additionalData?->pickup?->pickupDate?->required;
     }
 
     public function isPickupTimeRequired(Carrier $carrier): bool
     {
-        $pickup = $carrier->getAdditionalData()?->getPickup();
+        $pickup = $carrier->additionalData?->pickup;
 
-        return $pickup?->getPickupTimeFrom()?->isRequired() || $pickup?->getPickupTimeTo()?->isRequired();
+        return $pickup?->pickupTimeFrom?->required || $pickup?->pickupTimeTo?->required;
     }
 
     public function isPickupDateSupported(Carrier $carrier): bool
     {
-        return (bool)$carrier->getAdditionalData()?->getPickup()?->getPickupDate()?->isStatus();
+        return (bool)$carrier->additionalData?->pickup?->pickupDate?->status;
     }
 
     /**
@@ -131,7 +131,7 @@ readonly class CarrierFeatureResolver
      */
     public function isDropOffAvailable(Carrier $carrier): bool
     {
-        return (bool)$carrier->getAdditionalData()?->getPickup()?->getNoCourierOrder()?->isAvailable();
+        return (bool)$carrier->additionalData?->pickup?->noCourierOrder?->available;
     }
 
     /**
@@ -154,28 +154,28 @@ readonly class CarrierFeatureResolver
         if (\in_array(ShipmentTypeEnum::Palette, $this->getShipmentTypes($carrier), true)) {
             $services = [...$services, ...self::PALLET_SERVICES];
         }
-        $offered = $carrier->getAdditionalData()?->getCourierService();
+        $offered = $carrier->additionalData?->courierService;
         if ($offered === null) {
             return $services;
         }
 
         $map = [
-            [$offered->getReturnOfDocuments(), AdditionalServiceEnum::ReturnOfDocuments],
-            [$offered->getCoverSenderAddress(), AdditionalServiceEnum::CoverSenderAddress],
-            [$offered->getCarryIn(), AdditionalServiceEnum::CarryIn],
-            [$offered->getCourierBringsLabel(), AdditionalServiceEnum::CourierBringsLabel],
-            [$offered->getSaturdayDelivery(), AdditionalServiceEnum::SaturdayDelivery],
-            [$offered->getPhoneCallBeforeDelivery(), AdditionalServiceEnum::PhoneCallBeforeDelivery],
-            [$offered->getPhoneCallBeforeDelivery(), AdditionalServiceEnum::PhoneCallBeforePickup],
-            [$offered->getTires(), AdditionalServiceEnum::Tires],
-            [$offered->getHandDelivery(), AdditionalServiceEnum::HandDelivery],
-            [$offered->getWeekendDelivery(), AdditionalServiceEnum::WeekendDelivery],
-            [$offered->getLabelless(), AdditionalServiceEnum::Labelless],
-            [$offered->getHandleWithCare(), AdditionalServiceEnum::HandleWithCare],
-            [$offered->getDeliveryByTime(), AdditionalServiceEnum::DeliveryByTime],
+            [$offered->returnOfDocuments, AdditionalServiceEnum::ReturnOfDocuments],
+            [$offered->coverSenderAddress, AdditionalServiceEnum::CoverSenderAddress],
+            [$offered->carryIn, AdditionalServiceEnum::CarryIn],
+            [$offered->courierBringsLabel, AdditionalServiceEnum::CourierBringsLabel],
+            [$offered->saturdayDelivery, AdditionalServiceEnum::SaturdayDelivery],
+            [$offered->phoneCallBeforeDelivery, AdditionalServiceEnum::PhoneCallBeforeDelivery],
+            [$offered->phoneCallBeforeDelivery, AdditionalServiceEnum::PhoneCallBeforePickup],
+            [$offered->tires, AdditionalServiceEnum::Tires],
+            [$offered->handDelivery, AdditionalServiceEnum::HandDelivery],
+            [$offered->weekendDelivery, AdditionalServiceEnum::WeekendDelivery],
+            [$offered->labelless, AdditionalServiceEnum::Labelless],
+            [$offered->handleWithCare, AdditionalServiceEnum::HandleWithCare],
+            [$offered->deliveryByTime, AdditionalServiceEnum::DeliveryByTime],
         ];
         foreach ($map as [$property, $service]) {
-            if ($property instanceof Property && $property->isAvailable()) {
+            if ($property instanceof Property && $property->available) {
                 $services[] = $service;
             }
         }
@@ -191,8 +191,8 @@ readonly class CarrierFeatureResolver
     public function getAdditionalFields(Carrier $carrier): array
     {
         return \array_values(\array_filter(
-            $carrier->getAdditionalData()?->getAdditionalFields() ?? [],
-            static fn(AdditionalField $field): bool => $field->isEnabled(),
+            $carrier->additionalData->additionalFields ?? [],
+            static fn(AdditionalField $field): bool => $field->enabled,
         ));
     }
 }

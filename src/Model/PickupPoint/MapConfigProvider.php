@@ -106,8 +106,8 @@ readonly class MapConfigProvider implements ConfigProviderInterface
             'latitude' => $this->configProvider->getMapLatitude($storeId),
             'longitude' => $this->configProvider->getMapLongitude($storeId),
             'zoom' => $this->configProvider->getMapZoom($storeId),
-            'showList' => $this->configProvider->isMapShowList($storeId),
-            'showSearch' => $this->configProvider->isMapShowSearch($storeId),
+            'showList' => $this->configProvider->shouldShowMapList($storeId),
+            'showSearch' => $this->configProvider->shouldShowMapSearch($storeId),
             'functions' => \array_map(
                 static fn(PointFunctionEnum $function): string => $function->value,
                 $this->configProvider->getMapPointFunctions($storeId),

@@ -8,6 +8,7 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Test\Unit\Model\Shipment\Details;
 
 use Magento\Framework\Exception\LocalizedException;
+use Magento\Framework\Serialize\Serializer\Json;
 use Magento\Framework\TestFramework\Unit\Helper\ObjectManager;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -21,7 +22,7 @@ use Polkurier\Shipping\Model\Shipment\Details\DetailsLoader;
 use Polkurier\Shipping\Model\Shipment\Status\RemoteOrderApplier;
 use Polkurier\Shipping\Model\Shipment\Status\StatusRefreshService;
 use Polkurier\Shipping\Test\Unit\Support\FixedDateTime;
-use Polkurier\Webservice\Response\Order\OrderStatusMessage;
+use Polkurier\Webservice\Dto\Response\Order\OrderStatusMessage;
 
 #[CoversClass(DetailsLoader::class)]
 #[AllowMockObjectsWithoutExpectations]
@@ -90,7 +91,7 @@ class DetailsLoaderTest extends TestCase
     {
         $shipment = $this->createShipment()->setDetails(['number' => '18015-2865'])->setIsFinal(true);
 
-        self::assertFalse($this->createLoader()->needsRefresh($shipment));
+        self::assertFalse($this->createLoader()->isRefreshDue($shipment));
         $loaded = $this->createLoader()->refresh($shipment);
 
         self::assertSame($shipment, $loaded['shipment']);
@@ -100,16 +101,16 @@ class DetailsLoaderTest extends TestCase
 
     public function testAShipmentOnItsWayIsRefreshedEachTime(): void
     {
-        self::assertTrue($this->createLoader()->needsRefresh($this->createShipment()), 'No copy yet.');
+        self::assertTrue($this->createLoader()->isRefreshDue($this->createShipment()), 'No copy yet.');
         self::assertTrue(
-            $this->createLoader()->needsRefresh($this->createShipment()->setDetails(['number' => '18015-2865'])),
+            $this->createLoader()->isRefreshDue($this->createShipment()->setDetails(['number' => '18015-2865'])),
             'Read just now, and may have moved on since.',
         );
     }
 
     public function testACancelledShipmentWithItsCopyNeedsNoRefresh(): void
     {
-        self::assertFalse($this->createLoader()->needsRefresh(
+        self::assertFalse($this->createLoader()->isRefreshDue(
             $this->createShipment()
                 ->setDetails(['number' => '18015-2865'])
                 ->setState(ShipmentInterface::STATE_CANCELLED)
@@ -286,7 +287,7 @@ class DetailsLoaderTest extends TestCase
                 }
                 $this->read[] = $number;
 
-                return $this->createStub(OrderStatusMessage::class);
+                return new OrderStatusMessage();
             },
         );
         $resource = $this->createStub(ShipmentResource::class);
@@ -310,7 +311,7 @@ class DetailsLoaderTest extends TestCase
     private function createShipment(): Shipment
     {
         /** @var Shipment $shipment */
-        $shipment = (new ObjectManager($this))->getObject(Shipment::class);
+        $shipment = (new ObjectManager($this))->getObject(Shipment::class, ['json' => new Json()]);
 
         return $shipment->setId(3)
             ->setState(ShipmentInterface::STATE_CREATED)

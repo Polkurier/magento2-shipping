@@ -34,7 +34,7 @@
                 <item name="component" xsi:type="string">Magento_Ui/js/form/provider</item>
             </item>
         </argument>
-        <aclResource>Polkurier_Shipping::shipments</aclResource>
+        <aclResource>Magento_Sales::shipment</aclResource>
         <dataProvider class="Polkurier\Shipping\Ui\Component\Form\ShipmentView\DataProvider"
                       name="polkurier_shipment_view_data_source">
             <settings>

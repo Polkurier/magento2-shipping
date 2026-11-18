@@ -12,8 +12,8 @@ use Polkurier\Shipping\Model\Sdk\ShipmentGateway;
 use Polkurier\Shipping\Model\Shipment\Status\RemoteOrderApplier;
 use Polkurier\Shipping\Test\Unit\Support\FixedDateTime;
 use Polkurier\Shipping\Test\Unit\Support\SdkTestCase;
-use Polkurier\Webservice\Request\Order\GetOrdersMessage;
-use Polkurier\Webservice\Request\Order\GetStatusMessage;
+use Polkurier\Webservice\Dto\Request\Order\GetOrdersMessage;
+use Polkurier\Webservice\Dto\Request\Order\GetStatusMessage;
 use Polkurier\Webservice\Testing\RecordingClient;
 
 #[CoversClass(RemoteOrderApplier::class)]
@@ -25,7 +25,7 @@ class RemoteOrderApplierDetailsTest extends SdkTestCase
         $order = $this->createClientPool($http)
             ->getOrders()
             ->getOrders(new GetOrdersMessage(orderNo: '12345-678'))
-            ->getResult()[0];
+            ->result[0];
 
         $details = $this->createApplier()->mapFromOrder($order);
 

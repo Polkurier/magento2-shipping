@@ -21,7 +21,8 @@ use Polkurier\Shipping\Api\ShipmentRepositoryInterface;
  */
 class View extends Action implements HttpGetActionInterface
 {
-    public const string ADMIN_RESOURCE = 'Polkurier_Shipping::shipments';
+    public const string ADMIN_RESOURCE = 'Magento_Sales::shipment';
+    public const string ROUTE = 'polkurier/shipment/view';
 
     /**
      * Also opened from the admin's notifications, whose links are made outside the session and so

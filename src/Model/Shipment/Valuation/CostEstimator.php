@@ -36,10 +36,10 @@ readonly class CostEstimator
         $message = $this->createOrderMessageMapper->map($draft, $storeId);
         foreach ($this->shipmentGateway->valuate($message) as $valuation) {
             // A carrier that can't carry the shipment is quoted at 0.
-            if ($valuation->isShipment() && $valuation->isAvailable()) {
-                $quotes[$valuation->getServiceCode()] = [
-                    'net' => $valuation->getNetPrice(),
-                    'gross' => $valuation->getGrossPrice(),
+            if ($valuation->shipment && $valuation->available) {
+                $quotes[$valuation->serviceCode] = [
+                    'net' => $valuation->netPrice,
+                    'gross' => $valuation->grossPrice,
                 ];
             }
         }

@@ -15,9 +15,10 @@ use Polkurier\Shipping\Model\Address;
 use Polkurier\Shipping\Model\Address\AddressBookMapper;
 use Polkurier\Shipping\Test\Unit\Support\NewingObjectManager;
 use Polkurier\Shipping\Test\Unit\Support\SdkTestCase;
-use Polkurier\Webservice\Builder\Address\SaveMessageBuilderFactory;
+use Polkurier\Webservice\Builder\Entity\AddressBuilderFactory;
+use Polkurier\Webservice\Dto\Request\Address\GetMessage;
+use Polkurier\Webservice\Entity\Address as RemoteAddress;
 use Polkurier\Webservice\Enum\Address\AddressTypeEnum;
-use Polkurier\Webservice\Request\Address\GetMessage;
 use Polkurier\Webservice\Testing\RecordingClient;
 
 #[CoversClass(AddressBookMapper::class)]
@@ -49,8 +50,29 @@ class AddressBookMapperTest extends SdkTestCase
         self::assertNull($local->getFlatNumber(), 'Empty strings from the API become nulls.');
         self::assertTrue($local->isDefault());
         self::assertTrue($local->isCover());
-        self::assertSame('get_addresses', $http->lastPayload()['apimethod']);
-        self::assertSame('SENDER', $http->lastPayload()['data']['type']);
+        self::assertSame('get_addresses', $http->readLastPayload()['apimethod']);
+        self::assertSame('SENDER', $http->readLastPayload()['data']['type']);
+    }
+
+    public function testAnAddressWithoutATypeIsTakenAsASender(): void
+    {
+        $remote = new RemoteAddress(
+            'Magazyn',
+            'Jan Kowalski',
+            'Fabryczna',
+            '7',
+            '90-001',
+            'Łódź',
+            'magazyn@example.com',
+            '501501501',
+            id: 'aZ3k',
+            type: null,
+        );
+
+        self::assertSame(
+            AddressInterface::TYPE_SENDER,
+            self::createMapper()->normalize($remote)[AddressInterface::FIELD_TYPE],
+        );
     }
 
     public function testAProvincePolkurierCantKeepStaysAsMagentoHasIt(): void
@@ -90,8 +112,8 @@ class AddressBookMapperTest extends SdkTestCase
             ->setDefault(true)
             ->setCover(true);
 
-        $saved = $this->createClientPool($http)->getAddresses()->saveAddress($mapper->mapToSaveMessage($local));
-        $data = $http->lastPayload()['data'];
+        $saved = $this->createClientPool($http)->getAddresses()->saveAddress($mapper->mapToRecord($local));
+        $data = $http->readLastPayload()['data'];
 
         self::assertSame('aZ3k', $data['id'], 'An entry already in Polkurier is updated, not duplicated.');
         self::assertSame('7', $data['housenumber']);
@@ -108,6 +130,6 @@ class AddressBookMapperTest extends SdkTestCase
 
     private static function createMapper(): AddressBookMapper
     {
-        return new AddressBookMapper(NewingObjectManager::createFactory(SaveMessageBuilderFactory::class));
+        return new AddressBookMapper(NewingObjectManager::createFactory(AddressBuilderFactory::class));
     }
 }

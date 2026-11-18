@@ -19,7 +19,7 @@ use Polkurier\Shipping\Api\Data\SyncableInterface;
 use Polkurier\Shipping\Api\PackTemplateRepositoryInterface;
 use Polkurier\Shipping\Model\PackTemplate;
 use Polkurier\Shipping\Model\PackTemplateFactory;
-use Polkurier\Shipping\Model\ResourceModel\PackTemplate as ResourceModel;
+use Polkurier\Shipping\Model\ResourceModel\PackTemplate as PackTemplateResource;
 use Polkurier\Shipping\Model\ResourceModel\PackTemplate\CollectionFactory;
 
 /**
@@ -29,7 +29,7 @@ readonly class PackTemplateRepository implements PackTemplateRepositoryInterface
 {
     public function __construct(
         private PackTemplateFactory $packTemplateFactory,
-        private ResourceModel $resource,
+        private PackTemplateResource $packTemplateResource,
         private CollectionFactory $collectionFactory,
         private CollectionProcessorInterface $collectionProcessor,
         private PackTemplateSearchResultsInterfaceFactory $searchResultsFactory,
@@ -38,7 +38,7 @@ readonly class PackTemplateRepository implements PackTemplateRepositoryInterface
     public function get(int $id): PackTemplateInterface
     {
         $entity = $this->packTemplateFactory->create();
-        $this->resource->load($entity, $id);
+        $this->packTemplateResource->load($entity, $id);
         if (!$entity->getId()) {
             throw new NoSuchEntityException(__('The pack template with id "%1" does not exist.', $id));
         }
@@ -63,7 +63,7 @@ readonly class PackTemplateRepository implements PackTemplateRepositoryInterface
     {
         try {
             /** @var PackTemplate $entity */
-            $this->resource->save($entity);
+            $this->packTemplateResource->save($entity);
         } catch (\Exception $e) {
             throw new CouldNotSaveException(__('Could not save the pack template: %1', $e->getMessage()), $e);
         }
@@ -75,7 +75,7 @@ readonly class PackTemplateRepository implements PackTemplateRepositoryInterface
     {
         try {
             /** @var PackTemplate $entity */
-            $this->resource->delete($entity);
+            $this->packTemplateResource->delete($entity);
         } catch (\Exception $e) {
             throw new CouldNotDeleteException(__('Could not delete the pack template: %1', $e->getMessage()), $e);
         }

@@ -7,6 +7,7 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Ui\Component\Form\ShipmentView;
 
+use Polkurier\Shipping\Controller\Adminhtml\Shipment\Cancel as ShipmentCancel;
 use Polkurier\Shipping\Model\Shipment\CancellationRule;
 use Polkurier\Shipping\Ui\Component\ShipmentConfirmationProvider;
 
@@ -23,7 +24,7 @@ class CancelButton extends AbstractButton
         $shipment = $this->getShipment();
         if ($shipment === null
             || CancellationRule::getRefusal($shipment) !== null
-            || !$this->authorization->isAllowed('Polkurier_Shipping::shipment_cancel')
+            || !$this->authorization->isAllowed(ShipmentCancel::ADMIN_RESOURCE)
         ) {
             return [];
         }
@@ -32,7 +33,7 @@ class CancelButton extends AbstractButton
 
         return $this->buildPostButton(
             (string)__('Cancel'),
-            'cancel',
+            ShipmentCancel::ROUTE,
             30,
             (string)$confirm['title'],
             (string)$confirm['message'],

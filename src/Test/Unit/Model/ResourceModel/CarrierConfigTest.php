@@ -10,6 +10,7 @@ namespace Polkurier\Shipping\Test\Unit\Model\ResourceModel;
 use Magento\Framework\App\ResourceConnection;
 use Magento\Framework\DB\Adapter\AdapterInterface;
 use Magento\Framework\Model\ResourceModel\Db\Context;
+use Magento\Framework\Serialize\Serializer\Json;
 use Magento\Framework\TestFramework\Unit\Helper\ObjectManager;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -17,9 +18,9 @@ use PHPUnit\Framework\TestCase;
 use Polkurier\Shipping\Api\Data\CarrierLabelInterfaceFactory;
 use Polkurier\Shipping\Model\CarrierConfig;
 use Polkurier\Shipping\Model\CarrierConfig\CarrierLabel;
-use Polkurier\Shipping\Model\ResourceModel\CarrierConfig as Resource;
+use Polkurier\Shipping\Model\ResourceModel\CarrierConfig as CarrierConfigResource;
 
-#[CoversClass(Resource::class)]
+#[CoversClass(CarrierConfigResource::class)]
 #[AllowMockObjectsWithoutExpectations]
 class CarrierConfigTest extends TestCase
 {
@@ -65,7 +66,7 @@ class CarrierConfigTest extends TestCase
         self::assertSame(['delete'], $this->writes);
     }
 
-    private function createResource(): Resource
+    private function createResource(): CarrierConfigResource
     {
         $connection = $this->createStub(AdapterInterface::class);
         $connection->method('delete')->willReturnCallback(function (): int {
@@ -84,12 +85,12 @@ class CarrierConfigTest extends TestCase
         $context = $this->createStub(Context::class);
         $context->method('getResources')->willReturn($resources);
 
-        return new Resource($context, $this->createStub(CarrierLabelInterfaceFactory::class));
+        return new CarrierConfigResource($context, $this->createStub(CarrierLabelInterfaceFactory::class));
     }
 
     private function createConfig(): CarrierConfig
     {
-        $config = (new ObjectManager($this))->getObject(CarrierConfig::class);
+        $config = (new ObjectManager($this))->getObject(CarrierConfig::class, ['json' => new Json()]);
         $config->setId(7);
 
         return $config;
@@ -100,7 +101,7 @@ class CarrierConfigTest extends TestCase
         return (new CarrierLabel())->setStoreId($storeId)->setLabel($label);
     }
 
-    private function afterSave(Resource $resource, CarrierConfig $config): void
+    private function afterSave(CarrierConfigResource $resource, CarrierConfig $config): void
     {
         (new \ReflectionMethod($resource, '_afterSave'))->invoke($resource, $config);
     }

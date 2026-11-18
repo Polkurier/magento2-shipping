@@ -12,6 +12,7 @@ use Magento\Framework\UrlInterface;
 use Magento\Framework\View\Element\UiComponent\ContextInterface;
 use Magento\Framework\View\Element\UiComponentFactory;
 use Magento\Ui\Component\Listing\Columns\Column;
+use Polkurier\Shipping\Controller\Adminhtml\Payout\Cancel as PayoutCancel;
 
 /**
  * Cancelling a payout Polkurier has not sent yet.
@@ -41,7 +42,7 @@ class ActionsColumn extends Column
     public function prepareDataSource(array $dataSource): array
     {
         if (!isset($dataSource['data']['items'])
-            || !$this->authorization->isAllowed('Polkurier_Shipping::payout_request')
+            || !$this->authorization->isAllowed(PayoutCancel::ADMIN_RESOURCE)
         ) {
             return $dataSource;
         }
@@ -50,7 +51,7 @@ class ActionsColumn extends Column
                 continue;
             }
             $item[$this->getData('name')] = ['cancel' => [
-                'href' => $this->url->getUrl('polkurier/payout/cancel', ['number' => $item['number']]),
+                'href' => $this->url->getUrl(PayoutCancel::ROUTE, ['number' => $item['number']]),
                 'label' => __('Cancel'),
                 'post' => true,
                 'confirm' => [

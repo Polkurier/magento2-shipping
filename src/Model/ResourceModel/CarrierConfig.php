@@ -44,7 +44,7 @@ class CarrierConfig extends AbstractDb
         $rows = $connection->fetchAll(
             $connection->select()
                 ->from($this->getTable(self::LABEL_TABLE_NAME))
-                ->where('config_id IN (?)', $configIds)
+                ->where(CarrierConfigInterface::FIELD_CONFIG_ID . ' IN (?)', $configIds)
                 ->order(CarrierLabelInterface::FIELD_STORE_ID),
         );
         $labels = [];

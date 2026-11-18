@@ -7,7 +7,7 @@
  * the chosen carrier supports. The screen lists them under the sections, each with a way to fix
  * it. These are the usual refusals caught early; Polkurier still has the last word.
  */
-define(['mage/translate'], function ($t) {
+define(['mage/translate', 'Magento_Catalog/js/price-utils'], function ($t, priceUtils) {
     'use strict';
 
     // The fields a shipment draft is made of (Polkurier\Shipping\Model\Shipment\Draft\DraftHydrator),
@@ -154,6 +154,32 @@ define(['mage/translate'], function ($t) {
     }
 
     /**
+     * The start of a text that fits in a number of bytes of UTF-8, without splitting a letter, as
+     * Polkurier cuts the shipment description.
+     *
+     * @param {String} text
+     * @param {Number} bytes
+     * @returns {String}
+     */
+    function cutToBytes(text, bytes) {
+        const encoder = new TextEncoder();
+        let kept = '',
+            used = 0;
+
+        Array.from(String(text)).every(function (letter) {
+            used += encoder.encode(letter).length;
+            if (used > bytes) {
+                return false;
+            }
+            kept += letter;
+
+            return true;
+        });
+
+        return kept;
+    }
+
+    /**
      * @param {*} value
      * @returns {Number}
      */
@@ -164,15 +190,15 @@ define(['mage/translate'], function ($t) {
     }
 
     /**
+     * An amount in złoty, written as the server writes it.
+     *
      * @param {*} value
-     * @param {String} currency
+     * @param {Object} priceFormat the server's price format for złoty
+     *     (Polkurier\Shipping\Model\Admin\Formatter::getPriceFormat())
      * @returns {String}
      */
-    function formatMoney(value, currency) {
-        return parseAmount(value).toLocaleString(document.documentElement.lang || undefined, {
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 2
-        }) + ' ' + (currency || 'PLN');
+    function formatMoney(value, priceFormat) {
+        return priceUtils.formatPrice(parseAmount(value), priceFormat);
     }
 
     /**
@@ -519,6 +545,7 @@ define(['mage/translate'], function ($t) {
         describeKindProblem: describeKindProblem,
         buildFeatures: buildFeatures,
         swapPoint: swapPoint,
+        cutToBytes: cutToBytes,
 
         /**
          * @param {Object} data the form's data
@@ -616,6 +643,18 @@ define(['mage/translate'], function ($t) {
                     $t('Fill in the sender\'s %1.').replace('%1', findMissingSenderFields(data).join(', '))
                 );
             }
+            // Not blocking: the description is cut when the shipment is placed.
+            if (data.description_max_length
+                && cutToBytes(data.description || '', data.description_max_length) !== String(data.description || '')
+            ) {
+                add(
+                    'description',
+                    'description',
+                    $t('Only the start of the description fits on the label: "%1".')
+                        .replace('%1', cutToBytes(data.description, data.description_max_length)),
+                    false
+                );
+            }
             if (!isFilled(data.recipient_phone)) {
                 add('recipient_phone', 'recipient', $t('The recipient needs a phone number.'));
             }
@@ -666,8 +705,8 @@ define(['mage/translate'], function ($t) {
             if (cod > 0 && isFilled(data.cod_remaining) && cod > parseAmount(data.cod_remaining) + 0.005) {
                 add('cod_amount', 'cod', parseAmount(data.cod_collected) > 0
                     ? $t('The order\'s other Polkurier orders already collect %1: this one collects more than the %2 left.')
-                        .replace('%1', formatMoney(data.cod_collected, data.currency))
-                        .replace('%2', formatMoney(data.cod_remaining, data.currency))
+                        .replace('%1', formatMoney(data.cod_collected, data.price_format))
+                        .replace('%2', formatMoney(data.cod_remaining, data.price_format))
                     : $t('Cash on delivery is more than the order total.'), false);
             }
             if (cod > 0 && data.cod_return_type === 'BA' && !isFilled(data.cod_bank_account_id)) {

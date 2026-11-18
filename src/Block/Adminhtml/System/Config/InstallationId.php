@@ -34,7 +34,7 @@ class InstallationId extends Field
 
     protected function _getElementHtml(AbstractElement $element): string
     {
-        $element->setData('placeholder', $this->applicationIdProvider->compute());
+        $element->setData('placeholder', $this->applicationIdProvider->computeId());
 
         return parent::_getElementHtml($element);
     }

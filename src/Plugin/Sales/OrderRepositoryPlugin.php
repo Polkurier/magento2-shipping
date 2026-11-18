@@ -14,8 +14,8 @@ use Magento\Sales\Api\OrderRepositoryInterface;
 use Polkurier\Shipping\Api\Data\OrderPointInterface;
 use Polkurier\Shipping\Api\Data\ShippingChoiceInterface;
 use Polkurier\Shipping\Api\OrderPointRepositoryInterface;
+use Polkurier\Shipping\Api\ShippingChoiceRepositoryInterface;
 use Polkurier\Shipping\Model\Sdk\ApplicationIdProvider;
-use Polkurier\Shipping\Model\ShippingChoice\ShippingChoiceRepository;
 
 /**
  * Exposes the order's pickup point as its polkurier_point extension attribute. When the order's
@@ -29,7 +29,7 @@ readonly class OrderRepositoryPlugin
 {
     public function __construct(
         private OrderPointRepositoryInterface $orderPointRepository,
-        private ShippingChoiceRepository $shippingChoiceRepository,
+        private ShippingChoiceRepositoryInterface $shippingChoiceRepository,
         private OrderExtensionFactory $extensionFactory,
         private ApplicationIdProvider $applicationIdProvider,
     ) {}
@@ -40,7 +40,7 @@ readonly class OrderRepositoryPlugin
             $orderId = (int)$order->getEntityId();
             $this->attach(
                 $order,
-                $this->orderPointRepository->getForOrders([$orderId])[$orderId] ?? null,
+                $this->orderPointRepository->getForOrder($orderId),
                 $this->shippingChoiceRepository->getForOrder($orderId),
             );
         }

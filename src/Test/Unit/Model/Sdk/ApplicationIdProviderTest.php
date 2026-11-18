@@ -36,7 +36,7 @@ class ApplicationIdProviderTest extends TestCase
         $applicationId = $this->createProvider('first-key', 'shop-staging');
 
         self::assertSame('shop-staging', $applicationId->get());
-        self::assertSame($made, $applicationId->compute(), 'Said beside the setting, as what an empty one means.');
+        self::assertSame($made, $applicationId->computeId(), 'Said beside the setting, as what an empty one means.');
     }
 
     public function testEnteredIdsAreLettersDigitsDotsDashesAndUnderscoresThatFitPolkuriersColumn(): void

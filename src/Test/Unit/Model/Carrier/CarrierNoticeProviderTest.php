@@ -19,7 +19,7 @@ use Polkurier\Shipping\Model\Cache\Type as PolkurierCache;
 use Polkurier\Shipping\Model\Carrier\CarrierNoticeProvider;
 use Polkurier\Shipping\Model\Sdk\AccountCache;
 use Polkurier\Webservice\Api\Service\SystemServiceInterface;
-use Polkurier\Webservice\Response\System\CourierMessage;
+use Polkurier\Webservice\Dto\Response\System\CourierMessage;
 
 #[CoversClass(CarrierNoticeProvider::class)]
 #[AllowMockObjectsWithoutExpectations]

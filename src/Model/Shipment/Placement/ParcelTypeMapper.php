@@ -18,7 +18,7 @@ use Polkurier\Webservice\Enum\Order\ShipmentTypeEnum;
  * Under a pallet shipment Polkurier reads ST and NST as the EURO pallet (120 × 80) and its
  * non-standard variant, so those two have codes of their own here, as the envelope has.
  */
-final readonly class ParcelTypeMapper
+final class ParcelTypeMapper
 {
     /**
      * An envelope, which Polkurier knows only as a shipment type: its parcels go as standard.
@@ -39,12 +39,12 @@ final readonly class ParcelTypeMapper
      * The pallets by the footprint each is, in centimetres, smallest first.
      */
     public const array PALLET_SIZES = [
-        'VP' => [60, 40],
-        'PPAL' => [80, 60],
+        PackTypeEnum::QuarterPalette->value => [60, 40],
+        PackTypeEnum::HalfPalette->value => [80, 60],
         self::EURO_PALLET => [120, 80],
-        'EUR2' => [120, 100],
-        'PAL' => [120, 120],
-        'PA15' => [150, 150],
+        PackTypeEnum::Palette120x100->value => [120, 100],
+        PackTypeEnum::Palette->value => [120, 120],
+        PackTypeEnum::Palette150x150->value => [150, 150],
     ];
 
     /**
@@ -88,7 +88,8 @@ final readonly class ParcelTypeMapper
 
         return match (true) {
             $packType === self::ENVELOPE => ShipmentTypeEnum::Envelope,
-            $packType === self::EURO_PALLET_NON_STANDARD, isset(self::PALLET_SIZES[$packType]) => ShipmentTypeEnum::Palette,
+            $packType === self::EURO_PALLET_NON_STANDARD,
+            isset(self::PALLET_SIZES[$packType]) => ShipmentTypeEnum::Palette,
             default => ShipmentTypeEnum::Box,
         };
     }

@@ -19,6 +19,7 @@ use Polkurier\Shipping\Model\PackTemplate\PackTemplateHandler;
 class Sync extends AbstractSync
 {
     public const string ADMIN_RESOURCE = 'Polkurier_Shipping::pack_templates';
+    public const string ROUTE = 'polkurier/packtemplate/sync';
 
     public function __construct(
         Context $context,

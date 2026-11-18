@@ -10,11 +10,12 @@ namespace Polkurier\Shipping\Test\Unit\Model\Carrier;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Polkurier\Shipping\Model\Carrier\CarrierFeatureResolver;
-use Polkurier\Webservice\Response\Carrier;
-use Polkurier\Webservice\Response\Carrier\AdditionalData;
-use Polkurier\Webservice\Response\Carrier\AdditionalData\Pickup;
-use Polkurier\Webservice\Response\Carrier\AdditionalData\Property;
-use Polkurier\Webservice\Response\Carrier\AdditionalData\ShipmentType;
+use Polkurier\Webservice\Dto\Response\Carrier;
+use Polkurier\Webservice\Dto\Response\Carrier\AdditionalData;
+use Polkurier\Webservice\Dto\Response\Carrier\AdditionalData\Pickup;
+use Polkurier\Webservice\Dto\Response\Carrier\AdditionalData\Property;
+use Polkurier\Webservice\Dto\Response\Carrier\AdditionalData\ShipmentType;
+use Polkurier\Webservice\Enum\Order\ShipmentTypeEnum;
 
 #[CoversClass(CarrierFeatureResolver::class)]
 class CarrierFeatureResolverTest extends TestCase
@@ -35,6 +36,18 @@ class CarrierFeatureResolverTest extends TestCase
             self::assertFalse($features->isDropOffAvailable($carrier));
             self::assertFalse($features->isRecipientPointAllowed($carrier));
         }
+    }
+
+    public function testAShipmentTypeLeftOutIsNotOffered(): void
+    {
+        $carrier = new Carrier(
+            'DPD',
+            'DPD',
+            false,
+            new AdditionalData(shipmentType: new ShipmentType(box: new Property(true, ''))),
+        );
+
+        self::assertSame([ShipmentTypeEnum::Box], (new CarrierFeatureResolver())->getShipmentTypes($carrier));
     }
 
     public function testACarrierTakingPalletsOffersTheServicesForPallets(): void

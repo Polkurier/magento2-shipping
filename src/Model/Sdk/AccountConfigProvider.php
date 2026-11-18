@@ -13,7 +13,7 @@ use Polkurier\Shipping\Model\Config\ConfigProvider;
 use Polkurier\Webservice\Api\ConfigInterface;
 use Polkurier\Webservice\Api\ConfigProviderInterface;
 use Polkurier\Webservice\ConfigFactory as SdkConfigFactory;
-use Polkurier\Webservice\Http\Request\AuthorizationMessageFactory;
+use Polkurier\Webservice\Dto\Request\AuthorizationMessageFactory;
 
 /**
  * SDK configuration for the Polkurier account, read from Magento's configuration when it is asked

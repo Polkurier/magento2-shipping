@@ -18,6 +18,7 @@ use Polkurier\Shipping\Model\BankAccount\BankAccountHandler;
 class Save extends AbstractSave
 {
     public const string ADMIN_RESOURCE = 'Polkurier_Shipping::bank_accounts';
+    public const string ROUTE = 'polkurier/bankaccount/save';
 
     public function __construct(
         Context $context,

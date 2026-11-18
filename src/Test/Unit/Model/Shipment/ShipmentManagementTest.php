@@ -13,8 +13,8 @@ use Magento\Framework\Encryption\EncryptorInterface;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Framework\Lock\LockManagerInterface;
+use Magento\Framework\Serialize\Serializer\Json;
 use Magento\Framework\TestFramework\Unit\Helper\ObjectManager;
-use Magento\SalesSequence\Model\Manager as SequenceManager;
 use Magento\Sales\Api\Data\ShipmentCommentInterfaceFactory;
 use Magento\Sales\Api\Data\ShipmentInterface as MagentoShipmentInterface;
 use Magento\Sales\Api\OrderRepositoryInterface;
@@ -26,6 +26,7 @@ use Magento\Sales\Model\Order;
 use Magento\Sales\Model\Order\Email\Sender\ShipmentSender;
 use Magento\Sales\Model\Order\Shipment as MagentoShipmentModel;
 use Magento\Sales\Model\Order\Shipment\Comment as ShipmentComment;
+use Magento\SalesSequence\Model\Manager as SequenceManager;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -35,9 +36,11 @@ use Polkurier\Shipping\Api\BankAccountRepositoryInterface;
 use Polkurier\Shipping\Api\Data\ShipmentDraftInterface;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Api\ShipmentRepositoryInterface;
+use Polkurier\Shipping\Api\ShippingChoiceRepositoryInterface;
 use Polkurier\Shipping\Enum\Config\ExternalOrderIdEnum;
 use Polkurier\Shipping\Enum\Sdk\ApiEventEnum;
 use Polkurier\Shipping\Logger\Logger;
+use Polkurier\Shipping\Model\Admin\Formatter;
 use Polkurier\Shipping\Model\Carrier\CarrierCatalog;
 use Polkurier\Shipping\Model\Carrier\CarrierFeatureResolver;
 use Polkurier\Shipping\Model\Carrier\CarrierNameProvider;
@@ -51,17 +54,15 @@ use Polkurier\Shipping\Model\Sdk\ErrorMessageResolver;
 use Polkurier\Shipping\Model\Sdk\ShipmentGateway;
 use Polkurier\Shipping\Model\Sdk\Validator;
 use Polkurier\Shipping\Model\Shipment;
-use Polkurier\Shipping\Model\ShipmentFactory;
 use Polkurier\Shipping\Model\Shipment\CancellationService;
-use Polkurier\Shipping\Model\Shipment\Details\Formatter;
 use Polkurier\Shipping\Model\Shipment\Draft;
-use Polkurier\Shipping\Model\Shipment\DraftFactory;
 use Polkurier\Shipping\Model\Shipment\Draft\DefaultDraftBuilder;
 use Polkurier\Shipping\Model\Shipment\Draft\DraftHydrator;
 use Polkurier\Shipping\Model\Shipment\Draft\Item;
 use Polkurier\Shipping\Model\Shipment\Draft\ItemFactory;
 use Polkurier\Shipping\Model\Shipment\Draft\Pack;
 use Polkurier\Shipping\Model\Shipment\Draft\PackFactory;
+use Polkurier\Shipping\Model\Shipment\DraftFactory;
 use Polkurier\Shipping\Model\Shipment\Native\NativeFollowUpService;
 use Polkurier\Shipping\Model\Shipment\Native\NativeShipmentService;
 use Polkurier\Shipping\Model\Shipment\OrderLoader;
@@ -81,24 +82,23 @@ use Polkurier\Shipping\Model\Shipment\Status\ReconciliationService;
 use Polkurier\Shipping\Model\Shipment\Status\RemoteOrderApplier;
 use Polkurier\Shipping\Model\Shipment\Status\RemoteOrderMatcher;
 use Polkurier\Shipping\Model\Shipment\Status\StatusRefreshService;
-use Polkurier\Shipping\Model\ShippingChoice\ShippingChoiceRepository;
+use Polkurier\Shipping\Model\ShipmentFactory;
 use Polkurier\Shipping\Test\Unit\Support\FixedDateTime;
 use Polkurier\Shipping\Test\Unit\Support\NewingObjectManager;
 use Polkurier\Shipping\Test\Unit\Support\RecordingEventManager;
+use Polkurier\Shipping\Test\Unit\Support\SdkConfig;
 use Polkurier\Shipping\Test\Unit\Support\SdkTestCase;
-use Polkurier\Webservice\Builder\Order\CodMessageBuilderFactory;
-use Polkurier\Webservice\Builder\Order\CoverAddressMessageBuilderFactory;
-use Polkurier\Webservice\Builder\Order\CreateOrderMessageBuilderFactory;
-use Polkurier\Webservice\Builder\Order\GetOrdersMessageBuilderFactory;
-use Polkurier\Webservice\Builder\Order\OrderAddressMessageBuilderFactory;
-use Polkurier\Webservice\Builder\Order\PackMessageBuilderFactory;
-use Polkurier\Webservice\Builder\Order\PickupMessageBuilderFactory;
+use Polkurier\Webservice\Builder\Entity\Order\AddressBuilderFactory;
+use Polkurier\Webservice\Builder\Entity\Order\CodBuilderFactory;
+use Polkurier\Webservice\Builder\Entity\Order\PackItemBuilderFactory;
+use Polkurier\Webservice\Builder\Entity\Order\PickupBuilderFactory;
+use Polkurier\Webservice\Builder\Entity\OrderBuilderFactory;
+use Polkurier\Webservice\Builder\Request\Order\GetOrdersMessageBuilderFactory;
+use Polkurier\Webservice\Dto\Response\Carrier;
+use Polkurier\Webservice\Dto\Response\Carrier\AdditionalData;
+use Polkurier\Webservice\Dto\Response\Carrier\AdditionalData\PointsMap;
+use Polkurier\Webservice\Dto\Response\Order\CreatedOrderMessage;
 use Polkurier\Webservice\Enum\Courier\PointRequirementEnum;
-use Polkurier\Webservice\Response\Carrier;
-use Polkurier\Webservice\Response\Carrier\AdditionalData;
-use Polkurier\Webservice\Response\Carrier\AdditionalData\PointsMap;
-use Polkurier\Webservice\Response\Order\CreatedOrderMessage;
-use Polkurier\Webservice\Serializer\SerializerProvider;
 use Polkurier\Webservice\Testing\RecordingClient;
 
 #[CoversClass(ShipmentManagement::class)]
@@ -176,7 +176,11 @@ class ShipmentManagementTest extends SdkTestCase
     /**
      * Where Magento would take the Polkurier order, or why it can't.
      *
-     * @var array{qtys: array<int, float>, shipment_id: int|null, packages: array<int, array<string, mixed>>}|LocalizedException
+     * @var array{
+     *     qtys: array<int, float>,
+     *     shipment_id: int|null,
+     *     packages: array<int, array<string, mixed>>,
+     * }|LocalizedException
      */
     private array|LocalizedException $target = ['qtys' => [], 'shipment_id' => null, 'packages' => []];
 
@@ -218,7 +222,7 @@ class ShipmentManagementTest extends SdkTestCase
         } catch (LocalizedException $e) {
             self::assertStringContainsString('#000000042', $e->getMessage());
         }
-        self::assertSame(0, $this->http->requestCount(), 'Polkurier is never asked.');
+        self::assertSame(0, $this->http->countRequests(), 'Polkurier is never asked.');
     }
 
     public function testPlacesTheOrderAndShipsItWithItsWaybills(): void
@@ -264,9 +268,9 @@ class ShipmentManagementTest extends SdkTestCase
         );
         self::assertSame('https://track.example/WB-111', $shipment->getTrackingUrl());
 
-        $payload = $this->http->lastPayload();
+        $payload = $this->http->readLastPayload();
         self::assertSame('create_order', $payload['apimethod']);
-        self::assertSame(self::TOKEN, $payload['authorization']['token']);
+        self::assertSame(SdkConfig::TOKEN, $payload['authorization']['token']);
         self::assertSame('DPD', $payload['data']['courier']);
         self::assertSame('Zam. 000000042', $payload['data']['description']);
         self::assertSame('00-001', $payload['data']['recipient']['postcode']);
@@ -293,7 +297,7 @@ class ShipmentManagementTest extends SdkTestCase
         self::assertSame($this->order, $events[0]['order']);
         self::assertSame('create', $events[0]['source']);
         self::assertInstanceOf(CreatedOrderMessage::class, $events[0]['response']);
-        self::assertSame('18015-1001', $events[0]['response']->getOrderNumber());
+        self::assertSame('18015-1001', $events[0]['response']->orderNumber);
     }
 
     public function testAFailingListenerDoesNotUndoAPlacedOrder(): void
@@ -347,7 +351,7 @@ class ShipmentManagementTest extends SdkTestCase
 
         self::assertSame(57, $shipment->getShipmentId());
         self::assertNull($shipment->getLastError());
-        self::assertSame(1, $this->http->requestCount(), 'Nothing is sent to Polkurier again.');
+        self::assertSame(1, $this->http->countRequests(), 'Nothing is sent to Polkurier again.');
     }
 
     public function testTheCustomerIsEmailedOnceThePlacedOrderHasItsMagentoShipment(): void
@@ -538,7 +542,7 @@ class ShipmentManagementTest extends SdkTestCase
 
         $shipment = $this->createPlacementService()->placeForNativeShipment(self::ORDER_ID, $this->createDraft(), 9);
 
-        self::assertSame('000000009', $this->http->lastPayload()['data']['external_order_id']);
+        self::assertSame('000000009', $this->http->readLastPayload()['data']['external_order_id']);
         self::assertNull($shipment->getReservedShipmentNumber(), 'Nothing is taken: it has its number.');
         self::assertSame(77, $this->nextShipmentNumber);
     }
@@ -555,7 +559,7 @@ class ShipmentManagementTest extends SdkTestCase
         }
 
         self::assertSame(77, $this->nextShipmentNumber, 'No number is taken for it.');
-        self::assertSame(0, $this->http->requestCount(), 'Nothing is sent.');
+        self::assertSame(0, $this->http->countRequests(), 'Nothing is sent.');
         self::assertSame([], $this->saved);
     }
 
@@ -574,7 +578,7 @@ class ShipmentManagementTest extends SdkTestCase
 
         $shipment = $this->createManagement()->create(self::ORDER_ID, $this->createDraft());
 
-        self::assertSame('000000042', $this->http->lastPayload()['data']['external_order_id']);
+        self::assertSame('000000042', $this->http->readLastPayload()['data']['external_order_id']);
         self::assertNull($shipment->getReservedShipmentNumber());
         self::assertSame(77, $this->nextShipmentNumber, 'No shipment number is taken.');
     }
@@ -680,7 +684,7 @@ class ShipmentManagementTest extends SdkTestCase
             $this->createDraft()->setSenderPointId('U16880214')->setPickupMode(ShipmentDraftInterface::PICKUP_COURIER),
         );
 
-        $data = $this->http->lastPayload()['data'];
+        $data = $this->http->readLastPayload()['data'];
         self::assertSame('U16880214', $data['sender']['point_id'] ?? null);
         self::assertTrue((bool)($data['pickup']['nocourierorder'] ?? false));
     }
@@ -702,7 +706,7 @@ class ShipmentManagementTest extends SdkTestCase
 
         self::assertArrayNotHasKey(
             'point_id',
-            \array_filter($this->http->lastPayload()['data']['sender'], static fn($v) => $v !== null && $v !== ''),
+            \array_filter($this->http->readLastPayload()['data']['sender'], static fn($v) => $v !== null && $v !== ''),
         );
     }
 
@@ -723,7 +727,7 @@ class ShipmentManagementTest extends SdkTestCase
 
         self::assertArrayNotHasKey(
             'point_id',
-            \array_filter($this->http->lastPayload()['data']['sender'], static fn($v) => $v !== null && $v !== ''),
+            \array_filter($this->http->readLastPayload()['data']['sender'], static fn($v) => $v !== null && $v !== ''),
         );
     }
 
@@ -846,7 +850,7 @@ class ShipmentManagementTest extends SdkTestCase
             self::assertSame('Choose at least one item to ship.', $e->getMessage());
         }
 
-        self::assertSame(0, $this->http->requestCount());
+        self::assertSame(0, $this->http->countRequests());
         self::assertSame([], $this->saved, 'Nothing is recorded.');
     }
 
@@ -861,7 +865,7 @@ class ShipmentManagementTest extends SdkTestCase
             self::assertStringContainsString('Recipient: Phone', $e->getMessage());
         }
 
-        self::assertSame(0, $this->http->requestCount());
+        self::assertSame(0, $this->http->countRequests());
         self::assertSame([], $this->saved, 'Refused as it is: not kept.');
     }
 
@@ -897,7 +901,7 @@ class ShipmentManagementTest extends SdkTestCase
         } catch (LocalizedException $e) {
             self::assertSame('This carrier is no longer available: choose another.', $e->getMessage());
         }
-        self::assertSame(0, $this->http->requestCount(), 'Polkurier is never asked.');
+        self::assertSame(0, $this->http->countRequests(), 'Polkurier is never asked.');
         self::assertSame([], $this->saved);
     }
 
@@ -909,7 +913,7 @@ class ShipmentManagementTest extends SdkTestCase
         try {
             $this->createManagement()->create(self::ORDER_ID, $this->createDraft());
             self::fail('The refusal is reported.');
-        } catch (\Magento\Framework\Exception\LocalizedException $e) {
+        } catch (LocalizedException $e) {
             self::assertStringContainsString('Maksymalne wymiary paczki', $e->getMessage());
         }
         self::assertSame([], $this->saved, 'Nothing to send again as it is: the parcel has to change.');
@@ -940,7 +944,7 @@ class ShipmentManagementTest extends SdkTestCase
         self::assertNull($shipment->getLastError());
         self::assertSame(
             '000000077',
-            $this->http->lastPayload()['data']['external_order_id'],
+            $this->http->readLastPayload()['data']['external_order_id'],
             'Sent again with the number it took.',
         );
         self::assertSame('000000077', $shipment->getReservedShipmentNumber());
@@ -1025,7 +1029,7 @@ class ShipmentManagementTest extends SdkTestCase
         self::assertSame(ShipmentInterface::STATE_UNKNOWN, $shipment->getState());
         self::assertNull($shipment->getPolkurierNumber());
         self::assertNotNull($shipment->getLastError());
-        self::assertSame(1, $http->requestCount());
+        self::assertSame(1, $http->countRequests());
 
         try {
             $this->createManagement()->create(self::ORDER_ID, $this->createDraft());
@@ -1033,8 +1037,8 @@ class ShipmentManagementTest extends SdkTestCase
         } catch (LocalizedException $e) {
             self::assertStringContainsString('hasn\'t confirmed an earlier attempt', $e->getMessage());
         }
-        self::assertSame(2, $http->requestCount(), 'The second time, only the first was looked up.');
-        self::assertStringNotContainsString('create_order', (string)$http->lastRequest()?->getBody());
+        self::assertSame(2, $http->countRequests(), 'The second time, only the first was looked up.');
+        self::assertStringNotContainsString('create_order', (string)$http->getLastRequest()?->getBody());
         self::assertSame([], $this->events->dispatched, 'Nothing is reported before the outcome is known.');
     }
 
@@ -1048,7 +1052,7 @@ class ShipmentManagementTest extends SdkTestCase
         } catch (LocalizedException $e) {
             self::assertStringContainsString('Another request is updating', $e->getMessage());
         }
-        self::assertSame(0, $this->http->requestCount());
+        self::assertSame(0, $this->http->countRequests());
         self::assertSame([], $this->saved);
     }
 
@@ -1070,8 +1074,8 @@ class ShipmentManagementTest extends SdkTestCase
                 self::assertStringContainsString($reason, $e->getMessage());
             }
         }
-        self::assertSame(1, $this->http->requestCount(), 'Only the interrupted one was looked up, once old enough.');
-        self::assertStringNotContainsString('create_order', (string)$this->http->lastRequest()?->getBody());
+        self::assertSame(1, $this->http->countRequests(), 'Only the interrupted one was looked up, once old enough.');
+        self::assertStringNotContainsString('create_order', (string)$this->http->getLastRequest()?->getBody());
     }
 
     public function testTheOrderIsFreeAgainOncePlacedOrRefused(): void
@@ -1185,7 +1189,7 @@ class ShipmentManagementTest extends SdkTestCase
         self::assertCount(1, $events);
         self::assertSame('reconcile', $events[0]['source']);
         self::assertSame($shipment, $events[0]['shipment']);
-        $payload = $this->http->lastPayload();
+        $payload = $this->http->readLastPayload();
         self::assertSame('get_orders', $payload['apimethod']);
         self::assertSame('magento2-0123456789ab', $payload['data']['external_application_id']);
         self::assertSame('000000077', $payload['data']['external_order_id']);
@@ -1285,8 +1289,8 @@ class ShipmentManagementTest extends SdkTestCase
 
         $shipment = $this->createManagement()->reconcile((int)$shipment->getId());
 
-        self::assertSame(1, $this->http->requestCount(), 'Not looked for on the rest of the account.');
-        $data = $this->http->lastPayload()['data'];
+        self::assertSame(1, $this->http->countRequests(), 'Not looked for on the rest of the account.');
+        $data = $this->http->readLastPayload()['data'];
         self::assertSame('magento2-0123456789ab', $data['external_application_id']);
         self::assertSame('000000077', $data['external_order_id']);
         self::assertArrayNotHasKey('courier', $data);
@@ -1317,7 +1321,7 @@ class ShipmentManagementTest extends SdkTestCase
 
         $shipment = $this->createManagement()->reconcile((int)$shipment->getId());
 
-        self::assertSame(0, $this->http->requestCount());
+        self::assertSame(0, $this->http->countRequests());
         self::assertSame(ShipmentInterface::STATE_FAILED, $shipment->getState());
     }
 
@@ -1376,8 +1380,8 @@ class ShipmentManagementTest extends SdkTestCase
 
         $results = $this->listServices()['refresh']->refreshMany([(int)$first->getId(), (int)$second->getId()]);
 
-        self::assertSame(1, $this->http->requestCount());
-        $data = $this->http->lastPayload()['data'];
+        self::assertSame(1, $this->http->countRequests());
+        $data = $this->http->readLastPayload()['data'];
         self::assertSame('magento2-0123456789ab', $data['external_application_id']);
         self::assertArrayNotHasKey('external_order_id', $data);
         self::assertTrue($data['packs'] && $data['items'], 'Read as by its number.');
@@ -1566,8 +1570,8 @@ class ShipmentManagementTest extends SdkTestCase
             'number' => $number,
             'status' => $status === 'A' ? 'Anulowane' : 'Przyjęte',
             'status_code' => $status,
-            'date' => (new \DateTimeImmutable($placed))->format('Y-m-d H:i:s'),
-            'status_date' => \date('Y-m-d H:i:s'),
+            'date' => (new \DateTimeImmutable($placed))->format(\DATE_ATOM),
+            'status_date' => \date(\DATE_ATOM),
             'shipmenttype' => 'box',
             'courier' => 'DPD',
             'description' => $description,
@@ -1642,7 +1646,13 @@ class ShipmentManagementTest extends SdkTestCase
     /**
      * The services behind {@see ShipmentManagement}, over the real SDK answering from $this->http.
      *
-     * @return array{placing: PlacementService, reconciliation: ReconciliationService, refresh: StatusRefreshService, cancellation: CancellationService, orders: OrderLoader}
+     * @return array{
+     *     placing: PlacementService,
+     *     reconciliation: ReconciliationService,
+     *     refresh: StatusRefreshService,
+     *     cancellation: CancellationService,
+     *     orders: OrderLoader,
+     * }
      */
     private function listServices(): array
     {
@@ -1691,7 +1701,7 @@ class ShipmentManagementTest extends SdkTestCase
             $this->createShipmentSender(),
             $this->createSalesData(),
             $this->createStub(ScopeConfigInterface::class),
-            $this->createStub(ShippingChoiceRepository::class),
+            $this->createStub(ShippingChoiceRepositoryInterface::class),
         );
         $reconciliation = new ReconciliationService(
             $this->createRepository(),
@@ -1723,7 +1733,7 @@ class ShipmentManagementTest extends SdkTestCase
                     $finder,
                     $shipmentFactory,
                     $this->createRepository(),
-                    new SerializerProvider(),
+                    $this->createClientPool($this->http),
                     new DraftHydrator(
                         $this->createStub(DraftFactory::class),
                         $this->createStub(PackFactory::class),
@@ -1810,17 +1820,16 @@ class ShipmentManagementTest extends SdkTestCase
                 $scopeConfig,
                 $config,
                 new StreetParser(),
-                NewingObjectManager::createFactory(OrderAddressMessageBuilderFactory::class),
-                NewingObjectManager::createFactory(CoverAddressMessageBuilderFactory::class),
+                NewingObjectManager::createFactory(AddressBuilderFactory::class),
             ),
             $this->createStub(AddressRepositoryInterface::class),
             $this->createStub(BankAccountRepositoryInterface::class),
             $config,
-            NewingObjectManager::createFactory(CreateOrderMessageBuilderFactory::class),
-            NewingObjectManager::createFactory(PackMessageBuilderFactory::class),
-            NewingObjectManager::createFactory(OrderAddressMessageBuilderFactory::class),
-            NewingObjectManager::createFactory(CodMessageBuilderFactory::class),
-            NewingObjectManager::createFactory(PickupMessageBuilderFactory::class),
+            NewingObjectManager::createFactory(OrderBuilderFactory::class),
+            NewingObjectManager::createFactory(PackItemBuilderFactory::class),
+            NewingObjectManager::createFactory(AddressBuilderFactory::class),
+            NewingObjectManager::createFactory(CodBuilderFactory::class),
+            NewingObjectManager::createFactory(PickupBuilderFactory::class),
         );
     }
 
@@ -1942,9 +1951,10 @@ class ShipmentManagementTest extends SdkTestCase
     {
         $sender = $this->createStub(ShipmentSender::class);
         $sender->method('send')->willReturnCallback(function (MagentoShipmentModel $magentoShipment): bool {
+            $shipmentId = (int)$magentoShipment->getEntityId();
             $linked = \array_values(\array_filter(
                 $this->saved,
-                static fn(Shipment $shipment): bool => $shipment->getShipmentId() === (int)$magentoShipment->getEntityId(),
+                static fn(Shipment $shipment): bool => $shipment->getShipmentId() === $shipmentId,
             ));
             $this->emails[] = \sprintf(
                 '%d: %s, %s',
@@ -1988,7 +1998,7 @@ class ShipmentManagementTest extends SdkTestCase
 
     private function createNewShipment(): Shipment
     {
-        return (new ObjectManager($this))->getObject(Shipment::class);
+        return (new ObjectManager($this))->getObject(Shipment::class, ['json' => new Json()]);
     }
 
     private function createOnlyShipment(): Shipment

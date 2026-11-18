@@ -13,17 +13,17 @@ use Magento\Framework\Stdlib\DateTime\DateTime;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Api\ShipmentRepositoryInterface;
 use Polkurier\Shipping\Logger\Logger;
+use Polkurier\Shipping\Model\Admin\Formatter;
 use Polkurier\Shipping\Model\Config\ConfigProvider;
 use Polkurier\Shipping\Model\ResourceModel\Shipment as ShipmentResource;
-use Polkurier\Shipping\Model\Shipment\Details\Formatter;
 use Polkurier\Shipping\Model\Shipment\Native\NativeFollowUpService;
 use Polkurier\Shipping\Model\Shipment\Native\NativeShipmentService;
 use Polkurier\Shipping\Model\Shipment\OrderLoader;
 use Polkurier\Shipping\Model\Shipment\OrderLock;
 use Polkurier\Shipping\Model\Shipment\ShipmentAgeChecker;
 use Polkurier\Shipping\Model\Shipment\ShipmentFinder;
+use Polkurier\Webservice\Entity\Order;
 use Polkurier\Webservice\Enum\Order\OrderStatusCodeEnum;
-use Polkurier\Webservice\Response\Order;
 
 /**
  * Brings placed shipments up to date with Polkurier, and catches the Magento side up with them:
@@ -223,7 +223,7 @@ readonly class StatusRefreshService
         ) {
             // Placed here, but the Magento shipment failed back then: try again with every refresh. One
             // placed elsewhere and linked from its track goes without one when that's taken
-            // ({@see TrackAdoptionService}).
+            // ({@see \Polkurier\Shipping\Model\Shipment\Status\TrackAdoptionService}).
             $this->nativeFollowUpService->ship($this->orderLoader->get($shipment->getOrderId()), $shipment);
 
             return $shipment;

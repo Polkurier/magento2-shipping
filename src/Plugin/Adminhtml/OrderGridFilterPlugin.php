@@ -8,7 +8,7 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Plugin\Adminhtml;
 
 use Magento\Sales\Model\ResourceModel\Order\Grid\Collection;
-use Polkurier\Shipping\Model\ResourceModel\SalesOrder\CarrierOrders;
+use Polkurier\Shipping\Model\ResourceModel\SalesOrder\CarrierOrderSelectBuilder;
 
 /**
  * The "Shipping carrier" filter of Magento's orders list (sales_order_grid.xml): the orders placed
@@ -33,7 +33,10 @@ readonly class OrderGridFilterPlugin
         }
         $carrierCode = \trim((string)(\is_array($condition) ? \reset($condition) : $condition));
         if ($carrierCode !== '') {
-            $subject->getSelect()->where('main_table.entity_id IN (?)', CarrierOrders::select($subject, $carrierCode));
+            $subject->getSelect()->where(
+                'main_table.entity_id IN (?)',
+                CarrierOrderSelectBuilder::buildSelect($subject, $carrierCode),
+            );
         }
 
         return $subject;

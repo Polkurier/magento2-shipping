@@ -8,30 +8,32 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Test\Unit\Model\Shipment\Native;
 
 use Magento\Framework\App\Config\ScopeConfigInterface;
+use Magento\Framework\Serialize\Serializer\Json;
+use Magento\Framework\TestFramework\Unit\Helper\ObjectManager;
 use Magento\Sales\Api\Data\ShipmentCommentInterfaceFactory;
 use Magento\Sales\Api\OrderStatusHistoryRepositoryInterface;
 use Magento\Sales\Api\ShipmentCommentRepositoryInterface;
-use Magento\Sales\Api\ShipmentRepositoryInterface;
+use Magento\Sales\Api\ShipmentRepositoryInterface as MagentoShipmentRepository;
 use Magento\Sales\Helper\Data as SalesData;
 use Magento\Sales\Model\Order;
 use Magento\Sales\Model\Order\Email\Sender\ShipmentSender;
-use Magento\Sales\Model\Order\Shipment as MagentoShipment;
+use Magento\Sales\Model\Order\Shipment as MagentoShipmentModel;
 use Magento\Sales\Model\Order\Shipment\Track;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Polkurier\Shipping\Api\Data\ShipmentDraftInterface;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
-use Polkurier\Shipping\Api\ShipmentRepositoryInterface as PolkurierShipments;
+use Polkurier\Shipping\Api\ShipmentRepositoryInterface;
+use Polkurier\Shipping\Api\ShippingChoiceRepositoryInterface;
 use Polkurier\Shipping\Logger\Logger;
 use Polkurier\Shipping\Model\Carrier\CarrierNameProvider;
 use Polkurier\Shipping\Model\Sdk\ApiEventDispatcher;
 use Polkurier\Shipping\Model\Shipment;
 use Polkurier\Shipping\Model\Shipment\Native\NativeFollowUpService;
-use Polkurier\Shipping\Model\Shipment\Native\NativeShipmentService as NativeShipments;
+use Polkurier\Shipping\Model\Shipment\Native\NativeShipmentService;
 use Polkurier\Shipping\Model\Shipment\OrderLoader;
 use Polkurier\Shipping\Model\Shipment\ShipmentFinder;
-use Polkurier\Shipping\Model\ShippingChoice\ShippingChoiceRepository;
 
 #[CoversClass(NativeFollowUpService::class)]
 #[AllowMockObjectsWithoutExpectations]
@@ -42,7 +44,7 @@ class NativeFollowUpServiceTest extends TestCase
      */
     private array $log = [];
 
-    private MagentoShipment $magentoShipment;
+    private MagentoShipmentModel $magentoShipment;
     private bool $failing = false;
 
     /**
@@ -143,7 +145,7 @@ class NativeFollowUpServiceTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->magentoShipment = $this->getMockBuilder(MagentoShipment::class)->disableOriginalConstructor()
+        $this->magentoShipment = $this->getMockBuilder(MagentoShipmentModel::class)->disableOriginalConstructor()
             ->onlyMethods(['getTracks'])->getMock();
         $this->magentoShipment->setData([
             'order_id' => 42,
@@ -153,9 +155,9 @@ class NativeFollowUpServiceTest extends TestCase
         ]);
         $this->magentoShipment->setId(56);
         $this->magentoShipment->method('getTracks')->willReturn([
-            $this->track('WB-1', 'polkurier'),
-            $this->track('WB-1', 'ups'),
-            $this->track('TYPED', 'polkurier'),
+            $this->createTrack('WB-1', 'polkurier'),
+            $this->createTrack('WB-1', 'ups'),
+            $this->createTrack('TYPED', 'polkurier'),
         ]);
     }
 
@@ -164,18 +166,20 @@ class NativeFollowUpServiceTest extends TestCase
      */
     private function followUp(array $linked): NativeFollowUpService
     {
-        $shipments = $this->createStub(ShipmentRepositoryInterface::class);
+        $shipments = $this->createStub(MagentoShipmentRepository::class);
         $shipments->method('get')->willReturnCallback(
-            fn(): MagentoShipment => $this->failing ? throw new \RuntimeException('Deadlock') : $this->magentoShipment,
+            fn(): MagentoShipmentModel => $this->failing
+                ? throw new \RuntimeException('Deadlock')
+                : $this->magentoShipment,
         );
-        $shipments->method('save')->willReturnCallback(function (MagentoShipment $shipment): MagentoShipment {
+        $shipments->method('save')->willReturnCallback(function (MagentoShipmentModel $shipment): MagentoShipmentModel {
             $this->log[] = 'save ' . $shipment->getId();
 
             return $shipment;
         });
-        $native = $this->createStub(NativeShipments::class);
+        $native = $this->createStub(NativeShipmentService::class);
         $native->method('removeTracks')->willReturnCallback(
-            function (MagentoShipment $shipment, array $waybills): void {
+            function (MagentoShipmentModel $shipment, array $waybills): void {
                 $this->log[] = 'remove tracks ' . \implode(', ', $waybills);
             },
         );
@@ -189,7 +193,7 @@ class NativeFollowUpServiceTest extends TestCase
             $this->log[] = 'warning ' . $message;
         });
         $sender = $this->createStub(ShipmentSender::class);
-        $sender->method('send')->willReturnCallback(function (MagentoShipment $shipment): bool {
+        $sender->method('send')->willReturnCallback(function (MagentoShipmentModel $shipment): bool {
             $this->log[] = 'send ' . $shipment->getId();
 
             return $this->sent;
@@ -203,7 +207,7 @@ class NativeFollowUpServiceTest extends TestCase
 
         return new NativeFollowUpService(
             $this->createStub(OrderLoader::class),
-            $this->createStub(PolkurierShipments::class),
+            $this->createStub(ShipmentRepositoryInterface::class),
             $native,
             $shipments,
             $finder,
@@ -216,13 +220,13 @@ class NativeFollowUpServiceTest extends TestCase
             $sender,
             $salesData,
             $scopeConfig,
-            $this->createStub(ShippingChoiceRepository::class),
+            $this->createStub(ShippingChoiceRepositoryInterface::class),
         );
     }
 
     private function createPolkurierShipment(int $id, string $state): Shipment
     {
-        $shipment = $this->getMockBuilder(Shipment::class)->disableOriginalConstructor()->onlyMethods([])->getMock();
+        $shipment = (new ObjectManager($this))->getObject(Shipment::class, ['json' => new Json()]);
         $shipment->setData(['state' => $state, 'shipment_id' => 56, 'waybills' => 'WB-1'])->setId($id);
 
         return $shipment;
@@ -249,7 +253,7 @@ class NativeFollowUpServiceTest extends TestCase
         return $order;
     }
 
-    private function track(string $number, string $carrier): Track
+    private function createTrack(string $number, string $carrier): Track
     {
         $track = $this->getMockBuilder(Track::class)->disableOriginalConstructor()->onlyMethods([])->getMock();
         $track->setData(['track_number' => $number, 'carrier_code' => $carrier]);

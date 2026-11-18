@@ -15,7 +15,7 @@ use Magento\Framework\App\RequestInterface;
 use Magento\Framework\Controller\Result\Raw;
 use Magento\Framework\Controller\Result\RawFactory;
 use Polkurier\Shipping\Model\Shipment\Status\StatusWebhookHandler;
-use Polkurier\Webservice\Webhook\OrderWebhookReader;
+use Polkurier\Webservice\Api\Webhook\OrderReaderInterface;
 
 /**
  * Polkurier's status webhook: the URL to give in the Polkurier panel. Polkurier takes an event as
@@ -25,12 +25,6 @@ use Polkurier\Webservice\Webhook\OrderWebhookReader;
  */
 class Update implements HttpPostActionInterface, CsrfAwareActionInterface
 {
-    /**
-     * Its path under the store's base URL: the route's frontName, the controller, and the action,
-     * whose underscore Magento reads as this class's namespace.
-     */
-    public const string PATH = 'polkurier/webhook/shipment_update';
-
     public function __construct(
         private readonly Http $request,
         private readonly RawFactory $rawFactory,
@@ -45,7 +39,7 @@ class Update implements HttpPostActionInterface, CsrfAwareActionInterface
         $result->setHeader('Cache-Control', 'no-store', true);
 
         return match ($outcome) {
-            StatusWebhookHandler::RECEIVED => $result->setContents(OrderWebhookReader::ACKNOWLEDGEMENT),
+            StatusWebhookHandler::RECEIVED => $result->setContents(OrderReaderInterface::ACKNOWLEDGEMENT),
             StatusWebhookHandler::REFUSED => $result->setHttpResponseCode(403)->setContents('Forbidden'),
             default => $result->setHttpResponseCode(503)->setContents('Not updated'),
         };

@@ -8,12 +8,13 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Model\Shipment\Placement;
 
 use Magento\Framework\Exception\LocalizedException;
+use Magento\Framework\Phrase;
 use Magento\Framework\Stdlib\DateTime as DateFormat;
 use Magento\Framework\Stdlib\DateTime\DateTime;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Api\ShipmentRepositoryInterface;
+use Polkurier\Shipping\Model\Admin\Formatter;
 use Polkurier\Shipping\Model\Carrier\CarrierNameProvider;
-use Polkurier\Shipping\Model\Shipment\Details\Formatter;
 use Polkurier\Shipping\Model\Shipment\Native\NativeFollowUpService;
 use Polkurier\Shipping\Model\Shipment\OrderLoader;
 use Polkurier\Shipping\Model\Shipment\ShipmentFinder;
@@ -115,7 +116,7 @@ readonly class FailedShipmentManager
         return $removed;
     }
 
-    private function remove(ShipmentInterface $shipment, \Magento\Framework\Phrase $comment): void
+    private function remove(ShipmentInterface $shipment, Phrase $comment): void
     {
         $this->shipmentRepository->delete($shipment);
         try {

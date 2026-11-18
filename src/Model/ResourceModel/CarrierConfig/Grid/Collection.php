@@ -16,7 +16,8 @@ use Polkurier\Shipping\Api\Data\CarrierConfigInterface;
 use Polkurier\Shipping\Enum\CarrierConfig\PricingModelEnum;
 use Polkurier\Shipping\Model\Carrier\AvailableCarrierFilter;
 use Polkurier\Shipping\Model\Carrier\Pricing\FixedPriceCalculator;
-use Psr\Log\LoggerInterface as Logger;
+use Polkurier\Shipping\Model\ResourceModel\CarrierConfig as CarrierConfigResource;
+use Psr\Log\LoggerInterface;
 
 /**
  * The carriers list in the admin: the account's carriers, narrowed to the available carriers. The
@@ -29,13 +30,13 @@ class Collection extends SearchResult
 {
     public function __construct(
         EntityFactory $entityFactory,
-        Logger $logger,
+        LoggerInterface $logger,
         FetchStrategy $fetchStrategy,
         EventManager $eventManager,
         private readonly AvailableCarrierFilter $availableCarrierFilter,
         private readonly Json $json,
-        $mainTable = 'polkurier_carrier_config',
-        $resourceModel = \Polkurier\Shipping\Model\ResourceModel\CarrierConfig::class,
+        $mainTable = CarrierConfigResource::TABLE_NAME,
+        $resourceModel = CarrierConfigResource::class,
         $identifierName = null,
         $connectionName = null,
     ) {
@@ -71,15 +72,18 @@ class Collection extends SearchResult
     protected function _initSelect()
     {
         parent::_initSelect();
-        $this->getSelect()->where('main_table.available = ?', 1);
+        $this->getSelect()->where('main_table.' . CarrierConfigInterface::FIELD_AVAILABLE . ' = ?', 1);
         $available = $this->availableCarrierFilter->getCodes();
         if ($available !== null) {
-            $this->getSelect()->where('main_table.carrier_code IN (?)', $available);
+            $this->getSelect()->where(
+                'main_table.' . CarrierConfigInterface::FIELD_CARRIER_CODE . ' IN (?)',
+                $available,
+            );
         }
         $this->getSelect()->order([
-            'main_table.active DESC',
-            'main_table.sort_order ASC',
-            'main_table.carrier_name ASC',
+            'main_table.' . CarrierConfigInterface::FIELD_ACTIVE . ' DESC',
+            'main_table.' . CarrierConfigInterface::FIELD_SORT_ORDER . ' ASC',
+            'main_table.' . CarrierConfigInterface::FIELD_CARRIER_NAME . ' ASC',
         ]);
 
         return $this;

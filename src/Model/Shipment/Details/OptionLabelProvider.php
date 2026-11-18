@@ -7,6 +7,7 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Model\Shipment\Details;
 
+use Polkurier\Shipping\Model\Admin\Formatter;
 use Polkurier\Shipping\Model\Config\Source\AdditionalService;
 use Polkurier\Shipping\Model\Config\Source\CodReturnType;
 use Polkurier\Shipping\Model\Config\Source\CodStatus;
@@ -21,8 +22,6 @@ use Polkurier\Shipping\Model\Config\Source\ShipmentType;
  */
 readonly class OptionLabelProvider
 {
-    private const string NONE = '—';
-
     public function __construct(
         private ShipmentState $states,
         private ShipmentType $shipmentTypes,
@@ -74,7 +73,7 @@ readonly class OptionLabelProvider
     private function findLabel(array $labels, mixed $value): string
     {
         if ($value === null || $value === '') {
-            return self::NONE;
+            return Formatter::NONE;
         }
 
         return (string)($labels[(string)$value] ?? $value);

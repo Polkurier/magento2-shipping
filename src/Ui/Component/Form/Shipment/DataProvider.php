@@ -8,16 +8,22 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Ui\Component\Form\Shipment;
 
 use Magento\Framework\App\RequestInterface;
-use Magento\Framework\Pricing\PriceCurrencyInterface;
 use Magento\Framework\UrlInterface;
 use Magento\Sales\Helper\Data as SalesData;
 use Magento\Sales\Model\Order;
-use Magento\Sales\Model\Order\Shipment as MagentoShipment;
+use Magento\Sales\Model\Order\Shipment as MagentoShipmentModel;
 use Polkurier\Shipping\Api\AddressRepositoryInterface;
 use Polkurier\Shipping\Api\Data\AddressInterface;
 use Polkurier\Shipping\Api\Data\ShipmentDraft\ItemInterface;
 use Polkurier\Shipping\Api\Data\ShipmentDraft\PackInterface;
 use Polkurier\Shipping\Api\Data\ShipmentDraftInterface;
+use Polkurier\Shipping\Controller\Adminhtml\Address\Index as AddressIndex;
+use Polkurier\Shipping\Controller\Adminhtml\Packtemplate\Index as PacktemplateIndex;
+use Polkurier\Shipping\Controller\Adminhtml\Shipment\Calculate as ShipmentCalculate;
+use Polkurier\Shipping\Controller\Adminhtml\Shipment\CollectivePickup as ShipmentCollectivePickup;
+use Polkurier\Shipping\Controller\Adminhtml\Shipment\Pack as ShipmentPack;
+use Polkurier\Shipping\Controller\Adminhtml\Shipment\PickupTimes as ShipmentPickupTimes;
+use Polkurier\Shipping\Model\Admin\Formatter;
 use Polkurier\Shipping\Model\Carrier\CarrierNoticeProvider;
 use Polkurier\Shipping\Model\Carrier\Polkurier;
 use Polkurier\Shipping\Model\Config\ConfigProvider;
@@ -27,6 +33,7 @@ use Polkurier\Shipping\Model\Config\Source\CodType;
 use Polkurier\Shipping\Model\Config\Source\PackType;
 use Polkurier\Shipping\Model\Config\Source\PickupMode;
 use Polkurier\Shipping\Model\Config\Source\ShipmentType;
+use Polkurier\Shipping\Model\PickupPoint\AdminMapConfigProvider;
 use Polkurier\Shipping\Model\ResourceModel\Shipment\CollectionFactory;
 use Polkurier\Shipping\Model\Shipment\Native\NativeShipmentService;
 use Polkurier\Shipping\Model\Shipment\OrderLoader;
@@ -38,7 +45,9 @@ use Polkurier\Shipping\Model\Shipment\Screen\ScreenDataProvider;
 use Polkurier\Shipping\Model\Shipment\Screen\ShipmentOptionsProvider;
 use Polkurier\Shipping\Model\Shipment\Valuation\OrderAmountCalculator;
 use Polkurier\Shipping\Ui\Component\Form\FormDataProvider;
-use Polkurier\Webservice\Request\Order\OrderAddressMessage;
+use Polkurier\Webservice\Entity\Order as RemoteOrder;
+use Polkurier\Webservice\Entity\Order\Address;
+use Polkurier\Webservice\Enum\Order\PackTypeEnum;
 
 /**
  * Data of the Polkurier shipment form: the draft for the order, the options it is put together
@@ -69,13 +78,14 @@ class DataProvider extends FormDataProvider
         private readonly SenderMapper $senderMapper,
         private readonly CarrierNoticeProvider $carrierNoticeProvider,
         private readonly OrderAmountCalculator $orderAmountCalculator,
-        private readonly PriceCurrencyInterface $priceCurrency,
+        private readonly Formatter $formatter,
         private readonly NativeShipmentService $nativeShipmentService,
         private readonly ScreenDataProvider $screenDataProvider,
         private readonly PackType $packTypes,
         private readonly RetriableShipmentFinder $retriableShipmentFinder,
         private readonly ConfigProvider $configProvider,
         private readonly SalesData $salesData,
+        private readonly AdminMapConfigProvider $adminMapConfigProvider,
         array $meta = [],
         array $data = [],
     ) {
@@ -109,6 +119,13 @@ class DataProvider extends FormDataProvider
             ShipmentDraftInterface::FIELD_COD_BANK_ACCOUNT_ID,
             'options',
             $this->shipmentOptionsProvider->getBankAccountChoices(),
+        );
+        self::setFieldConfig(
+            $meta,
+            'shipment',
+            ShipmentDraftInterface::FIELD_DESCRIPTION,
+            'notice',
+            $this->screenDataProvider->getDescriptionNotice(),
         );
         self::setFieldConfig(
             $meta,
@@ -163,7 +180,7 @@ class DataProvider extends FormDataProvider
         $data['order_increment_id'] = $order->getIncrementId();
         $data['store_id'] = $storeId;
         // Polkurier's amounts, prices, cash on delivery and insurance alike, are in złoty.
-        $data['currency'] = OrderAmountCalculator::CURRENCY;
+        $data['price_format'] = $this->formatter->getPriceFormat();
         $amounts = $this->screenDataProvider->getAmounts($order);
         $data['grand_total'] = $amounts['grand_total'];
         $data['shipping_charged'] = $amounts['shipping_charged'];
@@ -211,8 +228,11 @@ class DataProvider extends FormDataProvider
         $data['carriers'] = $this->shipmentOptionsProvider->getCarrierFeatures();
         // Offered for pallet shipments only.
         $data['pallet_services'] = $this->screenDataProvider->getPalletServices();
+        // What a parcel typed in starts as.
+        $data['default_pack_type'] = PackTypeEnum::Standard->value;
         $data['carriers_error'] = $this->shipmentOptionsProvider->getCarriersError();
-        $data['map'] = $this->screenDataProvider->getMap();
+        $data['description_max_length'] = RemoteOrder::DESCRIPTION_MAX_LENGTH;
+        $data['map'] = $this->adminMapConfigProvider->getMapConfig(true);
         // The pickup point as Polkurier has it now: its name and address today, or, when it's gone
         // or closed since the order was placed, a problem to fix before placing.
         $point = $this->screenDataProvider->describeRecipientPoint(
@@ -240,12 +260,12 @@ class DataProvider extends FormDataProvider
         // An address abroad is shown with its country.
         $data['home_country'] = Polkurier::HOME_COUNTRY;
         $data['urls'] = [
-            'calculate' => $this->url->getUrl('polkurier/shipment/calculate'),
-            'pickup_times' => $this->url->getUrl('polkurier/shipment/pickupTimes'),
-            'collective_pickup' => $this->url->getUrl('polkurier/shipment/collectivePickup'),
-            'pack' => $this->url->getUrl('polkurier/shipment/pack'),
-            'pack_templates' => $this->url->getUrl('polkurier/packtemplate/index'),
-            'addresses' => $this->url->getUrl('polkurier/address/index'),
+            'calculate' => $this->url->getUrl(ShipmentCalculate::ROUTE),
+            'pickup_times' => $this->url->getUrl(ShipmentPickupTimes::ROUTE),
+            'collective_pickup' => $this->url->getUrl(ShipmentCollectivePickup::ROUTE),
+            'pack' => $this->url->getUrl(ShipmentPack::ROUTE),
+            'pack_templates' => $this->url->getUrl(PacktemplateIndex::ROUTE),
+            'addresses' => $this->url->getUrl(AddressIndex::ROUTE),
         ];
 
         return [$orderId => $data];
@@ -308,7 +328,14 @@ class DataProvider extends FormDataProvider
      * it replaces, what the shipment carries, and whether its customer can still be e-mailed about
      * it; null when there is none.
      *
-     * @return array{increment_id: string, replaces: string|null, shipment_value: float, worth: array{products: float, order_total: float, whole: bool, value: float}, qtys: array<int, float>, email_open: bool}|null
+     * @return array{
+     *     increment_id: string,
+     *     replaces: string|null,
+     *     shipment_value: float,
+     *     worth: array{products: float, order_total: float, whole: bool, value: float},
+     *     qtys: array<int, float>,
+     *     email_open: bool,
+     * }|null
      */
     private function getReplaced(Order $order, ?int $targetId): ?array
     {
@@ -326,7 +353,7 @@ class DataProvider extends FormDataProvider
             'shipment_value' => $worth['value'],
             'worth' => $worth,
             'qtys' => $qtys,
-            'email_open' => $magentoShipment instanceof MagentoShipment
+            'email_open' => $magentoShipment instanceof MagentoShipmentModel
                 && NativeShipmentService::isEmailOpen($magentoShipment),
         ];
     }
@@ -347,14 +374,8 @@ class DataProvider extends FormDataProvider
         return (string)__(
             '0 or empty: no cash on delivery. Order total: '
             . '%1, of which the order\'s other Polkurier orders collect %2.',
-            $this->priceCurrency->format(
-                $this->orderAmountCalculator->getGrandTotal($order),
-                false,
-                2,
-                null,
-                OrderAmountCalculator::CURRENCY,
-            ),
-            $this->priceCurrency->format($collected, false, 2, null, OrderAmountCalculator::CURRENCY),
+            $this->formatter->formatMoney($this->orderAmountCalculator->getGrandTotal($order)),
+            $this->formatter->formatMoney($collected),
         );
     }
 
@@ -422,7 +443,7 @@ class DataProvider extends FormDataProvider
     /**
      * @return array<string, string>
      */
-    private function describeMessage(OrderAddressMessage $address): array
+    private function describeMessage(Address $address): array
     {
         return [
             'label' => (string)__('The store\'s address'),

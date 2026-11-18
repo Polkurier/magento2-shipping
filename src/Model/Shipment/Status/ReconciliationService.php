@@ -19,8 +19,8 @@ use Polkurier\Shipping\Model\Shipment\OrderLoader;
 use Polkurier\Shipping\Model\Shipment\OrderLock;
 use Polkurier\Shipping\Model\Shipment\ShipmentAgeChecker;
 use Polkurier\Shipping\Model\Shipment\ShipmentFinder;
+use Polkurier\Webservice\Entity\Order;
 use Polkurier\Webservice\Enum\Order\OrderStatusCodeEnum;
-use Polkurier\Webservice\Response\Order;
 
 /**
  * Settles attempts whose outcome is unknown: finds the Polkurier order they placed, if any, or
@@ -86,10 +86,7 @@ readonly class ReconciliationService
      */
     public function settleForOrder(int $orderId): void
     {
-        $unsettled = $this->shipmentFinder->findForOrder(
-            $orderId,
-            [ShipmentInterface::STATE_UNKNOWN, ShipmentInterface::STATE_PENDING],
-        );
+        $unsettled = $this->shipmentFinder->findForOrder($orderId, ShipmentInterface::UNSETTLED_STATES);
         foreach ($unsettled as $shipment) {
             try {
                 $this->reconcile((int)$shipment->getId());
@@ -108,7 +105,7 @@ readonly class ReconciliationService
     public function reconcile(int $shipmentId): ShipmentInterface
     {
         $shipment = $this->shipmentRepository->get($shipmentId);
-        if (!\in_array($shipment->getState(), [ShipmentInterface::STATE_UNKNOWN, ShipmentInterface::STATE_PENDING], true)) {
+        if (!\in_array($shipment->getState(), ShipmentInterface::UNSETTLED_STATES, true)) {
             throw new LocalizedException(__('Only a shipment whose outcome is unknown can be reconciled.'));
         }
         if ($shipment->getState() === ShipmentInterface::STATE_PENDING
@@ -129,7 +126,7 @@ readonly class ReconciliationService
             $possible,
         ): ShipmentInterface {
             $shipment = $this->shipmentRepository->get($shipmentId);
-            if (!\in_array($shipment->getState(), [ShipmentInterface::STATE_UNKNOWN, ShipmentInterface::STATE_PENDING], true)) {
+            if (!\in_array($shipment->getState(), ShipmentInterface::UNSETTLED_STATES, true)) {
                 return $shipment;
             }
 
@@ -283,6 +280,6 @@ readonly class ReconciliationService
 
     private static function isCancelled(Order $order): bool
     {
-        return $order->getStatusCode() === OrderStatusCodeEnum::Canceled->value;
+        return $order->getStatusCode() === OrderStatusCodeEnum::Canceled;
     }
 }

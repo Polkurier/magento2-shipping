@@ -12,6 +12,7 @@ use Magento\Framework\App\RequestInterface;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Model\ResourceModel\Db\Collection\AbstractCollection;
 use Magento\Framework\UrlInterface;
+use Polkurier\Shipping\Controller\Adminhtml\Bankaccount\SendCode as BankaccountSendCode;
 use Polkurier\Shipping\Model\BankAccount\BankAccountHandler;
 use Polkurier\Shipping\Model\BankAccount\Publisher;
 use Polkurier\Shipping\Model\Sdk\AccountCache;
@@ -67,7 +68,7 @@ class DataProvider extends SyncableEntityDataProvider
         }
         foreach ($result as $key => $item) {
             $result[$key]['pin_locked'] = $this->isPinLocked();
-            $result[$key]['urls'] = ['send_code' => $this->url->getUrl('polkurier/bankaccount/sendCode')];
+            $result[$key]['urls'] = ['send_code' => $this->url->getUrl(BankaccountSendCode::ROUTE)];
         }
 
         return $result;

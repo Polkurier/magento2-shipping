@@ -41,13 +41,13 @@ class ApplicationIdProvider
     {
         $entered = $this->configProvider->getApplicationIdOverride();
 
-        return $entered !== '' ? $entered : $this->compute();
+        return $entered !== '' ? $entered : $this->computeId();
     }
 
     /**
      * The id made from the first encryption key, whatever is entered.
      */
-    public function compute(): string
+    public function computeId(): string
     {
         if ($this->computed !== null) {
             return $this->computed;

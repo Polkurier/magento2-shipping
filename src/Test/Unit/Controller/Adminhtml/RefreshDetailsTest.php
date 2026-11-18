@@ -9,6 +9,7 @@ namespace Polkurier\Shipping\Test\Unit\Controller\Adminhtml;
 
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Exception\NoSuchEntityException;
+use Magento\Framework\Serialize\Serializer\Json;
 use Magento\Framework\TestFramework\Unit\Helper\ObjectManager;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -26,7 +27,7 @@ use Polkurier\Shipping\Model\Shipment\Status\StatusRefreshService;
 use Polkurier\Shipping\Test\Unit\Support\AdminActionTestCase;
 use Polkurier\Shipping\Test\Unit\Support\FixedDateTime;
 use Polkurier\Shipping\ViewModel\Adminhtml\ShipmentDetails;
-use Polkurier\Webservice\Response\Order\OrderStatusMessage;
+use Polkurier\Webservice\Dto\Response\Order\OrderStatusMessage;
 
 /**
  * The shipment details page's background refresh: what it reads from Polkurier, what it stores,
@@ -149,14 +150,14 @@ class RefreshDetailsTest extends AdminActionTestCase
             }
             $this->scansRead[] = $number;
 
-            return $this->createStub(OrderStatusMessage::class);
+            return new OrderStatusMessage();
         });
         $resource = $this->createStub(ShipmentResource::class);
         $resource->method('updateColumns')->willReturnCallback(function (int $id, array $values): void {
             $this->written[$id] = $values;
         });
         $details = $this->createStub(ShipmentDetails::class);
-        $details->method('build')->willReturnCallback(
+        $details->method('buildPage')->willReturnCallback(
             static fn(ShipmentInterface $built, array $errors): array => ['built from' => $built, 'errors' => $errors],
         );
 
@@ -179,7 +180,7 @@ class RefreshDetailsTest extends AdminActionTestCase
     private function createShipment(): Shipment
     {
         /** @var Shipment $shipment */
-        $shipment = (new ObjectManager($this))->getObject(Shipment::class);
+        $shipment = (new ObjectManager($this))->getObject(Shipment::class, ['json' => new Json()]);
 
         return $shipment->setId(3)
             ->setState(ShipmentInterface::STATE_CREATED)

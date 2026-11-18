@@ -11,6 +11,7 @@ use Magento\Backend\Model\UrlInterface;
 use Magento\Framework\App\ResourceConnection;
 use Magento\Framework\DB\Adapter\AdapterInterface;
 use Magento\Framework\DB\Select;
+use Magento\Framework\Locale\Format;
 use Magento\Framework\Locale\ResolverInterface;
 use Magento\Framework\Notification\NotifierInterface;
 use Magento\Framework\Pricing\PriceCurrencyInterface;
@@ -18,9 +19,9 @@ use Magento\Framework\Stdlib\DateTime\TimezoneInterface;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use Polkurier\Shipping\Model\Admin\Formatter;
 use Polkurier\Shipping\Model\ResourceModel\Shipment as ShipmentResource;
 use Polkurier\Shipping\Model\Shipment\AttentionNotifier;
-use Polkurier\Shipping\Model\Shipment\Details\Formatter;
 use Polkurier\Shipping\Model\Shipment\Placement\FailedShipmentManager;
 use Polkurier\Shipping\Test\Unit\Support\FixedDateTime;
 
@@ -138,6 +139,7 @@ class AttentionNotifierTest extends TestCase
             $timezone,
             $this->createStub(PriceCurrencyInterface::class),
             $this->createStub(ResolverInterface::class),
+            $this->createStub(Format::class),
         );
         $clock = new FixedDateTime((int)\strtotime('2026-10-02 10:00:00 UTC'));
         $failedShipmentManager = $this->getMockBuilder(FailedShipmentManager::class)

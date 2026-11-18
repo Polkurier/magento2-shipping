@@ -7,7 +7,6 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Ui\Component\Listing\Shipment;
 
-use Magento\Framework\AuthorizationInterface;
 use Magento\Framework\Escaper;
 use Magento\Framework\UrlInterface;
 use Magento\Framework\View\Element\UiComponent\ContextInterface;
@@ -31,7 +30,6 @@ class MagentoShipmentLinkColumn extends Column
         UiComponentFactory $uiComponentFactory,
         private readonly CollectionFactory $collectionFactory,
         private readonly UrlInterface $url,
-        private readonly AuthorizationInterface $authorization,
         private readonly Escaper $escaper,
         array $components = [],
         array $data = [],
@@ -60,7 +58,6 @@ class MagentoShipmentLinkColumn extends Column
                 $numbers[(int)$shipment->getId()] = (string)$shipment->getIncrementId();
             }
         }
-        $linked = $this->authorization->isAllowed('Magento_Sales::shipment');
         $name = $this->getData('name');
         foreach ($dataSource['data']['items'] as &$item) {
             $id = (int)($item[ShipmentInterface::FIELD_SHIPMENT_ID] ?? 0);
@@ -68,16 +65,11 @@ class MagentoShipmentLinkColumn extends Column
                 $item[$name] = '';
                 continue;
             }
-            $label = $this->escaper->escapeHtml('#' . $numbers[$id]);
-            $item[$name] = $linked
-                ? \sprintf(
-                    '<a href="%s">%s</a>',
-                    $this->escaper->escapeUrl(
-                        $this->url->getUrl('adminhtml/order_shipment/view', ['shipment_id' => $id]),
-                    ),
-                    $label,
-                )
-                : $label;
+            $item[$name] = \sprintf(
+                '<a href="%s">%s</a>',
+                $this->escaper->escapeUrl($this->url->getUrl('adminhtml/order_shipment/view', ['shipment_id' => $id])),
+                $this->escaper->escapeHtml('#' . $numbers[$id]),
+            );
         }
 
         return $dataSource;

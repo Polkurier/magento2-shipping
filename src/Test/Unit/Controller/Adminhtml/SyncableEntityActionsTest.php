@@ -22,13 +22,14 @@ use Polkurier\Shipping\Controller\Adminhtml\Bankaccount\Delete;
 use Polkurier\Shipping\Controller\Adminhtml\Bankaccount\InlineEdit;
 use Polkurier\Shipping\Controller\Adminhtml\Bankaccount\Save;
 use Polkurier\Shipping\Controller\Adminhtml\Packtemplate\MassDelete;
+use Polkurier\Shipping\Enum\Adminhtml\AfterSaveEnum;
 use Polkurier\Shipping\Enum\Adminhtml\FormMemoryEnum;
 use Polkurier\Shipping\Enum\Sync\SyncEntityEnum;
-use Polkurier\Shipping\Model\Admin\FormActions;
 use Polkurier\Shipping\Model\BankAccount;
 use Polkurier\Shipping\Model\BankAccount\BankAccountHandler;
 use Polkurier\Shipping\Model\PackTemplate;
 use Polkurier\Shipping\Model\PackTemplate\PackTemplateHandler;
+use Polkurier\Shipping\Model\ResourceModel\PackTemplate\Collection as PackTemplateCollection;
 use Polkurier\Shipping\Model\ResourceModel\PackTemplate\CollectionFactory;
 use Polkurier\Shipping\Model\Sync\SyncResult;
 use Polkurier\Shipping\Test\Unit\Support\AdminActionTestCase;
@@ -63,7 +64,7 @@ class SyncableEntityActionsTest extends AdminActionTestCase
     public function testAnAccountPolkurierRefusedIsSavedWithAWarning(): void
     {
         $this->post = ['id' => '3', 'name' => 'Firmowe'];
-        $this->params = [FormActions::BACK_PARAM => FormActions::SAVE_AND_CONTINUE];
+        $this->params = [AfterSaveEnum::PARAM => AfterSaveEnum::BackToForm->value];
 
         $this->save($this->createBankAccountHandler($this->createAccount(3)->setSyncError('Błędny PIN')))->execute();
 
@@ -129,7 +130,7 @@ class SyncableEntityActionsTest extends AdminActionTestCase
             );
         $collections = $this->createStub(CollectionFactory::class);
         $collections->method('create')
-            ->willReturn($this->createStub(\Polkurier\Shipping\Model\ResourceModel\PackTemplate\Collection::class));
+            ->willReturn($this->createStub(PackTemplateCollection::class));
 
         (new MassDelete(
             $this->createContext(),
@@ -161,7 +162,7 @@ class SyncableEntityActionsTest extends AdminActionTestCase
         );
         $collections = $this->createStub(CollectionFactory::class);
         $collections->method('create')
-            ->willReturn($this->createStub(\Polkurier\Shipping\Model\ResourceModel\PackTemplate\Collection::class));
+            ->willReturn($this->createStub(PackTemplateCollection::class));
 
         (new MassDelete(
             $this->createContext(),

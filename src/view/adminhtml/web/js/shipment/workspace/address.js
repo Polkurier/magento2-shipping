@@ -78,7 +78,7 @@ define([
         getNewSender: function () {
             const data = this.get() || {},
                 number = [data.new_sender_house_number, data.new_sender_flat_number].filter(rules.isFilled).join('/'),
-                keep = Boolean(data.keep_new_sender) && data.keep_new_sender !== '0';
+                keep = Boolean(data.keep_new_sender);
 
             return {
                 typedIn: true,

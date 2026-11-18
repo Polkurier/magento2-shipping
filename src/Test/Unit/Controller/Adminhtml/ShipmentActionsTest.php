@@ -31,6 +31,7 @@ use Polkurier\Shipping\Model\Shipment\Draft\DraftHydrator;
 use Polkurier\Shipping\Model\Shipment\Draft\ItemFactory;
 use Polkurier\Shipping\Model\Shipment\Draft\Pack as DraftPack;
 use Polkurier\Shipping\Model\Shipment\Draft\PackFactory;
+use Polkurier\Shipping\Model\Shipment\DraftFactory;
 use Polkurier\Shipping\Model\Shipment\Native\NativeShipmentService;
 use Polkurier\Shipping\Model\Shipment\OrderLoader;
 use Polkurier\Shipping\Model\Shipment\Packing\AutoPacker;
@@ -82,15 +83,34 @@ class ShipmentActionsTest extends AdminActionTestCase
 
     public function testARefusedShipmentReopensTheScreenWithWhatWasEntered(): void
     {
-        $this->post = ['order_id' => '29', 'recipient_phone' => '600'];
+        $this->post = [
+            'order_id' => '29',
+            ShipmentDraftInterface::FIELD_RECIPIENT_PHONE => '600',
+            ShipmentDraftInterface::FIELD_NOTIFY_CUSTOMER => '0',
+            ShipmentDraftInterface::FIELD_SHIPPING_INCLUDED => '1',
+        ];
         $management = $this->createStub(ShipmentManagementInterface::class);
         $management->method('create')->willThrowException(new LocalizedException(__('Polkurier refused: telefon')));
+        $draftFactory = $this->createStub(DraftFactory::class);
+        $draftFactory->method('create')->willReturnCallback(static fn(): Draft => new Draft());
+        $hydrator = new DraftHydrator(
+            $draftFactory,
+            $this->createStub(PackFactory::class),
+            $this->createStub(ItemFactory::class),
+        );
 
-        $this->save($management)->execute();
+        $this->save($management, hydrator: $hydrator)->execute();
 
         self::assertSame(['*/*/create', ['order_id' => 29]], $this->redirect);
         self::assertSame(['Polkurier refused: telefon'], $this->messages['error']);
-        self::assertSame(['order_id' => '29', 'recipient_phone' => '600'], $this->kept);
+        self::assertIsArray($this->kept);
+        self::assertSame(29, $this->kept['order_id']);
+        self::assertSame('600', $this->kept[ShipmentDraftInterface::FIELD_RECIPIENT_PHONE]);
+        self::assertFalse(
+            $this->kept[ShipmentDraftInterface::FIELD_NOTIFY_CUSTOMER],
+            'A box left clear comes back clear, not as the text "0".',
+        );
+        self::assertTrue($this->kept[ShipmentDraftInterface::FIELD_SHIPPING_INCLUDED]);
     }
 
     public function testWhatTheAdminMayNotChangeIsntKept(): void
@@ -343,14 +363,19 @@ class ShipmentActionsTest extends AdminActionTestCase
         return $shipment;
     }
 
-    private function save(ShipmentManagementInterface $management, ?ShipmentDraftInterface $draft = null): Save
-    {
+    private function save(
+        ShipmentManagementInterface $management,
+        ?ShipmentDraftInterface $draft = null,
+        ?DraftHydrator $hydrator = null,
+    ): Save {
         $persistor = $this->createStub(DataPersistorInterface::class);
         $persistor->method('set')->willReturnCallback(function (string $key, mixed $data): void {
             $this->kept = $data;
         });
-        $hydrator = $this->createStub(DraftHydrator::class);
-        $hydrator->method('createFromArray')->willReturn($draft ?? $this->createStub(ShipmentDraftInterface::class));
+        if ($hydrator === null) {
+            $hydrator = $this->createStub(DraftHydrator::class);
+            $hydrator->method('createFromArray')->willReturn($draft ?? $this->createStub(ShipmentDraftInterface::class));
+        }
 
         return new Save(
             $this->createContext(),

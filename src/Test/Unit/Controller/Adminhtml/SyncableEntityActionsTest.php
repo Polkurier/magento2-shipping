@@ -29,6 +29,7 @@ use Polkurier\Shipping\Model\BankAccount;
 use Polkurier\Shipping\Model\BankAccount\BankAccountHandler;
 use Polkurier\Shipping\Model\PackTemplate;
 use Polkurier\Shipping\Model\PackTemplate\PackTemplateHandler;
+use Polkurier\Shipping\Model\ResourceModel\PackTemplate\Collection as PackTemplateCollection;
 use Polkurier\Shipping\Model\ResourceModel\PackTemplate\CollectionFactory;
 use Polkurier\Shipping\Model\Sync\SyncResult;
 use Polkurier\Shipping\Test\Unit\Support\AdminActionTestCase;
@@ -129,7 +130,7 @@ class SyncableEntityActionsTest extends AdminActionTestCase
             );
         $collections = $this->createStub(CollectionFactory::class);
         $collections->method('create')
-            ->willReturn($this->createStub(\Polkurier\Shipping\Model\ResourceModel\PackTemplate\Collection::class));
+            ->willReturn($this->createStub(PackTemplateCollection::class));
 
         (new MassDelete(
             $this->createContext(),
@@ -161,7 +162,7 @@ class SyncableEntityActionsTest extends AdminActionTestCase
         );
         $collections = $this->createStub(CollectionFactory::class);
         $collections->method('create')
-            ->willReturn($this->createStub(\Polkurier\Shipping\Model\ResourceModel\PackTemplate\Collection::class));
+            ->willReturn($this->createStub(PackTemplateCollection::class));
 
         (new MassDelete(
             $this->createContext(),

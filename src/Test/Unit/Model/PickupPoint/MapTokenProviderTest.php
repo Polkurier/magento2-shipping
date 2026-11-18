@@ -21,6 +21,7 @@ use Polkurier\Shipping\Model\Sdk\ErrorMessageResolver;
 use Polkurier\Shipping\Test\Unit\Support\MemoryPolkurierCache;
 use Polkurier\Shipping\Test\Unit\Support\SdkConfig;
 use Polkurier\Shipping\Test\Unit\Support\SdkTestCase;
+use Polkurier\Webservice\Exception\Exception as PolkurierException;
 use Polkurier\Webservice\Testing\RecordingClient;
 
 #[CoversClass(MapTokenProvider::class)]
@@ -85,7 +86,7 @@ class MapTokenProviderTest extends SdkTestCase
         try {
             $this->createProvider($http)->getToken();
             self::fail('The failure is reported.');
-        } catch (\Polkurier\Webservice\Exception\Exception) {
+        } catch (PolkurierException) {
         }
 
         $this->expectException(RecentFailureException::class);

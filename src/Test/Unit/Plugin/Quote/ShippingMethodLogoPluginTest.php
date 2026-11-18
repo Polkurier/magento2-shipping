@@ -10,6 +10,9 @@ namespace Polkurier\Shipping\Test\Unit\Plugin\Quote;
 use Magento\Framework\Api\AttributeValueFactory;
 use Magento\Framework\Api\ExtensionAttributesFactory;
 use Magento\Framework\Filesystem;
+use Magento\Framework\Model\Context;
+use Magento\Framework\Registry;
+use Magento\Framework\Serialize\Serializer\Json;
 use Magento\MediaStorage\Model\File\UploaderFactory;
 use Magento\Quote\Api\Data\ShippingMethodExtensionFactory;
 use Magento\Quote\Api\Data\ShippingMethodExtensionInterface;
@@ -25,6 +28,7 @@ use Polkurier\Shipping\Logger\Logger;
 use Polkurier\Shipping\Model\Carrier\CarrierLogoStorage;
 use Polkurier\Shipping\Model\CarrierConfig;
 use Polkurier\Shipping\Model\CarrierConfig\CarrierConfigProvider;
+use Polkurier\Shipping\Model\ResourceModel\CarrierConfig as CarrierConfigResource;
 use Polkurier\Shipping\Plugin\Quote\ShippingMethodLogoPlugin;
 
 #[CoversClass(ShippingMethodLogoPlugin::class)]
@@ -84,10 +88,10 @@ class ShippingMethodLogoPluginTest extends TestCase
     private function createPlugin(?string $file): ShippingMethodLogoPlugin
     {
         $config = (new CarrierConfig(
-            $this->createStub(\Magento\Framework\Model\Context::class),
-            $this->createStub(\Magento\Framework\Registry::class),
-            new \Magento\Framework\Serialize\Serializer\Json(),
-            $this->createStub(\Polkurier\Shipping\Model\ResourceModel\CarrierConfig::class),
+            $this->createStub(Context::class),
+            $this->createStub(Registry::class),
+            new Json(),
+            $this->createStub(CarrierConfigResource::class),
         ))->setLogo($file);
         $configs = $this->createStub(CarrierConfigProvider::class);
         $configs->method('get')->willReturn($config);

@@ -20,6 +20,7 @@ use Polkurier\Shipping\Model\BankAccount;
 use Polkurier\Shipping\Model\BankAccount\BankAccountHandler;
 use Polkurier\Shipping\Model\BankAccount\Publisher;
 use Polkurier\Shipping\Model\BankAccountFactory;
+use Polkurier\Shipping\Model\ResourceModel\BankAccount as BankAccountResource;
 use Polkurier\Shipping\Model\Sync\EntityHandlerInterface;
 use Polkurier\Shipping\Model\Sync\SettingsSynchronizer;
 use Polkurier\Shipping\Model\Sync\SyncLock;
@@ -151,7 +152,7 @@ class BankAccountHandlerTest extends TestCase
             $this->createStub(SettingsSynchronizer::class),
             new FixedDateTime(),
             new SyncLock($locks),
-            $this->createStub(\Polkurier\Shipping\Model\ResourceModel\BankAccount::class),
+            $this->createStub(BankAccountResource::class),
             NewingObjectManager::createFactory(SyncResultFactory::class),
         );
     }

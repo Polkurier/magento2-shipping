@@ -23,6 +23,7 @@ use Polkurier\Shipping\Controller\Adminhtml\Shipment\Calculate as ShipmentCalcul
 use Polkurier\Shipping\Controller\Adminhtml\Shipment\CollectivePickup as ShipmentCollectivePickup;
 use Polkurier\Shipping\Controller\Adminhtml\Shipment\Pack as ShipmentPack;
 use Polkurier\Shipping\Controller\Adminhtml\Shipment\PickupTimes as ShipmentPickupTimes;
+use Polkurier\Shipping\Model\Admin\Formatter;
 use Polkurier\Shipping\Model\Carrier\CarrierNoticeProvider;
 use Polkurier\Shipping\Model\Carrier\Polkurier;
 use Polkurier\Shipping\Model\Config\ConfigProvider;
@@ -34,7 +35,6 @@ use Polkurier\Shipping\Model\Config\Source\PickupMode;
 use Polkurier\Shipping\Model\Config\Source\ShipmentType;
 use Polkurier\Shipping\Model\PickupPoint\AdminMapConfigProvider;
 use Polkurier\Shipping\Model\ResourceModel\Shipment\CollectionFactory;
-use Polkurier\Shipping\Model\Shipment\Details\Formatter;
 use Polkurier\Shipping\Model\Shipment\Native\NativeShipmentService;
 use Polkurier\Shipping\Model\Shipment\OrderLoader;
 use Polkurier\Shipping\Model\Shipment\Placement\ParcelTypeMapper;
@@ -180,7 +180,7 @@ class DataProvider extends FormDataProvider
         $data['order_increment_id'] = $order->getIncrementId();
         $data['store_id'] = $storeId;
         // Polkurier's amounts, prices, cash on delivery and insurance alike, are in złoty.
-        $data['currency'] = OrderAmountCalculator::CURRENCY;
+        $data['price_format'] = $this->formatter->getPriceFormat();
         $amounts = $this->screenDataProvider->getAmounts($order);
         $data['grand_total'] = $amounts['grand_total'];
         $data['shipping_charged'] = $amounts['shipping_charged'];

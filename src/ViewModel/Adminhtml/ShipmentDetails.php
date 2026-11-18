@@ -17,9 +17,9 @@ use Polkurier\Shipping\Api\Data\ShipmentDraft\ItemInterface;
 use Polkurier\Shipping\Api\Data\ShipmentDraft\PackInterface;
 use Polkurier\Shipping\Api\Data\ShipmentDraftInterface;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
+use Polkurier\Shipping\Model\Admin\Formatter;
 use Polkurier\Shipping\Model\Carrier\CarrierNameProvider;
 use Polkurier\Shipping\Model\Config\Source\PackType;
-use Polkurier\Shipping\Model\Shipment\Details\Formatter;
 use Polkurier\Shipping\Model\Shipment\Details\OptionLabelProvider;
 use Polkurier\Shipping\Model\Shipment\Details\SentOrderReader;
 use Polkurier\Shipping\Model\Shipment\OrderLoader;
@@ -197,8 +197,8 @@ readonly class ShipmentDetails implements ArgumentInterface
         $order = $this->buildOrderLink($shipment->getOrderId());
         $magentoShipment = $this->buildMagentoShipmentLink($shipment->getShipmentId());
 
-        return $this->formatter->formatRows([
-            [__('Number'), $shipment->getPolkurierNumber() ?: '—'],
+        return self::formatRows([
+            [__('Number'), $shipment->getPolkurierNumber() ?: Formatter::NONE],
             [__('Order state'), $this->optionLabelProvider->getStateLabel($shipment->getState())],
             [__('Placed'), $this->formatter->formatStoredTime($shipment->getCreatedAt())],
             // What Polkurier charges for the order, and how much of it is still due: known once
@@ -251,7 +251,7 @@ readonly class ShipmentDetails implements ArgumentInterface
                 null,
                 self::isSent($asSent, null, ShipmentDetailsInterface::FIELD_DESCRIPTION),
             ],
-            [__('Delivery status'), $shipment->getStatusLabel() ?: '—'],
+            [__('Delivery status'), $shipment->getStatusLabel() ?: Formatter::NONE],
             [__('Status date'), $this->formatter->formatStoredTime($shipment->getStatusDate())],
             [__('Delivered'), $this->formatter->formatStoredTime($shipment->getDeliveredAt())],
         ];
@@ -263,7 +263,7 @@ readonly class ShipmentDetails implements ArgumentInterface
             $rows[] = [__('Waybill'), (string)__('not issued yet')];
         }
 
-        return $this->formatter->formatRows($rows);
+        return self::formatRows($rows);
     }
 
     /**
@@ -276,14 +276,14 @@ readonly class ShipmentDetails implements ArgumentInterface
     private function buildAddressRows(?array $address, string $key, array $asSent): array
     {
         if ($address === null) {
-            return $this->formatter->formatRows([[__('Address'), '—']]);
+            return self::formatRows([[__('Address'), Formatter::NONE]]);
         }
         // The sender's point is where the parcels are dropped off: shown with the handover.
         $point = $key === ShipmentDetailsInterface::FIELD_SENDER
             ? ''
             : (string)($address[ShipmentDetailsInterface::FIELD_ADDRESS_POINT_ID] ?? '');
 
-        return $this->formatter->formatRows([
+        return self::formatRows([
             [
                 __('Name'),
                 \trim(\implode(', ', \array_filter([
@@ -418,7 +418,7 @@ readonly class ShipmentDetails implements ArgumentInterface
             ];
         }
 
-        return $this->formatter->formatRows($rows);
+        return self::formatRows($rows);
     }
 
     /**
@@ -460,7 +460,7 @@ readonly class ShipmentDetails implements ArgumentInterface
             (string)($pickup[ShipmentDetailsInterface::FIELD_PICKUP_TIME_TO] ?? ''),
         ], static fn(string $time): bool => $time !== ''));
 
-        return $this->formatter->formatRows([
+        return self::formatRows([
             [
                 __('Handover'),
                 $mode,
@@ -534,7 +534,7 @@ readonly class ShipmentDetails implements ArgumentInterface
                 (string)($pack[ShipmentDetailsInterface::FIELD_PACK_AMOUNT] ?? 1),
                 isset($pack[ShipmentDetailsInterface::FIELD_PACK_PRICE_GROSS])
                     ? $this->formatter->formatMoney((float)$pack[ShipmentDetailsInterface::FIELD_PACK_PRICE_GROSS])
-                    : '—',
+                    : Formatter::NONE,
                 $this->describeContents((array)($contents[$index][PackInterface::FIELD_ITEMS] ?? []), $products),
             ];
         }
@@ -590,7 +590,7 @@ readonly class ShipmentDetails implements ArgumentInterface
         foreach ($qtys as $id => $qty) {
             $rows[] = [
                 (string)($products[$id]['name'] ?? __('Order item #%1', $id)),
-                (string)($products[$id]['sku'] ?? '—'),
+                (string)($products[$id]['sku'] ?? Formatter::NONE),
                 self::formatQuantity((float)$qty),
             ];
         }
@@ -621,7 +621,7 @@ readonly class ShipmentDetails implements ArgumentInterface
             }
         }
 
-        return $lines !== [] ? \implode("\n", $lines) : '—';
+        return $lines !== [] ? \implode("\n", $lines) : Formatter::NONE;
     }
 
     private static function formatQuantity(float $qty): string
@@ -739,6 +739,33 @@ readonly class ShipmentDetails implements ArgumentInterface
         }
 
         return $copy;
+    }
+
+    /**
+     * @param array<int, array<int, mixed>|null> $rows [label, value, url?, as sent?, external url?];
+     *     null rows are left out. "As sent" marks a value Polkurier's copy of the order leaves empty,
+     *     shown as it was sent
+     *
+     * @return array<int, array<string, string|bool>>
+     */
+    private static function formatRows(array $rows): array
+    {
+        $result = [];
+        foreach ($rows as $row) {
+            if ($row === null) {
+                continue;
+            }
+            $value = (string)($row[1] ?? '');
+            $result[] = [
+                'label' => (string)$row[0],
+                'value' => $value !== '' ? $value : Formatter::NONE,
+                'url' => (string)($row[2] ?? ''),
+                'as_sent' => (bool)($row[3] ?? false),
+                'external' => (bool)($row[4] ?? false),
+            ];
+        }
+
+        return $result;
     }
 
     private static function isEmpty(mixed $value): bool

@@ -14,8 +14,8 @@ use Magento\Framework\Stdlib\DateTime as DateFormat;
 use Magento\Framework\Stdlib\DateTime\DateTime;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Controller\Adminhtml\Shipment\View as ShipmentView;
+use Polkurier\Shipping\Model\Admin\Formatter;
 use Polkurier\Shipping\Model\ResourceModel\Shipment as ShipmentResource;
-use Polkurier\Shipping\Model\Shipment\Details\Formatter;
 use Polkurier\Shipping\Model\Shipment\Placement\FailedShipmentManager;
 
 /**

@@ -50,7 +50,11 @@ The most tests go where a mistake costs money or data: placing, reconciliation a
 when a shipment counts as finished, the status refresh and webhook, Magento's label flow, the sync
 engine and bank account confirmation, documents and collective pickups, payload mapping and pricing.
 [`AdminActionsAclTest`](../../src/Test/Unit/Controller/Adminhtml/AdminActionsAclTest.php)
-checks that every admin action declares an existing ACL resource of its own, and
+checks that every admin action declares an existing ACL resource,
+[`ControllerRoutesTest`](../../src/Test/Unit/Controller/ControllerRoutesTest.php) that every
+controller's `ROUTE` leads to it, and
+[`ListingMassActionsAclTest`](../../src/Test/Unit/Ui/Component/ListingMassActionsAclTest.php) that a
+listing's mass action shows only to admins allowed to run it.
 [`ConfigProviderTest`](../../src/Test/Unit/Model/Config/ConfigProviderTest.php) checks every setting
 against the scopes the configuration page offers. The multi-address checkout's tests are in the
 bridge module, `polkurier/magento2-multishipping`.

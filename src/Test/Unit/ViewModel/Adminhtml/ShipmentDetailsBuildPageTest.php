@@ -8,6 +8,7 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Test\Unit\ViewModel\Adminhtml;
 
 use Magento\Framework\Exception\NoSuchEntityException;
+use Magento\Framework\Locale\Format;
 use Magento\Framework\Locale\ResolverInterface;
 use Magento\Framework\Pricing\PriceCurrencyInterface;
 use Magento\Framework\Serialize\Serializer\Json;
@@ -20,6 +21,7 @@ use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
+use Polkurier\Shipping\Model\Admin\Formatter;
 use Polkurier\Shipping\Model\Carrier\CarrierNameProvider;
 use Polkurier\Shipping\Model\Config\Source\AdditionalService;
 use Polkurier\Shipping\Model\Config\Source\CodReturnType;
@@ -28,7 +30,6 @@ use Polkurier\Shipping\Model\Config\Source\CodType;
 use Polkurier\Shipping\Model\Config\Source\PackType;
 use Polkurier\Shipping\Model\Config\Source\ShipmentState;
 use Polkurier\Shipping\Model\Config\Source\ShipmentType;
-use Polkurier\Shipping\Model\Shipment\Details\Formatter;
 use Polkurier\Shipping\Model\Shipment\Details\OptionLabelProvider;
 use Polkurier\Shipping\Model\Shipment\Details\SentOrderReader;
 use Polkurier\Shipping\Model\Shipment\OrderLoader;
@@ -509,7 +510,7 @@ class ShipmentDetailsBuildPageTest extends TestCase
 
         return new ShipmentDetails(
             $labels,
-            new Formatter($timezone, $prices, $locale),
+            new Formatter($timezone, $prices, $locale, $this->createStub(Format::class)),
             new SentOrderReader(new Json(), $labels),
             $names,
             $orders,

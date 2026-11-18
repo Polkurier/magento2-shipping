@@ -17,8 +17,8 @@ use Polkurier\Shipping\Api\ShipmentRepositoryInterface;
 use Polkurier\Shipping\Ui\Component\Control\OnClickScriptBuilder;
 
 /**
- * A button of the shipment details page. It shows only where the shipments list offers the same
- * action, and runs the list's action for this shipment, coming back to this page.
+ * A button of the shipment details page, for the shipment the page shows. An action's button shows
+ * only while the shipment's state allows the action and the admin may run it.
  */
 abstract class AbstractButton implements ButtonProviderInterface
 {

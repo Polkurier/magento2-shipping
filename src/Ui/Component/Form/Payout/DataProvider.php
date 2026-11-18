@@ -14,6 +14,7 @@ use Polkurier\Shipping\Api\BankAccountRepositoryInterface;
 use Polkurier\Shipping\Controller\Adminhtml\Payout\Quote as PayoutQuote;
 use Polkurier\Shipping\Controller\Adminhtml\Payout\SendCode as PayoutSendCode;
 use Polkurier\Shipping\Enum\Adminhtml\FormMemoryEnum;
+use Polkurier\Shipping\Model\Admin\Formatter;
 use Polkurier\Shipping\Model\BankAccount\BankAccountMapper;
 use Polkurier\Shipping\Model\Config\ConfigProvider;
 use Polkurier\Shipping\Model\Payout\MoneyBoxOrderFinder;
@@ -42,6 +43,7 @@ class DataProvider extends FormDataProvider
         private readonly DataPersistorInterface $dataPersistor,
         private readonly BankAccountRepositoryInterface $bankAccountRepository,
         private readonly MoneyBoxOrderFinder $moneyBoxOrderFinder,
+        private readonly Formatter $formatter,
         array $meta = [],
         array $data = [],
     ) {
@@ -71,6 +73,7 @@ class DataProvider extends FormDataProvider
                 'quote' => $this->url->getUrl(PayoutQuote::ROUTE),
                 'send_code' => $this->url->getUrl(PayoutSendCode::ROUTE),
             ],
+            'price_format' => $this->formatter->getPriceFormat(),
         ];
         if ($this->configProvider->hasCredentials()) {
             try {

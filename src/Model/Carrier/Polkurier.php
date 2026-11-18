@@ -183,7 +183,7 @@ class Polkurier extends AbstractCarrier implements CarrierInterface
      *
      * @return array<string, string>
      */
-    public function getContainerTypes(?\Magento\Framework\DataObject $params = null)
+    public function getContainerTypes(?DataObject $params = null)
     {
         return $this->packTypes->toArray();
     }

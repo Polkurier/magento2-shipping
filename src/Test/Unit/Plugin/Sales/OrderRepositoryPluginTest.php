@@ -76,7 +76,7 @@ class OrderRepositoryPluginTest extends TestCase
     {
         $point = $this->createStub(OrderPointInterface::class);
         $store = $this->createStub(OrderPointRepositoryInterface::class);
-        $store->method('getForOrders')->willReturn([7 => $point]);
+        $store->method('getForOrder')->willReturnMap([[7, $point]]);
         $order = $this->createOrder(7);
 
         $this->createPlugin($store, $this->createStub(ShippingChoiceRepositoryInterface::class))

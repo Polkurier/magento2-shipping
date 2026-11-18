@@ -338,7 +338,7 @@ readonly class CreateOrderMessageMapper
     /**
      * @throws LocalizedException
      */
-    private function loadAddress(int $id): \Polkurier\Shipping\Api\Data\AddressInterface
+    private function loadAddress(int $id): AddressInterface
     {
         try {
             return $this->addressRepository->get($id);

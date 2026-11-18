@@ -22,6 +22,7 @@ use Magento\Sales\Model\Order;
 use Magento\Sales\Model\Order\Shipment as MagentoShipmentModel;
 use Magento\Sales\Model\Order\Shipment\ItemCreation;
 use Magento\Sales\Model\Order\Shipment\Track;
+use Magento\Sales\Model\Order\Shipment\TrackCreation;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
@@ -395,7 +396,7 @@ class NativeShipmentServiceTest extends TestCase
         $amounts->method('getItems')->willReturn(self::ITEMS);
         $tracks = $this->createStub(ShipmentTrackCreationInterfaceFactory::class);
         $tracks->method('create')->willReturnCallback(
-            fn() => $this->getMockBuilder(\Magento\Sales\Model\Order\Shipment\TrackCreation::class)
+            fn() => $this->getMockBuilder(TrackCreation::class)
                 ->disableOriginalConstructor()
                 ->onlyMethods([])
                 ->getMock(),

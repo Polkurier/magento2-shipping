@@ -40,7 +40,7 @@ readonly class OrderRepositoryPlugin
             $orderId = (int)$order->getEntityId();
             $this->attach(
                 $order,
-                $this->orderPointRepository->getForOrders([$orderId])[$orderId] ?? null,
+                $this->orderPointRepository->getForOrder($orderId),
                 $this->shippingChoiceRepository->getForOrder($orderId),
             );
         }

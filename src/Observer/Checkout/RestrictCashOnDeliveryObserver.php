@@ -12,6 +12,7 @@ use Magento\Framework\Event\Observer;
 use Magento\Framework\Event\ObserverInterface;
 use Magento\Payment\Model\MethodInterface;
 use Magento\Quote\Api\Data\CartInterface;
+use Magento\Quote\Model\Quote;
 use Polkurier\Shipping\Api\QuotePointRepositoryInterface;
 use Polkurier\Shipping\Logger\Logger;
 use Polkurier\Shipping\Model\Carrier\CarrierCatalog;
@@ -52,7 +53,7 @@ readonly class RestrictCashOnDeliveryObserver implements ObserverInterface
         if (!\in_array($method->getCode(), $this->configProvider->getCodPaymentMethods($storeId), true)) {
             return;
         }
-        if (!$quote instanceof \Magento\Quote\Model\Quote) {
+        if (!$quote instanceof Quote) {
             return;
         }
         foreach ($this->getDeliveries($quote) as [$carrierCode, $quoteAddressId]) {
@@ -69,7 +70,7 @@ readonly class RestrictCashOnDeliveryObserver implements ObserverInterface
      *
      * @return array<int, array{string, int}> carrier code and quote address id (0 in the regular checkout)
      */
-    private function getDeliveries(\Magento\Quote\Model\Quote $quote): array
+    private function getDeliveries(Quote $quote): array
     {
         if (!$quote->getIsMultiShipping()) {
             $code = Polkurier::extractMethodCode((string)$quote->getShippingAddress()->getShippingMethod());
@@ -90,7 +91,7 @@ readonly class RestrictCashOnDeliveryObserver implements ObserverInterface
     /**
      * Whether the delivery's carrier, and its pickup point if any, collect cash on delivery.
      */
-    private function isCollectingCod(\Magento\Quote\Model\Quote $quote, string $carrierCode, int $quoteAddressId): bool
+    private function isCollectingCod(Quote $quote, string $carrierCode, int $quoteAddressId): bool
     {
         try {
             $carrier = $this->carrierCatalog->getCarrier($carrierCode);

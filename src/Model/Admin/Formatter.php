@@ -5,8 +5,9 @@
  */
 declare(strict_types=1);
 
-namespace Polkurier\Shipping\Model\Shipment\Details;
+namespace Polkurier\Shipping\Model\Admin;
 
+use Magento\Framework\Locale\Format;
 use Magento\Framework\Locale\ResolverInterface;
 use Magento\Framework\Pricing\PriceCurrencyInterface;
 use Magento\Framework\Stdlib\DateTime\TimezoneInterface;
@@ -15,17 +16,21 @@ use Polkurier\Shipping\Model\Sdk\PolkurierTimeZoneProvider;
 use Polkurier\Shipping\Model\Shipment\Valuation\OrderAmountCalculator;
 
 /**
- * How the shipment details page writes numbers, money, times, sizes and places, in the admin's
- * locale and time zone.
+ * How the module writes numbers, money, times, sizes and places for the admin, in the admin's locale
+ * and time zone.
  */
 readonly class Formatter
 {
-    private const string NONE = '—';
+    /**
+     * What stands for a value there is none of.
+     */
+    public const string NONE = '—';
 
     public function __construct(
         private TimezoneInterface $timezone,
         private PriceCurrencyInterface $priceCurrency,
         private ResolverInterface $localeResolver,
+        private Format $localeFormat,
     ) {}
 
     public function formatNumber(float $value): string
@@ -37,6 +42,17 @@ readonly class Formatter
     /**
      * An amount in złoty, the currency of everything Polkurier charges and collects.
      */
+    /**
+     * How formatMoney() writes an amount, for Magento's JS price formatter
+     * (Magento_Catalog/js/price-utils formatPrice()).
+     *
+     * @return array<string, mixed>
+     */
+    public function getPriceFormat(): array
+    {
+        return $this->localeFormat->getPriceFormat(null, OrderAmountCalculator::CURRENCY);
+    }
+
     public function formatMoney(float $amount): string
     {
         return $this->priceCurrency->format($amount, false, 2, null, OrderAmountCalculator::CURRENCY);
@@ -90,32 +106,5 @@ readonly class Formatter
         return $country !== null && $country !== '' && $country !== Polkurier::HOME_COUNTRY
             ? \trim($place . ' (' . $country . ')')
             : $place;
-    }
-
-    /**
-     * @param array<int, array<int, mixed>|null> $rows [label, value, url?, as sent?, external url?]; null rows are
-     *        left out. "As sent" marks a value Polkurier's copy of the order leaves empty, shown as it
-     *        was sent
-     *
-     * @return array<int, array<string, string|bool>>
-     */
-    public function formatRows(array $rows): array
-    {
-        $result = [];
-        foreach ($rows as $row) {
-            if ($row === null) {
-                continue;
-            }
-            $value = (string)($row[1] ?? '');
-            $result[] = [
-                'label' => (string)$row[0],
-                'value' => $value !== '' ? $value : self::NONE,
-                'url' => (string)($row[2] ?? ''),
-                'as_sent' => (bool)($row[3] ?? false),
-                'external' => (bool)($row[4] ?? false),
-            ];
-        }
-
-        return $result;
     }
 }

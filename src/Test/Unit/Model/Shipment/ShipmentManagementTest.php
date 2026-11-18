@@ -40,6 +40,7 @@ use Polkurier\Shipping\Api\ShippingChoiceRepositoryInterface;
 use Polkurier\Shipping\Enum\Config\ExternalOrderIdEnum;
 use Polkurier\Shipping\Enum\Sdk\ApiEventEnum;
 use Polkurier\Shipping\Logger\Logger;
+use Polkurier\Shipping\Model\Admin\Formatter;
 use Polkurier\Shipping\Model\Carrier\CarrierCatalog;
 use Polkurier\Shipping\Model\Carrier\CarrierFeatureResolver;
 use Polkurier\Shipping\Model\Carrier\CarrierNameProvider;
@@ -54,7 +55,6 @@ use Polkurier\Shipping\Model\Sdk\ShipmentGateway;
 use Polkurier\Shipping\Model\Sdk\Validator;
 use Polkurier\Shipping\Model\Shipment;
 use Polkurier\Shipping\Model\Shipment\CancellationService;
-use Polkurier\Shipping\Model\Shipment\Details\Formatter;
 use Polkurier\Shipping\Model\Shipment\Draft;
 use Polkurier\Shipping\Model\Shipment\Draft\DefaultDraftBuilder;
 use Polkurier\Shipping\Model\Shipment\Draft\DraftHydrator;
@@ -913,7 +913,7 @@ class ShipmentManagementTest extends SdkTestCase
         try {
             $this->createManagement()->create(self::ORDER_ID, $this->createDraft());
             self::fail('The refusal is reported.');
-        } catch (\Magento\Framework\Exception\LocalizedException $e) {
+        } catch (LocalizedException $e) {
             self::assertStringContainsString('Maksymalne wymiary paczki', $e->getMessage());
         }
         self::assertSame([], $this->saved, 'Nothing to send again as it is: the parcel has to change.');

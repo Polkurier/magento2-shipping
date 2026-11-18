@@ -19,6 +19,7 @@ use Polkurier\Shipping\Model\Sdk\AccountConfigProvider;
 use Polkurier\Shipping\Model\Sdk\LogFilesDirectoryResolver;
 use Polkurier\Shipping\Test\Unit\Support\FixedDateTime;
 use Polkurier\Shipping\Test\Unit\Support\NewingObjectManager;
+use Polkurier\Webservice\Config;
 use Polkurier\Webservice\ConfigFactory as SdkConfigFactory;
 use Polkurier\Webservice\Dto\Request\AuthorizationMessageFactory;
 use Polkurier\Webservice\Enum\Http\ApiMethodEnum;
@@ -128,7 +129,7 @@ class AccountConfigProviderTest extends TestCase
         self::assertSame(AccountConfigProvider::PLATFORM, $config->getPlatform());
         self::assertSame('1.2.3', $config->getPlatformVersion());
         self::assertSame(
-            \Polkurier\Webservice\Config::SANDBOX_API_URL,
+            Config::SANDBOX_API_URL,
             $config->getApiUrl(),
             'No endpoint configured: the sandbox flag decides.',
         );

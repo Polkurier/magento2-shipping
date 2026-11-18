@@ -18,6 +18,7 @@ use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Polkurier\Shipping\Enum\Config\ParcelWeightEnum;
+use Polkurier\Shipping\Model\Admin\Formatter;
 use Polkurier\Shipping\Model\Config\ConfigProvider;
 use Polkurier\Shipping\Model\Config\Source\AdditionalService;
 use Polkurier\Shipping\Model\Config\Source\CodReturnType;
@@ -169,6 +170,7 @@ class LabelOptionsTest extends TestCase
             $this->createStub(FailedShipmentManager::class),
             $this->createStub(UrlInterface::class),
             $maps,
+            $this->createStub(Formatter::class),
         );
     }
 }

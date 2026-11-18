@@ -21,6 +21,7 @@ use PHPUnit\Framework\TestCase;
 use Polkurier\Shipping\Api\Data\ShipmentDraftInterface;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Logger\Logger;
+use Polkurier\Shipping\Model\Shipment;
 use Polkurier\Shipping\Model\Shipment\DocumentService;
 use Polkurier\Shipping\Model\Shipment\Draft;
 use Polkurier\Shipping\Model\Shipment\Draft\DefaultDraftBuilder;
@@ -302,7 +303,7 @@ class NativeLabelServiceTest extends TestCase
      */
     private function createPolkurierShipment(array $waybills): ShipmentInterface
     {
-        $shipment = $this->createStub(\Polkurier\Shipping\Model\Shipment::class);
+        $shipment = $this->createStub(Shipment::class);
         $shipment->method('getId')->willReturn(7);
         $shipment->method('getWaybills')->willReturn($waybills);
         $shipment->method('getCarrierCode')->willReturn('DPD');

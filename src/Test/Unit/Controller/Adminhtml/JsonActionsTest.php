@@ -15,13 +15,16 @@ use Polkurier\Shipping\Api\Data\ShipmentDraftInterface;
 use Polkurier\Shipping\Controller\Adminhtml\Bankaccount\SendCode as BankAccountSendCode;
 use Polkurier\Shipping\Controller\Adminhtml\Carrier\Arrange;
 use Polkurier\Shipping\Controller\Adminhtml\Carrier\UploadLogo;
+use Polkurier\Shipping\Controller\Adminhtml\Payout\Quote as PayoutQuote;
 use Polkurier\Shipping\Controller\Adminhtml\Payout\SendCode as PayoutSendCode;
 use Polkurier\Shipping\Controller\Adminhtml\Shipment\Calculate;
 use Polkurier\Shipping\Controller\Adminhtml\Shipment\CollectivePickup;
 use Polkurier\Shipping\Controller\Adminhtml\Shipment\PickupTimes;
+use Polkurier\Shipping\Model\Admin\Formatter;
 use Polkurier\Shipping\Model\BankAccount\Publisher;
 use Polkurier\Shipping\Model\Carrier\CarrierLogoStorage;
 use Polkurier\Shipping\Model\CarrierConfig\CarrierSortOrderUpdater;
+use Polkurier\Shipping\Model\Payout\MoneyBoxOrderFinder;
 use Polkurier\Shipping\Model\Payout\PayoutManager;
 use Polkurier\Shipping\Model\Sdk\ErrorMessageResolver;
 use Polkurier\Shipping\Model\Shipment\Draft\DraftHydrator;
@@ -31,13 +34,16 @@ use Polkurier\Shipping\Model\Shipment\PickupService;
 use Polkurier\Shipping\Model\Shipment\Placement\CreateOrderMessageMapper;
 use Polkurier\Shipping\Model\Shipment\Valuation\CostEstimator;
 use Polkurier\Shipping\Test\Unit\Support\AdminActionTestCase;
+use Polkurier\Webservice\Dto\Response\MoneyBox\MoneyBoxFeeMessage;
 use Polkurier\Webservice\Dto\Response\TwoFactorToken;
 use Polkurier\Webservice\Entity\Order\PackItem;
+use Polkurier\Webservice\Enum\MoneyBox\MoneyBoxPayoutTypeEnum;
 use Polkurier\Webservice\Exception\ConnectionException;
 
 /**
  * The admin actions that answer the screens with JSON: prices, collection times, a collective
- * pickup's availability, the carriers' order, a carrier's logo and the codes a confirmation needs.
+ * pickup's availability, the carriers' order, a carrier's logo, the codes a confirmation needs and
+ * a payout's fee.
  */
 #[CoversClass(Calculate::class)]
 #[CoversClass(PickupTimes::class)]
@@ -46,6 +52,7 @@ use Polkurier\Webservice\Exception\ConnectionException;
 #[CoversClass(UploadLogo::class)]
 #[CoversClass(BankAccountSendCode::class)]
 #[CoversClass(PayoutSendCode::class)]
+#[CoversClass(PayoutQuote::class)]
 #[AllowMockObjectsWithoutExpectations]
 class JsonActionsTest extends AdminActionTestCase
 {
@@ -197,6 +204,40 @@ class JsonActionsTest extends AdminActionTestCase
         (new PayoutSendCode($this->createContext(), $this->createJsonFactory(), $payouts))->execute();
 
         self::assertSame([$expected, $expected], [$forBankAccount, $this->json]);
+    }
+
+    public function testAPayoutsFeeIsQuotedForTheOrdersTypedInAndNamesThoseTheShopDoesntKnow(): void
+    {
+        $this->params = ['data' => [
+            'orders' => "24680-27, 24680-28\n24680-27",
+            'payout_type' => MoneyBoxPayoutTypeEnum::Account->value,
+        ]];
+        $payouts = $this->createMock(PayoutManager::class);
+        $payouts->expects(self::once())->method('quote')
+            ->with(['24680-27', '24680-28'], MoneyBoxPayoutTypeEnum::Account)
+            ->willReturn(new MoneyBoxFeeMessage(fee: 2.46, feeNet: 2.0, freePayoutsLeft: 1, freePayoutsTotal: 3));
+        $payouts->method('getAvailableBalance')->willReturn(150.0);
+        $finder = $this->createStub(MoneyBoxOrderFinder::class);
+        $finder->method('findUnknown')->willReturn(['24680-28']);
+        $formatter = $this->createStub(Formatter::class);
+        $formatter->method('formatMoney')
+            ->willReturnCallback(static fn(float $amount): string => \number_format($amount, 2) . ' PLN');
+
+        (new PayoutQuote($this->createContext(), $this->createJsonFactory(), $payouts, $finder, $formatter))->execute();
+
+        self::assertSame(
+            [
+                'error' => false,
+                'available' => 150.0,
+                'unknown' => ['24680-28'],
+                'fee' => 2.46,
+                'fee_net' => 2.0,
+                'free_left' => 1,
+                'free_total' => 3,
+                'message' => 'Fee: 2.46 PLN gross (2.00 PLN net). Free payouts left: 1 of 3.',
+            ],
+            $this->json,
+        );
     }
 
     /**

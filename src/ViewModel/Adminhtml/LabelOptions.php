@@ -10,6 +10,7 @@ namespace Polkurier\Shipping\ViewModel\Adminhtml;
 use Magento\Backend\Model\UrlInterface;
 use Magento\Framework\App\RequestInterface;
 use Magento\Framework\AuthorizationInterface;
+use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Framework\ObjectManager\ResetAfterRequestInterface;
 use Magento\Framework\Serialize\Serializer\Json;
 use Magento\Framework\View\Element\Block\ArgumentInterface;
@@ -20,6 +21,7 @@ use Polkurier\Shipping\Api\Data\ShipmentDraftInterface;
 use Polkurier\Shipping\Controller\Adminhtml\Shipment\Pack as ShipmentPack;
 use Polkurier\Shipping\Controller\Adminhtml\Shipment\PickupTimes as ShipmentPickupTimes;
 use Polkurier\Shipping\Controller\Adminhtml\Shipment\Save as ShipmentSave;
+use Polkurier\Shipping\Model\Admin\Formatter;
 use Polkurier\Shipping\Model\Carrier\Polkurier;
 use Polkurier\Shipping\Model\Config\ConfigProvider;
 use Polkurier\Shipping\Model\Config\Source\AdditionalService;
@@ -72,6 +74,7 @@ class LabelOptions implements ArgumentInterface, ResetAfterRequestInterface
         private readonly FailedShipmentManager $failedShipmentManager,
         private readonly UrlInterface $url,
         private readonly AdminMapConfigProvider $adminMapConfigProvider,
+        private readonly Formatter $formatter,
     ) {}
 
     /**
@@ -174,7 +177,7 @@ class LabelOptions implements ArgumentInterface, ResetAfterRequestInterface
             'shippedQtys' => (object)($shipped ?? []),
             'fields' => NativeLabelService::OPTION_FIELDS,
             'values' => (object)\array_intersect_key($values, \array_flip(NativeLabelService::OPTION_FIELDS)),
-            'currency' => OrderAmountCalculator::CURRENCY,
+            'priceFormat' => $this->formatter->getPriceFormat(),
             'grandTotal' => $amounts['grand_total'],
             'shippingCharged' => $amounts['shipping_charged'],
             'codCollected' => $amounts['cod_collected'],
@@ -265,7 +268,7 @@ class LabelOptions implements ArgumentInterface, ResetAfterRequestInterface
         if ($this->existing === null && $shipmentId) {
             try {
                 $shipment = $this->shipmentRepository->get($shipmentId);
-            } catch (\Magento\Framework\Exception\NoSuchEntityException) {
+            } catch (NoSuchEntityException) {
                 return null;
             }
             $this->existing = $shipment instanceof MagentoShipmentModel ? $shipment : null;

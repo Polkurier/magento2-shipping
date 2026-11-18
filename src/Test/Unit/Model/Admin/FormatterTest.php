@@ -5,15 +5,16 @@
  */
 declare(strict_types=1);
 
-namespace Polkurier\Shipping\Test\Unit\Model\Shipment\Details;
+namespace Polkurier\Shipping\Test\Unit\Model\Admin;
 
+use Magento\Framework\Locale\Format;
 use Magento\Framework\Locale\ResolverInterface;
 use Magento\Framework\Pricing\PriceCurrencyInterface;
 use Magento\Framework\Stdlib\DateTime\TimezoneInterface;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Polkurier\Shipping\Model\Shipment\Details\Formatter;
+use Polkurier\Shipping\Model\Admin\Formatter;
 
 #[CoversClass(Formatter::class)]
 #[AllowMockObjectsWithoutExpectations]
@@ -59,6 +60,11 @@ class FormatterTest extends TestCase
         $locale = $this->createStub(ResolverInterface::class);
         $locale->method('getLocale')->willReturn('en_US');
 
-        return new Formatter($timezone, $this->createStub(PriceCurrencyInterface::class), $locale);
+        return new Formatter(
+            $timezone,
+            $this->createStub(PriceCurrencyInterface::class),
+            $locale,
+            $this->createStub(Format::class),
+        );
     }
 }

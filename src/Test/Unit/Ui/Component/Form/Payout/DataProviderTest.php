@@ -13,6 +13,7 @@ use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Polkurier\Shipping\Api\BankAccountRepositoryInterface;
+use Polkurier\Shipping\Model\Admin\Formatter;
 use Polkurier\Shipping\Model\Config\ConfigProvider;
 use Polkurier\Shipping\Model\Payout\MoneyBoxOrderFinder;
 use Polkurier\Shipping\Model\Payout\PayoutManager;
@@ -58,6 +59,7 @@ class DataProviderTest extends TestCase
             $this->createStub(DataPersistorInterface::class),
             $this->createStub(BankAccountRepositoryInterface::class),
             $this->createStub(MoneyBoxOrderFinder::class),
+            $this->createStub(Formatter::class),
         );
     }
 }

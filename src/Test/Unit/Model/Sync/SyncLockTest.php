@@ -7,6 +7,7 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Test\Unit\Model\Sync;
 
+use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Lock\LockManagerInterface;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -30,7 +31,7 @@ class SyncLockTest extends TestCase
         try {
             $this->createLock(taken: true)->run(static fn(): bool => true);
             self::fail('The work waits for the other request.');
-        } catch (\Magento\Framework\Exception\LocalizedException $e) {
+        } catch (LocalizedException $e) {
             self::assertStringContainsString('already running', $e->getMessage());
         }
     }

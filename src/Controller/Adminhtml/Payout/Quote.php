@@ -10,9 +10,9 @@ namespace Polkurier\Shipping\Controller\Adminhtml\Payout;
 use Magento\Backend\App\Action\Context;
 use Magento\Framework\Controller\Result\JsonFactory;
 use Polkurier\Shipping\Controller\Adminhtml\AbstractJsonAction;
+use Polkurier\Shipping\Model\Admin\Formatter;
 use Polkurier\Shipping\Model\Payout\MoneyBoxOrderFinder;
 use Polkurier\Shipping\Model\Payout\PayoutManager;
-use Polkurier\Shipping\Model\Shipment\Details\Formatter;
 use Polkurier\Webservice\Enum\MoneyBox\MoneyBoxPayoutTypeEnum;
 
 /**

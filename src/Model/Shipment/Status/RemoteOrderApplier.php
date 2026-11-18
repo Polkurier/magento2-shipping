@@ -48,7 +48,7 @@ readonly class RemoteOrderApplier
      */
     public function apply(Order $order, ShipmentInterface $shipment): void
     {
-        $cancelled = $order->getStatusCode() === OrderStatusCodeEnum::Canceled->value
+        $cancelled = $order->getStatusCode() === OrderStatusCodeEnum::Canceled
             && $this->isCancelled($order, $shipment);
         $waybills = [];
         foreach ($order->getWaybills() as $waybill) {
@@ -57,7 +57,7 @@ readonly class RemoteOrderApplier
 
         $shipment->setPolkurierNumber($order->getNumber() ?? $shipment->getPolkurierNumber())
             ->setWaybills(\array_values(\array_unique(\array_filter($waybills))))
-            ->setStatusCode($order->getStatusCode())
+            ->setStatusCode($order->getStatusCode()?->value)
             ->setStatusLabel($order->getStatus())
             // In UTC, as every time the module stores: Polkurier reports them in Polish time.
             // None without a waybill or before its first status: the date known so far stays.
@@ -187,7 +187,7 @@ readonly class RemoteOrderApplier
             ),
             ShipmentDetailsInterface::FIELD_ADDITIONAL_FIELDS => \array_map(
                 'strval',
-                $order->getAdditionalFields() ?? [],
+                $order->getAdditionalFields(),
             ),
             ShipmentDetailsInterface::FIELD_PACKS => $packs,
             ShipmentDetailsInterface::FIELD_ITEMS => $items,
@@ -216,7 +216,7 @@ readonly class RemoteOrderApplier
             $events[] = [
                 ShipmentDetailsInterface::FIELD_SCAN_DATE => (string)$event->statusDate
                     ?->format(DateFormat::DATETIME_PHP_FORMAT),
-                ShipmentDetailsInterface::FIELD_SCAN_STATUS_CODE => $event->statusCode,
+                ShipmentDetailsInterface::FIELD_SCAN_STATUS_CODE => $event->statusCode->value ?? '',
                 ShipmentDetailsInterface::FIELD_SCAN_STATUS => $event->status,
                 ShipmentDetailsInterface::FIELD_SCAN_LOCATION => $event->location,
                 ShipmentDetailsInterface::FIELD_SCAN_DESCRIPTION => $event->description ?: $carrierWording,

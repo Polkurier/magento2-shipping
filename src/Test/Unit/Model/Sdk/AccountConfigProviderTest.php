@@ -47,7 +47,7 @@ class AccountConfigProviderTest extends TestCase
     {
         $config = $this->createProvider()->getConfig();
 
-        self::assertSame('11111', $config->getAuthorization()->getLogin());
+        self::assertSame('11111', $config->getAuthorization()->login);
         self::assertSame('token-one', $config->getAuthorization()->token);
         self::assertTrue($config->isSandbox());
         self::assertSame(45, $config->getApiTimeout());

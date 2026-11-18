@@ -40,7 +40,7 @@ class MapTokenProviderTest extends SdkTestCase
         $second = $this->createProvider($http)->getToken();
 
         self::assertSame(['map-token', 'map-token'], [$first, $second]);
-        self::assertSame(1, $http->requestCount());
+        self::assertSame(1, $http->countRequests());
         self::assertSame([MapTokenProvider::CACHE_LIFETIME], \array_values($this->cache->lifetimes));
     }
 
@@ -57,7 +57,7 @@ class MapTokenProviderTest extends SdkTestCase
             $this->createProvider($http)->getTokenWithExpiry(),
             'The same from the cache.',
         );
-        self::assertSame(1, $http->requestCount());
+        self::assertSame(1, $http->countRequests());
     }
 
     public function testATokenThatIsNoJwtSaysNothingOfWhenItRunsOut(): void
@@ -93,7 +93,7 @@ class MapTokenProviderTest extends SdkTestCase
         try {
             $this->createProvider($http)->getToken();
         } finally {
-            self::assertSame(1, $http->requestCount(), 'The next request is told without asking again.');
+            self::assertSame(1, $http->countRequests(), 'The next request is told without asking again.');
             self::assertSame([PolkurierCache::FAILURE_LIFETIME], \array_values($this->cache->lifetimes));
         }
     }
@@ -106,7 +106,7 @@ class MapTokenProviderTest extends SdkTestCase
         $second = $this->createProvider($http)->getToken();
 
         self::assertSame(['', ''], [$first, $second]);
-        self::assertSame(1, $http->requestCount());
+        self::assertSame(1, $http->countRequests());
         self::assertSame([PolkurierCache::FAILURE_LIFETIME], \array_values($this->cache->lifetimes));
         self::assertSame(
             [[CacheTagEnum::MapToken->value, CacheTagEnum::Failures->value]],

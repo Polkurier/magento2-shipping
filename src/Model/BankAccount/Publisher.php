@@ -62,7 +62,7 @@ readonly class Publisher
     public function requestCode(): TwoFactorToken
     {
         $token = $this->errorMessageResolver->callTranslated(
-            fn(): TwoFactorToken => $this->polkurierClient->getTwoFactorToken()->twoFactorTokenRegister(
+            fn(): TwoFactorToken => $this->polkurierClient->getTwoFactorToken()->register(
                 new RegisterMessage(TwoFactorNamespaceEnum::ChangeBankAccountNumber),
             ),
         );

@@ -56,22 +56,22 @@ readonly class SenderMapper
     {
         $value = static fn(string $field): string => \trim((string)($fields[$field] ?? ''));
         $builder = $this->addressBuilderFactory->create()
-            ->person($value(AddressInterface::FIELD_PERSON))
-            ->street($value(AddressInterface::FIELD_STREET))
-            ->houseNumber($value(AddressInterface::FIELD_HOUSE_NUMBER))
-            ->city($value(AddressInterface::FIELD_CITY))
-            ->postcode($value(AddressInterface::FIELD_POSTCODE))
-            ->country($value(AddressInterface::FIELD_COUNTRY) ?: Polkurier::HOME_COUNTRY)
-            ->email($value(AddressInterface::FIELD_EMAIL))
-            ->phone($value(AddressInterface::FIELD_PHONE));
+            ->setPerson($value(AddressInterface::FIELD_PERSON))
+            ->setStreet($value(AddressInterface::FIELD_STREET))
+            ->setHouseNumber($value(AddressInterface::FIELD_HOUSE_NUMBER))
+            ->setCity($value(AddressInterface::FIELD_CITY))
+            ->setPostcode($value(AddressInterface::FIELD_POSTCODE))
+            ->setCountry($value(AddressInterface::FIELD_COUNTRY) ?: Polkurier::HOME_COUNTRY)
+            ->setEmail($value(AddressInterface::FIELD_EMAIL))
+            ->setPhone($value(AddressInterface::FIELD_PHONE));
         if ($value(AddressInterface::FIELD_COMPANY) !== '') {
-            $builder->company($value(AddressInterface::FIELD_COMPANY));
+            $builder->setCompany($value(AddressInterface::FIELD_COMPANY));
         }
         if ($value(AddressInterface::FIELD_FLAT_NUMBER) !== '') {
-            $builder->flatNumber($value(AddressInterface::FIELD_FLAT_NUMBER));
+            $builder->setFlatNumber($value(AddressInterface::FIELD_FLAT_NUMBER));
         }
         if ($pointId !== null && $pointId !== '') {
-            $builder->pointId($pointId);
+            $builder->setPointId($pointId);
         }
 
         return $builder->build();
@@ -123,25 +123,25 @@ readonly class SenderMapper
         }
         $name = $this->getConfigValue('general/store_information/name', $storeId);
         $builder = $this->addressBuilderFactory->create()
-            ->person($name)
-            ->street($street['street'])
-            ->houseNumber((string)$street['house_number'])
-            ->city($city)
-            ->postcode($postcode)
-            ->country($this->getConfigValue($prefix . '/country_id', $storeId) ?: Polkurier::HOME_COUNTRY)
-            ->email($this->getConfigValue(
+            ->setPerson($name)
+            ->setStreet($street['street'])
+            ->setHouseNumber((string)$street['house_number'])
+            ->setCity($city)
+            ->setPostcode($postcode)
+            ->setCountry($this->getConfigValue($prefix . '/country_id', $storeId) ?: Polkurier::HOME_COUNTRY)
+            ->setEmail($this->getConfigValue(
                 \sprintf('trans_email/ident_%s/email', $this->configProvider->getSenderEmailIdentity($storeId)),
                 $storeId,
             ))
-            ->phone($this->getConfigValue('general/store_information/phone', $storeId));
+            ->setPhone($this->getConfigValue('general/store_information/phone', $storeId));
         if ($name !== '') {
-            $builder->company($name);
+            $builder->setCompany($name);
         }
         if ($street['flat_number'] !== null) {
-            $builder->flatNumber($street['flat_number']);
+            $builder->setFlatNumber($street['flat_number']);
         }
         if ($pointId !== null && $pointId !== '') {
-            $builder->pointId($pointId);
+            $builder->setPointId($pointId);
         }
 
         return $builder->build();

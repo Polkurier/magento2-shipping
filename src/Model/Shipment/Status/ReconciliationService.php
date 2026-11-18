@@ -280,6 +280,6 @@ readonly class ReconciliationService
 
     private static function isCancelled(Order $order): bool
     {
-        return $order->getStatusCode() === OrderStatusCodeEnum::Canceled->value;
+        return $order->getStatusCode() === OrderStatusCodeEnum::Canceled;
     }
 }

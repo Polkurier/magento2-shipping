@@ -239,7 +239,7 @@ class CarrierCatalog implements ResetAfterRequestInterface
     {
         $carriers = [];
         $message = new AvailableCarriersMessage(additionalData: true);
-        $available = $this->polkurierClient->getCourier()->availableCarriers($message);
+        $available = $this->polkurierClient->getCourier()->getAvailableCarriers($message);
         foreach ($available as $carrier) {
             $carriers[$carrier->serviceCode] = $carrier;
         }

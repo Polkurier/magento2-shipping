@@ -25,7 +25,7 @@ public function __construct(private readonly PolkurierClient $polkurierClient) {
 
 public function execute(): void
 {
-    $carriers = $this->polkurierClient->getCourier()->availableCarriers();
+    $carriers = $this->polkurierClient->getCourier()->getAvailableCarriers();
 }
 ```
 

@@ -50,8 +50,8 @@ class AddressBookMapperTest extends SdkTestCase
         self::assertNull($local->getFlatNumber(), 'Empty strings from the API become nulls.');
         self::assertTrue($local->isDefault());
         self::assertTrue($local->isCover());
-        self::assertSame('get_addresses', $http->lastPayload()['apimethod']);
-        self::assertSame('SENDER', $http->lastPayload()['data']['type']);
+        self::assertSame('get_addresses', $http->readLastPayload()['apimethod']);
+        self::assertSame('SENDER', $http->readLastPayload()['data']['type']);
     }
 
     public function testAnAddressWithoutATypeIsTakenAsASender(): void
@@ -113,7 +113,7 @@ class AddressBookMapperTest extends SdkTestCase
             ->setCover(true);
 
         $saved = $this->createClientPool($http)->getAddresses()->saveAddress($mapper->mapToRecord($local));
-        $data = $http->lastPayload()['data'];
+        $data = $http->readLastPayload()['data'];
 
         self::assertSame('aZ3k', $data['id'], 'An entry already in Polkurier is updated, not duplicated.');
         self::assertSame('7', $data['housenumber']);

@@ -53,10 +53,10 @@ readonly class PickupService
         string $shipmentType,
     ): array {
         $days = $this->shipmentGateway->getPickupTimes($this->getPickupTimeMessageBuilderFactory->create()
-            ->courier($carrierCode)
-            ->shipFrom($senderPostcode)
-            ->shipTo($recipientPostcode ?: null)
-            ->parcel(ShipmentTypeEnum::tryFrom($shipmentType))
+            ->setCourier($carrierCode)
+            ->setShipFrom($senderPostcode)
+            ->setShipTo($recipientPostcode ?: null)
+            ->setParcel(ShipmentTypeEnum::tryFrom($shipmentType))
             ->build());
 
         $result = [];
@@ -95,10 +95,10 @@ readonly class PickupService
         array $packs,
     ): bool {
         $request = $this->multiPickupAvailabilityRequestMessageBuilderFactory->create()
-            ->courier($carrierCode)
-            ->packs($packs)
-            ->senderPostCode($senderPostcode)
-            ->shipmentType(ShipmentTypeEnum::tryFrom($shipmentType))
+            ->setCourier($carrierCode)
+            ->setPacks($packs)
+            ->setSenderPostCode($senderPostcode)
+            ->setShipmentType(ShipmentTypeEnum::tryFrom($shipmentType))
             ->build();
 
         return $this->shipmentGateway->isMultiPickupAvailable($request);
@@ -180,10 +180,10 @@ readonly class PickupService
         // it couldn't book: that depends on the carrier and the parcels, not the account.
         $window = self::buildWindow($date, $from, $to);
         $request = $this->multiPickupRequestMessageBuilderFactory->create()
-            ->pickupDate($window['date'])
-            ->pickupTimeFrom($window['from'])
-            ->pickupTimeTo($window['to'])
-            ->orders(\array_map('strval', \array_keys($numbers)))
+            ->setPickupDate($window['date'])
+            ->setPickupTimeFrom($window['from'])
+            ->setPickupTimeTo($window['to'])
+            ->setOrders(\array_map('strval', \array_keys($numbers)))
             ->build();
         $result = $this->shipmentGateway->bookMultiPickup($request);
 

@@ -289,7 +289,7 @@ class CarrierCatalogTest extends TestCase
     private function createCatalog(): CarrierCatalog
     {
         $courier = $this->createStub(CourierServiceInterface::class);
-        $courier->method('availableCarriers')->willReturnCallback(function (): array {
+        $courier->method('getAvailableCarriers')->willReturnCallback(function (): array {
             $this->requests++;
             if ($this->failure !== null) {
                 throw $this->failure;

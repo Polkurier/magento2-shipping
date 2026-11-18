@@ -139,7 +139,7 @@ class PayoutManagerTest extends TestCase
         );
         $now = new \DateTimeImmutable('2026-10-05 14:30');
         $tokens = $this->createStub(TwoFactorTokenServiceInterface::class);
-        $tokens->method('twoFactorTokenRegister')->willReturnCallback(function () use ($now): TwoFactorToken {
+        $tokens->method('register')->willReturnCallback(function () use ($now): TwoFactorToken {
             $this->codesSent++;
 
             return new TwoFactorToken('t1', '', 'Wypłata', 1, $now, $now, $now->modify('+5 minutes'));

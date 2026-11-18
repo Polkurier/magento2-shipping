@@ -35,17 +35,17 @@ readonly class BankAccountMapper
         ?string $pin = null,
     ): SaveBankAccountMessage {
         return $this->saveBankAccountMessageBuilderFactory->create()
-            ->bankAccount(
+            ->setBankAccount(
                 $this->bankAccountBuilderFactory->create()
-                    ->name($account->getName())
-                    ->number(self::normalizeNumber($account->getNumber()))
-                    ->id($account->getExtId())
-                    ->default($account->isDefault())
+                    ->setName($account->getName())
+                    ->setNumber(self::normalizeNumber($account->getNumber()))
+                    ->setId($account->getExtId())
+                    ->setDefault($account->isDefault())
                     ->build(),
             )
-            ->twoFactorToken($pin ? null : ($twoFactorToken ?: null))
-            ->twoFactorCode($pin ? null : ($twoFactorCode ?: null))
-            ->accessPin($pin ?: null)
+            ->setTwoFactorToken($pin ? null : ($twoFactorToken ?: null))
+            ->setTwoFactorCode($pin ? null : ($twoFactorCode ?: null))
+            ->setAccessPin($pin ?: null)
             ->build();
     }
 

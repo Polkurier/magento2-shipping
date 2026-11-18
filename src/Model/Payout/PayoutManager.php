@@ -53,7 +53,9 @@ readonly class PayoutManager
      */
     public function getConfig(): MoneyBoxConfigMessage
     {
-        return $this->errorMessageResolver->callTranslated(fn() => $this->polkurierClient->getMoneyBox()->getConfig());
+        return $this->errorMessageResolver->callTranslated(
+            fn() => $this->polkurierClient->getMoneyBox()->getMoneyBoxConfig(),
+        );
     }
 
     /**
@@ -62,7 +64,7 @@ readonly class PayoutManager
     public function getPayouts(int $page = 1, int $pageSize = 20): MoneyBoxPayoutListMessage
     {
         return $this->errorMessageResolver->callTranslated(fn() => $this->polkurierClient->getMoneyBox()->getPayouts(
-            $this->getMoneyBoxPayoutsMessageBuilderFactory->create()->pageSize($pageSize)->page($page)->build(),
+            $this->getMoneyBoxPayoutsMessageBuilderFactory->create()->setPageSize($pageSize)->setPage($page)->build(),
         ));
     }
 
@@ -126,7 +128,7 @@ readonly class PayoutManager
             throw new LocalizedException(__('The money box has nothing to pay out yet. No code was sent.'));
         }
         $token = $this->errorMessageResolver->callTranslated(
-            fn() => $this->polkurierClient->getTwoFactorToken()->twoFactorTokenRegister(
+            fn() => $this->polkurierClient->getTwoFactorToken()->register(
                 new RegisterMessage(TwoFactorNamespaceEnum::MoneyBoxPayout),
             ),
         );
@@ -162,13 +164,13 @@ readonly class PayoutManager
             throw new LocalizedException(__('Enter the confirmation code Polkurier sent you.'));
         }
         $message = $this->createMoneyBoxPayoutMessageBuilderFactory->create()
-            ->orders(\array_values($orderNumbers))
-            ->payoutType($payoutType)
-            ->feePaymentType($feePaymentType)
-            ->bankAccountNumber($bankAccountNumber ?: null)
-            ->securityPin($securityPin ?: null)
-            ->twoFactorToken($twoFactorToken)
-            ->twoFactorCode($twoFactorCode)
+            ->setOrders(\array_values($orderNumbers))
+            ->setPayoutType($payoutType)
+            ->setFeePaymentType($feePaymentType)
+            ->setBankAccountNumber($bankAccountNumber ?: null)
+            ->setSecurityPin($securityPin ?: null)
+            ->setTwoFactorToken($twoFactorToken)
+            ->setTwoFactorCode($twoFactorCode)
             ->build();
         $payout = $this->errorMessageResolver->callTranslated(
             fn() => $this->polkurierClient->getMoneyBox()->createPayout($message),

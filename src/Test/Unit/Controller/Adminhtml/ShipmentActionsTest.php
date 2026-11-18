@@ -244,7 +244,7 @@ class ShipmentActionsTest extends AdminActionTestCase
             return new AuthConfirmationMessage(true);
         })->execute();
 
-        self::assertSame(['12345', 'saved-token'], [$asked?->getLogin(), $asked?->token]);
+        self::assertSame(['12345', 'saved-token'], [$asked?->login, $asked?->token]);
         self::assertSame(['error' => false, 'message' => 'Polkurier accepted the credentials.'], $this->json);
     }
 

@@ -73,31 +73,33 @@ readonly class CreateOrderMessageMapper
             ));
         }
         $builder = $this->orderBuilderFactory->create()
-            ->courier($draft->getCarrierCode())
-            ->shipmentType($types[0] ?? ShipmentTypeEnum::tryFrom($draft->getShipmentType()) ?? ShipmentTypeEnum::Box)
-            ->packs(\array_map($this->mapPack(...), $draft->getPacks()))
-            ->sender($this->mapSender($draft, $storeId))
-            ->recipient($this->mapRecipient($draft))
+            ->setCourier($draft->getCarrierCode())
+            ->setShipmentType(
+                $types[0] ?? ShipmentTypeEnum::tryFrom($draft->getShipmentType()) ?? ShipmentTypeEnum::Box,
+            )
+            ->setPacks(\array_map($this->mapPack(...), $draft->getPacks()))
+            ->setSender($this->mapSender($draft, $storeId))
+            ->setRecipient($this->mapRecipient($draft))
             // The API requires a description although the SDK does not. Its limit counts bytes, so
             // the cut does too, without splitting a letter.
-            ->description(
+            ->setDescription(
                 \mb_strcut((string)$draft->getDescription(), 0, Order::DESCRIPTION_MAX_LENGTH),
             );
 
         if ((float)$draft->getCodAmount() > 0) {
-            $builder->cod($this->mapCod($draft, $storeId));
+            $builder->setCod($this->mapCod($draft, $storeId));
         }
         if ((float)$draft->getInsuranceAmount() > 0) {
-            $builder->insurance(\round((float)$draft->getInsuranceAmount(), 2));
+            $builder->setInsurance(\round((float)$draft->getInsuranceAmount(), 2));
         }
         if ($draft->getCoverAddressId()) {
-            $builder->coverAddress(
+            $builder->setCoverAddress(
                 $this->senderMapper->mapFromAddress($this->loadAddress($draft->getCoverAddressId()), null),
             );
         }
         $pickup = $this->mapPickup($draft);
         if ($pickup !== null) {
-            $builder->pickup($pickup);
+            $builder->setPickup($pickup);
         }
         if (!$draft->getCoverAddressId()
             && \in_array(AdditionalServiceEnum::CoverSenderAddress->value, $draft->getServices(), true)
@@ -106,19 +108,19 @@ readonly class CreateOrderMessageMapper
         }
         $services = $this->mapServices($draft->getServices());
         if ($services !== []) {
-            $builder->courierService($services);
+            $builder->setCourierService($services);
         }
         if ($externalIds !== null) {
-            $builder->externalApplicationId($externalIds['application'])
-                ->externalOrderId($externalIds['id'])
-                ->externalOrderNumber($externalIds['number']);
+            $builder->setExternalApplicationId($externalIds['application'])
+                ->setExternalOrderId($externalIds['id'])
+                ->setExternalOrderNumber($externalIds['number']);
         }
         $fields = \array_filter(
             \array_map('strval', $draft->getAdditionalFields()),
             static fn(string $value): bool => $value !== '',
         );
         if ($fields !== []) {
-            $builder->additionalFields($fields);
+            $builder->setAdditionalFields($fields);
         }
 
         return new CreateOrderMessage($builder->build());
@@ -166,36 +168,36 @@ readonly class CreateOrderMessageMapper
     public function mapPack(PackInterface $pack): PackItem
     {
         return $this->packItemBuilderFactory->create()
-            ->length($pack->getLength())
-            ->width($pack->getWidth())
-            ->height($pack->getHeight())
-            ->weight(\round($pack->getWeight(), 3))
-            ->type(ParcelTypeMapper::mapPolkurierType($pack->getPackType()))
-            ->amount(\max(1, $pack->getAmount()))
+            ->setLength($pack->getLength())
+            ->setWidth($pack->getWidth())
+            ->setHeight($pack->getHeight())
+            ->setWeight(\round($pack->getWeight(), 3))
+            ->setType(ParcelTypeMapper::mapPolkurierType($pack->getPackType()))
+            ->setAmount(\max(1, $pack->getAmount()))
             ->build();
     }
 
     public function mapRecipient(ShipmentDraftInterface $draft): Address
     {
         $builder = $this->addressBuilderFactory->create()
-            ->person($draft->getRecipientPerson())
-            ->street($draft->getRecipientStreet())
-            ->city($draft->getRecipientCity())
-            ->postcode($draft->getRecipientPostcode())
-            ->country($draft->getRecipientCountry() ?: Polkurier::HOME_COUNTRY)
-            ->email($draft->getRecipientEmail())
-            ->phone($draft->getRecipientPhone());
+            ->setPerson($draft->getRecipientPerson())
+            ->setStreet($draft->getRecipientStreet())
+            ->setCity($draft->getRecipientCity())
+            ->setPostcode($draft->getRecipientPostcode())
+            ->setCountry($draft->getRecipientCountry() ?: Polkurier::HOME_COUNTRY)
+            ->setEmail($draft->getRecipientEmail())
+            ->setPhone($draft->getRecipientPhone());
         if ($draft->getRecipientCompany()) {
-            $builder->company($draft->getRecipientCompany());
+            $builder->setCompany($draft->getRecipientCompany());
         }
         if ($draft->getRecipientHouseNumber()) {
-            $builder->houseNumber($draft->getRecipientHouseNumber());
+            $builder->setHouseNumber($draft->getRecipientHouseNumber());
         }
         if ($draft->getRecipientFlatNumber()) {
-            $builder->flatNumber($draft->getRecipientFlatNumber());
+            $builder->setFlatNumber($draft->getRecipientFlatNumber());
         }
         if ($draft->getRecipientPointId()) {
-            $builder->pointId($draft->getRecipientPointId());
+            $builder->setPointId($draft->getRecipientPointId());
         }
 
         return $builder->build();
@@ -269,12 +271,12 @@ readonly class CreateOrderMessageMapper
         $returnType = CodReturnTypeEnum::tryFrom((string)$draft->getCodReturnType())
             ?? $this->configProvider->getDefaultCodReturnType($storeId);
         $builder = $this->codBuilderFactory->create()
-            ->amount(\round((float)$draft->getCodAmount(), 2))
-            ->type(
+            ->setAmount(\round((float)$draft->getCodAmount(), 2))
+            ->setType(
                 CodTypeEnum::tryFrom((string)$draft->getCodType())
                     ?? $this->configProvider->getDefaultCodType($storeId),
             )
-            ->returnType($returnType);
+            ->setReturnType($returnType);
         if ($returnType === CodReturnTypeEnum::BankAccount && $draft->isNewBankAccount()) {
             $number = BankAccountMapper::normalizeNumber($draft->getNewBankAccountNumber());
             if ($number === '') {
@@ -282,13 +284,13 @@ readonly class CreateOrderMessageMapper
                     'Enter the number of the bank account the cash on delivery is paid out to.',
                 ));
             }
-            $builder->bankAccount($number);
+            $builder->setBankAccount($number);
         } elseif ($returnType === CodReturnTypeEnum::BankAccount) {
             if (!$draft->getCodBankAccountId()) {
                 throw new LocalizedException(__('Choose the bank account the cash on delivery is paid out to.'));
             }
             try {
-                $builder->bankAccount($this->bankAccountRepository->get($draft->getCodBankAccountId())->getNumber());
+                $builder->setBankAccount($this->bankAccountRepository->get($draft->getCodBankAccountId())->getNumber());
             } catch (NoSuchEntityException) {
                 throw new LocalizedException(__('The chosen bank account no longer exists.'));
             }
@@ -303,10 +305,10 @@ readonly class CreateOrderMessageMapper
         // Polkurier books a courier for some point carriers when the order is placed.
         return match ($draft->getPickupMode()) {
             ShipmentDraftInterface::PICKUP_DROP_OFF => $this->pickupBuilderFactory->create()
-                ->noCourierOrder(true)
+                ->setNoCourierOrder(true)
                 ->build(),
             ShipmentDraftInterface::PICKUP_MULTI => $this->pickupBuilderFactory->create()
-                ->multiPickup(true)
+                ->setMultiPickup(true)
                 ->build(),
             default => $this->mapCourierPickup($draft),
         };
@@ -320,14 +322,14 @@ readonly class CreateOrderMessageMapper
         // The date and window are Polish time, as Polkurier offers them, whatever PHP's own zone.
         $zone = PolkurierTimeZoneProvider::getZone();
         $builder = $this->pickupBuilderFactory->create()
-            ->pickupDate(new \DateTimeImmutable($draft->getPickupDate(), $zone));
+            ->setPickupDate(new \DateTimeImmutable($draft->getPickupDate(), $zone));
         if ($draft->getPickupTimeFrom()) {
-            $builder->pickupTimeFrom(
+            $builder->setPickupTimeFrom(
                 new \DateTimeImmutable($draft->getPickupDate() . ' ' . $draft->getPickupTimeFrom(), $zone),
             );
         }
         if ($draft->getPickupTimeTo()) {
-            $builder->pickupTimeTo(
+            $builder->setPickupTimeTo(
                 new \DateTimeImmutable($draft->getPickupDate() . ' ' . $draft->getPickupTimeTo(), $zone),
             );
         }

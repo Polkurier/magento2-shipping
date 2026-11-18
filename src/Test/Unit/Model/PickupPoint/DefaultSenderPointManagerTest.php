@@ -54,12 +54,12 @@ class DefaultSenderPointManagerTest extends SdkTestCase
 
         $points = ['INPOST_PACZKOMAT' => 'KRA01M', 'DPD_POINT' => '', 'UPS_AP_POINT_POINT' => ''];
         self::assertSame([$points, $points], [$first, $second]);
-        self::assertSame(1, $http->requestCount());
-        self::assertSame('get_account_info', $http->lastPayload()['apimethod']);
+        self::assertSame(1, $http->countRequests());
+        self::assertSame('get_account_info', $http->readLastPayload()['apimethod']);
 
         $manager->_resetState();
         $manager->get();
-        self::assertSame(2, $http->requestCount(), 'The next request reads them again.');
+        self::assertSame(2, $http->countRequests(), 'The next request reads them again.');
     }
 
     public function testACarrierHasADefaultOnlyWhenItTakesParcelsAtPointsAndPolkurierKeepsOne(): void
@@ -94,7 +94,7 @@ class DefaultSenderPointManagerTest extends SdkTestCase
 
         self::assertSame([], $this->createManager($http, $logger)->get());
         self::assertSame([], $this->createManager($http)->get(), 'The next request is told without asking again.');
-        self::assertSame(1, $http->requestCount());
+        self::assertSame(1, $http->countRequests());
         self::assertSame([PolkurierCache::FAILURE_LIFETIME], \array_values($this->cache->lifetimes));
         self::assertSame(
             [[CacheTagEnum::Account->value, CacheTagEnum::Failures->value]],
@@ -111,8 +111,8 @@ class DefaultSenderPointManagerTest extends SdkTestCase
 
         $manager->change('UPS_AP_POINT_POINT', 'U02842068');
 
-        self::assertSame('change_default_sender_point', $http->lastPayload()['apimethod']);
-        self::assertSame(['courier' => 'UPS_AP_POINT_POINT', 'point' => 'U02842068'], $http->lastPayload()['data']);
+        self::assertSame('change_default_sender_point', $http->readLastPayload()['apimethod']);
+        self::assertSame(['courier' => 'UPS_AP_POINT_POINT', 'point' => 'U02842068'], $http->readLastPayload()['data']);
         $http->willAnswerWith(self::encodeSuccess(['default_sender_point' => ['UPS_AP_POINT_POINT' => 'U02842068']]));
         self::assertSame(['UPS_AP_POINT_POINT' => 'U02842068'], $manager->get(), 'Read again after the change.');
         self::assertSame(

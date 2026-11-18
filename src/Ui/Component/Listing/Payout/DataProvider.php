@@ -78,12 +78,12 @@ class DataProvider extends AbstractDataProvider
             $items[] = [
                 'number' => $payout->number,
                 'date' => $payout->date?->format(DateFormat::DATETIME_PHP_FORMAT),
-                'payout_type' => $payout->payoutType,
+                'payout_type' => $payout->payoutType?->value,
                 'bank_account_number' => $payout->bankAccountNumber,
                 'amount' => $payout->amount,
                 'fee' => $payout->fee,
                 'paid_amount' => $payout->paidAmount,
-                'status' => $payout->status,
+                'status' => $payout->status?->value,
                 'items_count' => $payout->itemsCount,
                 'cancellable' => (int)$payout->cancellable,
             ];

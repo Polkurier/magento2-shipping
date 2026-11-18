@@ -87,7 +87,7 @@ class PolkurierTest extends SdkTestCase
         $methods = $this->collectRates($this->createRequest('PL', 120.0, 2.0));
 
         self::assertSame(['INPOST_PACZKOMAT' => 12.99, 'DPD' => 14.99], $methods);
-        $payload = $this->http->lastPayload();
+        $payload = $this->http->readLastPayload();
         self::assertSame('available_carriers', $payload['apimethod']);
         self::assertTrue($payload['data']['additional_data']);
         self::assertSame(SdkConfig::LOGIN, $payload['authorization']['login']);
@@ -212,7 +212,7 @@ class PolkurierTest extends SdkTestCase
         $this->active = false;
 
         self::assertFalse($this->createCarrier()->collectRates($this->createRequest('PL', 120.0, 2.0)));
-        self::assertSame(0, $this->http->requestCount());
+        self::assertSame(0, $this->http->countRequests());
     }
 
     protected function setUp(): void

@@ -139,7 +139,7 @@ readonly class ErrorMessageResolver
         }
         $error = $e->getErrorMessage();
         $code = ApiErrorCodeEnum::tryFrom((string)$error->errorCode)
-            ?? ($error->statusCode ? ApiErrorCodeEnum::fromStatusCode($error->statusCode) : null);
+            ?? ($error->statusCode ? ApiErrorCodeEnum::findByStatusCode($error->statusCode) : null);
         if ($code !== null) {
             return \in_array($code, self::TRANSIENT_CODES, true);
         }

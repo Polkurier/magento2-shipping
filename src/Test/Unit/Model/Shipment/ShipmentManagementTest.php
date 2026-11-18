@@ -222,7 +222,7 @@ class ShipmentManagementTest extends SdkTestCase
         } catch (LocalizedException $e) {
             self::assertStringContainsString('#000000042', $e->getMessage());
         }
-        self::assertSame(0, $this->http->requestCount(), 'Polkurier is never asked.');
+        self::assertSame(0, $this->http->countRequests(), 'Polkurier is never asked.');
     }
 
     public function testPlacesTheOrderAndShipsItWithItsWaybills(): void
@@ -268,7 +268,7 @@ class ShipmentManagementTest extends SdkTestCase
         );
         self::assertSame('https://track.example/WB-111', $shipment->getTrackingUrl());
 
-        $payload = $this->http->lastPayload();
+        $payload = $this->http->readLastPayload();
         self::assertSame('create_order', $payload['apimethod']);
         self::assertSame(SdkConfig::TOKEN, $payload['authorization']['token']);
         self::assertSame('DPD', $payload['data']['courier']);
@@ -351,7 +351,7 @@ class ShipmentManagementTest extends SdkTestCase
 
         self::assertSame(57, $shipment->getShipmentId());
         self::assertNull($shipment->getLastError());
-        self::assertSame(1, $this->http->requestCount(), 'Nothing is sent to Polkurier again.');
+        self::assertSame(1, $this->http->countRequests(), 'Nothing is sent to Polkurier again.');
     }
 
     public function testTheCustomerIsEmailedOnceThePlacedOrderHasItsMagentoShipment(): void
@@ -542,7 +542,7 @@ class ShipmentManagementTest extends SdkTestCase
 
         $shipment = $this->createPlacementService()->placeForNativeShipment(self::ORDER_ID, $this->createDraft(), 9);
 
-        self::assertSame('000000009', $this->http->lastPayload()['data']['external_order_id']);
+        self::assertSame('000000009', $this->http->readLastPayload()['data']['external_order_id']);
         self::assertNull($shipment->getReservedShipmentNumber(), 'Nothing is taken: it has its number.');
         self::assertSame(77, $this->nextShipmentNumber);
     }
@@ -559,7 +559,7 @@ class ShipmentManagementTest extends SdkTestCase
         }
 
         self::assertSame(77, $this->nextShipmentNumber, 'No number is taken for it.');
-        self::assertSame(0, $this->http->requestCount(), 'Nothing is sent.');
+        self::assertSame(0, $this->http->countRequests(), 'Nothing is sent.');
         self::assertSame([], $this->saved);
     }
 
@@ -578,7 +578,7 @@ class ShipmentManagementTest extends SdkTestCase
 
         $shipment = $this->createManagement()->create(self::ORDER_ID, $this->createDraft());
 
-        self::assertSame('000000042', $this->http->lastPayload()['data']['external_order_id']);
+        self::assertSame('000000042', $this->http->readLastPayload()['data']['external_order_id']);
         self::assertNull($shipment->getReservedShipmentNumber());
         self::assertSame(77, $this->nextShipmentNumber, 'No shipment number is taken.');
     }
@@ -684,7 +684,7 @@ class ShipmentManagementTest extends SdkTestCase
             $this->createDraft()->setSenderPointId('U16880214')->setPickupMode(ShipmentDraftInterface::PICKUP_COURIER),
         );
 
-        $data = $this->http->lastPayload()['data'];
+        $data = $this->http->readLastPayload()['data'];
         self::assertSame('U16880214', $data['sender']['point_id'] ?? null);
         self::assertTrue((bool)($data['pickup']['nocourierorder'] ?? false));
     }
@@ -706,7 +706,7 @@ class ShipmentManagementTest extends SdkTestCase
 
         self::assertArrayNotHasKey(
             'point_id',
-            \array_filter($this->http->lastPayload()['data']['sender'], static fn($v) => $v !== null && $v !== ''),
+            \array_filter($this->http->readLastPayload()['data']['sender'], static fn($v) => $v !== null && $v !== ''),
         );
     }
 
@@ -727,7 +727,7 @@ class ShipmentManagementTest extends SdkTestCase
 
         self::assertArrayNotHasKey(
             'point_id',
-            \array_filter($this->http->lastPayload()['data']['sender'], static fn($v) => $v !== null && $v !== ''),
+            \array_filter($this->http->readLastPayload()['data']['sender'], static fn($v) => $v !== null && $v !== ''),
         );
     }
 
@@ -850,7 +850,7 @@ class ShipmentManagementTest extends SdkTestCase
             self::assertSame('Choose at least one item to ship.', $e->getMessage());
         }
 
-        self::assertSame(0, $this->http->requestCount());
+        self::assertSame(0, $this->http->countRequests());
         self::assertSame([], $this->saved, 'Nothing is recorded.');
     }
 
@@ -865,7 +865,7 @@ class ShipmentManagementTest extends SdkTestCase
             self::assertStringContainsString('Recipient: Phone', $e->getMessage());
         }
 
-        self::assertSame(0, $this->http->requestCount());
+        self::assertSame(0, $this->http->countRequests());
         self::assertSame([], $this->saved, 'Refused as it is: not kept.');
     }
 
@@ -901,7 +901,7 @@ class ShipmentManagementTest extends SdkTestCase
         } catch (LocalizedException $e) {
             self::assertSame('This carrier is no longer available: choose another.', $e->getMessage());
         }
-        self::assertSame(0, $this->http->requestCount(), 'Polkurier is never asked.');
+        self::assertSame(0, $this->http->countRequests(), 'Polkurier is never asked.');
         self::assertSame([], $this->saved);
     }
 
@@ -944,7 +944,7 @@ class ShipmentManagementTest extends SdkTestCase
         self::assertNull($shipment->getLastError());
         self::assertSame(
             '000000077',
-            $this->http->lastPayload()['data']['external_order_id'],
+            $this->http->readLastPayload()['data']['external_order_id'],
             'Sent again with the number it took.',
         );
         self::assertSame('000000077', $shipment->getReservedShipmentNumber());
@@ -1029,7 +1029,7 @@ class ShipmentManagementTest extends SdkTestCase
         self::assertSame(ShipmentInterface::STATE_UNKNOWN, $shipment->getState());
         self::assertNull($shipment->getPolkurierNumber());
         self::assertNotNull($shipment->getLastError());
-        self::assertSame(1, $http->requestCount());
+        self::assertSame(1, $http->countRequests());
 
         try {
             $this->createManagement()->create(self::ORDER_ID, $this->createDraft());
@@ -1037,8 +1037,8 @@ class ShipmentManagementTest extends SdkTestCase
         } catch (LocalizedException $e) {
             self::assertStringContainsString('hasn\'t confirmed an earlier attempt', $e->getMessage());
         }
-        self::assertSame(2, $http->requestCount(), 'The second time, only the first was looked up.');
-        self::assertStringNotContainsString('create_order', (string)$http->lastRequest()?->getBody());
+        self::assertSame(2, $http->countRequests(), 'The second time, only the first was looked up.');
+        self::assertStringNotContainsString('create_order', (string)$http->getLastRequest()?->getBody());
         self::assertSame([], $this->events->dispatched, 'Nothing is reported before the outcome is known.');
     }
 
@@ -1052,7 +1052,7 @@ class ShipmentManagementTest extends SdkTestCase
         } catch (LocalizedException $e) {
             self::assertStringContainsString('Another request is updating', $e->getMessage());
         }
-        self::assertSame(0, $this->http->requestCount());
+        self::assertSame(0, $this->http->countRequests());
         self::assertSame([], $this->saved);
     }
 
@@ -1074,8 +1074,8 @@ class ShipmentManagementTest extends SdkTestCase
                 self::assertStringContainsString($reason, $e->getMessage());
             }
         }
-        self::assertSame(1, $this->http->requestCount(), 'Only the interrupted one was looked up, once old enough.');
-        self::assertStringNotContainsString('create_order', (string)$this->http->lastRequest()?->getBody());
+        self::assertSame(1, $this->http->countRequests(), 'Only the interrupted one was looked up, once old enough.');
+        self::assertStringNotContainsString('create_order', (string)$this->http->getLastRequest()?->getBody());
     }
 
     public function testTheOrderIsFreeAgainOncePlacedOrRefused(): void
@@ -1189,7 +1189,7 @@ class ShipmentManagementTest extends SdkTestCase
         self::assertCount(1, $events);
         self::assertSame('reconcile', $events[0]['source']);
         self::assertSame($shipment, $events[0]['shipment']);
-        $payload = $this->http->lastPayload();
+        $payload = $this->http->readLastPayload();
         self::assertSame('get_orders', $payload['apimethod']);
         self::assertSame('magento2-0123456789ab', $payload['data']['external_application_id']);
         self::assertSame('000000077', $payload['data']['external_order_id']);
@@ -1289,8 +1289,8 @@ class ShipmentManagementTest extends SdkTestCase
 
         $shipment = $this->createManagement()->reconcile((int)$shipment->getId());
 
-        self::assertSame(1, $this->http->requestCount(), 'Not looked for on the rest of the account.');
-        $data = $this->http->lastPayload()['data'];
+        self::assertSame(1, $this->http->countRequests(), 'Not looked for on the rest of the account.');
+        $data = $this->http->readLastPayload()['data'];
         self::assertSame('magento2-0123456789ab', $data['external_application_id']);
         self::assertSame('000000077', $data['external_order_id']);
         self::assertArrayNotHasKey('courier', $data);
@@ -1321,7 +1321,7 @@ class ShipmentManagementTest extends SdkTestCase
 
         $shipment = $this->createManagement()->reconcile((int)$shipment->getId());
 
-        self::assertSame(0, $this->http->requestCount());
+        self::assertSame(0, $this->http->countRequests());
         self::assertSame(ShipmentInterface::STATE_FAILED, $shipment->getState());
     }
 
@@ -1380,8 +1380,8 @@ class ShipmentManagementTest extends SdkTestCase
 
         $results = $this->listServices()['refresh']->refreshMany([(int)$first->getId(), (int)$second->getId()]);
 
-        self::assertSame(1, $this->http->requestCount());
-        $data = $this->http->lastPayload()['data'];
+        self::assertSame(1, $this->http->countRequests());
+        $data = $this->http->readLastPayload()['data'];
         self::assertSame('magento2-0123456789ab', $data['external_application_id']);
         self::assertArrayNotHasKey('external_order_id', $data);
         self::assertTrue($data['packs'] && $data['items'], 'Read as by its number.');
@@ -1570,8 +1570,8 @@ class ShipmentManagementTest extends SdkTestCase
             'number' => $number,
             'status' => $status === 'A' ? 'Anulowane' : 'Przyjęte',
             'status_code' => $status,
-            'date' => (new \DateTimeImmutable($placed))->format('Y-m-d H:i:s'),
-            'status_date' => \date('Y-m-d H:i:s'),
+            'date' => (new \DateTimeImmutable($placed))->format(\DATE_ATOM),
+            'status_date' => \date(\DATE_ATOM),
             'shipmenttype' => 'box',
             'courier' => 'DPD',
             'description' => $description,

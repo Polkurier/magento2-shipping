@@ -49,7 +49,7 @@ class AddressSyncAdapterTest extends SdkTestCase
         $remote = $this->createAdapter($http)->push($address);
 
         self::assertSame('aZ3k', $remote[AddressInterface::FIELD_EXT_ID]);
-        self::assertSame('save_address', $http->lastPayload()['apimethod']);
+        self::assertSame('save_address', $http->readLastPayload()['apimethod']);
         $events = $this->events->listDispatched(ApiEventEnum::AddressSaveAfter);
         self::assertCount(1, $events);
         self::assertNull($events[0]['store_id'], 'The account\'s, not a store\'s.');
@@ -66,7 +66,7 @@ class AddressSyncAdapterTest extends SdkTestCase
 
         $this->createAdapter($http)->deleteRemote($address);
 
-        self::assertSame('delete_address', $http->lastPayload()['apimethod']);
+        self::assertSame('delete_address', $http->readLastPayload()['apimethod']);
         $events = $this->events->listDispatched(ApiEventEnum::AddressDeleteAfter);
         self::assertCount(1, $events);
         self::assertSame($address, $events[0]['address']);

@@ -66,8 +66,8 @@ readonly class RemoteOrderMatcher
             return $found;
         }
         $orders = $this->findOrders(fn(GetOrdersMessageBuilder $builder) => $builder
-            ->externalApplicationId($this->applicationIdProvider->get())
-            ->externalOrderId($externalOrderId));
+            ->setExternalApplicationId($this->applicationIdProvider->get())
+            ->setExternalOrderId($externalOrderId));
         foreach ($orders as $order) {
             $match = $order->getNumber() !== null ? $this->match($shipment, $order) : self::NO_MATCH;
             if ($match !== self::NO_MATCH) {
@@ -88,8 +88,8 @@ readonly class RemoteOrderMatcher
         // Searched by phrase, which matches longer numbers that hold it too; the exact one is
         // picked, on whichever page it comes.
         $orders = $this->findOrders(static fn(GetOrdersMessageBuilder $builder) => $builder
-            ->searchPhrase($number)
-            ->items(true));
+            ->setSearchPhrase($number)
+            ->setItems(true));
         foreach ($orders as $order) {
             if ($order->getNumber() === $number) {
                 return $order;
@@ -109,13 +109,13 @@ readonly class RemoteOrderMatcher
         $found = null;
         // Searched by phrase, which matches longer numbers that hold it too: only the exact one counts.
         $orders = $this->findOrders(static fn(GetOrdersMessageBuilder $builder) => $builder
-            ->searchPhrase($waybill)
-            ->items(true));
+            ->setSearchPhrase($waybill)
+            ->setItems(true));
         foreach ($orders as $order) {
             if ($order->getNumber() === null || !self::hasWaybill($order, $waybill)) {
                 continue;
             }
-            if ($order->getStatusCode() !== OrderStatusCodeEnum::Canceled->value) {
+            if ($order->getStatusCode() !== OrderStatusCodeEnum::Canceled) {
                 return $order;
             }
             $found ??= $order;
@@ -183,13 +183,13 @@ readonly class RemoteOrderMatcher
         for ($page = 1; $wanted !== []; $page++) {
             try {
                 $list = $this->shipmentGateway->findOrders($this->getOrdersMessageBuilderFactory->create()
-                    ->externalApplicationId($this->applicationIdProvider->get())
-                    ->dateFrom($from)
-                    ->dateTo($to)
-                    ->pageSize(GetOrdersMessage::MAX_PAGE_SIZE)
-                    ->page($page)
-                    ->packs(true)
-                    ->items(true)
+                    ->setExternalApplicationId($this->applicationIdProvider->get())
+                    ->setDateFrom($from)
+                    ->setDateTo($to)
+                    ->setPageSize(GetOrdersMessage::MAX_PAGE_SIZE)
+                    ->setPage($page)
+                    ->setPacks(true)
+                    ->setItems(true)
                     ->build());
             } catch (LocalizedException) {
                 break;
@@ -261,9 +261,9 @@ readonly class RemoteOrderMatcher
     {
         for ($page = 1; $page <= self::MAX_PAGES; $page++) {
             $builder = $this->getOrdersMessageBuilderFactory->create()
-                ->pageSize(GetOrdersMessage::MAX_PAGE_SIZE)
-                ->page($page)
-                ->packs(true);
+                ->setPageSize(GetOrdersMessage::MAX_PAGE_SIZE)
+                ->setPage($page)
+                ->setPacks(true);
             $list = $this->shipmentGateway->findOrders($filter($builder)->build());
             foreach ($list->result as $order) {
                 yield $order;

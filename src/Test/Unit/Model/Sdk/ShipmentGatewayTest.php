@@ -17,12 +17,13 @@ use Polkurier\Shipping\Model\Sdk\ErrorMessageResolver;
 use Polkurier\Shipping\Model\Sdk\PolkurierClient;
 use Polkurier\Shipping\Model\Sdk\ShipmentGateway;
 use Polkurier\Webservice\Api\Service\OrdersServiceInterface;
+use Polkurier\Webservice\Dto\Request\Order\CreateOrderMessage;
+use Polkurier\Webservice\Dto\Response\ErrorMessage;
+use Polkurier\Webservice\Dto\Response\Order\OrderStatusMessage;
+use Polkurier\Webservice\Entity\Order;
 use Polkurier\Webservice\Enum\Http\ResponseStatusEnum;
 use Polkurier\Webservice\Exception\ConnectionException;
 use Polkurier\Webservice\Exception\WebserviceException;
-use Polkurier\Webservice\Http\Response\ErrorMessage;
-use Polkurier\Webservice\Request\Order\CreateOrderMessage;
-use Polkurier\Webservice\Response\Order\OrderStatusMessage;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
 
@@ -33,7 +34,7 @@ class ShipmentGatewayTest extends TestCase
     /**
      * @return array<string, array{string, bool}>
      */
-    public static function connectionFailures(): array
+    public static function provideConnectionFailures(): array
     {
         return [
             'no connection' => [
@@ -51,17 +52,17 @@ class ShipmentGatewayTest extends TestCase
         ];
     }
 
-    #[DataProvider('connectionFailures')]
+    #[DataProvider('provideConnectionFailures')]
     public function testOnlyARequestThatMayHaveArrivedLeavesThePlacingUncertain(string $failure, bool $uncertain): void
     {
         $orders = $this->createStub(OrdersServiceInterface::class);
         $orders->method('createOrder')->willThrowException(new ConnectionException($failure));
         $client = $this->createStub(PolkurierClient::class);
-        $client->method('orders')->willReturn($orders);
+        $client->method('getOrders')->willReturn($orders);
 
         try {
             (new ShipmentGateway($client, new ErrorMessageResolver()))
-                ->placeOrder($this->createStub(CreateOrderMessage::class));
+                ->placeOrder(new CreateOrderMessage(new Order('DPD')));
             self::fail('The failure is reported.');
         } catch (LocalizedException $e) {
             self::assertSame($uncertain, $e instanceof PlacementUncertainException);
@@ -71,7 +72,7 @@ class ShipmentGatewayTest extends TestCase
     /**
      * @return array<string, array{\Closure(self): (OrderStatusMessage|\Throwable), ?bool}>
      */
-    public static function statusAnswers(): array
+    public static function provideStatusAnswers(): array
     {
         $refusal = static fn(string $reason): \Closure => static fn(self $test): \Throwable => new WebserviceException(
             new ErrorMessage(ResponseStatusEnum::Error, $reason),
@@ -81,7 +82,7 @@ class ShipmentGatewayTest extends TestCase
 
         return [
             'a status: a live order' => [
-                static fn(self $test): OrderStatusMessage => $test->createStub(OrderStatusMessage::class),
+                static fn(): OrderStatusMessage => new OrderStatusMessage(),
                 false,
             ],
             'refused as cancelled' => [$refusal('Zamówienie anulowane'), true],
@@ -96,7 +97,7 @@ class ShipmentGatewayTest extends TestCase
     /**
      * @param \Closure(self): (OrderStatusMessage|\Throwable) $answer
      */
-    #[DataProvider('statusAnswers')]
+    #[DataProvider('provideStatusAnswers')]
     public function testGetStatusTellsACancelledOrderFromALiveOne(\Closure $answer, ?bool $cancelled): void
     {
         $orders = $this->createStub(OrdersServiceInterface::class);
@@ -107,8 +108,10 @@ class ShipmentGatewayTest extends TestCase
             $orders->method('getStatus')->willReturn($result);
         }
         $client = $this->createStub(PolkurierClient::class);
-        $client->method('orders')->willReturn($orders);
+        $client->method('getOrders')->willReturn($orders);
 
-        self::assertSame($cancelled, (new ShipmentGateway($client, new ErrorMessageResolver()))->isCancelled('24680-27'));
+        $gateway = new ShipmentGateway($client, new ErrorMessageResolver());
+
+        self::assertSame($cancelled, $gateway->isCancelled('24680-27'));
     }
 }

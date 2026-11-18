@@ -43,7 +43,7 @@ define([
         function render() {
             summary.empty();
             sections.forEach(function (section) {
-                if (section.visible && !section.visible()) {
+                if (section.isVisible && !section.isVisible()) {
                     return;
                 }
                 if (editing === section.title) {
@@ -62,7 +62,7 @@ define([
 
                     return;
                 }
-                const text = $('<span/>').text(section.summary()),
+                const text = $('<span/>').text(section.getSummary()),
                     edit = $('<button type="button" class="action-default polkurier-label-options__edit"/>')
                         .text($t('Change'));
 
@@ -72,7 +72,7 @@ define([
                     render();
                 });
                 // Say what's wrong: red alone would leave it to guesswork.
-                const why = [].concat(section.warning ? section.warning() || [] : []).filter(Boolean),
+                const why = [].concat(section.getWarning ? section.getWarning() || [] : []).filter(Boolean),
                     line = $('<dd/>')
                         .toggleClass('polkurier-label-options__warning', why.length > 0)
                         .append(text, edit);
@@ -95,7 +95,7 @@ define([
                     });
                 } else {
                     inputs.append($('<input type="hidden"/>').attr('name', config.name + '[' + name + ']')
-                        .val(state.filled(values[name]) ? values[name] : ''));
+                        .val(state.isFilled(values[name]) ? values[name] : ''));
                 }
             });
         }
@@ -166,10 +166,10 @@ define([
                     return;
                 }
                 prototype[method] = function () {
-                    const problems = state.problems(),
+                    const problems = state.findProblems(),
                         // The packages are there once the label is asked for.
                         packages = method === 'sendCreateLabelRequest' && !problems.length
-                            ? state.packageProblems(
+                            ? state.findPackageProblems(
                                 $('#packages_content select[name=package_container]').map(function () {
                                     return this.value;
                                 }).get()

@@ -17,7 +17,7 @@ use Polkurier\Shipping\Api\ShipmentManagementInterface;
 use Polkurier\Shipping\Controller\Adminhtml\Shipment\AbstractShipmentAction;
 use Polkurier\Shipping\Controller\Adminhtml\Shipment\Adopt;
 use Polkurier\Shipping\Controller\Adminhtml\Shipment\Cancel;
-use Polkurier\Shipping\Controller\Adminhtml\Shipment\RequestedShipments;
+use Polkurier\Shipping\Controller\Adminhtml\Shipment\RequestedShipmentResolver;
 use Polkurier\Shipping\Controller\Adminhtml\Shipment\Ship;
 use Polkurier\Shipping\Test\Unit\Support\AdminActionTestCase;
 
@@ -34,7 +34,7 @@ class OneShipmentActionsTest extends AdminActionTestCase
     /**
      * @return array<string, array{class-string<AbstractShipmentAction>, string}>
      */
-    public static function actions(): array
+    public static function provideActions(): array
     {
         return [
             'adopt' => [Adopt::class, 'adopt'],
@@ -48,9 +48,9 @@ class OneShipmentActionsTest extends AdminActionTestCase
         $this->params = ['id' => '41', 'order_id' => '29', 'polkurier_number' => ' 24680-27 '];
         $management = $this->createMock(ShipmentManagementInterface::class);
         $management->expects(self::once())->method('adopt')->with(41, '24680-27')
-            ->willReturn($this->shipment(ShipmentInterface::STATE_CREATED, '24680-27'));
+            ->willReturn($this->createShipment(ShipmentInterface::STATE_CREATED, '24680-27'));
 
-        (new Adopt($this->context(), $this->requested(), $management))->execute();
+        (new Adopt($this->createContext(), $this->createRequestedShipmentResolver(), $management))->execute();
 
         self::assertSame(['Polkurier order 24680-27 linked.'], $this->messages['success']);
         self::assertSame(['sales/order/view', ['order_id' => 29]], $this->redirect);
@@ -62,7 +62,7 @@ class OneShipmentActionsTest extends AdminActionTestCase
         $management = $this->createMock(ShipmentManagementInterface::class);
         $management->expects(self::never())->method('adopt');
 
-        (new Adopt($this->context(), $this->requested(), $management))->execute();
+        (new Adopt($this->createContext(), $this->createRequestedShipmentResolver(), $management))->execute();
 
         self::assertSame([], $this->messages);
         self::assertSame(['sales/order/view', ['order_id' => 29]], $this->redirect);
@@ -73,9 +73,9 @@ class OneShipmentActionsTest extends AdminActionTestCase
         $this->params = ['id' => '41', 'order_id' => '29'];
         $management = $this->createMock(ShipmentManagementInterface::class);
         $management->expects(self::once())->method('cancel')->with(41)
-            ->willReturn($this->shipment(ShipmentInterface::STATE_CANCELLED, '24680-4'));
+            ->willReturn($this->createShipment(ShipmentInterface::STATE_CANCELLED, '24680-4'));
 
-        (new Cancel($this->context(), $this->requested(), $management))->execute();
+        (new Cancel($this->createContext(), $this->createRequestedShipmentResolver(), $management))->execute();
 
         self::assertSame(['Polkurier order 24680-4 cancelled.'], $this->messages['success']);
         self::assertSame(['sales/order/view', ['order_id' => 29]], $this->redirect);
@@ -86,9 +86,9 @@ class OneShipmentActionsTest extends AdminActionTestCase
         $this->params = ['id' => '41', 'order_id' => '29'];
         $management = $this->createMock(ShipmentManagementInterface::class);
         $management->expects(self::once())->method('shipOrder')->with(41)
-            ->willReturn($this->shipment(ShipmentInterface::STATE_CREATED, '24680-4'));
+            ->willReturn($this->createShipment(ShipmentInterface::STATE_CREATED, '24680-4'));
 
-        (new Ship($this->context(), $this->requested(), $management))->execute();
+        (new Ship($this->createContext(), $this->createRequestedShipmentResolver(), $management))->execute();
 
         self::assertSame(['The order is shipped with Polkurier order 24680-4.'], $this->messages['success']);
         self::assertSame(['sales/order/view', ['order_id' => 29]], $this->redirect);
@@ -97,7 +97,7 @@ class OneShipmentActionsTest extends AdminActionTestCase
     /**
      * @param class-string<AbstractShipmentAction> $action
      */
-    #[DataProvider('actions')]
+    #[DataProvider('provideActions')]
     public function testARefusalIsShownAsAnErrorAndGoesBack(string $action, string $method): void
     {
         $this->params = ['id' => '41', 'order_id' => '29', 'polkurier_number' => '24680-27'];
@@ -105,7 +105,7 @@ class OneShipmentActionsTest extends AdminActionTestCase
         $management->method($method)
             ->willThrowException(new LocalizedException(__('Polkurier refused: the order is already collected.')));
 
-        (new $action($this->context(), $this->requested(), $management))->execute();
+        (new $action($this->createContext(), $this->createRequestedShipmentResolver(), $management))->execute();
 
         self::assertSame(['error' => ['Polkurier refused: the order is already collected.']], $this->messages);
         self::assertSame(['sales/order/view', ['order_id' => 29]], $this->redirect);
@@ -114,11 +114,11 @@ class OneShipmentActionsTest extends AdminActionTestCase
     /**
      * @param class-string<AbstractShipmentAction> $action
      */
-    #[DataProvider('actions')]
+    #[DataProvider('provideActions')]
     public function testAShipmentThatIsGoneIsSaidSo(string $action, string $method): void
     {
         $this->params = ['id' => '999', 'polkurier_number' => '24680-27'];
-        $requested = $this->createStub(RequestedShipments::class);
+        $requested = $this->createStub(RequestedShipmentResolver::class);
         $requested->method('getOne')
             ->willThrowException(new NoSuchEntityException(__(
                 'The Polkurier shipment with id "%1" does not exist.',
@@ -127,21 +127,21 @@ class OneShipmentActionsTest extends AdminActionTestCase
         $management = $this->createMock(ShipmentManagementInterface::class);
         $management->expects(self::never())->method($method);
 
-        (new $action($this->context(), $requested, $management))->execute();
+        (new $action($this->createContext(), $requested, $management))->execute();
 
         self::assertSame(['error' => ['The Polkurier shipment with id "999" does not exist.']], $this->messages);
         self::assertSame(['polkurier/shipment/index', []], $this->redirect);
     }
 
-    private function requested(): RequestedShipments
+    private function createRequestedShipmentResolver(): RequestedShipmentResolver
     {
-        $requested = $this->createStub(RequestedShipments::class);
-        $requested->method('getOne')->willReturn($this->shipment(ShipmentInterface::STATE_UNKNOWN, null));
+        $requested = $this->createStub(RequestedShipmentResolver::class);
+        $requested->method('getOne')->willReturn($this->createShipment(ShipmentInterface::STATE_UNKNOWN, null));
 
         return $requested;
     }
 
-    private function shipment(string $state, ?string $number, ?string $lastError = null): ShipmentInterface
+    private function createShipment(string $state, ?string $number, ?string $lastError = null): ShipmentInterface
     {
         $shipment = $this->createStub(ShipmentInterface::class);
         $shipment->method('getId')->willReturn(41);

@@ -12,13 +12,14 @@ use Magento\Framework\UrlInterface;
 use Magento\Framework\View\Element\Block\ArgumentInterface;
 use Magento\Sales\Api\ShipmentRepositoryInterface as MagentoShipmentRepository;
 use Magento\Sales\Model\Order;
+use Polkurier\Shipping\Api\Data\ShipmentDetailsInterface;
 use Polkurier\Shipping\Api\Data\ShipmentDraft\ItemInterface;
 use Polkurier\Shipping\Api\Data\ShipmentDraft\PackInterface;
 use Polkurier\Shipping\Api\Data\ShipmentDraftInterface;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
+use Polkurier\Shipping\Model\Admin\Formatter;
 use Polkurier\Shipping\Model\Carrier\CarrierNameProvider;
 use Polkurier\Shipping\Model\Config\Source\PackType;
-use Polkurier\Shipping\Model\Shipment\Details\Formatter;
 use Polkurier\Shipping\Model\Shipment\Details\OptionLabelProvider;
 use Polkurier\Shipping\Model\Shipment\Details\SentOrderReader;
 use Polkurier\Shipping\Model\Shipment\OrderLoader;
@@ -49,7 +50,7 @@ readonly class ShipmentDetails implements ArgumentInterface
      *
      * @return array<string, mixed>
      */
-    public function build(ShipmentInterface $shipment, array $errors = []): array
+    public function buildPage(ShipmentInterface $shipment, array $errors = []): array
     {
         $details = $shipment->getDetails();
         $fromPolkurier = $details !== [];
@@ -68,11 +69,11 @@ readonly class ShipmentDetails implements ArgumentInterface
                 'items' => [
                     [
                         'title' => (string)__('Polkurier order'),
-                        'rows' => $this->orderRows($shipment, $details),
+                        'rows' => $this->buildOrderRows($shipment, $details),
                     ],
                     [
                         'title' => (string)__('Delivery'),
-                        'rows' => $this->deliveryRows($shipment, $details, $asSent),
+                        'rows' => $this->buildDeliveryRows($shipment, $details, $asSent),
                     ],
                 ],
             ],
@@ -81,37 +82,52 @@ readonly class ShipmentDetails implements ArgumentInterface
                 'items' => \array_values(\array_filter([
                     [
                         'title' => (string)__('Sender'),
-                        'rows' => $this->addressRows($details['sender'] ?? null, 'sender', $asSent),
+                        'rows' => $this->buildAddressRows(
+                            $details[ShipmentDetailsInterface::FIELD_SENDER] ?? null,
+                            ShipmentDetailsInterface::FIELD_SENDER,
+                            $asSent,
+                        ),
                     ],
                     [
                         'title' => (string)__('Recipient'),
-                        'rows' => $this->addressRows($details['recipient'] ?? null, 'recipient', $asSent),
+                        'rows' => $this->buildAddressRows(
+                            $details[ShipmentDetailsInterface::FIELD_RECIPIENT] ?? null,
+                            ShipmentDetailsInterface::FIELD_RECIPIENT,
+                            $asSent,
+                        ),
                     ],
-                    empty($details['cover_address']) ? null
+                    empty($details[ShipmentDetailsInterface::FIELD_COVER_ADDRESS]) ? null
                         : [
                             'title' => (string)__('Sender on the label'),
-                            'rows' => $this->addressRows($details['cover_address'], 'cover_address', $asSent),
+                            'rows' => $this->buildAddressRows(
+                                $details[ShipmentDetailsInterface::FIELD_COVER_ADDRESS],
+                                ShipmentDetailsInterface::FIELD_COVER_ADDRESS,
+                                $asSent,
+                            ),
                         ],
                 ])),
             ],
             [
                 'title' => (string)__('Services and handover'),
                 'items' => [
-                    ['title' => (string)__('Services'), 'rows' => $this->serviceRows($details, $asSent)],
+                    ['title' => (string)__('Services'), 'rows' => $this->buildServiceRows($details, $asSent)],
                     [
                         'title' => (string)__('Handover to the carrier'),
-                        'rows' => $this->pickupRows($shipment, $details, $asSent),
+                        'rows' => $this->buildPickupRows($shipment, $details, $asSent),
                     ],
                 ],
             ],
         ];
 
-        $products = $this->products($shipment);
-        $tables = [$this->itemsTable($shipment, $products), $this->packsTable($details, $shipment, $products)];
-        if (!empty($details['items'])) {
-            $tables[] = $this->costTable($details);
+        $products = $this->loadProducts($shipment);
+        $tables = [
+            $this->buildItemsTable($shipment, $products),
+            $this->buildPacksTable($details, $shipment, $products),
+        ];
+        if (!empty($details[ShipmentDetailsInterface::FIELD_ITEMS])) {
+            $tables[] = $this->buildCostTable($details);
         }
-        $tables[] = $this->trackingTable($shipment);
+        $tables[] = $this->buildTrackingTable($shipment);
 
         return [
             'title' => (string)__('Shipment details %1', $shipment->getPolkurierNumber() ?: '#' . $shipment->getId()),
@@ -129,7 +145,7 @@ readonly class ShipmentDetails implements ArgumentInterface
                 ...$this->describePackChanges($shipment),
             ])),
             'errors' => \array_values($errors),
-            'synced' => $this->syncedLine($shipment),
+            'synced' => $this->buildSyncedLine($shipment),
             'sections' => $sections,
             'tables' => $tables,
         ];
@@ -146,11 +162,12 @@ readonly class ShipmentDetails implements ArgumentInterface
     public function describePackChanges(ShipmentInterface $shipment): array
     {
         $details = $shipment->getDetails();
-        if (empty($details['packs'])) {
+        if (empty($details[ShipmentDetailsInterface::FIELD_PACKS])) {
             return [];
         }
-        $sent = self::types((array)($this->sentOrderReader->read((string)$shipment->getRequest())['packs'] ?? []));
-        $taken = self::types((array)$details['packs']);
+        $sent = $this->sentOrderReader->read((string)$shipment->getRequest());
+        $sent = self::listTypes((array)($sent[ShipmentDetailsInterface::FIELD_PACKS] ?? []));
+        $taken = self::listTypes((array)$details[ShipmentDetailsInterface::FIELD_PACKS]);
         if ($sent === [] || \count($sent) !== \count($taken)) {
             return [];
         }
@@ -175,28 +192,28 @@ readonly class ShipmentDetails implements ArgumentInterface
      *
      * @return array<int, array<string, string|bool>>
      */
-    private function orderRows(ShipmentInterface $shipment, array $details): array
+    private function buildOrderRows(ShipmentInterface $shipment, array $details): array
     {
-        $order = $this->orderLink($shipment->getOrderId());
-        $magentoShipment = $this->magentoShipmentLink($shipment->getShipmentId());
+        $order = $this->buildOrderLink($shipment->getOrderId());
+        $magentoShipment = $this->buildMagentoShipmentLink($shipment->getShipmentId());
 
-        return $this->formatter->rows([
-            [__('Number'), $shipment->getPolkurierNumber() ?: '—'],
-            [__('Order state'), $this->optionLabelProvider->state($shipment->getState())],
-            [__('Placed'), $this->formatter->storedTime($shipment->getCreatedAt())],
+        return self::formatRows([
+            [__('Number'), $shipment->getPolkurierNumber() ?: Formatter::NONE],
+            [__('Order state'), $this->optionLabelProvider->getStateLabel($shipment->getState())],
+            [__('Placed'), $this->formatter->formatStoredTime($shipment->getCreatedAt())],
             // What Polkurier charges for the order, and how much of it is still due: known once
             // Polkurier's copy is read.
-            !isset($details['price_gross']) ? null : [
+            !isset($details[ShipmentDetailsInterface::FIELD_PRICE_GROSS]) ? null : [
                 __('Order value'),
-                $this->formatter->money((float)$details['price_gross']),
+                $this->formatter->formatMoney((float)$details[ShipmentDetailsInterface::FIELD_PRICE_GROSS]),
             ],
-            !isset($details['unpaid_amount']) ? null : [
+            !isset($details[ShipmentDetailsInterface::FIELD_UNPAID_AMOUNT]) ? null : [
                 __('Amount to pay'),
-                $this->formatter->money((float)$details['unpaid_amount']),
+                $this->formatter->formatMoney((float)$details[ShipmentDetailsInterface::FIELD_UNPAID_AMOUNT]),
             ],
-            !isset($details['has_invoice']) ? null : [
+            !isset($details[ShipmentDetailsInterface::FIELD_HAS_INVOICE]) ? null : [
                 __('Invoiced'),
-                $details['has_invoice'] ? (string)__('Yes') : (string)__('No'),
+                $details[ShipmentDetailsInterface::FIELD_HAS_INVOICE] ? (string)__('Yes') : (string)__('No'),
             ],
             [__('Magento order'), $order['label'] ?? '#' . $shipment->getOrderId(), $order['url'] ?? null],
             [
@@ -213,28 +230,30 @@ readonly class ShipmentDetails implements ArgumentInterface
      *
      * @return array<int, array<string, string|bool>>
      */
-    private function deliveryRows(ShipmentInterface $shipment, array $details, array $asSent): array
+    private function buildDeliveryRows(ShipmentInterface $shipment, array $details, array $asSent): array
     {
-        $url = (string)($details['tracking_url'] ?? $shipment->getTrackingUrl() ?? '');
+        $url = (string)($details[ShipmentDetailsInterface::FIELD_TRACKING_URL] ?? $shipment->getTrackingUrl() ?? '');
         $rows = [
-            [__('Carrier'), empty($details['carrier_name'])
+            [__('Carrier'), empty($details[ShipmentDetailsInterface::FIELD_CARRIER_NAME])
                 ? $this->carrierNameProvider->get($shipment->getCarrierCode())
-                : (string)$details['carrier_name']],
+                : (string)$details[ShipmentDetailsInterface::FIELD_CARRIER_NAME]],
             [
                 __('Shipment type'),
-                $this->optionLabelProvider->shipmentType($details['shipment_type'] ?? null),
+                $this->optionLabelProvider->getShipmentTypeLabel(
+                    $details[ShipmentDetailsInterface::FIELD_SHIPMENT_TYPE] ?? null,
+                ),
                 null,
-                self::isSent($asSent, 'shipment_type'),
+                self::isSent($asSent, null, ShipmentDetailsInterface::FIELD_SHIPMENT_TYPE),
             ],
             [
                 __('Shipment description'),
-                $details['description'] ?? $shipment->getDescription(),
+                $details[ShipmentDetailsInterface::FIELD_DESCRIPTION] ?? $shipment->getDescription(),
                 null,
-                self::isSent($asSent, 'description'),
+                self::isSent($asSent, null, ShipmentDetailsInterface::FIELD_DESCRIPTION),
             ],
-            [__('Delivery status'), $shipment->getStatusLabel() ?: '—'],
-            [__('Status date'), $this->formatter->storedTime($shipment->getStatusDate())],
-            [__('Delivered'), $this->formatter->storedTime($shipment->getDeliveredAt())],
+            [__('Delivery status'), $shipment->getStatusLabel() ?: Formatter::NONE],
+            [__('Status date'), $this->formatter->formatStoredTime($shipment->getStatusDate())],
+            [__('Delivered'), $this->formatter->formatStoredTime($shipment->getDeliveredAt())],
         ];
         foreach ($shipment->getWaybills() as $waybill) {
             // The carrier's tracking page, in a new tab.
@@ -244,7 +263,7 @@ readonly class ShipmentDetails implements ArgumentInterface
             $rows[] = [__('Waybill'), (string)__('not issued yet')];
         }
 
-        return $this->formatter->rows($rows);
+        return self::formatRows($rows);
     }
 
     /**
@@ -254,39 +273,75 @@ readonly class ShipmentDetails implements ArgumentInterface
      *
      * @return array<int, array<string, string|bool>>
      */
-    private function addressRows(?array $address, string $key, array $asSent): array
+    private function buildAddressRows(?array $address, string $key, array $asSent): array
     {
         if ($address === null) {
-            return $this->formatter->rows([[__('Address'), '—']]);
+            return self::formatRows([[__('Address'), Formatter::NONE]]);
         }
         // The sender's point is where the parcels are dropped off: shown with the handover.
-        $point = $key === 'sender' ? '' : (string)($address['point_id'] ?? '');
+        $point = $key === ShipmentDetailsInterface::FIELD_SENDER
+            ? ''
+            : (string)($address[ShipmentDetailsInterface::FIELD_ADDRESS_POINT_ID] ?? '');
 
-        return $this->formatter->rows([
+        return self::formatRows([
             [
                 __('Name'),
-                \trim(\implode(', ', \array_filter([$address['company'] ?? '', $address['person'] ?? '']))),
+                \trim(\implode(', ', \array_filter([
+                    $address[ShipmentDetailsInterface::FIELD_ADDRESS_COMPANY] ?? '',
+                    $address[ShipmentDetailsInterface::FIELD_ADDRESS_PERSON] ?? '',
+                ]))),
                 null,
-                self::isSent($asSent, $key . '.company', $key . '.person'),
+                self::isSent(
+                    $asSent,
+                    $key,
+                    ShipmentDetailsInterface::FIELD_ADDRESS_COMPANY,
+                    ShipmentDetailsInterface::FIELD_ADDRESS_PERSON,
+                ),
             ],
-            [__('Street'), (string)($address['street'] ?? ''), null, self::isSent($asSent, $key . '.street')],
+            [
+                __('Street'),
+                (string)($address[ShipmentDetailsInterface::FIELD_ADDRESS_STREET] ?? ''),
+                null,
+                self::isSent($asSent, $key, ShipmentDetailsInterface::FIELD_ADDRESS_STREET),
+            ],
             [
                 __('City'),
-                $this->formatter->place(
-                    (string)($address['postcode'] ?? ''),
-                    (string)($address['city'] ?? ''),
-                    $address['country'] ?? null,
+                $this->formatter->formatPlace(
+                    (string)($address[ShipmentDetailsInterface::FIELD_ADDRESS_POSTCODE] ?? ''),
+                    (string)($address[ShipmentDetailsInterface::FIELD_ADDRESS_CITY] ?? ''),
+                    $address[ShipmentDetailsInterface::FIELD_ADDRESS_COUNTRY] ?? null,
                 ),
                 null,
-                self::isSent($asSent, $key . '.postcode', $key . '.city', $key . '.country'),
+                self::isSent(
+                    $asSent,
+                    $key,
+                    ShipmentDetailsInterface::FIELD_ADDRESS_POSTCODE,
+                    ShipmentDetailsInterface::FIELD_ADDRESS_CITY,
+                    ShipmentDetailsInterface::FIELD_ADDRESS_COUNTRY,
+                ),
             ],
-            [__('Phone'), (string)($address['phone'] ?? ''), null, self::isSent($asSent, $key . '.phone')],
-            [__('E-mail'), (string)($address['email'] ?? ''), null, self::isSent($asSent, $key . '.email')],
+            [
+                __('Phone'),
+                (string)($address[ShipmentDetailsInterface::FIELD_ADDRESS_PHONE] ?? ''),
+                null,
+                self::isSent($asSent, $key, ShipmentDetailsInterface::FIELD_ADDRESS_PHONE),
+            ],
+            [
+                __('E-mail'),
+                (string)($address[ShipmentDetailsInterface::FIELD_ADDRESS_EMAIL] ?? ''),
+                null,
+                self::isSent($asSent, $key, ShipmentDetailsInterface::FIELD_ADDRESS_EMAIL),
+            ],
             $point === '' ? null : [
                 __('Pickup point'),
-                \trim($point . (!empty($address['point_label']) ? ' — ' . $address['point_label'] : '')),
+                self::formatPoint($point, $address),
                 null,
-                self::isSent($asSent, $key . '.point_id', $key . '.point_label'),
+                self::isSent(
+                    $asSent,
+                    $key,
+                    ShipmentDetailsInterface::FIELD_ADDRESS_POINT_ID,
+                    ShipmentDetailsInterface::FIELD_ADDRESS_POINT_LABEL,
+                ),
             ],
         ]);
     }
@@ -297,57 +352,73 @@ readonly class ShipmentDetails implements ArgumentInterface
      *
      * @return array<int, array<string, string|bool>>
      */
-    private function serviceRows(array $details, array $asSent): array
+    private function buildServiceRows(array $details, array $asSent): array
     {
-        $cod = $details['cod'] ?? null;
+        $cod = $details[ShipmentDetailsInterface::FIELD_COD] ?? null;
         $rows = [];
-        if (\is_array($cod) && (float)($cod['amount'] ?? 0) > 0) {
+        if (\is_array($cod) && (float)($cod[ShipmentDetailsInterface::FIELD_COD_AMOUNT] ?? 0) > 0) {
             $rows[] = [
                 __('Cash on delivery'),
-                $this->formatter->money((float)$cod['amount']),
+                $this->formatter->formatMoney((float)$cod[ShipmentDetailsInterface::FIELD_COD_AMOUNT]),
                 null,
-                self::isSent($asSent, 'cod.amount'),
+                self::isSent($asSent, ShipmentDetailsInterface::FIELD_COD, ShipmentDetailsInterface::FIELD_COD_AMOUNT),
             ];
             $rows[] = [
                 __('Payout time'),
-                $this->optionLabelProvider->codType($cod['type'] ?? null),
+                $this->optionLabelProvider->getCodTypeLabel($cod[ShipmentDetailsInterface::FIELD_COD_TYPE] ?? null),
                 null,
-                self::isSent($asSent, 'cod.type'),
+                self::isSent($asSent, ShipmentDetailsInterface::FIELD_COD, ShipmentDetailsInterface::FIELD_COD_TYPE),
             ];
+            $bankAccount = (string)($cod[ShipmentDetailsInterface::FIELD_COD_BANK_ACCOUNT] ?? '');
             $rows[] = [
                 __('Paid out to'),
                 \trim(
-                    $this->optionLabelProvider->codReturnType($cod['return_type'] ?? null)
-                    . (!empty($cod['bank_account']) ? ': ' . $cod['bank_account'] : ''),
+                    $this->optionLabelProvider->getCodReturnTypeLabel(
+                        $cod[ShipmentDetailsInterface::FIELD_COD_RETURN_TYPE] ?? null,
+                    )
+                    . ($bankAccount !== '' ? ': ' . $bankAccount : ''),
                 ),
                 null,
-                self::isSent($asSent, 'cod.return_type', 'cod.bank_account'),
+                self::isSent(
+                    $asSent,
+                    ShipmentDetailsInterface::FIELD_COD,
+                    ShipmentDetailsInterface::FIELD_COD_RETURN_TYPE,
+                    ShipmentDetailsInterface::FIELD_COD_BANK_ACCOUNT,
+                ),
             ];
-            if (!empty($cod['status'])) {
-                $rows[] = [__('COD status'), $this->optionLabelProvider->codStatus($cod['status'])];
+            if (!empty($cod[ShipmentDetailsInterface::FIELD_COD_STATUS])) {
+                $rows[] = [
+                    __('COD status'),
+                    $this->optionLabelProvider->getCodStatusLabel($cod[ShipmentDetailsInterface::FIELD_COD_STATUS]),
+                ];
             }
         } else {
             $rows[] = [__('Cash on delivery'), (string)__('none')];
         }
-        $insurance = (float)($details['insurance'] ?? 0);
+        $insurance = (float)($details[ShipmentDetailsInterface::FIELD_INSURANCE] ?? 0);
         $rows[] = [
             __('Insurance'),
-            $insurance > 0 ? $this->formatter->money($insurance) : (string)__('none'),
+            $insurance > 0 ? $this->formatter->formatMoney($insurance) : (string)__('none'),
             null,
-            self::isSent($asSent, 'insurance'),
+            self::isSent($asSent, null, ShipmentDetailsInterface::FIELD_INSURANCE),
         ];
-        $services = (array)($details['services'] ?? []);
+        $services = (array)($details[ShipmentDetailsInterface::FIELD_SERVICES] ?? []);
         $rows[] = [
             __('Additional services'),
             $services === [] ? (string)__('none') : \implode(', ', $services),
             null,
-            self::isSent($asSent, 'services'),
+            self::isSent($asSent, null, ShipmentDetailsInterface::FIELD_SERVICES),
         ];
-        foreach ((array)($details['additional_fields'] ?? []) as $name => $value) {
-            $rows[] = [(string)$name, (string)$value, null, self::isSent($asSent, 'additional_fields.' . $name)];
+        foreach ((array)($details[ShipmentDetailsInterface::FIELD_ADDITIONAL_FIELDS] ?? []) as $name => $value) {
+            $rows[] = [
+                (string)$name,
+                (string)$value,
+                null,
+                self::isSent($asSent, ShipmentDetailsInterface::FIELD_ADDITIONAL_FIELDS, (string)$name),
+            ];
         }
 
-        return $this->formatter->rows($rows);
+        return self::formatRows($rows);
     }
 
     /**
@@ -356,44 +427,74 @@ readonly class ShipmentDetails implements ArgumentInterface
      *
      * @return array<int, array<string, string|bool>>
      */
-    private function pickupRows(ShipmentInterface $shipment, array $details, array $asSent): array
+    private function buildPickupRows(ShipmentInterface $shipment, array $details, array $asSent): array
     {
-        $pickup = \is_array($details['pickup'] ?? null) ? $details['pickup'] : [];
+        $pickup = $details[ShipmentDetailsInterface::FIELD_PICKUP] ?? null;
+        $pickup = \is_array($pickup) ? $pickup : [];
         $dropOff = null;
-        if (!empty($pickup['multi_pickup']) || $shipment->isMultiPickup()) {
+        if (!empty($pickup[ShipmentDetailsInterface::FIELD_PICKUP_MULTI_PICKUP]) || $shipment->isMultiPickup()) {
             $mode = (string)__('Collected later, together with other shipments');
-        } elseif (!empty($pickup['no_courier_order'])) {
+        } elseif (!empty($pickup[ShipmentDetailsInterface::FIELD_PICKUP_NO_COURIER_ORDER])) {
             $mode = (string)__('Dropped off at a point');
-            $sender = \is_array($details['sender'] ?? null) ? $details['sender'] : [];
-            $point = (string)($sender['point_id'] ?? '');
+            $sender = $details[ShipmentDetailsInterface::FIELD_SENDER] ?? null;
+            $sender = \is_array($sender) ? $sender : [];
+            $point = (string)($sender[ShipmentDetailsInterface::FIELD_ADDRESS_POINT_ID] ?? '');
             $dropOff = [
                 __('Drop-off point'),
                 $point === ''
                     ? (string)__('any of the carrier\'s points')
-                    : \trim($point . (!empty($sender['point_label']) ? ' — ' . $sender['point_label'] : '')),
+                    : self::formatPoint($point, $sender),
                 null,
-                self::isSent($asSent, 'sender.point_id', 'sender.point_label'),
+                self::isSent(
+                    $asSent,
+                    ShipmentDetailsInterface::FIELD_SENDER,
+                    ShipmentDetailsInterface::FIELD_ADDRESS_POINT_ID,
+                    ShipmentDetailsInterface::FIELD_ADDRESS_POINT_LABEL,
+                ),
             ];
         } else {
             $mode = (string)__('A courier collects them');
         }
-        $window = \trim(($pickup['time_from'] ?? '') . '–' . ($pickup['time_to'] ?? ''), '–');
+        $window = \implode('–', \array_filter([
+            (string)($pickup[ShipmentDetailsInterface::FIELD_PICKUP_TIME_FROM] ?? ''),
+            (string)($pickup[ShipmentDetailsInterface::FIELD_PICKUP_TIME_TO] ?? ''),
+        ], static fn(string $time): bool => $time !== ''));
 
-        return $this->formatter->rows([
-            [__('Handover'), $mode, null, self::isSent($asSent, 'pickup.multi_pickup', 'pickup.no_courier_order')],
-            $dropOff,
-            empty($pickup['date']) ? null : [
-                __('Collection date'),
-                \trim($pickup['date'] . ($window !== '' ? ', ' . $window : '')),
+        return self::formatRows([
+            [
+                __('Handover'),
+                $mode,
                 null,
-                self::isSent($asSent, 'pickup.date', 'pickup.time_from', 'pickup.time_to'),
+                self::isSent(
+                    $asSent,
+                    ShipmentDetailsInterface::FIELD_PICKUP,
+                    ShipmentDetailsInterface::FIELD_PICKUP_MULTI_PICKUP,
+                    ShipmentDetailsInterface::FIELD_PICKUP_NO_COURIER_ORDER,
+                ),
+            ],
+            $dropOff,
+            empty($pickup[ShipmentDetailsInterface::FIELD_PICKUP_DATE]) ? null : [
+                __('Collection date'),
+                \trim($pickup[ShipmentDetailsInterface::FIELD_PICKUP_DATE] . ($window !== '' ? ', ' . $window : '')),
+                null,
+                self::isSent(
+                    $asSent,
+                    ShipmentDetailsInterface::FIELD_PICKUP,
+                    ShipmentDetailsInterface::FIELD_PICKUP_DATE,
+                    ShipmentDetailsInterface::FIELD_PICKUP_TIME_FROM,
+                    ShipmentDetailsInterface::FIELD_PICKUP_TIME_TO,
+                ),
             ],
             // The carrier's reference for the collection it booked; parcels dropped off aren't collected.
-            $dropOff !== null || empty($pickup['pickup_number']) ? null : [
+            $dropOff !== null || empty($pickup[ShipmentDetailsInterface::FIELD_PICKUP_NUMBER]) ? null : [
                 __('Collection number'),
-                (string)$pickup['pickup_number'],
+                (string)$pickup[ShipmentDetailsInterface::FIELD_PICKUP_NUMBER],
                 null,
-                self::isSent($asSent, 'pickup.pickup_number'),
+                self::isSent(
+                    $asSent,
+                    ShipmentDetailsInterface::FIELD_PICKUP,
+                    ShipmentDetailsInterface::FIELD_PICKUP_NUMBER,
+                ),
             ],
             $shipment->isMultiPickup() ? [
                 __('Collective pickup booked'),
@@ -408,23 +509,32 @@ readonly class ShipmentDetails implements ArgumentInterface
      *
      * @return array<string, mixed>
      */
-    private function packsTable(array $details, ShipmentInterface $shipment, array $products): array
+    private function buildPacksTable(array $details, ShipmentInterface $shipment, array $products): array
     {
         $rows = [];
-        $packs = \array_values((array)($details['packs'] ?? []));
+        $packs = \array_values((array)($details[ShipmentDetailsInterface::FIELD_PACKS] ?? []));
         // What each parcel holds, as it was sent: parcel by parcel, while they still match up.
         $sent = \array_values((array)($shipment->getDraft()[ShipmentDraftInterface::FIELD_PACKS] ?? []));
         $contents = \count($sent) === \count($packs) ? $sent : [];
         foreach ($packs as $index => $pack) {
             $rows[] = [
                 // Whether a parcel is an envelope depends on the shipment type alone.
-                $this->optionLabelProvider->packType(
-                    ParcelTypeMapper::fromPolkurier($details['shipment_type'] ?? null, $pack['type'] ?? null),
+                $this->optionLabelProvider->getPackTypeLabel(
+                    ParcelTypeMapper::mapFromPolkurier(
+                        $details[ShipmentDetailsInterface::FIELD_SHIPMENT_TYPE] ?? null,
+                        $pack[ShipmentDetailsInterface::FIELD_PACK_TYPE] ?? null,
+                    ),
                 ),
-                $this->formatter->size($pack['length'] ?? null, $pack['width'] ?? null, $pack['height'] ?? null),
-                $this->formatter->weight((float)($pack['weight'] ?? 0)),
-                (string)($pack['amount'] ?? 1),
-                isset($pack['price_gross']) ? $this->formatter->money((float)$pack['price_gross']) : '—',
+                $this->formatter->formatSize(
+                    $pack[ShipmentDetailsInterface::FIELD_PACK_LENGTH] ?? null,
+                    $pack[ShipmentDetailsInterface::FIELD_PACK_WIDTH] ?? null,
+                    $pack[ShipmentDetailsInterface::FIELD_PACK_HEIGHT] ?? null,
+                ),
+                $this->formatter->formatWeight((float)($pack[ShipmentDetailsInterface::FIELD_PACK_WEIGHT] ?? 0)),
+                (string)($pack[ShipmentDetailsInterface::FIELD_PACK_AMOUNT] ?? 1),
+                isset($pack[ShipmentDetailsInterface::FIELD_PACK_PRICE_GROSS])
+                    ? $this->formatter->formatMoney((float)$pack[ShipmentDetailsInterface::FIELD_PACK_PRICE_GROSS])
+                    : Formatter::NONE,
                 $this->describeContents((array)($contents[$index][PackInterface::FIELD_ITEMS] ?? []), $products),
             ];
         }
@@ -450,7 +560,7 @@ readonly class ShipmentDetails implements ArgumentInterface
      *
      * @return array<int, array<string, mixed>>
      */
-    private function products(ShipmentInterface $shipment): array
+    private function loadProducts(ShipmentInterface $shipment): array
     {
         $order = $this->orderLoader->find($shipment->getOrderId());
 
@@ -464,7 +574,7 @@ readonly class ShipmentDetails implements ArgumentInterface
      *
      * @return array<string, mixed>
      */
-    private function itemsTable(ShipmentInterface $shipment, array $products): array
+    private function buildItemsTable(ShipmentInterface $shipment, array $products): array
     {
         $qtys = [];
         foreach ((array)($shipment->getDraft()[ShipmentDraftInterface::FIELD_ITEMS] ?? []) as $row) {
@@ -480,8 +590,8 @@ readonly class ShipmentDetails implements ArgumentInterface
         foreach ($qtys as $id => $qty) {
             $rows[] = [
                 (string)($products[$id]['name'] ?? __('Order item #%1', $id)),
-                (string)($products[$id]['sku'] ?? '—'),
-                self::quantity((float)$qty),
+                (string)($products[$id]['sku'] ?? Formatter::NONE),
+                self::formatQuantity((float)$qty),
             ];
         }
 
@@ -506,15 +616,15 @@ readonly class ShipmentDetails implements ArgumentInterface
             $id = \is_array($row) ? (int)($row[ItemInterface::FIELD_ORDER_ITEM_ID] ?? 0) : 0;
             $qty = \is_array($row) ? (float)($row[ItemInterface::FIELD_QTY] ?? 0) : 0.0;
             if ($id && $qty > 0) {
-                $lines[] = self::quantity($qty) . ' × '
+                $lines[] = self::formatQuantity($qty) . ' × '
                     . ($products[$id]['name'] ?? (string)__('Order item #%1', $id));
             }
         }
 
-        return $lines !== [] ? \implode("\n", $lines) : '—';
+        return $lines !== [] ? \implode("\n", $lines) : Formatter::NONE;
     }
 
-    private static function quantity(float $qty): string
+    private static function formatQuantity(float $qty): string
     {
         return \rtrim(\rtrim(\number_format($qty, 4, '.', ''), '0'), '.');
     }
@@ -524,26 +634,29 @@ readonly class ShipmentDetails implements ArgumentInterface
      *
      * @return array<string, mixed>
      */
-    private function costTable(array $details): array
+    private function buildCostTable(array $details): array
     {
         $rows = [];
-        foreach ((array)$details['items'] as $item) {
+        foreach ((array)$details[ShipmentDetailsInterface::FIELD_ITEMS] as $item) {
             $rows[] = [
-                (string)($item['description'] ?? ''),
-                (string)($item['amount'] ?? 1),
-                $this->formatter->money((float)($item['value_net'] ?? 0)),
-                $this->formatter->money((float)($item['value_gross'] ?? 0)),
+                (string)($item[ShipmentDetailsInterface::FIELD_ITEM_DESCRIPTION] ?? ''),
+                (string)($item[ShipmentDetailsInterface::FIELD_ITEM_AMOUNT] ?? 1),
+                $this->formatter->formatMoney((float)($item[ShipmentDetailsInterface::FIELD_ITEM_VALUE_NET] ?? 0)),
+                $this->formatter->formatMoney((float)($item[ShipmentDetailsInterface::FIELD_ITEM_VALUE_GROSS] ?? 0)),
             ];
         }
         $foot = [
             (string)__('Total'),
             '',
-            $this->formatter->money((float)($details['price_net'] ?? 0)),
-            $this->formatter->money((float)($details['price_gross'] ?? 0)),
+            $this->formatter->formatMoney((float)($details[ShipmentDetailsInterface::FIELD_PRICE_NET] ?? 0)),
+            $this->formatter->formatMoney((float)($details[ShipmentDetailsInterface::FIELD_PRICE_GROSS] ?? 0)),
         ];
         $notes = [];
-        if ((float)($details['rebate_gross'] ?? 0) > 0) {
-            $notes[] = (string)__('Rebate: %1', $this->formatter->money((float)$details['rebate_gross']));
+        if ((float)($details[ShipmentDetailsInterface::FIELD_REBATE_GROSS] ?? 0) > 0) {
+            $notes[] = (string)__(
+                'Rebate: %1',
+                $this->formatter->formatMoney((float)$details[ShipmentDetailsInterface::FIELD_REBATE_GROSS]),
+            );
         }
 
         return [
@@ -559,15 +672,15 @@ readonly class ShipmentDetails implements ArgumentInterface
     /**
      * @return array<string, mixed>
      */
-    private function trackingTable(ShipmentInterface $shipment): array
+    private function buildTrackingTable(ShipmentInterface $shipment): array
     {
         $rows = [];
         foreach ($shipment->getTracking() as $event) {
             $rows[] = [
-                $this->formatter->polkurierTime($event['date'] ?? null),
-                (string)($event['status'] ?? ''),
-                (string)($event['description'] ?? ''),
-                (string)($event['location'] ?? ''),
+                $this->formatter->formatPolkurierTime($event[ShipmentDetailsInterface::FIELD_SCAN_DATE] ?? null),
+                (string)($event[ShipmentDetailsInterface::FIELD_SCAN_STATUS] ?? ''),
+                (string)($event[ShipmentDetailsInterface::FIELD_SCAN_DESCRIPTION] ?? ''),
+                (string)($event[ShipmentDetailsInterface::FIELD_SCAN_LOCATION] ?? ''),
             ];
         }
 
@@ -586,13 +699,15 @@ readonly class ShipmentDetails implements ArgumentInterface
         ];
     }
 
-    private function syncedLine(ShipmentInterface $shipment): string
+    private function buildSyncedLine(ShipmentInterface $shipment): string
     {
         if ($shipment->getDetailsSyncedAt() === null) {
             return '';
         }
 
-        return (string)__('Read from Polkurier %1.', $this->formatter->storedTime($shipment->getDetailsSyncedAt()));
+        $syncedAt = $this->formatter->formatStoredTime($shipment->getDetailsSyncedAt());
+
+        return (string)__('Read from Polkurier %1.', $syncedAt);
     }
 
     /**
@@ -603,15 +718,15 @@ readonly class ShipmentDetails implements ArgumentInterface
      * @param array<string, mixed> $copy
      * @param array<string, mixed> $sent
      * @param array<string, true> $asSent the paths taken from what was sent, e.g. "recipient.email"
-     *
      * @param-out array<string, true> $asSent
+     *
      * @return array<string, mixed>
      */
     private static function fillGaps(array $copy, array $sent, string $prefix, array &$asSent): array
     {
         foreach ($sent as $key => $value) {
             $path = $prefix . $key;
-            if ($path === 'packs' || self::isEmpty($value)) {
+            if ($path === ShipmentDetailsInterface::FIELD_PACKS || self::isEmpty($value)) {
                 continue;
             }
             $own = $copy[$key] ?? null;
@@ -626,20 +741,61 @@ readonly class ShipmentDetails implements ArgumentInterface
         return $copy;
     }
 
+    /**
+     * @param array<int, array<int, mixed>|null> $rows [label, value, url?, as sent?, external url?];
+     *     null rows are left out. "As sent" marks a value Polkurier's copy of the order leaves empty,
+     *     shown as it was sent
+     *
+     * @return array<int, array<string, string|bool>>
+     */
+    private static function formatRows(array $rows): array
+    {
+        $result = [];
+        foreach ($rows as $row) {
+            if ($row === null) {
+                continue;
+            }
+            $value = (string)($row[1] ?? '');
+            $result[] = [
+                'label' => (string)$row[0],
+                'value' => $value !== '' ? $value : Formatter::NONE,
+                'url' => (string)($row[2] ?? ''),
+                'as_sent' => (bool)($row[3] ?? false),
+                'external' => (bool)($row[4] ?? false),
+            ];
+        }
+
+        return $result;
+    }
+
     private static function isEmpty(mixed $value): bool
     {
         return $value === null || $value === '' || $value === [];
     }
 
     /**
-     * Whether any of the paths, anything under them, or what holds them was taken from what was sent.
+     * A point's id, with its address when the copy of the order has it.
+     *
+     * @param array<string, mixed> $address
+     */
+    private static function formatPoint(string $pointId, array $address): string
+    {
+        $label = (string)($address[ShipmentDetailsInterface::FIELD_ADDRESS_POINT_LABEL] ?? '');
+
+        return \trim($pointId . ($label !== '' ? ' — ' . $label : ''));
+    }
+
+    /**
+     * Whether any of the keys, anything under them, or what holds them was taken from what was sent.
      *
      * @param array<string, true> $asSent
+     * @param string|null $group the key the fields are under, or null for the order's own
      */
-    private static function isSent(array $asSent, string ...$paths): bool
+    private static function isSent(array $asSent, ?string $group, string ...$keys): bool
     {
         foreach (\array_keys($asSent) as $taken) {
-            foreach ($paths as $path) {
+            foreach ($keys as $key) {
+                $path = $group === null ? $key : $group . '.' . $key;
                 if ($taken === $path
                     || \str_starts_with($taken, $path . '.')
                     || \str_starts_with($path, $taken . '.')
@@ -659,15 +815,15 @@ readonly class ShipmentDetails implements ArgumentInterface
      *
      * @return string[]
      */
-    private static function types(array $packs): array
+    private static function listTypes(array $packs): array
     {
         $types = [];
         foreach ($packs as $pack) {
             if (!\is_array($pack)) {
                 continue;
             }
-            $type = \strtoupper(\trim((string)($pack['type'] ?? '')));
-            for ($i = 0; $i < \max(1, (int)($pack['amount'] ?? 1)); $i++) {
+            $type = \strtoupper(\trim((string)($pack[ShipmentDetailsInterface::FIELD_PACK_TYPE] ?? '')));
+            for ($i = 0; $i < \max(1, (int)($pack[ShipmentDetailsInterface::FIELD_PACK_AMOUNT] ?? 1)); $i++) {
                 $types[] = $type;
             }
         }
@@ -678,7 +834,7 @@ readonly class ShipmentDetails implements ArgumentInterface
     /**
      * @return array{label: string, url: string}|null null when the order is gone
      */
-    private function orderLink(int $orderId): ?array
+    private function buildOrderLink(int $orderId): ?array
     {
         $order = $this->orderLoader->find($orderId);
 
@@ -691,7 +847,7 @@ readonly class ShipmentDetails implements ArgumentInterface
     /**
      * @return array{label: string, url: string}|null null when there is none (yet)
      */
-    private function magentoShipmentLink(?int $shipmentId): ?array
+    private function buildMagentoShipmentLink(?int $shipmentId): ?array
     {
         if ($shipmentId === null) {
             return null;

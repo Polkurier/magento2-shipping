@@ -32,8 +32,8 @@ See also the [user guide](../user-guide/README.md).
 
 ## Principles worth knowing up front
 
-- **Checkout never waits on or breaks because of Polkurier.** Anything that talks to Polkurier
-  during checkout degrades gracefully and logs.
+- **Checkout never breaks because of Polkurier.** Anything that talks to Polkurier during checkout
+  gives up after at most 5 seconds, carries on without the answer and logs.
 - **A shipment is never sent twice blindly.** Placing an order with Polkurier isn't idempotent, so
   an unconfirmed attempt is reconciled before another one is allowed.
 - **Secrets stay secret.** The API token, security PINs, two-factor tokens and codes are never

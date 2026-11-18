@@ -8,6 +8,7 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Test\Unit\Model\Shipment;
 
 use Magento\Framework\Exception\LocalizedException;
+use Magento\Framework\Serialize\Serializer\Json;
 use Magento\Framework\TestFramework\Unit\Helper\ObjectManager;
 use Magento\Sales\Model\Order;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
@@ -25,8 +26,8 @@ use Polkurier\Shipping\Model\Shipment\Native\NativeFollowUpService;
 use Polkurier\Shipping\Model\Shipment\OrderLoader;
 use Polkurier\Shipping\Model\Shipment\OrderLock;
 use Polkurier\Shipping\Test\Unit\Support\MemoryLocks;
-use Polkurier\Webservice\Request\Order\OrderIdMessage;
-use Polkurier\Webservice\Response\Order\CancellationMessage;
+use Polkurier\Webservice\Dto\Request\Order\CancelOrderMessage;
+use Polkurier\Webservice\Dto\Response\Order\CancellationMessage;
 
 #[CoversClass(CancellationService::class)]
 #[AllowMockObjectsWithoutExpectations]
@@ -41,7 +42,7 @@ class CancellationServiceTest extends TestCase
 
     public function testAPlacedOrderIsCancelledInPolkurierThenInMagento(): void
     {
-        $shipment = $this->cancellation(ShipmentInterface::STATE_CREATED, '24680-27')->cancel(5);
+        $shipment = $this->createService(ShipmentInterface::STATE_CREATED, '24680-27')->cancel(5);
 
         self::assertSame(ShipmentInterface::STATE_CANCELLED, $shipment->getState());
         self::assertTrue($shipment->isFinal());
@@ -55,7 +56,7 @@ class CancellationServiceTest extends TestCase
     public function testAnOrderPolkurierWontCancelStaysAsItIs(): void
     {
         try {
-            $this->cancellation(ShipmentInterface::STATE_CREATED, '24680-27', false)->cancel(5);
+            $this->createService(ShipmentInterface::STATE_CREATED, '24680-27', false)->cancel(5);
             self::fail('The refusal is said.');
         } catch (LocalizedException $e) {
             self::assertSame('Polkurier did not cancel order 24680-27.', $e->getMessage());
@@ -68,7 +69,7 @@ class CancellationServiceTest extends TestCase
     /**
      * @return array<string, array{string, string|null}>
      */
-    public static function notPlaced(): array
+    public static function provideNotPlaced(): array
     {
         return [
             'not placed' => [ShipmentInterface::STATE_FAILED, null],
@@ -77,11 +78,11 @@ class CancellationServiceTest extends TestCase
         ];
     }
 
-    #[DataProvider('notPlaced')]
+    #[DataProvider('provideNotPlaced')]
     public function testOnlyAPlacedOrderCanBeCancelled(string $state, ?string $number): void
     {
         try {
-            $this->cancellation($state, $number)->cancel(5);
+            $this->createService($state, $number)->cancel(5);
             self::fail('Refused before asking Polkurier.');
         } catch (LocalizedException $e) {
             self::assertSame('Only a placed Polkurier order can be cancelled.', $e->getMessage());
@@ -92,20 +93,20 @@ class CancellationServiceTest extends TestCase
 
     public function testAnOrderARefreshFoundCancelledMeanwhileIsNotFollowedUpAgain(): void
     {
-        $shipment = $this->cancellation(ShipmentInterface::STATE_CREATED, '24680-27', cancelledMeanwhile: true)
+        $shipment = $this->createService(ShipmentInterface::STATE_CREATED, '24680-27', cancelledMeanwhile: true)
             ->cancel(5);
 
         self::assertSame(ShipmentInterface::STATE_CANCELLED, $shipment->getState());
         self::assertSame(['cancel 24680-27', 'event polkurier_api_order_cancel_after'], $this->happened);
     }
 
-    private function cancellation(
+    private function createService(
         string $state,
         ?string $number,
         bool $cancelled = true,
         bool $cancelledMeanwhile = false,
     ): CancellationService {
-        $this->shipment = (new ObjectManager($this))->getObject(Shipment::class);
+        $this->shipment = (new ObjectManager($this))->getObject(Shipment::class, ['json' => new Json()]);
         $this->shipment
             ->setId(5)
             ->setOrderId(29)
@@ -128,8 +129,8 @@ class CancellationServiceTest extends TestCase
         });
         $gateway = $this->createStub(ShipmentGateway::class);
         $gateway->method('cancelOrder')->willReturnCallback(
-            function (OrderIdMessage $message) use ($cancelled): CancellationMessage {
-                $this->happened[] = 'cancel ' . $message->getOrderNo();
+            function (CancelOrderMessage $message) use ($cancelled): CancellationMessage {
+                $this->happened[] = 'cancel ' . $message->orderNo;
 
                 return new CancellationMessage($cancelled);
             },
@@ -137,7 +138,7 @@ class CancellationServiceTest extends TestCase
         $followUp = $this->createStub(NativeFollowUpService::class);
         $orderLoader = $this->createStub(OrderLoader::class);
         $orderLoader->method('get')->willReturn($this->createStub(Order::class));
-        $followUp->method('cancelled')->willReturnCallback(
+        $followUp->method('followCancellation')->willReturnCallback(
             function (ShipmentInterface $shipment, bool $inPolkurier): Order {
                 $this->happened[] = $inPolkurier ? 'follow up there' : 'follow up here';
 

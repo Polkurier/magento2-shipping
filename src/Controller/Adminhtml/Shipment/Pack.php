@@ -21,7 +21,8 @@ use Polkurier\Shipping\Model\Shipment\Packing\AutoPacker;
  */
 class Pack extends AbstractJsonAction
 {
-    public const string ADMIN_RESOURCE = 'Polkurier_Shipping::shipment_create';
+    public const string ADMIN_RESOURCE = 'Magento_Sales::ship';
+    public const string ROUTE = 'polkurier/shipment/pack';
 
     public function __construct(
         Context $context,
@@ -37,9 +38,9 @@ class Pack extends AbstractJsonAction
     {
         $data = (array)$this->getRequest()->getParam('data', []);
         $order = $this->orderLoader->getForPolkurier((int)($data['order_id'] ?? 0));
-        $draft = $this->draftHydrator->fromArray($data);
+        $draft = $this->draftHydrator->createFromArray($data);
         ['packs' => $packs, 'notice' => $notice] = $this->autoPacker->packDraft($order, $draft);
-        $rows = $this->draftHydrator->toArray($draft->setPacks($packs));
+        $rows = $this->draftHydrator->convertToArray($draft->setPacks($packs));
 
         return [
             'packs' => $rows[ShipmentDraftInterface::FIELD_PACKS],

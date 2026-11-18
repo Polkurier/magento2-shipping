@@ -10,6 +10,9 @@ namespace Polkurier\Shipping\Test\Unit\Plugin\Quote;
 use Magento\Framework\Api\AttributeValueFactory;
 use Magento\Framework\Api\ExtensionAttributesFactory;
 use Magento\Framework\Filesystem;
+use Magento\Framework\Model\Context;
+use Magento\Framework\Registry;
+use Magento\Framework\Serialize\Serializer\Json;
 use Magento\MediaStorage\Model\File\UploaderFactory;
 use Magento\Quote\Api\Data\ShippingMethodExtensionFactory;
 use Magento\Quote\Api\Data\ShippingMethodExtensionInterface;
@@ -25,6 +28,7 @@ use Polkurier\Shipping\Logger\Logger;
 use Polkurier\Shipping\Model\Carrier\CarrierLogoStorage;
 use Polkurier\Shipping\Model\CarrierConfig;
 use Polkurier\Shipping\Model\CarrierConfig\CarrierConfigProvider;
+use Polkurier\Shipping\Model\ResourceModel\CarrierConfig as CarrierConfigResource;
 use Polkurier\Shipping\Plugin\Quote\ShippingMethodLogoPlugin;
 
 #[CoversClass(ShippingMethodLogoPlugin::class)]
@@ -34,12 +38,12 @@ class ShippingMethodLogoPluginTest extends TestCase
 {
     public function testTheCarriersLogoTravelsWithItsMethod(): void
     {
-        $method = $this->method('polkurier', 'DPD');
+        $method = $this->createMethod('polkurier', 'DPD');
 
-        $this->plugin('shipping/carrier_logos/dpd.png')->afterModelToDataObject(
+        $this->createPlugin('shipping/carrier_logos/dpd.png')->afterModelToDataObject(
             $this->createStub(ShippingMethodConverter::class),
             $method,
-            $this->rate(),
+            $this->createRate(),
             'PLN',
         );
 
@@ -51,19 +55,19 @@ class ShippingMethodLogoPluginTest extends TestCase
 
     public function testMethodsWithoutALogoAndOtherCarriersAreLeftAlone(): void
     {
-        $withoutLogo = $this->method('polkurier', 'DPD');
-        $other = $this->method('flatrate', 'flatrate');
+        $withoutLogo = $this->createMethod('polkurier', 'DPD');
+        $other = $this->createMethod('flatrate', 'flatrate');
 
-        $this->plugin(null)->afterModelToDataObject(
+        $this->createPlugin(null)->afterModelToDataObject(
             $this->createStub(ShippingMethodConverter::class),
             $withoutLogo,
-            $this->rate(),
+            $this->createRate(),
             'PLN',
         );
-        $this->plugin('shipping/carrier_logos/dpd.png')->afterModelToDataObject(
+        $this->createPlugin('shipping/carrier_logos/dpd.png')->afterModelToDataObject(
             $this->createStub(ShippingMethodConverter::class),
             $other,
-            $this->rate(),
+            $this->createRate(),
             'PLN',
         );
 
@@ -73,7 +77,7 @@ class ShippingMethodLogoPluginTest extends TestCase
 
     public function testOnlyRasterImagesInTheLogoDirectoryAreAccepted(): void
     {
-        $logo = $this->logo();
+        $logo = $this->createLogo();
 
         self::assertTrue($logo->isOwnFile('shipping/carrier_logos/dpd.png'));
         self::assertFalse($logo->isOwnFile('shipping/carrier_logos/../../app/etc/env.php'));
@@ -81,26 +85,27 @@ class ShippingMethodLogoPluginTest extends TestCase
         self::assertFalse($logo->isOwnFile('shipping/carrier_logos/dpd.svg'), 'An SVG can carry scripts.');
     }
 
-    private function plugin(?string $file): ShippingMethodLogoPlugin
+    private function createPlugin(?string $file): ShippingMethodLogoPlugin
     {
         $config = (new CarrierConfig(
-            $this->createStub(\Magento\Framework\Model\Context::class),
-            $this->createStub(\Magento\Framework\Registry::class),
-            $this->createStub(\Polkurier\Shipping\Model\ResourceModel\CarrierConfig::class),
+            $this->createStub(Context::class),
+            $this->createStub(Registry::class),
+            new Json(),
+            $this->createStub(CarrierConfigResource::class),
         ))->setLogo($file);
         $configs = $this->createStub(CarrierConfigProvider::class);
         $configs->method('get')->willReturn($config);
         $extensions = $this->createStub(ShippingMethodExtensionFactory::class);
-        $extensions->method('create')->willReturnCallback(fn() => $this->extension());
+        $extensions->method('create')->willReturnCallback(fn() => $this->createExtension());
 
-        return new ShippingMethodLogoPlugin($extensions, $configs, $this->logo(), $this->storeManager());
+        return new ShippingMethodLogoPlugin($extensions, $configs, $this->createLogo(), $this->storeManager());
     }
 
     /**
      * The extension attributes of a shipping method, as Magento generates them for the module:
      * the generated class depends on configuration unit tests don't load.
      */
-    private function extension(): ShippingMethodExtensionInterface
+    private function createExtension(): ShippingMethodExtensionInterface
     {
         return new class implements ShippingMethodExtensionInterface {
             private ?string $logo = null;
@@ -122,7 +127,7 @@ class ShippingMethodLogoPluginTest extends TestCase
         };
     }
 
-    private function logo(): CarrierLogoStorage
+    private function createLogo(): CarrierLogoStorage
     {
         return new CarrierLogoStorage(
             $this->createStub(UploaderFactory::class),
@@ -143,16 +148,16 @@ class ShippingMethodLogoPluginTest extends TestCase
         return $manager;
     }
 
-    private function method(string $carrier, string $code): ShippingMethod
+    private function createMethod(string $carrier, string $code): ShippingMethod
     {
         $extensions = $this->createStub(ExtensionAttributesFactory::class);
-        $extensions->method('create')->willReturnCallback(fn() => $this->extension());
+        $extensions->method('create')->willReturnCallback(fn() => $this->createExtension());
         $method = new ShippingMethod($extensions, $this->createStub(AttributeValueFactory::class));
 
         return $method->setCarrierCode($carrier)->setMethodCode($code);
     }
 
-    private function rate(): Rate
+    private function createRate(): Rate
     {
         return $this->createStub(Rate::class);
     }

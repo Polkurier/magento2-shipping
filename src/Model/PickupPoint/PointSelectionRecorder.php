@@ -10,16 +10,15 @@ namespace Polkurier\Shipping\Model\PickupPoint;
 use Magento\Framework\Exception\InputException;
 use Magento\Quote\Api\Data\CartInterface;
 use Polkurier\Shipping\Api\QuotePointRepositoryInterface;
-use Polkurier\Shipping\Exception\RecentFailureException;
 use Polkurier\Shipping\Logger\Logger;
 use Polkurier\Shipping\Model\Carrier\CarrierCatalog;
 use Polkurier\Shipping\Model\Carrier\CarrierFeatureResolver;
 use Polkurier\Shipping\Model\Carrier\Polkurier;
 use Polkurier\Shipping\Model\Config\ConfigProvider;
 use Polkurier\Shipping\Model\QuotePointFactory;
+use Polkurier\Webservice\Dto\Response\CourierPoint;
 use Polkurier\Webservice\Enum\Courier\PointFunctionEnum;
 use Polkurier\Webservice\Exception\Exception as PolkurierException;
-use Polkurier\Webservice\Response\CourierPoint;
 
 /**
  * Records the pickup point a customer chose, after checking it with Polkurier.
@@ -36,6 +35,7 @@ readonly class PointSelectionRecorder
         private QuotePointFactory $quotePointFactory,
         private CarrierCatalog $carrierCatalog,
         private CarrierFeatureResolver $carrierFeatureResolver,
+        private PointFinder $pointFinder,
         private ConfigProvider $configProvider,
         private Logger $logger,
     ) {}
@@ -85,23 +85,14 @@ readonly class PointSelectionRecorder
         $label = $pointId;
         // Unknown unless Polkurier says; while unknown, cash on delivery is left as it is.
         $cod = null;
-        $providers = $carrier !== null ? $this->carrierFeatureResolver->getPointProviders($carrier) : [];
-        if ($providers !== []) {
-            try {
-                $point = $this->carrierCatalog->findPoint($pointId, $providers);
-                if ($point === null || !$this->isUsable($point, $storeId)) {
-                    throw new InputException(__('The chosen pickup point is not available. Choose another one.'));
-                }
-                // The same as the map shows after choosing: the address, the point's id beside it.
-                $town = \trim($point->getZip() . ' ' . $point->getCity());
-                $label = $point->getAddress()
-                    ?: \implode(', ', \array_filter([\trim((string)$point->getStreet()), $town]));
-                $cod = $point->isCod();
-            } catch (RecentFailureException) {
-                // Logged when it failed.
-            } catch (PolkurierException $e) {
-                $this->logger->warning('Polkurier pickup point lookup failed', ['exception' => $e]);
-            }
+        $point = $carrier !== null ? $this->pointFinder->find($pointId, $methodCode) : null;
+        if ($point === false || $point !== null && !$this->isUsable($point, $storeId)) {
+            throw new InputException(__('The chosen pickup point is not available. Choose another one.'));
+        }
+        if ($point !== null) {
+            // The same as the map shows after choosing: the address, the point's id beside it.
+            $label = PointFinder::formatAddress($point);
+            $cod = $point->cod;
         }
 
         $point = $this->quotePointRepository->getForQuote($quoteId, $quoteAddressId)
@@ -143,12 +134,12 @@ readonly class PointSelectionRecorder
      */
     private function isUsable(CourierPoint $point, int $storeId): bool
     {
-        if (!$point->isAvailable()) {
+        if (!$point->available) {
             return false;
         }
         $functions = \array_map(
             static fn(PointFunctionEnum $function): string => $function->value,
-            $point->getFunctions(),
+            $point->functions,
         );
         foreach ($this->configProvider->getMapPointFunctions($storeId) as $required) {
             if (!\in_array($required->value, $functions, true)) {

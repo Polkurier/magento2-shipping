@@ -9,14 +9,15 @@ namespace Polkurier\Shipping\ViewModel\Adminhtml;
 
 use Magento\Framework\View\Element\Block\ArgumentInterface;
 use Magento\Sales\Model\Order;
+use Polkurier\Shipping\Api\Data\ShipmentDetailsInterface;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Api\OrderPointRepositoryInterface;
+use Polkurier\Shipping\Api\ShippingChoiceRepositoryInterface;
 use Polkurier\Shipping\Model\Carrier\CarrierNameProvider;
 use Polkurier\Shipping\Model\Carrier\Polkurier;
 use Polkurier\Shipping\Model\Shipment\Details\SentOrderReader;
 use Polkurier\Shipping\Model\Shipment\Screen\ScreenDataProvider;
 use Polkurier\Shipping\Model\Shipment\ShipmentFinder;
-use Polkurier\Shipping\Model\ShippingChoice\ShippingChoiceRepository;
 
 /**
  * For the shipping information of the order and shipment pages. Under the order's shipping, which
@@ -32,7 +33,7 @@ readonly class ActualShipping implements ArgumentInterface
         private OrderPointRepositoryInterface $orderPointRepository,
         private SentOrderReader $sentOrderReader,
         private ScreenDataProvider $screenDataProvider,
-        private ShippingChoiceRepository $shippingChoiceRepository,
+        private ShippingChoiceRepositoryInterface $shippingChoiceRepository,
     ) {}
 
     /**
@@ -40,7 +41,7 @@ readonly class ActualShipping implements ArgumentInterface
      *
      * @return list<array{carrier: string, point: string, point_label: string, changed: bool}>
      */
-    public function forOrder(Order $order): array
+    public function getForOrder(Order $order): array
     {
         if (!Polkurier::isOrderOf($order)) {
             return [];
@@ -48,14 +49,14 @@ readonly class ActualShipping implements ArgumentInterface
 
         return $this->describe(
             $order,
-            $this->shipmentFinder->forOrder((int)$order->getEntityId(), [ShipmentInterface::STATE_CREATED]),
+            $this->shipmentFinder->findForOrder((int)$order->getEntityId(), [ShipmentInterface::STATE_CREATED]),
         );
     }
 
     /**
      * @return list<array{carrier: string, point: string, point_label: string, changed: bool}>
      */
-    public function forShipment(Order $order, int $magentoShipmentId): array
+    public function getForShipment(Order $order, int $magentoShipmentId): array
     {
         if (!Polkurier::isOrderOf($order)) {
             return [];
@@ -63,7 +64,7 @@ readonly class ActualShipping implements ArgumentInterface
         $orderId = (int)$order->getEntityId();
 
         return $this->describe($order, \array_filter(
-            $this->shipmentFinder->linkedTo([$magentoShipmentId], [ShipmentInterface::STATE_CREATED]),
+            $this->shipmentFinder->findLinkedTo([$magentoShipmentId], [ShipmentInterface::STATE_CREATED]),
             static fn(ShipmentInterface $shipment): bool => $shipment->getOrderId() === $orderId,
         ));
     }
@@ -88,16 +89,17 @@ readonly class ActualShipping implements ArgumentInterface
      */
     private function describe(Order $order, array $shipments): array
     {
-        $methodCode = (string)Polkurier::methodCodeOf((string)$order->getShippingMethod());
+        $methodCode = (string)Polkurier::extractMethodCode((string)$order->getShippingMethod());
         $chosen = $this->orderPointRepository->getForOrder((int)$order->getEntityId());
         $chosenPoint = $chosen !== null ? $chosen->getPointId() : '';
         $shipped = [];
         foreach ($shipments as $shipment) {
             // As Polkurier reports it, or as it was sent until Polkurier's copy has been read.
             $details = $shipment->getDetails() ?: $this->sentOrderReader->read((string)$shipment->getRequest());
-            $recipient = \is_array($details['recipient'] ?? null) ? $details['recipient'] : [];
-            $point = (string)($recipient['point_id'] ?? '');
-            $label = (string)($recipient['point_label'] ?? '');
+            $recipient = $details[ShipmentDetailsInterface::FIELD_RECIPIENT] ?? null;
+            $recipient = \is_array($recipient) ? $recipient : [];
+            $point = (string)($recipient[ShipmentDetailsInterface::FIELD_ADDRESS_POINT_ID] ?? '');
+            $label = (string)($recipient[ShipmentDetailsInterface::FIELD_ADDRESS_POINT_LABEL] ?? '');
             $key = $shipment->getCarrierCode() . '|' . $point;
             if (isset($shipped[$key])) {
                 continue;
@@ -111,7 +113,7 @@ readonly class ActualShipping implements ArgumentInterface
             }
             if ($changed && $label === '' && $point !== '') {
                 $found = $this->screenDataProvider->findRecipientPoint($shipment->getCarrierCode(), $point);
-                $label = $found ? (string)$found->getAddress() : '';
+                $label = $found ? $found->address : '';
             }
             $shipped[$key] = [
                 'carrier' => $this->carrierNameProvider->get($shipment->getCarrierCode()),

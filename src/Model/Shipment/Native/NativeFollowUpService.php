@@ -23,13 +23,13 @@ use Magento\Sales\Model\Order\Shipment as MagentoShipmentModel;
 use Polkurier\Shipping\Api\Data\ShipmentDraftInterface;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Api\ShipmentRepositoryInterface;
+use Polkurier\Shipping\Api\ShippingChoiceRepositoryInterface;
 use Polkurier\Shipping\Enum\Sdk\ApiEventEnum;
 use Polkurier\Shipping\Logger\Logger;
 use Polkurier\Shipping\Model\Carrier\CarrierNameProvider;
 use Polkurier\Shipping\Model\Sdk\ApiEventDispatcher;
 use Polkurier\Shipping\Model\Shipment\OrderLoader;
 use Polkurier\Shipping\Model\Shipment\ShipmentFinder;
-use Polkurier\Shipping\Model\ShippingChoice\ShippingChoiceRepository;
 
 /**
  * What follows on the Magento side once a Polkurier order is known: the Magento order's shipment
@@ -39,14 +39,14 @@ use Polkurier\Shipping\Model\ShippingChoice\ShippingChoiceRepository;
 readonly class NativeFollowUpService
 {
     /**
-     * Magento's setting for sending sales e-mails from its cron job rather than at once.
-     */
-    private const string ASYNC_SENDING = 'sales_email/general/async_sending';
-
-    /**
      * Class of the links in comments that lead outside the admin.
      */
     public const string EXTERNAL_LINK = 'polkurier-external';
+
+    /**
+     * Magento's setting for sending sales e-mails from its cron job rather than at once.
+     */
+    private const string ASYNC_SENDING = 'sales_email/general/async_sending';
 
     public function __construct(
         private OrderLoader $orderLoader,
@@ -63,7 +63,7 @@ readonly class NativeFollowUpService
         private ShipmentSender $shipmentSender,
         private SalesData $salesData,
         private ScopeConfigInterface $scopeConfig,
-        private ShippingChoiceRepository $shippingChoiceRepository,
+        private ShippingChoiceRepositoryInterface $shippingChoiceRepository,
     ) {}
 
     /**
@@ -86,7 +86,7 @@ readonly class NativeFollowUpService
                 $shipment->getShipPackages(),
             );
             $this->shipmentRepository->save($shipment->setShipmentId($shipmentId));
-            $this->remarkLinked($shipment);
+            $this->addLinkedRemark($shipment);
         } catch (\Throwable $e) {
             $this->logger->error('Polkurier order placed but the Magento shipment failed', [
                 'order' => $order->getIncrementId(),
@@ -183,12 +183,12 @@ readonly class NativeFollowUpService
      *
      * @return Order the order it belongs to
      */
-    public function cancelled(ShipmentInterface $shipment, bool $inPolkurier): Order
+    public function followCancellation(ShipmentInterface $shipment, bool $inPolkurier): Order
     {
         $number = (string)$shipment->getPolkurierNumber();
         $order = $this->orderLoader->get($shipment->getOrderId());
         $cleared = $this->clearShipment($order, $shipment);
-        $this->remark(
+        $this->addRemark(
             $shipment->getShipmentId(),
             $inPolkurier
                 ? __(
@@ -197,7 +197,7 @@ readonly class NativeFollowUpService
                 )
                 : __('Polkurier order %1 cancelled. Label and tracking numbers removed.', $number),
         );
-        $this->comment($order, match (true) {
+        $this->addComment($order, match (true) {
             $inPolkurier && $cleared !== null => __(
                 'Polkurier order %1 cancelled in the Polkurier panel. '
                 . 'Magento shipment #%2 kept, without label and tracking numbers.',
@@ -216,7 +216,7 @@ readonly class NativeFollowUpService
         return $order;
     }
 
-    public function comment(Order $order, Phrase $comment): void
+    public function addComment(Order $order, Phrase $comment): void
     {
         try {
             $history = $order->addCommentToStatusHistory((string)$comment);
@@ -233,7 +233,7 @@ readonly class NativeFollowUpService
     /**
      * An internal remark in the Magento shipment's history, never shown to the customer.
      */
-    public function remark(?int $magentoShipmentId, Phrase $remark): void
+    public function addRemark(?int $magentoShipmentId, Phrase $remark): void
     {
         if ($magentoShipmentId === null) {
             return;
@@ -254,19 +254,20 @@ readonly class NativeFollowUpService
     /**
      * The remark for a Polkurier order going with a Magento shipment.
      */
-    public function remarkLinked(ShipmentInterface $shipment): void
+    public function addLinkedRemark(ShipmentInterface $shipment): void
     {
-        $this->remark($shipment->getShipmentId(), __(
+        $this->addRemark($shipment->getShipmentId(), __(
             'Linked with Polkurier order %1. Carrier: %2. Waybills: %3.',
             (string)$shipment->getPolkurierNumber(),
             $this->carrierNameProvider->get($shipment->getCarrierCode()),
-            $this->waybillList($shipment),
+            $this->formatWaybillList($shipment),
         ));
     }
 
     /**
      * Notes a placed Polkurier order on the order: its number, carrier and waybills, and what the
-     * customer chose when it went with another carrier or point ({@see ActualShippingUpdater}).
+     * customer chose when it went with another carrier or point
+     * ({@see \Polkurier\Shipping\Model\Shipment\Native\ActualShippingUpdater}).
      *
      * @param bool $byHand linked by hand to an unconfirmed attempt rather than placed or found; noted
      *     as linked, as on the Magento shipment
@@ -275,16 +276,16 @@ readonly class NativeFollowUpService
     {
         $number = (string)$shipment->getPolkurierNumber();
         $carrier = $this->carrierNameProvider->get($shipment->getCarrierCode());
-        $waybills = $this->waybillList($shipment);
+        $waybills = $this->formatWaybillList($shipment);
         $choice = $this->shippingChoiceRepository->getForOrder((int)$order->getEntityId())?->getShippingDescription();
         if ($choice === null || $choice === '') {
-            $this->comment($order, $byHand
+            $this->addComment($order, $byHand
                 ? __('Linked with Polkurier order %1. Carrier: %2. Waybills: %3.', $number, $carrier, $waybills)
                 : __('Polkurier order %1 placed. Carrier: %2. Waybills: %3.', $number, $carrier, $waybills));
 
             return;
         }
-        $this->comment($order, $byHand
+        $this->addComment($order, $byHand
             ? __(
                 'Linked with Polkurier order %1. Carrier: %2. Waybills: %3. Customer\'s choice: %4.',
                 $number,
@@ -309,7 +310,7 @@ readonly class NativeFollowUpService
      *
      * @param string[]|null $waybills some of the shipment's, or all of them
      */
-    public function waybillList(ShipmentInterface $shipment, ?array $waybills = null): string
+    public function formatWaybillList(ShipmentInterface $shipment, ?array $waybills = null): string
     {
         $waybills ??= $shipment->getWaybills();
         if ($waybills === []) {
@@ -333,7 +334,7 @@ readonly class NativeFollowUpService
      *
      * @param string $source how it was found: "reconcile", "adopt" or "track"
      */
-    public function linked(ShipmentInterface $shipment, Order $order, string $source): void
+    public function followLink(ShipmentInterface $shipment, Order $order, string $source): void
     {
         $this->apiEventDispatcher->dispatch(ApiEventEnum::OrderCreateAfter, $shipment->getStoreId(), [
             'shipment' => $shipment,
@@ -359,7 +360,7 @@ readonly class NativeFollowUpService
         if ((int)$magentoShipment->getOrderId() !== (int)$order->getEntityId()) {
             return null;
         }
-        foreach ($this->shipmentFinder->linkedTo([$magentoShipmentId]) as $polkurier) {
+        foreach ($this->shipmentFinder->findLinkedTo([$magentoShipmentId]) as $polkurier) {
             if ((int)$polkurier->getId() !== (int)$cancelled->getId()
                 && \in_array($polkurier->getState(), ShipmentInterface::LIVE_STATES, true)
             ) {

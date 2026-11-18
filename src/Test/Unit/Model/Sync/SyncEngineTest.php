@@ -19,6 +19,7 @@ use Polkurier\Shipping\Model\PackTemplate;
 use Polkurier\Shipping\Model\Sdk\ErrorMessageResolver;
 use Polkurier\Shipping\Model\Sync\AdapterInterface;
 use Polkurier\Shipping\Model\Sync\SyncEngine;
+use Polkurier\Shipping\Model\Sync\SyncResult;
 use Polkurier\Shipping\Model\Sync\SyncResultFactory;
 use Polkurier\Shipping\Test\Unit\Support\FakePushableSyncAdapter;
 use Polkurier\Shipping\Test\Unit\Support\FakeSyncAdapter;
@@ -67,7 +68,7 @@ class SyncEngineTest extends TestCase
 
     public function testNewRemoteEntriesArePulled(): void
     {
-        $this->remote['r1'] = $this->remoteEntry('r1', 'Box S');
+        $this->remote['r1'] = $this->buildRemoteEntry('r1', 'Box S');
 
         $result = $this->synchronize();
 
@@ -91,15 +92,15 @@ class SyncEngineTest extends TestCase
 
     public function testALocalChangeIsPushedAndARemoteChangeIsPulled(): void
     {
-        $this->remote['r1'] = $this->remoteEntry('r1', 'Box S');
-        $this->remote['r2'] = $this->remoteEntry('r2', 'Box L renamed');
+        $this->remote['r1'] = $this->buildRemoteEntry('r1', 'Box S');
+        $this->remote['r2'] = $this->buildRemoteEntry('r2', 'Box L renamed');
         $this->addLocal(
             'r1',
             'Box S edited',
             updatedAt: '2026-09-24 09:00:00',
-            hashOf: $this->remoteEntry('r1', 'Box S'),
+            hashOf: $this->buildRemoteEntry('r1', 'Box S'),
         );
-        $this->addLocal('r2', 'Box L', hashOf: $this->remoteEntry('r2', 'Box L'));
+        $this->addLocal('r2', 'Box L', hashOf: $this->buildRemoteEntry('r2', 'Box L'));
 
         $result = $this->synchronize();
 
@@ -111,11 +112,11 @@ class SyncEngineTest extends TestCase
 
     public function testAnEditInTheSameSecondAsTheLastSynchronizationIsPushed(): void
     {
-        $this->remote['r1'] = $this->remoteEntry('r1', 'Box S');
+        $this->remote['r1'] = $this->buildRemoteEntry('r1', 'Box S');
         $this->addLocal(
             'r1',
             'Box S edited',
-            hashOf: $this->remoteEntry('r1', 'Box S'),
+            hashOf: $this->buildRemoteEntry('r1', 'Box S'),
             state: SyncableInterface::STATE_PENDING,
         );
 
@@ -128,11 +129,11 @@ class SyncEngineTest extends TestCase
 
     public function testAChangeThatFailedToGoThroughIsSentAgain(): void
     {
-        $this->remote['r1'] = $this->remoteEntry('r1', 'Box S');
+        $this->remote['r1'] = $this->buildRemoteEntry('r1', 'Box S');
         $this->addLocal(
             'r1',
             'Box S edited',
-            hashOf: $this->remoteEntry('r1', 'Box S'),
+            hashOf: $this->buildRemoteEntry('r1', 'Box S'),
             state: SyncableInterface::STATE_ERROR,
         );
 
@@ -184,7 +185,7 @@ class SyncEngineTest extends TestCase
 
     public function testAnEntrySentWhoseLinkWasNotSavedIsLinkedNotSentAgain(): void
     {
-        $this->remote['r7'] = $this->remoteEntry('r7', 'Box M');
+        $this->remote['r7'] = $this->buildRemoteEntry('r7', 'Box M');
         $this->addLocal(null, 'Box M', updatedAt: self::NOW, syncedAt: null);
 
         $result = $this->synchronize();
@@ -196,8 +197,8 @@ class SyncEngineTest extends TestCase
 
     public function testTwoRemoteEntriesOfTheSameNameAreNotGuessedBetween(): void
     {
-        $this->remote['r7'] = $this->remoteEntry('r7', 'Box M');
-        $this->remote['r8'] = $this->remoteEntry('r8', 'Box M');
+        $this->remote['r7'] = $this->buildRemoteEntry('r7', 'Box M');
+        $this->remote['r8'] = $this->buildRemoteEntry('r8', 'Box M');
         $this->addLocal(null, 'Box M', updatedAt: self::NOW, syncedAt: null);
 
         $this->synchronize();
@@ -207,16 +208,16 @@ class SyncEngineTest extends TestCase
 
     public function testOneEntrySavedInTheAdminIsSentAlone(): void
     {
-        $this->remote['r1'] = $this->remoteEntry('r1', 'Box S');
-        $this->remote['r2'] = $this->remoteEntry('r2', 'Box L renamed');
-        $this->remote['r3'] = $this->remoteEntry('r3', 'Box XL');
+        $this->remote['r1'] = $this->buildRemoteEntry('r1', 'Box S');
+        $this->remote['r2'] = $this->buildRemoteEntry('r2', 'Box L renamed');
+        $this->remote['r3'] = $this->buildRemoteEntry('r3', 'Box XL');
         $saved = $this->addLocal(
             'r1',
             'Box S edited',
-            hashOf: $this->remoteEntry('r1', 'Box S'),
+            hashOf: $this->buildRemoteEntry('r1', 'Box S'),
             state: SyncableInterface::STATE_PENDING,
         );
-        $this->addLocal('r2', 'Box L', hashOf: $this->remoteEntry('r2', 'Box L'));
+        $this->addLocal('r2', 'Box L', hashOf: $this->buildRemoteEntry('r2', 'Box L'));
         $this->addLocal(null, 'Box M', updatedAt: self::NOW, syncedAt: null);
 
         $result = $this->synchronize($saved);
@@ -230,12 +231,12 @@ class SyncEngineTest extends TestCase
     public function testWhenBothChangedTheLaterChangeWins(): void
     {
         // Remote change detected now; until the API reports its time, now counts as its time.
-        $this->remote['r1'] = $this->remoteEntry('r1', 'Box S remote');
+        $this->remote['r1'] = $this->buildRemoteEntry('r1', 'Box S remote');
         $this->addLocal(
             'r1',
             'Box S local',
             updatedAt: '2026-09-24 09:00:00',
-            hashOf: $this->remoteEntry('r1', 'Box S'),
+            hashOf: $this->buildRemoteEntry('r1', 'Box S'),
         );
 
         $this->synchronize();
@@ -246,12 +247,12 @@ class SyncEngineTest extends TestCase
 
     public function testALocalEditAfterTheRemoteChangeWins(): void
     {
-        $this->remote['r1'] = $this->remoteEntry('r1', 'Box S remote');
+        $this->remote['r1'] = $this->buildRemoteEntry('r1', 'Box S remote');
         $this->addLocal(
             'r1',
             'Box S local',
             updatedAt: '2026-09-26 08:00:00',
-            hashOf: $this->remoteEntry('r1', 'Box S'),
+            hashOf: $this->buildRemoteEntry('r1', 'Box S'),
         );
 
         $this->synchronize();
@@ -261,12 +262,12 @@ class SyncEngineTest extends TestCase
 
     public function testAnEntryDeletedRemotelyIsDeletedLocallyUnlessEditedSince(): void
     {
-        $this->addLocal('gone', 'Untouched', hashOf: $this->remoteEntry('gone', 'Untouched'));
+        $this->addLocal('gone', 'Untouched', hashOf: $this->buildRemoteEntry('gone', 'Untouched'));
         $this->addLocal(
             'gone2',
             'Edited',
             updatedAt: '2026-09-24 09:00:00',
-            hashOf: $this->remoteEntry('gone2', 'Edited'),
+            hashOf: $this->buildRemoteEntry('gone2', 'Edited'),
         );
 
         $result = $this->synchronize();
@@ -279,8 +280,12 @@ class SyncEngineTest extends TestCase
 
     public function testALocalDeletionIsCarriedToPolkurier(): void
     {
-        $this->remote['r1'] = $this->remoteEntry('r1', 'Box S');
-        $this->addLocal('r1', 'Box S', hashOf: $this->remoteEntry('r1', 'Box S'))->setDeletedAt('2026-09-24 09:00:00');
+        $this->remote['r1'] = $this->buildRemoteEntry('r1', 'Box S');
+        $this->addLocal(
+            'r1',
+            'Box S',
+            hashOf: $this->buildRemoteEntry('r1', 'Box S'),
+        )->setDeletedAt('2026-09-24 09:00:00');
 
         $result = $this->synchronize();
 
@@ -304,12 +309,12 @@ class SyncEngineTest extends TestCase
     public function testAnUnconfirmedEditIsKeptWhilePolkurierHasNothingNewer(): void
     {
         $this->canPush = false;
-        $this->remote['r1'] = $this->remoteEntry('r1', 'Box S');
+        $this->remote['r1'] = $this->buildRemoteEntry('r1', 'Box S');
         $this->addLocal(
             'r1',
             'Box S edited',
             updatedAt: '2026-09-24 09:00:00',
-            hashOf: $this->remoteEntry('r1', 'Box S'),
+            hashOf: $this->buildRemoteEntry('r1', 'Box S'),
         );
 
         $result = $this->synchronize();
@@ -323,12 +328,12 @@ class SyncEngineTest extends TestCase
     public function testANewerRemoteChangeStillWinsOverAnUnconfirmedEdit(): void
     {
         $this->canPush = false;
-        $this->remote['r1'] = $this->remoteEntry('r1', 'Box S remote');
+        $this->remote['r1'] = $this->buildRemoteEntry('r1', 'Box S remote');
         $this->addLocal(
             'r1',
             'Box S local',
             updatedAt: '2026-09-24 09:00:00',
-            hashOf: $this->remoteEntry('r1', 'Box S'),
+            hashOf: $this->buildRemoteEntry('r1', 'Box S'),
         );
 
         $this->synchronize();
@@ -339,8 +344,12 @@ class SyncEngineTest extends TestCase
     public function testAnUnconfirmedDeletionIsKeptInsteadOfComingBack(): void
     {
         $this->canPush = false;
-        $this->remote['r1'] = $this->remoteEntry('r1', 'Box S');
-        $this->addLocal('r1', 'Box S', hashOf: $this->remoteEntry('r1', 'Box S'))->setDeletedAt('2026-09-24 09:00:00');
+        $this->remote['r1'] = $this->buildRemoteEntry('r1', 'Box S');
+        $this->addLocal(
+            'r1',
+            'Box S',
+            hashOf: $this->buildRemoteEntry('r1', 'Box S'),
+        )->setDeletedAt('2026-09-24 09:00:00');
 
         $result = $this->synchronize();
 
@@ -353,7 +362,7 @@ class SyncEngineTest extends TestCase
     /**
      * The fake adapter's window onto the test's state.
      */
-    public function state(string $what, mixed $value = null): mixed
+    public function readState(string $what, mixed $value = null): mixed
     {
         switch ($what) {
             case 'remote':
@@ -392,7 +401,7 @@ class SyncEngineTest extends TestCase
         return null;
     }
 
-    private function synchronize(?SyncableInterface $only = null): \Polkurier\Shipping\Model\Sync\SyncResult
+    private function synchronize(?SyncableInterface $only = null): SyncResult
     {
         $dateTime = $this->createStub(DateTime::class);
         $dateTime->method('gmtTimestamp')->willReturn((int)\strtotime(self::NOW . ' UTC'));
@@ -407,10 +416,10 @@ class SyncEngineTest extends TestCase
             new ErrorMessageResolver(),
             $dateTime,
             $logger,
-            NewingObjectManager::factory(SyncResultFactory::class),
+            NewingObjectManager::createFactory(SyncResultFactory::class),
         );
 
-        return $engine->run($this->adapter(), $only);
+        return $engine->run($this->createAdapter(), $only);
     }
 
     /**
@@ -438,7 +447,7 @@ class SyncEngineTest extends TestCase
     /**
      * @return array<string, mixed>
      */
-    private function remoteEntry(string $id, string $name): array
+    private function buildRemoteEntry(string $id, string $name): array
     {
         return [SyncableInterface::FIELD_EXT_ID => $id, SyncableInterface::FIELD_NAME => $name];
     }
@@ -454,13 +463,13 @@ class SyncEngineTest extends TestCase
             new ErrorMessageResolver(),
             $dateTime,
             $this->createStub(Logger::class),
-            NewingObjectManager::factory(SyncResultFactory::class),
+            NewingObjectManager::createFactory(SyncResultFactory::class),
         ))->hash($remote);
     }
 
-    private function adapter(): AdapterInterface
+    private function createAdapter(): AdapterInterface
     {
-        $state = \Closure::fromCallable([$this, 'state']);
+        $state = \Closure::fromCallable([$this, 'readState']);
 
         return $this->canPush ? new FakePushableSyncAdapter($state) : new FakeSyncAdapter($state);
     }

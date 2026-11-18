@@ -72,9 +72,13 @@ on delivery, insurance, cover address, services, handover (courier, drop-off or 
 pickup, with an optional date and time window), carrier-specific fields, and whether the customer is
 e-mailed once it's placed (`notify_customer`, see [The Magento shipment](#the-magento-shipment)). A
 carrier whose `points_map.sender_point` is `REQUIRED` takes parcels only at points: its handover is
-always drop-off, whatever the draft says. The default draft is also dropped off when the sender
-address has a drop-off point and the carrier takes parcels at points; otherwise a courier collects
-it.
+always drop-off, whatever the draft says. The default draft's drop-off point is the account's
+default for the carrier: `get_account_info`'s `default_sender_point`, read and, from the carrier's
+settings page, changed with `change_default_sender_point` by
+[`Model\PickupPoint\DefaultSenderPointManager`](../../src/Model/PickupPoint/DefaultSenderPointManager.php).
+A carrier has one only when its `points_map.sender_point` isn't `NONE` and `default_sender_point`
+lists its code; only then does its settings page offer it. With one set, the draft is dropped off;
+otherwise a courier collects it.
 
 The default draft comes from the order, its pickup point and the module's settings, narrowed to what
 the carrier supports; `getDefaultDraft()` returns it. The shipment screen, Magento's label flow and
@@ -106,7 +110,7 @@ Parcels of more than one kind are refused, and so is a type the carrier doesn't 
 `sender/use_store_origin_address` is on, whichever is complete first. If neither can be used, the
 shipment is refused before anything is sent.
 
-**Validation.** The draft becomes the SDK's `Polkurier\Webservice\Request\Order\CreateOrderMessage`,
+**Validation.** The draft becomes the SDK's `Polkurier\Webservice\Dto\Request\Order\CreateOrderMessage`,
 and the SDK validates it before anything is sent, so an incomplete draft fails with field-level
 errors without reaching Polkurier. To change the message, see
 [Extending the module](extending.md#changing-whats-sent).
@@ -355,8 +359,9 @@ copy that's missing, or of a shipment on its way (`created` and not final), is r
 copy was read, and the update while it runs.
 
 Times Polkurier reports are in Polish time
-([`Model\Sdk\PolkurierTimeZone::ZONE`](../../src/Model/Sdk/PolkurierTimeZone.php)). The status and
-delivery times are stored in UTC, like every time the module stores.
+([`Model\Sdk\PolkurierTimeZoneProvider::ZONE`](../../src/Model/Sdk/PolkurierTimeZoneProvider.php)).
+The shipment's status and delivery times are stored in UTC, like the module's other times. The copy
+of the Polkurier order and the carrier's scans keep Polish time.
 
 A shipment is finished when it's:
 

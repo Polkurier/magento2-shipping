@@ -26,7 +26,7 @@ define([
      */
     return function (state, config) {
         const values = state.values,
-            filled = state.filled,
+            isFilled = state.isFilled,
             // Only the answer to the latest request for collection dates counts.
             pickups = request();
 
@@ -60,7 +60,7 @@ define([
             return control;
         }
 
-        function checkboxes(field, form, id, control) {
+        function renderCheckboxes(field, form, id, control) {
             (config.options[field.name] || []).forEach(function (option) {
                 if (field.filter && !field.filter(String(option.value), form)) {
                     return;
@@ -83,7 +83,7 @@ define([
             }
         }
 
-        function input(field, id, control) {
+        function renderInput(field, id, control) {
             const box = $('<input class="admin__control-text"/>').attr({
                     id: id,
                     name: field.name,
@@ -91,8 +91,8 @@ define([
                     step: field.type === 'number' ? '0.01' : null,
                     min: field.type === 'number' ? '0' : null,
                     maxlength: field.maxlength || null
-                }).val(filled(values[field.name]) ? values[field.name] : ''),
-                carrier = state.carrier();
+                }).val(isFilled(values[field.name]) ? values[field.name] : ''),
+                carrier = state.getCarrier();
 
             control.append(box);
             if (field.map && pointsMap.canOpen(config.map)
@@ -108,9 +108,7 @@ define([
                             : config.mapSearch;
 
                         pointsMap.open(config.map, carrier.providers, search || '', function (pointId, point) {
-                            if (config.pointLabels) {
-                                config.pointLabels[pointId] = pointsMap.describe(point);
-                            }
+                            config.pointDetails = pointsMap.addPoint(config.pointDetails, pointId, point);
                             box.val(pointId).trigger('change');
                         }, field.mapFunctions);
                     }));
@@ -125,7 +123,7 @@ define([
          * @param {String} id
          * @param {jQuery} control
          */
-        function pickup(id, control) {
+        function renderPickup(id, control) {
             const dates = $('<select class="admin__control-select" name="pickup_date"/>').attr('id', id),
                 windows = $('<select class="admin__control-select" name="pickup_window"/>')
                     .attr('aria-label', $t('Collection time')),
@@ -158,7 +156,7 @@ define([
             windows.hide();
             anyTime.hide();
             dates.on('change', fillWindows);
-            if (!filled(values.carrier_code) || !setup.url) {
+            if (!isFilled(values.carrier_code) || !setup.url) {
                 status.text($t('Choose a carrier to see its collection dates.'));
 
                 return;
@@ -199,7 +197,7 @@ define([
             });
         }
 
-        function field(definition, form) {
+        function renderField(definition, form) {
             const id = 'polkurier-label-' + definition.name,
                 wrapper = $('<div class="admin__field"/>'),
                 control = $('<div class="admin__field-control"/>');
@@ -210,7 +208,7 @@ define([
             wrapper.append(control);
 
             if (definition.type === 'pickup') {
-                pickup(id, control);
+                renderPickup(id, control);
             } else if (definition.type === 'checkbox') {
                 // A single choice, with its label beside the box.
                 wrapper.addClass('admin__field-option');
@@ -220,7 +218,7 @@ define([
                         .attr({id: id, name: definition.name})
                         .prop(
                             'checked',
-                            filled(values[definition.name])
+                            isFilled(values[definition.name])
                                 && String(values[definition.name]) !== '0'
                                 && values[definition.name] !== false
                         ),
@@ -229,13 +227,13 @@ define([
             } else if (definition.type === 'select') {
                 control.append(select(definition, form, id));
             } else if (definition.type === 'checkboxes') {
-                checkboxes(definition, form, id, control);
+                renderCheckboxes(definition, form, id, control);
             } else {
-                input(definition, id, control);
+                renderInput(definition, id, control);
             }
-            if (definition.shownFor) {
+            if (definition.isShownFor) {
                 const update = function () {
-                    wrapper.toggle(definition.shownFor(form));
+                    wrapper.toggle(definition.isShownFor(form));
                 };
 
                 form.on('change.polkurierFields', 'select, input[type=checkbox]', update);
@@ -257,8 +255,7 @@ define([
          * @param {jQuery} form
          */
         function apply(section, form) {
-            const senderBefore = values.sender_address_id,
-                senderPointBefore = values.sender_point_id,
+            const senderPointBefore = values.sender_point_id,
                 carrierBefore = values.carrier_code,
                 pickupModeBefore = values.pickup_mode,
                 insuranceBefore = values.insurance_amount,
@@ -296,32 +293,30 @@ define([
                     }).get()
                     : fields.val();
             });
-            const senderOrCarrierChanged = !same(senderBefore, values.sender_address_id)
-                || !same(carrierBefore, values.carrier_code);
+            const carrierChanged = !same(carrierBefore, values.carrier_code);
 
             if (!same(insuranceBefore, values.insurance_amount)) {
-                state.insuranceSetByHand();
+                state.markInsuranceSetByHand();
             }
             if (!same(codBefore, values.cod_amount)) {
-                state.codSetByHand();
+                state.markCodSetByHand();
             }
             // Collected from the sender: no drop-off point, which would show in the summary unused.
             if (!same(pickupModeBefore, values.pickup_mode) && values.pickup_mode !== 'drop_off') {
                 values.sender_point_id = '';
             }
-            if (!same(carrierBefore, values.carrier_code)) {
+            if (carrierChanged) {
                 state.swapPoint(carrierBefore, values.carrier_code);
             }
-            // Another sender, or carrier, hands the parcels over at its own drop-off point,
-            // unless one was just chosen.
-            if (senderOrCarrierChanged && same(senderPointBefore, values.sender_point_id)) {
-                values.sender_point_id = state.senderAddressPoint();
+            // Another carrier hands the parcels over at the account's drop-off point for it, unless
+            // one was just chosen, and starts from the default handover again.
+            if (carrierChanged && same(senderPointBefore, values.sender_point_id)) {
+                values.sender_point_id = state.getDefaultSenderPoint();
             }
-            // Another sender or carrier starts from the default handover again.
-            if (senderOrCarrierChanged) {
-                values.pickup_mode = state.defaultHandover();
+            if (carrierChanged) {
+                values.pickup_mode = state.getDefaultHandover();
             }
-            if (!same(carrierBefore, values.carrier_code) || section.normalizes) {
+            if (carrierChanged || section.normalizes) {
                 state.normalize();
             }
         }
@@ -348,8 +343,8 @@ define([
                     };
 
                 section.fields.forEach(function (definition) {
-                    if (!definition.visible || definition.visible()) {
-                        form.append(field(definition, form));
+                    if (!definition.isVisible || definition.isVisible()) {
+                        form.append(renderField(definition, form));
                     }
                 });
                 // A field named like its line doesn't show the name again; it keeps it for screen

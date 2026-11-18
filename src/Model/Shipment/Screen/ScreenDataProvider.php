@@ -7,22 +7,20 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Model\Shipment\Screen;
 
-use Magento\Backend\Model\UrlInterface;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Sales\Model\Order;
 use Polkurier\Shipping\Api\AddressRepositoryInterface;
 use Polkurier\Shipping\Api\OrderPointRepositoryInterface;
 use Polkurier\Shipping\Api\PackTemplateRepositoryInterface;
-use Polkurier\Shipping\Model\Carrier\CarrierCatalog;
 use Polkurier\Shipping\Model\Carrier\CarrierFeatureResolver;
-use Polkurier\Shipping\Model\Config\ConfigProvider;
 use Polkurier\Shipping\Model\Config\Source\PackType;
-use Polkurier\Shipping\Model\PickupPoint\MapTokenProvider;
+use Polkurier\Shipping\Model\PickupPoint\DefaultSenderPointManager;
+use Polkurier\Shipping\Model\PickupPoint\PointFinder;
 use Polkurier\Shipping\Model\Shipment\Draft\DefaultDraftBuilder;
 use Polkurier\Shipping\Model\Shipment\Draft\DraftHydrator;
 use Polkurier\Shipping\Model\Shipment\Valuation\OrderAmountCalculator;
-use Polkurier\Webservice\Exception\Exception as PolkurierException;
-use Polkurier\Webservice\Response\CourierPoint;
+use Polkurier\Webservice\Dto\Response\CourierPoint;
+use Polkurier\Webservice\Entity\Order as RemoteOrder;
 
 /**
  * What both shipment screens start from: the Polkurier shipment screen and the shipping label
@@ -35,34 +33,69 @@ readonly class ScreenDataProvider
         private PackTemplateRepositoryInterface $packTemplateRepository,
         private AddressRepositoryInterface $addressRepository,
         private PackType $packTypes,
-        private MapTokenProvider $mapTokenProvider,
-        private ConfigProvider $configProvider,
         private OrderAmountCalculator $orderAmountCalculator,
-        private CarrierCatalog $carrierCatalog,
-        private CarrierFeatureResolver $carrierFeatureResolver,
+        private PointFinder $pointFinder,
         private DefaultDraftBuilder $defaultDraftBuilder,
         private OrderPointRepositoryInterface $orderPointRepository,
-        private UrlInterface $url,
+        private DefaultSenderPointManager $defaultSenderPointManager,
     ) {}
 
     /**
-     * The order's pickup point as Polkurier has it now: its current address or, when it can't be
-     * looked up, the address the customer chose it by. Also whether it has closed or gone since,
-     * which must be fixed before placing.
+     * The order's pickup point as Polkurier has it now: its name and current address or, when it
+     * can't be looked up, the address the customer chose it by. Also whether it has closed or gone
+     * since, which must be fixed before placing.
      *
-     * @return array{id: string, label: string, closed: bool}
+     * @return array{id: string, name: string, label: string, closed: bool}
      */
     public function describeRecipientPoint(int $orderId, string $carrierCode, string $pointId): array
     {
         $point = $this->findRecipientPoint($carrierCode, $pointId);
         if ($point) {
-            $label = (string)$point->getAddress();
-        } else {
-            $chosen = $pointId === '' ? null : $this->orderPointRepository->getForOrder($orderId);
-            $label = $chosen !== null && $chosen->getPointId() === $pointId ? (string)$chosen->getPointLabel() : '';
+            return ['id' => $pointId, ...$this->pointFinder->describe($point), 'closed' => false];
+        }
+        $chosen = $pointId === '' ? null : $this->orderPointRepository->getForOrder($orderId);
+        $label = $chosen !== null && $chosen->getPointId() === $pointId ? (string)$chosen->getPointLabel() : '';
+
+        return ['id' => $pointId, 'name' => '', 'label' => $label, 'closed' => $point === false];
+    }
+
+    /**
+     * The names and addresses of the points a screen starts with, by code: the pickup point as
+     * {@see describeRecipientPoint()} has it, the drop-off point, and the account's drop-off points
+     * of the other carriers, which choosing a carrier brings in. Points that can't be looked up are
+     * left out.
+     *
+     * @param array{id: string, name: string, label: string} $recipientPoint
+     *
+     * @return array<string, array{name: string, label: string}>
+     */
+    public function describePoints(array $recipientPoint, string $senderPointId): array
+    {
+        $ids = [$senderPointId, ...\array_values($this->defaultSenderPointManager->get())];
+        $points = [];
+        foreach (\array_unique(\array_filter($ids, static fn(string $id): bool => $id !== '')) as $id) {
+            $point = $this->pointFinder->find($id);
+            if ($point) {
+                $points[$id] = $this->pointFinder->describe($point);
+            }
+        }
+        if ($recipientPoint['id'] !== '' && ($recipientPoint['name'] !== '' || $recipientPoint['label'] !== '')) {
+            $points[$recipientPoint['id']] = ['name' => $recipientPoint['name'], 'label' => $recipientPoint['label']];
         }
 
-        return ['id' => $pointId, 'label' => $label, 'closed' => $point === false];
+        return $points;
+    }
+
+    /**
+     * The note under the shipment description, with how much of it Polkurier keeps.
+     */
+    public function getDescriptionNotice(): string
+    {
+        return (string)__(
+            'Printed on the label; Polkurier keeps up to %1 bytes, and letters such as ą or ż take two each. '
+            . 'It starts as the order number, as the shipment description format in the configuration says.',
+            RemoteOrder::DESCRIPTION_MAX_LENGTH,
+        );
     }
 
     /**
@@ -82,21 +115,9 @@ readonly class ScreenDataProvider
      */
     public function findRecipientPoint(string $carrierCode, string $pointId): CourierPoint|false|null
     {
-        if ($carrierCode === '' || $pointId === '') {
-            return null;
-        }
-        try {
-            $carrier = $this->carrierCatalog->getCarrier($carrierCode);
-            $providers = $carrier !== null ? $this->carrierFeatureResolver->getPointProviders($carrier) : [];
-            if ($providers === []) {
-                return null;
-            }
-            $point = $this->carrierCatalog->findPoint($pointId, $providers);
-        } catch (PolkurierException) {
-            return null;
-        }
+        $point = $this->pointFinder->find($pointId, $carrierCode);
 
-        return $point !== null && $point->isAvailable() ? $point : false;
+        return $point && !$point->available ? false : $point;
     }
 
     /**
@@ -111,29 +132,25 @@ readonly class ScreenDataProvider
     public function getDefaultValues(Order $order, ?array $qtys): array
     {
         try {
-            return $this->draftHydrator->toArray($this->defaultDraftBuilder->createFromOrder($order, $qtys));
+            return $this->draftHydrator->convertToArray($this->defaultDraftBuilder->createFromOrder($order, $qtys));
         } catch (LocalizedException) {
             return [];
         }
     }
 
     /**
-     * Where each sender address is and the point it hands parcels over at, for the drop-off
-     * point's map and default.
+     * Each sender address's postcode, where the drop-off point's map starts.
      *
-     * @return array<string, array{postcode: string, point_id: string}> by address id
+     * @return array<string, string> by address id
      */
-    public function getSenderPoints(): array
+    public function getSenderPostcodes(): array
     {
-        $points = [];
+        $postcodes = [];
         foreach ($this->addressRepository->getSenderAddresses() as $address) {
-            $points[(string)$address->getId()] = [
-                'postcode' => $address->getPostcode(),
-                'point_id' => (string)$address->getPointId(),
-            ];
+            $postcodes[(string)$address->getId()] = $address->getPostcode();
         }
 
-        return $points;
+        return $postcodes;
     }
 
     /**
@@ -166,23 +183,15 @@ readonly class ScreenDataProvider
     }
 
     /**
-     * Where the pickup point map is, its token and when that runs out (empty and 0 when it can't be
-     * obtained), and where the screen asks for a fresh one.
-     *
-     * @return array{token: string, expires: int, baseUrl: string, tokenUrl: string}
-     */
-    public function getMap(): array
-    {
-        return $this->mapTokenProvider->getTokenWithExpiry() + [
-            'baseUrl' => $this->configProvider->getMapUrl() . '/',
-            'tokenUrl' => $this->url->getUrl('polkurier/shipment/mapToken'),
-        ];
-    }
-
-    /**
      * The order's amounts in złoty, as cash on delivery and insurance start from them.
      *
-     * @return array{grand_total: float, shipping_charged: float, cod_collected: float, cod_remaining: float, shipping_covered: bool}
+     * @return array{
+     *     grand_total: float,
+     *     shipping_charged: float,
+     *     cod_collected: float,
+     *     cod_remaining: float,
+     *     shipping_covered: bool,
+     * }
      */
     public function getAmounts(Order $order): array
     {

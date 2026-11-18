@@ -19,6 +19,7 @@ use Polkurier\Shipping\Model\Address\AddressHandler;
 class InlineEdit extends AbstractInlineEdit
 {
     public const string ADMIN_RESOURCE = 'Polkurier_Shipping::addresses';
+    public const string ROUTE = 'polkurier/address/inlineEdit';
 
     public function __construct(
         Context $context,

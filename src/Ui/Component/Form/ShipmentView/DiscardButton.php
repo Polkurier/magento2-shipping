@@ -8,6 +8,7 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Ui\Component\Form\ShipmentView;
 
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
+use Polkurier\Shipping\Controller\Adminhtml\Shipment\Discard as ShipmentDiscard;
 use Polkurier\Shipping\Ui\Component\ShipmentConfirmationProvider;
 
 /**
@@ -20,17 +21,17 @@ class DiscardButton extends AbstractButton
      */
     public function getButtonData(): array
     {
-        if ($this->shipment()?->getState() !== ShipmentInterface::STATE_FAILED
-            || !$this->authorization->isAllowed('Polkurier_Shipping::shipment_create')
+        if ($this->getShipment()?->getState() !== ShipmentInterface::STATE_FAILED
+            || !$this->authorization->isAllowed(ShipmentDiscard::ADMIN_RESOURCE)
         ) {
             return [];
         }
 
         $confirm = ShipmentConfirmationProvider::discard();
 
-        return $this->post(
+        return $this->buildPostButton(
             (string)__('Discard'),
-            'discard',
+            ShipmentDiscard::ROUTE,
             25,
             (string)$confirm['title'],
             (string)$confirm['message'],

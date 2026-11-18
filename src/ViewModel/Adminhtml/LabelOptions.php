@@ -10,6 +10,7 @@ namespace Polkurier\Shipping\ViewModel\Adminhtml;
 use Magento\Backend\Model\UrlInterface;
 use Magento\Framework\App\RequestInterface;
 use Magento\Framework\AuthorizationInterface;
+use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Framework\ObjectManager\ResetAfterRequestInterface;
 use Magento\Framework\Serialize\Serializer\Json;
 use Magento\Framework\View\Element\Block\ArgumentInterface;
@@ -17,12 +18,17 @@ use Magento\Sales\Api\ShipmentRepositoryInterface;
 use Magento\Sales\Model\Order;
 use Magento\Sales\Model\Order\Shipment as MagentoShipmentModel;
 use Polkurier\Shipping\Api\Data\ShipmentDraftInterface;
+use Polkurier\Shipping\Controller\Adminhtml\Shipment\Pack as ShipmentPack;
+use Polkurier\Shipping\Controller\Adminhtml\Shipment\PickupTimes as ShipmentPickupTimes;
+use Polkurier\Shipping\Controller\Adminhtml\Shipment\Save as ShipmentSave;
+use Polkurier\Shipping\Model\Admin\Formatter;
 use Polkurier\Shipping\Model\Carrier\Polkurier;
 use Polkurier\Shipping\Model\Config\ConfigProvider;
 use Polkurier\Shipping\Model\Config\Source\AdditionalService;
 use Polkurier\Shipping\Model\Config\Source\CodReturnType;
 use Polkurier\Shipping\Model\Config\Source\CodType;
 use Polkurier\Shipping\Model\Config\Source\PickupMode;
+use Polkurier\Shipping\Model\PickupPoint\AdminMapConfigProvider;
 use Polkurier\Shipping\Model\Shipment\Native\NativeLabelService;
 use Polkurier\Shipping\Model\Shipment\Native\NativeShipmentService;
 use Polkurier\Shipping\Model\Shipment\OrderLoader;
@@ -32,6 +38,7 @@ use Polkurier\Shipping\Model\Shipment\Screen\RetriableShipmentFinder;
 use Polkurier\Shipping\Model\Shipment\Screen\ScreenDataProvider;
 use Polkurier\Shipping\Model\Shipment\Screen\ShipmentOptionsProvider;
 use Polkurier\Shipping\Model\Shipment\Valuation\OrderAmountCalculator;
+use Polkurier\Webservice\Entity\Order as RemoteOrder;
 
 /**
  * The Polkurier options of a shipping label, on Magento's New Shipment page, and on the page of a
@@ -66,6 +73,8 @@ class LabelOptions implements ArgumentInterface, ResetAfterRequestInterface
         private readonly RetriableShipmentFinder $retriableShipmentFinder,
         private readonly FailedShipmentManager $failedShipmentManager,
         private readonly UrlInterface $url,
+        private readonly AdminMapConfigProvider $adminMapConfigProvider,
+        private readonly Formatter $formatter,
     ) {}
 
     /**
@@ -79,7 +88,7 @@ class LabelOptions implements ArgumentInterface, ResetAfterRequestInterface
 
         return $order !== null
             && $this->isPolkurierOrder()
-            && $this->authorization->isAllowed('Polkurier_Shipping::shipment_create')
+            && $this->authorization->isAllowed(ShipmentSave::ADMIN_RESOURCE)
             // On a shipment's page: one that can take a Polkurier order, and has no label yet.
             && ($existing === null || (!$existing->getShippingLabel()
                 && isset($this->nativeShipmentService->getFreeShipments($order)[(int)$existing->getId()])));
@@ -155,6 +164,11 @@ class LabelOptions implements ArgumentInterface, ResetAfterRequestInterface
             : null;
         $values = $this->screenDataProvider->getDefaultValues($order, $shipped);
         $amounts = $this->screenDataProvider->getAmounts($order);
+        $point = $this->screenDataProvider->describeRecipientPoint(
+            (int)$order->getEntityId(),
+            (string)($values[ShipmentDraftInterface::FIELD_CARRIER_CODE] ?? ''),
+            (string)($values[ShipmentDraftInterface::FIELD_RECIPIENT_POINT_ID] ?? ''),
+        );
 
         return (string)$this->json->serialize([
             'name' => NativeLabelService::OPTIONS_PARAM,
@@ -163,7 +177,7 @@ class LabelOptions implements ArgumentInterface, ResetAfterRequestInterface
             'shippedQtys' => (object)($shipped ?? []),
             'fields' => NativeLabelService::OPTION_FIELDS,
             'values' => (object)\array_intersect_key($values, \array_flip(NativeLabelService::OPTION_FIELDS)),
-            'currency' => OrderAmountCalculator::CURRENCY,
+            'priceFormat' => $this->formatter->getPriceFormat(),
             'grandTotal' => $amounts['grand_total'],
             'shippingCharged' => $amounts['shipping_charged'],
             'codCollected' => $amounts['cod_collected'],
@@ -172,25 +186,30 @@ class LabelOptions implements ArgumentInterface, ResetAfterRequestInterface
             'items' => (object)$this->orderAmountCalculator->getItems($order),
             'carriers' => (object)$this->shipmentOptionsProvider->getCarrierFeatures(),
             'carriersError' => $this->shipmentOptionsProvider->getCarriersError(),
-            'map' => $this->screenDataProvider->getMap(),
+            'map' => $this->adminMapConfigProvider->getMapConfig(true),
             // The shipment type each parcel type makes, for checking the packages.
-            'packShipmentTypes' => (object)ParcelTypeMapper::map(),
+            'packShipmentTypes' => (object)ParcelTypeMapper::getShipmentTypeMap(),
             // Services for pallets, which only pallets may have.
             'palletServices' => $this->screenDataProvider->getPalletServices(),
             // Where the point map starts: the postcode alone, which the city can't contradict.
             'mapSearch' => \trim((string)$order->getShippingAddress()?->getPostcode()),
-            // The sender addresses' postcodes and drop-off points, for the drop-off point.
-            'senderPoints' => (object)$this->screenDataProvider->getSenderPoints(),
+            // Where the drop-off point's map starts for each sender address.
+            'senderPostcodes' => (object)$this->screenDataProvider->getSenderPostcodes(),
             // The collection dates and windows, as the Polkurier shipment screen asks for them.
             'pickupTimes' => [
-                'url' => $this->url->getUrl('polkurier/shipment/pickupTimes'),
+                'url' => $this->url->getUrl(ShipmentPickupTimes::ROUTE),
                 'orderId' => (int)$order->getEntityId(),
                 'recipientPostcode' => \trim((string)$order->getShippingAddress()?->getPostcode()),
             ],
-            'point' => $this->screenDataProvider->describeRecipientPoint(
-                (int)$order->getEntityId(),
-                (string)($values[ShipmentDraftInterface::FIELD_CARRIER_CODE] ?? ''),
-                (string)($values[ShipmentDraftInterface::FIELD_RECIPIENT_POINT_ID] ?? ''),
+            'point' => $point,
+            'description' => [
+                'maxLength' => RemoteOrder::DESCRIPTION_MAX_LENGTH,
+                'notice' => $this->screenDataProvider->getDescriptionNotice(),
+            ],
+            // Names and addresses by point code; points chosen on the map are added to them.
+            'pointDetails' => (object)$this->screenDataProvider->describePoints(
+                $point,
+                (string)($values[ShipmentDraftInterface::FIELD_SENDER_POINT_ID] ?? ''),
             ),
             'options' => [
                 ShipmentDraftInterface::FIELD_CARRIER_CODE => $this->shipmentOptionsProvider->getCarrierOptions(),
@@ -233,7 +252,7 @@ class LabelOptions implements ArgumentInterface, ResetAfterRequestInterface
         $existing = $this->getExistingShipment();
 
         return [
-            'url' => $this->url->getUrl('polkurier/shipment/pack'),
+            'url' => $this->url->getUrl(ShipmentPack::ROUTE),
             'orderId' => (int)$order->getEntityId(),
             'shipmentId' => $existing !== null ? (int)$existing->getId() : null,
             'onOpen' => $this->configProvider->isPackingNewShipments((int)$order->getStoreId()),
@@ -249,7 +268,7 @@ class LabelOptions implements ArgumentInterface, ResetAfterRequestInterface
         if ($this->existing === null && $shipmentId) {
             try {
                 $shipment = $this->shipmentRepository->get($shipmentId);
-            } catch (\Magento\Framework\Exception\NoSuchEntityException) {
+            } catch (NoSuchEntityException) {
                 return null;
             }
             $this->existing = $shipment instanceof MagentoShipmentModel ? $shipment : null;

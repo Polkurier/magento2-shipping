@@ -6,27 +6,29 @@
 <config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Backend:etc/menu.xsd">
     <menu>
+        <!-- Open to Magento's Sales permission, so its shipment roles reach Polkurier shipments -->
         <add id="Polkurier_Shipping::root" title="Polkurier" translate="title" module="Polkurier_Shipping"
-             sortOrder="17" resource="Polkurier_Shipping::root" />
+             sortOrder="17" resource="Magento_Sales::sales" />
 
         <add id="Polkurier_Shipping::sales" title="Sales" translate="title" module="Polkurier_Shipping"
-             sortOrder="10" parent="Polkurier_Shipping::root" resource="Polkurier_Shipping::sales" />
+             sortOrder="10" parent="Polkurier_Shipping::root" resource="Magento_Sales::sales" />
         <!-- Magento's orders list, filtered to the orders shipped with Polkurier (sales_order_grid.xml) -->
         <add id="Polkurier_Shipping::orders" title="Orders" translate="title" module="Polkurier_Shipping"
              sortOrder="5" parent="Polkurier_Shipping::sales" action="sales/order/index/carrier/polkurier"
              resource="Magento_Sales::sales_order" />
         <add id="Polkurier_Shipping::shipments" title="Shipments" translate="title" module="Polkurier_Shipping"
              sortOrder="10" parent="Polkurier_Shipping::sales" action="polkurier/shipment/index"
-             resource="Polkurier_Shipping::shipments" />
+             resource="Magento_Sales::shipment" />
         <add id="Polkurier_Shipping::payouts" title="Cash on delivery payouts" translate="title"
              module="Polkurier_Shipping" sortOrder="20" parent="Polkurier_Shipping::sales"
              action="polkurier/payout/index" resource="Polkurier_Shipping::payouts" />
 
+        <!-- Open to Magento's Delivery Methods permission, which its Carriers and Configuration need -->
         <add id="Polkurier_Shipping::settings" title="Settings" translate="title" module="Polkurier_Shipping"
-             sortOrder="20" parent="Polkurier_Shipping::root" resource="Polkurier_Shipping::settings" />
+             sortOrder="20" parent="Polkurier_Shipping::root" resource="Magento_Shipping::carriers" />
         <add id="Polkurier_Shipping::carriers" title="Carriers" translate="title" module="Polkurier_Shipping"
              sortOrder="10" parent="Polkurier_Shipping::settings" action="polkurier/carrier/index"
-             resource="Polkurier_Shipping::carriers" />
+             resource="Magento_Shipping::carriers" />
         <add id="Polkurier_Shipping::addresses" title="Addresses" translate="title" module="Polkurier_Shipping"
              sortOrder="20" parent="Polkurier_Shipping::settings" action="polkurier/address/index"
              resource="Polkurier_Shipping::addresses" />

@@ -22,27 +22,27 @@ class ShippingChoice extends DataObject implements ShippingChoiceInterface
 
     public function getShippingMethod(): ?string
     {
-        return $this->nullable(self::FIELD_SHIPPING_METHOD);
+        return $this->getNullable(self::FIELD_SHIPPING_METHOD);
     }
 
     public function getShippingDescription(): ?string
     {
-        return $this->nullable(self::FIELD_SHIPPING_DESCRIPTION);
+        return $this->getNullable(self::FIELD_SHIPPING_DESCRIPTION);
     }
 
     public function getPointMethodCode(): ?string
     {
-        return $this->nullable(self::FIELD_POINT_METHOD_CODE);
+        return $this->getNullable(self::FIELD_POINT_METHOD_CODE);
     }
 
     public function getPointId(): ?string
     {
-        return $this->nullable(self::FIELD_POINT_ID);
+        return $this->getNullable(self::FIELD_POINT_ID);
     }
 
     public function getPointLabel(): ?string
     {
-        return $this->nullable(self::FIELD_POINT_LABEL);
+        return $this->getNullable(self::FIELD_POINT_LABEL);
     }
 
     public function getPointCod(): ?bool
@@ -54,10 +54,10 @@ class ShippingChoice extends DataObject implements ShippingChoiceInterface
 
     public function getCreatedAt(): ?string
     {
-        return $this->nullable(self::FIELD_CREATED_AT);
+        return $this->getNullable(self::FIELD_CREATED_AT);
     }
 
-    private function nullable(string $key): ?string
+    private function getNullable(string $key): ?string
     {
         $value = $this->getData($key);
 

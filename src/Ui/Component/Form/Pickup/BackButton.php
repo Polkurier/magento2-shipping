@@ -11,7 +11,8 @@ use Magento\Framework\App\RequestInterface;
 use Magento\Framework\Url\DecoderInterface;
 use Magento\Framework\UrlInterface;
 use Magento\Framework\View\Element\UiComponent\Control\ButtonProviderInterface;
-use Polkurier\Shipping\Model\RequestParam;
+use Polkurier\Shipping\Controller\Adminhtml\Shipment\Index as ShipmentIndex;
+use Polkurier\Shipping\Model\RequestParamReader;
 use Polkurier\Shipping\Ui\Component\Control\OnClickScriptBuilder;
 
 /**
@@ -33,17 +34,17 @@ readonly class BackButton implements ButtonProviderInterface
     public function getButtonData(): array
     {
         $orderId = (int)$this->request->getParam('order_id');
-        $from = RequestParam::string($this->request, 'uenc');
+        $from = RequestParamReader::getString($this->request, 'uenc');
         $back = $from !== '' ? (string)$this->urlDecoder->decode($from) : '';
 
         return [
             'label' => $orderId ? __('Back to the order') : __('Back'),
-            'on_click' => $this->onClickScriptBuilder->location(match (true) {
+            'on_click' => $this->onClickScriptBuilder->buildLocation(match (true) {
                 // Only a page of this admin: the parameter comes from the browser and isn't trusted
                 // further.
                 \str_starts_with($back, (string)$this->url->getBaseUrl()) => $back,
                 $orderId > 0 => $this->url->getUrl('sales/order/view', ['order_id' => $orderId]),
-                default => $this->url->getUrl('polkurier/shipment/index'),
+                default => $this->url->getUrl(ShipmentIndex::ROUTE),
             }),
             'class' => 'back',
             'sort_order' => 10,

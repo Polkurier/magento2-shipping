@@ -147,7 +147,7 @@ readonly class AutoPacker
         }
         $units = [];
         foreach ($qtys as $id => $qty) {
-            $size = self::sorted(\array_map(static fn(float $side): float => $side + $margin, $sizes[$id]));
+            $size = self::sortSize(\array_map(static fn(float $side): float => $side + $margin, $sizes[$id]));
             // Whole units one by one; a fraction of a unit, if any, as one more.
             for ($left = $qty; $left > 0.0001; $left -= 1) {
                 $units[] = [
@@ -159,24 +159,24 @@ readonly class AutoPacker
             }
         }
 
-        $parcels = $this->merge($templates, $this->fill($templates, self::biggestFirst($units)));
+        $parcels = $this->merge($templates, $this->fill($templates, self::sortBiggestFirst($units)));
         $parcelWeight = $this->configProvider->getParcelWeight((int)$order->getStoreId());
         $packs = [];
         $unweighedOwn = [];
         foreach ($parcels as $parcel) {
             if ($parcel['template'] !== null) {
-                $parcel['template'] = $this->smallest($templates, $parcel['units']) ?? $parcel['template'];
+                $parcel['template'] = $this->findSmallest($templates, $parcel['units']) ?? $parcel['template'];
             }
             foreach ($parcel['template'] === null ? $parcel['units'] : [] as $unit) {
                 if ($unit['weight'] <= 0) {
                     $unweighedOwn[$unit['id']] = $items[$unit['id']]['name'] ?? (string)$unit['id'];
                 }
             }
-            $pack = $this->toPack($parcel, $parcelWeight);
+            $pack = $this->mapToPack($parcel, $parcelWeight);
             // A parcel of its own size gets the type being packed, so the shipment stays of one
             // type: the smallest pallet it stands on, or an envelope.
             if ($pack->getTemplateId() === null && $shipmentType === ShipmentTypeEnum::Palette->value) {
-                $pack->setPackType(ParcelTypeMapper::palletFor($pack->getLength(), $pack->getWidth()));
+                $pack->setPackType(ParcelTypeMapper::getPalletType($pack->getLength(), $pack->getWidth()));
             } elseif ($pack->getTemplateId() === null && $shipmentType === ShipmentTypeEnum::Envelope->value) {
                 $pack->setPackType(ParcelTypeMapper::ENVELOPE);
             }
@@ -232,7 +232,7 @@ readonly class AutoPacker
     {
         $parcels = [];
         while ($units !== []) {
-            $template = $this->smallest($templates, $units);
+            $template = $this->findSmallest($templates, $units);
             if ($template !== null) {
                 $parcels[] = ['template' => $template, 'units' => $units];
                 break;
@@ -240,7 +240,9 @@ readonly class AutoPacker
             $best = null;
             foreach ($templates as $candidate) {
                 [$packed, $rest] = self::packMost([$candidate['size']], $units, $candidate['max_weight']);
-                $volume = \array_sum(\array_map(static fn(array $unit): float => self::volume($unit['size']), $packed));
+                $volume = \array_sum(
+                    \array_map(static fn(array $unit): float => self::calculateVolume($unit['size']), $packed),
+                );
                 // Strictly more, so of two that take as much the smaller one stays.
                 if ($packed !== [] && ($best === null || $volume > $best['volume'] + 0.0001)) {
                     $best = ['template' => $candidate, 'volume' => $volume, 'packed' => $packed, 'rest' => $rest];
@@ -250,7 +252,7 @@ readonly class AutoPacker
                 // Nothing left fits any template: the biggest unit gets the smallest template it
                 // fits by size, even though too heavy, or else a parcel of its own size.
                 $unit = \array_shift($units);
-                $parcels[] = ['template' => $this->smallest($templates, [$unit], false), 'units' => [$unit]];
+                $parcels[] = ['template' => $this->findSmallest($templates, [$unit], false), 'units' => [$unit]];
                 continue;
             }
             $parcels[] = ['template' => $best['template'], 'units' => $best['packed']];
@@ -276,8 +278,8 @@ readonly class AutoPacker
                 if ($parcels[$first]['template'] === null || $parcels[$second]['template'] === null) {
                     continue;
                 }
-                $units = self::biggestFirst(\array_merge($parcels[$first]['units'], $parcels[$second]['units']));
-                $template = $this->smallest($templates, $units);
+                $units = self::sortBiggestFirst(\array_merge($parcels[$first]['units'], $parcels[$second]['units']));
+                $template = $this->findSmallest($templates, $units);
                 if ($template !== null) {
                     $parcels[$first] = ['template' => $template, 'units' => $units];
                     \array_splice($parcels, $second, 1);
@@ -295,9 +297,13 @@ readonly class AutoPacker
      *
      * @return array<int, array<string, mixed>>
      */
-    private static function biggestFirst(array $units): array
+    private static function sortBiggestFirst(array $units): array
     {
-        \usort($units, static fn(array $a, array $b): int => self::volume($b['size']) <=> self::volume($a['size']));
+        \usort(
+            $units,
+            static fn(array $a, array $b): int
+                => self::calculateVolume($b['size']) <=> self::calculateVolume($a['size']),
+        );
 
         return $units;
     }
@@ -338,7 +344,7 @@ readonly class AutoPacker
     /**
      * @param array{template: array<string, mixed>|null, units: array<int, array<string, mixed>>} $parcel
      */
-    private function toPack(array $parcel, ParcelWeightEnum $parcelWeight): Draft\Pack
+    private function mapToPack(array $parcel, ParcelWeightEnum $parcelWeight): Draft\Pack
     {
         $qtys = [];
         $weight = 0.0;
@@ -398,7 +404,11 @@ readonly class AutoPacker
             }
             $templates[] = self::describe($template);
         }
-        \usort($templates, static fn(array $a, array $b): int => self::volume($a['size']) <=> self::volume($b['size']));
+        \usort(
+            $templates,
+            static fn(array $a, array $b): int
+                => self::calculateVolume($a['size']) <=> self::calculateVolume($b['size']),
+        );
 
         return $templates;
     }
@@ -420,7 +430,7 @@ readonly class AutoPacker
             'max_weight' => $template->getWeight() > 0
                 ? \max(0.0, $template->getWeight() - (float)$template->getTare())
                 : null,
-            'size' => self::sorted([
+            'size' => self::sortSize([
                 (float)$template->getLength(),
                 (float)$template->getWidth(),
                 (float)$template->getHeight(),
@@ -457,7 +467,7 @@ readonly class AutoPacker
      *
      * @return array<string, mixed>|null
      */
-    private function smallest(array $templates, array $units, bool $byWeight = true): ?array
+    private function findSmallest(array $templates, array $units, bool $byWeight = true): ?array
     {
         $weight = \array_sum(\array_map(static fn(array $unit): float => $unit['weight'] * $unit['qty'], $units));
         foreach ($templates as $template) {
@@ -486,13 +496,13 @@ readonly class AutoPacker
     {
         $best = null;
         foreach ($spaces as $index => $space) {
-            foreach (self::turns($size) as $turn) {
+            foreach (self::listTurns($size) as $turn) {
                 if ($turn[0] > $space[0] + 0.0001 || $turn[1] > $space[1] + 0.0001 || $turn[2] > $space[2] + 0.0001) {
                     continue;
                 }
                 // The fullest box first; within it, the way that leaves the unit snug against a
                 // side, so the rest of the box stays in one usable piece.
-                $waste = self::volume($space) - self::volume($turn);
+                $waste = self::calculateVolume($space) - self::calculateVolume($turn);
                 $gaps = \array_filter(
                     [$space[0] - $turn[0], $space[1] - $turn[1], $space[2] - $turn[2]],
                     static fn(float $gap): bool => $gap > 0.0001,
@@ -535,7 +545,7 @@ readonly class AutoPacker
      *
      * @return array<int, float[]>
      */
-    private static function turns(array $size): array
+    private static function listTurns(array $size): array
     {
         [$a, $b, $c] = $size;
 
@@ -547,7 +557,7 @@ readonly class AutoPacker
      *
      * @return float[] longest first
      */
-    private static function sorted(array $size): array
+    private static function sortSize(array $size): array
     {
         \rsort($size);
 
@@ -557,7 +567,7 @@ readonly class AutoPacker
     /**
      * @param float[] $size
      */
-    private static function volume(array $size): float
+    private static function calculateVolume(array $size): float
     {
         return $size[0] * $size[1] * $size[2];
     }

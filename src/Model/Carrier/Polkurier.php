@@ -63,7 +63,7 @@ class Polkurier extends AbstractCarrier implements CarrierInterface
      * The Polkurier carrier code in a Magento shipping method such as "polkurier_DPD", or null for
      * methods of other carriers.
      */
-    public static function methodCodeOf(?string $shippingMethod): ?string
+    public static function extractMethodCode(?string $shippingMethod): ?string
     {
         return $shippingMethod !== null && \str_starts_with($shippingMethod, self::METHOD_PREFIX)
             ? \substr($shippingMethod, \strlen(self::METHOD_PREFIX))
@@ -73,7 +73,7 @@ class Polkurier extends AbstractCarrier implements CarrierInterface
     /**
      * The shipping method of one of the account's carriers, e.g. polkurier_DPD.
      */
-    public static function methodOf(string $carrierCode): string
+    public static function buildShippingMethod(string $carrierCode): string
     {
         return self::METHOD_PREFIX . $carrierCode;
     }
@@ -84,7 +84,7 @@ class Polkurier extends AbstractCarrier implements CarrierInterface
      */
     public static function isOrderOf(Order $order): bool
     {
-        return self::methodCodeOf((string)$order->getShippingMethod()) !== null;
+        return self::extractMethodCode((string)$order->getShippingMethod()) !== null;
     }
 
     /**
@@ -183,7 +183,7 @@ class Polkurier extends AbstractCarrier implements CarrierInterface
      *
      * @return array<string, string>
      */
-    public function getContainerTypes(?\Magento\Framework\DataObject $params = null)
+    public function getContainerTypes(?DataObject $params = null)
     {
         return $this->packTypes->toArray();
     }
@@ -217,7 +217,7 @@ class Polkurier extends AbstractCarrier implements CarrierInterface
     {
         $status = $this->trackStatusFactory->create();
         $status->setCarrier(self::CODE);
-        $shipment = $this->shipmentFinder->latestByWaybill((string)$tracking);
+        $shipment = $this->shipmentFinder->findLatestByWaybill((string)$tracking);
         // The label of the carrier it went with, in the store it was ordered in.
         $status->setCarrierTitle($shipment !== null
             ? $this->carrierConfigProvider->getLabel($shipment->getCarrierCode(), (int)$shipment->getStoreId())

@@ -17,6 +17,7 @@ use Polkurier\Shipping\Model\BankAccount\BankAccountHandler;
 class Delete extends AbstractDelete
 {
     public const string ADMIN_RESOURCE = 'Polkurier_Shipping::bank_accounts';
+    public const string ROUTE = 'polkurier/bankaccount/delete';
 
     public function __construct(
         Context $context,

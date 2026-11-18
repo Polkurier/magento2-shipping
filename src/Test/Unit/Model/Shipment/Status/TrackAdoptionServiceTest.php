@@ -9,10 +9,11 @@ namespace Polkurier\Shipping\Test\Unit\Model\Shipment\Status;
 
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Phrase;
+use Magento\Framework\Serialize\Serializer\Json;
 use Magento\Framework\TestFramework\Unit\Helper\ObjectManager;
 use Magento\Sales\Api\ShipmentRepositoryInterface as MagentoShipmentRepository;
 use Magento\Sales\Model\Order;
-use Magento\Sales\Model\Order\Shipment as MagentoShipment;
+use Magento\Sales\Model\Order\Shipment as MagentoShipmentModel;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
@@ -31,7 +32,7 @@ use Polkurier\Shipping\Model\Shipment\Status\StatusRefreshService;
 use Polkurier\Shipping\Model\Shipment\Status\TrackAdoptionService;
 use Polkurier\Shipping\Model\ShipmentFactory;
 use Polkurier\Shipping\Test\Unit\Support\MemoryLocks;
-use Polkurier\Webservice\Response\Order as RemoteOrder;
+use Polkurier\Webservice\Entity\Order as RemoteOrder;
 
 #[CoversClass(TrackAdoptionService::class)]
 #[AllowMockObjectsWithoutExpectations]
@@ -49,7 +50,7 @@ class TrackAdoptionServiceTest extends TestCase
 
     public function testAnOrderFoundByItsWaybillBecomesTheOrdersShipmentOnTheMagentoShipment(): void
     {
-        $this->service()->adopt(40, [' WB-1001 ', 'WB-1001']);
+        $this->createService()->adopt(40, [' WB-1001 ', 'WB-1001']);
 
         self::assertSame([
             'take over tracks of 40',
@@ -70,7 +71,7 @@ class TrackAdoptionServiceTest extends TestCase
 
     public function testOnAMagentoShipmentAnotherLiveOrderHoldsItGoesWithoutOne(): void
     {
-        $this->service(free: false)->adopt(40, ['WB-1001']);
+        $this->createService(free: false)->adopt(40, ['WB-1001']);
 
         self::assertSame(['take over tracks of 40', 'linked with 18015-2001', 'event track'], $this->happened);
         self::assertNull($this->saved[0]->getShipmentId());
@@ -78,7 +79,7 @@ class TrackAdoptionServiceTest extends TestCase
 
     public function testAnOrderCancelledInThePanelIsLinkedAsCancelled(): void
     {
-        $this->service(cancelled: true)->adopt(40, ['WB-1001']);
+        $this->createService(cancelled: true)->adopt(40, ['WB-1001']);
 
         self::assertSame([
             'take over tracks of 40',
@@ -89,7 +90,7 @@ class TrackAdoptionServiceTest extends TestCase
 
     public function testANumberTheModuleHoldsIsLeftAlone(): void
     {
-        $this->service(heldWaybill: true)->adopt(40, ['WB-1001']);
+        $this->createService(heldWaybill: true)->adopt(40, ['WB-1001']);
 
         self::assertSame([], $this->happened);
         self::assertSame([], $this->saved);
@@ -97,7 +98,7 @@ class TrackAdoptionServiceTest extends TestCase
 
     public function testANumberNotOnTheAccountStaysAPlainTrack(): void
     {
-        $this->service(found: false)->adopt(40, ['WB-1001']);
+        $this->createService(found: false)->adopt(40, ['WB-1001']);
 
         self::assertSame([], $this->happened);
         self::assertSame([], $this->saved);
@@ -105,7 +106,7 @@ class TrackAdoptionServiceTest extends TestCase
 
     public function testAnOrderMadeForAnotherStaysAPlainTrack(): void
     {
-        $this->service(madeFor: false)->adopt(40, ['WB-1001']);
+        $this->createService(madeFor: false)->adopt(40, ['WB-1001']);
 
         self::assertSame([], $this->happened);
         self::assertSame([], $this->saved);
@@ -113,7 +114,7 @@ class TrackAdoptionServiceTest extends TestCase
 
     public function testAnotherWaybillOfAnOrderAlreadyLinkedRefreshesIt(): void
     {
-        $this->service(heldOrder: 31)->adopt(40, ['WB-1002']);
+        $this->createService(heldOrder: 31)->adopt(40, ['WB-1002']);
 
         self::assertSame(['take over tracks of 40', 'refresh 8'], $this->happened);
         self::assertSame([], $this->saved);
@@ -121,7 +122,7 @@ class TrackAdoptionServiceTest extends TestCase
 
     public function testAnOrderAnotherMagentoOrderHoldsIsLeftAlone(): void
     {
-        $this->service(heldOrder: 30)->adopt(40, ['WB-1002']);
+        $this->createService(heldOrder: 30)->adopt(40, ['WB-1002']);
 
         self::assertSame([], $this->happened);
     }
@@ -134,13 +135,13 @@ class TrackAdoptionServiceTest extends TestCase
             $logged[] = $message;
         });
 
-        $this->service(logger: $logger, failOn: 'W-BAD')->adopt(40, ['W-BAD', 'WB-1001']);
+        $this->createService(logger: $logger, failOn: 'W-BAD')->adopt(40, ['W-BAD', 'WB-1001']);
 
         self::assertSame(['A tracking number was not linked to its Polkurier order'], $logged);
         self::assertCount(1, $this->saved);
     }
 
-    private function service(
+    private function createService(
         bool $free = true,
         bool $cancelled = false,
         bool $heldWaybill = false,
@@ -172,14 +173,15 @@ class TrackAdoptionServiceTest extends TestCase
             },
         );
         $finder = $this->createStub(ShipmentFinder::class);
-        $finder->method('latestByWaybill')->willReturn($heldWaybill ? $this->createStub(ShipmentInterface::class) : null);
+        $finder->method('findLatestByWaybill')
+            ->willReturn($heldWaybill ? $this->createStub(ShipmentInterface::class) : null);
         $held = $this->createStub(ShipmentInterface::class);
         $held->method('getId')->willReturn(8);
         $held->method('getOrderId')->willReturn((int)$heldOrder);
-        $finder->method('byNumbers')->willReturn($heldOrder !== null ? [$held] : []);
+        $finder->method('findByNumbers')->willReturn($heldOrder !== null ? [$held] : []);
         $factory = $this->createStub(ShipmentFactory::class);
         $factory->method('create')->willReturnCallback(
-            fn(): Shipment => (new ObjectManager($this))->getObject(Shipment::class),
+            fn(): Shipment => (new ObjectManager($this))->getObject(Shipment::class, ['json' => new Json()]),
         );
         $repository = $this->createStub(ShipmentRepositoryInterface::class);
         $repository->method('save')->willReturnCallback(function (ShipmentInterface $shipment): ShipmentInterface {
@@ -187,7 +189,7 @@ class TrackAdoptionServiceTest extends TestCase
 
             return $shipment;
         });
-        $magentoShipment = $this->createStub(MagentoShipment::class);
+        $magentoShipment = $this->createStub(MagentoShipmentModel::class);
         $magentoShipment->method('getOrderId')->willReturn(31);
         $magentoShipments = $this->createStub(MagentoShipmentRepository::class);
         $magentoShipments->method('get')->willReturn($magentoShipment);
@@ -205,7 +207,7 @@ class TrackAdoptionServiceTest extends TestCase
             $this->happened[] = 'add tracks to ' . $shipmentId;
         });
         $followUp = $this->createStub(NativeFollowUpService::class);
-        $followUp->method('remarkLinked')->willReturnCallback(function (): void {
+        $followUp->method('addLinkedRemark')->willReturnCallback(function (): void {
             $this->happened[] = 'remark linked';
         });
         $followUp->method('notePlaced')->willReturnCallback(
@@ -213,12 +215,12 @@ class TrackAdoptionServiceTest extends TestCase
                 $this->happened[] = ($byHand ? 'linked with ' : 'placed ') . $shipment->getPolkurierNumber();
             },
         );
-        $followUp->method('linked')->willReturnCallback(
+        $followUp->method('followLink')->willReturnCallback(
             function (ShipmentInterface $shipment, Order $order, string $source): void {
                 $this->happened[] = 'event ' . $source;
             },
         );
-        $followUp->method('comment')->willReturnCallback(function (Order $order, Phrase $comment): void {
+        $followUp->method('addComment')->willReturnCallback(function (Order $order, Phrase $comment): void {
             $this->happened[] = (string)$comment;
         });
         $refresh = $this->createStub(StatusRefreshService::class);

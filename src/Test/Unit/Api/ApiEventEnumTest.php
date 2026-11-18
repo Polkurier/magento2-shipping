@@ -30,6 +30,7 @@ class ApiEventEnumTest extends TestCase
             'polkurier_api_bank_account_save_after',
             'polkurier_api_bank_account_delete_after',
             'polkurier_api_two_factor_code_request_after',
+            'polkurier_api_default_sender_point_change_after',
             'polkurier_api_payout_create_after',
             'polkurier_api_payout_cancel_after',
         ], \array_map(static fn(ApiEventEnum $event): string => $event->value, ApiEventEnum::cases()));

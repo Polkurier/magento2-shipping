@@ -17,6 +17,7 @@ use Polkurier\Shipping\Model\BankAccount\BankAccountHandler;
 class Edit extends AbstractEdit
 {
     public const string ADMIN_RESOURCE = 'Polkurier_Shipping::bank_accounts';
+    public const string ROUTE = 'polkurier/bankaccount/edit';
 
     public function __construct(
         Context $context,

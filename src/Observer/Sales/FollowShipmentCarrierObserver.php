@@ -9,6 +9,7 @@ namespace Polkurier\Shipping\Observer\Sales;
 
 use Magento\Framework\Event\Observer;
 use Magento\Framework\Event\ObserverInterface;
+use Magento\Framework\Model\AbstractModel;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Logger\Logger;
 use Polkurier\Shipping\Model\Shipment\Native\ActualShippingUpdater;
@@ -30,7 +31,7 @@ readonly class FollowShipmentCarrierObserver implements ObserverInterface
     public function execute(Observer $observer): void
     {
         $shipment = $observer->getEvent()->getData('shipment');
-        if (!$shipment instanceof ShipmentInterface || !$shipment instanceof \Magento\Framework\Model\AbstractModel) {
+        if (!$shipment instanceof ShipmentInterface || !$shipment instanceof AbstractModel) {
             return;
         }
         $was = $shipment->getOrigData(ShipmentInterface::FIELD_STATE);

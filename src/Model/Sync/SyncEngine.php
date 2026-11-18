@@ -20,7 +20,7 @@ use Polkurier\Webservice\Exception\Exception as PolkurierException;
  * For each pair, a side counts as changed when it differs from how the pair was left by the last
  * synchronization: locally when edited or deleted since, remotely when its fingerprint moved. A
  * change on one side only is copied to the other. When both changed, the later change wins, by
- * the local updated_at and when the remote change was first seen (remoteChangedAt()). An entry
+ * the local updated_at and when the remote change was first seen (getRemoteChangedAt()). An entry
  * deleted remotely is deleted locally, unless it was edited locally since the last
  * synchronization, in which case it is sent again. New remote entries are created locally; new
  * local ones are sent.
@@ -54,7 +54,7 @@ readonly class SyncEngine
         $now = new \DateTimeImmutable('@' . $this->dateTime->gmtTimestamp());
         $remote = $adapter->fetchRemote();
         $locals = $adapter->fetchLocal();
-        $unclaimed = $this->unclaimedByKey($adapter, $remote, $locals);
+        $unclaimed = $this->findUnclaimedByKey($adapter, $remote, $locals);
         if ($only !== null) {
             $locals = [$only];
         }
@@ -94,16 +94,16 @@ readonly class SyncEngine
         foreach ($remote as $extId => $entry) {
             try {
                 $local = $adapter->createLocal();
-                $this->pulled(
+                $this->applyRemoteEntry(
                     $adapter,
                     $local,
                     $entry,
-                    $this->remoteChangedAt($this->hash($entry), $local, $now),
+                    $this->getRemoteChangedAt($this->hash($entry), $local, $now),
                     $now,
                 );
                 $result->created++;
             } catch (\Throwable $e) {
-                $message = (string)$this->errorMessageResolver->phrase($e);
+                $message = (string)$this->errorMessageResolver->createPhrase($e);
                 $this->logger->warning('Polkurier synchronization failed', [
                     'entity' => $adapter->getEntityType()->value,
                     'remote' => (string)$extId,
@@ -133,7 +133,7 @@ readonly class SyncEngine
      *
      * @param array<string, mixed> $stored the entry as Polkurier stored it, normalized
      */
-    public function pushed(
+    public function recordPushed(
         AdapterInterface $adapter,
         SyncableInterface $local,
         array $stored,
@@ -171,7 +171,7 @@ readonly class SyncEngine
      *
      * @return array<string, array<int, string|int>> remote ids by key
      */
-    private function unclaimedByKey(AdapterInterface $adapter, array $remote, array $locals): array
+    private function findUnclaimedByKey(AdapterInterface $adapter, array $remote, array $locals): array
     {
         $linked = [];
         foreach ($locals as $local) {
@@ -207,7 +207,7 @@ readonly class SyncEngine
 
             return;
         }
-        $this->pushed($adapter, $local, $adapter->push($local), $now);
+        $this->recordPushed($adapter, $local, $adapter->push($local), $now);
         $result->pushed++;
     }
 
@@ -220,7 +220,7 @@ readonly class SyncEngine
         if ($local->getDeletedAt() === null && $this->isLocallyChanged($local)) {
             $local->setExtId(null);
             if ($adapter instanceof PushableAdapterInterface) {
-                $this->pushed($adapter, $local, $adapter->push($local), $now);
+                $this->recordPushed($adapter, $local, $adapter->push($local), $now);
                 $result->pushed++;
             } else {
                 $this->awaitConfirmation($adapter, $local, $result);
@@ -245,14 +245,14 @@ readonly class SyncEngine
         $hash = $this->hash($remote);
         $remoteChanged = $hash !== $local->getRemoteHash();
         $localChanged = $this->isLocallyChanged($local);
-        $remoteAt = $this->remoteChangedAt($hash, $local, $now);
+        $remoteAt = $this->getRemoteChangedAt($hash, $local, $now);
 
         if ($local->getDeletedAt() !== null) {
             if ($remoteChanged
                 && $remoteAt > new \DateTimeImmutable($local->getDeletedAt(), new \DateTimeZone('UTC'))
             ) {
                 $local->setDeletedAt(null);
-                $this->pulled($adapter, $local, $remote, $remoteAt, $now);
+                $this->applyRemoteEntry($adapter, $local, $remote, $remoteAt, $now);
                 $result->pulled++;
             } elseif ($adapter instanceof PushableAdapterInterface) {
                 $adapter->deleteRemote($local);
@@ -267,15 +267,15 @@ readonly class SyncEngine
         }
 
         $pull = match (true) {
-            $localChanged && $remoteChanged => $remoteAt > $this->localChangedAt($local),
+            $localChanged && $remoteChanged => $remoteAt > $this->getLocalChangedAt($local),
             $remoteChanged => true,
             default => false,
         };
         if ($pull) {
-            $this->pulled($adapter, $local, $remote, $remoteAt, $now);
+            $this->applyRemoteEntry($adapter, $local, $remote, $remoteAt, $now);
             $result->pulled++;
         } elseif ($localChanged && $adapter instanceof PushableAdapterInterface) {
-            $this->pushed($adapter, $local, $adapter->push($local), $now);
+            $this->recordPushed($adapter, $local, $adapter->push($local), $now);
             $result->pushed++;
         } elseif ($localChanged) {
             $this->awaitConfirmation($adapter, $local, $result);
@@ -303,7 +303,7 @@ readonly class SyncEngine
     /**
      * @param array<string, mixed> $remote
      */
-    private function pulled(
+    private function applyRemoteEntry(
         AdapterInterface $adapter,
         SyncableInterface $local,
         array $remote,
@@ -327,7 +327,7 @@ readonly class SyncEngine
         \Throwable $e,
         SyncResult $result,
     ): void {
-        $message = (string)$this->errorMessageResolver->phrase($e);
+        $message = (string)$this->errorMessageResolver->createPhrase($e);
         $this->logger->warning('Polkurier synchronization failed', [
             'entity' => $adapter->getEntityType()->value,
             'id' => $local->getId(),
@@ -360,10 +360,12 @@ readonly class SyncEngine
             return true;
         }
 
-        return $this->localChangedAt($local) > new \DateTimeImmutable($local->getSyncedAt(), new \DateTimeZone('UTC'));
+        $syncedAt = new \DateTimeImmutable($local->getSyncedAt(), new \DateTimeZone('UTC'));
+
+        return $this->getLocalChangedAt($local) > $syncedAt;
     }
 
-    private function localChangedAt(SyncableInterface $local): \DateTimeImmutable
+    private function getLocalChangedAt(SyncableInterface $local): \DateTimeImmutable
     {
         return new \DateTimeImmutable(
             $local->getDeletedAt() ?? $local->getUpdatedAt() ?? '@0',
@@ -377,7 +379,7 @@ readonly class SyncEngine
      * for it. When both sides changed between two synchronizations, the remote change thus counts
      * as the later one; local edits are sent as soon as they are saved, which keeps that rare.
      */
-    private function remoteChangedAt(
+    private function getRemoteChangedAt(
         string $remoteHash,
         SyncableInterface $local,
         \DateTimeImmutable $now,

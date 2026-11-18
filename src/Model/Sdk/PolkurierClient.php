@@ -10,6 +10,7 @@ namespace Polkurier\Shipping\Model\Sdk;
 use Magento\Framework\ObjectManager\ResetAfterRequestInterface;
 use Polkurier\Shipping\Api\PolkurierClientInterface;
 use Polkurier\Shipping\Logger\Logger;
+use Polkurier\Webservice\Api\SerializerInterface;
 use Polkurier\Webservice\Api\Service\AccountServiceInterface;
 use Polkurier\Webservice\Api\Service\AccountVerificationServiceInterface;
 use Polkurier\Webservice\Api\Service\AddressesServiceInterface;
@@ -27,9 +28,9 @@ use Polkurier\Webservice\Api\Service\TicketsServiceInterface;
 use Polkurier\Webservice\Api\Service\TwoFactorTokenServiceInterface;
 use Polkurier\Webservice\Api\Service\UtilsServiceInterface;
 use Polkurier\Webservice\Api\Validation\ValidatorInterface;
+use Polkurier\Webservice\Api\Webhook\OrderReaderInterface;
 use Polkurier\Webservice\PolkurierWebservice;
 use Polkurier\Webservice\PolkurierWebserviceFactory;
-use Polkurier\Webservice\Serializer\SerializerProviderInterface;
 
 /**
  * Hands out the SDK's services for the Polkurier account.
@@ -46,89 +47,99 @@ class PolkurierClient implements PolkurierClientInterface, ResetAfterRequestInte
     public function __construct(
         private readonly PolkurierWebserviceFactory $webserviceFactory,
         private readonly AccountConfigProviderFactory $configProviderFactory,
-        private readonly SerializerProviderInterface $serializerProvider,
+        private readonly SerializerConfigProvider $serializerConfigProvider,
         private readonly ValidatorInterface $validator,
         private readonly Logger $logger,
     ) {}
 
-    public function courier(): CourierServiceInterface
+    public function getCourier(): CourierServiceInterface
     {
-        return $this->client()->courier();
+        return $this->getClient()->courier();
     }
 
-    public function orders(): OrdersServiceInterface
+    public function getOrders(): OrdersServiceInterface
     {
-        return $this->client()->orders();
+        return $this->getClient()->orders();
     }
 
-    public function account(): AccountServiceInterface
+    public function getAccount(): AccountServiceInterface
     {
-        return $this->client()->account();
+        return $this->getClient()->account();
     }
 
-    public function addresses(): AddressesServiceInterface
+    public function getAddresses(): AddressesServiceInterface
     {
-        return $this->client()->addresses();
+        return $this->getClient()->addresses();
     }
 
-    public function bankAccounts(): BankAccountsServiceInterface
+    public function getBankAccounts(): BankAccountsServiceInterface
     {
-        return $this->client()->bankAccounts();
+        return $this->getClient()->bankAccounts();
     }
 
-    public function packTemplates(): PackTemplatesServiceInterface
+    public function getPackTemplates(): PackTemplatesServiceInterface
     {
-        return $this->client()->packTemplates();
+        return $this->getClient()->packTemplates();
     }
 
-    public function geo(): GeoServiceInterface
+    public function getGeo(): GeoServiceInterface
     {
-        return $this->client()->geo();
+        return $this->getClient()->geo();
     }
 
-    public function twoFactorToken(): TwoFactorTokenServiceInterface
+    public function getTwoFactorToken(): TwoFactorTokenServiceInterface
     {
-        return $this->client()->twoFactorToken();
+        return $this->getClient()->twoFactorToken();
     }
 
-    public function system(): SystemServiceInterface
+    public function getSystem(): SystemServiceInterface
     {
-        return $this->client()->system();
+        return $this->getClient()->system();
     }
 
-    public function utils(): UtilsServiceInterface
+    public function getUtils(): UtilsServiceInterface
     {
-        return $this->client()->utils();
+        return $this->getClient()->utils();
     }
 
-    public function accountVerification(): AccountVerificationServiceInterface
+    public function getAccountVerification(): AccountVerificationServiceInterface
     {
-        return $this->client()->accountVerification();
+        return $this->getClient()->accountVerification();
     }
 
-    public function invoices(): InvoicesServiceInterface
+    public function getInvoices(): InvoicesServiceInterface
     {
-        return $this->client()->invoices();
+        return $this->getClient()->invoices();
     }
 
-    public function payments(): PaymentsServiceInterface
+    public function getPayments(): PaymentsServiceInterface
     {
-        return $this->client()->payments();
+        return $this->getClient()->payments();
     }
 
-    public function tickets(): TicketsServiceInterface
+    public function getTickets(): TicketsServiceInterface
     {
-        return $this->client()->tickets();
+        return $this->getClient()->tickets();
     }
 
-    public function knowledgeBase(): KnowledgeBaseServiceInterface
+    public function getKnowledgeBase(): KnowledgeBaseServiceInterface
     {
-        return $this->client()->knowledgeBase();
+        return $this->getClient()->knowledgeBase();
     }
 
-    public function moneyBox(): MoneyBoxServiceInterface
+    public function getMoneyBox(): MoneyBoxServiceInterface
     {
-        return $this->client()->moneyBox();
+        return $this->getClient()->moneyBox();
+    }
+
+    public function getOrderReader(): OrderReaderInterface
+    {
+        return $this->getClient()->orderReader();
+    }
+
+    public function getSerializer(): SerializerInterface
+    {
+        return $this->getClient()->serializer();
     }
 
     /**
@@ -144,14 +155,14 @@ class PolkurierClient implements PolkurierClientInterface, ResetAfterRequestInte
         $this->reset();
     }
 
-    private function client(): PolkurierWebservice
+    private function getClient(): PolkurierWebservice
     {
         if ($this->client === null) {
             $configProvider = $this->configProviderFactory->create();
             $this->client = $this->webserviceFactory->create([
                 'config' => $configProvider->getConfig(),
                 'logger' => $this->logger,
-                'serializerProvider' => $this->serializerProvider,
+                'serializerConfig' => $this->serializerConfigProvider->getConfig(),
                 'configProvider' => $configProvider,
                 'validator' => $this->validator,
             ]);

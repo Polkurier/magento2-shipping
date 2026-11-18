@@ -23,8 +23,8 @@ use Polkurier\Shipping\Model\Carrier\CarrierCatalog;
 use Polkurier\Shipping\Model\Carrier\CarrierFeatureResolver;
 use Polkurier\Shipping\Model\Config\ConfigProvider;
 use Polkurier\Shipping\Observer\Checkout\RestrictCashOnDeliveryObserver;
+use Polkurier\Webservice\Dto\Response\Carrier;
 use Polkurier\Webservice\Exception\ConnectionException;
-use Polkurier\Webservice\Response\Carrier;
 
 #[CoversClass(RestrictCashOnDeliveryObserver::class)]
 #[AllowMockObjectsWithoutExpectations]
@@ -50,31 +50,31 @@ class RestrictCashOnDeliveryObserverTest extends TestCase
 
     public function testACarrierThatCollectsKeepsCashOnDelivery(): void
     {
-        self::assertTrue($this->available('cashondelivery', ['polkurier_DPD']));
+        self::assertTrue($this->isAvailable('cashondelivery', ['polkurier_DPD']));
     }
 
     public function testACarrierThatDoesntHidesIt(): void
     {
-        self::assertFalse($this->available('cashondelivery', ['polkurier_UPS']));
+        self::assertFalse($this->isAvailable('cashondelivery', ['polkurier_UPS']));
     }
 
     public function testACarrierNoLongerOnTheAccountHidesIt(): void
     {
-        self::assertFalse($this->available('cashondelivery', ['polkurier_GLS']));
+        self::assertFalse($this->isAvailable('cashondelivery', ['polkurier_GLS']));
     }
 
     public function testAPointThatDoesntTakeCashTurnsItOff(): void
     {
         $this->points[0] = ['INPOST_PACZKOMAT', false];
 
-        self::assertFalse($this->available('cashondelivery', ['polkurier_INPOST_PACZKOMAT']));
+        self::assertFalse($this->isAvailable('cashondelivery', ['polkurier_INPOST_PACZKOMAT']));
     }
 
     public function testAPointNotKnownToTakeCashIsTakenTo(): void
     {
         $this->points[0] = ['INPOST_PACZKOMAT', null];
 
-        self::assertTrue($this->available('cashondelivery', ['polkurier_INPOST_PACZKOMAT']));
+        self::assertTrue($this->isAvailable('cashondelivery', ['polkurier_INPOST_PACZKOMAT']));
     }
 
     public function testAPointOfAnotherMethodDoesntCount(): void
@@ -82,35 +82,35 @@ class RestrictCashOnDeliveryObserverTest extends TestCase
         // Chosen for the parcel lockers, then the customer went for the courier.
         $this->points[0] = ['INPOST_PACZKOMAT', false];
 
-        self::assertTrue($this->available('cashondelivery', ['polkurier_DPD']));
+        self::assertTrue($this->isAvailable('cashondelivery', ['polkurier_DPD']));
     }
 
     public function testOtherPaymentMethodsAndCarriersAreLeftAlone(): void
     {
-        self::assertTrue($this->available('checkmo', ['polkurier_UPS']));
-        self::assertTrue($this->available('cashondelivery', ['flatrate_flatrate']));
+        self::assertTrue($this->isAvailable('checkmo', ['polkurier_UPS']));
+        self::assertTrue($this->isAvailable('cashondelivery', ['flatrate_flatrate']));
     }
 
     public function testAMethodHiddenAlreadyStaysHidden(): void
     {
-        self::assertFalse($this->available('cashondelivery', ['polkurier_DPD'], false));
+        self::assertFalse($this->isAvailable('cashondelivery', ['polkurier_DPD'], false));
     }
 
     public function testWhenPolkurierCantBeAskedPaymentIsLeftAsItIs(): void
     {
         $this->outage = true;
 
-        self::assertTrue($this->available('cashondelivery', ['polkurier_UPS']));
+        self::assertTrue($this->isAvailable('cashondelivery', ['polkurier_UPS']));
         self::assertCount(1, $this->warnings);
     }
 
     public function testInMultiAddressCheckoutEveryPolkurierAddressMustCollect(): void
     {
         self::assertTrue(
-            $this->available('cashondelivery', [11 => 'polkurier_DPD', 12 => 'flatrate_flatrate'], multi: true),
+            $this->isAvailable('cashondelivery', [11 => 'polkurier_DPD', 12 => 'flatrate_flatrate'], multi: true),
         );
         self::assertFalse(
-            $this->available('cashondelivery', [11 => 'polkurier_DPD', 12 => 'polkurier_UPS'], multi: true),
+            $this->isAvailable('cashondelivery', [11 => 'polkurier_DPD', 12 => 'polkurier_UPS'], multi: true),
         );
     }
 
@@ -119,10 +119,18 @@ class RestrictCashOnDeliveryObserverTest extends TestCase
         $this->points[12] = ['INPOST_PACZKOMAT', false];
 
         self::assertFalse(
-            $this->available('cashondelivery', [11 => 'polkurier_DPD', 12 => 'polkurier_INPOST_PACZKOMAT'], multi: true),
+            $this->isAvailable(
+                'cashondelivery',
+                [11 => 'polkurier_DPD', 12 => 'polkurier_INPOST_PACZKOMAT'],
+                multi: true,
+            ),
         );
         self::assertTrue(
-            $this->available('cashondelivery', [11 => 'polkurier_INPOST_PACZKOMAT', 13 => 'polkurier_DPD'], multi: true),
+            $this->isAvailable(
+                'cashondelivery',
+                [11 => 'polkurier_INPOST_PACZKOMAT', 13 => 'polkurier_DPD'],
+                multi: true,
+            ),
         );
     }
 
@@ -131,14 +139,18 @@ class RestrictCashOnDeliveryObserverTest extends TestCase
         $this->points[11] = ['INPOST_PACZKOMAT', false];
 
         self::assertFalse(
-            $this->available('cashondelivery', [11 => 'polkurier_INPOST_PACZKOMAT', 12 => 'polkurier_UPS'], multi: true),
+            $this->isAvailable(
+                'cashondelivery',
+                [11 => 'polkurier_INPOST_PACZKOMAT', 12 => 'polkurier_UPS'],
+                multi: true,
+            ),
         );
     }
 
     /**
      * @param array<int, string> $methods the shipping method of each address, by quote address id
      */
-    private function available(string $payment, array $methods, bool $before = true, bool $multi = false): bool
+    private function isAvailable(string $payment, array $methods, bool $before = true, bool $multi = false): bool
     {
         $addresses = [];
         foreach ($methods as $id => $method) {
@@ -161,7 +173,7 @@ class RestrictCashOnDeliveryObserverTest extends TestCase
         $method->method('getCode')->willReturn($payment);
         $result = new DataObject(['is_available' => $before]);
 
-        $this->observer()->execute(new Observer(['event' => new Event([
+        $this->createObserver()->execute(new Observer(['event' => new Event([
             'result' => $result,
             'method_instance' => $method,
             'quote' => $quote,
@@ -170,7 +182,7 @@ class RestrictCashOnDeliveryObserverTest extends TestCase
         return (bool)$result->getData('is_available');
     }
 
-    private function observer(): RestrictCashOnDeliveryObserver
+    private function createObserver(): RestrictCashOnDeliveryObserver
     {
         $config = $this->createStub(ConfigProvider::class);
         $config->method('getCodPaymentMethods')->willReturn(['cashondelivery']);
@@ -184,7 +196,7 @@ class RestrictCashOnDeliveryObserverTest extends TestCase
         });
         $features = $this->createStub(CarrierFeatureResolver::class);
         $features->method('isCodAvailable')
-            ->willReturnCallback(fn(Carrier $carrier): bool => $this->collects[$carrier->getServiceCode()]);
+            ->willReturnCallback(fn(Carrier $carrier): bool => $this->collects[$carrier->serviceCode]);
         $store = $this->createStub(QuotePointRepositoryInterface::class);
         $store->method('getForQuote')
             ->willReturnCallback(function (int $quoteId, int $addressId): ?QuotePointInterface {

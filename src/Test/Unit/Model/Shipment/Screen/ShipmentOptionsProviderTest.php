@@ -18,13 +18,14 @@ use Polkurier\Shipping\Api\Data\ShipmentDraftInterface;
 use Polkurier\Shipping\Logger\Logger;
 use Polkurier\Shipping\Model\Carrier\CarrierCatalog;
 use Polkurier\Shipping\Model\Carrier\CarrierFeatureResolver;
+use Polkurier\Shipping\Model\PickupPoint\DefaultSenderPointManager;
 use Polkurier\Shipping\Model\Sdk\ErrorMessageResolver;
 use Polkurier\Shipping\Model\Shipment\Placement\SenderMapper;
 use Polkurier\Shipping\Model\Shipment\Screen\ShipmentOptionsProvider;
+use Polkurier\Shipping\Test\Unit\Support\SdkSerializer;
+use Polkurier\Webservice\Dto\Response\Carrier;
+use Polkurier\Webservice\Entity\Order\Address;
 use Polkurier\Webservice\Exception\ConnectionException;
-use Polkurier\Webservice\Request\Order\OrderAddressMessage;
-use Polkurier\Webservice\Response\Carrier;
-use Polkurier\Webservice\Serializer\SerializerProvider;
 
 #[CoversClass(ShipmentOptionsProvider::class)]
 #[AllowMockObjectsWithoutExpectations]
@@ -37,7 +38,7 @@ class ShipmentOptionsProviderTest extends TestCase
 
     public function testAnUnreadableCarrierListSaysWhyOnceLogged(): void
     {
-        $options = $this->options(new ConnectionException('Timed out.'));
+        $options = $this->createProvider(new ConnectionException('Timed out.'));
 
         self::assertSame([], $options->getCarriers());
         self::assertSame([], $options->getCarrierFeatures());
@@ -50,7 +51,7 @@ class ShipmentOptionsProviderTest extends TestCase
 
     public function testAReadListHasNoError(): void
     {
-        $options = $this->options(null);
+        $options = $this->createProvider(null);
 
         self::assertSame(['DPD'], \array_keys($options->getCarriers()));
         self::assertNull($options->getCarriersError());
@@ -59,7 +60,10 @@ class ShipmentOptionsProviderTest extends TestCase
 
     public function testCarriersAreOfferedByNameOrByCodeWithoutOne(): void
     {
-        $options = $this->options(null, [...$this->fixtureCarriers(), 'UPS' => new Carrier('UPS', '', false)]);
+        $options = $this->createProvider(
+            null,
+            [...$this->loadFixtureCarriers(), 'UPS' => new Carrier('UPS', '', false)],
+        );
 
         self::assertSame([
             ['value' => 'INPOST_PACZKOMAT', 'label' => 'InPost Paczkomat'],
@@ -70,7 +74,7 @@ class ShipmentOptionsProviderTest extends TestCase
 
     public function testEachCarrierSaysWhatItSupports(): void
     {
-        $features = $this->options(null, $this->fixtureCarriers())->getCarrierFeatures();
+        $features = $this->createProvider(null, $this->loadFixtureCarriers())->getCarrierFeatures();
 
         self::assertSame(['INPOST_PACZKOMAT', 'DPD'], \array_keys($features));
         $always = [
@@ -86,6 +90,7 @@ class ShipmentOptionsProviderTest extends TestCase
             'point' => 'NONE',
             'providers' => [],
             'sender_point' => 'NONE',
+            'default_sender_point' => '',
             'cod' => true,
             'insurance' => true,
             'insurance_with_cod' => false,
@@ -107,8 +112,9 @@ class ShipmentOptionsProviderTest extends TestCase
         $inpost = $features['INPOST_PACZKOMAT'];
         self::assertSame([...$always, 'WEEK_COLLECTION'], $inpost['services']);
         self::assertSame(
-            ['REQUIRED', ['INPOST'], 'OPTIONAL'],
-            [$inpost['point'], $inpost['providers'], $inpost['sender_point']],
+            ['REQUIRED', ['INPOST'], 'OPTIONAL', 'KRA01M'],
+            [$inpost['point'], $inpost['providers'], $inpost['sender_point'], $inpost['default_sender_point']],
+            'The account\'s drop-off point for the carrier comes with it.',
         );
         self::assertTrue($inpost['drop_off']);
         self::assertTrue($inpost['insurance_with_cod']);
@@ -122,13 +128,13 @@ class ShipmentOptionsProviderTest extends TestCase
         $addresses = $this->createStub(AddressRepositoryInterface::class);
         $addresses->method('getSenderAddresses')->willReturnCallback(
             fn(bool $coverOnly = false): array => $coverOnly
-                ? [$this->address(3, 'Magazyn Północ', 'Składowa', '3', null, '61-897', 'Poznań')]
+                ? [$this->createAddress(3, 'Magazyn Północ', 'Składowa', '3', null, '61-897', 'Poznań')]
                 : [
-                    $this->address(2, 'Biuro', 'Prosta', '20', '5', '00-838', 'Warszawa'),
-                    $this->address(3, 'Magazyn Północ', 'Składowa', '3', null, '61-897', 'Poznań'),
+                    $this->createAddress(2, 'Biuro', 'Prosta', '20', '5', '00-838', 'Warszawa'),
+                    $this->createAddress(3, 'Magazyn Północ', 'Składowa', '3', null, '61-897', 'Poznań'),
                 ],
         );
-        $options = $this->options(null, addresses: $addresses);
+        $options = $this->createProvider(null, addresses: $addresses);
 
         self::assertSame([
             ['value' => '2', 'label' => 'Biuro — Prosta 20/5, 00-838 Warszawa'],
@@ -144,12 +150,12 @@ class ShipmentOptionsProviderTest extends TestCase
     {
         $addresses = $this->createStub(AddressRepositoryInterface::class);
         $addresses->method('getSenderAddresses')->willReturn([
-            $this->address(2, 'Biuro', 'Prosta', '20', '5', '00-838', 'Warszawa'),
+            $this->createAddress(2, 'Biuro', 'Prosta', '20', '5', '00-838', 'Warszawa'),
         ]);
         $senders = $this->createStub(SenderMapper::class);
-        $senders->method('fromStore')->willReturnCallback(
-            static fn(int $storeId): ?OrderAddressMessage => $storeId === 1
-                ? new OrderAddressMessage(
+        $senders->method('mapFromStore')->willReturnCallback(
+            static fn(int $storeId): ?Address => $storeId === 1
+                ? new Address(
                     'Sklep',
                     'Prosta',
                     'Warszawa',
@@ -160,7 +166,7 @@ class ShipmentOptionsProviderTest extends TestCase
                 )
                 : null,
         );
-        $options = $this->options(null, addresses: $addresses, senders: $senders);
+        $options = $this->createProvider(null, addresses: $addresses, senders: $senders);
 
         $address = ['value' => '2', 'label' => 'Biuro — Prosta 20/5, 00-838 Warszawa'];
         $new = ['value' => ShipmentDraftInterface::NEW, 'label' => 'A new address'];
@@ -179,7 +185,7 @@ class ShipmentOptionsProviderTest extends TestCase
         $account->method('getNumber')->willReturn('61109010140000071219812874');
         $bankAccounts = $this->createStub(BankAccountRepositoryInterface::class);
         $bankAccounts->method('getAvailable')->willReturn([$account]);
-        $options = $this->options(null, bankAccounts: $bankAccounts);
+        $options = $this->createProvider(null, bankAccounts: $bankAccounts);
 
         self::assertSame(
             [['value' => '7', 'label' => 'Główne — 61109010140000071219812874']],
@@ -193,15 +199,15 @@ class ShipmentOptionsProviderTest extends TestCase
 
     public function testAnAddressLabelNamesAFlatOnlyWhenThereIsOne(): void
     {
-        $options = $this->options(null);
+        $options = $this->createProvider(null);
 
         self::assertSame(
             'Biuro — Prosta 20/5, 00-838 Warszawa',
-            $options->addressLabel($this->address(2, 'Biuro', 'Prosta', '20', '5', '00-838', 'Warszawa')),
+            $options->getAddressLabel($this->createAddress(2, 'Biuro', 'Prosta', '20', '5', '00-838', 'Warszawa')),
         );
         self::assertSame(
             'Magazyn — Składowa 3, 61-897 Poznań',
-            $options->addressLabel($this->address(3, 'Magazyn', 'Składowa', '3', '', '61-897', 'Poznań')),
+            $options->getAddressLabel($this->createAddress(3, 'Magazyn', 'Składowa', '3', '', '61-897', 'Poznań')),
         );
     }
 
@@ -215,7 +221,7 @@ class ShipmentOptionsProviderTest extends TestCase
                 ? throw new ConnectionException('Timed out.')
                 : ['DPD' => new Carrier('DPD', 'DPD', false)];
         });
-        $options = $this->options(null, catalog: $catalog);
+        $options = $this->createProvider(null, catalog: $catalog);
 
         self::assertNotNull($options->getCarriersError());
         self::assertNotNull($options->getCarriersError(), 'The page already told of the failure.');
@@ -231,24 +237,22 @@ class ShipmentOptionsProviderTest extends TestCase
      *
      * @return array<string, Carrier>
      */
-    private function fixtureCarriers(): array
+    private function loadFixtureCarriers(): array
     {
-        $serializer = (new SerializerProvider())->getSerializer();
+        $serializer = SdkSerializer::create();
         $answer = (array)\json_decode(
             (string)\file_get_contents(__DIR__ . '/../../../_files/available_carriers.json'),
             true,
         );
         $carriers = [];
         foreach ((array)$answer['response'] as $data) {
-            $carrier = $serializer->deserialize((string)\json_encode($data), Carrier::class, 'json');
-            self::assertInstanceOf(Carrier::class, $carrier);
-            $carriers[(string)$data['servicecode']] = $carrier;
+            $carriers[(string)$data['servicecode']] = $serializer->decode((string)\json_encode($data), Carrier::class);
         }
 
         return $carriers;
     }
 
-    private function address(
+    private function createAddress(
         int $id,
         string $name,
         string $street,
@@ -272,7 +276,7 @@ class ShipmentOptionsProviderTest extends TestCase
     /**
      * @param array<string, Carrier>|null $carriers what the catalog has; DPD alone by default
      */
-    private function options(
+    private function createProvider(
         ?\Throwable $failure,
         ?array $carriers = null,
         ?AddressRepositoryInterface $addresses = null,
@@ -294,6 +298,10 @@ class ShipmentOptionsProviderTest extends TestCase
         $logger->method('warning')->willReturnCallback(function (string $message): void {
             $this->logged[] = $message;
         });
+        $defaultSenderPoints = $this->createStub(DefaultSenderPointManager::class);
+        $defaultSenderPoints->method('getForCarrier')->willReturnCallback(
+            static fn(Carrier $carrier): ?string => $carrier->serviceCode === 'INPOST_PACZKOMAT' ? 'KRA01M' : null,
+        );
 
         return new ShipmentOptionsProvider(
             $catalog,
@@ -303,6 +311,7 @@ class ShipmentOptionsProviderTest extends TestCase
             new ErrorMessageResolver(),
             $logger,
             $senders ?? $this->createStub(SenderMapper::class),
+            $defaultSenderPoints,
         );
     }
 }

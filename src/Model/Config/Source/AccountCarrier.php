@@ -30,7 +30,7 @@ readonly class AccountCarrier extends AbstractOptions
         }
         $options = [];
         foreach ($carriers as $code => $carrier) {
-            $options[$code] = CarrierNameProvider::nameOr($carrier->getName(), $code);
+            $options[$code] = CarrierNameProvider::resolveName($carrier->name, $code);
         }
 
         return $options;

@@ -20,15 +20,16 @@ use Polkurier\Shipping\Model\Shipment\PickupService;
  */
 class MassPickup extends AbstractShipmentAction implements HttpPostActionInterface
 {
-    public const string ADMIN_RESOURCE = 'Polkurier_Shipping::shipment_create';
+    public const string ADMIN_RESOURCE = 'Magento_Sales::ship';
+    public const string ROUTE = 'polkurier/shipment/massPickup';
 
     public function __construct(
         Context $context,
-        RequestedShipments $requestedShipments,
+        RequestedShipmentResolver $requestedShipmentResolver,
         private readonly EncoderInterface $urlEncoder,
         private readonly PickupService $pickupService,
     ) {
-        parent::__construct($context, $requestedShipments);
+        parent::__construct($context, $requestedShipmentResolver);
     }
 
     public function execute(): Redirect
@@ -38,7 +39,7 @@ class MassPickup extends AbstractShipmentAction implements HttpPostActionInterfa
         } catch (LocalizedException $e) {
             $this->messageManager->addErrorMessage($e->getMessage());
 
-            return $this->back();
+            return $this->redirectBack();
         }
         // Only those awaiting a collective pickup go to the form; the others are listed in a notice.
         ['awaiting' => $ids, 'left_out' => $leftOut] = $this->pickupService->selectAwaiting($selected);
@@ -49,7 +50,7 @@ class MassPickup extends AbstractShipmentAction implements HttpPostActionInterfa
                 );
             }
 
-            return $this->back();
+            return $this->redirectBack();
         }
         if ($leftOut !== []) {
             $this->messageManager->addNoticeMessage(__(

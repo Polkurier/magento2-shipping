@@ -23,7 +23,8 @@ class Refresh extends Action implements HttpPostActionInterface
 {
     use ReturnsBackTrait;
 
-    public const string ADMIN_RESOURCE = 'Polkurier_Shipping::carriers';
+    public const string ADMIN_RESOURCE = 'Magento_Shipping::carriers';
+    public const string ROUTE = 'polkurier/carrier/refresh';
 
     public function __construct(
         Context $context,
@@ -36,7 +37,7 @@ class Refresh extends Action implements HttpPostActionInterface
     public function execute(): Redirect
     {
         if (!$this->configProvider->hasCredentials()) {
-            $this->messageManager->addErrorMessage(ConfigProvider::credentialsMissing());
+            $this->messageManager->addErrorMessage(ConfigProvider::describeMissingCredentials());
 
             return $this->returnBack('*/*/index');
         }

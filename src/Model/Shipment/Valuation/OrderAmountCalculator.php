@@ -47,7 +47,7 @@ readonly class OrderAmountCalculator
      */
     public function getGrandTotal(Order $order): float
     {
-        return $this->toPln($order, (float)$order->getGrandTotal()) ?? 0.0;
+        return $this->convertToPln($order, (float)$order->getGrandTotal()) ?? 0.0;
     }
 
     /**
@@ -58,7 +58,7 @@ readonly class OrderAmountCalculator
     {
         $charged = \max(0.0, (float)$order->getShippingInclTax() - (float)$order->getShippingDiscountAmount());
 
-        return \round($this->toPln($order, $charged) ?? 0.0, 2);
+        return \round($this->convertToPln($order, $charged) ?? 0.0, 2);
     }
 
     /**
@@ -67,7 +67,7 @@ readonly class OrderAmountCalculator
     public function getCodCollected(Order $order): float
     {
         $collected = 0.0;
-        $shipments = $this->shipmentFinder->forOrder((int)$order->getEntityId(), ShipmentInterface::LIVE_STATES);
+        $shipments = $this->shipmentFinder->findForOrder((int)$order->getEntityId(), ShipmentInterface::LIVE_STATES);
         foreach ($shipments as $shipment) {
             $collected += (float)$shipment->getCodAmount();
         }
@@ -81,7 +81,7 @@ readonly class OrderAmountCalculator
      */
     public function isShippingCovered(Order $order): bool
     {
-        $shipments = $this->shipmentFinder->forOrder((int)$order->getEntityId(), ShipmentInterface::LIVE_STATES);
+        $shipments = $this->shipmentFinder->findForOrder((int)$order->getEntityId(), ShipmentInterface::LIVE_STATES);
         foreach ($shipments as $shipment) {
             if (!empty($shipment->getDraft()[ShipmentDraftInterface::FIELD_SHIPPING_INCLUDED])) {
                 return true;
@@ -133,7 +133,16 @@ readonly class OrderAmountCalculator
      * Items that ship as part of another (the options of a configurable product) are left out;
      * the item they belong to carries the price.
      *
-     * @return array<int, array{name: string, sku: string, product_id: int, unit: float, weight: float, qty: float, qty_shipped: float, qty_to_ship: float}>
+     * @return array<int, array{
+     *     name: string,
+     *     sku: string,
+     *     product_id: int,
+     *     unit: float,
+     *     weight: float,
+     *     qty: float,
+     *     qty_shipped: float,
+     *     qty_to_ship: float,
+     * }>
      */
     public function getItems(Order $order): array
     {
@@ -155,7 +164,7 @@ readonly class OrderAmountCalculator
                 ),
                 // Of one unit, in kilograms; the order keeps it in the store's weight unit.
                 'weight' => \round(
-                    $this->weightUnitConverter->toKilograms((float)$item->getWeight(), $order->getStoreId()),
+                    $this->weightUnitConverter->convertToKilograms((float)$item->getWeight(), $order->getStoreId()),
                     3,
                 ),
                 'qty' => \max(0.0, $ordered - (float)$item->getQtyCanceled()),
@@ -192,7 +201,16 @@ readonly class OrderAmountCalculator
      *     everything the order still has to ship
      * @param bool $withShipping whether part of the order includes the shipping and handling
      *
-     * @return array{products: float, shipping: float, order_total: float, whole: bool, rest: bool, shipping_covered: bool, with_shipping: bool, value: float}
+     * @return array{
+     *     products: float,
+     *     shipping: float,
+     *     order_total: float,
+     *     whole: bool,
+     *     rest: bool,
+     *     shipping_covered: bool,
+     *     with_shipping: bool,
+     *     value: float,
+     * }
      *     rest: whether it carries all the order still has to ship; shipping_covered: whether
      *     another part includes the shipping and handling already
      */
@@ -258,7 +276,7 @@ readonly class OrderAmountCalculator
     /**
      * An amount in the order's currency, in złoty, or null when it can't be converted.
      */
-    public function toPln(Order $order, float $amount): ?float
+    public function convertToPln(Order $order, float $amount): ?float
     {
         $rate = $this->getPlnRate($order);
 

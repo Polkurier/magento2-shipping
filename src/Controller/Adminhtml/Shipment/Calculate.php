@@ -22,7 +22,8 @@ use Polkurier\Shipping\Model\Shipment\Valuation\CostEstimator;
  */
 class Calculate extends AbstractJsonAction
 {
-    public const string ADMIN_RESOURCE = 'Polkurier_Shipping::shipment_create';
+    public const string ADMIN_RESOURCE = 'Magento_Sales::ship';
+    public const string ROUTE = 'polkurier/shipment/calculate';
 
     public function __construct(
         Context $context,
@@ -39,7 +40,7 @@ class Calculate extends AbstractJsonAction
     {
         $data = (array)$this->getRequest()->getParam('data', []);
         $order = $this->orderLoader->getForPolkurier((int)($data['order_id'] ?? 0));
-        $draft = $this->draftHydrator->fromArray($data);
+        $draft = $this->draftHydrator->createFromArray($data);
         $quotes = $this->costEstimator->quoteAll($draft, (int)$order->getStoreId());
         $cost = $quotes[$draft->getCarrierCode()] ?? null;
 
@@ -50,7 +51,7 @@ class Calculate extends AbstractJsonAction
         ];
     }
 
-    protected function refused(LocalizedException $e): array
+    protected function buildRefusal(LocalizedException $e): array
     {
         // Retry is offered only when it may help. After a refusal, the screen waits for a change to
         // the shipment.

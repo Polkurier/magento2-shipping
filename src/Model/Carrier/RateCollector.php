@@ -26,8 +26,8 @@ use Polkurier\Shipping\Model\Carrier\Pricing\PriceCalculatorInterface;
 use Polkurier\Shipping\Model\CarrierConfig\CarrierConfigProvider;
 use Polkurier\Shipping\Model\Config\ConfigProvider;
 use Polkurier\Shipping\Model\PickupPoint\MapTokenProvider;
+use Polkurier\Webservice\Dto\Response\Carrier;
 use Polkurier\Webservice\Exception\Exception as PolkurierException;
-use Polkurier\Webservice\Response\Carrier;
 
 /**
  * The checkout rates of the merchant's Polkurier carriers, priced by the merchant's own rules.
@@ -76,8 +76,8 @@ readonly class RateCollector
         $carriers = $this->getCatalog();
         $foreign = $request->getDestCountryId() && $request->getDestCountryId() !== Polkurier::HOME_COUNTRY;
         // The subtotal is in the base currency, as the prices are; weight tiers are in kilograms.
-        $subtotal = $this->cartValueOf($request);
-        $weight = $this->weightUnitConverter->toKilograms((float)$request->getPackageWeight(), $storeId);
+        $subtotal = $this->getCartValue($request);
+        $weight = $this->weightUnitConverter->convertToKilograms((float)$request->getPackageWeight(), $storeId);
 
         $result = $this->rateResultFactory->create();
         $mapAvailable = null;
@@ -88,7 +88,7 @@ readonly class RateCollector
             $carrier = $carriers[$code] ?? null;
             // Carriers for abroad ship only abroad, the others only within Poland: Polkurier prices
             // neither the other way. Without the list, a carrier is assumed to be domestic.
-            if ($foreign !== (bool)$carrier?->isForeignShipments()) {
+            if ($foreign !== (bool)$carrier?->foreignShipments) {
                 continue;
             }
             if ($carrier !== null && $this->carrierFeatureResolver->isRecipientPointRequired($carrier)
@@ -115,7 +115,7 @@ readonly class RateCollector
      * tax, and its discount, but before the tax on the discounted amounts: an item's discount is
      * taken off both in proportion, from the price Magento applies discounts to.
      */
-    public function cartValueOf(RateRequest $request): float
+    public function getCartValue(RateRequest $request): float
     {
         $storeId = (int)$request->getStoreId();
         $gross = $this->configProvider->getTierCartValue($storeId) === CartValueEnum::Gross;

@@ -25,22 +25,24 @@ public function __construct(private readonly PolkurierClient $polkurierClient) {
 
 public function execute(): void
 {
-    $carriers = $this->polkurierClient->courier()->availableCarriers();
+    $carriers = $this->polkurierClient->getCourier()->getAvailableCarriers();
 }
 ```
 
 | Method | SDK service |
 |---|---|
-| `account()` | account details, security PIN locks |
-| `addresses()` | sender addresses |
-| `bankAccounts()` | bank accounts |
-| `courier()` | carriers, pickup points, pickup times |
-| `geo()`, `utils()` | geographic lookups and helpers |
-| `moneyBox()` | cash on delivery balance and payouts |
-| `orders()` | placing, cancelling, labels, protocols, statuses, collective pickups |
-| `packTemplates()` | pack templates |
-| `system()` | service information, the carriers' current notices, coupon validation |
-| `twoFactorToken()` | sending two-factor codes |
+| `getAccount()` | account details, security PIN locks |
+| `getAddresses()` | sender addresses |
+| `getBankAccounts()` | bank accounts |
+| `getCourier()` | carriers, pickup points, pickup times |
+| `getGeo()`, `getUtils()` | geographic lookups and helpers |
+| `getMoneyBox()` | cash on delivery balance and payouts |
+| `getOrders()` | placing, cancelling, labels, protocols, statuses, collective pickups |
+| `getOrderReader()` | checking and reading the order events Polkurier posts to the webhook |
+| `getPackTemplates()` | pack templates |
+| `getSerializer()` | writing a payload as the client sends it, and reading one back |
+| `getSystem()` | service information, the carriers' current notices, coupon validation |
+| `getTwoFactorToken()` | sending two-factor codes |
 
 The methods take no store: every store uses the same account. Saving the configuration resets the
 client ([`PolkurierClient::reset()`](../../src/Model/Sdk/PolkurierClient.php)), so the next call
@@ -84,6 +86,8 @@ It holds the account's carriers and what each supports (for a day), pickup point
 (15 minutes) and recent failures. Each kind has its own tag
 ([`Enum\Cache\CacheTagEnum`](../../src/Enum/Cache/CacheTagEnum.php)), and
 [`Type::cleanTags()`](../../src/Model/Cache/Type.php) removes one kind and keeps the others.
+[`Type::saveFailure()`](../../src/Model/Cache/Type.php) keeps a failure under its kind's tag and
+the failures' tag, so cleaning either forgets it.
 
 Entries are keyed by account, so changing the credentials never serves the old account's entries.
 Saving the carrier settings cleans every kind that belongs to the account: all but the pickup
@@ -126,7 +130,7 @@ for the admin, so callers only ever see Magento exceptions.
 
 When you call the SDK yourself,
 [`Model\Sdk\ErrorMessageResolver`](../../src/Model/Sdk/ErrorMessageResolver.php) gives you the same
-handling. `phrase()` turns any failure into a message for the admin. `isTransient()` tells whether
+handling. `createPhrase()` turns any failure into a message for the admin. `isTransient()` tells whether
 sending the same request again may get a different answer; it also looks through a
 `Magento\Framework\Exception\LocalizedException` to the failure behind it. Transient failures are
 a failed connection, an unreadable answer, and the codes Polkurier uses when it's down or busy

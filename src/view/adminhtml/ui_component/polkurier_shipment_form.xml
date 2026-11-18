@@ -32,7 +32,7 @@
         <settings>
             <submitUrl path="polkurier/shipment/save"/>
         </settings>
-        <aclResource>Polkurier_Shipping::shipment_create</aclResource>
+        <aclResource>Magento_Sales::ship</aclResource>
         <dataProvider class="Polkurier\Shipping\Ui\Component\Form\Shipment\DataProvider"
                       name="polkurier_shipment_form_data_source">
             <settings>
@@ -64,11 +64,13 @@
                         <!-- The parts of the section that the checks in rules.js report on -->
                         <item name="cards" xsi:type="array">
                             <item name="0" xsi:type="string">carrier</item>
-                            <item name="1" xsi:type="string">fields</item>
+                            <item name="1" xsi:type="string">description</item>
+                            <item name="2" xsi:type="string">fields</item>
                         </item>
                         <!-- Where the checks' problems are fixed -->
                         <item name="fixModals" xsi:type="array">
                             <item name="carrier" xsi:type="string">carrier_modal</item>
+                            <item name="description" xsi:type="string">shipment_modal</item>
                         </item>
                     </item>
                 </argument>
@@ -317,7 +319,6 @@
                     <dataType>text</dataType>
                     <dataScope>description</dataScope>
                     <validation><rule name="required-entry" xsi:type="boolean">true</rule></validation>
-                    <notice translate="true">Printed on the label; up to 30 characters. It starts as the order number, as the shipment description format in the configuration says.</notice>
                 </settings>
             </field>
         </fieldset>

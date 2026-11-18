@@ -8,6 +8,7 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Test\Unit\Model\Shipment\Native;
 
 use Magento\Framework\Exception\LocalizedException;
+use Magento\Framework\Serialize\Serializer\Json;
 use Magento\Framework\TestFramework\Unit\Helper\ObjectManager;
 use Magento\Sales\Api\Data\ShipmentItemCreationInterface;
 use Magento\Sales\Api\Data\ShipmentItemCreationInterfaceFactory;
@@ -21,6 +22,7 @@ use Magento\Sales\Model\Order;
 use Magento\Sales\Model\Order\Shipment as MagentoShipmentModel;
 use Magento\Sales\Model\Order\Shipment\ItemCreation;
 use Magento\Sales\Model\Order\Shipment\Track;
+use Magento\Sales\Model\Order\Shipment\TrackCreation;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
@@ -89,7 +91,7 @@ class NativeShipmentServiceTest extends TestCase
 
     public function testTheChosenQuantitiesAreKeptWithoutTheItemsLeftOut(): void
     {
-        $qtys = $this->magentoShipment()->getQuantities($this->order(), [
+        $qtys = $this->createService()->getQuantities($this->createOrder(), [
             (new Item())->setOrderItemId(5)->setQty(1.0),
             (new Item())->setOrderItemId(6)->setQty(0.0),
         ]);
@@ -99,33 +101,33 @@ class NativeShipmentServiceTest extends TestCase
 
     public function testATrackIsTitledWithTheCarrierItWentWith(): void
     {
-        $shipments = $this->magentoShipment();
+        $shipments = $this->createService();
 
         self::assertSame(
             'Kurier InPost',
-            $shipments->getTrackTitle($this->order(), 'INPOST'),
+            $shipments->getTrackTitle($this->createOrder(), 'INPOST'),
             'The carrier\'s label, not the description with the point.',
         );
         self::assertSame(
             'Kurier DPD',
-            $shipments->getTrackTitle($this->order(), 'DPD'),
+            $shipments->getTrackTitle($this->createOrder(), 'DPD'),
             'Without settings: the method the customer chose.',
         );
         self::assertSame(
             'GLS',
-            $shipments->getTrackTitle($this->order(), 'GLS'),
+            $shipments->getTrackTitle($this->createOrder(), 'GLS'),
             'Another carrier without settings: its code.',
         );
     }
 
     public function testNoItemsMeansEverythingLeft(): void
     {
-        self::assertSame([], $this->magentoShipment()->getQuantities($this->order(), []));
+        self::assertSame([], $this->createService()->getQuantities($this->createOrder(), []));
     }
 
     public function testEverythingLeftIsWhatTheOrderHasLeftToShip(): void
     {
-        self::assertSame([5 => 2.0, 6 => 1.0], $this->magentoShipment()->getQuantitiesLeft($this->order()));
+        self::assertSame([5 => 2.0, 6 => 1.0], $this->createService()->getQuantitiesLeft($this->createOrder()));
     }
 
     public function testMoreThanIsLeftIsRefused(): void
@@ -133,7 +135,10 @@ class NativeShipmentServiceTest extends TestCase
         $this->expectException(LocalizedException::class);
         $this->expectExceptionMessage('You can ship at most 1 of "Dash Digital Watch".');
 
-        $this->magentoShipment()->getQuantities($this->order(), [(new Item())->setOrderItemId(6)->setQty(2.0)]);
+        $this->createService()->getQuantities(
+            $this->createOrder(),
+            [(new Item())->setOrderItemId(6)->setQty(2.0)],
+        );
     }
 
     public function testAnItemOfAnotherOrderIsRefused(): void
@@ -141,7 +146,10 @@ class NativeShipmentServiceTest extends TestCase
         $this->expectException(LocalizedException::class);
         $this->expectExceptionMessage('The order has no item 99 to ship.');
 
-        $this->magentoShipment()->getQuantities($this->order(), [(new Item())->setOrderItemId(99)->setQty(1.0)]);
+        $this->createService()->getQuantities(
+            $this->createOrder(),
+            [(new Item())->setOrderItemId(99)->setQty(1.0)],
+        );
     }
 
     public function testShippingNothingIsRefused(): void
@@ -149,13 +157,16 @@ class NativeShipmentServiceTest extends TestCase
         $this->expectException(LocalizedException::class);
         $this->expectExceptionMessage('Choose at least one item to ship.');
 
-        $this->magentoShipment()->getQuantities($this->order(), [(new Item())->setOrderItemId(5)->setQty(0.0)]);
+        $this->createService()->getQuantities(
+            $this->createOrder(),
+            [(new Item())->setOrderItemId(5)->setQty(0.0)],
+        );
     }
 
     public function testWithItemsLeftANewMagentoShipmentIsMade(): void
     {
-        $target = $this->magentoShipment()->getTarget(
-            $this->order(),
+        $target = $this->createService()->getTarget(
+            $this->createOrder(),
             (new Draft())->setItems([(new Item())->setOrderItemId(5)->setQty(1.0)]),
         );
 
@@ -164,15 +175,17 @@ class NativeShipmentServiceTest extends TestCase
 
     public function testAPolkurierOrderCanBePlacedWhileItemsAreLeftOrAShipmentHasNone(): void
     {
-        $this->linked = [$this->polkurier(10, 3, ShipmentInterface::STATE_CREATED)];
-        $service = $this->magentoShipment();
+        $this->linked = [$this->createPolkurierShipment(10, 3, ShipmentInterface::STATE_CREATED)];
+        $service = $this->createService();
 
-        self::assertTrue($service->canPlaceFor($this->order(canShip: true, shipments: [3 => '000000003'])));
-        self::assertFalse($service->canPlaceFor($this->order(canShip: false, shipments: [3 => '000000003'])));
+        self::assertTrue($service->canPlaceFor($this->createOrder(canShip: true, shipments: [3 => '000000003'])));
+        self::assertFalse($service->canPlaceFor($this->createOrder(canShip: false, shipments: [3 => '000000003'])));
 
-        $this->linked = [$this->polkurier(10, 3, ShipmentInterface::STATE_CANCELLED)];
+        $this->linked = [$this->createPolkurierShipment(10, 3, ShipmentInterface::STATE_CANCELLED)];
         self::assertTrue(
-            $this->magentoShipment()->canPlaceFor($this->order(canShip: false, shipments: [3 => '000000003'])),
+            $this->createService()->canPlaceFor(
+                $this->createOrder(canShip: false, shipments: [3 => '000000003']),
+            ),
             'The cancelled Polkurier order\'s Magento shipment takes a new one.',
         );
     }
@@ -180,29 +193,32 @@ class NativeShipmentServiceTest extends TestCase
     public function testWithNothingLeftTheOrderGoesOnTheLatestShipmentWithoutAPolkurierOrder(): void
     {
         $this->linked = [
-            $this->polkurier(10, 3, ShipmentInterface::STATE_CREATED),
-            $this->polkurier(11, 4, ShipmentInterface::STATE_CANCELLED),
+            $this->createPolkurierShipment(10, 3, ShipmentInterface::STATE_CREATED),
+            $this->createPolkurierShipment(11, 4, ShipmentInterface::STATE_CANCELLED),
         ];
-        $order = $this->order(canShip: false, shipments: [3 => '000000003', 4 => '000000004', 5 => '000000005']);
+        $order = $this->createOrder(canShip: false, shipments: [3 => '000000003', 4 => '000000004', 5 => '000000005']);
 
         self::assertSame([
             4 => ['increment_id' => '000000004', 'replaces' => 'POL11'],
             5 => ['increment_id' => '000000005', 'replaces' => null],
-        ], $this->magentoShipment()->getFreeShipments($order));
+        ], $this->createService()->getFreeShipments($order));
         self::assertSame(
             ['qtys' => [], 'shipment_id' => 5, 'packages' => []],
-            $this->magentoShipment()->getTarget($order, new Draft()),
+            $this->createService()->getTarget($order, new Draft()),
         );
     }
 
     public function testEverythingShippedWithAPolkurierOrderEachLeavesNowhereToGo(): void
     {
-        $this->linked = [$this->polkurier(10, 3, ShipmentInterface::STATE_CREATED)];
+        $this->linked = [$this->createPolkurierShipment(10, 3, ShipmentInterface::STATE_CREATED)];
 
         $this->expectException(LocalizedException::class);
         $this->expectExceptionMessage('To send a replacement, cancel the Polkurier order it replaces first.');
 
-        $this->magentoShipment()->getTarget($this->order(canShip: false, shipments: [3 => '000000003']), new Draft());
+        $this->createService()->getTarget(
+            $this->createOrder(canShip: false, shipments: [3 => '000000003']),
+            new Draft(),
+        );
     }
 
     public function testOnlyThePolkurierTracksOfTheWaybillsAreRemoved(): void
@@ -215,7 +231,7 @@ class NativeShipmentServiceTest extends TestCase
         $shipment = $this->createStub(MagentoShipmentModel::class);
         $shipment->method('getTracks')->willReturn($tracks);
 
-        $this->magentoShipment()->removeTracks($shipment, ['WB-1']);
+        $this->createService()->removeTracks($shipment, ['WB-1']);
 
         self::assertSame([$tracks[0]], $this->deletedTracks, 'Other carriers\' tracks and numbers typed by hand stay.');
     }
@@ -228,10 +244,10 @@ class NativeShipmentServiceTest extends TestCase
             $tracks[] = $track->setData(['track_number' => $number, 'carrier_code' => $carrier, 'title' => 'InPost']);
         }
         $this->magentoShipments[7] = $tracks;
-        $polkurier = $this->polkurier(1, 7, ShipmentInterface::STATE_CREATED, ['WB-1', 'WB-2']);
+        $polkurier = $this->createPolkurierShipment(1, 7, ShipmentInterface::STATE_CREATED, ['WB-1', 'WB-2']);
         $polkurier->setCarrierCode('INPOST');
 
-        $this->magentoShipment()->takeOverTracks($this->order(), 7, $polkurier);
+        $this->createService()->takeOverTracks($this->createOrder(), 7, $polkurier);
 
         self::assertSame(['WB-1'], $this->savedTrackNumbers, 'The module\'s own and other numbers stay as they are.');
         self::assertSame('polkurier', $tracks[0]->getCarrierCode());
@@ -241,17 +257,17 @@ class NativeShipmentServiceTest extends TestCase
 
     public function testAReplacementGoesOnTheMagentoShipmentOfTheCancelledOrder(): void
     {
-        $cancelled = $this->polkurier(11, 4, ShipmentInterface::STATE_CANCELLED, ['WB-OLD']);
+        $cancelled = $this->createPolkurierShipment(11, 4, ShipmentInterface::STATE_CANCELLED, ['WB-OLD']);
         $this->linked = [$cancelled];
-        $oldTrack = $this->track('WB-OLD');
-        $otherTrack = $this->track('OTHER', 'dhl');
+        $oldTrack = $this->createTrack('WB-OLD');
+        $otherTrack = $this->createTrack('OTHER', 'dhl');
         $this->magentoShipments[4] = [$oldTrack, $otherTrack];
         $replacement = $this->createStub(ShipmentInterface::class);
         $replacement->method('getWaybills')->willReturn(['WB-NEW']);
         $replacement->method('getCarrierCode')->willReturn('DPD');
 
-        $id = $this->magentoShipment()->ship(
-            $this->order(canShip: false, shipments: [4 => '000000004']),
+        $id = $this->createService()->ship(
+            $this->createOrder(canShip: false, shipments: [4 => '000000004']),
             $replacement,
             [],
             4,
@@ -272,7 +288,7 @@ class NativeShipmentServiceTest extends TestCase
                 ->setItems([(new Item())->setOrderItemId(6)->setQty(1.0)]),
         ];
 
-        $packages = $this->magentoShipment()->getPackages($this->order(), $packs, []);
+        $packages = $this->createService()->getPackages($this->createOrder(), $packs, []);
 
         self::assertCount(3, $packages, 'A package for each of the identical parcels.');
         self::assertSame([1, 2, 3], \array_keys($packages));
@@ -296,7 +312,7 @@ class NativeShipmentServiceTest extends TestCase
         $this->expectException(LocalizedException::class);
         $this->expectExceptionMessage('The parcels hold more of "Impulse Duffle" than the shipment carries.');
 
-        $this->magentoShipment()->getPackages($this->order(), [
+        $this->createService()->getPackages($this->createOrder(), [
             (new Pack())->setPackType('ST')->setAmount(2)->setItems([(new Item())->setOrderItemId(5)->setQty(1.0)]),
         ], [5 => 1.0]);
     }
@@ -306,7 +322,7 @@ class NativeShipmentServiceTest extends TestCase
         $this->expectException(LocalizedException::class);
         $this->expectExceptionMessage('A parcel holds an item the shipment doesn\'t carry.');
 
-        $this->magentoShipment()->getPackages($this->order(), [
+        $this->createService()->getPackages($this->createOrder(), [
             (new Pack())->setPackType('ST')->setAmount(1)->setItems([(new Item())->setOrderItemId(6)->setQty(1.0)]),
         ], [5 => 1.0]);
     }
@@ -324,7 +340,10 @@ class NativeShipmentServiceTest extends TestCase
         $shipment->method('getWaybills')->willReturn(['WB-1']);
         $shipment->method('getCarrierCode')->willReturn('DPD');
 
-        self::assertSame(77, $this->magentoShipment($shipOrder)->ship($this->order(), $shipment, [5 => 1.0]));
+        self::assertSame(
+            77,
+            $this->createService($shipOrder)->ship($this->createOrder(), $shipment, [5 => 1.0]),
+        );
     }
 
     public function testTheMagentoShipmentMadeTakesTheNumberTheOrderWasSentWith(): void
@@ -342,7 +361,7 @@ class NativeShipmentServiceTest extends TestCase
         $shipment->method('getCarrierCode')->willReturn('DPD');
         $shipment->method('getReservedShipmentNumber')->willReturn('000000077');
 
-        $this->magentoShipment($shipOrder)->ship($this->order(), $shipment, [5 => 1.0]);
+        $this->createService($shipOrder)->ship($this->createOrder(), $shipment, [5 => 1.0]);
 
         self::assertSame('000000077', $seen);
         self::assertNull($this->reservedNumbers->take(42), 'Not left for another shipment.');
@@ -364,7 +383,7 @@ class NativeShipmentServiceTest extends TestCase
         $this->reservedNumbers = new ReservedNumberRegistry();
     }
 
-    private function magentoShipment(?ShipOrderInterface $shipOrder = null): NativeShipmentService
+    private function createService(?ShipOrderInterface $shipOrder = null): NativeShipmentService
     {
         $itemFactory = $this->createStub(ShipmentItemCreationInterfaceFactory::class);
         $itemFactory->method('create')->willReturnCallback(
@@ -377,7 +396,7 @@ class NativeShipmentServiceTest extends TestCase
         $amounts->method('getItems')->willReturn(self::ITEMS);
         $tracks = $this->createStub(ShipmentTrackCreationInterfaceFactory::class);
         $tracks->method('create')->willReturnCallback(
-            fn() => $this->getMockBuilder(\Magento\Sales\Model\Order\Shipment\TrackCreation::class)
+            fn() => $this->getMockBuilder(TrackCreation::class)
                 ->disableOriginalConstructor()
                 ->onlyMethods([])
                 ->getMock(),
@@ -408,7 +427,9 @@ class NativeShipmentServiceTest extends TestCase
                                 'eq' => $values[$field] === $condition['eq'],
                                 'in' => \in_array($values[$field], $condition['in'], true),
                                 'nin' => !\in_array($values[$field], $condition['nin'], true),
-                                default => throw new \LogicException('The test collection does not know this condition.'),
+                                default => throw new \LogicException(
+                                    'The test collection does not know this condition.',
+                                ),
                             };
                             if (!$matches) {
                                 return false;
@@ -459,7 +480,7 @@ class NativeShipmentServiceTest extends TestCase
             $trackRepository,
             $magentoRepository,
             new ShipmentFinder($collections),
-            $this->carrierConfigs(),
+            $this->createCarrierConfigProvider(),
             $this->reservedNumbers,
         );
     }
@@ -467,7 +488,12 @@ class NativeShipmentServiceTest extends TestCase
     /**
      * @param string[] $waybills
      */
-    private function polkurier(int $id, int $magentoShipmentId, string $state, array $waybills = []): ShipmentInterface
+    private function createPolkurierShipment(
+        int $id,
+        int $magentoShipmentId,
+        string $state,
+        array $waybills = [],
+    ): ShipmentInterface
     {
         $shipment = $this->getMockBuilder(Shipment::class)->disableOriginalConstructor()
             ->onlyMethods(['getState', 'getPolkurierNumber', 'getWaybills'])->getMock();
@@ -480,7 +506,7 @@ class NativeShipmentServiceTest extends TestCase
         return $shipment;
     }
 
-    private function track(string $number, string $carrierCode = 'polkurier'): ShipmentTrackInterface
+    private function createTrack(string $number, string $carrierCode = 'polkurier'): ShipmentTrackInterface
     {
         $track = $this->createStub(ShipmentTrackInterface::class);
         $track->method('getTrackNumber')->willReturn($number);
@@ -492,7 +518,7 @@ class NativeShipmentServiceTest extends TestCase
     /**
      * @param array<int, string> $shipments the order's Magento shipments: increment ids by id
      */
-    private function order(bool $canShip = true, array $shipments = []): Order
+    private function createOrder(bool $canShip = true, array $shipments = []): Order
     {
         $order = $this->createStub(Order::class);
         $order->method('canShip')->willReturn($canShip);
@@ -512,10 +538,10 @@ class NativeShipmentServiceTest extends TestCase
         return $order;
     }
 
-    private function carrierConfigs(): CarrierConfigProvider
+    private function createCarrierConfigProvider(): CarrierConfigProvider
     {
         /** @var CarrierConfig $inpost */
-        $inpost = (new ObjectManager($this))->getObject(CarrierConfig::class);
+        $inpost = (new ObjectManager($this))->getObject(CarrierConfig::class, ['json' => new Json()]);
         $inpost->setCarrierCode('INPOST')->setCustomLabel('Kurier InPost');
         // Only the settings are stubbed: the label is read from them as in the shop.
         $configs = $this->createPartialMock(CarrierConfigProvider::class, ['get']);

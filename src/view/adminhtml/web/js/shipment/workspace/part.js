@@ -88,14 +88,14 @@ define([
         /**
          * @returns {Boolean} whether placing the shipment was tried, so what's missing is marked
          */
-        validated: function () {
+        isValidated: function () {
             return Boolean(this.source.get('validated'));
         },
 
         /**
          * @returns {Object}
          */
-        features: function () {
+        getFeatures: function () {
             return this.get('features') || {};
         },
 
@@ -103,8 +103,8 @@ define([
          * @param {*} value
          * @returns {String}
          */
-        money: function (value) {
-            return rules.money(value, this.get('currency'));
+        formatMoney: function (value) {
+            return rules.formatMoney(value, this.get('price_format'));
         },
 
         /**
@@ -112,7 +112,7 @@ define([
          * @param {*} value
          * @returns {String}
          */
-        choice: function (field, value) {
+        getChoiceLabel: function (field, value) {
             const labels = (this.get('choices') || {})[field] || {};
 
             return labels[value === null || value === undefined ? '' : String(value)] || '';

@@ -15,11 +15,12 @@ use Polkurier\Shipping\Api\Data\ShipmentDraftInterface;
 use Polkurier\Shipping\Logger\Logger;
 use Polkurier\Shipping\Model\Carrier\CarrierCatalog;
 use Polkurier\Shipping\Model\Carrier\CarrierFeatureResolver;
+use Polkurier\Shipping\Model\PickupPoint\DefaultSenderPointManager;
 use Polkurier\Shipping\Model\Sdk\ErrorMessageResolver;
 use Polkurier\Shipping\Model\Shipment\Placement\SenderMapper;
+use Polkurier\Webservice\Dto\Response\Carrier;
 use Polkurier\Webservice\Enum\Courier\PointRequirementEnum;
 use Polkurier\Webservice\Exception\Exception as PolkurierException;
-use Polkurier\Webservice\Response\Carrier;
 
 /**
  * The choices a shipment is put together from, for the admin pages that edit shipment options:
@@ -40,6 +41,7 @@ class ShipmentOptionsProvider implements ResetAfterRequestInterface
         private readonly ErrorMessageResolver $errorMessageResolver,
         private readonly Logger $logger,
         private readonly SenderMapper $senderMapper,
+        private readonly DefaultSenderPointManager $defaultSenderPointManager,
     ) {}
 
     /**
@@ -52,7 +54,7 @@ class ShipmentOptionsProvider implements ResetAfterRequestInterface
         } catch (PolkurierException $e) {
             // The page still opens, so the merchant can see the rest; the reason goes with it.
             if ($this->failure === null) {
-                $this->failure = (string)$this->errorMessageResolver->phrase($e);
+                $this->failure = (string)$this->errorMessageResolver->createPhrase($e);
                 $this->logger->warning(
                     'Polkurier: the carrier list could not be read for a shipment page',
                     ['exception' => $e],
@@ -81,16 +83,18 @@ class ShipmentOptionsProvider implements ResetAfterRequestInterface
         $features = [];
         foreach ($this->getCarriers() as $code => $carrier) {
             $features[$code] = [
-                'name' => $carrier->getName(),
+                'name' => $carrier->name,
                 'services' => \array_map(
                     static fn($service): string => $service->value,
                     $this->carrierFeatureResolver->getServices($carrier),
                 ),
-                'point' => $carrier->getAdditionalData()?->getPointsMap()?->getRecipientPoint()->value
+                'point' => $carrier->additionalData?->pointsMap?->recipientPoint->value
                     ?? PointRequirementEnum::None->value,
                 'providers' => $this->carrierFeatureResolver->getPointProviders($carrier),
                 // Whether the parcels are handed over at a point: NONE, OPTIONAL or REQUIRED.
                 'sender_point' => $this->carrierFeatureResolver->getSenderPointRequirement($carrier)->value,
+                // The account's drop-off point for a carrier that takes parcels at points, '' without one.
+                'default_sender_point' => (string)$this->defaultSenderPointManager->getForCarrier($carrier),
                 'cod' => $this->carrierFeatureResolver->isCodAvailable($carrier),
                 'insurance' => $this->carrierFeatureResolver->isInsuranceAvailable($carrier),
                 'insurance_with_cod' => $this->carrierFeatureResolver->isInsuranceRequiredWithCod($carrier),
@@ -103,10 +107,10 @@ class ShipmentOptionsProvider implements ResetAfterRequestInterface
                     $this->carrierFeatureResolver->getShipmentTypes($carrier),
                 ),
                 'fields' => \array_map(static fn($field): array => [
-                    'name' => $field->getName(),
-                    'label' => $field->getLabel(),
-                    'description' => $field->getDescription(),
-                    'required' => $field->isRequired(),
+                    'name' => $field->name,
+                    'label' => $field->label,
+                    'description' => $field->description,
+                    'required' => $field->required,
                 ], $this->carrierFeatureResolver->getAdditionalFields($carrier)),
             ];
         }
@@ -123,7 +127,7 @@ class ShipmentOptionsProvider implements ResetAfterRequestInterface
         foreach ($this->getCarriers() as $code => $carrier) {
             $options[] = [
                 'value' => (string)$code,
-                'label' => $carrier->getName() !== '' ? $carrier->getName() : (string)$code,
+                'label' => $carrier->name !== '' ? $carrier->name : (string)$code,
             ];
         }
 
@@ -137,7 +141,7 @@ class ShipmentOptionsProvider implements ResetAfterRequestInterface
     {
         $options = [];
         foreach ($this->addressRepository->getSenderAddresses($coverOnly) as $address) {
-            $options[] = ['value' => (string)$address->getId(), 'label' => $this->addressLabel($address)];
+            $options[] = ['value' => (string)$address->getId(), 'label' => $this->getAddressLabel($address)];
         }
 
         return $options;
@@ -152,7 +156,7 @@ class ShipmentOptionsProvider implements ResetAfterRequestInterface
     public function getSenderChoices(int $storeId): array
     {
         return \array_merge(
-            $this->senderMapper->fromStore($storeId) !== null
+            $this->senderMapper->mapFromStore($storeId) !== null
                 ? [['value' => '', 'label' => (string)__('The store\'s address')]]
                 : [],
             $this->getSenderOptions(),
@@ -189,7 +193,7 @@ class ShipmentOptionsProvider implements ResetAfterRequestInterface
         return $options;
     }
 
-    public function addressLabel(AddressInterface $address): string
+    public function getAddressLabel(AddressInterface $address): string
     {
         return \sprintf(
             '%s — %s %s%s, %s %s',

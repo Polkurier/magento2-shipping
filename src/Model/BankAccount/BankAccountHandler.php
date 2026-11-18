@@ -18,7 +18,7 @@ use Polkurier\Shipping\Model\BankAccountFactory;
 use Polkurier\Shipping\Model\ResourceModel\BankAccount as BankAccountResource;
 use Polkurier\Shipping\Model\Sync\EditsSyncableEntriesTrait;
 use Polkurier\Shipping\Model\Sync\EntityHandlerInterface;
-use Polkurier\Shipping\Model\Sync\Synchronization;
+use Polkurier\Shipping\Model\Sync\SettingsSynchronizer;
 use Polkurier\Shipping\Model\Sync\SyncLock;
 use Polkurier\Shipping\Model\Sync\SyncResult;
 use Polkurier\Shipping\Model\Sync\SyncResultFactory;
@@ -53,10 +53,10 @@ readonly class BankAccountHandler implements EntityHandlerInterface
         private BankAccountRepositoryInterface $bankAccountRepository,
         private BankAccountFactory $bankAccountFactory,
         private Publisher $publisher,
-        private Synchronization $synchronization,
+        private SettingsSynchronizer $settingsSynchronizer,
         private DateTime $dateTime,
         private SyncLock $syncLock,
-        private BankAccountResource $resource,
+        private BankAccountResource $bankAccountResource,
         private SyncResultFactory $syncResultFactory,
     ) {}
 
@@ -141,7 +141,7 @@ readonly class BankAccountHandler implements EntityHandlerInterface
      */
     public function synchronize(): array
     {
-        return $this->synchronization->synchronize([SyncEntityEnum::BankAccount]);
+        return $this->settingsSynchronizer->synchronize([SyncEntityEnum::BankAccount]);
     }
 
     public function getLabel(): string
@@ -158,7 +158,7 @@ readonly class BankAccountHandler implements EntityHandlerInterface
     {
         /** @var BankAccountInterface $entity */
         $id = $entity->getId() ? (int)$entity->getId() : null;
-        if ($this->resource->isNameTaken($entity->getName(), $id)) {
+        if ($this->bankAccountResource->isNameTaken($entity->getName(), $id)) {
             throw new LocalizedException(__(
                 'A bank account named "%1" already exists. Choose another name.',
                 $entity->getName(),

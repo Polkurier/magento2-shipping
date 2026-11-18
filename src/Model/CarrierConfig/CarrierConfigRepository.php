@@ -18,7 +18,7 @@ use Polkurier\Shipping\Api\Data\CarrierConfigSearchResultsInterface;
 use Polkurier\Shipping\Api\Data\CarrierConfigSearchResultsInterfaceFactory;
 use Polkurier\Shipping\Model\CarrierConfig;
 use Polkurier\Shipping\Model\CarrierConfigFactory;
-use Polkurier\Shipping\Model\ResourceModel\CarrierConfig as ResourceModel;
+use Polkurier\Shipping\Model\ResourceModel\CarrierConfig as CarrierConfigResource;
 use Polkurier\Shipping\Model\ResourceModel\CarrierConfig\CollectionFactory;
 
 /**
@@ -28,7 +28,7 @@ readonly class CarrierConfigRepository implements CarrierConfigRepositoryInterfa
 {
     public function __construct(
         private CarrierConfigFactory $carrierConfigFactory,
-        private ResourceModel $resource,
+        private CarrierConfigResource $carrierConfigResource,
         private CollectionFactory $collectionFactory,
         private CollectionProcessorInterface $collectionProcessor,
         private CarrierConfigSearchResultsInterfaceFactory $searchResultsFactory,
@@ -37,7 +37,7 @@ readonly class CarrierConfigRepository implements CarrierConfigRepositoryInterfa
     public function get(int $id): CarrierConfigInterface
     {
         $entity = $this->carrierConfigFactory->create();
-        $this->resource->load($entity, $id);
+        $this->carrierConfigResource->load($entity, $id);
         if (!$entity->getId()) {
             throw new NoSuchEntityException(__('The carrier settings with id "%1" do not exist.', $id));
         }
@@ -62,7 +62,7 @@ readonly class CarrierConfigRepository implements CarrierConfigRepositoryInterfa
     {
         try {
             /** @var CarrierConfig $entity */
-            $this->resource->save($entity);
+            $this->carrierConfigResource->save($entity);
         } catch (\Exception $e) {
             throw new CouldNotSaveException(__('Could not save the carrier settings: %1', $e->getMessage()), $e);
         }
@@ -74,7 +74,7 @@ readonly class CarrierConfigRepository implements CarrierConfigRepositoryInterfa
     {
         try {
             /** @var CarrierConfig $entity */
-            $this->resource->delete($entity);
+            $this->carrierConfigResource->delete($entity);
         } catch (\Exception $e) {
             throw new CouldNotDeleteException(__('Could not delete the carrier settings: %1', $e->getMessage()), $e);
         }

@@ -61,7 +61,7 @@ class UpdateTest extends TestCase
         $webhook = $this->createMock(StatusWebhookHandler::class);
         $webhook->expects(self::once())->method('receive')->with($body)->willReturn(StatusWebhookHandler::RECEIVED);
 
-        $this->update($webhook, $body)->execute();
+        $this->createUpdate($webhook, $body)->execute();
     }
 
     /**
@@ -94,12 +94,12 @@ class UpdateTest extends TestCase
 
                 return $response;
             });
-        $this->update($webhook, 'type=UPDATED&hash=0')->execute()->renderResult($response);
+        $this->createUpdate($webhook, 'type=UPDATED&hash=0')->execute()->renderResult($response);
 
         return $answer;
     }
 
-    private function update(StatusWebhookHandler $webhook, string $body): Update
+    private function createUpdate(StatusWebhookHandler $webhook, string $body): Update
     {
         $request = $this->createStub(Http::class);
         $request->method('getContent')->willReturn($body);

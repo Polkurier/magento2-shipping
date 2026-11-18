@@ -19,7 +19,7 @@ use Polkurier\Shipping\Model\Cache\Type as PolkurierCache;
 use Polkurier\Shipping\Model\Carrier\CarrierNoticeProvider;
 use Polkurier\Shipping\Model\Sdk\AccountCache;
 use Polkurier\Webservice\Api\Service\SystemServiceInterface;
-use Polkurier\Webservice\Response\System\CourierMessage;
+use Polkurier\Webservice\Dto\Response\System\CourierMessage;
 
 #[CoversClass(CarrierNoticeProvider::class)]
 #[AllowMockObjectsWithoutExpectations]
@@ -27,7 +27,7 @@ class CarrierNoticeProviderTest extends TestCase
 {
     public function testLinksInANoticeOpenInANewTabAndOtherMarkupIsDropped(): void
     {
-        $notices = $this->provider(new CourierMessage(
+        $notices = $this->createProvider(new CourierMessage(
             'INPOST',
             'Więcej informacji znajdziesz <a href="https://polkurier.pl/cennik">TUTAJ</a><script>x()</script>',
         ))->getNotices();
@@ -39,12 +39,12 @@ class CarrierNoticeProviderTest extends TestCase
         );
     }
 
-    private function provider(CourierMessage $message): CarrierNoticeProvider
+    private function createProvider(CourierMessage $message): CarrierNoticeProvider
     {
         $system = $this->createStub(SystemServiceInterface::class);
         $system->method('getCouriersMessages')->willReturn([$message]);
         $client = $this->createStub(PolkurierClientInterface::class);
-        $client->method('system')->willReturn($system);
+        $client->method('getSystem')->willReturn($system);
         $escaper = new Escaper();
         // Its inline translator would come from the object manager.
         (new \ReflectionProperty(Escaper::class, 'translateInline'))

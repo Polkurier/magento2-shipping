@@ -13,9 +13,9 @@ use Magento\Sales\Api\ShipmentRepositoryInterface as MagentoShipmentRepository;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
+use Polkurier\Shipping\Model\Admin\Formatter;
 use Polkurier\Shipping\Model\Carrier\CarrierNameProvider;
 use Polkurier\Shipping\Model\Config\Source\PackType;
-use Polkurier\Shipping\Model\Shipment\Details\Formatter;
 use Polkurier\Shipping\Model\Shipment\Details\OptionLabelProvider;
 use Polkurier\Shipping\Model\Shipment\Details\SentOrderReader;
 use Polkurier\Shipping\Model\Shipment\OrderLoader;
@@ -28,7 +28,7 @@ class ShipmentDetailsTest extends TestCase
     public function testAParcelTakenAsAnotherTypeIsNamed(): void
     {
         // A 35 kg standard parcel DPD takes as non-standard, after a light one it takes as sent.
-        $changes = $this->changes(
+        $changes = $this->findChanges(
             [['type' => 'ST', 'amount' => 1, 'weight' => 2.0], ['type' => 'ST', 'amount' => 1, 'weight' => 35.0]],
             [['type' => 'ST', 'amount' => 1], ['type' => 'NST', 'amount' => 1]],
         );
@@ -40,14 +40,14 @@ class ShipmentDetailsTest extends TestCase
     {
         self::assertSame(
             [],
-            $this->changes(
+            $this->findChanges(
                 [['type' => 'ST', 'amount' => 2]],
                 [['type' => 'ST', 'amount' => 1], ['type' => 'ST', 'amount' => 1]],
             ),
         );
         self::assertSame(
             ['Polkurier took parcel 2 as Non-standard, not Standard, and priced it as that.'],
-            $this->changes(
+            $this->findChanges(
                 [['type' => 'ST', 'amount' => 2]],
                 [['type' => 'ST', 'amount' => 1], ['type' => 'NST', 'amount' => 1]],
             ),
@@ -56,7 +56,7 @@ class ShipmentDetailsTest extends TestCase
 
     public function testNothingIsToldWithoutPolkuriersCopy(): void
     {
-        self::assertSame([], $this->changes([['type' => 'ST', 'amount' => 1]], []));
+        self::assertSame([], $this->findChanges([['type' => 'ST', 'amount' => 1]], []));
     }
 
     /**
@@ -65,7 +65,7 @@ class ShipmentDetailsTest extends TestCase
      *
      * @return string[]
      */
-    private function changes(array $sent, array $taken): array
+    private function findChanges(array $sent, array $taken): array
     {
         $shipment = $this->createStub(ShipmentInterface::class);
         $shipment->method('getRequest')->willReturn((string)\json_encode(['courier' => 'DPD', 'packs' => $sent]));

@@ -34,10 +34,10 @@ class DescribePickupPointObserverTest extends TestCase
 
     public function testThePointGoesIntoTheShippingDescription(): void
     {
-        $order = $this->order('polkurier_INPOST_PACZKOMAT');
+        $order = $this->createOrder('polkurier_INPOST_PACZKOMAT');
 
-        $this->observer($this->point('INPOST_PACZKOMAT', 'WAW01A', 'ul. Prosta 1, 00-001 Warszawa'))
-            ->execute($this->event($order));
+        $this->createObserver($this->createPoint('INPOST_PACZKOMAT', 'WAW01A', 'ul. Prosta 1, 00-001 Warszawa'))
+            ->execute($this->createEvent($order));
 
         self::assertSame(
             'Paczkomat InPost, pickup point WAW01A (ul. Prosta 1, 00-001 Warszawa)',
@@ -48,11 +48,13 @@ class DescribePickupPointObserverTest extends TestCase
 
     public function testEachMultiAddressOrderGetsItsAddressPoint(): void
     {
-        $order = $this->order('polkurier_INPOST_PACZKOMAT');
+        $order = $this->createOrder('polkurier_INPOST_PACZKOMAT');
         $address = (new ObjectManager($this))->getObject(Address::class);
         $address->setId(12);
 
-        $this->observer($this->point('INPOST_PACZKOMAT', 'KRA02B', null))->execute($this->event($order, $address));
+        $this->createObserver(
+            $this->createPoint('INPOST_PACZKOMAT', 'KRA02B', null),
+        )->execute($this->createEvent($order, $address));
 
         self::assertSame('Paczkomat InPost, pickup point KRA02B', $order->getShippingDescription());
         self::assertSame([12], $this->askedFor);
@@ -60,10 +62,12 @@ class DescribePickupPointObserverTest extends TestCase
 
     public function testAPointOfAnotherMethodOrAnotherCarriersOrderChangesNothing(): void
     {
-        $locker = $this->order('polkurier_INPOST_PACZKOMAT');
-        $this->observer($this->point('DPD_POINT', 'WAW01A', null))->execute($this->event($locker));
-        $flatRate = $this->order('flatrate_flatrate');
-        $this->observer($this->point('INPOST_PACZKOMAT', 'WAW01A', null))->execute($this->event($flatRate));
+        $locker = $this->createOrder('polkurier_INPOST_PACZKOMAT');
+        $this->createObserver($this->createPoint('DPD_POINT', 'WAW01A', null))->execute($this->createEvent($locker));
+        $flatRate = $this->createOrder('flatrate_flatrate');
+        $this->createObserver(
+            $this->createPoint('INPOST_PACZKOMAT', 'WAW01A', null),
+        )->execute($this->createEvent($flatRate));
 
         self::assertSame(
             ['Paczkomat InPost', 'Paczkomat InPost'],
@@ -78,7 +82,7 @@ class DescribePickupPointObserverTest extends TestCase
         self::assertSame('Paczkomat InPost, pickup point WAW01A', $text);
     }
 
-    private function observer(QuotePointInterface $point): DescribePickupPointObserver
+    private function createObserver(QuotePointInterface $point): DescribePickupPointObserver
     {
         $store = $this->createStub(QuotePointRepositoryInterface::class);
         $store->method('getForQuote')
@@ -95,7 +99,7 @@ class DescribePickupPointObserverTest extends TestCase
         );
     }
 
-    private function point(string $method, string $id, ?string $label): QuotePointInterface
+    private function createPoint(string $method, string $id, ?string $label): QuotePointInterface
     {
         $point = $this->createStub(QuotePointInterface::class);
         $point->method('getMethodCode')->willReturn($method);
@@ -105,7 +109,7 @@ class DescribePickupPointObserverTest extends TestCase
         return $point;
     }
 
-    private function order(string $method): Order
+    private function createOrder(string $method): Order
     {
         /** @var Order $order */
         $order = (new ObjectManager($this))->getObject(Order::class);
@@ -113,7 +117,7 @@ class DescribePickupPointObserverTest extends TestCase
         return $order->setShippingMethod($method)->setShippingDescription('Paczkomat InPost');
     }
 
-    private function event(Order $order, ?Address $address = null): Observer
+    private function createEvent(Order $order, ?Address $address = null): Observer
     {
         $quote = $this->createStub(Quote::class);
         $quote->method('getId')->willReturn(7);

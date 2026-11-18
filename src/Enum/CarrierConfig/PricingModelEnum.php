@@ -32,7 +32,7 @@ enum PricingModelEnum: string
      */
     case TierSubtotalWeight = 'TIER_SUBTOTAL_WEIGHT';
 
-    public function label(): string
+    public function getLabel(): string
     {
         return match ($this) {
             self::Fixed => (string)__('Fixed price'),

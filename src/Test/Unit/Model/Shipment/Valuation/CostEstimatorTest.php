@@ -16,12 +16,13 @@ use Polkurier\Shipping\Model\Shipment\Draft;
 use Polkurier\Shipping\Model\Shipment\Placement\CreateOrderMessageMapper;
 use Polkurier\Shipping\Model\Shipment\Valuation\CostEstimator;
 use Polkurier\Shipping\Test\Unit\Support\SdkTestCase;
+use Polkurier\Webservice\Dto\Request\Order\CreateOrderMessage;
+use Polkurier\Webservice\Dto\Response\Order\ValuationMessage;
+use Polkurier\Webservice\Entity\Order;
+use Polkurier\Webservice\Entity\Order\Address;
+use Polkurier\Webservice\Entity\Order\PackItem;
 use Polkurier\Webservice\Enum\Order\PackTypeEnum;
 use Polkurier\Webservice\Enum\Order\ShipmentTypeEnum;
-use Polkurier\Webservice\Request\Order\CreateOrderMessage;
-use Polkurier\Webservice\Request\Order\OrderAddressMessage;
-use Polkurier\Webservice\Request\Order\PackMessage;
-use Polkurier\Webservice\Response\Order\ValuationMessage;
 use Polkurier\Webservice\Testing\RecordingClient;
 
 #[CoversClass(CostEstimator::class)]
@@ -30,12 +31,12 @@ class CostEstimatorTest extends SdkTestCase
 {
     public function testEveryCarrierThatCanCarryTheShipmentIsPriced(): void
     {
-        $quotes = $this->estimator(self::success([
-            self::quote('DPD', 17.87, 21.98),
-            self::quote('INPOST_PACZKOMAT', 12.06, 14.83),
-            self::quote('UPS', 120.0, 147.6, available: false),
+        $quotes = $this->createEstimator(self::encodeSuccess([
+            self::buildQuote('DPD', 17.87, 21.98),
+            self::buildQuote('INPOST_PACZKOMAT', 12.06, 14.83),
+            self::buildQuote('UPS', 120.0, 147.6, available: false),
             // Quoted at 0 when it can't carry it, which would otherwise be the cheapest.
-            self::quote('GLS', 0.0, 0.0, shipment: false),
+            self::buildQuote('GLS', 0.0, 0.0, shipment: false),
         ]))->quoteAll((new Draft())->setCarrierCode('DPD'), 1);
 
         self::assertSame([
@@ -46,7 +47,9 @@ class CostEstimatorTest extends SdkTestCase
 
     public function testPolkuriersOwnAnswerIsRead(): void
     {
-        $quotes = $this->estimator(self::success(\json_decode(self::fixture('order_valuation_v2.json'), true)))
+        $quotes = $this->createEstimator(
+            self::encodeSuccess(\json_decode(self::loadFixture('order_valuation_v2.json'), true)),
+        )
             ->quoteAll((new Draft())->setCarrierCode('DPD'), 1);
 
         self::assertSame(['net' => 48.84, 'gross' => 60.07], $quotes['DPD']);
@@ -56,14 +59,14 @@ class CostEstimatorTest extends SdkTestCase
     public function testAFailureIsReportedForTheMerchant(): void
     {
         $this->expectException(LocalizedException::class);
-        $this->estimator('{"status":"error","response":"Internal error"}', 500)
+        $this->createEstimator('{"status":"error","response":"Internal error"}', 500)
             ->quoteAll((new Draft())->setCarrierCode('DPD'), 1);
     }
 
     /**
      * @return array<string, mixed> one carrier's quote as the API sends it
      */
-    private static function quote(
+    private static function buildQuote(
         string $code,
         float $net,
         float $gross,
@@ -80,9 +83,9 @@ class CostEstimatorTest extends SdkTestCase
         ];
     }
 
-    private static function address(string $person, string $postcode): OrderAddressMessage
+    private static function createAddress(string $person, string $postcode): Address
     {
-        return new OrderAddressMessage(
+        return new Address(
             $person,
             'Prosta',
             'Warszawa',
@@ -94,17 +97,17 @@ class CostEstimatorTest extends SdkTestCase
         );
     }
 
-    private function estimator(string $answer, int $status = 200): CostEstimator
+    private function createEstimator(string $answer, int $status = 200): CostEstimator
     {
         $mapper = $this->createStub(CreateOrderMessageMapper::class);
-        $mapper->method('map')->willReturn(new CreateOrderMessage(
+        $mapper->method('map')->willReturn(new CreateOrderMessage(new Order(
             'DPD',
             ShipmentTypeEnum::Box,
-            [new PackMessage(40, 30, 20, 2.5, PackTypeEnum::Standard, 1)],
-            self::address('Jan Kowalski', '00-838'),
-            self::address('Anna Nowak', '31-147'),
-        ));
-        $client = $this->clientPool(new RecordingClient($answer, $status));
+            [new PackItem(40, 30, 20, 2.5, PackTypeEnum::Standard, 1)],
+            self::createAddress('Jan Kowalski', '00-838'),
+            self::createAddress('Anna Nowak', '31-147'),
+        )));
+        $client = $this->createClientPool(new RecordingClient($answer, $status));
 
         return new CostEstimator($mapper, new ShipmentGateway($client, new ErrorMessageResolver()));
     }

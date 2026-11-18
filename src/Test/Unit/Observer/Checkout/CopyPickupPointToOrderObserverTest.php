@@ -37,34 +37,34 @@ class CopyPickupPointToOrderObserverTest extends TestCase
 
     public function testThePointGoesWithTheOrderPlacedWithItsMethod(): void
     {
-        $this->observer('INPOST_PACZKOMAT')->execute($this->event('polkurier_INPOST_PACZKOMAT'));
+        $this->createObserver('INPOST_PACZKOMAT')->execute($this->createEvent('polkurier_INPOST_PACZKOMAT'));
 
         self::assertSame([42], $this->copied);
     }
 
     public function testAPointOfAnotherMethodStaysBehind(): void
     {
-        $this->observer('INPOST_PACZKOMAT')->execute($this->event('polkurier_DPD'));
-        $this->observer('INPOST_PACZKOMAT')->execute($this->event('flatrate_flatrate'));
+        $this->createObserver('INPOST_PACZKOMAT')->execute($this->createEvent('polkurier_DPD'));
+        $this->createObserver('INPOST_PACZKOMAT')->execute($this->createEvent('flatrate_flatrate'));
 
         self::assertSame([], $this->copied);
     }
 
     public function testWithoutAPointNothingIsCopied(): void
     {
-        $this->observer(null)->execute($this->event('polkurier_DPD'));
+        $this->createObserver(null)->execute($this->createEvent('polkurier_DPD'));
 
         self::assertSame([], $this->copied);
     }
 
     public function testAFailureIsLoggedNotShownToTheCustomer(): void
     {
-        $this->observer('INPOST_PACZKOMAT', true)->execute($this->event('polkurier_INPOST_PACZKOMAT'));
+        $this->createObserver('INPOST_PACZKOMAT', true)->execute($this->createEvent('polkurier_INPOST_PACZKOMAT'));
 
         self::assertSame(['Pickup point not copied to the order'], $this->errors);
     }
 
-    private function event(string $method): Observer
+    private function createEvent(string $method): Observer
     {
         $quote = $this->createStub(Quote::class);
         $quote->method('getId')->willReturn(7);
@@ -75,7 +75,7 @@ class CopyPickupPointToOrderObserverTest extends TestCase
         return new Observer(['event' => new Event(['quote' => $quote, 'order' => $order])]);
     }
 
-    private function observer(?string $pointMethod, bool $failing = false): CopyPickupPointToOrderObserver
+    private function createObserver(?string $pointMethod, bool $failing = false): CopyPickupPointToOrderObserver
     {
         $store = $this->createStub(QuotePointRepositoryInterface::class);
         $store->method('getForQuote')->willReturnCallback(function () use ($pointMethod): ?QuotePointInterface {

@@ -77,8 +77,8 @@ For a shipment whose result is unclear, the page shows the order as it was sent.
 copy of the order leaves something empty, such as some carriers' extra fields, the page shows what
 was sent, marked **(as sent)**.
 
-For parcels dropped off, **Handover to the carrier** shows the drop-off point: the sender address's
-point, or any of the carrier's points.
+For parcels dropped off, **Handover to the carrier** shows the drop-off point: your Polkurier
+account's default one for the carrier, or another of the carrier's points.
 
 ## Actions on a shipment
 

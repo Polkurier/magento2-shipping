@@ -7,7 +7,12 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Model;
 
+use Magento\Framework\Data\Collection\AbstractDb;
 use Magento\Framework\Model\AbstractModel;
+use Magento\Framework\Model\Context;
+use Magento\Framework\Model\ResourceModel\AbstractResource;
+use Magento\Framework\Registry;
+use Magento\Framework\Serialize\Serializer\Json;
 use Polkurier\Shipping\Api\Data\CarrierConfigInterface;
 use Polkurier\Shipping\Api\Data\CarrierLabelInterface;
 
@@ -27,6 +32,20 @@ class CarrierConfig extends AbstractModel implements CarrierConfigInterface
      * @var string
      */
     protected $_eventObject = 'carrierConfig';
+
+    /**
+     * @param array<string, mixed> $data
+     */
+    public function __construct(
+        Context $context,
+        Registry $registry,
+        private readonly Json $json,
+        ?AbstractResource $resource = null,
+        ?AbstractDb $resourceCollection = null,
+        array $data = [],
+    ) {
+        parent::__construct($context, $registry, $resource, $resourceCollection, $data);
+    }
 
     public function getCarrierCode(): string
     {
@@ -147,14 +166,18 @@ class CarrierConfig extends AbstractModel implements CarrierConfigInterface
         if (\is_array($value)) {
             return $value;
         }
-        $decoded = \is_string($value) && $value !== '' ? \json_decode($value, true) : [];
+        try {
+            $decoded = \is_string($value) && $value !== '' ? $this->json->unserialize($value) : [];
+        } catch (\InvalidArgumentException) {
+            $decoded = [];
+        }
 
         return \is_array($decoded) ? $decoded : [];
     }
 
     public function setPriceInfo(array $priceInfo): static
     {
-        return $this->setData(self::FIELD_PRICE_INFO, \json_encode($priceInfo, \JSON_THROW_ON_ERROR));
+        return $this->setData(self::FIELD_PRICE_INFO, (string)$this->json->serialize($priceInfo));
     }
 
     public function isAvailable(): bool

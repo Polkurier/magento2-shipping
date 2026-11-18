@@ -74,18 +74,18 @@ class DataProvider extends AbstractDataProvider
             return ['items' => [], 'totalRecords' => 0];
         }
         $items = [];
-        foreach ($list->getResult() as $payout) {
+        foreach ($list->result as $payout) {
             $items[] = [
-                'number' => $payout->getNumber(),
-                'date' => $payout->getDate()?->format(DateFormat::DATETIME_PHP_FORMAT),
-                'payout_type' => $payout->getPayoutType(),
-                'bank_account_number' => $payout->getIban(),
-                'amount' => $payout->getAmount(),
-                'fee' => $payout->getFee(),
-                'paid_amount' => $payout->getPaidAmount(),
-                'status' => $payout->getStatus(),
-                'items_count' => $payout->getItemsCount(),
-                'cancellable' => (int)$payout->isCancellable(),
+                'number' => $payout->number,
+                'date' => $payout->date?->format(DateFormat::DATETIME_PHP_FORMAT),
+                'payout_type' => $payout->payoutType?->value,
+                'bank_account_number' => $payout->bankAccountNumber,
+                'amount' => $payout->amount,
+                'fee' => $payout->fee,
+                'paid_amount' => $payout->paidAmount,
+                'status' => $payout->status?->value,
+                'items_count' => $payout->itemsCount,
+                'cancellable' => (int)$payout->cancellable,
             ];
         }
 
@@ -93,6 +93,6 @@ class DataProvider extends AbstractDataProvider
         // from the same second in no set order. The number breaks the tie.
         \usort($items, static fn(array $a, array $b): int => [$b['date'], $b['number']] <=> [$a['date'], $a['number']]);
 
-        return ['items' => $items, 'totalRecords' => $list->getTotalRows()];
+        return ['items' => $items, 'totalRecords' => $list->totalRows];
     }
 }

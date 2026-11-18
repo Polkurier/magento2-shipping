@@ -3,7 +3,7 @@
  * Licensed under the MIT License, see LICENSE.md
  */
 /**
- * The shipment screen's data, saved as the draft alone (rules.draft). The carriers, choices and
+ * The shipment screen's data, saved as the draft alone (rules.buildDraft). The carriers, choices and
  * templates the screen also shows would push the request past PHP's limit on the number of input
  * values, and the server would never see it.
  */
@@ -19,7 +19,7 @@ define([
          * @returns {Object}
          */
         save: function (options) {
-            this.client.save(rules.draft(this.get('data') || {}, true), options);
+            this.client.save(rules.buildDraft(this.get('data') || {}, true), options);
 
             return this;
         }

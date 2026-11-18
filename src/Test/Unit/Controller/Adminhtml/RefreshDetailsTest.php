@@ -9,6 +9,7 @@ namespace Polkurier\Shipping\Test\Unit\Controller\Adminhtml;
 
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Exception\NoSuchEntityException;
+use Magento\Framework\Serialize\Serializer\Json;
 use Magento\Framework\TestFramework\Unit\Helper\ObjectManager;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -26,7 +27,7 @@ use Polkurier\Shipping\Model\Shipment\Status\StatusRefreshService;
 use Polkurier\Shipping\Test\Unit\Support\AdminActionTestCase;
 use Polkurier\Shipping\Test\Unit\Support\FixedDateTime;
 use Polkurier\Shipping\ViewModel\Adminhtml\ShipmentDetails;
-use Polkurier\Webservice\Response\Order\OrderStatusMessage;
+use Polkurier\Webservice\Dto\Response\Order\OrderStatusMessage;
 
 /**
  * The shipment details page's background refresh: what it reads from Polkurier, what it stores,
@@ -57,11 +58,11 @@ class RefreshDetailsTest extends AdminActionTestCase
 
     public function testAMissingOrderCopyIsStoredByAStatusRefreshAndShown(): void
     {
-        $refreshed = $this->shipment()->setDetails(['number' => '18015-2865']);
+        $refreshed = $this->createShipment()->setDetails(['number' => '18015-2865']);
         $statusRefresh = $this->createMock(StatusRefreshService::class);
         $statusRefresh->expects(self::once())->method('refresh')->with(3)->willReturn($refreshed);
 
-        $this->action($this->shipment(), $statusRefresh)->execute();
+        $this->createAction($this->createShipment(), $statusRefresh)->execute();
 
         self::assertFalse($this->json['error']);
         self::assertSame([], $this->json['errors']);
@@ -73,12 +74,12 @@ class RefreshDetailsTest extends AdminActionTestCase
     {
         $statusRefresh = $this->createMock(StatusRefreshService::class);
         $statusRefresh->expects(self::never())->method('refresh');
-        $shipment = $this->shipment()
+        $shipment = $this->createShipment()
             ->setDetails(['number' => '18015-2865'])
             ->setIsFinal(true)
             ->setTrackingSyncedAt(null);
 
-        $this->action($shipment, $statusRefresh)->execute();
+        $this->createAction($shipment, $statusRefresh)->execute();
 
         self::assertSame(['18015-2865'], $this->scansRead);
         self::assertSame([3], \array_keys($this->written));
@@ -92,7 +93,7 @@ class RefreshDetailsTest extends AdminActionTestCase
             ->willThrowException(new LocalizedException(__('Polkurier is not answering.')));
         $this->scansFailure = new LocalizedException(__('Polkurier is not answering.'));
 
-        $this->action($this->shipment()->setTrackingSyncedAt(null), $statusRefresh)->execute();
+        $this->createAction($this->createShipment()->setTrackingSyncedAt(null), $statusRefresh)->execute();
 
         self::assertTrue($this->json['error']);
         self::assertArrayNotHasKey('view', $this->json);
@@ -111,7 +112,7 @@ class RefreshDetailsTest extends AdminActionTestCase
         $statusRefresh = $this->createStub(StatusRefreshService::class);
         $statusRefresh->method('refresh')->willThrowException(new \TypeError('Unexpected answer.'));
 
-        $this->action($this->shipment()->setTrackingSyncedAt(null), $statusRefresh)->execute();
+        $this->createAction($this->createShipment()->setTrackingSyncedAt(null), $statusRefresh)->execute();
 
         self::assertFalse($this->json['error']);
         self::assertSame(['The Polkurier order could not be read.'], $this->json['errors']);
@@ -124,8 +125,8 @@ class RefreshDetailsTest extends AdminActionTestCase
         $repository->method('get')->willThrowException(new NoSuchEntityException(__('The shipment is gone.')));
 
         (new RefreshDetails(
-            $this->context(),
-            $this->jsonFactory(),
+            $this->createContext(),
+            $this->createJsonFactory(),
             $repository,
             $this->createStub(DetailsLoader::class),
             $this->createStub(ShipmentDetails::class),
@@ -137,7 +138,7 @@ class RefreshDetailsTest extends AdminActionTestCase
         );
     }
 
-    private function action(Shipment $shipment, StatusRefreshService $statusRefresh): RefreshDetails
+    private function createAction(Shipment $shipment, StatusRefreshService $statusRefresh): RefreshDetails
     {
         $this->params = ['id' => '3'];
         $repository = $this->createStub(ShipmentRepositoryInterface::class);
@@ -149,20 +150,20 @@ class RefreshDetailsTest extends AdminActionTestCase
             }
             $this->scansRead[] = $number;
 
-            return $this->createStub(OrderStatusMessage::class);
+            return new OrderStatusMessage();
         });
         $resource = $this->createStub(ShipmentResource::class);
         $resource->method('updateColumns')->willReturnCallback(function (int $id, array $values): void {
             $this->written[$id] = $values;
         });
         $details = $this->createStub(ShipmentDetails::class);
-        $details->method('build')->willReturnCallback(
+        $details->method('buildPage')->willReturnCallback(
             static fn(ShipmentInterface $built, array $errors): array => ['built from' => $built, 'errors' => $errors],
         );
 
         return new RefreshDetails(
-            $this->context(),
-            $this->jsonFactory(),
+            $this->createContext(),
+            $this->createJsonFactory(),
             $repository,
             new DetailsLoader(
                 $statusRefresh,
@@ -176,10 +177,10 @@ class RefreshDetailsTest extends AdminActionTestCase
         );
     }
 
-    private function shipment(): Shipment
+    private function createShipment(): Shipment
     {
         /** @var Shipment $shipment */
-        $shipment = (new ObjectManager($this))->getObject(Shipment::class);
+        $shipment = (new ObjectManager($this))->getObject(Shipment::class, ['json' => new Json()]);
 
         return $shipment->setId(3)
             ->setState(ShipmentInterface::STATE_CREATED)

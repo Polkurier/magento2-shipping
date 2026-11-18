@@ -89,7 +89,7 @@ define([
                 quotes = this.source.get('quotes') || null,
                 carriers = data.carriers || {},
                 chosen = quotes ? quotes[data.carrier_code] || null : null,
-                currency = data.currency || 'PLN';
+                priceFormat = data.price_format;
             let best = null;
 
             this.carrierName(data.carrier_code ? (carriers[data.carrier_code] || {}).name || data.carrier_code : '');
@@ -97,8 +97,8 @@ define([
             this.notifyCustomer(Boolean(data.notify_customer));
             this.publishIssues();
             this.price(chosen ? {
-                gross: rules.money(chosen.gross, currency),
-                net: rules.money(chosen.net, currency)
+                gross: rules.formatMoney(chosen.gross, priceFormat),
+                net: rules.formatMoney(chosen.net, priceFormat)
             } : null);
             _.each(quotes || {}, function (quote, code) {
                 if (code !== data.carrier_code && (!best || quote.gross < best.gross)) {
@@ -109,23 +109,23 @@ define([
                 code: best.code,
                 text: $t('%1 is %2 cheaper.')
                     .replace('%1', (carriers[best.code] || {}).name || best.code)
-                    .replace('%2', rules.money(chosen.gross - best.gross, currency))
+                    .replace('%2', rules.formatMoney(chosen.gross - best.gross, priceFormat))
             } : null);
         },
 
         /**
          * @returns {Object}
          */
-        payload: function () {
+        buildPayload: function () {
             const data = this.source.get('data') || {},
-                payload = rules.draft(data);
+                payload = rules.buildDraft(data);
 
             // Polkurier won't price a courier pickup without its date and window, and they don't
             // change the price: until they're chosen, price it as handed over at a point.
             if (payload.pickup_mode === 'courier'
-                && !(rules.filled(payload.pickup_date)
-                    && rules.filled(payload.pickup_time_from)
-                    && rules.filled(payload.pickup_time_to))
+                && !(rules.isFilled(payload.pickup_date)
+                    && rules.isFilled(payload.pickup_time_from)
+                    && rules.isFilled(payload.pickup_time_to))
             ) {
                 payload.pickup_mode = 'drop_off';
                 payload.pickup_date = payload.pickup_time_from = payload.pickup_time_to = '';
@@ -135,7 +135,7 @@ define([
         },
 
         quote: function () {
-            const payload = this.payload(),
+            const payload = this.buildPayload(),
                 serialized = JSON.stringify(payload);
 
             // A change outside the priced fields must not cancel the request already on its way.
@@ -208,9 +208,9 @@ define([
                 return pack && !pack.delete;
             });
 
-            return rules.filled(payload.carrier_code) && packs.length > 0 && packs.every(function (pack) {
-                return rules.amount(pack.weight) > 0 && rules.amount(pack.length) > 0
-                    && rules.amount(pack.width) > 0 && rules.amount(pack.height) > 0;
+            return rules.isFilled(payload.carrier_code) && packs.length > 0 && packs.every(function (pack) {
+                return rules.parseAmount(pack.weight) > 0 && rules.parseAmount(pack.length) > 0
+                    && rules.parseAmount(pack.width) > 0 && rules.parseAmount(pack.height) > 0;
             });
         },
 
@@ -221,7 +221,7 @@ define([
          * @returns {Array<{card: String, text: String, blocking: Boolean, fix: (Object|Boolean|null)}>}
          */
         publishIssues: function () {
-            const issues = rules.issues(this.source.get('data') || {});
+            const issues = rules.findIssues(this.source.get('data') || {});
 
             this.source.set('issues', issues);
 

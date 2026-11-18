@@ -17,8 +17,8 @@ use Polkurier\Shipping\Api\ShipmentRepositoryInterface;
 use Polkurier\Shipping\Ui\Component\Control\OnClickScriptBuilder;
 
 /**
- * A button of the shipment details page. It shows only where the shipments list offers the same
- * action, and runs the list's action for this shipment, coming back to this page.
+ * A button of the shipment details page, for the shipment the page shows. An action's button shows
+ * only while the shipment's state allows the action and the admin may run it.
  */
 abstract class AbstractButton implements ButtonProviderInterface
 {
@@ -32,7 +32,7 @@ abstract class AbstractButton implements ButtonProviderInterface
         protected readonly OnClickScriptBuilder $onClickScriptBuilder,
     ) {}
 
-    protected function shipment(): ?ShipmentInterface
+    protected function getShipment(): ?ShipmentInterface
     {
         if ($this->shipment === null) {
             try {
@@ -47,29 +47,35 @@ abstract class AbstractButton implements ButtonProviderInterface
 
     protected function isCreated(): bool
     {
-        return $this->shipment()?->getState() === ShipmentInterface::STATE_CREATED;
+        return $this->getShipment()?->getState() === ShipmentInterface::STATE_CREATED;
     }
 
     /**
+     * @param string $route the action's route: its controller's ROUTE
      * @param array<string, string> $params besides the shipment's id
      */
-    protected function actionUrl(string $action, array $params = []): string
+    protected function getActionUrl(string $route, array $params = []): string
     {
         return $this->url->getUrl(
-            'polkurier/shipment/' . $action,
-            ['id' => (int)$this->shipment()?->getId()] + $params,
+            $route,
+            ['id' => (int)$this->getShipment()?->getId()] + $params,
         );
     }
 
     /**
      * @return array<string, mixed>
      */
-    protected function link(string $label, string $action, int $sortOrder, string $class = 'secondary'): array
+    protected function buildLinkButton(
+        string $label,
+        string $route,
+        int $sortOrder,
+        string $class = 'secondary',
+    ): array
     {
         return [
             'label' => $label,
             'class' => $class,
-            'on_click' => $this->onClickScriptBuilder->location($this->actionUrl($action)),
+            'on_click' => $this->onClickScriptBuilder->buildLocation($this->getActionUrl($route)),
             'sort_order' => $sortOrder,
         ];
     }
@@ -79,9 +85,9 @@ abstract class AbstractButton implements ButtonProviderInterface
      *
      * @return array<string, mixed>
      */
-    protected function post(
+    protected function buildPostButton(
         string $label,
-        string $action,
+        string $route,
         int $sortOrder,
         ?string $confirmTitle = null,
         ?string $confirmText = null,
@@ -89,7 +95,11 @@ abstract class AbstractButton implements ButtonProviderInterface
         return [
             'label' => $label,
             'class' => 'secondary',
-            'on_click' => $this->onClickScriptBuilder->post($this->actionUrl($action), $confirmTitle, $confirmText),
+            'on_click' => $this->onClickScriptBuilder->buildPost(
+                $this->getActionUrl($route),
+                $confirmTitle,
+                $confirmText,
+            ),
             'sort_order' => $sortOrder,
         ];
     }

@@ -18,24 +18,28 @@ class CarrierNameProviderTest extends TestCase
 {
     public function testACarrierIsShownByItsName(): void
     {
-        self::assertSame('InPost Paczkomat 24/7', $this->names()->get('INPOST_PACZKOMAT'));
+        self::assertSame('InPost Paczkomat 24/7', $this->createProvider()->get('INPOST_PACZKOMAT'));
     }
 
     public function testOnlyACarrierTheModuleKnowsNothingOfByItsCode(): void
     {
-        self::assertSame('GLS', $this->names()->get('GLS'));
-        self::assertSame('POCZTEX', $this->names()->get('POCZTEX'), 'Nameless settings: the code is all there is.');
+        self::assertSame('GLS', $this->createProvider()->get('GLS'));
+        self::assertSame(
+            'POCZTEX',
+            $this->createProvider()->get('POCZTEX'),
+            'Nameless settings: the code is all there is.',
+        );
     }
 
     public function testEveryCarrierInAlphabeticalOrderOfName(): void
     {
         self::assertSame(
             ['DPD' => 'DPD', 'INPOST_PACZKOMAT' => 'InPost Paczkomat 24/7', 'POCZTEX' => 'POCZTEX'],
-            $this->names()->getAll(),
+            $this->createProvider()->getAll(),
         );
     }
 
-    private function names(): CarrierNameProvider
+    private function createProvider(): CarrierNameProvider
     {
         $configs = [];
         foreach (['INPOST_PACZKOMAT' => 'InPost Paczkomat 24/7', 'DPD' => 'DPD', 'POCZTEX' => ''] as $code => $name) {

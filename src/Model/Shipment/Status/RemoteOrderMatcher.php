@@ -16,11 +16,11 @@ use Polkurier\Shipping\Model\Config\ConfigProvider;
 use Polkurier\Shipping\Model\Sdk\ApplicationIdProvider;
 use Polkurier\Shipping\Model\Sdk\ShipmentGateway;
 use Polkurier\Shipping\Model\Shipment\ShipmentFinder;
-use Polkurier\Webservice\Builder\Order\GetOrdersMessageBuilder;
-use Polkurier\Webservice\Builder\Order\GetOrdersMessageBuilderFactory;
+use Polkurier\Webservice\Builder\Request\Order\GetOrdersMessageBuilder;
+use Polkurier\Webservice\Builder\Request\Order\GetOrdersMessageBuilderFactory;
+use Polkurier\Webservice\Dto\Request\Order\GetOrdersMessage;
+use Polkurier\Webservice\Entity\Order;
 use Polkurier\Webservice\Enum\Order\OrderStatusCodeEnum;
-use Polkurier\Webservice\Request\Order\GetOrdersMessage;
-use Polkurier\Webservice\Response\Order;
 
 /**
  * Finds this installation's orders on the Polkurier account: the one an unanswered attempt may have
@@ -66,8 +66,8 @@ readonly class RemoteOrderMatcher
             return $found;
         }
         $orders = $this->findOrders(fn(GetOrdersMessageBuilder $builder) => $builder
-            ->externalApplicationId($this->applicationIdProvider->get())
-            ->externalOrderId($externalOrderId));
+            ->setExternalApplicationId($this->applicationIdProvider->get())
+            ->setExternalOrderId($externalOrderId));
         foreach ($orders as $order) {
             $match = $order->getNumber() !== null ? $this->match($shipment, $order) : self::NO_MATCH;
             if ($match !== self::NO_MATCH) {
@@ -75,7 +75,7 @@ readonly class RemoteOrderMatcher
             }
         }
 
-        return $this->unclaimed($shipment, $found);
+        return $this->findUnclaimed($shipment, $found);
     }
 
     /**
@@ -88,8 +88,8 @@ readonly class RemoteOrderMatcher
         // Searched by phrase, which matches longer numbers that hold it too; the exact one is
         // picked, on whichever page it comes.
         $orders = $this->findOrders(static fn(GetOrdersMessageBuilder $builder) => $builder
-            ->searchPhrase($number)
-            ->items(true));
+            ->setSearchPhrase($number)
+            ->setItems(true));
         foreach ($orders as $order) {
             if ($order->getNumber() === $number) {
                 return $order;
@@ -109,13 +109,13 @@ readonly class RemoteOrderMatcher
         $found = null;
         // Searched by phrase, which matches longer numbers that hold it too: only the exact one counts.
         $orders = $this->findOrders(static fn(GetOrdersMessageBuilder $builder) => $builder
-            ->searchPhrase($waybill)
-            ->items(true));
+            ->setSearchPhrase($waybill)
+            ->setItems(true));
         foreach ($orders as $order) {
             if ($order->getNumber() === null || !self::hasWaybill($order, $waybill)) {
                 continue;
             }
-            if ($order->getStatusCode() !== OrderStatusCodeEnum::Canceled->value) {
+            if ($order->getStatusCode() !== OrderStatusCodeEnum::Canceled) {
                 return $order;
             }
             $found ??= $order;
@@ -170,7 +170,7 @@ readonly class RemoteOrderMatcher
             $number = $shipment->getPolkurierNumber();
             if ($number !== null) {
                 $wanted[$number] = true;
-                $placedAt[] = $this->timestamp($shipment);
+                $placedAt[] = $this->getTimestamp($shipment);
             }
         }
         $count = \count($wanted);
@@ -183,25 +183,25 @@ readonly class RemoteOrderMatcher
         for ($page = 1; $wanted !== []; $page++) {
             try {
                 $list = $this->shipmentGateway->findOrders($this->getOrdersMessageBuilderFactory->create()
-                    ->externalApplicationId($this->applicationIdProvider->get())
-                    ->dateFrom($from)
-                    ->dateTo($to)
-                    ->pageSize(GetOrdersMessage::MAX_PAGE_SIZE)
-                    ->page($page)
-                    ->packs(true)
-                    ->items(true)
+                    ->setExternalApplicationId($this->applicationIdProvider->get())
+                    ->setDateFrom($from)
+                    ->setDateTo($to)
+                    ->setPageSize(GetOrdersMessage::MAX_PAGE_SIZE)
+                    ->setPage($page)
+                    ->setPacks(true)
+                    ->setItems(true)
                     ->build());
             } catch (LocalizedException) {
                 break;
             }
-            foreach ($list->getResult() as $order) {
+            foreach ($list->result as $order) {
                 $number = (string)$order->getNumber();
                 if (isset($wanted[$number])) {
                     $found[$number] = $order;
                     unset($wanted[$number]);
                 }
             }
-            if ($page >= $list->getTotalPages() || ($page === 1 && $list->getTotalPages() >= $count)) {
+            if ($page >= $list->totalPages || ($page === 1 && $list->totalPages >= $count)) {
                 break;
             }
         }
@@ -235,7 +235,7 @@ readonly class RemoteOrderMatcher
      *
      * @return array{sure: Order[], possible: Order[]}
      */
-    private function unclaimed(ShipmentInterface $shipment, array $found): array
+    private function findUnclaimed(ShipmentInterface $shipment, array $found): array
     {
         $all = \array_merge($found[self::SURE], $found[self::POSSIBLE]);
         $taken = $this->getAdoptedNumbers((int)$shipment->getId(), $all);
@@ -261,14 +261,14 @@ readonly class RemoteOrderMatcher
     {
         for ($page = 1; $page <= self::MAX_PAGES; $page++) {
             $builder = $this->getOrdersMessageBuilderFactory->create()
-                ->pageSize(GetOrdersMessage::MAX_PAGE_SIZE)
-                ->page($page)
-                ->packs(true);
+                ->setPageSize(GetOrdersMessage::MAX_PAGE_SIZE)
+                ->setPage($page)
+                ->setPacks(true);
             $list = $this->shipmentGateway->findOrders($filter($builder)->build());
-            foreach ($list->getResult() as $order) {
+            foreach ($list->result as $order) {
                 yield $order;
             }
-            if ($page >= $list->getTotalPages()) {
+            if ($page >= $list->totalPages) {
                 break;
             }
         }
@@ -279,12 +279,15 @@ readonly class RemoteOrderMatcher
      */
     private function match(ShipmentInterface $shipment, Order $order): string
     {
-        if (!$this->isPlacedFor($shipment, $order)
+        $recipient = $order->getRecipient();
+        if ($recipient === null
+            || !$this->isPlacedFor($shipment, $order)
             || $order->getCourier() !== $shipment->getCarrierCode()
             || \trim((string)$order->getDescription()) !== \trim($shipment->getDescription())
-            || self::postcode($order->getRecipient()->getPostcode())
-                !== self::postcode((string)$shipment->getRecipientPostcode())
-            || self::phone($order->getRecipient()->getPhone()) !== self::phone((string)$shipment->getRecipientPhone())
+            || self::normalizePostcode($recipient->getPostcode())
+                !== self::normalizePostcode((string)$shipment->getRecipientPostcode())
+            || self::normalizePhone((string)$recipient->getPhone())
+                !== self::normalizePhone((string)$shipment->getRecipientPhone())
         ) {
             return self::NO_MATCH;
         }
@@ -303,7 +306,7 @@ readonly class RemoteOrderMatcher
     /**
      * When the shipment was placed, or now for one not saved yet.
      */
-    private function timestamp(ShipmentInterface $shipment): int
+    private function getTimestamp(ShipmentInterface $shipment): int
     {
         $createdAt = $shipment->getCreatedAt();
 
@@ -315,7 +318,7 @@ readonly class RemoteOrderMatcher
     private static function hasWaybill(Order $order, string $waybill): bool
     {
         foreach ($order->getWaybills() as $candidate) {
-            if (\strcasecmp((string)$candidate->getNumber(), $waybill) === 0) {
+            if (\strcasecmp($candidate->number, $waybill) === 0) {
                 return true;
             }
         }
@@ -323,7 +326,7 @@ readonly class RemoteOrderMatcher
         return false;
     }
 
-    private static function postcode(string $postcode): string
+    private static function normalizePostcode(string $postcode): string
     {
         return (string)\preg_replace('/\W+/', '', \strtoupper($postcode));
     }
@@ -331,7 +334,7 @@ readonly class RemoteOrderMatcher
     /**
      * The last nine digits, which survive a country prefix or formatting being added or removed.
      */
-    private static function phone(string $phone): string
+    private static function normalizePhone(string $phone): string
     {
         return \substr((string)\preg_replace('/\D+/', '', $phone), -9);
     }
@@ -349,7 +352,7 @@ readonly class RemoteOrderMatcher
             return [];
         }
         $numbers = [];
-        $shipments = $this->shipmentFinder->byNumbers(
+        $shipments = $this->shipmentFinder->findByNumbers(
             \array_map(static fn(Order $order): string => (string)$order->getNumber(), $orders),
         );
         foreach ($shipments as $item) {

@@ -18,7 +18,7 @@ class PickupWindowTest extends TestCase
 {
     public function testAWindowIsInPolishTime(): void
     {
-        $window = PickupService::window('2026-10-08', '09:00', '15:30');
+        $window = PickupService::buildWindow('2026-10-08', '09:00', '15:30');
 
         self::assertSame('2026-10-08 09:00 Europe/Warsaw', $window['from']->format('Y-m-d H:i e'));
         self::assertSame('2026-10-08 15:30', $window['to']->format('Y-m-d H:i'));
@@ -28,7 +28,7 @@ class PickupWindowTest extends TestCase
     /**
      * @return array<string, array{string, string, string}>
      */
-    public static function wrong(): array
+    public static function provideWrong(): array
     {
         return [
             'no such month' => ['2026-13-08', '09:00', '15:00'],
@@ -42,11 +42,11 @@ class PickupWindowTest extends TestCase
         ];
     }
 
-    #[DataProvider('wrong')]
+    #[DataProvider('provideWrong')]
     public function testAWindowThatIsNoneIsRefused(string $date, string $from, string $to): void
     {
         $this->expectException(LocalizedException::class);
 
-        PickupService::window($date, $from, $to);
+        PickupService::buildWindow($date, $from, $to);
     }
 }

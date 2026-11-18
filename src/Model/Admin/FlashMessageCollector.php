@@ -9,7 +9,7 @@ namespace Polkurier\Shipping\Model\Admin;
 
 use Magento\Framework\Message\ManagerInterface;
 use Magento\Framework\Phrase;
-use Polkurier\Webservice\Response\TwoFactorToken;
+use Polkurier\Webservice\Dto\Response\TwoFactorToken;
 
 /**
  * Collects everything an admin action has to report into one message, however many things the
@@ -31,22 +31,22 @@ class FlashMessageCollector
 
     private int $level = self::SUCCESS;
 
-    public function success(Phrase|string $text): self
+    public function addSuccess(Phrase|string $text): self
     {
         return $this->add($text, self::SUCCESS);
     }
 
-    public function notice(Phrase|string $text): self
+    public function addNotice(Phrase|string $text): self
     {
         return $this->add($text, self::NOTICE);
     }
 
-    public function warning(Phrase|string $text): self
+    public function addWarning(Phrase|string $text): self
     {
         return $this->add($text, self::WARNING);
     }
 
-    public function error(Phrase|string $text): self
+    public function addError(Phrase|string $text): self
     {
         return $this->add($text, self::ERROR);
     }
@@ -75,14 +75,16 @@ class FlashMessageCollector
      * Says where a confirmation code was sent and until when it's valid. "Where" is the name of the
      * method Polkurier sent it by: a partly masked phone number or e-mail address.
      */
-    public static function codeSent(TwoFactorToken $token): string
+    public static function formatCodeSent(TwoFactorToken $token): string
     {
-        $where = \trim((string)$token->getTransportMethod()?->getName()) ?: \trim($token->getPhoneNumber());
-        $until = $token->getExpiresAt()->format('H:i');
+        $where = \trim((string)$token->transportMethod?->name) ?: \trim($token->phoneNumber);
+        $until = $token->expiresAt?->format('H:i');
 
-        return $where !== ''
-            ? (string)__('Code sent to %1; valid until %2.', $where, $until)
-            : (string)__('Code sent; valid until %1.', $until);
+        return match (true) {
+            $until === null => $where !== '' ? (string)__('Code sent to %1.', $where) : (string)__('Code sent.'),
+            $where !== '' => (string)__('Code sent to %1; valid until %2.', $where, $until),
+            default => (string)__('Code sent; valid until %1.', $until),
+        };
     }
 
     private function add(Phrase|string $text, int $level): self

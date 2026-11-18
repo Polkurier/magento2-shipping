@@ -139,11 +139,11 @@ class NativeLabelService implements ResetAfterRequestInterface
 
         $magentoShipmentId = $magentoShipment->getId() ? (int)$magentoShipment->getId() : null;
         $shipment = $magentoShipmentId !== null
-            ? $this->shipmentFinder->latestLinkedTo($magentoShipmentId, [ShipmentInterface::STATE_CREATED])
+            ? $this->shipmentFinder->findLatestLinkedTo($magentoShipmentId, [ShipmentInterface::STATE_CREATED])
             : null;
         if ($shipment === null) {
             $draft = $this->buildDraft($magentoShipment, $order, (array)$request->getData('packages'));
-            $shipment = $this->placementService->forNativeShipment(
+            $shipment = $this->placementService->placeForNativeShipment(
                 (int)$order->getEntityId(),
                 $draft,
                 $magentoShipmentId,
@@ -188,11 +188,11 @@ class NativeLabelService implements ResetAfterRequestInterface
             $qtys[(int)$item->getOrderItemId()] = (float)$item->getQty();
         }
         $data = \array_replace(
-            $this->draftHydrator->toArray($this->defaultDraftBuilder->createFromOrder($order, $qtys)),
-            $this->options($magentoShipment),
+            $this->draftHydrator->convertToArray($this->defaultDraftBuilder->createFromOrder($order, $qtys)),
+            $this->getOptions($magentoShipment),
         );
-        $draft = $this->draftHydrator->fromArray($data);
-        $packs = $this->nativeLabelPackageMapper->toPacks($packages);
+        $draft = $this->draftHydrator->createFromArray($data);
+        $packs = $this->nativeLabelPackageMapper->mapToPacks($packages);
         // Magento's packaging window ships no item twice; this checks what's posted.
         $this->nativeShipmentService->assertPacked($order, $packs, $qtys);
         if ($packs !== []) {
@@ -264,7 +264,7 @@ class NativeLabelService implements ResetAfterRequestInterface
      *
      * @return array<string, mixed>
      */
-    private function options(MagentoShipmentModel $magentoShipment): array
+    private function getOptions(MagentoShipmentModel $magentoShipment): array
     {
         $options = $magentoShipment->getData(self::FIELD_OPTIONS);
 

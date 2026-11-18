@@ -23,9 +23,9 @@ use Polkurier\Shipping\Model\Sdk\ApiEventDispatcher;
 use Polkurier\Shipping\Test\Unit\Support\NewingObjectManager;
 use Polkurier\Shipping\Test\Unit\Support\RecordingEventManager;
 use Polkurier\Shipping\Test\Unit\Support\SdkTestCase;
-use Polkurier\Webservice\Builder\Address\SaveMessageBuilderFactory;
-use Polkurier\Webservice\Request\Address\DeleteMessage;
-use Polkurier\Webservice\Request\Address\SaveMessage;
+use Polkurier\Webservice\Builder\Entity\AddressBuilderFactory;
+use Polkurier\Webservice\Dto\Request\Address\DeleteMessage;
+use Polkurier\Webservice\Entity\Address as RemoteAddress;
 use Polkurier\Webservice\Testing\RecordingClient;
 
 #[CoversClass(AddressSyncAdapter::class)]
@@ -37,37 +37,37 @@ class AddressSyncAdapterTest extends SdkTestCase
 
     public function testSavingAnAddressOnTheAccountIsReported(): void
     {
-        $http = new RecordingClient(self::success([
+        $http = new RecordingClient(self::encodeSuccess([
             'id' => 'aZ3k', 'name' => 'Magazyn', 'type' => 'SENDER', 'person' => 'Jan Kowalski',
             'company' => '', 'street' => 'Fabryczna', 'housenumber' => '7', 'flatnumber' => '',
             'city' => 'Łódź', 'postcode' => '90-001', 'email' => 'magazyn@example.com',
             'phone' => '501501501', 'country' => 'PL', 'province' => '', 'point_id' => '',
             'default' => false, 'shared' => false, 'is_cover_address' => false,
         ]));
-        $address = $this->address();
+        $address = $this->createAddress();
 
-        $remote = $this->adapter($http)->push($address);
+        $remote = $this->createAdapter($http)->push($address);
 
         self::assertSame('aZ3k', $remote[AddressInterface::FIELD_EXT_ID]);
-        self::assertSame('save_address', $http->lastPayload()['apimethod']);
-        $events = $this->events->of(ApiEventEnum::AddressSaveAfter);
+        self::assertSame('save_address', $http->readLastPayload()['apimethod']);
+        $events = $this->events->listDispatched(ApiEventEnum::AddressSaveAfter);
         self::assertCount(1, $events);
         self::assertNull($events[0]['store_id'], 'The account\'s, not a store\'s.');
         self::assertSame($address, $events[0]['address']);
         self::assertTrue($events[0]['is_new']);
-        self::assertInstanceOf(SaveMessage::class, $events[0]['request']);
+        self::assertInstanceOf(RemoteAddress::class, $events[0]['request']);
         self::assertSame('aZ3k', $events[0]['response']->getId());
     }
 
     public function testDeletingAnAddressFromTheAccountIsReported(): void
     {
-        $http = new RecordingClient(self::success(true));
-        $address = $this->address()->setExtId('aZ3k');
+        $http = new RecordingClient(self::encodeSuccess(true));
+        $address = $this->createAddress()->setExtId('aZ3k');
 
-        $this->adapter($http)->deleteRemote($address);
+        $this->createAdapter($http)->deleteRemote($address);
 
-        self::assertSame('delete_address', $http->lastPayload()['apimethod']);
-        $events = $this->events->of(ApiEventEnum::AddressDeleteAfter);
+        self::assertSame('delete_address', $http->readLastPayload()['apimethod']);
+        $events = $this->events->listDispatched(ApiEventEnum::AddressDeleteAfter);
         self::assertCount(1, $events);
         self::assertSame($address, $events[0]['address']);
         self::assertInstanceOf(DeleteMessage::class, $events[0]['request']);
@@ -78,11 +78,11 @@ class AddressSyncAdapterTest extends SdkTestCase
         $this->events = new RecordingEventManager();
     }
 
-    private function adapter(RecordingClient $http): AddressSyncAdapter
+    private function createAdapter(RecordingClient $http): AddressSyncAdapter
     {
         return new AddressSyncAdapter(
-            $this->clientPool($http),
-            new AddressBookMapper(NewingObjectManager::factory(SaveMessageBuilderFactory::class)),
+            $this->createClientPool($http),
+            new AddressBookMapper(NewingObjectManager::createFactory(AddressBuilderFactory::class)),
             $this->createStub(CollectionFactory::class),
             $this->createStub(AddressFactory::class),
             $this->createStub(AddressRepositoryInterface::class),
@@ -90,7 +90,7 @@ class AddressSyncAdapterTest extends SdkTestCase
         );
     }
 
-    private function address(): Address
+    private function createAddress(): Address
     {
         /** @var Address $address */
         $address = (new ObjectManager($this))->getObject(Address::class);

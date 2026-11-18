@@ -10,45 +10,16 @@
  * runs in a blank same-origin iframe laid over the page, with clean built-ins of its own; the
  * iframe is only shown while the map dialog is open. The widget's script and styles are loaded
  * into it once, from the map host, the first time the map is needed.
- *
- * The map's token runs out some hours after it's issued: opening the map asks map.tokenUrl for a
- * fresh one when the page has none or it's about to run out, so a screen left open still works.
  */
-define(['mage/translate', 'Magento_Ui/js/modal/alert'], function ($t, alert) {
+define([
+    'mage/translate',
+    'Magento_Ui/js/modal/alert',
+    'Polkurier_Shipping/js/points-map-widget'
+], function ($t, alert, pointsMapWidget) {
     'use strict';
-
-    // How many seconds before a token runs out a fresh one is asked for instead.
-    const REFRESH_BEFORE = 600;
 
     let frame = null,
         widget = null;
-
-    /**
-     * @param {Object} map the map settings; updated in place with a fresh token
-     * @returns {Promise<String>}
-     */
-    function freshToken(map) {
-        const now = Date.now() / 1000;
-
-        if (map.token && (!map.expires || map.expires - now > REFRESH_BEFORE)) {
-            return Promise.resolve(map.token);
-        }
-
-        return fetch(map.tokenUrl + (map.tokenUrl.indexOf('?') === -1 ? '?' : '&') + 'isAjax=true', {
-            credentials: 'same-origin',
-            headers: {'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest'}
-        }).then(function (response) {
-            return response.ok ? response.json() : Promise.reject(new Error('No map token'));
-        }).then(function (answer) {
-            if (!answer || !answer.token) {
-                return Promise.reject(new Error('No map token'));
-            }
-            map.token = answer.token;
-            map.expires = answer.expires || 0;
-
-            return map.token;
-        });
-    }
 
     /**
      * @returns {HTMLIFrameElement}
@@ -88,24 +59,14 @@ define(['mage/translate', 'Magento_Ui/js/modal/alert'], function ($t, alert) {
      */
     function loadWidget(base) {
         if (widget === null) {
-            widget = new Promise(function (resolve, reject) {
-                const target = getFrame().contentWindow,
-                    doc = target.document,
-                    style = doc.createElement('link'),
-                    script = doc.createElement('script');
+            const target = getFrame().contentWindow;
 
-                style.rel = 'stylesheet';
-                style.href = base + 'assets/dist/points-map.css';
-                doc.head.appendChild(style);
-                script.src = base + 'assets/dist/points-map.bundle.js';
-                script.onload = function () {
-                    resolve(target);
-                };
-                script.onerror = function () {
-                    widget = null;
-                    reject();
-                };
-                doc.head.appendChild(script);
+            widget = pointsMapWidget.loadInto(target.document, base).then(function () {
+                return target;
+            }, function (error) {
+                widget = null;
+
+                return Promise.reject(error);
             });
         }
 
@@ -122,29 +83,49 @@ define(['mage/translate', 'Magento_Ui/js/modal/alert'], function ($t, alert) {
         },
 
         /**
-         * The point's address in one line, for showing next to its code.
+         * The point's details, by its code, with a point chosen on the map added: its name, or its
+         * description when it has none, and its address in one line.
          *
+         * @param {Object} details the points' names and addresses, by code
+         * @param {String} pointId
          * @param {Object} point as the map returns it
-         * @returns {String}
+         * @returns {Object} a copy of details with the point
          */
-        describe: function (point) {
-            if (!point) {
-                return '';
-            }
+        addPoint: function (details, pointId, point) {
+            const copy = Object.assign({}, details || {});
 
-            return point.address
-                || [point.street, [point.zip, point.city].filter(Boolean).join(' ')].filter(Boolean).join(', ');
+            copy[pointId] = {
+                name: point.name || point.description || '',
+                label: pointsMapWidget.formatAddress(point)
+            };
+
+            return copy;
         },
 
         /**
-         * @param {{token: String, baseUrl: String}} map
+         * The point's name and address in one line, '' when neither is known.
+         *
+         * @param {Object} details the points' names and addresses, by code
+         * @param {String} pointId
+         * @returns {String}
+         */
+        describe: function (details, pointId) {
+            const point = (details || {})[pointId];
+
+            return point ? [point.name, point.label].filter(Boolean).join(', ') : '';
+        },
+
+        /**
+         * @param {{token: String, tokenExpires: Number, tokenUrl: String, baseUrl: String}} map
          * @param {String[]} providers the carrier's point providers
          * @param {String} searchQuery where the map should start: the postcode, e.g. "00-001"
          * @param {Function} onChoose called with the point's id and the point
          * @param {String[]} [functions] only points that do these, e.g. ['send'] for drop-off points
          */
         open: function (map, providers, searchQuery, onChoose, functions) {
-            freshToken(map).then(function () {
+            const url = map.tokenUrl + (map.tokenUrl.indexOf('?') === -1 ? '?' : '&') + 'isAjax=true';
+
+            pointsMapWidget.fetchFreshToken(map, url).then(function () {
                 return loadWidget(map.baseUrl);
             }).then(function (target) {
                 // The providers array is made in the iframe, so it has the widget's built-ins too.

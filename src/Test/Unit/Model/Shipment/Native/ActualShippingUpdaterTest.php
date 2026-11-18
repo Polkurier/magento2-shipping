@@ -7,6 +7,8 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Test\Unit\Model\Shipment\Native;
 
+use Magento\Framework\Serialize\Serializer\Json;
+use Magento\Framework\TestFramework\Unit\Helper\ObjectManager;
 use Magento\Sales\Api\OrderRepositoryInterface;
 use Magento\Sales\Model\Order;
 use Magento\Sales\Model\ResourceModel\Attribute as SalesAttribute;
@@ -17,6 +19,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Polkurier\Shipping\Api\Data\OrderPointInterface;
 use Polkurier\Shipping\Api\OrderPointRepositoryInterface;
+use Polkurier\Shipping\Api\ShippingChoiceRepositoryInterface;
 use Polkurier\Shipping\Model\OrderPoint;
 use Polkurier\Shipping\Model\PickupPoint\PointDescriptionBuilder;
 use Polkurier\Shipping\Model\ResourceModel\Shipment\Collection;
@@ -30,8 +33,7 @@ use Polkurier\Shipping\Model\Shipment\OrderLoader;
 use Polkurier\Shipping\Model\Shipment\Screen\ScreenDataProvider;
 use Polkurier\Shipping\Model\Shipment\ShipmentFinder;
 use Polkurier\Shipping\Model\ShippingChoice;
-use Polkurier\Shipping\Model\ShippingChoice\ShippingChoiceRepository;
-use Polkurier\Webservice\Response\CourierPoint;
+use Polkurier\Webservice\Dto\Response\CourierPoint;
 
 #[CoversClass(ActualShippingUpdater::class)]
 #[AllowMockObjectsWithoutExpectations]
@@ -43,15 +45,20 @@ class ActualShippingUpdaterTest extends TestCase
     private ?Shipment $placed = null;
 
     /**
+     * The point Polkurier answers with: false when it's closed.
+     */
+    private CourierPoint|false|null $found = null;
+
+    /**
      * @var string[] what was written, in order
      */
     private array $log = [];
 
     public function testAnotherCarrierAndPointBecomeTheOrdersAndTheCustomersChoiceIsKept(): void
     {
-        $this->placed = $this->shipment('INPOST_PACZKOMAT', 'KRA235M');
+        $this->placed = $this->createShipment('INPOST_PACZKOMAT', 'KRA235M');
 
-        $this->service()->sync(15);
+        $this->createService()->sync(15);
 
         self::assertSame('polkurier_INPOST_PACZKOMAT', $this->order->getShippingMethod());
         self::assertSame(
@@ -67,11 +74,23 @@ class ActualShippingUpdaterTest extends TestCase
         ], $this->log);
     }
 
+    public function testAClosedPointBecomesTheOrdersWithoutItsAddress(): void
+    {
+        $this->placed = $this->createShipment('INPOST_PACZKOMAT', 'KRA235M');
+        $this->found = false;
+
+        $this->createService()->sync(15);
+
+        self::assertSame('polkurier_INPOST_PACZKOMAT', $this->order->getShippingMethod());
+        self::assertSame('Paczkomat InPost, pickup point KRA235M', $this->order->getShippingDescription());
+        self::assertContains('point INPOST_PACZKOMAT KRA235M', $this->log);
+    }
+
     public function testAtPlacingTheChangeIsLeftToThePlacedOrdersOwnNote(): void
     {
-        $this->placed = $this->shipment('INPOST_PACZKOMAT', 'KRA235M');
+        $this->placed = $this->createShipment('INPOST_PACZKOMAT', 'KRA235M');
 
-        $this->service()->sync(15, false);
+        $this->createService()->sync(15, false);
 
         self::assertSame('polkurier_INPOST_PACZKOMAT', $this->order->getShippingMethod());
         self::assertNotContains('comment', $this->log);
@@ -79,9 +98,9 @@ class ActualShippingUpdaterTest extends TestCase
 
     public function testShippingAsTheOrderSaysChangesNothing(): void
     {
-        $this->placed = $this->shipment('DHL_POINT', '4515215');
+        $this->placed = $this->createShipment('DHL_POINT', '4515215');
 
-        $this->service()->sync(15);
+        $this->createService()->sync(15);
 
         self::assertSame([], $this->log);
     }
@@ -101,7 +120,7 @@ class ActualShippingUpdaterTest extends TestCase
             'point_cod' => 1,
         ]);
 
-        $this->service()->sync(15);
+        $this->createService()->sync(15);
 
         self::assertSame('polkurier_DHL_POINT', $this->order->getShippingMethod());
         self::assertSame('DHL POP, punkt odbioru 4515215', $this->order->getShippingDescription());
@@ -116,9 +135,9 @@ class ActualShippingUpdaterTest extends TestCase
 
     public function testACourierWithoutAPointLeavesTheOrderWithoutOne(): void
     {
-        $this->placed = $this->shipment('DPD', '');
+        $this->placed = $this->createShipment('DPD', '');
 
-        $this->service()->sync(15);
+        $this->createService()->sync(15);
 
         self::assertSame('polkurier_DPD', $this->order->getShippingMethod());
         self::assertSame('Kurier DPD', $this->order->getShippingDescription());
@@ -127,6 +146,7 @@ class ActualShippingUpdaterTest extends TestCase
 
     protected function setUp(): void
     {
+        $this->found = new CourierPoint('KRA01M', address: '31-870 Kraków, 2 Pułku Lotniczego 44', cod: true);
         $this->order = $this->getMockBuilder(Order::class)
             ->disableOriginalConstructor()
             ->onlyMethods(['getStoreId'])
@@ -137,10 +157,10 @@ class ActualShippingUpdaterTest extends TestCase
             'shipping_method' => 'polkurier_DHL_POINT',
             'shipping_description' => 'DHL POP, punkt odbioru 4515215',
         ]);
-        $this->point = $this->orderPoint('DHL_POINT', '4515215', 'Kraków, Kocmyrzowska 2b');
+        $this->point = $this->createOrderPoint('DHL_POINT', '4515215', 'Kraków, Kocmyrzowska 2b');
     }
 
-    private function service(): ActualShippingUpdater
+    private function createService(): ActualShippingUpdater
     {
         $orders = $this->createStub(OrderRepositoryInterface::class);
         $orders->method('get')->willReturn($this->order);
@@ -154,9 +174,9 @@ class ActualShippingUpdaterTest extends TestCase
         $collections = $this->createStub(CollectionFactory::class);
         $collections->method('create')->willReturn($collection);
 
-        $choices = $this->createStub(ShippingChoiceRepository::class);
+        $choices = $this->createStub(ShippingChoiceRepositoryInterface::class);
         $choices->method('getForOrder')->willReturnCallback(fn(): ?ShippingChoice => $this->choice);
-        $choices->method('keep')->willReturnCallback(
+        $choices->method('keepForOrder')->willReturnCallback(
             function (int $orderId, ?string $method, ?string $description, ?OrderPointInterface $point): void {
                 $this->log[] = 'keep ' . $method . '|' . $description . '|' . $point?->getPointId();
                 $this->choice = new ShippingChoice([
@@ -171,7 +191,7 @@ class ActualShippingUpdaterTest extends TestCase
         $points = $this->createStub(OrderPointRepositoryInterface::class);
         $points->method('getForOrder')->willReturnCallback(fn(): ?OrderPointInterface => $this->point);
         $points->method('replaceForOrder')->willReturnCallback(
-            function (int $orderId, string $method, string $pointId, ?string $label, bool $cod): void {
+            function (int $orderId, string $method, string $pointId, ?string $label, ?bool $cod): void {
                 $this->log[] = \trim("point $method $pointId $label" . ($cod ? ' cod' : ''));
             },
         );
@@ -179,11 +199,8 @@ class ActualShippingUpdaterTest extends TestCase
             $this->log[] = 'no point';
         });
 
-        $found = $this->createStub(CourierPoint::class);
-        $found->method('getAddress')->willReturn('31-870 Kraków, 2 Pułku Lotniczego 44');
-        $found->method('isCod')->willReturn(true);
         $context = $this->createStub(ScreenDataProvider::class);
-        $context->method('findRecipientPoint')->willReturn($found);
+        $context->method('findRecipientPoint')->willReturnCallback(fn(): CourierPoint|false|null => $this->found);
         $titles = $this->createStub(NativeShipmentService::class);
         $titles->method('getTrackTitle')->willReturnCallback(
             static fn(Order $order, string $carrier): string => match ($carrier) {
@@ -205,7 +222,7 @@ class ActualShippingUpdaterTest extends TestCase
             $this->log[] = 'grid ' . $id;
         });
         $followUp = $this->createStub(NativeFollowUpService::class);
-        $followUp->method('comment')->willReturnCallback(function (): void {
+        $followUp->method('addComment')->willReturnCallback(function (): void {
             $this->log[] = 'comment';
         });
         $sentOrder = $this->createStub(SentOrderReader::class);
@@ -229,9 +246,9 @@ class ActualShippingUpdaterTest extends TestCase
         );
     }
 
-    private function shipment(string $carrier, string $point): Shipment
+    private function createShipment(string $carrier, string $point): Shipment
     {
-        $shipment = $this->getMockBuilder(Shipment::class)->disableOriginalConstructor()->onlyMethods([])->getMock();
+        $shipment = (new ObjectManager($this))->getObject(Shipment::class, ['json' => new Json()]);
         $shipment->setData([
             'carrier_code' => $carrier,
             'polkurier_number' => '18015-2877',
@@ -241,7 +258,7 @@ class ActualShippingUpdaterTest extends TestCase
         return $shipment;
     }
 
-    private function orderPoint(string $method, string $pointId, string $label): OrderPointInterface
+    private function createOrderPoint(string $method, string $pointId, string $label): OrderPointInterface
     {
         $point = $this->getMockBuilder(OrderPoint::class)->disableOriginalConstructor()->onlyMethods([])->getMock();
 

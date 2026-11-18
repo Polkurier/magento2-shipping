@@ -13,7 +13,7 @@ use Magento\Framework\App\ActionInterface;
 use Magento\Framework\Controller\Result\Redirect;
 use Magento\Framework\Exception\LocalizedException;
 use Polkurier\Shipping\Model\Admin\FlashMessageCollectorFactory;
-use Polkurier\Shipping\Model\RequestParam;
+use Polkurier\Shipping\Model\RequestParamReader;
 use Polkurier\Shipping\Model\Shipment\PickupService;
 
 /**
@@ -22,40 +22,43 @@ use Polkurier\Shipping\Model\Shipment\PickupService;
  */
 class Pickup extends AbstractShipmentAction implements HttpPostActionInterface
 {
-    public const string ADMIN_RESOURCE = 'Polkurier_Shipping::shipment_create';
+    public const string ADMIN_RESOURCE = 'Magento_Sales::ship';
+    public const string ROUTE = 'polkurier/shipment/pickup';
 
     public function __construct(
         Context $context,
-        RequestedShipments $requestedShipments,
+        RequestedShipmentResolver $requestedShipmentResolver,
         private readonly PickupService $pickupService,
         private readonly FlashMessageCollectorFactory $flashMessageCollectorFactory,
     ) {
-        parent::__construct($context, $requestedShipments);
+        parent::__construct($context, $requestedShipmentResolver);
     }
 
     public function execute(): Redirect
     {
-        $date = RequestParam::string($this->getRequest(), 'pickup_date');
-        $from = RequestParam::string($this->getRequest(), 'pickup_time_from');
-        $to = RequestParam::string($this->getRequest(), 'pickup_time_to');
+        $date = RequestParamReader::getString($this->getRequest(), 'pickup_date');
+        $from = RequestParamReader::getString($this->getRequest(), 'pickup_time_from');
+        $to = RequestParamReader::getString($this->getRequest(), 'pickup_time_to');
         try {
-            PickupService::window($date, $from, $to);
+            PickupService::buildWindow($date, $from, $to);
         } catch (LocalizedException $e) {
             $this->messageManager->addErrorMessage($e->getMessage());
 
             // Back to the form, with the shipments chosen.
             return $this->resultRedirectFactory->create()->setPath('*/*/pickupForm', \array_filter([
-                'ids' => RequestParam::string($this->getRequest(), 'ids') ?: null,
+                'ids' => RequestParamReader::getString($this->getRequest(), 'ids') ?: null,
                 'order_id' => (int)$this->getRequest()->getParam('order_id') ?: null,
-                ActionInterface::PARAM_NAME_URL_ENCODED
-                    => RequestParam::string($this->getRequest(), ActionInterface::PARAM_NAME_URL_ENCODED) ?: null,
+                ActionInterface::PARAM_NAME_URL_ENCODED => RequestParamReader::getString(
+                    $this->getRequest(),
+                    ActionInterface::PARAM_NAME_URL_ENCODED,
+                ) ?: null,
             ]));
         }
         $flash = $this->flashMessageCollectorFactory->create();
         try {
             $result = $this->pickupService->bookCollective($this->getSelectedShipments(), $date, $from, $to);
             if ($result['booked'] !== []) {
-                $flash->success(__('Collective pickup booked for: %1.', \implode(', ', $result['booked'])));
+                $flash->addSuccess(__('Collective pickup booked for: %1.', \implode(', ', $result['booked'])));
             }
             if ($result['failed'] !== []) {
                 $reasons = [];
@@ -63,14 +66,14 @@ class Pickup extends AbstractShipmentAction implements HttpPostActionInterface
                     $reasons[] = $number . ': ' . $reason;
                 }
                 $notBooked = __('Not booked for %1', \implode('; ', $reasons));
-                $result['booked'] !== [] ? $flash->warning($notBooked) : $flash->error($notBooked);
+                $result['booked'] !== [] ? $flash->addWarning($notBooked) : $flash->addError($notBooked);
             }
         } catch (LocalizedException $e) {
-            $flash->error($e->getMessage());
+            $flash->addError($e->getMessage());
         }
         $flash->send($this->messageManager);
 
         // Where the booking was started from, as the form took it along.
-        return $this->back();
+        return $this->redirectBack();
     }
 }

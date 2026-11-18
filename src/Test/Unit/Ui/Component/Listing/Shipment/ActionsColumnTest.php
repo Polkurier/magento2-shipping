@@ -8,6 +8,7 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Test\Unit\Ui\Component\Listing\Shipment;
 
 use Magento\Framework\AuthorizationInterface;
+use Magento\Framework\Serialize\Serializer\Json;
 use Magento\Framework\TestFramework\Unit\Helper\ObjectManager;
 use Magento\Framework\UrlInterface;
 use Magento\Framework\View\Element\UiComponent\ContextInterface;
@@ -29,11 +30,11 @@ class ActionsColumnTest extends TestCase
     /**
      * @var string[] the ACL resources allowed
      */
-    private array $allowed = ['Polkurier_Shipping::shipment_create', 'Polkurier_Shipping::shipment_cancel'];
+    private array $allowed = ['Magento_Sales::ship', 'Polkurier_Shipping::shipment_cancel'];
 
     public function testAPlacedOrderPrintsFollowsAndCancels(): void
     {
-        $actions = $this->actions(ShipmentInterface::STATE_CREATED, shipmentId: 11);
+        $actions = $this->buildActions(ShipmentInterface::STATE_CREATED, shipmentId: 11);
 
         self::assertSame(['view', 'order', 'label', 'protocol', 'refresh', 'cancel'], \array_keys($actions));
         self::assertTrue($actions['refresh']['post']);
@@ -43,12 +44,12 @@ class ActionsColumnTest extends TestCase
 
     public function testAParcelTheCarrierHasIsntOfferedForCancelling(): void
     {
-        self::assertArrayNotHasKey('cancel', $this->actions(ShipmentInterface::STATE_CREATED, statusCode: 'WP'));
+        self::assertArrayNotHasKey('cancel', $this->buildActions(ShipmentInterface::STATE_CREATED, statusCode: 'WP'));
     }
 
     public function testAPlacedOrderWithoutItsMagentoShipmentCanCreateIt(): void
     {
-        self::assertArrayHasKey('ship', $this->actions(ShipmentInterface::STATE_CREATED));
+        self::assertArrayHasKey('ship', $this->buildActions(ShipmentInterface::STATE_CREATED));
     }
 
     public function testWithoutThePermissionsOnlyFollowingIsOffered(): void
@@ -57,15 +58,15 @@ class ActionsColumnTest extends TestCase
 
         self::assertSame(
             ['view', 'order', 'label', 'protocol', 'refresh'],
-            \array_keys($this->actions(ShipmentInterface::STATE_CREATED)),
+            \array_keys($this->buildActions(ShipmentInterface::STATE_CREATED)),
         );
-        self::assertSame(['view', 'order'], \array_keys($this->actions(ShipmentInterface::STATE_FAILED)));
-        self::assertSame(['view', 'order'], \array_keys($this->actions(ShipmentInterface::STATE_UNKNOWN)));
+        self::assertSame(['view', 'order'], \array_keys($this->buildActions(ShipmentInterface::STATE_FAILED)));
+        self::assertSame(['view', 'order'], \array_keys($this->buildActions(ShipmentInterface::STATE_UNKNOWN)));
     }
 
     public function testOneNotPlacedIsSentAgainOrDiscarded(): void
     {
-        $actions = $this->actions(ShipmentInterface::STATE_FAILED);
+        $actions = $this->buildActions(ShipmentInterface::STATE_FAILED);
 
         self::assertSame(['view', 'order', 'retry', 'discard'], \array_keys($actions));
         self::assertSame('polkurier/shipment/create order_id=29 retry=5', $actions['retry']['href']);
@@ -75,33 +76,33 @@ class ActionsColumnTest extends TestCase
     {
         self::assertSame(
             ['view', 'order', 'discard'],
-            \array_keys($this->actions(ShipmentInterface::STATE_FAILED, canSendAgain: false)),
+            \array_keys($this->buildActions(ShipmentInterface::STATE_FAILED, canSendAgain: false)),
         );
     }
 
     public function testOneWithoutAnAnswerIsOnlyLookedAt(): void
     {
-        self::assertSame(['view', 'order'], \array_keys($this->actions(ShipmentInterface::STATE_UNKNOWN)));
-        self::assertSame(['view', 'order'], \array_keys($this->actions(ShipmentInterface::STATE_PENDING)));
+        self::assertSame(['view', 'order'], \array_keys($this->buildActions(ShipmentInterface::STATE_UNKNOWN)));
+        self::assertSame(['view', 'order'], \array_keys($this->buildActions(ShipmentInterface::STATE_PENDING)));
     }
 
     public function testACancelledOneIsOnlyLookedAt(): void
     {
-        self::assertSame(['view', 'order'], \array_keys($this->actions(ShipmentInterface::STATE_CANCELLED)));
+        self::assertSame(['view', 'order'], \array_keys($this->buildActions(ShipmentInterface::STATE_CANCELLED)));
     }
 
     public function testOnTheOrdersPageItsOrderIsntLinked(): void
     {
         self::assertSame(
             ['view'],
-            \array_keys($this->actions(ShipmentInterface::STATE_UNKNOWN, onOrderPage: true)),
+            \array_keys($this->buildActions(ShipmentInterface::STATE_UNKNOWN, onOrderPage: true)),
         );
     }
 
     /**
      * @return array<string, array<string, mixed>>
      */
-    private function actions(
+    private function buildActions(
         string $state,
         ?int $shipmentId = null,
         bool $canSendAgain = true,
@@ -130,7 +131,7 @@ class ActionsColumnTest extends TestCase
             $url,
             $authorization,
             $sendAgain,
-            $this->shipmentFactory(),
+            $this->createShipmentFactory(),
             [],
             [
                 'name' => 'actions',
@@ -151,12 +152,12 @@ class ActionsColumnTest extends TestCase
         return $source['data']['items'][0]['actions'];
     }
 
-    private function shipmentFactory(): ShipmentFactory
+    private function createShipmentFactory(): ShipmentFactory
     {
         $factory = $this->createStub(ShipmentFactory::class);
         $factory->method('create')->willReturnCallback(function (array $arguments): Shipment {
             /** @var Shipment $shipment */
-            $shipment = (new ObjectManager($this))->getObject(Shipment::class);
+            $shipment = (new ObjectManager($this))->getObject(Shipment::class, ['json' => new Json()]);
 
             return $shipment->setData($arguments['data']);
         });

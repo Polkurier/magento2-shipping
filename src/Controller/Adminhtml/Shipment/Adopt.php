@@ -12,27 +12,28 @@ use Magento\Framework\App\Action\HttpPostActionInterface;
 use Magento\Framework\Controller\Result\Redirect;
 use Magento\Framework\Exception\LocalizedException;
 use Polkurier\Shipping\Api\ShipmentManagementInterface;
-use Polkurier\Shipping\Model\RequestParam;
+use Polkurier\Shipping\Model\RequestParamReader;
 
 /**
  * Links a shipment whose outcome is unknown to the Polkurier order the merchant names.
  */
 class Adopt extends AbstractShipmentAction implements HttpPostActionInterface
 {
-    public const string ADMIN_RESOURCE = 'Polkurier_Shipping::shipment_create';
+    public const string ADMIN_RESOURCE = 'Magento_Sales::ship';
+    public const string ROUTE = 'polkurier/shipment/adopt';
 
     public function __construct(
         Context $context,
-        RequestedShipments $requestedShipments,
+        RequestedShipmentResolver $requestedShipmentResolver,
         private readonly ShipmentManagementInterface $shipmentManagement,
     ) {
-        parent::__construct($context, $requestedShipments);
+        parent::__construct($context, $requestedShipmentResolver);
     }
 
     public function execute(): Redirect
     {
         $shipment = $this->getShipment();
-        $number = \trim(RequestParam::string($this->getRequest(), 'polkurier_number'));
+        $number = \trim(RequestParamReader::getString($this->getRequest(), 'polkurier_number'));
         if ($shipment !== null && $number !== '') {
             try {
                 $shipment = $this->shipmentManagement->adopt((int)$shipment->getId(), $number);
@@ -44,6 +45,6 @@ class Adopt extends AbstractShipmentAction implements HttpPostActionInterface
             }
         }
 
-        return $this->back();
+        return $this->redirectBack();
     }
 }

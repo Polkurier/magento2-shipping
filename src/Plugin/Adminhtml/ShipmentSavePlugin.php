@@ -63,11 +63,7 @@ readonly class ShipmentSavePlugin
      */
     private function findPending(int $orderId): ?ShipmentInterface
     {
-        $shipments = $this->shipmentFinder->forOrder($orderId, [
-            ShipmentInterface::STATE_PENDING,
-            ShipmentInterface::STATE_UNKNOWN,
-            ShipmentInterface::STATE_CREATED,
-        ]);
+        $shipments = $this->shipmentFinder->findForOrder($orderId, ShipmentInterface::LIVE_STATES);
         foreach ($shipments as $shipment) {
             if ($shipment->getShipmentId() === null && $shipment->getTargetShipmentId() === null) {
                 return $shipment;

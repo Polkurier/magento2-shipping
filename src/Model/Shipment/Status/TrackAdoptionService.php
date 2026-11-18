@@ -19,7 +19,7 @@ use Polkurier\Shipping\Model\Shipment\OrderLoader;
 use Polkurier\Shipping\Model\Shipment\OrderLock;
 use Polkurier\Shipping\Model\Shipment\ShipmentFinder;
 use Polkurier\Shipping\Model\ShipmentFactory;
-use Polkurier\Webservice\Response\Order;
+use Polkurier\Webservice\Entity\Order;
 
 /**
  * Links the Polkurier orders of tracking numbers added to a Magento shipment from elsewhere, e.g.
@@ -80,7 +80,7 @@ readonly class TrackAdoptionService
      */
     private function adoptNumber(int $magentoShipmentId, string $number): void
     {
-        if ($this->shipmentFinder->latestByWaybill($number) !== null) {
+        if ($this->shipmentFinder->findLatestByWaybill($number) !== null) {
             return;
         }
         $remote = $this->remoteOrderMatcher->findByWaybill($number);
@@ -99,7 +99,7 @@ readonly class TrackAdoptionService
             return;
         }
         $this->orderLock->run($orderId, function () use ($order, $magentoShipmentId, $remote): void {
-            $held = $this->shipmentFinder->byNumbers([(string)$remote->getNumber()])[0] ?? null;
+            $held = $this->shipmentFinder->findByNumbers([(string)$remote->getNumber()])[0] ?? null;
             if ($held === null) {
                 $this->link($order, $magentoShipmentId, $remote);
             } elseif ($held->getOrderId() === (int)$order->getEntityId()) {
@@ -136,7 +136,7 @@ readonly class TrackAdoptionService
         $this->shipmentRepository->save($shipment);
         $this->nativeShipmentService->takeOverTracks($order, $magentoShipmentId, $shipment);
         if ($shipment->getState() === ShipmentInterface::STATE_CANCELLED) {
-            $this->nativeFollowUpService->comment($order, __(
+            $this->nativeFollowUpService->addComment($order, __(
                 'Linked with Polkurier order %1, cancelled in the Polkurier panel.',
                 $shipment->getPolkurierNumber(),
             ));
@@ -145,9 +145,9 @@ readonly class TrackAdoptionService
         }
         if ($free) {
             $this->nativeShipmentService->addTracks($order, $magentoShipmentId, $shipment, $shipment->getWaybills());
-            $this->nativeFollowUpService->remarkLinked($shipment);
+            $this->nativeFollowUpService->addLinkedRemark($shipment);
         }
         $this->nativeFollowUpService->notePlaced($order, $shipment, true);
-        $this->nativeFollowUpService->linked($shipment, $order, 'track');
+        $this->nativeFollowUpService->followLink($shipment, $order, 'track');
     }
 }

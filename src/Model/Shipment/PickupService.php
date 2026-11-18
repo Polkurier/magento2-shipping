@@ -14,14 +14,14 @@ use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Api\ShipmentRepositoryInterface;
 use Polkurier\Shipping\Enum\Sdk\ApiEventEnum;
 use Polkurier\Shipping\Model\Sdk\ApiEventDispatcher;
-use Polkurier\Shipping\Model\Sdk\PolkurierTimeZone;
+use Polkurier\Shipping\Model\Sdk\PolkurierTimeZoneProvider;
 use Polkurier\Shipping\Model\Sdk\ShipmentGateway;
 use Polkurier\Shipping\Model\Shipment\Placement\SenderMapper;
-use Polkurier\Webservice\Builder\Courier\GetPickupTimeMessageBuilderFactory;
-use Polkurier\Webservice\Builder\Order\MultiPickupAvailabilityRequestMessageBuilderFactory;
-use Polkurier\Webservice\Builder\Order\MultiPickupRequestMessageBuilderFactory;
+use Polkurier\Webservice\Builder\Request\Courier\GetPickupTimeMessageBuilderFactory;
+use Polkurier\Webservice\Builder\Request\Order\MultiPickupAvailabilityRequestMessageBuilderFactory;
+use Polkurier\Webservice\Builder\Request\Order\MultiPickupRequestMessageBuilderFactory;
+use Polkurier\Webservice\Entity\Order\PackItem;
 use Polkurier\Webservice\Enum\Order\ShipmentTypeEnum;
-use Polkurier\Webservice\Request\Order\PackMessage;
 
 /**
  * Collections: when a courier can come, and one collection for several shipments.
@@ -53,22 +53,28 @@ readonly class PickupService
         string $shipmentType,
     ): array {
         $days = $this->shipmentGateway->getPickupTimes($this->getPickupTimeMessageBuilderFactory->create()
-            ->courier($carrierCode)
-            ->shipFrom($senderPostcode)
-            ->shipTo($recipientPostcode ?: null)
-            ->parcel(ShipmentTypeEnum::tryFrom($shipmentType))
+            ->setCourier($carrierCode)
+            ->setShipFrom($senderPostcode)
+            ->setShipTo($recipientPostcode ?: null)
+            ->setParcel(ShipmentTypeEnum::tryFrom($shipmentType))
             ->build());
 
         $result = [];
         foreach ($days as $day) {
-            $windows = [];
-            foreach ($day->getTime() as $window) {
-                $windows[] = [
-                    'from' => $window->getTimeFrom()->format('H:i'),
-                    'to' => $window->getTimeTo()->format('H:i'),
-                ];
+            // A day or a window Polkurier gives without its date or times can't be booked.
+            if ($day->pickupDate === null) {
+                continue;
             }
-            $result[] = ['date' => $day->getPickupDate()->format('Y-m-d'), 'windows' => $windows];
+            $windows = [];
+            foreach ($day->time as $window) {
+                if ($window->timeFrom !== null && $window->timeTo !== null) {
+                    $windows[] = [
+                        'from' => $window->timeFrom->format('H:i'),
+                        'to' => $window->timeTo->format('H:i'),
+                    ];
+                }
+            }
+            $result[] = ['date' => $day->pickupDate->format('Y-m-d'), 'windows' => $windows];
         }
 
         return $result;
@@ -78,7 +84,7 @@ readonly class PickupService
      * Whether Polkurier can collect a shipment with others later, for its carrier and parcels.
      * It answers no as well when it can't tell.
      *
-     * @param PackMessage[] $packs
+     * @param PackItem[] $packs
      *
      * @throws LocalizedException
      */
@@ -89,10 +95,10 @@ readonly class PickupService
         array $packs,
     ): bool {
         $request = $this->multiPickupAvailabilityRequestMessageBuilderFactory->create()
-            ->courier($carrierCode)
-            ->packs($packs)
-            ->senderPostCode($senderPostcode)
-            ->shipmentType(ShipmentTypeEnum::tryFrom($shipmentType))
+            ->setCourier($carrierCode)
+            ->setPacks($packs)
+            ->setSenderPostCode($senderPostcode)
+            ->setShipmentType(ShipmentTypeEnum::tryFrom($shipmentType))
             ->build();
 
         return $this->shipmentGateway->isMultiPickupAvailable($request);
@@ -101,7 +107,7 @@ readonly class PickupService
     /**
      * Whether a shipment was placed for a later collective pickup that isn't booked yet.
      */
-    public function awaitsCollective(ShipmentInterface $shipment): bool
+    public function isAwaitingCollective(ShipmentInterface $shipment): bool
     {
         return $shipment->getState() === ShipmentInterface::STATE_CREATED && $shipment->isMultiPickup()
             && !$shipment->isPickupBooked() && $shipment->getPolkurierNumber() !== null;
@@ -120,7 +126,7 @@ readonly class PickupService
         $awaiting = [];
         $leftOut = [];
         foreach ($shipments as $shipment) {
-            if ($this->awaitsCollective($shipment)) {
+            if ($this->isAwaitingCollective($shipment)) {
                 $awaiting[] = (int)$shipment->getId();
             } else {
                 $leftOut[] = $shipment->getPolkurierNumber() ?? '#' . $shipment->getId();
@@ -137,7 +143,7 @@ readonly class PickupService
      * @return array{date: \DateTimeImmutable, from: \DateTimeImmutable, to: \DateTimeImmutable}
      * @throws LocalizedException
      */
-    public static function window(string $date, string $from, string $to): array
+    public static function buildWindow(string $date, string $from, string $to): array
     {
         $day = self::parse('!Y-m-d', $date);
         $start = self::parse('!Y-m-d H:i', $date . ' ' . $from);
@@ -163,7 +169,7 @@ readonly class PickupService
     {
         $numbers = [];
         foreach ($shipments as $shipment) {
-            if ($this->awaitsCollective($shipment)) {
+            if ($this->isAwaitingCollective($shipment)) {
                 $numbers[(string)$shipment->getPolkurierNumber()] = $shipment;
             }
         }
@@ -172,16 +178,16 @@ readonly class PickupService
         }
         // Polkurier answers for each shipment whether it can be collected this way, listing those
         // it couldn't book: that depends on the carrier and the parcels, not the account.
-        $window = self::window($date, $from, $to);
+        $window = self::buildWindow($date, $from, $to);
         $request = $this->multiPickupRequestMessageBuilderFactory->create()
-            ->pickupDate($window['date'])
-            ->pickupTimeFrom($window['from'])
-            ->pickupTimeTo($window['to'])
-            ->orders(\array_map('strval', \array_keys($numbers)))
+            ->setPickupDate($window['date'])
+            ->setPickupTimeFrom($window['from'])
+            ->setPickupTimeTo($window['to'])
+            ->setOrders(\array_map('strval', \array_keys($numbers)))
             ->build();
         $result = $this->shipmentGateway->bookMultiPickup($request);
 
-        $booked = \array_map('strval', $result->getSuccess());
+        $booked = \array_map('strval', $result->success);
         $bookedShipments = [];
         foreach ($booked as $number) {
             if (isset($numbers[$number])) {
@@ -189,7 +195,7 @@ readonly class PickupService
                 $bookedShipments[] = $numbers[$number];
             }
         }
-        $failed = \array_map('strval', $result->getFailed());
+        $failed = \array_map('strval', $result->failed);
         if ($bookedShipments !== []) {
             $this->apiEventDispatcher->dispatch(ApiEventEnum::PickupCreateAfter, null, [
                 'shipments' => $bookedShipments,
@@ -211,7 +217,7 @@ readonly class PickupService
      *
      * @throws LocalizedException when there's no postcode yet, or the order isn't one to ship
      */
-    public function senderPostcodeOf(array $data): string
+    public function getSenderPostcode(array $data): string
     {
         $storeId = (int)$this->orderLoader->getForPolkurier((int)($data['order_id'] ?? 0))->getStoreId();
         $senderId = (int)($data[ShipmentDraftInterface::FIELD_SENDER_ADDRESS_ID] ?? 0);
@@ -220,7 +226,7 @@ readonly class PickupService
             // A sender typed in for the shipment: its postcode once it has one.
             $typedIn => \trim((string)($data['new_sender_postcode'] ?? '')) ?: null,
             $senderId > 0 => $this->addressRepository->get($senderId)->getPostcode(),
-            default => $this->senderMapper->fromStore($storeId)?->getPostcode(),
+            default => $this->senderMapper->mapFromStore($storeId)?->getPostcode(),
         };
         if ($postcode === null || $postcode === '') {
             throw new LocalizedException($typedIn
@@ -236,7 +242,7 @@ readonly class PickupService
      */
     private static function parse(string $format, string $value): ?\DateTimeImmutable
     {
-        $parsed = \DateTimeImmutable::createFromFormat($format, $value, PolkurierTimeZone::zone());
+        $parsed = \DateTimeImmutable::createFromFormat($format, $value, PolkurierTimeZoneProvider::getZone());
         $errors = \DateTimeImmutable::getLastErrors();
 
         return $parsed !== false

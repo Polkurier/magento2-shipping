@@ -20,8 +20,9 @@ use Polkurier\Shipping\Model\BankAccount;
 use Polkurier\Shipping\Model\BankAccount\BankAccountHandler;
 use Polkurier\Shipping\Model\BankAccount\Publisher;
 use Polkurier\Shipping\Model\BankAccountFactory;
+use Polkurier\Shipping\Model\ResourceModel\BankAccount as BankAccountResource;
 use Polkurier\Shipping\Model\Sync\EntityHandlerInterface;
-use Polkurier\Shipping\Model\Sync\Synchronization;
+use Polkurier\Shipping\Model\Sync\SettingsSynchronizer;
 use Polkurier\Shipping\Model\Sync\SyncLock;
 use Polkurier\Shipping\Model\Sync\SyncResultFactory;
 use Polkurier\Shipping\Test\Unit\Support\FixedDateTime;
@@ -40,9 +41,9 @@ class BankAccountHandlerTest extends TestCase
     {
         $publisher = $this->createMock(Publisher::class);
         $publisher->expects(self::never())->method('save');
-        $account = $this->account();
+        $account = $this->createAccount();
 
-        $result = $this->handler($publisher)->save($account, [
+        $result = $this->createHandler($publisher)->save($account, [
             'name' => 'Firmowe',
             'account_number' => '78150016471216400597700000',
         ]);
@@ -57,9 +58,9 @@ class BankAccountHandlerTest extends TestCase
     {
         $publisher = $this->createMock(Publisher::class);
         $publisher->expects(self::once())->method('save')->with(self::anything(), null, null, '2342');
-        $account = $this->account();
+        $account = $this->createAccount();
 
-        $result = $this->handler($publisher)->save($account, [
+        $result = $this->createHandler($publisher)->save($account, [
             'name' => 'Firmowe',
             BankAccountHandler::FIELD_CONFIRMATION_PIN => ' 2342 ',
         ]);
@@ -76,7 +77,7 @@ class BankAccountHandlerTest extends TestCase
         $publisher = $this->createMock(Publisher::class);
         $publisher->expects(self::never())->method('save');
 
-        $result = $this->handler($publisher)->save($this->account(), [
+        $result = $this->createHandler($publisher)->save($this->createAccount(), [
             BankAccountHandler::FIELD_TWO_FACTOR_TOKEN => 'token-1',
             BankAccountHandler::FIELD_TWO_FACTOR_CODE => ' ',
         ]);
@@ -88,9 +89,9 @@ class BankAccountHandlerTest extends TestCase
     {
         $publisher = $this->createStub(Publisher::class);
         $publisher->method('save')->willThrowException(new LocalizedException(__('Polkurier refused: Błędny PIN')));
-        $account = $this->account();
+        $account = $this->createAccount();
 
-        $this->handler($publisher)->save($account, [
+        $this->createHandler($publisher)->save($account, [
             'name' => 'Firmowe',
             BankAccountHandler::FIELD_CONFIRMATION_PIN => '0000',
         ]);
@@ -110,7 +111,7 @@ class BankAccountHandlerTest extends TestCase
             'Polkurier did not delete bank account Main: Polkurier refused: PIN required '
             . 'If your account locks bank accounts with a PIN',
         );
-        $this->handler($publisher)->delete($this->account());
+        $this->createHandler($publisher)->delete($this->createAccount());
     }
 
     public function testTheDeleteIsConfirmedWithThePinGiven(): void
@@ -118,7 +119,7 @@ class BankAccountHandlerTest extends TestCase
         $publisher = $this->createMock(Publisher::class);
         $publisher->expects(self::once())->method('delete')->with(self::anything(), '2342');
 
-        $this->handler($publisher)->delete($this->account(), ' 2342 ');
+        $this->createHandler($publisher)->delete($this->createAccount(), ' 2342 ');
     }
 
     public function testWithoutAPinThePlainDeleteIsTried(): void
@@ -126,12 +127,12 @@ class BankAccountHandlerTest extends TestCase
         $publisher = $this->createMock(Publisher::class);
         $publisher->expects(self::once())->method('delete')->with(self::anything(), null);
 
-        $handler = $this->handler($publisher);
+        $handler = $this->createHandler($publisher);
         self::assertInstanceOf(EntityHandlerInterface::class, $handler);
-        $handler->delete($this->account());
+        $handler->delete($this->createAccount());
     }
 
-    private function handler(Publisher $publisher): BankAccountHandler
+    private function createHandler(Publisher $publisher): BankAccountHandler
     {
         $locks = $this->createStub(LockManagerInterface::class);
         $locks->method('lock')->willReturn(true);
@@ -148,15 +149,15 @@ class BankAccountHandlerTest extends TestCase
             $repository,
             $this->createStub(BankAccountFactory::class),
             $publisher,
-            $this->createStub(Synchronization::class),
+            $this->createStub(SettingsSynchronizer::class),
             new FixedDateTime(),
             new SyncLock($locks),
-            $this->createStub(\Polkurier\Shipping\Model\ResourceModel\BankAccount::class),
-            NewingObjectManager::factory(SyncResultFactory::class),
+            $this->createStub(BankAccountResource::class),
+            NewingObjectManager::createFactory(SyncResultFactory::class),
         );
     }
 
-    private function account(): BankAccount
+    private function createAccount(): BankAccount
     {
         /** @var BankAccount $account */
         $account = (new ObjectManager($this))->getObject(BankAccount::class);

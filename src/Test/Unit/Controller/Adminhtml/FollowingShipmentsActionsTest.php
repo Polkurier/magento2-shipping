@@ -16,7 +16,9 @@ use Polkurier\Shipping\Controller\Adminhtml\Shipment\Discard;
 use Polkurier\Shipping\Controller\Adminhtml\Shipment\MassRefresh;
 use Polkurier\Shipping\Controller\Adminhtml\Shipment\Pickup;
 use Polkurier\Shipping\Controller\Adminhtml\Shipment\Refresh;
-use Polkurier\Shipping\Controller\Adminhtml\Shipment\RequestedShipments;
+use Polkurier\Shipping\Controller\Adminhtml\Shipment\RefreshAll;
+use Polkurier\Shipping\Controller\Adminhtml\Shipment\RequestedShipmentResolver;
+use Polkurier\Shipping\Model\Config\ConfigProvider;
 use Polkurier\Shipping\Model\Shipment\Details\DetailsLoader;
 use Polkurier\Shipping\Model\Shipment\PickupService;
 use Polkurier\Shipping\Model\Shipment\Placement\FailedShipmentManager;
@@ -29,6 +31,7 @@ use Polkurier\Shipping\Test\Unit\Support\AdminActionTestCase;
  */
 #[CoversClass(Pickup::class)]
 #[CoversClass(MassRefresh::class)]
+#[CoversClass(RefreshAll::class)]
 #[CoversClass(Refresh::class)]
 #[CoversClass(Discard::class)]
 #[AllowMockObjectsWithoutExpectations]
@@ -47,10 +50,10 @@ class FollowingShipmentsActionsTest extends AdminActionTestCase
         $pickups->expects(self::never())->method('bookCollective');
 
         (new Pickup(
-            $this->context(),
-            $this->requested([]),
+            $this->createContext(),
+            $this->createRequestedShipmentResolver([]),
             $pickups,
-            $this->flashMessageCollectorFactory(),
+            $this->createFlashMessageCollectorFactory(),
         ))->execute();
 
         self::assertSame(['*/*/pickupForm', ['ids' => '4,5', 'order_id' => 29]], $this->redirect);
@@ -67,10 +70,10 @@ class FollowingShipmentsActionsTest extends AdminActionTestCase
         ];
 
         (new Pickup(
-            $this->context(),
-            $this->requested([]),
+            $this->createContext(),
+            $this->createRequestedShipmentResolver([]),
             $this->createStub(PickupService::class),
-            $this->flashMessageCollectorFactory(),
+            $this->createFlashMessageCollectorFactory(),
         ))->execute();
 
         self::assertSame(['*/*/pickupForm', []], $this->redirect);
@@ -84,10 +87,10 @@ class FollowingShipmentsActionsTest extends AdminActionTestCase
             ->willReturn(['booked' => ['24680-26'], 'failed' => ['24680-27' => 'Already collected']]);
 
         (new Pickup(
-            $this->context(),
-            $this->requested([]),
+            $this->createContext(),
+            $this->createRequestedShipmentResolver([]),
             $pickups,
-            $this->flashMessageCollectorFactory(),
+            $this->createFlashMessageCollectorFactory(),
         ))->execute();
 
         // One message, at the gravest of what it says.
@@ -106,10 +109,10 @@ class FollowingShipmentsActionsTest extends AdminActionTestCase
             ->willReturn(['booked' => [], 'failed' => ['24680-27' => 'Already collected']]);
 
         (new Pickup(
-            $this->context(),
-            $this->requested([]),
+            $this->createContext(),
+            $this->createRequestedShipmentResolver([]),
             $pickups,
-            $this->flashMessageCollectorFactory(),
+            $this->createFlashMessageCollectorFactory(),
         ))->execute();
 
         self::assertSame(['Not booked for 24680-27: Already collected'], $this->messages['error']);
@@ -120,20 +123,20 @@ class FollowingShipmentsActionsTest extends AdminActionTestCase
     {
         $refresher = $this->createMock(StatusRefreshService::class);
         $refresher->expects(self::once())->method('refreshMany')->with([4, 6])->willReturn([
-            4 => $this->shipment(4, ShipmentInterface::STATE_CREATED, '24680-4'),
+            4 => $this->createShipment(4, ShipmentInterface::STATE_CREATED, '24680-4'),
             6 => new LocalizedException(__('Polkurier is not answering.')),
         ]);
         $selected = [
-            $this->shipment(4, ShipmentInterface::STATE_CREATED, '24680-4'),
-            $this->shipment(5, ShipmentInterface::STATE_FAILED, null),
-            $this->shipment(6, ShipmentInterface::STATE_CREATED, '24680-6'),
+            $this->createShipment(4, ShipmentInterface::STATE_CREATED, '24680-4'),
+            $this->createShipment(5, ShipmentInterface::STATE_FAILED, null),
+            $this->createShipment(6, ShipmentInterface::STATE_CREATED, '24680-6'),
         ];
 
         (new MassRefresh(
-            $this->context(),
-            $this->requested($selected),
+            $this->createContext(),
+            $this->createRequestedShipmentResolver($selected),
             $refresher,
-            $this->flashMessageCollectorFactory(),
+            $this->createFlashMessageCollectorFactory(),
         ))->execute();
 
         self::assertSame(
@@ -142,20 +145,46 @@ class FollowingShipmentsActionsTest extends AdminActionTestCase
         );
     }
 
+    public function testUpdatingEveryShipmentSaysHowManyWereAndWerent(): void
+    {
+        self::assertSame(['success' => ['3 shipment(s) updated.']], $this->refreshAll(3, 0));
+        self::assertSame(
+            ['warning' => ['3 shipment(s) updated, 1 not: see the Polkurier log.']],
+            $this->refreshAll(3, 1),
+        );
+        self::assertSame(
+            ['error' => ['0 shipment(s) updated, 2 not: see the Polkurier log.']],
+            $this->refreshAll(0, 2),
+        );
+    }
+
+    public function testUpdatingEveryShipmentWithoutCredentialsAsksForThem(): void
+    {
+        $refresher = $this->createMock(StatusRefreshService::class);
+        $refresher->expects(self::never())->method('refreshNow');
+
+        $messages = $this->refreshAll(0, 0, false, $refresher);
+
+        self::assertSame([(string)ConfigProvider::describeMissingCredentials()], $messages['error'] ?? null);
+    }
+
     public function testUpdatingOneShipmentSaysItsStatusAndReadsItsScans(): void
     {
         $management = $this->createStub(ShipmentManagementInterface::class);
         $management->method('refreshStatus')
-            ->willReturn($this->shipment(4, ShipmentInterface::STATE_CREATED, '24680-4', 'Doręczona'));
+            ->willReturn($this->createShipment(4, ShipmentInterface::STATE_CREATED, '24680-4', 'Doręczona'));
         $details = $this->createMock(DetailsLoader::class);
         $details->expects(self::once())->method('refreshTracking');
 
         (new Refresh(
-            $this->context(),
-            $this->requested([], $this->shipment(4, ShipmentInterface::STATE_CREATED, '24680-4')),
+            $this->createContext(),
+            $this->createRequestedShipmentResolver(
+                [],
+                $this->createShipment(4, ShipmentInterface::STATE_CREATED, '24680-4'),
+            ),
             $management,
             $details,
-            $this->flashMessageCollectorFactory(),
+            $this->createFlashMessageCollectorFactory(),
         ))->execute();
 
         self::assertSame(['Polkurier order 24680-4: Doręczona.'], $this->messages['success']);
@@ -165,17 +194,20 @@ class FollowingShipmentsActionsTest extends AdminActionTestCase
     {
         $management = $this->createStub(ShipmentManagementInterface::class);
         $management->method('refreshStatus')
-            ->willReturn($this->shipment(4, ShipmentInterface::STATE_CREATED, '24680-4', 'Doręczona'));
+            ->willReturn($this->createShipment(4, ShipmentInterface::STATE_CREATED, '24680-4', 'Doręczona'));
         $details = $this->createStub(DetailsLoader::class);
         $details->method('refreshTracking')
             ->willThrowException(new LocalizedException(__('The carrier\'s scans could not be read.')));
 
         (new Refresh(
-            $this->context(),
-            $this->requested([], $this->shipment(4, ShipmentInterface::STATE_CREATED, '24680-4')),
+            $this->createContext(),
+            $this->createRequestedShipmentResolver(
+                [],
+                $this->createShipment(4, ShipmentInterface::STATE_CREATED, '24680-4'),
+            ),
             $management,
             $details,
-            $this->flashMessageCollectorFactory(),
+            $this->createFlashMessageCollectorFactory(),
         ))->execute();
 
         self::assertSame(
@@ -190,8 +222,8 @@ class FollowingShipmentsActionsTest extends AdminActionTestCase
         $failedShipmentManager->expects(self::once())->method('discard')->with(4);
 
         (new Discard(
-            $this->context(),
-            $this->requested([], $this->shipment(4, ShipmentInterface::STATE_FAILED, null)),
+            $this->createContext(),
+            $this->createRequestedShipmentResolver([], $this->createShipment(4, ShipmentInterface::STATE_FAILED, null)),
             $failedShipmentManager,
         ))->execute();
 
@@ -206,8 +238,11 @@ class FollowingShipmentsActionsTest extends AdminActionTestCase
             ->willThrowException(new LocalizedException(__('Only a shipment that wasn\'t placed can be discarded.')));
 
         (new Discard(
-            $this->context(),
-            $this->requested([], $this->shipment(4, ShipmentInterface::STATE_CREATED, '24680-4')),
+            $this->createContext(),
+            $this->createRequestedShipmentResolver(
+                [],
+                $this->createShipment(4, ShipmentInterface::STATE_CREATED, '24680-4'),
+            ),
             $failedShipmentManager,
         ))->execute();
 
@@ -215,11 +250,42 @@ class FollowingShipmentsActionsTest extends AdminActionTestCase
     }
 
     /**
+     * @return array<string, string[]> the messages shown, by type
+     */
+    private function refreshAll(
+        int $refreshed,
+        int $failed,
+        bool $hasCredentials = true,
+        ?StatusRefreshService $refresher = null,
+    ): array {
+        $this->messages = [];
+        if ($refresher === null) {
+            $refresher = $this->createStub(StatusRefreshService::class);
+            $refresher->method('refreshNow')->willReturn(['refreshed' => $refreshed, 'failed' => $failed]);
+        }
+        $config = $this->createStub(ConfigProvider::class);
+        $config->method('hasCredentials')->willReturn($hasCredentials);
+
+        (new RefreshAll(
+            $this->createContext(),
+            $this->createRequestedShipmentResolver([]),
+            $refresher,
+            $config,
+            $this->createFlashMessageCollectorFactory(),
+        ))->execute();
+
+        return $this->messages;
+    }
+
+    /**
      * @param ShipmentInterface[] $selected
      */
-    private function requested(array $selected, ?ShipmentInterface $one = null): RequestedShipments
+    private function createRequestedShipmentResolver(
+        array $selected,
+        ?ShipmentInterface $one = null,
+    ): RequestedShipmentResolver
     {
-        $requested = $this->createStub(RequestedShipments::class);
+        $requested = $this->createStub(RequestedShipmentResolver::class);
         $requested->method('getSelected')->willReturn($selected);
         if ($one !== null) {
             $requested->method('getOne')->willReturn($one);
@@ -228,7 +294,7 @@ class FollowingShipmentsActionsTest extends AdminActionTestCase
         return $requested;
     }
 
-    private function shipment(int $id, string $state, ?string $number, string $status = ''): ShipmentInterface
+    private function createShipment(int $id, string $state, ?string $number, string $status = ''): ShipmentInterface
     {
         $shipment = $this->createStub(ShipmentInterface::class);
         $shipment->method('getId')->willReturn($id);

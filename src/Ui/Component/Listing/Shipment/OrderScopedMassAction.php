@@ -14,7 +14,7 @@ use Polkurier\Shipping\Ui\Component\MassAction\AllowedAction;
  * filters, and the tab's order is a parameter of the grid's URL, not a filter, so "Select All"
  * would reach every order's shipments. Instead, the order goes with the action's URL, and the
  * action takes that order's shipments only
- * ({@see \Polkurier\Shipping\Controller\Adminhtml\Shipment\RequestedShipments}). So does each entry of an
+ * ({@see \Polkurier\Shipping\Controller\Adminhtml\Shipment\RequestedShipmentResolver}). So does each entry of an
  * action's submenu.
  */
 class OrderScopedMassAction extends AllowedAction

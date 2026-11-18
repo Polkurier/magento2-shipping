@@ -8,12 +8,13 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Model\Shipment\Placement;
 
 use Magento\Framework\Exception\LocalizedException;
+use Magento\Framework\Phrase;
 use Magento\Framework\Stdlib\DateTime as DateFormat;
 use Magento\Framework\Stdlib\DateTime\DateTime;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Api\ShipmentRepositoryInterface;
+use Polkurier\Shipping\Model\Admin\Formatter;
 use Polkurier\Shipping\Model\Carrier\CarrierNameProvider;
-use Polkurier\Shipping\Model\Shipment\Details\Formatter;
 use Polkurier\Shipping\Model\Shipment\Native\NativeFollowUpService;
 use Polkurier\Shipping\Model\Shipment\OrderLoader;
 use Polkurier\Shipping\Model\Shipment\ShipmentFinder;
@@ -56,9 +57,9 @@ readonly class FailedShipmentManager
     public function describe(ShipmentInterface $shipment): array
     {
         return [
-            'tried' => $this->formatter->storedTime($shipment->getCreatedAt()),
+            'tried' => $this->formatter->formatStoredTime($shipment->getCreatedAt()),
             'reason' => \rtrim((string)$shipment->getLastError(), '. '),
-            'removed' => $this->formatter->storedTime($this->expiresAfter((string)$shipment->getCreatedAt())),
+            'removed' => $this->formatter->formatStoredTime($this->calculateExpiry((string)$shipment->getCreatedAt())),
         ];
     }
 
@@ -66,7 +67,7 @@ readonly class FailedShipmentManager
      * When a shipment that wasn't placed is removed, unless placed or discarded first, counted from
      * its last attempt; UTC.
      */
-    public function expiresAfter(string $lastTried): string
+    public function calculateExpiry(string $lastTried): string
     {
         $from = \strtotime($lastTried . ' UTC') ?: $this->dateTime->gmtTimestamp();
 
@@ -102,7 +103,7 @@ readonly class FailedShipmentManager
             $this->dateTime->gmtTimestamp() - self::LIFETIME_HOURS * 3600,
         );
         $removed = 0;
-        foreach ($this->shipmentFinder->failedBefore($before) as $shipment) {
+        foreach ($this->shipmentFinder->findFailedBefore($before) as $shipment) {
             $this->remove($shipment, __(
                 'Unplaced shipment removed %2 hours after the last attempt. Carrier: %1. Reason: %3',
                 $this->carrierNameProvider->get($shipment->getCarrierCode()),
@@ -115,11 +116,11 @@ readonly class FailedShipmentManager
         return $removed;
     }
 
-    private function remove(ShipmentInterface $shipment, \Magento\Framework\Phrase $comment): void
+    private function remove(ShipmentInterface $shipment, Phrase $comment): void
     {
         $this->shipmentRepository->delete($shipment);
         try {
-            $this->nativeFollowUpService->comment($this->orderLoader->get($shipment->getOrderId()), $comment);
+            $this->nativeFollowUpService->addComment($this->orderLoader->get($shipment->getOrderId()), $comment);
         } catch (LocalizedException) {
             // The order is gone: nothing to note it on.
         }

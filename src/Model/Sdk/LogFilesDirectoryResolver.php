@@ -41,7 +41,7 @@ readonly class LogFilesDirectoryResolver
     /**
      * The month's directory inside the resolved one, e.g. ".../files/2026/10".
      */
-    public function ofMonth(string $directory, int $timestamp): string
+    public function resolveForMonth(string $directory, int $timestamp): string
     {
         return $directory . '/' . \gmdate('Y/m', $timestamp);
     }

@@ -8,7 +8,7 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Controller\Adminhtml;
 
 use Magento\Framework\App\Request\Http;
-use Polkurier\Shipping\Model\Admin\FormActions;
+use Polkurier\Shipping\Enum\Adminhtml\AfterSaveEnum;
 
 /**
  * For the admin actions that save a form: the posted fields, and nothing from the query string.
@@ -32,6 +32,6 @@ trait ReadsPostDataTrait
      */
     protected function isSaveAndContinue(): bool
     {
-        return $this->getRequest()->getParam(FormActions::BACK_PARAM) === FormActions::SAVE_AND_CONTINUE;
+        return $this->getRequest()->getParam(AfterSaveEnum::PARAM) === AfterSaveEnum::BackToForm->value;
     }
 }

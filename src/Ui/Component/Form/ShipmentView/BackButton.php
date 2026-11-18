@@ -13,6 +13,7 @@ use Magento\Framework\App\RequestInterface;
 use Magento\Framework\AuthorizationInterface;
 use Magento\Framework\UrlInterface;
 use Polkurier\Shipping\Api\ShipmentRepositoryInterface;
+use Polkurier\Shipping\Controller\Adminhtml\Shipment\Index as ShipmentIndex;
 use Polkurier\Shipping\Ui\Component\Control\OnClickScriptBuilder;
 
 /**
@@ -53,10 +54,10 @@ class BackButton extends AbstractButton
 
         return [
             'label' => __('Back'),
-            'on_click' => $this->onClickScriptBuilder->location(
+            'on_click' => $this->onClickScriptBuilder->buildLocation(
                 \is_array($back) && ($back['id'] ?? null) === $id
                     ? (string)$back['url']
-                    : $this->url->getUrl('polkurier/shipment/index'),
+                    : $this->url->getUrl(ShipmentIndex::ROUTE),
             ),
             'class' => 'back',
             'sort_order' => 10,

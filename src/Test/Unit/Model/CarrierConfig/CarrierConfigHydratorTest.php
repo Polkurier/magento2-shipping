@@ -8,6 +8,7 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Test\Unit\Model\CarrierConfig;
 
 use Magento\Framework\Exception\LocalizedException;
+use Magento\Framework\Serialize\Serializer\Json;
 use Magento\Framework\TestFramework\Unit\Helper\ObjectManager;
 use Magento\Store\Model\StoreManagerInterface;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
@@ -24,9 +25,9 @@ class CarrierConfigHydratorTest extends TestCase
 {
     public function testAFixedPriceTakesADecimalComma(): void
     {
-        $config = $this->config();
+        $config = $this->createConfig();
 
-        $this->hydrator()->hydrate($config, ['pricing_model' => 'FIXED', 'price' => '12,99', 'active' => '1']);
+        $this->createHydrator()->hydrate($config, ['pricing_model' => 'FIXED', 'price' => '12,99', 'active' => '1']);
 
         self::assertSame(['price' => 12.99], $config->getPriceInfo());
         self::assertTrue($config->isActive());
@@ -34,9 +35,9 @@ class CarrierConfigHydratorTest extends TestCase
 
     public function testTiersKeepOnlyThePricedRowsNotDeleted(): void
     {
-        $config = $this->config();
+        $config = $this->createConfig();
 
-        $this->hydrator()->hydrate($config, ['pricing_model' => 'TIER_SUBTOTAL', 'tiers' => [
+        $this->createHydrator()->hydrate($config, ['pricing_model' => 'TIER_SUBTOTAL', 'tiers' => [
             ['subtotal_from' => '0', 'price' => '14.99'],
             ['subtotal_from' => '100', 'price' => ''],
             ['subtotal_from' => '250', 'price' => '0', 'delete' => '1'],
@@ -51,8 +52,14 @@ class CarrierConfigHydratorTest extends TestCase
     public function testANegativePriceIsRefusedOnThePageAndInTheGrid(): void
     {
         $saves = [
-            fn() => $this->hydrator()->hydrate($this->config(), ['pricing_model' => 'FIXED', 'price' => '-1']),
-            fn() => $this->hydrator()->applyRow($this->config()->setPricingModel('FIXED'), ['price' => '-1']),
+            fn() => $this->createHydrator()->hydrate(
+                $this->createConfig(),
+                ['pricing_model' => 'FIXED', 'price' => '-1'],
+            ),
+            fn() => $this->createHydrator()->applyRow(
+                $this->createConfig()->setPricingModel('FIXED'),
+                ['price' => '-1'],
+            ),
         ];
         foreach ($saves as $save) {
             try {
@@ -73,7 +80,7 @@ class CarrierConfigHydratorTest extends TestCase
         ];
         foreach ($negativeTiers as $tier) {
             try {
-                $this->hydrator()->hydrate($this->config(), [
+                $this->createHydrator()->hydrate($this->createConfig(), [
                     'pricing_model' => 'TIER_SUBTOTAL_WEIGHT',
                     'tiers' => [$tier],
                 ]);
@@ -88,18 +95,18 @@ class CarrierConfigHydratorTest extends TestCase
     {
         $this->expectException(LocalizedException::class);
 
-        $this->hydrator()->applyRow($this->config()->setPricingModel('TIER_WEIGHT'), ['price' => '10']);
+        $this->createHydrator()->applyRow($this->createConfig()->setPricingModel('TIER_WEIGHT'), ['price' => '10']);
     }
 
-    private function config(): CarrierConfig
+    private function createConfig(): CarrierConfig
     {
         /** @var CarrierConfig $config */
-        $config = (new ObjectManager($this))->getObject(CarrierConfig::class);
+        $config = (new ObjectManager($this))->getObject(CarrierConfig::class, ['json' => new Json()]);
 
         return $config;
     }
 
-    private function hydrator(): CarrierConfigHydrator
+    private function createHydrator(): CarrierConfigHydrator
     {
         $storeManager = $this->createStub(StoreManagerInterface::class);
         $storeManager->method('getStores')->willReturn([]);

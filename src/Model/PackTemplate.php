@@ -76,7 +76,7 @@ class PackTemplate extends AbstractModel implements PackTemplateInterface
 
     public function getShipmentType(): string
     {
-        return ParcelTypeMapper::shipmentTypeOf($this->getPackType())->value;
+        return ParcelTypeMapper::mapShipmentType($this->getPackType())->value;
     }
 
     public function getPackType(): string

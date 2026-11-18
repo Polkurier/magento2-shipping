@@ -17,6 +17,7 @@ use Polkurier\Shipping\Model\Address\AddressHandler;
 class Index extends AbstractIndex
 {
     public const string ADMIN_RESOURCE = 'Polkurier_Shipping::addresses';
+    public const string ROUTE = 'polkurier/address/index';
 
     public function __construct(
         Context $context,

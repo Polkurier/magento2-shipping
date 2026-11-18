@@ -25,17 +25,17 @@ use Polkurier\Shipping\Model\Shipment\Placement\ParcelTypeMapper;
 use Polkurier\Shipping\Model\Shipment\Placement\SenderMapper;
 use Polkurier\Shipping\Model\Shipment\Placement\StreetParser;
 use Polkurier\Shipping\Test\Unit\Support\NewingObjectManager;
-use Polkurier\Webservice\Builder\Order\CodMessageBuilderFactory;
-use Polkurier\Webservice\Builder\Order\CoverAddressMessageBuilderFactory;
-use Polkurier\Webservice\Builder\Order\CreateOrderMessageBuilderFactory;
-use Polkurier\Webservice\Builder\Order\OrderAddressMessageBuilderFactory;
-use Polkurier\Webservice\Builder\Order\PackMessageBuilderFactory;
-use Polkurier\Webservice\Builder\Order\PickupMessageBuilderFactory;
+use Polkurier\Shipping\Test\Unit\Support\SdkSerializer;
+use Polkurier\Webservice\Builder\Entity\Order\AddressBuilderFactory;
+use Polkurier\Webservice\Builder\Entity\Order\CodBuilderFactory;
+use Polkurier\Webservice\Builder\Entity\Order\PackItemBuilderFactory;
+use Polkurier\Webservice\Builder\Entity\Order\PickupBuilderFactory;
+use Polkurier\Webservice\Builder\Entity\OrderBuilderFactory;
+use Polkurier\Webservice\Dto\Request\Order\CreateOrderMessage;
+use Polkurier\Webservice\Entity\Order;
 use Polkurier\Webservice\Enum\Order\PackTypeEnum;
 use Polkurier\Webservice\Enum\Order\ShipmentTypeEnum;
-use Polkurier\Webservice\Request\Order\CreateOrderMessage;
 use Polkurier\Webservice\Serializer\SerializerConfig;
-use Polkurier\Webservice\Serializer\SerializerProvider;
 use Polkurier\Webservice\Validator\DefaultValidatorRegistryFactory;
 
 #[CoversClass(CreateOrderMessageMapper::class)]
@@ -44,7 +44,7 @@ class CreateOrderMessageMapperTest extends TestCase
 {
     public function testMapsAFullDraftToTheWirePayload(): void
     {
-        $draft = $this->draft()
+        $draft = $this->createDraft()
             ->setSenderAddressId(7)
             ->setCodAmount(249.9)
             ->setCodType('1D')
@@ -59,9 +59,9 @@ class CreateOrderMessageMapperTest extends TestCase
             ->setPickupTimeTo('14:30')
             ->setAdditionalFields(['external_transport_security' => 'YES', 'empty' => '']);
 
-        $message = $this->mapper()->map($draft, 1);
+        $message = $this->createMapper()->map($draft, 1);
         DefaultValidatorRegistryFactory::create()->validate($message);
-        $payload = $this->payload($message);
+        $payload = $this->readPayload($message);
 
         self::assertSame('DPD', $payload['courier']);
         self::assertSame('box', $payload['shipmenttype']);
@@ -83,13 +83,13 @@ class CreateOrderMessageMapperTest extends TestCase
                 'codtype' => '1D',
                 'return_cod' => 'BA',
             ],
-            $this->sorted($payload['COD']),
+            $this->sortValues($payload['COD']),
         );
         self::assertSame(250.0, $payload['insurance']);
         self::assertSame(
-            'Zwroty 1',
-            $payload['cover_address']['street'],
-            'The cover address carries its number in the street.',
+            ['Zwroty', '1'],
+            [$payload['cover_address']['street'], $payload['cover_address']['housenumber']],
+            'The cover address carries its house number as the others do.',
         );
         self::assertSame(['SMS_NOTIFICATION_RECIPIENT' => true], $payload['courierservice']);
         self::assertSame('2026-10-01', $payload['pickup']['pickupdate']);
@@ -100,7 +100,7 @@ class CreateOrderMessageMapperTest extends TestCase
 
     public function testANamedSmsNotificationReplacesItsPlainVariant(): void
     {
-        $payload = $this->payload($this->mapper()->map($this->draft()->setServices([
+        $payload = $this->readPayload($this->createMapper()->map($this->createDraft()->setServices([
             'SMS_NOTIFICATION_RECIPIENT',
             'SMS_NOTIFICATION_RECIPIENT_WITH_NAME',
             'SMS_NOTIFICATION_RECIPIENT_ORDER_ISSUED_FOR_DELIVERY',
@@ -114,7 +114,7 @@ class CreateOrderMessageMapperTest extends TestCase
 
     public function testMinimalDraftOmitsWhatWasNotAskedFor(): void
     {
-        $payload = $this->payload($this->mapper()->map($this->draft(), 1));
+        $payload = $this->readPayload($this->createMapper()->map($this->createDraft(), 1));
 
         $absentKeys = [
             'COD',
@@ -136,13 +136,13 @@ class CreateOrderMessageMapperTest extends TestCase
 
     public function testTheShopsIdsAreSentWithTheOrder(): void
     {
-        $message = $this->mapper()->map($this->draft(), 1, [
+        $message = $this->createMapper()->map($this->createDraft(), 1, [
             'application' => 'magento2-0123456789ab',
             'id' => '000000077',
             'number' => '000000042',
         ]);
         DefaultValidatorRegistryFactory::create()->validate($message);
-        $payload = $this->payload($message);
+        $payload = $this->readPayload($message);
 
         self::assertSame('magento2-0123456789ab', $payload['external_application_id']);
         self::assertSame('000000077', $payload['external_order_id']);
@@ -151,16 +151,16 @@ class CreateOrderMessageMapperTest extends TestCase
 
     public function testPointDeliveryAndDropOff(): void
     {
-        $draft = $this->draft()
+        $draft = $this->createDraft()
             ->setCarrierCode('INPOST_PACZKOMAT')
             ->setRecipientStreet('')
             ->setRecipientHouseNumber(null)
             ->setRecipientPointId('WAW01A')
             ->setPickupMode(ShipmentDraftInterface::PICKUP_DROP_OFF);
 
-        $message = $this->mapper()->map($draft, 1);
+        $message = $this->createMapper()->map($draft, 1);
         DefaultValidatorRegistryFactory::create()->validate($message);
-        $payload = $this->payload($message);
+        $payload = $this->readPayload($message);
 
         self::assertSame('WAW01A', $payload['recipient']['point_id']);
         self::assertTrue((bool)$payload['pickup']['nocourierorder']);
@@ -168,21 +168,38 @@ class CreateOrderMessageMapperTest extends TestCase
 
     public function testDescriptionIsCutToWhatTheApiKeeps(): void
     {
-        $message = $this->mapper()->map($this->draft()->setDescription(\str_repeat('x', 40)), 1);
+        $message = $this->createMapper()->map($this->createDraft()->setDescription(\str_repeat('x', 40)), 1);
 
-        self::assertSame(CreateOrderMessage::DESCRIPTION_MAX_LENGTH, \mb_strlen((string)$message->getDescription()));
+        self::assertSame(Order::DESCRIPTION_MAX_LENGTH, \strlen((string)$message->order->getDescription()));
+    }
+
+    public function testDescriptionIsCutInBytesWithoutSplittingALetter(): void
+    {
+        $message = $this->createMapper()->map(
+            $this->createDraft()->setDescription('x' . \str_repeat('ż', 20)),
+            1,
+        );
+
+        self::assertSame(
+            'x' . \str_repeat('ż', 14),
+            $message->order->getDescription(),
+            '29 bytes: a 15th ż would be split.',
+        );
     }
 
     public function testCashOnDeliveryToABankAccountNeedsOne(): void
     {
         $this->expectException(LocalizedException::class);
 
-        $this->mapper()->map($this->draft()->setCodAmount(10)->setCodReturnType('BA')->setCodBankAccountId(null), 1);
+        $this->createMapper()->map(
+            $this->createDraft()->setCodAmount(10)->setCodReturnType('BA')->setCodBankAccountId(null),
+            1,
+        );
     }
 
     public function testASenderTypedInGoesAsItWasTyped(): void
     {
-        $draft = $this->draft()->setNewSender(true)->setNewSenderAddress([
+        $draft = $this->createDraft()->setNewSender(true)->setNewSenderAddress([
             'person' => 'Ewa Lis',
             'company' => '',
             'street' => 'Polna',
@@ -196,7 +213,7 @@ class CreateOrderMessageMapperTest extends TestCase
         ]);
 
         // Even with the store's address to fall back on.
-        $sender = $this->mapper()->map($draft, 1)->getSender();
+        $sender = $this->createMapper()->map($draft, 1)->order->getSender();
 
         self::assertSame(['Ewa Lis', 'Polna', '3', '2', '30-001', 'Kraków', 'PL', null], [
             $sender->getPerson(), $sender->getStreet(), $sender->getHouseNumber(), $sender->getFlatNumber(),
@@ -206,7 +223,7 @@ class CreateOrderMessageMapperTest extends TestCase
 
     public function testASenderTypedInSaysWhatItLacks(): void
     {
-        $draft = $this->draft()->setNewSender(true)->setNewSenderAddress([
+        $draft = $this->createDraft()->setNewSender(true)->setNewSenderAddress([
             'person' => 'Ewa Lis',
             'street' => 'Polna',
             'city' => 'Kraków',
@@ -215,18 +232,21 @@ class CreateOrderMessageMapperTest extends TestCase
         $this->expectException(LocalizedException::class);
         $this->expectExceptionMessage('Fill in the sender\'s house number, postcode, phone, e-mail.');
 
-        $this->mapper()->map($draft, 1);
+        $this->createMapper()->map($draft, 1);
     }
 
     public function testCashOnDeliveryToAnAccountTypedInCarriesItsNumber(): void
     {
-        $draft = $this->draft()->setCodAmount(10)->setCodReturnType('BA')->setCodBankAccountId(null)
+        $draft = $this->createDraft()->setCodAmount(10)->setCodReturnType('BA')->setCodBankAccountId(null)
             ->setNewBankAccount(true)->setNewBankAccountNumber('61 1090 1014 0000 0712 1981 2874');
 
-        self::assertSame('61109010140000071219812874', $this->mapper()->map($draft, 1)->getCod()?->getBankAccount());
+        self::assertSame(
+            '61109010140000071219812874',
+            $this->createMapper()->map($draft, 1)->order->getCod()?->getBankAccount(),
+        );
 
         $this->expectException(LocalizedException::class);
-        $this->mapper()->map($draft->setNewBankAccountNumber(' '), 1);
+        $this->createMapper()->map($draft->setNewBankAccountNumber(' '), 1);
     }
 
     public function testTheCollectionWindowGoesAsPolishTimeWhateverPhpsZone(): void
@@ -235,17 +255,16 @@ class CreateOrderMessageMapperTest extends TestCase
         $zone = \date_default_timezone_get();
         \date_default_timezone_set('UTC');
         try {
-            $message = $this->mapper()->map(
-                $this->draft()
+            $message = $this->createMapper()->map(
+                $this->createDraft()
                     ->setPickupDate('2026-10-05')
                     ->setPickupTimeFrom('14:00')
                     ->setPickupTimeTo('17:00'),
                 1,
             );
             $pickup = (array)\json_decode(
-                (new SerializerProvider(new SerializerConfig(timezone: new \DateTimeZone('Europe/Warsaw'))))
-                    ->getSerializer()
-                    ->serialize($message, 'json'),
+                SdkSerializer::create(new SerializerConfig(timezone: new \DateTimeZone('Europe/Warsaw')))
+                    ->encode($message),
                 true,
             )['pickup'];
         } finally {
@@ -260,11 +279,16 @@ class CreateOrderMessageMapperTest extends TestCase
 
     public function testTheShipmentsDropOffPointGoesWithTheSender(): void
     {
-        $withPoint = $this->mapper()
-            ->map($this->droppedOff()->setSenderAddressId(7)->setSenderPointId('U16880214'), 1)
-            ->getSender();
-        $fromStore = $this->mapper()->map($this->droppedOff()->setSenderPointId('U16880214'), 1)->getSender();
-        $without = $this->mapper()->map($this->droppedOff()->setSenderAddressId(7), 1)->getSender();
+        $withPoint = $this->createMapper()
+            ->map($this->createDroppedOffDraft()->setSenderAddressId(7)->setSenderPointId('U16880214'), 1)
+            ->order->getSender();
+        $fromStore = $this->createMapper()->map(
+            $this->createDroppedOffDraft()->setSenderPointId('U16880214'),
+            1,
+        )->order->getSender();
+        $without = $this->createMapper()
+            ->map($this->createDroppedOffDraft()->setSenderAddressId(7), 1)
+            ->order->getSender();
 
         self::assertSame(
             ['U16880214', 'U16880214', null],
@@ -275,8 +299,8 @@ class CreateOrderMessageMapperTest extends TestCase
 
     public function testParcelsHandedOverAtAPointBookNoCourier(): void
     {
-        $pickup = $this->payload(
-            $this->mapper()->map($this->droppedOff()->setSenderPointId('U16880214'), 1),
+        $pickup = $this->readPayload(
+            $this->createMapper()->map($this->createDroppedOffDraft()->setSenderPointId('U16880214'), 1),
         )['pickup'];
 
         self::assertTrue($pickup['nocourierorder']);
@@ -285,14 +309,14 @@ class CreateOrderMessageMapperTest extends TestCase
 
     public function testAPointLeftInTheDraftIsNotSentWhenACourierCollects(): void
     {
-        $courier = $this->mapper()->map(
-            $this->draft()->setSenderAddressId(7)->setSenderPointId('U16880214')->setPickupDate('2026-10-01'),
+        $courier = $this->createMapper()->map(
+            $this->createDraft()->setSenderAddressId(7)->setSenderPointId('U16880214')->setPickupDate('2026-10-01'),
             1,
-        );
-        $collective = $this->mapper()->map(
-            $this->draft()->setSenderPointId('U16880214')->setPickupMode(ShipmentDraftInterface::PICKUP_MULTI),
+        )->order;
+        $collective = $this->createMapper()->map(
+            $this->createDraft()->setSenderPointId('U16880214')->setPickupMode(ShipmentDraftInterface::PICKUP_MULTI),
             1,
-        );
+        )->order;
 
         self::assertSame([null, null], [$courier->getSender()->getPointId(), $collective->getSender()->getPointId()]);
         self::assertSame(
@@ -307,27 +331,42 @@ class CreateOrderMessageMapperTest extends TestCase
 
     public function testParcelsDroppedOffWithoutAPointBookNoCourier(): void
     {
-        $message = $this->mapper()->map($this->droppedOff(), 1);
+        $message = $this->createMapper()->map($this->createDroppedOffDraft(), 1);
 
-        self::assertTrue($message->getPickup()?->isNoCourierOrder());
-        self::assertNull($message->getSender()->getPointId());
+        self::assertTrue($message->order->getPickup()?->isNoCourierOrder());
+        self::assertNull($message->order->getSender()->getPointId());
     }
 
     public function testTheCoverAddressSwitchesTheServiceOnBySendingItself(): void
     {
-        $payload = $this->payload($this->mapper()->map(
-            $this->draft()->setCoverAddressId(8)->setServices(['COVER_ADDRESS_SENDER', 'SMS_NOTIFICATION_RECIPIENT']),
+        $payload = $this->readPayload($this->createMapper()->map(
+            $this->createDraft()->setCoverAddressId(8)->setServices(
+                ['COVER_ADDRESS_SENDER', 'SMS_NOTIFICATION_RECIPIENT'],
+            ),
             1,
         ));
 
-        self::assertSame('Zwroty 1', $payload['cover_address']['street']);
+        self::assertSame('Zwroty', $payload['cover_address']['street']);
         self::assertSame(['SMS_NOTIFICATION_RECIPIENT' => true], $payload['courierservice']);
+    }
+
+    public function testTheCoverAddressSendsItsHouseAndFlatNumbersInTheirOwnFields(): void
+    {
+        $payload = $this->readPayload($this->createMapper()->map($this->createDraft()->setCoverAddressId(8), 1));
+
+        self::assertSame(
+            ['street' => 'Zwroty', 'housenumber' => '1', 'flat_number' => '3'],
+            \array_intersect_key($payload['cover_address'], ['street' => 0, 'housenumber' => 0, 'flat_number' => 0]),
+        );
     }
 
     public function testTheCoverSenderAddressWithoutAnAddressIsRefused(): void
     {
         $this->expectException(LocalizedException::class);
-        $this->mapper()->map($this->draft()->setCoverAddressId(null)->setServices(['COVER_ADDRESS_SENDER']), 1);
+        $this->createMapper()->map(
+            $this->createDraft()->setCoverAddressId(null)->setServices(['COVER_ADDRESS_SENDER']),
+            1,
+        );
     }
 
     public function testTheShipmentTypeIsWhatTheParcelsAre(): void
@@ -340,11 +379,11 @@ class CreateOrderMessageMapperTest extends TestCase
             ->setWeight(0.5)
             ->setAmount(1);
 
-        $message = $this->mapper()->map($this->draft()->setShipmentType('box')->setPacks([$envelope]), 1);
+        $message = $this->createMapper()->map($this->createDraft()->setShipmentType('box')->setPacks([$envelope]), 1);
 
-        self::assertSame(ShipmentTypeEnum::Envelope, $message->getShipmentType());
+        self::assertSame(ShipmentTypeEnum::Envelope, $message->order->getShipmentType());
         // Polkurier knows an envelope by the shipment type alone.
-        self::assertSame(PackTypeEnum::Standard->value, $this->payload($message)['packs'][0]['type']);
+        self::assertSame(PackTypeEnum::Standard->value, $this->readPayload($message)['packs'][0]['type']);
 
         $pallet = (new Pack())
             ->setPackType('PAL')
@@ -355,13 +394,13 @@ class CreateOrderMessageMapperTest extends TestCase
             ->setAmount(1);
         self::assertSame(
             ShipmentTypeEnum::Palette,
-            $this->mapper()->map($this->draft()->setPacks([$pallet]), 1)->getShipmentType(),
+            $this->createMapper()->map($this->createDraft()->setPacks([$pallet]), 1)->order->getShipmentType(),
         );
     }
 
     public function testParcelsOfMoreThanOneKindAreRefused(): void
     {
-        $draft = $this->draft();
+        $draft = $this->createDraft();
         $draft->setPacks([
             ...$draft->getPacks(),
             (new Pack())
@@ -374,31 +413,31 @@ class CreateOrderMessageMapperTest extends TestCase
         ]);
 
         $this->expectException(LocalizedException::class);
-        $this->mapper()->map($draft, 1);
+        $this->createMapper()->map($draft, 1);
     }
 
     public function testWithoutAChosenSenderTheStoresAddressComesBeforeTheShippingOrigin(): void
     {
-        $draft = $this->draft()->setSenderAddressId(null);
+        $draft = $this->createDraft()->setSenderAddressId(null);
 
-        $fromStore = $this->mapper([
+        $fromStore = $this->createMapper([
             ConfigProvider::XML_PATH_USE_STORE_INFORMATION_ADDRESS,
             ConfigProvider::XML_PATH_USE_ORIGIN_ADDRESS,
         ])->map($draft, 1);
-        $fromOrigin = $this->mapper([ConfigProvider::XML_PATH_USE_ORIGIN_ADDRESS])->map($draft, 1);
+        $fromOrigin = $this->createMapper([ConfigProvider::XML_PATH_USE_ORIGIN_ADDRESS])->map($draft, 1);
 
-        self::assertSame('Rynek', $fromStore->getSender()->getStreet());
-        self::assertSame('Kraków', $fromStore->getSender()->getCity());
-        self::assertSame('Marszałkowska', $fromOrigin->getSender()->getStreet());
+        self::assertSame('Rynek', $fromStore->order->getSender()->getStreet());
+        self::assertSame('Kraków', $fromStore->order->getSender()->getCity());
+        self::assertSame('Marszałkowska', $fromOrigin->order->getSender()->getStreet());
     }
 
     public function testWithoutAChosenSenderOrAFallbackTheShipmentIsRefused(): void
     {
         $this->expectException(LocalizedException::class);
-        $this->mapper([])->map($this->draft()->setSenderAddressId(null), 1);
+        $this->createMapper([])->map($this->createDraft()->setSenderAddressId(null), 1);
     }
 
-    private function draft(): Draft
+    private function createDraft(): Draft
     {
         return (new Draft())
             ->setCarrierCode('DPD')
@@ -430,15 +469,17 @@ class CreateOrderMessageMapperTest extends TestCase
             ->setPickupMode(ShipmentDraftInterface::PICKUP_COURIER);
     }
 
-    private function droppedOff(): Draft
+    private function createDroppedOffDraft(): Draft
     {
-        return $this->draft()->setPickupMode(ShipmentDraftInterface::PICKUP_DROP_OFF);
+        return $this->createDraft()->setPickupMode(ShipmentDraftInterface::PICKUP_DROP_OFF);
     }
 
     /**
      * @param string[] $flags the switched-on settings; by default, the shipping origin fallback
      */
-    private function mapper(array $flags = [ConfigProvider::XML_PATH_USE_ORIGIN_ADDRESS]): CreateOrderMessageMapper
+    private function createMapper(
+        array $flags = [ConfigProvider::XML_PATH_USE_ORIGIN_ADDRESS],
+    ): CreateOrderMessageMapper
     {
         $scopeConfig = $this->createStub(ScopeConfigInterface::class);
         $scopeConfig->method('getValue')->willReturnMap([
@@ -467,11 +508,11 @@ class CreateOrderMessageMapperTest extends TestCase
         $sender = $this->createConfiguredStub(AddressInterface::class, [
             'getPerson' => 'Jan Kowalski', 'getCompany' => 'Magazyn Sp. z o.o.', 'getStreet' => 'Fabryczna',
             'getHouseNumber' => '7', 'getFlatNumber' => null, 'getCity' => 'Łódź', 'getPostcode' => '90-001',
-            'getCountry' => 'PL', 'getEmail' => 'magazyn@example.com', 'getPhone' => '501501501', 'getPointId' => null,
+            'getCountry' => 'PL', 'getEmail' => 'magazyn@example.com', 'getPhone' => '501501501',
         ]);
         $cover = $this->createConfiguredStub(AddressInterface::class, [
             'getPerson' => 'Dział zwrotów', 'getCompany' => null, 'getStreet' => 'Zwroty', 'getHouseNumber' => '1',
-            'getFlatNumber' => null, 'getCity' => 'Łódź', 'getPostcode' => '90-002', 'getCountry' => 'PL',
+            'getFlatNumber' => '3', 'getCity' => 'Łódź', 'getPostcode' => '90-002', 'getCountry' => 'PL',
             'getEmail' => 'zwroty@example.com', 'getPhone' => '502502502',
         ]);
         $addresses = $this->createStub(AddressRepositoryInterface::class);
@@ -486,26 +527,25 @@ class CreateOrderMessageMapperTest extends TestCase
                 $scopeConfig,
                 $config,
                 new StreetParser(),
-                NewingObjectManager::factory(OrderAddressMessageBuilderFactory::class),
-                NewingObjectManager::factory(CoverAddressMessageBuilderFactory::class),
+                NewingObjectManager::createFactory(AddressBuilderFactory::class),
             ),
             $addresses,
             $bankAccounts,
             $config,
-            NewingObjectManager::factory(CreateOrderMessageBuilderFactory::class),
-            NewingObjectManager::factory(PackMessageBuilderFactory::class),
-            NewingObjectManager::factory(OrderAddressMessageBuilderFactory::class),
-            NewingObjectManager::factory(CodMessageBuilderFactory::class),
-            NewingObjectManager::factory(PickupMessageBuilderFactory::class),
+            NewingObjectManager::createFactory(OrderBuilderFactory::class),
+            NewingObjectManager::createFactory(PackItemBuilderFactory::class),
+            NewingObjectManager::createFactory(AddressBuilderFactory::class),
+            NewingObjectManager::createFactory(CodBuilderFactory::class),
+            NewingObjectManager::createFactory(PickupBuilderFactory::class),
         );
     }
 
     /**
      * @return array<string, mixed>
      */
-    private function payload(CreateOrderMessage $message): array
+    private function readPayload(CreateOrderMessage $message): array
     {
-        return (array)\json_decode((new SerializerProvider())->getSerializer()->serialize($message, 'json'), true);
+        return (array)\json_decode(SdkSerializer::create()->encode($message), true);
     }
 
     /**
@@ -513,7 +553,7 @@ class CreateOrderMessageMapperTest extends TestCase
      *
      * @return array<string, mixed>
      */
-    private function sorted(array $values): array
+    private function sortValues(array $values): array
     {
         \ksort($values);
 

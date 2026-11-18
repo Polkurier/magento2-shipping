@@ -39,34 +39,34 @@ Service codes are the values of the SDK's `Polkurier\Webservice\Enum\Order\Addit
 
 An `afterMap` plugin on
 [`Model\Shipment\Placement\CreateOrderMessageMapper`](../../src/Model/Shipment/Placement/CreateOrderMessageMapper.php)
-sees the final `Polkurier\Webservice\Request\Order\CreateOrderMessage` just before it goes out,
-whichever way the shipment was placed. The SDK's messages are immutable, so build a new one with the
-SDK's builders rather than modifying the one you get.
+sees the final `Polkurier\Webservice\Dto\Request\Order\CreateOrderMessage` just before it goes out,
+whichever way the shipment was placed. The message is read-only, but the order it carries
+(`$message->order`, a `Polkurier\Webservice\Entity\Order`) has setters.
 
-Every message that has an SDK builder is built through a fresh builder from Magento's generated
-factory (for example `Polkurier\Webservice\Builder\Address\SaveMessageBuilderFactory`). So a
-plugin on a builder reaches every message of its kind: a `beforeBuild` plugin can set a field, an
-`afterBuild` plugin can return another message, and a preference can swap the builder for a
+Every record and message that has an SDK builder is built through a fresh builder from Magento's
+generated factory (for example `Polkurier\Webservice\Builder\Entity\AddressBuilderFactory`). So a
+plugin on a builder reaches everything of its kind: a `beforeBuild` plugin can set a field, an
+`afterBuild` plugin can return another object, and a preference can swap the builder for a
 subclass.
 
 ```php
-public function beforeBuild(\Polkurier\Webservice\Builder\Address\SaveMessageBuilder $subject): void
+public function beforeBuild(\Polkurier\Webservice\Builder\Entity\AddressBuilder $subject): void
 {
     $subject->province('mazowieckie');
 }
 ```
 
-Smaller messages without a builder (an id, a delete) are created directly.
+Messages without a builder (an id, a delete, the order wrapped for sending) are created directly.
 
 ## Calling Polkurier from your own code
 
 [`Api\PolkurierClientInterface`](../../src/Api/PolkurierClientInterface.php) hands out every
 service of the SDK for the account the module is connected to, with its credentials, sandbox
-setting, timeouts and logging, including those the module doesn't use itself, such as `invoices()`,
-`payments()` and `tickets()`:
+setting, timeouts and logging, including those the module doesn't use itself, such as `getInvoices()`,
+`getPayments()` and `getTickets()`:
 
 ```php
-$point = $this->polkurierClient->courier()->getCourierPoint('WAW195M', ['INPOST_PACZKOMAT']);
+$point = $this->polkurierClient->getCourier()->getCourierPoint('WAW195M', ['INPOST_PACZKOMAT']);
 ```
 
 Orders placed this way aren't the module's shipments: it won't list, follow or cancel them. To place
@@ -136,6 +136,6 @@ runs for labels too.
 ## Logging alongside the module
 
 Inject [`Polkurier\Shipping\Logger\Logger`](../../src/Logger/Logger.php) (see [Logging](logging.md))
-so your records land in the same files and get the same masking.
+so your records land in the same files.
 
 Next: [Tests](tests.md)

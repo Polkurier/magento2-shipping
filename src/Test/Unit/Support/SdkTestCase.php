@@ -12,11 +12,10 @@ use Polkurier\Shipping\Logger\Logger;
 use Polkurier\Shipping\Model\Sdk\AccountConfigProvider;
 use Polkurier\Shipping\Model\Sdk\AccountConfigProviderFactory;
 use Polkurier\Shipping\Model\Sdk\PolkurierClient;
-use Polkurier\Webservice\Config;
-use Polkurier\Webservice\Http\Request\AuthorizationMessage;
+use Polkurier\Shipping\Model\Sdk\SerializerConfigProvider;
 use Polkurier\Webservice\PolkurierWebservice;
 use Polkurier\Webservice\PolkurierWebserviceFactory;
-use Polkurier\Webservice\Serializer\SerializerProvider;
+use Polkurier\Webservice\Serializer\SerializerConfig;
 use Polkurier\Webservice\Testing\RecordingClient;
 use Polkurier\Webservice\Validator\DefaultValidatorRegistryFactory;
 
@@ -26,10 +25,7 @@ use Polkurier\Webservice\Validator\DefaultValidatorRegistryFactory;
  */
 abstract class SdkTestCase extends TestCase
 {
-    protected const string TOKEN = 'test-token-secret';
-    protected const string LOGIN = '12345';
-
-    protected function clientPool(RecordingClient $http): PolkurierClient
+    protected function createClientPool(RecordingClient $http): PolkurierClient
     {
         $webserviceFactory = $this->createStub(PolkurierWebserviceFactory::class);
         $webserviceFactory->method('create')->willReturnCallback(
@@ -39,19 +35,17 @@ abstract class SdkTestCase extends TestCase
         );
 
         $configProvider = $this->createStub(AccountConfigProvider::class);
-        $configProvider->method('getConfig')->willReturn(new Config(
-            authorization: new AuthorizationMessage(token: self::TOKEN, login: self::LOGIN),
-            platform: 'magento2',
-            platformVersion: '1.0.0',
-            apiUrl: 'http://api.test',
-        ));
+        $configProvider->method('getConfig')->willReturn(SdkConfig::create());
         $configProviderFactory = $this->createStub(AccountConfigProviderFactory::class);
         $configProviderFactory->method('create')->willReturn($configProvider);
+
+        $serializerConfigs = $this->createStub(SerializerConfigProvider::class);
+        $serializerConfigs->method('getConfig')->willReturn(new SerializerConfig());
 
         return new PolkurierClient(
             $webserviceFactory,
             $configProviderFactory,
-            new SerializerProvider(),
+            $serializerConfigs,
             DefaultValidatorRegistryFactory::create(),
             $this->createStub(Logger::class),
         );
@@ -60,12 +54,12 @@ abstract class SdkTestCase extends TestCase
     /**
      * @param mixed $response the envelope's "response"
      */
-    protected static function success(mixed $response): string
+    protected static function encodeSuccess(mixed $response): string
     {
         return (string)\json_encode(['status' => 'success', 'response' => $response]);
     }
 
-    protected static function fixture(string $name): string
+    protected static function loadFixture(string $name): string
     {
         return (string)\file_get_contents(__DIR__ . '/../_files/' . $name);
     }

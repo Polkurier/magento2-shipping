@@ -38,7 +38,7 @@ readonly class AccountCache
      */
     public function remember(string $name, int $lifetime, callable $load): mixed
     {
-        $key = $this->key($name);
+        $key = $this->buildKey($name);
         $cached = $this->polkurierCache->load($key);
         if (\is_string($cached) && $cached !== '') {
             try {
@@ -64,7 +64,7 @@ readonly class AccountCache
      * @param string $name what is kept, e.g. "carriers"
      * @param string ...$variant anything else the entry depends on, such as the SDK's version
      */
-    public function key(string $name, string ...$variant): string
+    public function buildKey(string $name, string ...$variant): string
     {
         $account = $this->configProvider->getLogin() . '|' . (int)$this->configProvider->isSandbox();
 

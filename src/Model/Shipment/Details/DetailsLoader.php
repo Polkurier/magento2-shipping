@@ -40,14 +40,14 @@ readonly class DetailsLoader
      * Whether refresh() has anything to read: the shipment has a Polkurier order, and its copy is
      * missing, or its copy or scans may have moved on since.
      */
-    public function needsRefresh(ShipmentInterface $shipment): bool
+    public function isRefreshDue(ShipmentInterface $shipment): bool
     {
         return $shipment->getPolkurierNumber() !== null
             && ($this->isCopyStale($shipment) || $this->isTrackingStale($shipment));
     }
 
     /**
-     * Reads from Polkurier and stores what needsRefresh() finds missing or stale. Either part may
+     * Reads from Polkurier and stores what isRefreshDue() finds missing or stale. Either part may
      * fail without stopping the other.
      *
      * @return array{shipment: ShipmentInterface|null, errors: string[]} the shipment as stored after,
@@ -55,7 +55,7 @@ readonly class DetailsLoader
      */
     public function refresh(ShipmentInterface $shipment): array
     {
-        if (!$this->needsRefresh($shipment)) {
+        if (!$this->isRefreshDue($shipment)) {
             return ['shipment' => $shipment, 'errors' => []];
         }
         $errors = [];
@@ -102,7 +102,7 @@ readonly class DetailsLoader
         } catch (LocalizedException $e) {
             throw new LocalizedException(__('The carrier\'s scans could not be read: %1', $e->getMessage()), $e);
         }
-        $shipment->setTracking($this->remoteOrderApplier->tracking($status))
+        $shipment->setTracking($this->remoteOrderApplier->mapTracking($status))
             ->setTrackingSyncedAt((string)$this->dateTime->gmtDate());
         /** @var ShipmentModel $shipment */
         $this->shipmentResource->updateColumns((int)$shipment->getId(), [

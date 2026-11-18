@@ -27,10 +27,10 @@ use Polkurier\Webservice\Exception\Exception as PolkurierException;
  */
 class MapTokenProvider implements ResetAfterRequestInterface
 {
+    /**
+     * How long a token is cached: less than the four hours it works for.
+     */
     public const int CACHE_LIFETIME = 3 * 3600;
-    public const int FAILURE_LIFETIME = 90;
-
-    private const string FAILURE_SUFFIX = '_failed';
 
     /**
      * Stands for an empty token among the remembered failures.
@@ -58,7 +58,7 @@ class MapTokenProvider implements ResetAfterRequestInterface
      */
     public function getToken(): string
     {
-        $key = $this->accountCache->key('map_token');
+        $key = $this->accountCache->buildKey('map_token');
         if (isset($this->answers[$key])) {
             return $this->answer($this->answers[$key]);
         }
@@ -66,31 +66,29 @@ class MapTokenProvider implements ResetAfterRequestInterface
         if (\is_string($cached) && $cached !== '') {
             return $this->answers[$key] = $cached;
         }
-        $failure = $this->polkurierCache->load($key . self::FAILURE_SUFFIX);
-        if (\is_string($failure) && $failure !== '') {
+        $failure = $this->polkurierCache->loadFailure($key);
+        if ($failure !== null) {
             return $this->answer(
                 $this->answers[$key] = $failure === self::NO_TOKEN ? '' : new RecentFailureException($failure),
             );
         }
 
         try {
-            $token = $this->polkurierClient->geo()->getMapToken()->getToken();
+            $token = $this->polkurierClient->getGeo()->getMapToken()->token;
         } catch (PolkurierException $e) {
-            $this->polkurierCache->save(
-                (string)$this->errorMessageResolver->phrase($e),
-                $key . self::FAILURE_SUFFIX,
-                [CacheTagEnum::MapToken->value, CacheTagEnum::Failures->value],
-                self::FAILURE_LIFETIME,
+            $this->polkurierCache->saveFailure(
+                $key,
+                (string)$this->errorMessageResolver->createPhrase($e),
+                CacheTagEnum::MapToken,
             );
 
             throw $this->answers[$key] = $e;
         }
-        $this->polkurierCache->save(
-            $token !== '' ? $token : self::NO_TOKEN,
-            $token !== '' ? $key : $key . self::FAILURE_SUFFIX,
-            [CacheTagEnum::MapToken->value],
-            $token !== '' ? self::CACHE_LIFETIME : self::FAILURE_LIFETIME,
-        );
+        if ($token !== '') {
+            $this->polkurierCache->save($token, $key, [CacheTagEnum::MapToken->value], self::CACHE_LIFETIME);
+        } else {
+            $this->polkurierCache->saveFailure($key, self::NO_TOKEN, CacheTagEnum::MapToken);
+        }
 
         return $this->answers[$key] = $token;
     }

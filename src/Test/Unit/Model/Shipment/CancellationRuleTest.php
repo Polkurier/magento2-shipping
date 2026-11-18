@@ -7,6 +7,7 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Test\Unit\Model\Shipment;
 
+use Magento\Framework\Serialize\Serializer\Json;
 use Magento\Framework\TestFramework\Unit\Helper\ObjectManager;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -23,7 +24,7 @@ class CancellationRuleTest extends TestCase
     /**
      * @return array<string, array{string, ?string, string, string[], bool, ?string}>
      */
-    public static function orders(): array
+    public static function provideOrders(): array
     {
         $placed = ShipmentInterface::STATE_CREATED;
 
@@ -74,7 +75,7 @@ class CancellationRuleTest extends TestCase
     /**
      * @param string[] $waybills
      */
-    #[DataProvider('orders')]
+    #[DataProvider('provideOrders')]
     public function testAnOrderIsOfferedForCancellingAsThePolkurierPanelOffersIt(
         string $state,
         ?string $status,
@@ -84,7 +85,7 @@ class CancellationRuleTest extends TestCase
         ?string $refusal,
     ): void {
         /** @var Shipment $shipment */
-        $shipment = (new ObjectManager($this))->getObject(Shipment::class);
+        $shipment = (new ObjectManager($this))->getObject(Shipment::class, ['json' => new Json()]);
         $shipment->setPolkurierNumber('24680-27')
             ->setState($state)
             ->setStatusCode($status)
@@ -92,6 +93,6 @@ class CancellationRuleTest extends TestCase
             ->setWaybills($waybills)
             ->setDetails(['has_invoice' => $invoiced]);
 
-        self::assertSame($refusal, CancellationRule::refusal($shipment)?->render());
+        self::assertSame($refusal, CancellationRule::getRefusal($shipment)?->render());
     }
 }

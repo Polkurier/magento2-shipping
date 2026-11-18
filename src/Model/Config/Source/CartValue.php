@@ -18,7 +18,7 @@ readonly class CartValue extends AbstractOptions
     {
         $options = [];
         foreach (CartValueEnum::cases() as $case) {
-            $options[$case->value] = $case->label();
+            $options[$case->value] = $case->getLabel();
         }
 
         return $options;

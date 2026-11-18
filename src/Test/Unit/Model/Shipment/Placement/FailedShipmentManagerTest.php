@@ -9,15 +9,17 @@ namespace Polkurier\Shipping\Test\Unit\Model\Shipment\Placement;
 
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\Phrase;
+use Magento\Framework\Serialize\Serializer\Json;
+use Magento\Framework\TestFramework\Unit\Helper\ObjectManager;
 use Magento\Sales\Model\Order;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Api\ShipmentRepositoryInterface;
+use Polkurier\Shipping\Model\Admin\Formatter;
 use Polkurier\Shipping\Model\Carrier\CarrierNameProvider;
 use Polkurier\Shipping\Model\Shipment;
-use Polkurier\Shipping\Model\Shipment\Details\Formatter;
 use Polkurier\Shipping\Model\Shipment\Native\NativeFollowUpService;
 use Polkurier\Shipping\Model\Shipment\OrderLoader;
 use Polkurier\Shipping\Model\Shipment\Placement\FailedShipmentManager;
@@ -40,9 +42,9 @@ class FailedShipmentManagerTest extends TestCase
 
     public function testOneLastTriedTwoDaysAgoIsRemovedAndNotedOnItsOrder(): void
     {
-        $shipment = $this->shipment(ShipmentInterface::STATE_FAILED, 'Przerwa techniczna.');
+        $shipment = $this->createShipment(ShipmentInterface::STATE_FAILED, 'Przerwa techniczna.');
 
-        self::assertSame(1, $this->manager([$shipment])->expire());
+        self::assertSame(1, $this->createManager([$shipment])->expire());
         self::assertSame('2026-09-30 10:00:00', $this->attemptedBefore);
         self::assertSame([
             'delete 7',
@@ -55,15 +57,15 @@ class FailedShipmentManagerTest extends TestCase
     {
         self::assertSame(
             '2026-10-03 08:30:00',
-            $this->manager([])->expiresAfter('2026-10-01 08:30:00'),
+            $this->createManager([])->calculateExpiry('2026-10-01 08:30:00'),
         );
     }
 
     public function testDiscardingRemovesIt(): void
     {
-        $shipment = $this->shipment(ShipmentInterface::STATE_FAILED, '');
+        $shipment = $this->createShipment(ShipmentInterface::STATE_FAILED, '');
 
-        $this->manager([], $shipment)->discard(7);
+        $this->createManager([], $shipment)->discard(7);
 
         self::assertSame(
             ['delete 7', 'comment Unplaced shipment discarded. Carrier: DPD.'],
@@ -75,13 +77,13 @@ class FailedShipmentManagerTest extends TestCase
     {
         $this->expectException(LocalizedException::class);
 
-        $this->manager([], $this->shipment(ShipmentInterface::STATE_CREATED, ''))->discard(7);
+        $this->createManager([], $this->createShipment(ShipmentInterface::STATE_CREATED, ''))->discard(7);
     }
 
     public function testWhatThePagesSayAboutItIsInTheAdminsTime(): void
     {
-        $described = $this->manager([])
-            ->describe($this->shipment(ShipmentInterface::STATE_FAILED, 'Przerwa techniczna.'));
+        $described = $this->createManager([])
+            ->describe($this->createShipment(ShipmentInterface::STATE_FAILED, 'Przerwa techniczna.'));
 
         self::assertSame([
             'tried' => 'at 2026-10-01 08:30:00',
@@ -93,7 +95,7 @@ class FailedShipmentManagerTest extends TestCase
     /**
      * @param Shipment[] $due
      */
-    private function manager(array $due, ?Shipment $one = null): FailedShipmentManager
+    private function createManager(array $due, ?Shipment $one = null): FailedShipmentManager
     {
         $repository = $this->createStub(ShipmentRepositoryInterface::class);
         $repository->method('get')->willReturnCallback(fn(): ShipmentInterface => $one ?? throw new \LogicException());
@@ -103,7 +105,7 @@ class FailedShipmentManagerTest extends TestCase
             return true;
         });
         $finder = $this->createStub(ShipmentFinder::class);
-        $finder->method('failedBefore')->willReturnCallback(function (string $attemptedBefore) use ($due): array {
+        $finder->method('findFailedBefore')->willReturnCallback(function (string $attemptedBefore) use ($due): array {
             $this->attemptedBefore = $attemptedBefore;
 
             return $due;
@@ -111,13 +113,13 @@ class FailedShipmentManagerTest extends TestCase
         $followUp = $this->createStub(NativeFollowUpService::class);
         $orderLoader = $this->createStub(OrderLoader::class);
         $orderLoader->method('get')->willReturn($this->createStub(Order::class));
-        $followUp->method('comment')->willReturnCallback(function (Order $order, Phrase $comment): void {
+        $followUp->method('addComment')->willReturnCallback(function (Order $order, Phrase $comment): void {
             $this->log[] = 'comment ' . $comment;
         });
         $names = $this->createStub(CarrierNameProvider::class);
         $names->method('get')->willReturn('DPD');
         $format = $this->createStub(Formatter::class);
-        $format->method('storedTime')->willReturnCallback(static fn(?string $utc): string => 'at ' . $utc);
+        $format->method('formatStoredTime')->willReturnCallback(static fn(?string $utc): string => 'at ' . $utc);
 
         return new FailedShipmentManager(
             $repository,
@@ -130,9 +132,9 @@ class FailedShipmentManagerTest extends TestCase
         );
     }
 
-    private function shipment(string $state, string $error): Shipment
+    private function createShipment(string $state, string $error): Shipment
     {
-        $shipment = $this->getMockBuilder(Shipment::class)->disableOriginalConstructor()->onlyMethods([])->getMock();
+        $shipment = (new ObjectManager($this))->getObject(Shipment::class, ['json' => new Json()]);
         $shipment
             ->setData([
                 'state' => $state,

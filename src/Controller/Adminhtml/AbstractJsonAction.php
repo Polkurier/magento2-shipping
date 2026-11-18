@@ -32,7 +32,7 @@ abstract class AbstractJsonAction extends Action implements HttpPostActionInterf
         try {
             $data = \array_replace(['error' => false], $this->answer());
         } catch (LocalizedException $e) {
-            $data = ['error' => true, 'message' => $e->getMessage()] + $this->refused($e);
+            $data = ['error' => true, 'message' => $e->getMessage()] + $this->buildRefusal($e);
         }
 
         return $this->jsonFactory->create()->setData($data);
@@ -51,7 +51,7 @@ abstract class AbstractJsonAction extends Action implements HttpPostActionInterf
      *
      * @return array<string, mixed>
      */
-    protected function refused(LocalizedException $e): array
+    protected function buildRefusal(LocalizedException $e): array
     {
         return [];
     }

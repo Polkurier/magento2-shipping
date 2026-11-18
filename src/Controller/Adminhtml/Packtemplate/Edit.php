@@ -17,6 +17,7 @@ use Polkurier\Shipping\Model\PackTemplate\PackTemplateHandler;
 class Edit extends AbstractEdit
 {
     public const string ADMIN_RESOURCE = 'Polkurier_Shipping::pack_templates';
+    public const string ROUTE = 'polkurier/packtemplate/edit';
 
     public function __construct(
         Context $context,

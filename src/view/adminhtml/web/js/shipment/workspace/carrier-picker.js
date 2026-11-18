@@ -47,7 +47,7 @@ define([
             this.searchPlaceholder = $t('Search carriers');
             this.tiles = ko.pureComputed(this.buildTiles, this);
             this.hiddenCount = ko.pureComputed(function () {
-                return this.allTiles().length - this.tiles().length;
+                return this.getAllTiles().length - this.tiles().length;
             }, this);
 
             return this;
@@ -56,10 +56,10 @@ define([
         /**
          * @returns {Array}
          */
-        allTiles: function () {
+        getAllTiles: function () {
             const carriers = this.source.get('data.carriers') || {},
                 quotes = this.quotes,
-                currency = this.source.get('data.currency') || 'PLN',
+                priceFormat = this.source.get('data.price_format'),
                 query = this.search().trim().toLowerCase(),
                 selected = this.value();
 
@@ -71,7 +71,7 @@ define([
             }).map(function (option) {
                 const carrier = carriers[option.value] || {},
                     // The chosen services it doesn't offer: it can't take the shipment as it is.
-                    lacking = rules.servicesLacking(data, carrier.services).map(function (service) {
+                    lacking = rules.findLackingServices(data, carrier.services).map(function (service) {
                         return service === 'COVER_ADDRESS_SENDER'
                             ? $t('Another sender on the label')
                             : serviceLabels[service] || service;
@@ -85,9 +85,9 @@ define([
                     priced: !!quote,
                     gross: quote ? quote.gross : null,
                     priceText: quote
-                        ? rules.money(quote.net, currency) + ' ' + $t('net')
+                        ? rules.formatMoney(quote.net, priceFormat) + ' ' + $t('net')
                         : (quotes ? $t('not available') : '—'),
-                    grossText: quote ? rules.money(quote.gross, currency) + ' ' + $t('gross') : '',
+                    grossText: quote ? rules.formatMoney(quote.gross, priceFormat) + ' ' + $t('gross') : '',
                     point: carrier.point && carrier.point !== 'NONE',
                     pointOnly: carrier.point === 'REQUIRED',
                     cod: !!carrier.cod,
@@ -100,7 +100,7 @@ define([
          * @returns {Array}
          */
         buildTiles: function () {
-            const tiles = this.allTiles(),
+            const tiles = this.getAllTiles(),
                 priced = tiles.filter(function (tile) {
                     return tile.priced;
                 }),
@@ -160,26 +160,12 @@ define([
          * @param {String} code
          */
         swapPoint: function (previous, code) {
-            const point = rules.swapPoint(this.pointsByCarrier, previous, code, {
-                id: this.source.get('data.recipient_point_id') || '',
-                label: this.source.get('data.recipient_point_label_id') === this.source.get('data.recipient_point_id')
-                    ? this.source.get('data.recipient_point_label') || ''
-                    : ''
-            });
-
-            this.source.set('data.recipient_point_id', point.id);
-            this.source.set('data.recipient_point_label', point.label);
-            this.source.set('data.recipient_point_label_id', point.id);
-        },
-
-        /**
-         * @returns {String} the drop-off point of the chosen sender address, '' without one
-         */
-        senderAddressPoint: function () {
-            const data = this.source.get('data') || {},
-                address = (data.senders || {})[String(data.sender_address_id || '')];
-
-            return address && address.point_id ? String(address.point_id) : '';
+            this.source.set('data.recipient_point_id', rules.swapPoint(
+                this.pointsByCarrier,
+                previous,
+                code,
+                this.source.get('data.recipient_point_id') || ''
+            ));
         },
 
         /**
@@ -193,12 +179,15 @@ define([
             } else if (code !== this.carrier) {
                 this.swapPoint(this.carrier, code);
                 this.carrier = code;
-                // Points belong to a carrier: the sender's point goes back to its address's.
-                this.source.set('data.sender_point_id', this.senderAddressPoint());
+                // Points belong to a carrier's network: the drop-off point becomes the account's
+                // for the carrier.
+                this.source.set('data.sender_point_id', rules.buildFeatures(
+                    (this.source.get('data.carriers') || {})[code] || null
+                ).default_sender_point);
             }
             const carriers = this.source.get('data.carriers') || {},
                 carrier = carriers[code] || null,
-                features = rules.featuresOf(carrier);
+                features = rules.buildFeatures(carrier);
 
             this.source.set('data.features', features);
             // Parcels must be dropped off with a carrier that takes them only at points, and can't
@@ -208,7 +197,7 @@ define([
             ) {
                 this.source.set(
                     'data.pickup_mode',
-                    rules.defaultHandover(features, String(this.source.get('data.sender_point_id') || ''))
+                    rules.getDefaultHandover(features, String(this.source.get('data.sender_point_id') || ''))
                 );
             }
         }

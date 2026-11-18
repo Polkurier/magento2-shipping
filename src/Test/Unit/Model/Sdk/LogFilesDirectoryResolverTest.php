@@ -19,7 +19,7 @@ class LogFilesDirectoryResolverTest extends TestCase
     /**
      * @return array<string, array{string, bool}>
      */
-    public static function directories(): array
+    public static function provideDirectories(): array
     {
         return [
             'the default' => ['', false],
@@ -33,7 +33,7 @@ class LogFilesDirectoryResolverTest extends TestCase
         ];
     }
 
-    #[DataProvider('directories')]
+    #[DataProvider('provideDirectories')]
     public function testTheWebServersDirectoryIsPublic(string $entered, bool $public): void
     {
         $directory = new LogFilesDirectoryResolver(new DirectoryList('/srv/magento'));

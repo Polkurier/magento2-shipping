@@ -53,12 +53,12 @@ class SyncableEntityQueriesTest extends TestCase
 
     public function testSenderAddressesAndTheDefaultOne(): void
     {
-        $plain = $this->entry(AddressInterface::class, false);
-        $default = $this->entry(AddressInterface::class, true);
+        $plain = $this->createEntry(AddressInterface::class, false);
+        $default = $this->createEntry(AddressInterface::class, true);
         $repository = new AddressRepository(
             $this->createStub(AddressFactory::class),
             $this->createStub(AddressResource::class),
-            $this->factory(AddressCollectionFactory::class, AddressCollection::class, [$default, $plain]),
+            $this->createFactory(AddressCollectionFactory::class, AddressCollection::class, [$default, $plain]),
             $this->createStub(CollectionProcessorInterface::class),
             $this->createStub(AddressSearchResultsInterfaceFactory::class),
         );
@@ -76,11 +76,11 @@ class SyncableEntityQueriesTest extends TestCase
 
     public function testBankAccountsAndTheOneCashOnDeliveryGoesToByDefault(): void
     {
-        $first = $this->entry(BankAccountInterface::class, false);
+        $first = $this->createEntry(BankAccountInterface::class, false);
         $repository = new BankAccountRepository(
             $this->createStub(BankAccountFactory::class),
             $this->createStub(BankAccountResource::class),
-            $this->factory(BankAccountCollectionFactory::class, BankAccountCollection::class, [$first]),
+            $this->createFactory(BankAccountCollectionFactory::class, BankAccountCollection::class, [$first]),
             $this->createStub(CollectionProcessorInterface::class),
             $this->createStub(BankAccountSearchResultsInterfaceFactory::class),
         );
@@ -94,10 +94,10 @@ class SyncableEntityQueriesTest extends TestCase
         $repository = new PackTemplateRepository(
             $this->createStub(PackTemplateFactory::class),
             $this->createStub(PackTemplateResource::class),
-            $this->factory(
+            $this->createFactory(
                 PackTemplateCollectionFactory::class,
                 PackTemplateCollection::class,
-                [$this->entry(PackTemplateInterface::class, false)],
+                [$this->createEntry(PackTemplateInterface::class, false)],
             ),
             $this->createStub(CollectionProcessorInterface::class),
             $this->createStub(PackTemplateSearchResultsInterfaceFactory::class),
@@ -114,7 +114,7 @@ class SyncableEntityQueriesTest extends TestCase
      *
      * @return T
      */
-    private function entry(string $interface, bool $default): object
+    private function createEntry(string $interface, bool $default): object
     {
         $entry = $this->createStub($interface);
         $entry->method('isDefault')->willReturn($default);
@@ -131,7 +131,7 @@ class SyncableEntityQueriesTest extends TestCase
      *
      * @return F
      */
-    private function factory(string $factoryClass, string $collectionClass, array $items): object
+    private function createFactory(string $factoryClass, string $collectionClass, array $items): object
     {
         $collection = $this->createStub($collectionClass);
         $collection->method('addFieldToFilter')

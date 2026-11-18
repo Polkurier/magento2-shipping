@@ -15,11 +15,11 @@ use Polkurier\Shipping\Logger\Logger;
 use Polkurier\Shipping\Model\Sdk\AccountConfigProvider;
 use Polkurier\Shipping\Model\Sdk\AccountConfigProviderFactory;
 use Polkurier\Shipping\Model\Sdk\PolkurierClient;
-use Polkurier\Webservice\Config;
-use Polkurier\Webservice\Http\Request\AuthorizationMessage;
+use Polkurier\Shipping\Model\Sdk\SerializerConfigProvider;
+use Polkurier\Shipping\Test\Unit\Support\SdkConfig;
 use Polkurier\Webservice\PolkurierWebservice;
 use Polkurier\Webservice\PolkurierWebserviceFactory;
-use Polkurier\Webservice\Serializer\SerializerProvider;
+use Polkurier\Webservice\Serializer\SerializerConfig;
 use Polkurier\Webservice\Validator\DefaultValidatorRegistryFactory;
 
 #[CoversClass(PolkurierClient::class)]
@@ -34,50 +34,51 @@ class PolkurierClientTest extends TestCase
             static fn(\ReflectionMethod $method): string => $method->getName(),
             \array_filter(
                 (new \ReflectionClass($class))->getMethods(\ReflectionMethod::IS_PUBLIC),
-                static fn(\ReflectionMethod $method): bool => \str_ends_with(
+                static fn(\ReflectionMethod $method): bool => \str_starts_with(
                     (string)$method->getReturnType(),
-                    'ServiceInterface',
+                    'Polkurier\\Webservice\\Api\\',
                 ),
             ),
         ));
 
-        self::assertSame($services(PolkurierWebservice::class), $services(PolkurierClientInterface::class));
+        self::assertSame(
+            \array_map(
+                static fn(string $name): string => 'get' . \ucfirst($name),
+                $services(PolkurierWebservice::class),
+            ),
+            $services(PolkurierClientInterface::class),
+        );
     }
 
     public function testOneClientServesTheWholeRequest(): void
     {
-        $client = $this->client();
+        $client = $this->createClient();
 
-        $client->orders();
-        $client->courier();
-        $client->orders();
+        $client->getOrders();
+        $client->getCourier();
+        $client->getOrders();
 
         self::assertSame(1, $this->built);
     }
 
     public function testNewCredentialsGetANewClient(): void
     {
-        $client = $this->client();
+        $client = $this->createClient();
 
-        $client->orders();
+        $client->getOrders();
         $client->reset();
-        $client->orders();
+        $client->getOrders();
 
         self::assertSame(2, $this->built, 'The configuration is read again after a reset.');
     }
 
-    private function client(): PolkurierClient
+    private function createClient(): PolkurierClient
     {
         $configProviders = $this->createStub(AccountConfigProviderFactory::class);
         $configProviders->method('create')->willReturnCallback(function (): AccountConfigProvider {
             $this->built++;
             $provider = $this->createStub(AccountConfigProvider::class);
-            $provider->method('getConfig')->willReturn(new Config(
-                authorization: new AuthorizationMessage(token: 'token', login: '12345'),
-                platform: 'magento2',
-                platformVersion: '1.0.0',
-                apiUrl: 'http://api.test',
-            ));
+            $provider->method('getConfig')->willReturn(SdkConfig::create());
 
             return $provider;
         });
@@ -86,10 +87,13 @@ class PolkurierClientTest extends TestCase
             static fn(array $arguments): PolkurierWebservice => new PolkurierWebservice(...$arguments),
         );
 
+        $serializerConfigs = $this->createStub(SerializerConfigProvider::class);
+        $serializerConfigs->method('getConfig')->willReturn(new SerializerConfig());
+
         return new PolkurierClient(
             $webservices,
             $configProviders,
-            new SerializerProvider(),
+            $serializerConfigs,
             DefaultValidatorRegistryFactory::create(),
             $this->createStub(Logger::class),
         );

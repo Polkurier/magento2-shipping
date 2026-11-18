@@ -21,7 +21,7 @@ define([
      * The popup starts every package in pounds and inches; Polkurier carriers work in kilograms
      * and centimetres. Packages are copied from this template.
      */
-    function metricPackages() {
+    function switchPackagesToMetric() {
         // The attribute, not the value: a copied select keeps what its markup says.
         [['container_weight_units', 'KILOGRAM'], ['container_dimension_units', 'CENTIMETER']].forEach(function (unit) {
             const options = $('#package_template select[name=' + unit[0] + '] option');
@@ -213,13 +213,13 @@ define([
             field = pack.find('[name=container_weight]'),
             contents = pack.find('.package_items .grid tbody tr').map(function () {
                 return {
-                    weight: rules.amount($(this).find('[data-role=item-weight]').text()),
-                    qty: rules.amount($(this).find('[name=qty]').val())
+                    weight: rules.parseAmount($(this).find('[data-role=item-weight]').text()),
+                    qty: rules.parseAmount($(this).find('[name=qty]').val())
                 };
             }).get(),
-            weight = rules.parcelWeight(
+            weight = rules.calculateParcelWeight(
                 mode,
-                template ? rules.amount(template.weight) : null,
+                template ? rules.parseAmount(template.weight) : null,
                 contents,
                 template ? template.tare : null
             );
@@ -304,7 +304,7 @@ define([
      * @param {Function} done called with the grid's markup and the quantities
      * @param {Function} fail
      */
-    function shippedItems(popup, done, fail) {
+    function loadShippedItems(popup, done, fail) {
         new Ajax.Request(popup.itemsGridUrl, {
             parameters: {'shipment_id': popup.shipmentId},
             onSuccess: function (transport) {
@@ -375,7 +375,7 @@ define([
         set('container_width', pack.width);
         set('container_height', pack.height);
         (pack.items || []).forEach(function (row) {
-            contents[String(row.order_item_id)] = rules.amount(row.qty);
+            contents[String(row.order_item_id)] = rules.parseAmount(row.qty);
         });
         grid.update(gridId
             ? html.replace(
@@ -395,7 +395,7 @@ define([
             popup._observeQty.call(checkbox);
         });
         popup.packItems(element.select('[data-action=package-save-items]')[0]);
-        if (rules.amount(pack.weight) > 0) {
+        if (rules.parseAmount(pack.weight) > 0) {
             block.find('[name=container_weight]').val(pack.weight);
         }
     }
@@ -426,7 +426,7 @@ define([
             };
 
         $('body').trigger('processStart');
-        shippedItems(popup, function (html, qtys) {
+        loadShippedItems(popup, function (html, qtys) {
             request().post(config.url, {
                 data: {
                     order_id: config.orderId,
@@ -537,7 +537,7 @@ define([
             if (autoPack) {
                 offerAutoPack(autoPack, templates, mode);
             }
-            metricPackages();
+            switchPackagesToMetric();
             addTemplateChoice(templates);
             catchUp(templates, mode);
         }

@@ -10,27 +10,27 @@ namespace Polkurier\Shipping\Model\Sdk;
 use Magento\Framework\Exception\LocalizedException;
 use Polkurier\Shipping\Api\PolkurierClientInterface;
 use Polkurier\Shipping\Exception\PlacementUncertainException;
+use Polkurier\Webservice\Dto\Request\Courier\GetPickupTimeMessage;
+use Polkurier\Webservice\Dto\Request\Order\CancelOrderMessage;
+use Polkurier\Webservice\Dto\Request\Order\CreateOrderMessage;
+use Polkurier\Webservice\Dto\Request\Order\GetDocumentMessage;
+use Polkurier\Webservice\Dto\Request\Order\GetOrdersMessage;
+use Polkurier\Webservice\Dto\Request\Order\GetStatusMessage;
+use Polkurier\Webservice\Dto\Request\Order\MultiPickupAvailabilityRequestMessage;
+use Polkurier\Webservice\Dto\Request\Order\MultiPickupRequestMessage;
+use Polkurier\Webservice\Dto\Response\Courier\PickupTimeMessage;
+use Polkurier\Webservice\Dto\Response\Order\CancellationMessage;
+use Polkurier\Webservice\Dto\Response\Order\CreatedOrderMessage;
+use Polkurier\Webservice\Dto\Response\Order\DocumentMessage;
+use Polkurier\Webservice\Dto\Response\Order\MultiPickupResultMessage;
+use Polkurier\Webservice\Dto\Response\Order\OrderListMessage;
+use Polkurier\Webservice\Dto\Response\Order\OrderStatusMessage;
+use Polkurier\Webservice\Dto\Response\Order\ValuationMessage;
 use Polkurier\Webservice\Enum\Http\ApiErrorCodeEnum;
 use Polkurier\Webservice\Exception\ConnectionException;
 use Polkurier\Webservice\Exception\Exception as PolkurierException;
 use Polkurier\Webservice\Exception\MalformedResponseException;
 use Polkurier\Webservice\Exception\WebserviceException;
-use Polkurier\Webservice\Request\Courier\GetPickupTimeMessage;
-use Polkurier\Webservice\Request\Order\CreateOrderMessage;
-use Polkurier\Webservice\Request\Order\GetDocumentMessage;
-use Polkurier\Webservice\Request\Order\GetOrdersMessage;
-use Polkurier\Webservice\Request\Order\GetStatusMessage;
-use Polkurier\Webservice\Request\Order\MultiPickupAvailabilityRequestMessage;
-use Polkurier\Webservice\Request\Order\MultiPickupRequestMessage;
-use Polkurier\Webservice\Request\Order\OrderIdMessage;
-use Polkurier\Webservice\Response\Courier\PickupTimeMessage;
-use Polkurier\Webservice\Response\Order\CancellationMessage;
-use Polkurier\Webservice\Response\Order\CreatedOrderMessage;
-use Polkurier\Webservice\Response\Order\DocumentMessage;
-use Polkurier\Webservice\Response\Order\MultiPickupResultMessage;
-use Polkurier\Webservice\Response\Order\OrderListMessage;
-use Polkurier\Webservice\Response\Order\OrderStatusMessage;
-use Polkurier\Webservice\Response\Order\ValuationMessage;
 
 /**
  * The Polkurier calls the shipment side of the module makes, over
@@ -71,22 +71,24 @@ readonly class ShipmentGateway
     public function placeOrder(CreateOrderMessage $message): CreatedOrderMessage
     {
         try {
-            return $this->polkurierClient->orders()->createOrder($message);
+            return $this->polkurierClient->getOrders()->createOrder($message);
         } catch (PolkurierException $e) {
-            if ($this->mayHaveBeenPlaced($e)) {
-                throw new PlacementUncertainException($this->errorMessageResolver->phrase($e), $e);
+            if ($this->isPossiblyPlaced($e)) {
+                throw new PlacementUncertainException($this->errorMessageResolver->createPhrase($e), $e);
             }
 
-            throw $this->errorMessageResolver->exception($e);
+            throw $this->errorMessageResolver->createException($e);
         }
     }
 
     /**
      * @throws LocalizedException
      */
-    public function cancelOrder(OrderIdMessage $message): CancellationMessage
+    public function cancelOrder(CancelOrderMessage $message): CancellationMessage
     {
-        return $this->call(fn(): CancellationMessage => $this->polkurierClient->orders()->cancelOrder($message));
+        return $this->errorMessageResolver->callTranslated(
+            fn(): CancellationMessage => $this->polkurierClient->getOrders()->cancelOrder($message),
+        );
     }
 
     /**
@@ -94,7 +96,9 @@ readonly class ShipmentGateway
      */
     public function findOrders(GetOrdersMessage $message): OrderListMessage
     {
-        return $this->call(fn(): OrderListMessage => $this->polkurierClient->orders()->getOrders($message));
+        return $this->errorMessageResolver->callTranslated(
+            fn(): OrderListMessage => $this->polkurierClient->getOrders()->getOrders($message),
+        );
     }
 
     /**
@@ -102,9 +106,11 @@ readonly class ShipmentGateway
      */
     public function getStatus(string $number, bool $tracking): OrderStatusMessage
     {
-        return $this->call(fn(): OrderStatusMessage => $this->polkurierClient->orders()->getStatus(
-            new GetStatusMessage($number, tracking: $tracking),
-        ));
+        return $this->errorMessageResolver->callTranslated(
+            fn(): OrderStatusMessage => $this->polkurierClient->getOrders()->getStatus(
+                new GetStatusMessage($number, tracking: $tracking),
+            ),
+        );
     }
 
     /**
@@ -116,13 +122,13 @@ readonly class ShipmentGateway
     public function isCancelled(string $number): ?bool
     {
         try {
-            $this->polkurierClient->orders()->getStatus(new GetStatusMessage($number));
+            $this->polkurierClient->getOrders()->getStatus(new GetStatusMessage($number));
 
             return false;
         } catch (WebserviceException $e) {
-            $answer = $e->getErrorMessage()->getResponse();
+            $answer = $e->getErrorMessage()->response;
 
-            return \is_string($answer) && \trim($answer) === self::CANCELLED_ORDER ? true : null;
+            return \trim($answer) === self::CANCELLED_ORDER ? true : null;
         } catch (PolkurierException) {
             return null;
         }
@@ -133,7 +139,9 @@ readonly class ShipmentGateway
      */
     public function getLabel(GetDocumentMessage $message): DocumentMessage
     {
-        return $this->call(fn(): DocumentMessage => $this->polkurierClient->orders()->getLabel($message));
+        return $this->errorMessageResolver->callTranslated(
+            fn(): DocumentMessage => $this->polkurierClient->getOrders()->getLabel($message),
+        );
     }
 
     /**
@@ -141,7 +149,9 @@ readonly class ShipmentGateway
      */
     public function getProtocol(GetDocumentMessage $message): DocumentMessage
     {
-        return $this->call(fn(): DocumentMessage => $this->polkurierClient->orders()->getProtocol($message));
+        return $this->errorMessageResolver->callTranslated(
+            fn(): DocumentMessage => $this->polkurierClient->getOrders()->getProtocol($message),
+        );
     }
 
     /**
@@ -152,7 +162,9 @@ readonly class ShipmentGateway
      */
     public function valuate(CreateOrderMessage $message): array
     {
-        return $this->call(fn(): array => $this->polkurierClient->orders()->orderValuation($message));
+        return $this->errorMessageResolver->callTranslated(
+            fn(): array => $this->polkurierClient->getOrders()->orderValuation($message),
+        );
     }
 
     /**
@@ -161,7 +173,9 @@ readonly class ShipmentGateway
      */
     public function getPickupTimes(GetPickupTimeMessage $message): array
     {
-        return $this->call(fn(): array => $this->polkurierClient->courier()->getCourierPickupTime($message));
+        return $this->errorMessageResolver->callTranslated(
+            fn(): array => $this->polkurierClient->getCourier()->getCourierPickupTime($message),
+        );
     }
 
     /**
@@ -172,8 +186,8 @@ readonly class ShipmentGateway
      */
     public function isMultiPickupAvailable(MultiPickupAvailabilityRequestMessage $message): bool
     {
-        return $this->call(
-            fn(): bool => $this->polkurierClient->orders()->isMultiPickupAvailable($message)->isAvailable(),
+        return $this->errorMessageResolver->callTranslated(
+            fn(): bool => $this->polkurierClient->getOrders()->isMultiPickupAvailable($message)->available,
         );
     }
 
@@ -182,27 +196,11 @@ readonly class ShipmentGateway
      */
     public function bookMultiPickup(MultiPickupRequestMessage $message): MultiPickupResultMessage
     {
-        return $this->call(
-            fn(): MultiPickupResultMessage => $this->polkurierClient->orders()->createMultiOrderPickup($message),
+        return $this->errorMessageResolver->callTranslated(
+            fn(): MultiPickupResultMessage => $this->polkurierClient->getOrders()->createMultiOrderPickup($message),
         );
     }
 
-    /**
-     * @template T
-     *
-     * @param callable(): T $request
-     *
-     * @return T
-     * @throws LocalizedException
-     */
-    private function call(callable $request): mixed
-    {
-        try {
-            return $request();
-        } catch (PolkurierException $e) {
-            throw $this->errorMessageResolver->exception($e);
-        }
-    }
 
     /**
      * Placing an order isn't idempotent, so an order is taken as possibly placed unless the
@@ -210,10 +208,10 @@ readonly class ShipmentGateway
      * Polkurier only gives before saving anything. An answer lost or unreadable, UNKNOWN_ERROR, the
      * fatal refusal (FATAL_PREFIX) and a refusal with no reason at all may hide a placed order.
      */
-    private function mayHaveBeenPlaced(PolkurierException $e): bool
+    private function isPossiblyPlaced(PolkurierException $e): bool
     {
         if ($e instanceof ConnectionException) {
-            return !$this->wasNotSent($e);
+            return !$this->isUnsent($e);
         }
         if ($e instanceof MalformedResponseException) {
             return true;
@@ -222,14 +220,14 @@ readonly class ShipmentGateway
             return false;
         }
         $error = $e->getErrorMessage();
-        $code = (string)$error->getErrorCode();
+        $code = (string)$error->errorCode;
         if ($code === ApiErrorCodeEnum::UnknownError->value) {
             return true;
         }
         if ($code !== '') {
             return false;
         }
-        $reason = \trim(\is_string($error->getResponse()) ? $error->getResponse() : '');
+        $reason = \trim($error->response);
 
         return $reason === '' || \str_starts_with($reason, self::FATAL_PREFIX);
     }
@@ -239,7 +237,7 @@ readonly class ShipmentGateway
      * it. A timeout counts only while connecting; one while waiting for the answer may follow a
      * placed order.
      */
-    private function wasNotSent(ConnectionException $e): bool
+    private function isUnsent(ConnectionException $e): bool
     {
         $message = $e->getMessage();
         $previous = $e->getPrevious();

@@ -11,6 +11,7 @@ use Magento\Framework\App\RequestInterface;
 use Magento\Framework\Exception\NoSuchEntityException;
 use Magento\Framework\UrlInterface;
 use Polkurier\Shipping\Api\ShipmentRepositoryInterface;
+use Polkurier\Shipping\Controller\Adminhtml\Shipment\RefreshDetails as ShipmentRefreshDetails;
 use Polkurier\Shipping\Model\ResourceModel\Shipment\CollectionFactory;
 use Polkurier\Shipping\Model\Shipment\Details\DetailsLoader;
 use Polkurier\Shipping\Ui\Component\Form\FormDataProvider;
@@ -55,10 +56,10 @@ class DataProvider extends FormDataProvider
 
         return [
             $id => [
-                'view' => $this->shipmentDetails->build($shipment),
+                'view' => $this->shipmentDetails->buildPage($shipment),
                 'state' => $shipment->getState(),
-                'refresh' => $this->detailsLoader->needsRefresh($shipment),
-                'urls' => ['refresh' => $this->url->getUrl('polkurier/shipment/refreshDetails', ['id' => $id])],
+                'refresh' => $this->detailsLoader->isRefreshDue($shipment),
+                'urls' => ['refresh' => $this->url->getUrl(ShipmentRefreshDetails::ROUTE, ['id' => $id])],
             ],
         ];
     }

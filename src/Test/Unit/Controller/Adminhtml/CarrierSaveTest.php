@@ -15,9 +15,10 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use Polkurier\Shipping\Api\CarrierConfigRepositoryInterface;
 use Polkurier\Shipping\Api\Data\CarrierConfigInterface;
 use Polkurier\Shipping\Controller\Adminhtml\Carrier\Save;
+use Polkurier\Shipping\Enum\Adminhtml\AfterSaveEnum;
 use Polkurier\Shipping\Enum\Adminhtml\FormMemoryEnum;
-use Polkurier\Shipping\Model\Admin\FormActions;
 use Polkurier\Shipping\Model\CarrierConfig\CarrierConfigHydrator;
+use Polkurier\Shipping\Model\PickupPoint\DefaultSenderPointManager;
 use Polkurier\Shipping\Test\Unit\Support\AdminActionTestCase;
 
 #[CoversClass(Save::class)]
@@ -48,7 +49,7 @@ class CarrierSaveTest extends AdminActionTestCase
     public function testSaveAndContinueEditComesBackToTheForm(): void
     {
         $this->post = ['id' => '7', 'pricing_model' => 'FIXED'];
-        $this->params = [FormActions::BACK_PARAM => FormActions::SAVE_AND_CONTINUE];
+        $this->params = [AfterSaveEnum::PARAM => AfterSaveEnum::BackToForm->value];
 
         $this->save()->execute();
 
@@ -71,6 +72,68 @@ class CarrierSaveTest extends AdminActionTestCase
         self::assertNotContains('save', $this->happened);
     }
 
+    public function testAChangedDropOffPointGoesToPolkurierBeforeTheCarrierIsSaved(): void
+    {
+        $this->post = [
+            'id' => '7',
+            'pricing_model' => 'FIXED',
+            'default_sender_point' => ' U02842068 ',
+            'default_sender_point_before' => 'U01000001',
+        ];
+
+        $this->save()->execute();
+
+        self::assertSame(
+            ['get 7', 'hydrate FIXED', 'point UPS_AP_POINT_POINT U02842068', 'save', 'clear'],
+            $this->happened,
+        );
+    }
+
+    public function testAnUnchangedDropOffPointIsLeftAlone(): void
+    {
+        $this->post = [
+            'id' => '7',
+            'pricing_model' => 'FIXED',
+            'default_sender_point' => 'U02842068',
+            'default_sender_point_before' => 'U02842068',
+        ];
+
+        $this->save()->execute();
+
+        self::assertSame(['get 7', 'hydrate FIXED', 'save', 'clear'], $this->happened);
+    }
+
+    public function testADropOffPointPolkurierRefusesSavesNothing(): void
+    {
+        $this->post = [
+            'id' => '7',
+            'pricing_model' => 'FIXED',
+            'default_sender_point' => 'PL63197',
+            'default_sender_point_before' => '',
+        ];
+
+        $this->save(pointRefusal: new LocalizedException(__('Punkt PL63197 jest nieprawidłowy')))->execute();
+
+        self::assertSame(['Punkt PL63197 jest nieprawidłowy'], $this->messages['error']);
+        self::assertSame(['get 7', 'hydrate FIXED', 'point UPS_AP_POINT_POINT PL63197'], $this->happened);
+        self::assertSame('PL63197', $this->kept['default_sender_point'] ?? null, 'Back to the form with it.');
+    }
+
+    public function testPricesThatCantBeSavedKeepTheDropOffPointFromPolkurier(): void
+    {
+        $this->post = [
+            'id' => '7',
+            'pricing_model' => 'FIXED',
+            'default_sender_point' => 'U02842068',
+            'default_sender_point_before' => '',
+        ];
+
+        $this->save(new LocalizedException(__('Enter the price.')))->execute();
+
+        self::assertSame(['Enter the price.'], $this->messages['error']);
+        self::assertSame(['get 7', 'hydrate FIXED'], $this->happened);
+    }
+
     public function testACarrierThatsGoneIsSaid(): void
     {
         $this->post = ['id' => '99'];
@@ -80,9 +143,13 @@ class CarrierSaveTest extends AdminActionTestCase
         self::assertSame(['The carrier settings with id "99" do not exist.'], $this->messages['error']);
     }
 
-    private function save(?LocalizedException $refusal = null, bool $exists = true): Save
-    {
+    private function save(
+        ?LocalizedException $refusal = null,
+        bool $exists = true,
+        ?LocalizedException $pointRefusal = null,
+    ): Save {
         $config = $this->createStub(CarrierConfigInterface::class);
+        $config->method('getCarrierCode')->willReturn('UPS_AP_POINT_POINT');
         $repository = $this->createStub(CarrierConfigRepositoryInterface::class);
         $repository->method('get')
             ->willReturnCallback(function (int $id) use ($config, $exists): CarrierConfigInterface {
@@ -116,6 +183,15 @@ class CarrierSaveTest extends AdminActionTestCase
             $this->happened[] = 'clear';
         });
 
-        return new Save($this->context(), $repository, $hydrator, $persistor);
+        $points = $this->createStub(DefaultSenderPointManager::class);
+        $points->method('change')
+            ->willReturnCallback(function (string $carrierCode, string $pointId) use ($pointRefusal): void {
+                $this->happened[] = 'point ' . $carrierCode . ' ' . $pointId;
+                if ($pointRefusal !== null) {
+                    throw $pointRefusal;
+                }
+            });
+
+        return new Save($this->createContext(), $repository, $hydrator, $persistor, $points);
     }
 }

@@ -11,6 +11,7 @@ use Magento\Backend\Model\UrlInterface;
 use Magento\Framework\App\ResourceConnection;
 use Magento\Framework\DB\Adapter\AdapterInterface;
 use Magento\Framework\DB\Select;
+use Magento\Framework\Locale\Format;
 use Magento\Framework\Locale\ResolverInterface;
 use Magento\Framework\Notification\NotifierInterface;
 use Magento\Framework\Pricing\PriceCurrencyInterface;
@@ -18,9 +19,9 @@ use Magento\Framework\Stdlib\DateTime\TimezoneInterface;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use Polkurier\Shipping\Model\Admin\Formatter;
 use Polkurier\Shipping\Model\ResourceModel\Shipment as ShipmentResource;
 use Polkurier\Shipping\Model\Shipment\AttentionNotifier;
-use Polkurier\Shipping\Model\Shipment\Details\Formatter;
 use Polkurier\Shipping\Model\Shipment\Placement\FailedShipmentManager;
 use Polkurier\Shipping\Test\Unit\Support\FixedDateTime;
 
@@ -35,7 +36,7 @@ class AttentionNotifierTest extends TestCase
 
     public function testEachShipmentNeedingSomeoneIsNotifiedOnceWithALinkToIt(): void
     {
-        $this->notifier([
+        $this->createNotifier([
             [
                 'entity_id' => '5',
                 'state' => 'failed',
@@ -70,7 +71,7 @@ class AttentionNotifierTest extends TestCase
 
     public function testNoticesWhoseShipmentNoLongerNeedsSomeoneAreWithdrawn(): void
     {
-        $this->notifier([], [
+        $this->createNotifier([], [
             3 => 'http://shop.test/admin/polkurier/shipment/view/id/5/',
             4 => 'http://shop.test/admin/polkurier/shipment/view/id/8/',
             6 => 'http://shop.test/admin/polkurier/shipment/view/id/12/',
@@ -81,7 +82,7 @@ class AttentionNotifierTest extends TestCase
 
     public function testNothingIsWithdrawnWithoutMagentosNotifications(): void
     {
-        $this->notifier([], null)->notify();
+        $this->createNotifier([], null)->notify();
 
         self::assertSame([], $this->log);
     }
@@ -91,7 +92,7 @@ class AttentionNotifierTest extends TestCase
      * @param array<int, string>|null $shown the notices showing, by id; null: no notifications table
      * @param int[] $stillNeeded the shipments of those that still need someone
      */
-    private function notifier(array $rows, ?array $shown = [], array $stillNeeded = []): AttentionNotifier
+    private function createNotifier(array $rows, ?array $shown = [], array $stillNeeded = []): AttentionNotifier
     {
         $select = $this->createStub(Select::class);
         $select->method('from')->willReturnSelf();
@@ -138,6 +139,7 @@ class AttentionNotifierTest extends TestCase
             $timezone,
             $this->createStub(PriceCurrencyInterface::class),
             $this->createStub(ResolverInterface::class),
+            $this->createStub(Format::class),
         );
         $clock = new FixedDateTime((int)\strtotime('2026-10-02 10:00:00 UTC'));
         $failedShipmentManager = $this->getMockBuilder(FailedShipmentManager::class)

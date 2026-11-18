@@ -32,13 +32,13 @@ class ConfigProviderTest extends TestCase
 
     public function testAccountSettingsAreReadForTheWholeInstallationAndTheRestPerStoreView(): void
     {
-        $config = $this->config();
+        $config = $this->createConfig();
         foreach ((new \ReflectionClass(ConfigProvider::class))->getMethods(\ReflectionMethod::IS_PUBLIC) as $method) {
             if ($method->isConstructor() || $method->isStatic()) {
                 continue;
             }
             $perStore = $method->getNumberOfParameters() > 0;
-            $reads = $this->readsOf($config, $method);
+            $reads = $this->collectReads($config, $method);
 
             self::assertNotSame([], $reads, $method->getName() . ' reads a setting');
             foreach ($reads as [$path, $scope, $scopeId]) {
@@ -61,15 +61,15 @@ class ConfigProviderTest extends TestCase
 
     public function testTheConfigurationPageOffersEachSettingAtTheScopeItIsReadAt(): void
     {
-        $fields = $this->fields();
-        $config = $this->config();
+        $fields = $this->listFields();
+        $config = $this->createConfig();
         $checked = 0;
         foreach ((new \ReflectionClass(ConfigProvider::class))->getMethods(\ReflectionMethod::IS_PUBLIC) as $method) {
             if ($method->isConstructor() || $method->isStatic()) {
                 continue;
             }
             $perStore = $method->getNumberOfParameters() > 0;
-            foreach ($this->readsOf($config, $method) as [$path]) {
+            foreach ($this->collectReads($config, $method) as [$path]) {
                 if (!isset($fields[$path])) {
                     // Not on the page, such as the API and map hosts.
                     continue;
@@ -86,7 +86,7 @@ class ConfigProviderTest extends TestCase
     /**
      * @return array<int, array{string, string, int|string|null}> what the getter read: path, scope and scope id
      */
-    private function readsOf(ConfigProvider $config, \ReflectionMethod $getter): array
+    private function collectReads(ConfigProvider $config, \ReflectionMethod $getter): array
     {
         $this->reads = [];
         $getter->invoke($config, ...($getter->getNumberOfParameters() > 0 ? [self::STORE_ID] : []));
@@ -97,7 +97,7 @@ class ConfigProviderTest extends TestCase
     /**
      * @return array<string, bool> whether each field is offered below the default scope, by path
      */
-    private function fields(): array
+    private function listFields(): array
     {
         $xml = \simplexml_load_file(__DIR__ . '/../../../../etc/adminhtml/system.xml');
         self::assertNotFalse($xml);
@@ -117,7 +117,7 @@ class ConfigProviderTest extends TestCase
     /**
      * Reads answer with the module's defaults (etc/config.xml), so every getter has a real value.
      */
-    private function config(): ConfigProvider
+    private function createConfig(): ConfigProvider
     {
         $xml = \simplexml_load_file(__DIR__ . '/../../../../etc/config.xml');
         self::assertNotFalse($xml);

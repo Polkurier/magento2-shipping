@@ -18,6 +18,7 @@ use Magento\Framework\Controller\ResultFactory;
 class Request extends Action implements HttpGetActionInterface
 {
     public const string ADMIN_RESOURCE = 'Polkurier_Shipping::payout_request';
+    public const string ROUTE = 'polkurier/payout/request';
 
     public function execute(): Page
     {

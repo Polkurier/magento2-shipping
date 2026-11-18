@@ -8,6 +8,8 @@ declare(strict_types=1);
 namespace Polkurier\Shipping\Test\Unit\Model\Shipment\Native;
 
 use Magento\Framework\App\Config\ScopeConfigInterface;
+use Magento\Framework\Serialize\Serializer\Json;
+use Magento\Framework\TestFramework\Unit\Helper\ObjectManager;
 use Magento\Sales\Api\Data\OrderStatusHistoryInterface;
 use Magento\Sales\Api\Data\ShipmentCommentInterfaceFactory;
 use Magento\Sales\Api\OrderStatusHistoryRepositoryInterface;
@@ -21,6 +23,7 @@ use PHPUnit\Framework\Attributes\CoversMethod;
 use PHPUnit\Framework\TestCase;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Api\ShipmentRepositoryInterface;
+use Polkurier\Shipping\Api\ShippingChoiceRepositoryInterface;
 use Polkurier\Shipping\Logger\Logger;
 use Polkurier\Shipping\Model\Carrier\CarrierNameProvider;
 use Polkurier\Shipping\Model\Sdk\ApiEventDispatcher;
@@ -30,7 +33,6 @@ use Polkurier\Shipping\Model\Shipment\Native\NativeShipmentService;
 use Polkurier\Shipping\Model\Shipment\OrderLoader;
 use Polkurier\Shipping\Model\Shipment\ShipmentFinder;
 use Polkurier\Shipping\Model\ShippingChoice;
-use Polkurier\Shipping\Model\ShippingChoice\ShippingChoiceRepository;
 
 #[CoversMethod(NativeFollowUpService::class, 'notePlaced')]
 #[AllowMockObjectsWithoutExpectations]
@@ -43,7 +45,7 @@ class PlacedNoteTest extends TestCase
 
     public function testAPlacedOrderIsNotedWithItsCarrierAndWaybills(): void
     {
-        $this->followUp(null)->notePlaced($this->order(), $this->placed(['WB-1', 'WB-2']));
+        $this->followUp(null)->notePlaced($this->createOrder(), $this->createPlacedShipment(['WB-1', 'WB-2']));
 
         self::assertSame(['Polkurier order 24680-36 placed. Carrier: DPD. Waybills: WB-1, WB-2.'], $this->notes);
     }
@@ -51,7 +53,7 @@ class PlacedNoteTest extends TestCase
     public function testTheCustomersChoiceIsNotedOnlyWhenTheOrderWentWithAnother(): void
     {
         $this->followUp('UPS Access Point, pickup point U98125654')
-            ->notePlaced($this->order(), $this->placed([]));
+            ->notePlaced($this->createOrder(), $this->createPlacedShipment([]));
 
         self::assertSame([
             'Polkurier order 24680-36 placed. Carrier: DPD. Waybills: not issued yet. '
@@ -61,9 +63,11 @@ class PlacedNoteTest extends TestCase
 
     public function testEachWaybillLinksToTheTrackingPage(): void
     {
-        $shipment = $this->placed(['WB-1', 'WB-2'])->setTrackingUrl('https://polkurier.pl/sledzenie?nr=24680-36&x=1');
+        $shipment = $this->createPlacedShipment(['WB-1', 'WB-2'])->setTrackingUrl(
+            'https://polkurier.pl/sledzenie?nr=24680-36&x=1',
+        );
 
-        $this->followUp(null)->notePlaced($this->order(), $shipment);
+        $this->followUp(null)->notePlaced($this->createOrder(), $shipment);
 
         self::assertSame([
             'Polkurier order 24680-36 placed. Carrier: DPD. Waybills: '
@@ -76,7 +80,7 @@ class PlacedNoteTest extends TestCase
 
     public function testAnOrderLinkedByHandIsNotedAsLinked(): void
     {
-        $this->followUp(null)->notePlaced($this->order(), $this->placed(['WB-1']), true);
+        $this->followUp(null)->notePlaced($this->createOrder(), $this->createPlacedShipment(['WB-1']), true);
 
         self::assertSame(['Linked with Polkurier order 24680-36. Carrier: DPD. Waybills: WB-1.'], $this->notes);
     }
@@ -86,7 +90,7 @@ class PlacedNoteTest extends TestCase
      */
     private function followUp(?string $choice): NativeFollowUpService
     {
-        $choices = $this->createStub(ShippingChoiceRepository::class);
+        $choices = $this->createStub(ShippingChoiceRepositoryInterface::class);
         $choices->method('getForOrder')->willReturn(
             $choice === null ? null : new ShippingChoice(['order_id' => 15, 'shipping_description' => $choice]),
         );
@@ -112,7 +116,7 @@ class PlacedNoteTest extends TestCase
         );
     }
 
-    private function order(): Order
+    private function createOrder(): Order
     {
         $order = $this->getMockBuilder(Order::class)->disableOriginalConstructor()
             ->onlyMethods(['addCommentToStatusHistory'])->getMock();
@@ -131,9 +135,9 @@ class PlacedNoteTest extends TestCase
     /**
      * @param string[] $waybills
      */
-    private function placed(array $waybills): Shipment
+    private function createPlacedShipment(array $waybills): Shipment
     {
-        $shipment = $this->getMockBuilder(Shipment::class)->disableOriginalConstructor()->onlyMethods([])->getMock();
+        $shipment = (new ObjectManager($this))->getObject(Shipment::class, ['json' => new Json()]);
         $shipment->setState(ShipmentInterface::STATE_CREATED)
             ->setPolkurierNumber('24680-36')
             ->setCarrierCode('DPD')

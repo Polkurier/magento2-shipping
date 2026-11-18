@@ -27,11 +27,13 @@ class LabelButtonTest extends TestCase
 {
     public function testThePlacedOrdersLabelPrintsAsAPdfOrFromTheListInAPrintersLanguage(): void
     {
-        $data = $this->button(ShipmentInterface::STATE_CREATED)->getButtonData();
+        $data = $this->createButton(ShipmentInterface::STATE_CREATED)->getButtonData();
 
         self::assertSame(Container::SPLIT_BUTTON, $data['class_name']);
         self::assertSame('Print label', $data['label']);
-        $defaults = \array_values(\array_filter($data['options'], static fn(array $option): bool => $option['default']));
+        $defaults = \array_values(
+            \array_filter($data['options'], static fn(array $option): bool => $option['default']),
+        );
         self::assertSame('PDF', $defaults[0]['label'], 'What the button itself prints.');
         self::assertStringContainsString('"polkurier\/shipment\/label?id=7"', $defaults[0]['onclick']);
         self::assertStringContainsString('format=EPL', $data['options'][3]['onclick']);
@@ -39,10 +41,10 @@ class LabelButtonTest extends TestCase
 
     public function testAnOrderNotPlacedHasNoLabel(): void
     {
-        self::assertSame([], $this->button(ShipmentInterface::STATE_FAILED)->getButtonData());
+        self::assertSame([], $this->createButton(ShipmentInterface::STATE_FAILED)->getButtonData());
     }
 
-    private function button(string $state): LabelButton
+    private function createButton(string $state): LabelButton
     {
         $request = $this->createStub(RequestInterface::class);
         $request->method('getParam')->willReturn('7');

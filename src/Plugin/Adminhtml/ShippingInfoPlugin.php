@@ -40,18 +40,18 @@ readonly class ShippingInfoPlugin
             return $html;
         }
         if ($subject->getNameInLayout() === self::ORDER_BLOCK) {
-            return $this->intoOrderInfo($subject, $html);
+            return $this->insertIntoOrderInfo($subject, $html);
         }
         if ($subject instanceof ShipmentForm && $subject->getNameInLayout() === self::SHIPMENT_BLOCK) {
-            return $this->intoShipmentInfo($subject, $html);
+            return $this->insertIntoShipmentInfo($subject, $html);
         }
 
         return $html;
     }
 
-    private function intoOrderInfo(AbstractOrder $subject, string $html): string
+    private function insertIntoOrderInfo(AbstractOrder $subject, string $html): string
     {
-        $added = $this->child($subject, self::POINT) . $this->child($subject, self::SHIPPED_WITH);
+        $added = $this->renderChild($subject, self::POINT) . $this->renderChild($subject, self::SHIPPED_WITH);
         if (\trim($added) === '') {
             return $html;
         }
@@ -62,10 +62,10 @@ readonly class ShippingInfoPlugin
         return $content === false ? $html . $added : \substr_replace($html, $added, $content, 0);
     }
 
-    private function intoShipmentInfo(ShipmentForm $subject, string $html): string
+    private function insertIntoShipmentInfo(ShipmentForm $subject, string $html): string
     {
         $shipmentId = (int)$subject->getShipment()?->getId();
-        $added = $shipmentId ? $this->child($subject, self::SHIPPED_WITH, ['shipment_id' => $shipmentId]) : '';
+        $added = $shipmentId ? $this->renderChild($subject, self::SHIPPED_WITH, ['shipment_id' => $shipmentId]) : '';
         $method = \strpos($html, self::SHIPMENT_METHOD);
         $end = $method === false ? false : \strpos($html, '</div>', $method);
         if (\trim($added) !== '' && $end !== false) {
@@ -73,7 +73,8 @@ readonly class ShippingInfoPlugin
         }
         // The label options and the shipment's Polkurier orders, above Payment & Shipping Method,
         // or at the end when Magento's template has no such section.
-        $sections = $this->child($subject, self::LABEL_OPTIONS) . $this->child($subject, self::SHIPMENT_ORDERS);
+        $sections = $this->renderChild($subject, self::LABEL_OPTIONS)
+            . $this->renderChild($subject, self::SHIPMENT_ORDERS);
         if (\trim($sections) === '') {
             return $html;
         }
@@ -85,7 +86,7 @@ readonly class ShippingInfoPlugin
     /**
      * @param array<string, mixed> $data
      */
-    private function child(AbstractOrder $subject, string $name, array $data = []): string
+    private function renderChild(AbstractOrder $subject, string $name, array $data = []): string
     {
         $child = $subject->getChildBlock($name);
         if (!$child instanceof AbstractBlock) {

@@ -14,13 +14,15 @@ use Polkurier\Shipping\Api\Data\ShipmentDraftInterface;
 use Polkurier\Shipping\Controller\Adminhtml\AbstractJsonAction;
 use Polkurier\Shipping\Model\Sdk\ErrorMessageResolver;
 use Polkurier\Shipping\Model\Shipment\PickupService;
+use Polkurier\Webservice\Enum\Order\ShipmentTypeEnum;
 
 /**
  * Days and windows the chosen carrier can collect on, from the sender's postcode.
  */
 class PickupTimes extends AbstractJsonAction
 {
-    public const string ADMIN_RESOURCE = 'Polkurier_Shipping::shipment_create';
+    public const string ADMIN_RESOURCE = 'Magento_Sales::ship';
+    public const string ROUTE = 'polkurier/shipment/pickupTimes';
 
     public function __construct(
         Context $context,
@@ -34,7 +36,7 @@ class PickupTimes extends AbstractJsonAction
     protected function answer(): array
     {
         $data = (array)$this->getRequest()->getParam('data', []);
-        $senderPostcode = $this->pickupService->senderPostcodeOf($data);
+        $senderPostcode = $this->pickupService->getSenderPostcode($data);
         if (empty($data[ShipmentDraftInterface::FIELD_CARRIER_CODE])) {
             throw new LocalizedException(__('Choose a carrier first.'));
         }
@@ -45,11 +47,11 @@ class PickupTimes extends AbstractJsonAction
             isset($data[ShipmentDraftInterface::FIELD_RECIPIENT_POSTCODE])
                 ? (string)$data[ShipmentDraftInterface::FIELD_RECIPIENT_POSTCODE]
                 : null,
-            (string)($data[ShipmentDraftInterface::FIELD_SHIPMENT_TYPE] ?? 'box'),
+            (string)($data[ShipmentDraftInterface::FIELD_SHIPMENT_TYPE] ?? ShipmentTypeEnum::Box->value),
         )];
     }
 
-    protected function refused(LocalizedException $e): array
+    protected function buildRefusal(LocalizedException $e): array
     {
         // Retry is offered only when it may help. After a refusal, the screen waits for a change to
         // the shipment.

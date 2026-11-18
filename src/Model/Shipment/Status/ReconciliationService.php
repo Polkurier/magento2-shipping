@@ -19,8 +19,8 @@ use Polkurier\Shipping\Model\Shipment\OrderLoader;
 use Polkurier\Shipping\Model\Shipment\OrderLock;
 use Polkurier\Shipping\Model\Shipment\ShipmentAgeChecker;
 use Polkurier\Shipping\Model\Shipment\ShipmentFinder;
+use Polkurier\Webservice\Entity\Order;
 use Polkurier\Webservice\Enum\Order\OrderStatusCodeEnum;
-use Polkurier\Webservice\Response\Order;
 
 /**
  * Settles attempts whose outcome is unknown: finds the Polkurier order they placed, if any, or
@@ -60,7 +60,7 @@ readonly class ReconciliationService
     public function reconcilePending(): void
     {
         $now = $this->dateTime->gmtTimestamp();
-        $shipments = $this->shipmentFinder->dueForReconciliation(
+        $shipments = $this->shipmentFinder->findDueForReconciliation(
             \gmdate(DateFormat::DATETIME_PHP_FORMAT, $now - ShipmentAgeChecker::RECONCILE_PENDING_AFTER_MINUTES * 60),
             \gmdate(DateFormat::DATETIME_PHP_FORMAT, $now - self::RECHECK_AFTER_MINUTES * 60),
             self::BATCH_SIZE,
@@ -86,10 +86,7 @@ readonly class ReconciliationService
      */
     public function settleForOrder(int $orderId): void
     {
-        $unsettled = $this->shipmentFinder->forOrder(
-            $orderId,
-            [ShipmentInterface::STATE_UNKNOWN, ShipmentInterface::STATE_PENDING],
-        );
+        $unsettled = $this->shipmentFinder->findForOrder($orderId, ShipmentInterface::UNSETTLED_STATES);
         foreach ($unsettled as $shipment) {
             try {
                 $this->reconcile((int)$shipment->getId());
@@ -108,7 +105,7 @@ readonly class ReconciliationService
     public function reconcile(int $shipmentId): ShipmentInterface
     {
         $shipment = $this->shipmentRepository->get($shipmentId);
-        if (!\in_array($shipment->getState(), [ShipmentInterface::STATE_UNKNOWN, ShipmentInterface::STATE_PENDING], true)) {
+        if (!\in_array($shipment->getState(), ShipmentInterface::UNSETTLED_STATES, true)) {
             throw new LocalizedException(__('Only a shipment whose outcome is unknown can be reconciled.'));
         }
         if ($shipment->getState() === ShipmentInterface::STATE_PENDING
@@ -129,7 +126,7 @@ readonly class ReconciliationService
             $possible,
         ): ShipmentInterface {
             $shipment = $this->shipmentRepository->get($shipmentId);
-            if (!\in_array($shipment->getState(), [ShipmentInterface::STATE_UNKNOWN, ShipmentInterface::STATE_PENDING], true)) {
+            if (!\in_array($shipment->getState(), ShipmentInterface::UNSETTLED_STATES, true)) {
                 return $shipment;
             }
 
@@ -243,7 +240,7 @@ readonly class ReconciliationService
         $shipment->setLastError($duplicatesNote !== null ? (string)$duplicatesNote : null);
         $this->shipmentRepository->save($shipment);
         if ($shipment->getState() === ShipmentInterface::STATE_CANCELLED) {
-            $this->nativeFollowUpService->comment($order, __(
+            $this->nativeFollowUpService->addComment($order, __(
                 'Polkurier order %1 cancelled in the Polkurier panel.',
                 $shipment->getPolkurierNumber(),
             ));
@@ -252,10 +249,10 @@ readonly class ReconciliationService
         }
         $this->nativeFollowUpService->notePlaced($order, $shipment);
         if ($duplicatesNote !== null) {
-            $this->nativeFollowUpService->comment($order, $duplicatesNote);
+            $this->nativeFollowUpService->addComment($order, $duplicatesNote);
         }
         $this->nativeFollowUpService->ship($order, $shipment);
-        $this->nativeFollowUpService->linked($shipment, $order, 'reconcile');
+        $this->nativeFollowUpService->followLink($shipment, $order, 'reconcile');
 
         return $shipment;
     }
@@ -267,7 +264,7 @@ readonly class ReconciliationService
         $this->shipmentRepository->save($shipment);
         $order = $this->orderLoader->get($shipment->getOrderId());
         if ($shipment->getState() === ShipmentInterface::STATE_CANCELLED) {
-            $this->nativeFollowUpService->comment($order, __(
+            $this->nativeFollowUpService->addComment($order, __(
                 'Linked with Polkurier order %1, cancelled in the Polkurier panel.',
                 $shipment->getPolkurierNumber(),
             ));
@@ -276,13 +273,13 @@ readonly class ReconciliationService
         }
         $this->nativeFollowUpService->notePlaced($order, $shipment, true);
         $this->nativeFollowUpService->ship($order, $shipment);
-        $this->nativeFollowUpService->linked($shipment, $order, 'adopt');
+        $this->nativeFollowUpService->followLink($shipment, $order, 'adopt');
 
         return $shipment;
     }
 
     private static function isCancelled(Order $order): bool
     {
-        return $order->getStatusCode() === OrderStatusCodeEnum::Canceled->value;
+        return $order->getStatusCode() === OrderStatusCodeEnum::Canceled;
     }
 }

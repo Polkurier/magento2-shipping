@@ -9,6 +9,7 @@ namespace Polkurier\Shipping\Test\Unit\Model;
 
 use Magento\Framework\Model\Context;
 use Magento\Framework\Registry;
+use Magento\Framework\Serialize\Serializer\Json;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Polkurier\Shipping\Model\CarrierConfig;
@@ -21,7 +22,7 @@ class CarrierConfigTest extends TestCase
 {
     public function testStoreViewLabelWinsInItsOwnStoreView(): void
     {
-        $config = $this->config('Kurier DPD')->setStoreLabels([
+        $config = $this->createConfig('Kurier DPD')->setStoreLabels([
             (new CarrierLabel())->setStoreId(2)->setLabel('DPD Courier'),
         ]);
 
@@ -31,23 +32,24 @@ class CarrierConfigTest extends TestCase
 
     public function testFallsBackToTheCarrierNameWithoutAnyLabel(): void
     {
-        self::assertSame('DPD', $this->config(null)->getLabelForStore(1));
+        self::assertSame('DPD', $this->createConfig(null)->getLabelForStore(1));
     }
 
     public function testAnEmptyStoreViewLabelDoesNotHideTheDefault(): void
     {
-        $config = $this->config('Kurier DPD')->setStoreLabels([
+        $config = $this->createConfig('Kurier DPD')->setStoreLabels([
             (new CarrierLabel())->setStoreId(1)->setLabel(''),
         ]);
 
         self::assertSame('Kurier DPD', $config->getLabelForStore(1));
     }
 
-    private function config(?string $customLabel): CarrierConfig
+    private function createConfig(?string $customLabel): CarrierConfig
     {
         $config = new CarrierConfig(
             $this->createStub(Context::class),
             $this->createStub(Registry::class),
+            new Json(),
             $this->createStub(CarrierConfigResource::class),
         );
 

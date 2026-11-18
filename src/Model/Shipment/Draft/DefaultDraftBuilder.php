@@ -20,6 +20,7 @@ use Polkurier\Shipping\Model\Carrier\CarrierCatalog;
 use Polkurier\Shipping\Model\Carrier\CarrierFeatureResolver;
 use Polkurier\Shipping\Model\Carrier\Polkurier;
 use Polkurier\Shipping\Model\Config\ConfigProvider;
+use Polkurier\Shipping\Model\PickupPoint\DefaultSenderPointManager;
 use Polkurier\Shipping\Model\Shipment\Draft;
 use Polkurier\Shipping\Model\Shipment\DraftFactory;
 use Polkurier\Shipping\Model\Shipment\Packing\AutoPacker;
@@ -27,11 +28,10 @@ use Polkurier\Shipping\Model\Shipment\Placement\ParcelTypeMapper;
 use Polkurier\Shipping\Model\Shipment\Placement\SenderMapper;
 use Polkurier\Shipping\Model\Shipment\Placement\StreetParser;
 use Polkurier\Shipping\Model\Shipment\Valuation\OrderAmountCalculator;
-use Polkurier\Webservice\Enum\Courier\PointRequirementEnum;
+use Polkurier\Webservice\Dto\Response\Carrier;
 use Polkurier\Webservice\Enum\Order\AdditionalServiceEnum;
 use Polkurier\Webservice\Enum\Order\ShipmentTypeEnum;
 use Polkurier\Webservice\Exception\Exception as PolkurierException;
-use Polkurier\Webservice\Response\Carrier;
 
 /**
  * Prepares the draft a merchant starts from: what the customer ordered, where to, and the defaults
@@ -55,6 +55,7 @@ readonly class DefaultDraftBuilder
         private AutoPacker $autoPacker,
         private Logger $logger,
         private SenderMapper $senderMapper,
+        private DefaultSenderPointManager $defaultSenderPointManager,
     ) {}
 
     /**
@@ -65,28 +66,30 @@ readonly class DefaultDraftBuilder
     {
         $storeId = (int)$order->getStoreId();
         // Only orders of a Polkurier method are shipped: the carrier is the method's.
-        $carrierCode = Polkurier::methodCodeOf((string)$order->getShippingMethod());
+        $carrierCode = Polkurier::extractMethodCode((string)$order->getShippingMethod());
         $carrier = $carrierCode !== null ? $this->getCarrier($carrierCode) : null;
 
         $draft = $this->draftFactory->create();
         $draft->setCarrierCode((string)$carrierCode);
         $draft->setShipmentType($this->getShipmentType($carrier, $storeId));
         $draft->setDescription(
-            self::description($this->configProvider->getDescriptionFormat($storeId), (string)$order->getIncrementId()),
+            self::formatDescription(
+                $this->configProvider->getDescriptionFormat($storeId),
+                (string)$order->getIncrementId(),
+            ),
         );
         $sender = $this->addressRepository->getDefaultSenderAddress();
         $senderId = $sender?->getId();
         $draft->setSenderAddressId($senderId !== null ? (int)$senderId : null);
-        // Handed over at the sender's drop-off point, for a carrier that takes parcels at points.
-        if ($carrier !== null
-            && $this->carrierFeatureResolver->getSenderPointRequirement($carrier) !== PointRequirementEnum::None
-        ) {
-            $draft->setSenderPointId($sender?->getPointId() ?: null);
+        // Handed over at the account's drop-off point for the carrier, for one that takes parcels at
+        // points.
+        if ($carrier !== null) {
+            $draft->setSenderPointId($this->defaultSenderPointManager->getForCarrier($carrier) ?: null);
         }
         // Nothing to send from, neither an address nor the store's: one is typed in and saved.
         if ($senderId === null
             && $this->addressRepository->getSenderAddresses() === []
-            && $this->senderMapper->fromStore($storeId) === null
+            && $this->senderMapper->mapFromStore($storeId) === null
         ) {
             $draft->setNewSender(true)
                 ->setKeepingNewSender(true)
@@ -125,7 +128,7 @@ readonly class DefaultDraftBuilder
         }
         $insuranceRequired = $cod && $carrier !== null
             && $this->carrierFeatureResolver->isInsuranceRequiredWithCod($carrier);
-        if ($this->configProvider->isInsureByDefault($storeId) || $insuranceRequired) {
+        if ($this->configProvider->shouldInsureByDefault($storeId) || $insuranceRequired) {
             // Insured for what it collects, or else for what it's worth: either way the order's
             // parts add up to its total. 0 when the order's currency can't be converted to złoty,
             // left for the merchant.
@@ -155,8 +158,8 @@ readonly class DefaultDraftBuilder
             $carrier === null || \in_array(AdditionalServiceEnum::CoverSenderAddress, $offered, true),
         ));
 
-        // Dropped off for a carrier that takes parcels only at points, or at the sender address's
-        // drop-off point; otherwise a courier collects them.
+        // Dropped off for a carrier that takes parcels only at points, or at the account's drop-off
+        // point for the carrier; otherwise a courier collects them.
         $draft->setPickupMode(
             $carrier !== null && (
                 $this->carrierFeatureResolver->isDropOffOnly($carrier)
@@ -279,7 +282,7 @@ readonly class DefaultDraftBuilder
                 return [$packed, true];
             }
         }
-        $template = $this->templateOf($shipmentType);
+        $template = $this->findTemplate($shipmentType);
         if ($template === null) {
             return [[], false];
         }
@@ -311,14 +314,14 @@ readonly class DefaultDraftBuilder
     /**
      * The default pack template if it's of the given type; otherwise the first template that is.
      */
-    private function templateOf(string $shipmentType): ?PackTemplateInterface
+    private function findTemplate(string $shipmentType): ?PackTemplateInterface
     {
         $default = $this->packTemplateRepository->getDefault();
-        if ($default !== null && ParcelTypeMapper::shipmentTypeOf($default->getPackType())->value === $shipmentType) {
+        if ($default !== null && ParcelTypeMapper::mapShipmentType($default->getPackType())->value === $shipmentType) {
             return $default;
         }
         foreach ($this->packTemplateRepository->getAvailable() as $template) {
-            if (ParcelTypeMapper::shipmentTypeOf($template->getPackType())->value === $shipmentType) {
+            if (ParcelTypeMapper::mapShipmentType($template->getPackType())->value === $shipmentType) {
                 return $template;
             }
         }
@@ -330,7 +333,7 @@ readonly class DefaultDraftBuilder
      * The description from its pattern: every "%s" becomes the order number, and any other "%" is
      * kept as typed. A pattern without "%s" is the description of every shipment.
      */
-    private static function description(string $format, string $orderNumber): string
+    private static function formatDescription(string $format, string $orderNumber): string
     {
         return \str_replace('%s', $orderNumber, $format);
     }

@@ -11,6 +11,7 @@ use Magento\Framework\App\RequestInterface;
 use Magento\Framework\Serialize\Serializer\Json;
 use Magento\Framework\UrlInterface;
 use Magento\Framework\View\Element\UiComponent\Control\ButtonProviderInterface;
+use Polkurier\Shipping\Controller\Adminhtml\Bankaccount\Delete as BankaccountDelete;
 
 /**
  * Deletes the bank account being edited, in Polkurier and Magento. Where the account locks bank
@@ -40,7 +41,7 @@ readonly class DeleteButton implements ButtonProviderInterface
             return [];
         }
         $message = $this->json->serialize((string)__('Delete this bank account in Polkurier and in Magento?'));
-        $url = $this->json->serialize($this->url->getUrl('polkurier/bankaccount/delete'));
+        $url = $this->json->serialize($this->url->getUrl(BankaccountDelete::ROUTE));
 
         return [
             'label' => __('Delete'),

@@ -24,10 +24,10 @@ use Polkurier\Shipping\Model\Config\ConfigProvider;
 use Polkurier\Shipping\Model\PickupPoint\MapConfigProvider;
 use Polkurier\Shipping\Model\PickupPoint\MapTokenProvider;
 use Polkurier\Shipping\Model\QuotePoint;
+use Polkurier\Webservice\Dto\Response\Carrier;
+use Polkurier\Webservice\Dto\Response\Carrier\AdditionalData;
+use Polkurier\Webservice\Dto\Response\Carrier\AdditionalData\PointsMap;
 use Polkurier\Webservice\Enum\Courier\PointRequirementEnum;
-use Polkurier\Webservice\Response\Carrier;
-use Polkurier\Webservice\Response\Carrier\AdditionalData;
-use Polkurier\Webservice\Response\Carrier\AdditionalData\PointsMap;
 
 #[CoversClass(MapConfigProvider::class)]
 #[AllowMockObjectsWithoutExpectations]
@@ -35,7 +35,7 @@ class MapConfigProviderTest extends TestCase
 {
     public function testAMethodNeedingAPointIsOfferedWithTheMapsToken(): void
     {
-        $config = $this->provider('map-token')->getConfig()['pickupPoints'];
+        $config = $this->createProvider('map-token')->getConfig()['pickupPoints'];
 
         self::assertSame('map-token', $config['token']);
         self::assertTrue(((array)$config['methods'])['INPOST_PACZKOMAT']['required']);
@@ -43,7 +43,7 @@ class MapConfigProviderTest extends TestCase
 
     public function testWithoutATokenThePageAsksForOneWhenTheMapOpens(): void
     {
-        $config = $this->provider('')->getConfig()['pickupPoints'];
+        $config = $this->createProvider('')->getConfig()['pickupPoints'];
 
         self::assertSame(
             ['', 0, 'https://shop.test/pickup-points/map/token/'],
@@ -57,7 +57,7 @@ class MapConfigProviderTest extends TestCase
 
     public function testTheTokenComesWithWhenItRunsOut(): void
     {
-        self::assertSame(1790014400, $this->provider('map-token')->getConfig()['pickupPoints']['tokenExpires']);
+        self::assertSame(1790014400, $this->createProvider('map-token')->getConfig()['pickupPoints']['tokenExpires']);
     }
 
     public function testTheChosenPointHasOneShapeForEveryCheckout(): void
@@ -70,12 +70,12 @@ class MapConfigProviderTest extends TestCase
 
         self::assertSame(
             ['method' => 'INPOST_PACZKOMAT', 'id' => 'WAW195M', 'label' => 'Krótka 5, Warszawa', 'cod' => false],
-            $this->provider('map-token')->getMapConfig($point)['selected'],
+            $this->createProvider('map-token')->getMapConfig($point)['selected'],
         );
-        self::assertNull($this->provider('map-token')->getMapConfig(null)['selected']);
+        self::assertNull($this->createProvider('map-token')->getMapConfig(null)['selected']);
     }
 
-    private function provider(string $token): MapConfigProvider
+    private function createProvider(string $token): MapConfigProvider
     {
         $config = $this->createStub(ConfigProvider::class);
         $config->method('isActive')->willReturn(true);

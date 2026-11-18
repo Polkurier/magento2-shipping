@@ -38,6 +38,6 @@ readonly class LinkLabelledShipmentObserver implements ObserverInterface
         $magentoShipment->unsetData(NativeLabelService::FIELD_LINK);
         $this->nativeShipmentService->release((int)$magentoShipment->getId());
         $this->shipmentRepository->save($shipment->setShipmentId((int)$magentoShipment->getId()));
-        $this->nativeFollowUpService->remarkLinked($shipment);
+        $this->nativeFollowUpService->addLinkedRemark($shipment);
     }
 }

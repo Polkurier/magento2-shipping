@@ -25,14 +25,14 @@ class ReconcileShipmentsTaskTest extends TestCase
 
     public function testExpiredShipmentsGoThenUnansweredOnesAreLookedForThenTheAdminIsTold(): void
     {
-        $this->task(true)->execute();
+        $this->createTask(true)->execute();
 
         self::assertSame(['expire', 'reconcile', 'notify'], $this->ran);
     }
 
     public function testWithoutCredentialsOnlyWhatAsksNothingOfPolkurierRuns(): void
     {
-        $this->task(false)->execute();
+        $this->createTask(false)->execute();
 
         self::assertSame(['expire', 'notify'], $this->ran);
     }
@@ -40,7 +40,7 @@ class ReconcileShipmentsTaskTest extends TestCase
     public function testTheAdminIsToldEvenWhenTheLookingFails(): void
     {
         try {
-            $this->task(true, new \RuntimeException('Polkurier is not answering.'))->execute();
+            $this->createTask(true, new \RuntimeException('Polkurier is not answering.'))->execute();
             self::fail('The failure goes on to the cron log.');
         } catch (\RuntimeException) {
         }
@@ -48,7 +48,7 @@ class ReconcileShipmentsTaskTest extends TestCase
         self::assertSame(['expire', 'reconcile', 'notify'], $this->ran);
     }
 
-    private function task(bool $credentials, ?\Throwable $failure = null): ReconcileShipmentsTask
+    private function createTask(bool $credentials, ?\Throwable $failure = null): ReconcileShipmentsTask
     {
         $reconciler = $this->createStub(ReconciliationService::class);
         $reconciler->method('reconcilePending')->willReturnCallback(function () use ($failure): void {

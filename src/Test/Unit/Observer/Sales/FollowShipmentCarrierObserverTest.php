@@ -9,6 +9,7 @@ namespace Polkurier\Shipping\Test\Unit\Observer\Sales;
 
 use Magento\Framework\Event;
 use Magento\Framework\Event\Observer;
+use Magento\Framework\Serialize\Serializer\Json;
 use Magento\Framework\TestFramework\Unit\Helper\ObjectManager;
 use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -37,7 +38,7 @@ class FollowShipmentCarrierObserverTest extends TestCase
     /**
      * @return array<string, array{string|null, string, bool}>
      */
-    public static function changes(): array
+    public static function provideChanges(): array
     {
         return [
             'placed' => [ShipmentInterface::STATE_PENDING, ShipmentInterface::STATE_CREATED, true],
@@ -53,30 +54,30 @@ class FollowShipmentCarrierObserverTest extends TestCase
         ];
     }
 
-    #[DataProvider('changes')]
+    #[DataProvider('provideChanges')]
     public function testTheOrdersShippingFollowsOnlyWhenAPolkurierOrderStartsOrStopsCounting(
         ?string $was,
         string $is,
         bool $follows,
     ): void {
-        $this->observer()->execute($this->event($was, $is));
+        $this->createObserver()->execute($this->createEvent($was, $is));
 
         self::assertSame($follows ? [29] : [], $this->synced);
     }
 
     public function testAFailureIsLoggedWithItsException(): void
     {
-        $this->observer(new \RuntimeException('Deadlock'))
-            ->execute($this->event(ShipmentInterface::STATE_PENDING, ShipmentInterface::STATE_CREATED));
+        $this->createObserver(new \RuntimeException('Deadlock'))
+            ->execute($this->createEvent(ShipmentInterface::STATE_PENDING, ShipmentInterface::STATE_CREATED));
 
         self::assertCount(1, $this->errors);
         self::assertInstanceOf(\RuntimeException::class, $this->errors[0][1]['exception']);
     }
 
-    private function event(?string $was, string $is): Observer
+    private function createEvent(?string $was, string $is): Observer
     {
         /** @var Shipment $shipment */
-        $shipment = (new ObjectManager($this))->getObject(Shipment::class);
+        $shipment = (new ObjectManager($this))->getObject(Shipment::class, ['json' => new Json()]);
         $shipment->setOrderId(29);
         if ($was !== null) {
             $shipment->setState($was);
@@ -87,7 +88,7 @@ class FollowShipmentCarrierObserverTest extends TestCase
         return new Observer(['event' => new Event(['shipment' => $shipment])]);
     }
 
-    private function observer(?\Throwable $failure = null): FollowShipmentCarrierObserver
+    private function createObserver(?\Throwable $failure = null): FollowShipmentCarrierObserver
     {
         $shipping = $this->createStub(ActualShippingUpdater::class);
         $shipping->method('sync')->willReturnCallback(function (int $orderId) use ($failure): void {

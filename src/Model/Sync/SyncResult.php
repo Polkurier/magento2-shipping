@@ -53,12 +53,12 @@ class SyncResult
         public readonly SyncEntityEnum $entityType,
     ) {}
 
-    public function summary(): string
+    public function getSummary(): string
     {
         return (string)__(
             '%1: %2 new from Polkurier, %3 updated from Polkurier, %4 sent to Polkurier, %5 removed, %6 unchanged, '
             . '%7 awaiting confirmation, %8 failed.',
-            $this->entityType->label(),
+            $this->entityType->getLabel(),
             $this->created,
             $this->pulled,
             $this->pushed,

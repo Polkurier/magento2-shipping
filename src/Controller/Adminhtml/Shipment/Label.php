@@ -15,7 +15,7 @@ use Magento\Framework\App\Response\Http\FileFactory;
 use Magento\Framework\App\ResponseInterface;
 use Magento\Framework\Controller\ResultInterface;
 use Magento\Framework\Exception\LocalizedException;
-use Polkurier\Shipping\Model\RequestParam;
+use Polkurier\Shipping\Model\RequestParamReader;
 use Polkurier\Shipping\Model\Shipment\DocumentService;
 use Polkurier\Webservice\Enum\Order\LabelFileFormatEnum;
 
@@ -25,15 +25,16 @@ use Polkurier\Webservice\Enum\Order\LabelFileFormatEnum;
  */
 class Label extends AbstractShipmentAction implements HttpGetActionInterface, HttpPostActionInterface
 {
-    public const string ADMIN_RESOURCE = 'Polkurier_Shipping::shipments';
+    public const string ADMIN_RESOURCE = 'Magento_Sales::shipment';
+    public const string ROUTE = 'polkurier/shipment/label';
 
     public function __construct(
         Context $context,
-        RequestedShipments $requestedShipments,
+        RequestedShipmentResolver $requestedShipmentResolver,
         private readonly DocumentService $documentService,
         private readonly FileFactory $fileFactory,
     ) {
-        parent::__construct($context, $requestedShipments);
+        parent::__construct($context, $requestedShipmentResolver);
     }
 
     public function execute(): ResponseInterface|ResultInterface
@@ -41,7 +42,7 @@ class Label extends AbstractShipmentAction implements HttpGetActionInterface, Ht
         try {
             $document = $this->documentService->getLabels(
                 $this->getSelectedShipments(),
-                LabelFileFormatEnum::tryFrom(RequestParam::string($this->getRequest(), 'format')),
+                LabelFileFormatEnum::tryFrom(RequestParamReader::getString($this->getRequest(), 'format')),
             );
             // These show on the next page, since this request answers with the file.
             foreach ($document['left_out'] as $message) {
@@ -58,6 +59,6 @@ class Label extends AbstractShipmentAction implements HttpGetActionInterface, Ht
             $this->messageManager->addErrorMessage($e->getMessage());
         }
 
-        return $this->back();
+        return $this->redirectBack();
     }
 }

@@ -39,7 +39,7 @@
         <settings>
             <submitUrl path="*/*/save"/>
         </settings>
-        <dataProvider class="Polkurier\Shipping\Ui\Component\Form\Address\DataProvider"
+        <dataProvider class="Polkurier\Shipping\Ui\Component\Form\Address\DataProviderVirtual"
                       name="polkurier_address_form_data_source">
             <settings>
                 <requestFieldName>id</requestFieldName>
@@ -159,14 +159,6 @@
                     <rule name="validate-email" xsi:type="boolean">true</rule>
                     <rule name="required-entry" xsi:type="boolean">true</rule>
                 </validation>
-            </settings>
-        </field>
-        <field name="point_id" formElement="input" component="Polkurier_Shipping/js/form/element/point">
-            <settings>
-                <label translate="true">Sender drop-off point</label>
-                <dataType>text</dataType>
-                <dataScope>point_id</dataScope>
-                <notice translate="true">For carriers that take parcels dropped off at a point.</notice>
             </settings>
         </field>
         <field name="is_default" formElement="checkbox">

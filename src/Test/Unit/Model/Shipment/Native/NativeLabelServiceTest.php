@@ -21,6 +21,7 @@ use PHPUnit\Framework\TestCase;
 use Polkurier\Shipping\Api\Data\ShipmentDraftInterface;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Logger\Logger;
+use Polkurier\Shipping\Model\Shipment;
 use Polkurier\Shipping\Model\Shipment\DocumentService;
 use Polkurier\Shipping\Model\Shipment\Draft;
 use Polkurier\Shipping\Model\Shipment\Draft\DefaultDraftBuilder;
@@ -72,8 +73,8 @@ class NativeLabelServiceTest extends TestCase
 
     public function testPackagesAreCheckedAgainstWhatTheShipmentCarries(): void
     {
-        $shipment = $this->magentoShipment(null);
-        $this->management->expects(self::never())->method('forNativeShipment');
+        $shipment = $this->createMagentoShipment(null);
+        $this->management->expects(self::never())->method('placeForNativeShipment');
         $item = [
             'params' => ['container' => 'ST', 'weight' => '1'],
             'items' => [11 => ['qty' => '2', 'order_item_id' => '5']],
@@ -89,12 +90,12 @@ class NativeLabelServiceTest extends TestCase
 
         $this->expectException(LocalizedException::class);
 
-        $this->label($native)->request($this->labelRequest($shipment, [1 => $item, 2 => $item]));
+        $this->createService($native)->request($this->createLabelRequest($shipment, [1 => $item, 2 => $item]));
     }
 
     public function testPackagesBecomeParcelsInKilogramsAndCentimetres(): void
     {
-        $shipment = $this->magentoShipment(null);
+        $shipment = $this->createMagentoShipment(null);
         $set = [];
         $shipment->method('setData')->willReturnCallback(
             function (string $key, mixed $value) use (&$set, $shipment) {
@@ -104,7 +105,7 @@ class NativeLabelServiceTest extends TestCase
             },
         );
 
-        $answer = $this->label()->request($this->labelRequest($shipment, [
+        $answer = $this->createService()->request($this->createLabelRequest($shipment, [
             1 => [
                 'params' => [
                     'container' => 'ST',
@@ -134,7 +135,7 @@ class NativeLabelServiceTest extends TestCase
             $set,
             'Linked once saved; its tracks are titled by the carrier it went with.',
         );
-        $packs = $this->placed()->getPacks();
+        $packs = $this->getPlacedDraft()->getPacks();
         self::assertCount(2, $packs, 'One Polkurier order, a parcel per package.');
         self::assertSame(0.998, $packs[0]->getWeight());
         self::assertSame(
@@ -162,40 +163,47 @@ class NativeLabelServiceTest extends TestCase
             'recipient_person' => 'Someone Else',
         ];
 
-        $this->label()->request($this->labelRequest($this->magentoShipment(null), [
+        $this->createService()->request($this->createLabelRequest($this->createMagentoShipment(null), [
             1 => ['params' => ['container' => 'ST', 'weight' => '1']],
         ]));
 
-        self::assertSame('INPOST', $this->placed()->getCarrierCode());
-        self::assertNull($this->placed()->getCodAmount(), 'Cleared on the page.');
-        self::assertSame(['SMS'], $this->placed()->getServices());
-        self::assertSame('Jan Kowalski', $this->placed()->getRecipientPerson(), 'The recipient is the order\'s.');
+        self::assertSame('INPOST', $this->getPlacedDraft()->getCarrierCode());
+        self::assertNull($this->getPlacedDraft()->getCodAmount(), 'Cleared on the page.');
+        self::assertSame(['SMS'], $this->getPlacedDraft()->getServices());
+        self::assertSame(
+            'Jan Kowalski',
+            $this->getPlacedDraft()->getRecipientPerson(),
+            'The recipient is the order\'s.',
+        );
     }
 
     public function testANewShipmentKeepsMagentosEmailChoice(): void
     {
         $this->emailCopy = true;
 
-        $this->label()->request($this->labelRequest($this->magentoShipment(null), []));
+        $this->createService()->request($this->createLabelRequest($this->createMagentoShipment(null), []));
 
-        self::assertTrue($this->placed()->isNotifyCustomer(), 'For a Magento shipment made later, if it comes to it.');
+        self::assertTrue(
+            $this->getPlacedDraft()->shouldNotifyCustomer(),
+            'For a Magento shipment made later, if it comes to it.',
+        );
     }
 
     public function testALabelForAShipmentMadeBeforeEmailsNobody(): void
     {
         $this->emailCopy = true;
 
-        $this->label()->request($this->labelRequest($this->magentoShipment(31), []));
+        $this->createService()->request($this->createLabelRequest($this->createMagentoShipment(31), []));
 
-        self::assertFalse($this->placed()->isNotifyCustomer());
+        self::assertFalse($this->getPlacedDraft()->shouldNotifyCustomer());
     }
 
     public function testAShipmentWithAPolkurierOrderGetsItsLabelWithoutPlacingAnother(): void
     {
-        $this->linked = $this->polkurierShipment(['WB-9']);
-        $this->management->expects(self::never())->method('forNativeShipment');
+        $this->linked = $this->createPolkurierShipment(['WB-9']);
+        $this->management->expects(self::never())->method('placeForNativeShipment');
 
-        $answer = $this->label()->request($this->labelRequest($this->magentoShipment(31), []));
+        $answer = $this->createService()->request($this->createLabelRequest($this->createMagentoShipment(31), []));
 
         self::assertSame([['tracking_number' => ['WB-9'], 'label_content' => self::PDF]], $answer->getData('info'));
     }
@@ -204,7 +212,7 @@ class NativeLabelServiceTest extends TestCase
     {
         $this->documentService = $this->createMock(DocumentService::class);
         $this->documentService->method('getLabels')->willThrowException(new LocalizedException(__('Not ready')));
-        $shipment = $this->magentoShipment(null);
+        $shipment = $this->createMagentoShipment(null);
         $shipment->expects(self::exactly(2))->method('addTrack');
         $flags = [];
         $shipment->method('setData')->willReturnCallback(
@@ -215,8 +223,8 @@ class NativeLabelServiceTest extends TestCase
             },
         );
 
-        $label = $this->label();
-        $answer = $label->request($this->labelRequest($shipment, [
+        $label = $this->createService();
+        $answer = $label->request($this->createLabelRequest($shipment, [
             1 => ['params' => ['container' => 'ST', 'weight' => '1']],
         ]));
 
@@ -237,11 +245,11 @@ class NativeLabelServiceTest extends TestCase
     protected function setUp(): void
     {
         $this->management = $this->createMock(PlacementService::class);
-        $this->management->method('forNativeShipment')->willReturnCallback(
+        $this->management->method('placeForNativeShipment')->willReturnCallback(
             function (int $orderId, ShipmentDraftInterface $draft): ShipmentInterface {
                 $this->placed = $draft;
 
-                return $this->polkurierShipment(['WB-1', 'WB-2']);
+                return $this->createPolkurierShipment(['WB-1', 'WB-2']);
             },
         );
         $this->documentService = $this->createMock(DocumentService::class);
@@ -252,7 +260,7 @@ class NativeLabelServiceTest extends TestCase
         ]);
     }
 
-    private function placed(): ShipmentDraftInterface
+    private function getPlacedDraft(): ShipmentDraftInterface
     {
         self::assertNotNull($this->placed, 'A Polkurier order was placed.');
 
@@ -262,12 +270,12 @@ class NativeLabelServiceTest extends TestCase
     /**
      * @param array<int, mixed> $packages
      */
-    private function labelRequest(MagentoShipmentModel $shipment, array $packages): DataObject
+    private function createLabelRequest(MagentoShipmentModel $shipment, array $packages): DataObject
     {
         return new DataObject(['order_shipment' => $shipment, 'packages' => $packages]);
     }
 
-    private function magentoShipment(?int $id): MagentoShipmentModel&MockObject
+    private function createMagentoShipment(?int $id): MagentoShipmentModel&MockObject
     {
         $order = $this->createStub(Order::class);
         $order->method('getEntityId')->willReturn(42);
@@ -293,9 +301,9 @@ class NativeLabelServiceTest extends TestCase
     /**
      * @param string[] $waybills
      */
-    private function polkurierShipment(array $waybills): ShipmentInterface
+    private function createPolkurierShipment(array $waybills): ShipmentInterface
     {
-        $shipment = $this->createStub(\Polkurier\Shipping\Model\Shipment::class);
+        $shipment = $this->createStub(Shipment::class);
         $shipment->method('getId')->willReturn(7);
         $shipment->method('getWaybills')->willReturn($waybills);
         $shipment->method('getCarrierCode')->willReturn('DPD');
@@ -304,7 +312,7 @@ class NativeLabelServiceTest extends TestCase
         return $shipment;
     }
 
-    private function label(?NativeShipmentService $nativeShipmentService = null): NativeLabelService
+    private function createService(?NativeShipmentService $nativeShipmentService = null): NativeLabelService
     {
         $draftFactory = $this->createStub(DraftFactory::class);
         $draftFactory->method('create')->willReturnCallback(static fn(): Draft => new Draft());
@@ -329,12 +337,16 @@ class NativeLabelServiceTest extends TestCase
         );
 
         $finder = $this->createStub(ShipmentFinder::class);
-        $finder->method('latestLinkedTo')->willReturnCallback(fn(): ?ShipmentInterface => $this->linked);
+        $finder->method('findLatestLinkedTo')->willReturnCallback(fn(): ?ShipmentInterface => $this->linked);
         $tracks = $this->createStub(TrackFactory::class);
         $tracks->method('create')->willReturnCallback(fn(): Track => $this->createStub(Track::class));
 
         return new NativeLabelService(
-            new NativeLabelPackageMapper($packFactory, $this->itemFactory(), MagentoMeasures::carrierHelper()),
+            new NativeLabelPackageMapper(
+                $packFactory,
+                $this->createItemFactory(),
+                MagentoMeasures::createCarrierHelper(),
+            ),
             $this->management,
             $builder,
             new DraftHydrator($draftFactory, $packFactory, $this->createStub(ItemFactory::class)),
@@ -343,11 +355,11 @@ class NativeLabelServiceTest extends TestCase
             $nativeShipmentService ?? $this->createStub(NativeShipmentService::class),
             $tracks,
             $this->createStub(Logger::class),
-            NewingObjectManager::factory(DataObjectFactory::class),
+            NewingObjectManager::createFactory(DataObjectFactory::class),
         );
     }
 
-    private function itemFactory(): ItemFactory
+    private function createItemFactory(): ItemFactory
     {
         $factory = $this->createStub(ItemFactory::class);
         $factory->method('create')->willReturnCallback(static fn(): Item => new Item());

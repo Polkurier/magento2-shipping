@@ -77,19 +77,15 @@ class ManualEntrySaverTest extends TestCase
                     ->setKeepAs(''),
             ]);
 
-        $keeper = $this->keeper();
+        $keeper = $this->createSaver();
         $keeper->keep($draft);
-        $keeper->takeOutcome()->send($this->messageManager());
+        $keeper->takeOutcome()->send($this->createMessageManager());
 
         self::assertSame('Lis Sp. j., Kraków', $this->saved['address'][0]['name']);
         self::assertSame('SENDER', $this->saved['address'][0]['type']);
         self::assertTrue($this->saved['address'][0]['is_default'], 'The first address.');
         self::assertArrayNotHasKey('flat_number', $this->saved['address'][0], 'What wasn\'t typed in isn\'t saved.');
-        self::assertSame(
-            'PL63197',
-            $this->saved['address'][0]['point_id'],
-            'With the drop-off point it was handed over at.',
-        );
+        self::assertArrayNotHasKey('point_id', $this->saved['address'][0], 'A sender address has no point.');
         self::assertArrayNotHasKey('bank', $this->saved, 'Not asked to keep.');
         self::assertSame([
             [
@@ -108,25 +104,30 @@ class ManualEntrySaverTest extends TestCase
             'In one message.',
         );
 
-        $keeper->takeOutcome()->send($this->messageManager());
+        $keeper->takeOutcome()->send($this->createMessageManager());
         self::assertCount(1, $this->messages, 'Said once.');
     }
 
-    private function keeper(): ManualEntrySaver
+    private function createSaver(): ManualEntrySaver
     {
         return new ManualEntrySaver(
-            $this->handler(AddressHandler::class, 'address', 'Addresses', SyncEntityEnum::Address),
-            $this->handler(BankAccountHandler::class, 'bank', 'Bank accounts', SyncEntityEnum::BankAccount),
-            $this->handler(PackTemplateHandler::class, 'template', 'Pack templates', SyncEntityEnum::PackTemplate),
-            $this->factory(AddressCollectionFactory::class, AddressCollection::class),
-            $this->factory(BankAccountCollectionFactory::class, BankAccountCollection::class),
-            $this->factory(PackTemplateCollectionFactory::class, PackTemplateCollection::class),
+            $this->createHandler(AddressHandler::class, 'address', 'Addresses', SyncEntityEnum::Address),
+            $this->createHandler(BankAccountHandler::class, 'bank', 'Bank accounts', SyncEntityEnum::BankAccount),
+            $this->createHandler(
+                PackTemplateHandler::class,
+                'template',
+                'Pack templates',
+                SyncEntityEnum::PackTemplate,
+            ),
+            $this->createFactory(AddressCollectionFactory::class, AddressCollection::class),
+            $this->createFactory(BankAccountCollectionFactory::class, BankAccountCollection::class),
+            $this->createFactory(PackTemplateCollectionFactory::class, PackTemplateCollection::class),
             $this->createStub(Logger::class),
-            NewingObjectManager::factory(FlashMessageCollectorFactory::class),
+            NewingObjectManager::createFactory(FlashMessageCollectorFactory::class),
         );
     }
 
-    private function messageManager(): ManagerInterface
+    private function createMessageManager(): ManagerInterface
     {
         $messages = $this->createStub(ManagerInterface::class);
         foreach (['addSuccessMessage', 'addNoticeMessage', 'addWarningMessage'] as $method) {
@@ -147,7 +148,7 @@ class ManualEntrySaverTest extends TestCase
      *
      * @return T
      */
-    private function handler(string $class, string $key, string $label, SyncEntityEnum $type): object
+    private function createHandler(string $class, string $key, string $label, SyncEntityEnum $type): object
     {
         $entity = $this->createStub(SyncableInterface::class);
         $entity->method('getSyncError')->willReturn(null);
@@ -173,7 +174,7 @@ class ManualEntrySaverTest extends TestCase
      *
      * @return T
      */
-    private function factory(string $factoryClass, string $collectionClass): object
+    private function createFactory(string $factoryClass, string $collectionClass): object
     {
         $collection = $this->createStub($collectionClass);
         $collection->method('addFieldToFilter')->willReturnSelf();

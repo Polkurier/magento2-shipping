@@ -18,15 +18,17 @@ use Polkurier\Shipping\Logger\Logger;
 use Polkurier\Shipping\Model\Carrier\CarrierCatalog;
 use Polkurier\Shipping\Model\Carrier\CarrierFeatureResolver;
 use Polkurier\Shipping\Model\Config\ConfigProvider;
+use Polkurier\Shipping\Model\PickupPoint\PointFinder;
 use Polkurier\Shipping\Model\PickupPoint\PointSelectionRecorder;
 use Polkurier\Shipping\Model\QuotePoint;
 use Polkurier\Shipping\Model\QuotePointFactory;
+use Polkurier\Webservice\Dto\Response\Carrier;
+use Polkurier\Webservice\Dto\Response\CourierPoint;
 use Polkurier\Webservice\Enum\Courier\PointFunctionEnum;
 use Polkurier\Webservice\Exception\ConnectionException;
-use Polkurier\Webservice\Response\Carrier;
-use Polkurier\Webservice\Response\CourierPoint;
 
 #[CoversClass(PointSelectionRecorder::class)]
+#[CoversClass(PointFinder::class)]
 #[AllowMockObjectsWithoutExpectations]
 class PointSelectionRecorderTest extends TestCase
 {
@@ -52,31 +54,50 @@ class PointSelectionRecorderTest extends TestCase
 
     public function testAnOpenPointThatHandsOutParcelsIsKept(): void
     {
-        $this->selection(new CourierPoint(
+        $this->createRecorder(new CourierPoint(
             'WAW195M',
             available: true,
-            functions: [PointFunctionEnum::Collect->value, PointFunctionEnum::Send->value],
+            functions: [PointFunctionEnum::Collect, PointFunctionEnum::Send],
             address: 'Krótka 5, Warszawa',
         ))
-            ->select($this->quote(), 'polkurier', 'INPOST_PACZKOMAT', 'WAW195M');
+            ->select($this->createQuote(), 'polkurier', 'INPOST_PACZKOMAT', 'WAW195M');
 
         self::assertSame('WAW195M', $this->saved?->getPointId());
         self::assertSame('Krótka 5, Warszawa', $this->saved->getPointLabel());
+    }
+
+    public function testAPointWithoutAnAddressLineIsLabelledByItsStreetAndTown(): void
+    {
+        $this->createRecorder(new CourierPoint(
+            'WAW195M',
+            street: 'Krótka 5',
+            zip: '00-001',
+            city: 'Warszawa',
+            available: true,
+            functions: [PointFunctionEnum::Collect],
+        ))
+            ->select($this->createQuote(), 'polkurier', 'INPOST_PACZKOMAT', 'WAW195M');
+
+        self::assertSame('Krótka 5, 00-001 Warszawa', $this->saved?->getPointLabel());
     }
 
     public function testAClosedPointIsRefused(): void
     {
         $this->expectException(InputException::class);
 
-        $this->selection(new CourierPoint('WAW195M', available: false, functions: [PointFunctionEnum::Collect->value]))
-            ->select($this->quote(), 'polkurier', 'INPOST_PACZKOMAT', 'WAW195M');
+        $this->createRecorder(
+            new CourierPoint('WAW195M', available: false, functions: [PointFunctionEnum::Collect]),
+        )
+            ->select($this->createQuote(), 'polkurier', 'INPOST_PACZKOMAT', 'WAW195M');
     }
 
     public function testAPointThatOnlyTakesParcelsInIsRefused(): void
     {
         try {
-            $this->selection(new CourierPoint('WAW01N', available: true, functions: [PointFunctionEnum::Send->value]))
-                ->select($this->quote(), 'polkurier', 'INPOST_PACZKOMAT', 'WAW01N');
+            $this->createRecorder(
+                new CourierPoint('WAW01N', available: true, functions: [PointFunctionEnum::Send]),
+            )
+                ->select($this->createQuote(), 'polkurier', 'INPOST_PACZKOMAT', 'WAW01N');
             self::fail('The customer could not collect the parcel there.');
         } catch (InputException) {
         }
@@ -85,7 +106,7 @@ class PointSelectionRecorderTest extends TestCase
 
     public function testAnotherCarrierTakesTheAddresssPointAway(): void
     {
-        $this->selection()->select($this->quote(), 'flatrate', 'flatrate', 'WAW195M', 12);
+        $this->createRecorder()->select($this->createQuote(), 'flatrate', 'flatrate', 'WAW195M', 12);
 
         self::assertSame(['5/12'], $this->deleted);
         self::assertNull($this->saved);
@@ -95,14 +116,14 @@ class PointSelectionRecorderTest extends TestCase
     {
         $this->expectExceptionMessage('Choose a pickup point for the selected delivery method.');
 
-        $this->selection()->select($this->quote(), 'polkurier', 'INPOST_PACZKOMAT', '  ');
+        $this->createRecorder()->select($this->createQuote(), 'polkurier', 'INPOST_PACZKOMAT', '  ');
     }
 
     public function testAMethodThatTakesAPointOptionallyGoesWithoutOne(): void
     {
         $this->required = false;
 
-        $this->selection()->select($this->quote(), 'polkurier', 'DPD_PICKUP', null);
+        $this->createRecorder()->select($this->createQuote(), 'polkurier', 'DPD_PICKUP', null);
 
         self::assertSame(['5/0'], $this->deleted);
     }
@@ -112,7 +133,7 @@ class PointSelectionRecorderTest extends TestCase
         $this->required = false;
         $this->allowed = false;
 
-        $this->selection()->select($this->quote(), 'polkurier', 'DPD', 'WAW195M');
+        $this->createRecorder()->select($this->createQuote(), 'polkurier', 'DPD', 'WAW195M');
 
         self::assertSame(['5/0'], $this->deleted);
         self::assertNull($this->saved);
@@ -122,7 +143,7 @@ class PointSelectionRecorderTest extends TestCase
     {
         $this->carrierOutage = true;
 
-        $this->selection()->select($this->quote(), 'polkurier', 'INPOST_PACZKOMAT', 'WAW195M');
+        $this->createRecorder()->select($this->createQuote(), 'polkurier', 'INPOST_PACZKOMAT', 'WAW195M');
 
         self::assertSame('WAW195M', $this->saved?->getPointId());
         self::assertSame('WAW195M', $this->saved->getPointLabel());
@@ -132,7 +153,7 @@ class PointSelectionRecorderTest extends TestCase
     {
         $this->pointOutage = true;
 
-        $this->selection()->select($this->quote(), 'polkurier', 'INPOST_PACZKOMAT', 'WAW195M');
+        $this->createRecorder()->select($this->createQuote(), 'polkurier', 'INPOST_PACZKOMAT', 'WAW195M');
 
         self::assertSame('WAW195M', $this->saved?->getPointLabel());
         self::assertNull(
@@ -143,13 +164,13 @@ class PointSelectionRecorderTest extends TestCase
 
     public function testEachAddressOfAMultiAddressCheckoutKeepsItsOwnPoint(): void
     {
-        $this->selection(new CourierPoint(
+        $this->createRecorder(new CourierPoint(
             'WAW195M',
             available: true,
-            functions: [PointFunctionEnum::Collect->value],
+            functions: [PointFunctionEnum::Collect],
             cod: true,
         ))
-            ->select($this->quote(), 'polkurier', 'INPOST_PACZKOMAT', 'WAW195M', 12);
+            ->select($this->createQuote(), 'polkurier', 'INPOST_PACZKOMAT', 'WAW195M', 12);
 
         self::assertSame([5, 12], [$this->saved?->getQuoteId(), $this->saved->getQuoteAddressId()]);
         self::assertTrue($this->saved->getPointCod());
@@ -158,25 +179,25 @@ class PointSelectionRecorderTest extends TestCase
     public function testPlacingNeedsAPointForTheMethodChosen(): void
     {
         $this->stored = 'INPOST_PACZKOMAT';
-        $this->selection()->requirePoint($this->quote(), 'INPOST_PACZKOMAT');
+        $this->createRecorder()->requirePoint($this->createQuote(), 'INPOST_PACZKOMAT');
 
         $this->stored = 'INPOST_PACZKOMAT_ECONOMY';
         try {
-            $this->selection()->requirePoint($this->quote(), 'INPOST_PACZKOMAT');
+            $this->createRecorder()->requirePoint($this->createQuote(), 'INPOST_PACZKOMAT');
             self::fail('A point chosen for another method doesn\'t count.');
         } catch (InputException) {
         }
 
         $this->required = false;
-        $this->selection()->requirePoint($this->quote(), 'DPD');
+        $this->createRecorder()->requirePoint($this->createQuote(), 'DPD');
         $this->required = true;
         $this->carrierOutage = true;
         // Let through rather than lost.
-        $this->selection()->requirePoint($this->quote(), 'INPOST_PACZKOMAT');
+        $this->createRecorder()->requirePoint($this->createQuote(), 'INPOST_PACZKOMAT');
         $this->addToAssertionCount(3);
     }
 
-    private function selection(?CourierPoint $point = null): PointSelectionRecorder
+    private function createRecorder(?CourierPoint $point = null): PointSelectionRecorder
     {
         $store = $this->createStub(QuotePointRepositoryInterface::class);
         $store->method('getForQuote')->willReturnCallback(function (): ?QuotePoint {
@@ -213,7 +234,7 @@ class PointSelectionRecorderTest extends TestCase
             return $point ?? new CourierPoint(
                 'WAW195M',
                 available: true,
-                functions: [PointFunctionEnum::Collect->value],
+                functions: [PointFunctionEnum::Collect],
             );
         });
         $features = $this->createStub(CarrierFeatureResolver::class);
@@ -223,10 +244,20 @@ class PointSelectionRecorderTest extends TestCase
         $config = $this->createStub(ConfigProvider::class);
         $config->method('getMapPointFunctions')->willReturn([PointFunctionEnum::Collect]);
 
-        return new PointSelectionRecorder($store, $points, $catalog, $features, $config, $this->createStub(Logger::class));
+        $logger = $this->createStub(Logger::class);
+
+        return new PointSelectionRecorder(
+            $store,
+            $points,
+            $catalog,
+            $features,
+            new PointFinder($catalog, $features, $logger),
+            $config,
+            $logger,
+        );
     }
 
-    private function quote(): Quote
+    private function createQuote(): Quote
     {
         $quote = $this->createStub(Quote::class);
         $quote->method('getId')->willReturn(5);

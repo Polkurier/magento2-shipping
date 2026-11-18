@@ -40,20 +40,26 @@ class RateCollectorCartValueTest extends TestCase
 
     public function testTheCartIsValuedWithTaxByDefault(): void
     {
-        self::assertSame(123.0 + 61.5, $this->value([$this->item(100.0, 123.0), $this->item(50.0, 61.5)]));
+        self::assertSame(
+            123.0 + 61.5,
+            $this->calculateValue([$this->createItem(100.0, 123.0), $this->createItem(50.0, 61.5)]),
+        );
     }
 
     public function testTheCartIsValuedWithoutTaxWhenSet(): void
     {
         $this->basis = 'net';
 
-        self::assertSame(150.0, $this->value([$this->item(100.0, 123.0), $this->item(50.0, 61.5)]));
+        self::assertSame(
+            150.0,
+            $this->calculateValue([$this->createItem(100.0, 123.0), $this->createItem(50.0, 61.5)]),
+        );
     }
 
     /**
      * @return array<string, array{string, bool, float}>
      */
-    public static function discounts(): array
+    public static function provideDiscounts(): array
     {
         // A 20.00 discount on a 100.00 net, 123.00 gross row: a fifth of the net price, or a bit
         // over a sixth of the gross one, taken off both values alike.
@@ -65,50 +71,50 @@ class RateCollectorCartValueTest extends TestCase
         ];
     }
 
-    #[DataProvider('discounts')]
+    #[DataProvider('provideDiscounts')]
     public function testADiscountIsTakenOffInProportion(string $basis, bool $discountOnGross, float $expected): void
     {
         $this->basis = $basis;
         $this->discountOnGross = $discountOnGross;
 
-        self::assertSame($expected, $this->value([$this->item(100.0, 123.0, 20.0)]));
+        self::assertSame($expected, $this->calculateValue([$this->createItem(100.0, 123.0, 20.0)]));
     }
 
     public function testADiscountNeverTakesTheValueBelowNothing(): void
     {
-        self::assertSame(0.0, $this->value([$this->item(10.0, 12.3, 50.0)]));
+        self::assertSame(0.0, $this->calculateValue([$this->createItem(10.0, 12.3, 50.0)]));
     }
 
     public function testTheChildrenOfAProductAreCountedInItsOwnRow(): void
     {
-        $parent = $this->item(100.0, 123.0, 10.0);
-        $child = $this->item(100.0, 123.0, 10.0);
+        $parent = $this->createItem(100.0, 123.0, 10.0);
+        $child = $this->createItem(100.0, 123.0, 10.0);
         $child->setParentItem($parent);
 
-        self::assertSame(110.7, $this->value([$parent, $child]));
+        self::assertSame(110.7, $this->calculateValue([$parent, $child]));
     }
 
     public function testARowWithoutTaxWorkedOutCountsTheSameBothWays(): void
     {
-        self::assertSame(100.0, $this->value([$this->item(100.0, null)]));
+        self::assertSame(100.0, $this->calculateValue([$this->createItem(100.0, null)]));
     }
 
     public function testARequestWithoutItemsTakesMagentosPackageValue(): void
     {
         $request = new RateRequest(['store_id' => 1, 'package_value_with_discount' => 42.5]);
 
-        self::assertSame(42.5, $this->rateCollector()->cartValueOf($request));
+        self::assertSame(42.5, $this->createRateCollector()->getCartValue($request));
     }
 
     /**
      * @param Item[] $items
      */
-    private function value(array $items): float
+    private function calculateValue(array $items): float
     {
-        return $this->rateCollector()->cartValueOf(new RateRequest(['store_id' => 1, 'all_items' => $items]));
+        return $this->createRateCollector()->getCartValue(new RateRequest(['store_id' => 1, 'all_items' => $items]));
     }
 
-    private function item(float $rowTotal, ?float $rowTotalInclTax, float $discount = 0.0): Item
+    private function createItem(float $rowTotal, ?float $rowTotalInclTax, float $discount = 0.0): Item
     {
         /** @var Item $item */
         $item = (new ObjectManager($this))->getObject(Item::class);
@@ -121,7 +127,7 @@ class RateCollectorCartValueTest extends TestCase
         return $item;
     }
 
-    private function rateCollector(): RateCollector
+    private function createRateCollector(): RateCollector
     {
         $scopeConfig = $this->createStub(ScopeConfigInterface::class);
         $scopeConfig->method('getValue')->willReturnCallback(

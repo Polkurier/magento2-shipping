@@ -21,6 +21,7 @@ use Polkurier\Shipping\Model\ResourceModel\Address\CollectionFactory;
 class MassDelete extends AbstractMassDelete
 {
     public const string ADMIN_RESOURCE = 'Polkurier_Shipping::addresses';
+    public const string ROUTE = 'polkurier/address/massDelete';
 
     public function __construct(
         Context $context,

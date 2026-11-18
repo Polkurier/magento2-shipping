@@ -18,8 +18,8 @@ use PHPUnit\Framework\TestCase;
 use Polkurier\Shipping\Api\Data\OrderPointInterface;
 use Polkurier\Shipping\Api\Data\ShippingChoiceInterface;
 use Polkurier\Shipping\Api\OrderPointRepositoryInterface;
+use Polkurier\Shipping\Api\ShippingChoiceRepositoryInterface;
 use Polkurier\Shipping\Model\Sdk\ApplicationIdProvider;
-use Polkurier\Shipping\Model\ShippingChoice\ShippingChoiceRepository;
 use Polkurier\Shipping\Plugin\Sales\OrderRepositoryPlugin;
 use Polkurier\Shipping\Test\Unit\Support\OrderExtensionWithPoint;
 
@@ -34,13 +34,16 @@ class OrderRepositoryPluginTest extends TestCase
         $store = $this->createMock(OrderPointRepositoryInterface::class);
         $store->expects(self::never())->method('getForOrder');
         $store->expects(self::once())->method('getForOrders')->with([7, 8, 9])->willReturn([8 => $point]);
-        $choices = $this->createMock(ShippingChoiceRepository::class);
+        $choices = $this->createMock(ShippingChoiceRepositoryInterface::class);
         $choices->expects(self::once())->method('getForOrders')->with([7, 8, 9])->willReturn([9 => $choice]);
-        $orders = [$this->order(7), $this->order(8), $this->order(9)];
+        $orders = [$this->createOrder(7), $this->createOrder(8), $this->createOrder(9)];
         $result = $this->createStub(OrderSearchResultInterface::class);
         $result->method('getItems')->willReturn($orders);
 
-        $this->plugin($store, $choices)->afterGetList($this->createStub(OrderRepositoryInterface::class), $result);
+        $this->createPlugin($store, $choices)->afterGetList(
+            $this->createStub(OrderRepositoryInterface::class),
+            $result,
+        );
 
         self::assertNull($orders[0]->getExtensionAttributes()?->getPolkurierPoint());
         self::assertSame($point, $orders[1]->getExtensionAttributes()?->getPolkurierPoint());
@@ -52,13 +55,13 @@ class OrderRepositoryPluginTest extends TestCase
 
     public function testEveryOrderCarriesTheInstallationsId(): void
     {
-        $orders = [$this->order(7), $this->order(8)];
+        $orders = [$this->createOrder(7), $this->createOrder(8)];
         $result = $this->createStub(OrderSearchResultInterface::class);
         $result->method('getItems')->willReturn($orders);
 
-        $plugin = $this->plugin(
+        $plugin = $this->createPlugin(
             $this->createStub(OrderPointRepositoryInterface::class),
-            $this->createStub(ShippingChoiceRepository::class),
+            $this->createStub(ShippingChoiceRepositoryInterface::class),
         );
         $plugin->afterGetList($this->createStub(OrderRepositoryInterface::class), $result);
 
@@ -73,21 +76,21 @@ class OrderRepositoryPluginTest extends TestCase
     {
         $point = $this->createStub(OrderPointInterface::class);
         $store = $this->createStub(OrderPointRepositoryInterface::class);
-        $store->method('getForOrders')->willReturn([7 => $point]);
-        $order = $this->order(7);
+        $store->method('getForOrder')->willReturnMap([[7, $point]]);
+        $order = $this->createOrder(7);
 
-        $this->plugin($store, $this->createStub(ShippingChoiceRepository::class))
+        $this->createPlugin($store, $this->createStub(ShippingChoiceRepositoryInterface::class))
             ->afterGet($this->createStub(OrderRepositoryInterface::class), $order);
 
         self::assertSame($point, $order->getExtensionAttributes()?->getPolkurierPoint());
     }
 
-    private function plugin(
+    private function createPlugin(
         OrderPointRepositoryInterface $store,
-        ShippingChoiceRepository $choices,
+        ShippingChoiceRepositoryInterface $choices,
     ): OrderRepositoryPlugin {
         $factory = $this->createStub(OrderExtensionFactory::class);
-        $factory->method('create')->willReturnCallback(fn(): OrderExtensionInterface => $this->extension());
+        $factory->method('create')->willReturnCallback(fn(): OrderExtensionInterface => $this->createExtension());
 
         $applicationId = $this->createStub(ApplicationIdProvider::class);
         $applicationId->method('get')->willReturn('magento2-0123456789ab');
@@ -95,7 +98,7 @@ class OrderRepositoryPluginTest extends TestCase
         return new OrderRepositoryPlugin($store, $choices, $factory, $applicationId);
     }
 
-    private function order(int $id): OrderInterface
+    private function createOrder(int $id): OrderInterface
     {
         $extension = null;
         $order = $this->createStub(OrderInterface::class);
@@ -115,7 +118,7 @@ class OrderRepositoryPluginTest extends TestCase
         return $order;
     }
 
-    private function extension(): OrderExtensionInterface
+    private function createExtension(): OrderExtensionInterface
     {
         $point = null;
         $choice = null;

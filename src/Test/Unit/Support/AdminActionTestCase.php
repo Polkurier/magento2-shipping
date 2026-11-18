@@ -56,7 +56,7 @@ abstract class AdminActionTestCase extends TestCase
      */
     protected array $denied = [];
 
-    protected function context(): Context
+    protected function createContext(): Context
     {
         $request = $this->createStub(Http::class);
         $request->method('getParam')
@@ -99,12 +99,12 @@ abstract class AdminActionTestCase extends TestCase
         ]);
     }
 
-    protected function flashMessageCollectorFactory(): FlashMessageCollectorFactory
+    protected function createFlashMessageCollectorFactory(): FlashMessageCollectorFactory
     {
-        return NewingObjectManager::factory(FlashMessageCollectorFactory::class);
+        return NewingObjectManager::createFactory(FlashMessageCollectorFactory::class);
     }
 
-    protected function jsonFactory(): JsonFactory
+    protected function createJsonFactory(): JsonFactory
     {
         $json = $this->createStub(Json::class);
         $json->method('setData')->willReturnCallback(function (array $data) use ($json): Json {

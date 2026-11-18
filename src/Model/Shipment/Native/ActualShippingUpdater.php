@@ -12,21 +12,22 @@ use Magento\Sales\Model\Order;
 use Magento\Sales\Model\ResourceModel\Attribute as SalesAttribute;
 use Magento\Sales\Model\ResourceModel\GridInterface;
 use Magento\Store\Model\App\Emulation;
+use Polkurier\Shipping\Api\Data\ShipmentDetailsInterface;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 use Polkurier\Shipping\Api\OrderPointRepositoryInterface;
+use Polkurier\Shipping\Api\ShippingChoiceRepositoryInterface;
 use Polkurier\Shipping\Model\Carrier\Polkurier;
 use Polkurier\Shipping\Model\PickupPoint\PointDescriptionBuilder;
 use Polkurier\Shipping\Model\Shipment\Details\SentOrderReader;
 use Polkurier\Shipping\Model\Shipment\OrderLoader;
 use Polkurier\Shipping\Model\Shipment\Screen\ScreenDataProvider;
 use Polkurier\Shipping\Model\Shipment\ShipmentFinder;
-use Polkurier\Shipping\Model\ShippingChoice\ShippingChoiceRepository;
 
 /**
  * Keeps the order's shipping matching what was actually sent: its shipping method, its description
  * and its pickup point follow the carrier and point of its latest placed Polkurier order, so the
  * order page, the order grid, e-mails and the API all show them. The customer's choice is kept on
- * the side ({@see ShippingChoiceRepository}) and comes back once no placed Polkurier order is left.
+ * the side ({@see ShippingChoiceRepositoryInterface}) and comes back once no placed Polkurier order is left.
  * The shipping amount the customer paid stays as it was. An order placed with another carrier's
  * method follows a Polkurier order linked to it as well
  * ({@see \Polkurier\Shipping\Model\Shipment\Status\TrackAdoptionService}).
@@ -39,7 +40,7 @@ readonly class ActualShippingUpdater
     public function __construct(
         private OrderLoader $orderLoader,
         private ShipmentFinder $shipmentFinder,
-        private ShippingChoiceRepository $shippingChoiceRepository,
+        private ShippingChoiceRepositoryInterface $shippingChoiceRepository,
         private OrderPointRepositoryInterface $orderPointRepository,
         private SentOrderReader $sentOrderReader,
         private ScreenDataProvider $screenDataProvider,
@@ -63,7 +64,7 @@ readonly class ActualShippingUpdater
             return;
         }
         $choice = $this->shippingChoiceRepository->getForOrder($orderId);
-        $latest = $this->latestPlaced($orderId);
+        $latest = $this->findLatestPlaced($orderId);
         if ($latest === null) {
             if ($choice !== null) {
                 $this->restore($order, $note);
@@ -71,14 +72,14 @@ readonly class ActualShippingUpdater
 
             return;
         }
-        [$carrier, $point] = $this->sentTo($latest);
+        [$carrier, $point] = $this->getCarrierAndPoint($latest);
         $current = $this->orderPointRepository->getForOrder($orderId);
-        if ($carrier === Polkurier::methodCodeOf((string)$order->getShippingMethod())
+        if ($carrier === Polkurier::extractMethodCode((string)$order->getShippingMethod())
             && $point === (string)$current?->getPointId()
         ) {
             return;
         }
-        if ($choice !== null && $carrier === Polkurier::methodCodeOf((string)$choice->getShippingMethod())
+        if ($choice !== null && $carrier === Polkurier::extractMethodCode((string)$choice->getShippingMethod())
             && $point === (string)$choice->getPointId()
         ) {
             $this->restore($order, $note);
@@ -86,7 +87,7 @@ readonly class ActualShippingUpdater
             return;
         }
 
-        $this->shippingChoiceRepository->keep(
+        $this->shippingChoiceRepository->keepForOrder(
             $orderId,
             $order->getShippingMethod(),
             $order->getShippingDescription(),
@@ -99,18 +100,18 @@ readonly class ActualShippingUpdater
             $cod = $current->getPointCod();
         } elseif ($point !== '') {
             $found = $this->screenDataProvider->findRecipientPoint($carrier, $point);
-            $label = $found ? $found->getAddress() : null;
-            $cod = $found?->isCod();
+            $label = $found ? $found->address : null;
+            $cod = $found ? $found->cod : null;
         }
         $description = $this->describe($order, $carrier, $point, $label);
-        $this->write($order, Polkurier::methodOf($carrier), $description);
+        $this->write($order, Polkurier::buildShippingMethod($carrier), $description);
         if ($point !== '') {
             $this->orderPointRepository->replaceForOrder($orderId, $carrier, $point, $label, $cod);
         } else {
             $this->orderPointRepository->deleteForOrder($orderId);
         }
         if ($note) {
-            $this->nativeFollowUpService->comment($order, __(
+            $this->nativeFollowUpService->addComment($order, __(
                 'Shipping method changed to: %1 (Polkurier order %2). Customer\'s choice: %3.',
                 $description,
                 (string)$latest->getPolkurierNumber(),
@@ -143,7 +144,7 @@ readonly class ActualShippingUpdater
         }
         $this->shippingChoiceRepository->deleteForOrder($orderId);
         if ($note) {
-            $this->nativeFollowUpService->comment($order, __(
+            $this->nativeFollowUpService->addComment($order, __(
                 'Shipping method changed back to the customer\'s choice: %1.',
                 (string)$choice->getShippingDescription(),
             ));
@@ -174,20 +175,24 @@ readonly class ActualShippingUpdater
         }
     }
 
-    private function latestPlaced(int $orderId): ?ShipmentInterface
+    private function findLatestPlaced(int $orderId): ?ShipmentInterface
     {
-        return $this->shipmentFinder->latestForOrder($orderId, [ShipmentInterface::STATE_CREATED]);
+        return $this->shipmentFinder->findLatestForOrder($orderId, [ShipmentInterface::STATE_CREATED]);
     }
 
     /**
      * @return array{0: string, 1: string} the carrier code and the pickup point id ('' without one)
      */
-    private function sentTo(ShipmentInterface $shipment): array
+    private function getCarrierAndPoint(ShipmentInterface $shipment): array
     {
         // As Polkurier reports it, or as it was sent while that's not been read yet.
         $details = $shipment->getDetails() ?: $this->sentOrderReader->read((string)$shipment->getRequest());
-        $recipient = \is_array($details['recipient'] ?? null) ? $details['recipient'] : [];
+        $recipient = $details[ShipmentDetailsInterface::FIELD_RECIPIENT] ?? null;
+        $recipient = \is_array($recipient) ? $recipient : [];
 
-        return [$shipment->getCarrierCode(), (string)($recipient['point_id'] ?? '')];
+        return [
+            $shipment->getCarrierCode(),
+            (string)($recipient[ShipmentDetailsInterface::FIELD_ADDRESS_POINT_ID] ?? ''),
+        ];
     }
 }

@@ -52,9 +52,11 @@ define([
                 // The postcode alone: a city changed afterwards can't contradict it.
                 String(this.source.get('data.recipient_postcode') || '').trim(),
                 function (pointId, point) {
+                    this.source.set(
+                        'data.point_details',
+                        pointsMap.addPoint(this.source.get('data.point_details'), pointId, point)
+                    );
                     this.value(pointId);
-                    this.source.set('data.recipient_point_label', pointsMap.describe(point));
-                    this.source.set('data.recipient_point_label_id', pointId);
                 }.bind(this)
             );
         }

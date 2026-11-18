@@ -12,8 +12,8 @@ use Polkurier\Shipping\Model\Sdk\ShipmentGateway;
 use Polkurier\Shipping\Model\Shipment\Status\RemoteOrderApplier;
 use Polkurier\Shipping\Test\Unit\Support\FixedDateTime;
 use Polkurier\Shipping\Test\Unit\Support\SdkTestCase;
-use Polkurier\Webservice\Request\Order\GetOrdersMessage;
-use Polkurier\Webservice\Request\Order\GetStatusMessage;
+use Polkurier\Webservice\Dto\Request\Order\GetOrdersMessage;
+use Polkurier\Webservice\Dto\Request\Order\GetStatusMessage;
 use Polkurier\Webservice\Testing\RecordingClient;
 
 #[CoversClass(RemoteOrderApplier::class)]
@@ -21,13 +21,13 @@ class RemoteOrderApplierDetailsTest extends SdkTestCase
 {
     public function testOrderIsCopiedWithAddressesPacksCodAndCost(): void
     {
-        $http = new RecordingClient(self::fixture('get_orders.json'));
-        $order = $this->clientPool($http)
-            ->orders()
+        $http = new RecordingClient(self::loadFixture('get_orders.json'));
+        $order = $this->createClientPool($http)
+            ->getOrders()
             ->getOrders(new GetOrdersMessage(orderNo: '12345-678'))
-            ->getResult()[0];
+            ->result[0];
 
-        $details = (new RemoteOrderApplier(new FixedDateTime(), $this->createStub(ShipmentGateway::class)))->fromOrder($order);
+        $details = $this->createApplier()->mapFromOrder($order);
 
         self::assertSame('12345-678', $details['number']);
         self::assertSame('2026-06-20 10:59:43', $details['date']);
@@ -56,7 +56,7 @@ class RemoteOrderApplierDetailsTest extends SdkTestCase
 
     public function testScansAreListedNewestFirst(): void
     {
-        $http = new RecordingClient(self::success([
+        $http = new RecordingClient(self::encodeSuccess([
             'status' => 'Dostarczone',
             'status_code' => 'D',
             'status_date' => '2026-06-25 17:20',
@@ -69,9 +69,11 @@ class RemoteOrderApplierDetailsTest extends SdkTestCase
                     'tracking_status' => 'DELIVERED', 'location' => 'Warszawa', 'description' => 'Przesyłka doręczona'],
             ],
         ]));
-        $status = $this->clientPool($http)->orders()->getStatus(new GetStatusMessage('12345-678', tracking: true));
+        $status = $this->createClientPool($http)->getOrders()->getStatus(
+            new GetStatusMessage('12345-678', tracking: true),
+        );
 
-        $tracking = (new RemoteOrderApplier(new FixedDateTime(), $this->createStub(ShipmentGateway::class)))->tracking($status);
+        $tracking = $this->createApplier()->mapTracking($status);
 
         self::assertSame(['2026-06-25 09:00:00', '2026-06-24 08:00:00'], \array_column($tracking, 'date'));
         self::assertSame('Warszawa', $tracking[0]['location']);
@@ -80,7 +82,7 @@ class RemoteOrderApplierDetailsTest extends SdkTestCase
 
     public function testAScanPolkurierDoesntDescribeIsDescribedInTheCarriersWords(): void
     {
-        $http = new RecordingClient(self::success([
+        $http = new RecordingClient(self::encodeSuccess([
             'status' => 'Oczekuje na odbiór',
             'status_code' => 'OC',
             'status_date' => '2026-10-05 12:47',
@@ -105,13 +107,20 @@ class RemoteOrderApplierDetailsTest extends SdkTestCase
                 ],
             ],
         ]));
-        $status = $this->clientPool($http)->orders()->getStatus(new GetStatusMessage('12345-678', tracking: true));
+        $status = $this->createClientPool($http)->getOrders()->getStatus(
+            new GetStatusMessage('12345-678', tracking: true),
+        );
 
-        $tracking = (new RemoteOrderApplier(new FixedDateTime(), $this->createStub(ShipmentGateway::class)))->tracking($status);
+        $tracking = $this->createApplier()->mapTracking($status);
 
         self::assertSame('Przygotowana przez Nadawcę, oczekuje na odbiór', $tracking[0]['description']);
         self::assertSame('', $tracking[0]['location']);
         // Not the status again.
         self::assertSame('', $tracking[1]['description']);
+    }
+
+    private function createApplier(): RemoteOrderApplier
+    {
+        return new RemoteOrderApplier(new FixedDateTime(), $this->createStub(ShipmentGateway::class));
     }
 }

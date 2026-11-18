@@ -16,7 +16,7 @@ use Magento\Shipping\Helper\Carrier as CarrierHelper;
  */
 final class MagentoMeasures
 {
-    public static function carrierHelper(): CarrierHelper
+    public static function createCarrierHelper(): CarrierHelper
     {
         $locale = new class implements ResolverInterface {
             public function getDefaultLocalePath()

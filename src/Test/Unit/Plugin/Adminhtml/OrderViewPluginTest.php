@@ -23,23 +23,23 @@ class OrderViewPluginTest extends TestCase
 {
     public function testTheButtonShowsWhileAPolkurierOrderCanBePlaced(): void
     {
-        self::assertSame([ShipButtonPositionPlugin::BUTTON], $this->buttons('polkurier_DPD', canPlace: true));
+        self::assertSame([ShipButtonPositionPlugin::BUTTON], $this->collectButtons('polkurier_DPD', canPlace: true));
     }
 
     public function testWithNothingToPlaceAPolkurierOrderForThereIsNoButton(): void
     {
-        self::assertSame([], $this->buttons('polkurier_DPD', canPlace: false));
+        self::assertSame([], $this->collectButtons('polkurier_DPD', canPlace: false));
     }
 
     public function testOrdersOfOtherCarriersGetNoButton(): void
     {
-        self::assertSame([], $this->buttons('flatrate_flatrate', canPlace: true));
+        self::assertSame([], $this->collectButtons('flatrate_flatrate', canPlace: true));
     }
 
     /**
      * @return string[] the ids of the buttons added
      */
-    private function buttons(string $shippingMethod, bool $canPlace): array
+    private function collectButtons(string $shippingMethod, bool $canPlace): array
     {
         $order = $this->createStub(Order::class);
         $order->method('getShippingMethod')->willReturn($shippingMethod);

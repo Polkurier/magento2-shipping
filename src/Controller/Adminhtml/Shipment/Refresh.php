@@ -21,16 +21,17 @@ use Polkurier\Shipping\Model\Shipment\Details\DetailsLoader;
  */
 class Refresh extends AbstractShipmentAction implements HttpPostActionInterface
 {
-    public const string ADMIN_RESOURCE = 'Polkurier_Shipping::shipments';
+    public const string ADMIN_RESOURCE = 'Magento_Sales::shipment';
+    public const string ROUTE = 'polkurier/shipment/refresh';
 
     public function __construct(
         Context $context,
-        RequestedShipments $requestedShipments,
+        RequestedShipmentResolver $requestedShipmentResolver,
         private readonly ShipmentManagementInterface $shipmentManagement,
         private readonly DetailsLoader $detailsLoader,
         private readonly FlashMessageCollectorFactory $flashMessageCollectorFactory,
     ) {
-        parent::__construct($context, $requestedShipments);
+        parent::__construct($context, $requestedShipmentResolver);
     }
 
     public function execute(): Redirect
@@ -42,19 +43,19 @@ class Refresh extends AbstractShipmentAction implements HttpPostActionInterface
             } catch (LocalizedException $e) {
                 $this->messageManager->addErrorMessage($e->getMessage());
 
-                return $this->back();
+                return $this->redirectBack();
             }
-            $flash = $this->flashMessageCollectorFactory->create()->success(
+            $flash = $this->flashMessageCollectorFactory->create()->addSuccess(
                 __('Polkurier order %1: %2.', $shipment->getPolkurierNumber(), (string)$shipment->getStatusLabel()),
             );
             try {
                 $this->detailsLoader->refreshTracking($shipment);
             } catch (LocalizedException $e) {
-                $flash->warning($e->getMessage());
+                $flash->addWarning($e->getMessage());
             }
             $flash->send($this->messageManager);
         }
 
-        return $this->back();
+        return $this->redirectBack();
     }
 }

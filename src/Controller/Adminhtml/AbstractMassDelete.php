@@ -55,13 +55,13 @@ abstract class AbstractMassDelete extends AbstractAction implements HttpPostActi
                 }
             }
         } catch (LocalizedException $e) {
-            $flash->error($e->getMessage());
+            $flash->addError($e->getMessage());
         }
         if ($deleted > 0 || $refused === []) {
-            $flash->success(__('%1 deleted.', $deleted));
+            $flash->addSuccess(__('%1 deleted.', $deleted));
         }
         if ($failed > 0) {
-            $flash->warning(__(
+            $flash->addWarning(__(
                 'Polkurier hasn\'t deleted %1 of them yet: %2 They\'re tried again with the next synchronization.',
                 $failed,
                 \implode(' ', \array_unique($errors)),
@@ -69,7 +69,7 @@ abstract class AbstractMassDelete extends AbstractAction implements HttpPostActi
         }
         if ($refused !== []) {
             $notDeleted = __('%1 not deleted: %2', \count($refused), \implode(' ', \array_unique($refused)));
-            $deleted > 0 ? $flash->warning($notDeleted) : $flash->error($notDeleted);
+            $deleted > 0 ? $flash->addWarning($notDeleted) : $flash->addError($notDeleted);
         }
         $flash->send($this->messageManager);
 

@@ -11,7 +11,10 @@ use Magento\Framework\App\Request\DataPersistorInterface;
 use Magento\Framework\Exception\LocalizedException;
 use Magento\Framework\UrlInterface;
 use Polkurier\Shipping\Api\BankAccountRepositoryInterface;
+use Polkurier\Shipping\Controller\Adminhtml\Payout\Quote as PayoutQuote;
+use Polkurier\Shipping\Controller\Adminhtml\Payout\SendCode as PayoutSendCode;
 use Polkurier\Shipping\Enum\Adminhtml\FormMemoryEnum;
+use Polkurier\Shipping\Model\Admin\Formatter;
 use Polkurier\Shipping\Model\BankAccount\BankAccountMapper;
 use Polkurier\Shipping\Model\Config\ConfigProvider;
 use Polkurier\Shipping\Model\Payout\MoneyBoxOrderFinder;
@@ -40,6 +43,7 @@ class DataProvider extends FormDataProvider
         private readonly DataPersistorInterface $dataPersistor,
         private readonly BankAccountRepositoryInterface $bankAccountRepository,
         private readonly MoneyBoxOrderFinder $moneyBoxOrderFinder,
+        private readonly Formatter $formatter,
         array $meta = [],
         array $data = [],
     ) {
@@ -54,10 +58,10 @@ class DataProvider extends FormDataProvider
     {
         $meta = parent::getMeta();
         $meta['payout']['children']['bank_account_choice']['arguments']['data']['config']['options']
-            = $this->accountOptions();
+            = $this->getAccountOptions();
         // The number field shows only when another account is chosen.
-        $meta['payout']['children']['bank_account_number']['arguments']['data']['config']['shownWhen']['bank_account_choice']
-            = PayoutManager::ANOTHER_ACCOUNT;
+        $meta['payout']['children']['bank_account_number']['arguments']['data']['config']['shownWhen']
+            ['bank_account_choice'] = PayoutManager::ANOTHER_ACCOUNT;
 
         return $meta;
     }
@@ -66,22 +70,23 @@ class DataProvider extends FormDataProvider
     {
         $data = [
             'urls' => [
-                'quote' => $this->url->getUrl('polkurier/payout/quote'),
-                'send_code' => $this->url->getUrl('polkurier/payout/sendCode'),
+                'quote' => $this->url->getUrl(PayoutQuote::ROUTE),
+                'send_code' => $this->url->getUrl(PayoutSendCode::ROUTE),
             ],
+            'price_format' => $this->formatter->getPriceFormat(),
         ];
         if ($this->configProvider->hasCredentials()) {
             try {
                 $config = $this->payoutManager->getConfig();
-                $data['payout_type'] = $config->getPayoutType()->value;
-                $data['fee_payment_type'] = $config->getFeePayment()->value;
-                $data['bank_account_number'] = BankAccountMapper::normalizeNumber((string)$config->getIban());
+                $data['payout_type'] = $config->payoutType?->value;
+                $data['fee_payment_type'] = $config->feePayment?->value;
+                $data['bank_account_number'] = BankAccountMapper::normalizeNumber($config->bankAccountNumber);
             } catch (LocalizedException) {
                 // The form still opens; Polkurier reports the problem again on submit.
             }
-            $data['orders'] = \implode("\n", $this->moneyBoxOrderFinder->numbers());
+            $data['orders'] = \implode("\n", $this->moneyBoxOrderFinder->findNumbers());
         }
-        $data['bank_account_choice'] = $this->accountChoice((string)($data['bank_account_number'] ?? ''));
+        $data['bank_account_choice'] = $this->getAccountChoice((string)($data['bank_account_number'] ?? ''));
         // What was chosen, when requesting the payout failed.
         $persisted = $this->dataPersistor->get(FormMemoryEnum::Payout->value);
         if (\is_array($persisted)) {
@@ -98,7 +103,7 @@ class DataProvider extends FormDataProvider
      *
      * @return array<int, array{value: string, label: string}>
      */
-    private function accountOptions(): array
+    private function getAccountOptions(): array
     {
         $options = [];
         foreach ($this->bankAccountRepository->getAvailable() as $account) {
@@ -115,11 +120,11 @@ class DataProvider extends FormDataProvider
      * the default one when the money box names none; otherwise another account, with the money
      * box's number typed in.
      */
-    private function accountChoice(string $number): string
+    private function getAccountChoice(string $number): string
     {
         $accounts = $this->bankAccountRepository->getAvailable();
         foreach ($accounts as $account) {
-            if (self::sameAccount($account->getNumber(), $number)) {
+            if (self::isSameAccount($account->getNumber(), $number)) {
                 return BankAccountMapper::normalizeNumber($account->getNumber());
             }
         }
@@ -133,7 +138,7 @@ class DataProvider extends FormDataProvider
     /**
      * Whether two numbers are the same account, written with or without spaces and the country code.
      */
-    private static function sameAccount(string $one, string $other): bool
+    private static function isSameAccount(string $one, string $other): bool
     {
         $digits = static fn(string $number): string => (string)\preg_replace(
             '/^PL/i',

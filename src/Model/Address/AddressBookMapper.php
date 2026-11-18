@@ -9,11 +9,10 @@ namespace Polkurier\Shipping\Model\Address;
 
 use Polkurier\Shipping\Api\Data\AddressInterface;
 use Polkurier\Shipping\Model\Carrier\Polkurier;
-use Polkurier\Webservice\Builder\Address\SaveMessageBuilderFactory;
+use Polkurier\Webservice\Builder\Entity\AddressBuilderFactory;
+use Polkurier\Webservice\Dto\Request\Address\DeleteMessage;
+use Polkurier\Webservice\Entity\Address;
 use Polkurier\Webservice\Enum\Address\AddressTypeEnum;
-use Polkurier\Webservice\Request\Address\DeleteMessage;
-use Polkurier\Webservice\Request\Address\SaveMessage;
-use Polkurier\Webservice\Response\Address;
 
 /**
  * Maps address book entries between Magento and the Polkurier account.
@@ -21,7 +20,7 @@ use Polkurier\Webservice\Response\Address;
 readonly class AddressBookMapper
 {
     public function __construct(
-        private SaveMessageBuilderFactory $saveMessageBuilderFactory,
+        private AddressBuilderFactory $addressBuilderFactory,
     ) {}
 
     /**
@@ -34,7 +33,8 @@ readonly class AddressBookMapper
         return [
             AddressInterface::FIELD_EXT_ID => $address->getId(),
             AddressInterface::FIELD_NAME => $address->getName(),
-            AddressInterface::FIELD_TYPE => $address->getType()->value,
+            // Only sender addresses are asked for and saved.
+            AddressInterface::FIELD_TYPE => $address->getType()->value ?? AddressInterface::TYPE_SENDER,
             AddressInterface::FIELD_PERSON => $address->getPerson(),
             AddressInterface::FIELD_COMPANY => $address->getCompany() ?: null,
             AddressInterface::FIELD_STREET => $address->getStreet(),
@@ -44,7 +44,6 @@ readonly class AddressBookMapper
             AddressInterface::FIELD_POSTCODE => $address->getPostcode(),
             AddressInterface::FIELD_PROVINCE => $address->getProvince() ?: null,
             AddressInterface::FIELD_COUNTRY => $address->getCountry() ?: Polkurier::HOME_COUNTRY,
-            AddressInterface::FIELD_POINT_ID => $address->getPointId() ?: null,
             AddressInterface::FIELD_EMAIL => $address->getEmail(),
             AddressInterface::FIELD_PHONE => $address->getPhone(),
             AddressInterface::FIELD_IS_DEFAULT => $address->isDefault(),
@@ -54,15 +53,12 @@ readonly class AddressBookMapper
     }
 
     /**
-     * Fields Polkurier can't keep stay as Magento has them: a sender's drop-off point (Polkurier
-     * keeps points for recipients only) and the province when Polkurier has none (it knows no
-     * Polish ones).
+     * The province stays as Magento has it when Polkurier has none: Polkurier knows no Polish ones.
      *
      * @param array<string, mixed> $remote as returned by {@see normalize()}
      */
     public function apply(array $remote, AddressInterface $address): void
     {
-        $sender = (string)$remote[AddressInterface::FIELD_TYPE] === AddressInterface::TYPE_SENDER;
         $extId = $remote[AddressInterface::FIELD_EXT_ID] ?? null;
         $address->setExtId($extId !== null ? (string)$extId : null)
             ->setName((string)$remote[AddressInterface::FIELD_NAME])
@@ -76,7 +72,6 @@ readonly class AddressBookMapper
             ->setPostcode((string)$remote[AddressInterface::FIELD_POSTCODE])
             ->setProvince(($remote[AddressInterface::FIELD_PROVINCE] ?? null) ?: $address->getProvince())
             ->setCountry((string)$remote[AddressInterface::FIELD_COUNTRY])
-            ->setPointId($sender ? $address->getPointId() : $remote[AddressInterface::FIELD_POINT_ID])
             ->setEmail((string)$remote[AddressInterface::FIELD_EMAIL])
             ->setPhone((string)$remote[AddressInterface::FIELD_PHONE])
             ->setDefault((bool)$remote[AddressInterface::FIELD_IS_DEFAULT])
@@ -84,30 +79,29 @@ readonly class AddressBookMapper
             ->setShared((bool)$remote[AddressInterface::FIELD_SHARED]);
     }
 
-    public function toSaveMessage(AddressInterface $address): SaveMessage
+    public function mapToRecord(AddressInterface $address): Address
     {
-        return $this->saveMessageBuilderFactory->create()
-            ->name($address->getName())
-            ->person($address->getPerson())
-            ->street($address->getStreet())
-            ->houseNumber($address->getHouseNumber())
-            ->postcode($address->getPostcode())
-            ->city($address->getCity())
-            ->email($address->getEmail())
-            ->phone($address->getPhone())
-            ->id($address->getExtId())
-            ->type(AddressTypeEnum::tryFrom($address->getType()) ?? AddressTypeEnum::Sender)
-            ->company($address->getCompany() ?: null)
-            ->flatNumber($address->getFlatNumber() ?: null)
-            ->province($address->getProvince() ?: null)
-            ->country($address->getCountry() ?: Polkurier::HOME_COUNTRY)
-            ->pointId($address->getPointId() ?: null)
-            ->default($address->isDefault())
-            ->coverAddress($address->isCover())
+        return $this->addressBuilderFactory->create()
+            ->setName($address->getName())
+            ->setPerson($address->getPerson())
+            ->setStreet($address->getStreet())
+            ->setHouseNumber($address->getHouseNumber())
+            ->setPostcode($address->getPostcode())
+            ->setCity($address->getCity())
+            ->setEmail($address->getEmail())
+            ->setPhone($address->getPhone())
+            ->setId($address->getExtId())
+            ->setType(AddressTypeEnum::tryFrom($address->getType()) ?? AddressTypeEnum::Sender)
+            ->setCompany($address->getCompany() ?: null)
+            ->setFlatNumber($address->getFlatNumber() ?: null)
+            ->setProvince($address->getProvince() ?: null)
+            ->setCountry($address->getCountry() ?: Polkurier::HOME_COUNTRY)
+            ->setDefault($address->isDefault())
+            ->setCoverAddress($address->isCover())
             ->build();
     }
 
-    public function toDeleteMessage(AddressInterface $address): DeleteMessage
+    public function mapToDeleteMessage(AddressInterface $address): DeleteMessage
     {
         return new DeleteMessage(
             id: (string)$address->getExtId(),

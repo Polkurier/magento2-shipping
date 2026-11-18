@@ -19,6 +19,7 @@ use Polkurier\Shipping\Model\BankAccount\Publisher;
 class SendCode extends AbstractJsonAction
 {
     public const string ADMIN_RESOURCE = 'Polkurier_Shipping::bank_accounts';
+    public const string ROUTE = 'polkurier/bankaccount/sendCode';
 
     public function __construct(
         Context $context,
@@ -32,6 +33,6 @@ class SendCode extends AbstractJsonAction
     {
         $token = $this->publisher->requestCode();
 
-        return ['token' => $token->getId(), 'message' => FlashMessageCollector::codeSent($token)];
+        return ['token' => $token->id, 'message' => FlashMessageCollector::formatCodeSent($token)];
     }
 }

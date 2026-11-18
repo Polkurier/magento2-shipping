@@ -20,15 +20,16 @@ use Polkurier\Shipping\Model\Shipment\Status\StatusRefreshService;
  */
 class MassRefresh extends AbstractShipmentAction implements HttpPostActionInterface
 {
-    public const string ADMIN_RESOURCE = 'Polkurier_Shipping::shipments';
+    public const string ADMIN_RESOURCE = 'Magento_Sales::shipment';
+    public const string ROUTE = 'polkurier/shipment/massRefresh';
 
     public function __construct(
         Context $context,
-        RequestedShipments $requestedShipments,
+        RequestedShipmentResolver $requestedShipmentResolver,
         private readonly StatusRefreshService $statusRefreshService,
         private readonly FlashMessageCollectorFactory $flashMessageCollectorFactory,
     ) {
-        parent::__construct($context, $requestedShipments);
+        parent::__construct($context, $requestedShipmentResolver);
     }
 
     public function execute(): Redirect
@@ -53,15 +54,15 @@ class MassRefresh extends AbstractShipmentAction implements HttpPostActionInterf
                 }
             }
         } catch (LocalizedException $e) {
-            $flash->error($e->getMessage());
+            $flash->addError($e->getMessage());
         }
-        $flash->success(__('%1 shipment(s) updated.', $refreshed));
+        $flash->addSuccess(__('%1 shipment(s) updated.', $refreshed));
         if ($failed !== []) {
             $notUpdated = __('Not updated: %1', \implode('; ', $failed));
-            $refreshed > 0 ? $flash->warning($notUpdated) : $flash->error($notUpdated);
+            $refreshed > 0 ? $flash->addWarning($notUpdated) : $flash->addError($notUpdated);
         }
         $flash->send($this->messageManager);
 
-        return $this->back();
+        return $this->redirectBack();
     }
 }

@@ -12,12 +12,13 @@ use PHPUnit\Framework\Attributes\AllowMockObjectsWithoutExpectations;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
+use Polkurier\Shipping\Api\PolkurierClientInterface;
 use Polkurier\Shipping\Api\ShipmentManagementInterface;
 use Polkurier\Shipping\Logger\Logger;
 use Polkurier\Shipping\Model\Config\ConfigProvider;
 use Polkurier\Shipping\Model\Shipment\ShipmentFinder;
 use Polkurier\Shipping\Model\Shipment\Status\StatusWebhookHandler;
-use Polkurier\Webservice\Webhook\OrderWebhookReader;
+use Polkurier\Webservice\Webhook\OrderReader;
 
 #[CoversClass(StatusWebhookHandler::class)]
 #[AllowMockObjectsWithoutExpectations]
@@ -37,9 +38,9 @@ class StatusWebhookHandlerTest extends TestCase
 
     public function testAnEventSignedWithTheSecretRefreshesItsShipment(): void
     {
-        $webhook = $this->webhook([31]);
+        $webhook = $this->createHandler([31]);
 
-        self::assertSame(StatusWebhookHandler::RECEIVED, $webhook->receive($this->body('UPDATED', '24680-27')));
+        self::assertSame(StatusWebhookHandler::RECEIVED, $webhook->receive($this->buildBody('UPDATED', '24680-27')));
         self::assertSame([31], $this->refreshed);
         self::assertSame(
             [['24680-27'], [ShipmentInterface::STATE_CREATED]],
@@ -53,20 +54,20 @@ class StatusWebhookHandlerTest extends TestCase
         // Polkurier's staff cancel with an UPDATED event; the order read again says it's cancelled.
         self::assertSame(
             StatusWebhookHandler::RECEIVED,
-            $this->webhook([31])->receive($this->body('UPDATED', '24680-27', ['status_code' => 'CANCELED'])),
+            $this->createHandler([31])->receive($this->buildBody('UPDATED', '24680-27', ['status_code' => 'CANCELED'])),
         );
         self::assertSame([31], $this->refreshed);
     }
 
     public function testTheSignatureCoversTheWholeBody(): void
     {
-        $body = $this->body('UPDATED', '24680-27');
+        $body = $this->buildBody('UPDATED', '24680-27');
 
         self::assertSame(
             StatusWebhookHandler::REFUSED,
-            $this->webhook([31])->receive(\str_replace('24680-27', '24680-28', $body)),
+            $this->createHandler([31])->receive(\str_replace('24680-27', '24680-28', $body)),
         );
-        self::assertSame(StatusWebhookHandler::REFUSED, $this->webhook([31], 'another-secret')->receive($body));
+        self::assertSame(StatusWebhookHandler::REFUSED, $this->createHandler([31], 'another-secret')->receive($body));
         self::assertSame([], $this->refreshed);
     }
 
@@ -74,17 +75,17 @@ class StatusWebhookHandlerTest extends TestCase
     {
         self::assertSame(
             StatusWebhookHandler::REFUSED,
-            $this->webhook([31], '')->receive($this->body('UPDATED', '24680-27')),
+            $this->createHandler([31], '')->receive($this->buildBody('UPDATED', '24680-27')),
         );
         self::assertSame([], $this->refreshed);
     }
 
     public function testAFieldAddedToASignedEventOrAnUnsignedOneIsRefused(): void
     {
-        $body = $this->body('UPDATED', '24680-27') . '&data%5Bnumber%5D=1';
+        $body = $this->buildBody('UPDATED', '24680-27') . '&data%5Bnumber%5D=1';
 
-        self::assertSame(StatusWebhookHandler::REFUSED, $this->webhook([31])->receive($body));
-        self::assertSame(StatusWebhookHandler::REFUSED, $this->webhook([31])->receive('type=UPDATED'));
+        self::assertSame(StatusWebhookHandler::REFUSED, $this->createHandler([31])->receive($body));
+        self::assertSame(StatusWebhookHandler::REFUSED, $this->createHandler([31])->receive('type=UPDATED'));
         self::assertSame([], $this->refreshed);
     }
 
@@ -93,7 +94,10 @@ class StatusWebhookHandlerTest extends TestCase
         $fields = ['type' => 'UPDATED', 'data' => ['note' => 'not an order']];
         $fields['hash'] = \hash_hmac('sha256', \http_build_query($fields), self::SECRET);
 
-        self::assertSame(StatusWebhookHandler::RECEIVED, $this->webhook([31])->receive(\http_build_query($fields)));
+        self::assertSame(
+            StatusWebhookHandler::RECEIVED,
+            $this->createHandler([31])->receive(\http_build_query($fields)),
+        );
         self::assertSame([], $this->refreshed);
     }
 
@@ -101,7 +105,7 @@ class StatusWebhookHandlerTest extends TestCase
     {
         self::assertSame(
             StatusWebhookHandler::RECEIVED,
-            $this->webhook([])->receive($this->body('CREATED', '24680-99')),
+            $this->createHandler([])->receive($this->buildBody('CREATED', '24680-99')),
         );
         self::assertSame([], $this->refreshed);
     }
@@ -110,7 +114,7 @@ class StatusWebhookHandlerTest extends TestCase
     {
         self::assertSame(
             StatusWebhookHandler::FAILED,
-            $this->webhook([31], self::SECRET, true)->receive($this->body('UPDATED', '24680-27')),
+            $this->createHandler([31], self::SECRET, true)->receive($this->buildBody('UPDATED', '24680-27')),
         );
     }
 
@@ -120,7 +124,7 @@ class StatusWebhookHandlerTest extends TestCase
      *
      * @param array<string, mixed> $more more order fields
      */
-    private function body(string $type, string $number, array $more = []): string
+    private function buildBody(string $type, string $number, array $more = []): string
     {
         $recorded = \json_decode((string)\file_get_contents(__DIR__ . '/../../../_files/get_orders.json'), true);
         $fields = ['type' => $type, 'data' => ['number' => $number] + $more + $recorded['response']['result'][0]];
@@ -132,7 +136,7 @@ class StatusWebhookHandlerTest extends TestCase
     /**
      * @param int[] $shipmentIds the shipments found by the number
      */
-    private function webhook(
+    private function createHandler(
         array $shipmentIds,
         string $secret = self::SECRET,
         bool $failing = false,
@@ -140,7 +144,7 @@ class StatusWebhookHandlerTest extends TestCase
         $config = $this->createStub(ConfigProvider::class);
         $config->method('getWebhookSecret')->willReturn($secret);
         $finder = $this->createStub(ShipmentFinder::class);
-        $finder->method('byNumbers')
+        $finder->method('findByNumbers')
             ->willReturnCallback(function (array $numbers, array $states) use ($shipmentIds): array {
                 $this->query = [$numbers, $states];
 
@@ -161,11 +165,14 @@ class StatusWebhookHandlerTest extends TestCase
             return $this->createStub(ShipmentInterface::class);
         });
 
+        $client = $this->createStub(PolkurierClientInterface::class);
+        $client->method('getOrderReader')->willReturn(new OrderReader());
+
         return new StatusWebhookHandler(
             $config,
             $finder,
             $management,
-            new OrderWebhookReader(),
+            $client,
             $this->createStub(Logger::class),
         );
     }

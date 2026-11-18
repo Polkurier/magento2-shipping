@@ -14,11 +14,11 @@ carrier the merchant switches on becomes one method: `polkurier_DPD`, `polkurier
 and so on. The method code is the carrier code on the Polkurier account. Three static helpers work
 with these codes:
 
-- [`Polkurier::methodCodeOf()`](../../src/Model/Carrier/Polkurier.php) extracts the carrier code
+- [`Polkurier::extractMethodCode()`](../../src/Model/Carrier/Polkurier.php) extracts the carrier code
   from a shipping method, or returns null for other carriers' methods;
 - [`Polkurier::isOrderOf()`](../../src/Model/Carrier/Polkurier.php) tells whether an order was
   placed with a Polkurier method;
-- [`Polkurier::methodOf()`](../../src/Model/Carrier/Polkurier.php) builds the method code from a
+- [`Polkurier::buildShippingMethod()`](../../src/Model/Carrier/Polkurier.php) builds the method code from a
   carrier code.
 
 Checkout offers the carriers that are switched on and that the account offers. Carriers for abroad

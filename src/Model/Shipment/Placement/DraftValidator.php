@@ -46,7 +46,7 @@ readonly class DraftValidator
         try {
             $this->validator->validate($this->createOrderMessageMapper->map($draft, $storeId));
         } catch (ValidationException $e) {
-            throw $this->errorMessageResolver->exception($e);
+            throw $this->errorMessageResolver->createException($e);
         }
     }
 

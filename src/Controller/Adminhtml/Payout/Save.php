@@ -15,6 +15,7 @@ use Magento\Framework\Controller\Result\Redirect;
 use Magento\Framework\Exception\LocalizedException;
 use Polkurier\Shipping\Controller\Adminhtml\ReadsPostDataTrait;
 use Polkurier\Shipping\Enum\Adminhtml\FormMemoryEnum;
+use Polkurier\Shipping\Model\Admin\Formatter;
 use Polkurier\Shipping\Model\Payout\PayoutManager;
 use Polkurier\Webservice\Enum\MoneyBox\MoneyBoxFeePaymentTypeEnum;
 use Polkurier\Webservice\Enum\MoneyBox\MoneyBoxPayoutTypeEnum;
@@ -27,6 +28,7 @@ class Save extends Action implements HttpPostActionInterface
     use ReadsPostDataTrait;
 
     public const string ADMIN_RESOURCE = 'Polkurier_Shipping::payout_request';
+    public const string ROUTE = 'polkurier/payout/save';
 
     private const array KEPT_FIELDS = [
         'orders',
@@ -40,6 +42,7 @@ class Save extends Action implements HttpPostActionInterface
         Context $context,
         private readonly PayoutManager $payoutManager,
         private readonly DataPersistorInterface $dataPersistor,
+        private readonly Formatter $formatter,
     ) {
         parent::__construct($context);
     }
@@ -59,16 +62,16 @@ class Save extends Action implements HttpPostActionInterface
                 (string)($data['two_factor_code'] ?? ''),
                 isset($data['security_pin']) ? (string)$data['security_pin'] : null,
                 $payoutType === MoneyBoxPayoutTypeEnum::Account
-                    ? PayoutManager::chosenAccount(
+                    ? PayoutManager::resolveChosenAccount(
                         (string)($data['bank_account_choice'] ?? PayoutManager::ANOTHER_ACCOUNT),
                         (string)($data['bank_account_number'] ?? ''),
                     )
                     : null,
             );
             $this->messageManager->addSuccessMessage(__(
-                'Payout %1 requested: %2 PLN.',
-                $payout->getNumber(),
-                \number_format($payout->getAmount(), 2),
+                'Payout %1 requested: %2.',
+                $payout->number,
+                $this->formatter->formatMoney($payout->amount),
             ));
         } catch (LocalizedException $e) {
             $this->messageManager->addErrorMessage($e->getMessage());

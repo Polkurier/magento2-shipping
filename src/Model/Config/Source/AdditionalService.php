@@ -13,13 +13,13 @@ use Polkurier\Webservice\Enum\Order\AdditionalServiceEnum;
  * Additional services that can be bought with a shipment, to choose from. The cover sender address
  * service isn't offered as a checkbox: it comes with the address chosen to print as the sender (the
  * shipment's cover address). Polkurier needs that address for the service, and switches the service
- * on by it. labels() still includes it, to name it in what was sent.
+ * on by it. getLabels() still includes it, to name it in what was sent.
  */
 readonly class AdditionalService extends AbstractOptions
 {
     public function toArray(): array
     {
-        $labels = self::labels();
+        $labels = self::getLabels();
         unset($labels[AdditionalServiceEnum::CoverSenderAddress->value]);
 
         return $labels;
@@ -28,7 +28,7 @@ readonly class AdditionalService extends AbstractOptions
     /**
      * @return array<string, string>
      */
-    public static function labels(): array
+    public static function getLabels(): array
     {
         return [
             AdditionalServiceEnum::SmsOnDispatch->value => (string)__('SMS notification when dispatched'),

@@ -17,9 +17,9 @@ use Polkurier\Shipping\Model\Sdk\ShipmentGateway;
 use Polkurier\Shipping\Model\Shipment\DocumentService;
 use Polkurier\Shipping\Model\Shipment\Status\StatusRefreshService;
 use Polkurier\Shipping\Test\Unit\Support\FixedDateTime;
+use Polkurier\Webservice\Dto\Request\Order\GetDocumentMessage;
+use Polkurier\Webservice\Dto\Response\Order\DocumentMessage;
 use Polkurier\Webservice\Enum\Order\LabelFileFormatEnum;
-use Polkurier\Webservice\Request\Order\GetDocumentMessage;
-use Polkurier\Webservice\Response\Order\DocumentMessage;
 
 #[CoversClass(DocumentService::class)]
 #[AllowMockObjectsWithoutExpectations]
@@ -51,16 +51,16 @@ class DocumentServiceTest extends TestCase
 
     public function testLabelsAreOnePdfOfThePlacedOrdersEachOnce(): void
     {
-        $file = $this->documents()->getLabels([
-            $this->shipment('18015-2865', 1, id: 1),
-            $this->shipment('18015-2866', 2, id: 2),
-            $this->shipment('18015-2865', 1, id: 1),
-            $this->shipment(null, 1, ShipmentInterface::STATE_UNKNOWN),
-            $this->shipment('18015-2867', 1, ShipmentInterface::STATE_CANCELLED),
+        $file = $this->createService()->getLabels([
+            $this->createShipment('18015-2865', 1, id: 1),
+            $this->createShipment('18015-2866', 2, id: 2),
+            $this->createShipment('18015-2865', 1, id: 1),
+            $this->createShipment(null, 1, ShipmentInterface::STATE_UNKNOWN),
+            $this->createShipment('18015-2867', 1, ShipmentInterface::STATE_CANCELLED),
         ]);
 
-        self::assertSame(['18015-2865', '18015-2866'], $this->asked?->getOrderNo());
-        self::assertNull($this->asked->getFileFormat());
+        self::assertSame(['18015-2865', '18015-2866'], $this->asked?->orderNo);
+        self::assertNull($this->asked->fileFormat);
         self::assertSame([
             'file_name' => 'polkurier-labels-20260930-100000.pdf',
             'content' => '%PDF-1.4',
@@ -77,16 +77,16 @@ class DocumentServiceTest extends TestCase
             3 => null,
         ];
 
-        $file = $this->documents()->getProtocol([
-            $this->shipment('24680-24', 1, id: 1),
-            $this->shipment('24680-25', 1, id: 2),
-            $this->shipment('24680-99', 1, id: 3),
+        $file = $this->createService()->getProtocol([
+            $this->createShipment('24680-24', 1, id: 1),
+            $this->createShipment('24680-25', 1, id: 2),
+            $this->createShipment('24680-99', 1, id: 3),
         ]);
 
         self::assertSame([[1, 2, 3]], $this->refreshed, 'Read together.');
         self::assertSame(
             ['24680-24'],
-            $this->asked?->getOrderNo(),
+            $this->asked?->orderNo,
             'Polkurier fails a whole protocol over one number it doesn\'t know.',
         );
         self::assertSame([
@@ -97,7 +97,7 @@ class DocumentServiceTest extends TestCase
 
     public function testOneIsAskedForStraightAway(): void
     {
-        $this->documents()->getLabels([$this->shipment('24680-24', 1, id: 1)]);
+        $this->createService()->getLabels([$this->createShipment('24680-24', 1, id: 1)]);
 
         self::assertSame([], $this->refreshed, 'Polkurier says itself when the only one asked for can\'t be printed.');
     }
@@ -110,9 +110,9 @@ class DocumentServiceTest extends TestCase
         );
 
         try {
-            $this->documents()->getLabels([
-                $this->shipment('24680-24', 1, id: 1),
-                $this->shipment('24680-25', 1, id: 2),
+            $this->createService()->getLabels([
+                $this->createShipment('24680-24', 1, id: 1),
+                $this->createShipment('24680-25', 1, id: 2),
             ]);
         } finally {
             self::assertNull($this->asked);
@@ -121,35 +121,38 @@ class DocumentServiceTest extends TestCase
 
     public function testAPrinterFormatMakesATextFileAndNoneAPdf(): void
     {
-        $documents = $this->documents();
+        $documents = $this->createService();
 
-        $zpl = $documents->getLabels([$this->shipment('18015-2865', 1)], LabelFileFormatEnum::Zpl);
-        self::assertSame(LabelFileFormatEnum::Zpl, $this->asked?->getFileFormat());
+        $zpl = $documents->getLabels([$this->createShipment('18015-2865', 1)], LabelFileFormatEnum::Zpl);
+        self::assertSame(LabelFileFormatEnum::Zpl, $this->asked?->fileFormat);
         self::assertSame(['polkurier-labels-18015-2865.txt', 'text/plain'], [$zpl['file_name'], $zpl['content_type']]);
 
-        $pdf = $documents->getLabels([$this->shipment('18015-2865', 1)]);
-        self::assertNull($this->asked->getFileFormat());
+        $pdf = $documents->getLabels([$this->createShipment('18015-2865', 1)]);
+        self::assertNull($this->asked->fileFormat);
         self::assertSame('application/pdf', $pdf['content_type']);
     }
 
     public function testAPdfAnswerToAPrinterFormatIsServedAsAPdf(): void
     {
-        $zpl = $this->documents(['18015-2865'])
-            ->getLabels([$this->shipment('18015-2865', 1)], LabelFileFormatEnum::Zpl);
+        $zpl = $this->createService(['18015-2865'])
+            ->getLabels([$this->createShipment('18015-2865', 1)], LabelFileFormatEnum::Zpl);
 
-        self::assertSame(['polkurier-labels-18015-2865.pdf', 'application/pdf'], [$zpl['file_name'], $zpl['content_type']]);
+        self::assertSame(
+            ['polkurier-labels-18015-2865.pdf', 'application/pdf'],
+            [$zpl['file_name'], $zpl['content_type']],
+        );
     }
 
     public function testSeveralOrdersInAPrinterLanguageAreAskedForOneByOneAndJoined(): void
     {
-        $zpl = $this->documents()->getLabels(
-            [$this->shipment('18015-2865', 1, id: 1), $this->shipment('18015-2866', 1, id: 2)],
+        $zpl = $this->createService()->getLabels(
+            [$this->createShipment('18015-2865', 1, id: 1), $this->createShipment('18015-2866', 1, id: 2)],
             LabelFileFormatEnum::Zpl,
         );
 
         self::assertSame(
             [['18015-2865'], ['18015-2866']],
-            \array_map(fn(GetDocumentMessage $m): array => $m->getOrderNo(), $this->askedAll),
+            \array_map(fn(GetDocumentMessage $m): array => $m->orderNo, $this->askedAll),
         );
         self::assertSame("^XA^FD18015-2865^FS^XZ\n^XA^FD18015-2866^FS^XZ", $zpl['content']);
         self::assertSame('text/plain', $zpl['content_type']);
@@ -157,13 +160,13 @@ class DocumentServiceTest extends TestCase
 
     public function testSeveralOrdersBecomeOnePdfWhenACarrierHasNoSuchPrinterLanguage(): void
     {
-        $file = $this->documents(['18015-2866'])->getLabels(
-            [$this->shipment('18015-2865', 1, id: 1), $this->shipment('18015-2866', 1, id: 2)],
+        $file = $this->createService(['18015-2866'])->getLabels(
+            [$this->createShipment('18015-2865', 1, id: 1), $this->createShipment('18015-2866', 1, id: 2)],
             LabelFileFormatEnum::Epl,
         );
 
-        self::assertSame(['18015-2865', '18015-2866'], $this->asked?->getOrderNo());
-        self::assertNull($this->asked->getFileFormat());
+        self::assertSame(['18015-2865', '18015-2866'], $this->asked?->orderNo);
+        self::assertNull($this->asked->fileFormat);
         self::assertSame(['%PDF-1.4', 'application/pdf'], [$file['content'], $file['content_type']]);
     }
 
@@ -175,11 +178,11 @@ class DocumentServiceTest extends TestCase
             '18015-2867' => "^XA^XZ\r\n",
         ];
 
-        $file = $this->documents()->getLabels(
+        $file = $this->createService()->getLabels(
             [
-                $this->shipment('18015-2865', 1, id: 1),
-                $this->shipment('18015-2866', 1, id: 2),
-                $this->shipment('18015-2867', 1, id: 3),
+                $this->createShipment('18015-2865', 1, id: 1),
+                $this->createShipment('18015-2866', 1, id: 2),
+                $this->createShipment('18015-2867', 1, id: 3),
             ],
             LabelFileFormatEnum::Datamax,
         );
@@ -195,12 +198,12 @@ class DocumentServiceTest extends TestCase
             '18015-2867' => '',
         ];
 
-        $file = $this->documents()->getLabels(
+        $file = $this->createService()->getLabels(
             [
-                $this->shipment('18015-2865', 1, id: 1),
-                $this->shipment('18015-2866', 1, id: 2),
-                $this->shipment('18015-2867', 1, id: 3),
-                $this->shipment('18015-2868', 1, id: 4),
+                $this->createShipment('18015-2865', 1, id: 1),
+                $this->createShipment('18015-2866', 1, id: 2),
+                $this->createShipment('18015-2867', 1, id: 3),
+                $this->createShipment('18015-2868', 1, id: 4),
             ],
             LabelFileFormatEnum::Zpl,
         );
@@ -224,17 +227,17 @@ class DocumentServiceTest extends TestCase
             '18015-2866' => '%PDF-1.4',
         ];
 
-        $file = $this->documents()->getLabels(
+        $file = $this->createService()->getLabels(
             [
-                $this->shipment('18015-2865', 1, id: 1),
-                $this->shipment('18015-2866', 1, id: 2),
-                $this->shipment('18015-2867', 1, id: 3),
+                $this->createShipment('18015-2865', 1, id: 1),
+                $this->createShipment('18015-2866', 1, id: 2),
+                $this->createShipment('18015-2867', 1, id: 3),
             ],
             LabelFileFormatEnum::Zpl,
         );
 
-        self::assertSame(['18015-2866', '18015-2867'], $this->asked?->getOrderNo());
-        self::assertNull($this->asked->getFileFormat());
+        self::assertSame(['18015-2866', '18015-2867'], $this->asked?->orderNo);
+        self::assertNull($this->asked->fileFormat);
         self::assertSame('application/pdf', $file['content_type']);
         self::assertSame(['Polkurier order 18015-2865 was left out: The label isn\'t ready yet.'], $file['left_out']);
     }
@@ -247,8 +250,8 @@ class DocumentServiceTest extends TestCase
         ];
         $this->expectExceptionMessage('The label isn\'t ready yet.');
 
-        $this->documents()->getLabels(
-            [$this->shipment('18015-2865', 1, id: 1), $this->shipment('18015-2866', 1, id: 2)],
+        $this->createService()->getLabels(
+            [$this->createShipment('18015-2865', 1, id: 1), $this->createShipment('18015-2866', 1, id: 2)],
             LabelFileFormatEnum::Zpl,
         );
     }
@@ -258,13 +261,13 @@ class DocumentServiceTest extends TestCase
         $this->labels = ['18015-2865' => ''];
         $this->expectExceptionMessage('Polkurier returned no label for 18015-2865.');
 
-        $this->documents()->getLabels([$this->shipment('18015-2865', 1)]);
+        $this->createService()->getLabels([$this->createShipment('18015-2865', 1)]);
     }
 
     /**
      * @return iterable<string, array{string, string, string}>
      */
-    public static function fileTypes(): iterable
+    public static function provideFileTypes(): iterable
     {
         yield 'PDF' => ['%PDF-1.4', 'pdf', 'application/pdf'];
         yield 'PDF after a byte order mark and whitespace' => ["\xEF\xBB\xBF \r\n%PDF-1.4", 'pdf', 'application/pdf'];
@@ -274,12 +277,12 @@ class DocumentServiceTest extends TestCase
         yield 'printer language' => ['^XA^XZ', 'txt', 'text/plain'];
     }
 
-    #[DataProvider('fileTypes')]
+    #[DataProvider('provideFileTypes')]
     public function testTheFileTypeIsReadFromTheContent(string $content, string $extension, string $contentType): void
     {
         $this->labels = ['18015-2865' => $content];
 
-        $file = $this->documents()->getLabels([$this->shipment('18015-2865', 1)]);
+        $file = $this->createService()->getLabels([$this->createShipment('18015-2865', 1)]);
 
         self::assertSame(
             ['polkurier-labels-18015-2865.' . $extension, $contentType, $content],
@@ -289,7 +292,7 @@ class DocumentServiceTest extends TestCase
 
     public function testUpToFiftyOrdersArePrintedInAPrinterLanguage(): void
     {
-        $file = $this->documents()->getLabels($this->shipments(50), LabelFileFormatEnum::Zpl);
+        $file = $this->createService()->getLabels($this->createShipments(50), LabelFileFormatEnum::Zpl);
 
         self::assertCount(50, $this->askedAll);
         self::assertSame([], $file['left_out']);
@@ -302,7 +305,7 @@ class DocumentServiceTest extends TestCase
         );
 
         try {
-            $this->documents()->getLabels($this->shipments(51), LabelFileFormatEnum::Zpl);
+            $this->createService()->getLabels($this->createShipments(51), LabelFileFormatEnum::Zpl);
         } finally {
             self::assertSame([], $this->askedAll);
             self::assertSame([], $this->refreshed);
@@ -311,16 +314,16 @@ class DocumentServiceTest extends TestCase
 
     public function testAPdfOfMoreOrdersIsOneRequest(): void
     {
-        $file = $this->documents()->getLabels($this->shipments(51));
+        $file = $this->createService()->getLabels($this->createShipments(51));
 
         self::assertCount(1, $this->askedAll);
-        self::assertCount(51, $this->asked?->getOrderNo() ?? []);
+        self::assertCount(51, $this->asked->orderNo ?? []);
         self::assertSame('application/pdf', $file['content_type']);
     }
 
     public function testTheProtocolIsNamedAfterItsOnlyOrder(): void
     {
-        $file = $this->documents()->getProtocol([$this->shipment('18015/2865', 1)]);
+        $file = $this->createService()->getProtocol([$this->createShipment('18015/2865', 1)]);
 
         self::assertSame('polkurier-protocol-18015_2865.pdf', $file['file_name']);
     }
@@ -330,7 +333,7 @@ class DocumentServiceTest extends TestCase
         $this->expectExceptionMessage('None of the selected shipments is a placed Polkurier order.');
 
         try {
-            $this->documents()->getLabels([$this->shipment(null, 1, ShipmentInterface::STATE_FAILED)]);
+            $this->createService()->getLabels([$this->createShipment(null, 1, ShipmentInterface::STATE_FAILED)]);
         } finally {
             self::assertNull($this->asked);
         }
@@ -339,24 +342,24 @@ class DocumentServiceTest extends TestCase
     /**
      * @param string[] $pdfFor orders whose carrier answers a printer language with a PDF
      */
-    private function documents(array $pdfFor = []): DocumentService
+    private function createService(array $pdfFor = []): DocumentService
     {
         $gateway = $this->createStub(ShipmentGateway::class);
         $answer = function (GetDocumentMessage $message) use ($pdfFor): DocumentMessage {
             $this->asked = $message;
             $this->askedAll[] = $message;
-            $orders = $message->getOrderNo();
+            $orders = $message->orderNo;
             $label = \count($orders) === 1 ? $this->labels[$orders[0]] ?? null : null;
             if ($label instanceof LocalizedException) {
                 throw $label;
             }
             if ($label !== null) {
-                return new DocumentMessage(\base64_encode($label));
+                return new DocumentMessage($label);
             }
-            $printer = $message->getFileFormat() !== null && \count($orders) === 1
+            $printer = $message->fileFormat !== null && \count($orders) === 1
                 && !\in_array($orders[0], $pdfFor, true);
 
-            return new DocumentMessage(\base64_encode($printer ? '^XA^FD' . $orders[0] . '^FS^XZ' : '%PDF-1.4'));
+            return new DocumentMessage($printer ? '^XA^FD' . $orders[0] . '^FS^XZ' : '%PDF-1.4');
         };
         $gateway->method('getLabel')->willReturnCallback($answer);
         $gateway->method('getProtocol')->willReturnCallback($answer);
@@ -371,7 +374,7 @@ class DocumentServiceTest extends TestCase
                     : ShipmentInterface::STATE_CREATED;
                 $results[$id] = $state === null
                     ? new LocalizedException(__('Polkurier has no order number %1 on this account.', '24680-99'))
-                    : $this->shipment('24680-' . $id, 1, $state, $id);
+                    : $this->createShipment('24680-' . $id, 1, $state, $id);
             }
 
             return $results;
@@ -387,15 +390,15 @@ class DocumentServiceTest extends TestCase
     /**
      * @return ShipmentInterface[] that many placed shipments, each with its own order
      */
-    private function shipments(int $count): array
+    private function createShipments(int $count): array
     {
         return \array_map(
-            fn(int $id): ShipmentInterface => $this->shipment('18015-' . (2800 + $id), 1, id: $id),
+            fn(int $id): ShipmentInterface => $this->createShipment('18015-' . (2800 + $id), 1, id: $id),
             \range(1, $count),
         );
     }
 
-    private function shipment(
+    private function createShipment(
         ?string $number,
         int $storeId,
         string $state = ShipmentInterface::STATE_CREATED,

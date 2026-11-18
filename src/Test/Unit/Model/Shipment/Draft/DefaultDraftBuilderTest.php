@@ -21,6 +21,7 @@ use Polkurier\Shipping\Logger\Logger;
 use Polkurier\Shipping\Model\Carrier\CarrierCatalog;
 use Polkurier\Shipping\Model\Carrier\CarrierFeatureResolver;
 use Polkurier\Shipping\Model\Config\ConfigProvider;
+use Polkurier\Shipping\Model\PickupPoint\DefaultSenderPointManager;
 use Polkurier\Shipping\Model\Shipment\Draft\DefaultDraftBuilder;
 use Polkurier\Shipping\Model\Shipment\Draft\Item;
 use Polkurier\Shipping\Model\Shipment\Draft\ItemFactory;
@@ -40,7 +41,7 @@ class DefaultDraftBuilderTest extends TestCase
 
     public function testTheDescriptionPutsTheOrderNumberWhereThePatternHasPercentS(): void
     {
-        $describe = new \ReflectionMethod(DefaultDraftBuilder::class, 'description');
+        $describe = new \ReflectionMethod(DefaultDraftBuilder::class, 'formatDescription');
 
         self::assertSame('#000000032', $describe->invoke(null, '#%s', '000000032'));
         self::assertSame('Sklep', $describe->invoke(null, 'Sklep', '000000032'));
@@ -144,6 +145,7 @@ class DefaultDraftBuilderTest extends TestCase
             $autoPacker,
             $this->createStub(Logger::class),
             $this->createStub(SenderMapper::class),
+            $this->createStub(DefaultSenderPointManager::class),
         );
         $order = $this->createStub(Order::class);
         $order->method('getStoreId')->willReturn(1);

@@ -7,7 +7,12 @@ declare(strict_types=1);
 
 namespace Polkurier\Shipping\Model;
 
+use Magento\Framework\Data\Collection\AbstractDb;
 use Magento\Framework\Model\AbstractModel;
+use Magento\Framework\Model\Context;
+use Magento\Framework\Model\ResourceModel\AbstractResource;
+use Magento\Framework\Registry;
+use Magento\Framework\Serialize\Serializer\Json;
 use Polkurier\Shipping\Api\Data\ShipmentInterface;
 
 /**
@@ -27,6 +32,20 @@ class Shipment extends AbstractModel implements ShipmentInterface
      */
     protected $_eventObject = 'shipment';
 
+    /**
+     * @param array<string, mixed> $data
+     */
+    public function __construct(
+        Context $context,
+        Registry $registry,
+        private readonly Json $json,
+        ?AbstractResource $resource = null,
+        ?AbstractDb $resourceCollection = null,
+        array $data = [],
+    ) {
+        parent::__construct($context, $registry, $resource, $resourceCollection, $data);
+    }
+
     public function getOrderId(): int
     {
         return (int)$this->getData(self::FIELD_ORDER_ID);
@@ -39,7 +58,7 @@ class Shipment extends AbstractModel implements ShipmentInterface
 
     public function getStoreId(): ?int
     {
-        return $this->nullableInt(self::FIELD_STORE_ID);
+        return $this->getNullableInt(self::FIELD_STORE_ID);
     }
 
     public function setStoreId(?int $storeId): static
@@ -49,7 +68,7 @@ class Shipment extends AbstractModel implements ShipmentInterface
 
     public function getShipmentId(): ?int
     {
-        return $this->nullableInt(self::FIELD_SHIPMENT_ID);
+        return $this->getNullableInt(self::FIELD_SHIPMENT_ID);
     }
 
     public function setShipmentId(?int $shipmentId): static
@@ -69,7 +88,7 @@ class Shipment extends AbstractModel implements ShipmentInterface
 
     public function getPolkurierNumber(): ?string
     {
-        return $this->nullableString(self::FIELD_POLKURIER_NUMBER);
+        return $this->getNullableString(self::FIELD_POLKURIER_NUMBER);
     }
 
     public function setPolkurierNumber(?string $polkurierNumber): static
@@ -99,7 +118,7 @@ class Shipment extends AbstractModel implements ShipmentInterface
 
     public function getRecipientPostcode(): ?string
     {
-        return $this->nullableString(self::FIELD_RECIPIENT_POSTCODE);
+        return $this->getNullableString(self::FIELD_RECIPIENT_POSTCODE);
     }
 
     public function setRecipientPostcode(?string $recipientPostcode): static
@@ -109,7 +128,7 @@ class Shipment extends AbstractModel implements ShipmentInterface
 
     public function getRecipientPhone(): ?string
     {
-        return $this->nullableString(self::FIELD_RECIPIENT_PHONE);
+        return $this->getNullableString(self::FIELD_RECIPIENT_PHONE);
     }
 
     public function setRecipientPhone(?string $recipientPhone): static
@@ -147,7 +166,7 @@ class Shipment extends AbstractModel implements ShipmentInterface
 
     public function getStatusCode(): ?string
     {
-        return $this->nullableString(self::FIELD_STATUS_CODE);
+        return $this->getNullableString(self::FIELD_STATUS_CODE);
     }
 
     public function setStatusCode(?string $statusCode): static
@@ -157,7 +176,7 @@ class Shipment extends AbstractModel implements ShipmentInterface
 
     public function getStatusLabel(): ?string
     {
-        return $this->nullableString(self::FIELD_STATUS_LABEL);
+        return $this->getNullableString(self::FIELD_STATUS_LABEL);
     }
 
     public function setStatusLabel(?string $statusLabel): static
@@ -167,7 +186,7 @@ class Shipment extends AbstractModel implements ShipmentInterface
 
     public function getStatusDate(): ?string
     {
-        return $this->nullableString(self::FIELD_STATUS_DATE);
+        return $this->getNullableString(self::FIELD_STATUS_DATE);
     }
 
     public function setStatusDate(?string $statusDate): static
@@ -177,7 +196,7 @@ class Shipment extends AbstractModel implements ShipmentInterface
 
     public function getDeliveredAt(): ?string
     {
-        return $this->nullableString(self::FIELD_DELIVERED_AT);
+        return $this->getNullableString(self::FIELD_DELIVERED_AT);
     }
 
     public function setDeliveredAt(?string $deliveredAt): static
@@ -187,7 +206,7 @@ class Shipment extends AbstractModel implements ShipmentInterface
 
     public function getTrackingUrl(): ?string
     {
-        return $this->nullableString(self::FIELD_TRACKING_URL);
+        return $this->getNullableString(self::FIELD_TRACKING_URL);
     }
 
     public function setTrackingUrl(?string $trackingUrl): static
@@ -197,7 +216,7 @@ class Shipment extends AbstractModel implements ShipmentInterface
 
     public function getPriceNet(): ?float
     {
-        return $this->nullableFloat(self::FIELD_PRICE_NET);
+        return $this->getNullableFloat(self::FIELD_PRICE_NET);
     }
 
     public function setPriceNet(?float $priceNet): static
@@ -207,7 +226,7 @@ class Shipment extends AbstractModel implements ShipmentInterface
 
     public function getPriceGross(): ?float
     {
-        return $this->nullableFloat(self::FIELD_PRICE_GROSS);
+        return $this->getNullableFloat(self::FIELD_PRICE_GROSS);
     }
 
     public function setPriceGross(?float $priceGross): static
@@ -217,7 +236,7 @@ class Shipment extends AbstractModel implements ShipmentInterface
 
     public function getInsuranceAmount(): ?float
     {
-        return $this->nullableFloat(self::FIELD_INSURANCE_AMOUNT);
+        return $this->getNullableFloat(self::FIELD_INSURANCE_AMOUNT);
     }
 
     public function setInsuranceAmount(?float $insuranceAmount): static
@@ -227,7 +246,7 @@ class Shipment extends AbstractModel implements ShipmentInterface
 
     public function getCodAmount(): ?float
     {
-        return $this->nullableFloat(self::FIELD_COD_AMOUNT);
+        return $this->getNullableFloat(self::FIELD_COD_AMOUNT);
     }
 
     public function setCodAmount(?float $codAmount): static
@@ -237,7 +256,7 @@ class Shipment extends AbstractModel implements ShipmentInterface
 
     public function getCodStatus(): ?string
     {
-        return $this->nullableString(self::FIELD_COD_STATUS);
+        return $this->getNullableString(self::FIELD_COD_STATUS);
     }
 
     public function setCodStatus(?string $codStatus): static
@@ -277,7 +296,7 @@ class Shipment extends AbstractModel implements ShipmentInterface
 
     public function getStatusCheckedAt(): ?string
     {
-        return $this->nullableString(self::FIELD_STATUS_CHECKED_AT);
+        return $this->getNullableString(self::FIELD_STATUS_CHECKED_AT);
     }
 
     public function setStatusCheckedAt(?string $statusCheckedAt): static
@@ -287,7 +306,7 @@ class Shipment extends AbstractModel implements ShipmentInterface
 
     public function getRequest(): ?string
     {
-        return $this->nullableString(self::FIELD_REQUEST);
+        return $this->getNullableString(self::FIELD_REQUEST);
     }
 
     public function setRequest(?string $request): static
@@ -298,7 +317,7 @@ class Shipment extends AbstractModel implements ShipmentInterface
     public function getDraft(): array
     {
         $draft = [];
-        foreach (self::decode($this->getData(self::FIELD_DRAFT)) as $key => $value) {
+        foreach ($this->decode($this->getData(self::FIELD_DRAFT)) as $key => $value) {
             $draft[(string)$key] = $value;
         }
 
@@ -308,23 +327,23 @@ class Shipment extends AbstractModel implements ShipmentInterface
     public function setDraft(?array $draft): static
     {
         // Nothing filled in means no draft.
-        return $this->setData(self::FIELD_DRAFT, $draft ? self::encode($draft) : null);
+        return $this->setData(self::FIELD_DRAFT, $draft ? $this->encode($draft) : null);
     }
 
     public function getDetails(): array
     {
-        return self::decode($this->getData(self::FIELD_DETAILS));
+        return $this->decode($this->getData(self::FIELD_DETAILS));
     }
 
     public function setDetails(?array $details): static
     {
         // Empty is read, with nothing to show; null is not read yet.
-        return $this->setData(self::FIELD_DETAILS, $details === null ? null : self::encode($details));
+        return $this->setData(self::FIELD_DETAILS, $details === null ? null : $this->encode($details));
     }
 
     public function getDetailsSyncedAt(): ?string
     {
-        return $this->nullableString(self::FIELD_DETAILS_SYNCED_AT);
+        return $this->getNullableString(self::FIELD_DETAILS_SYNCED_AT);
     }
 
     public function setDetailsSyncedAt(?string $syncedAt): static
@@ -334,18 +353,21 @@ class Shipment extends AbstractModel implements ShipmentInterface
 
     public function getTracking(): array
     {
-        return \array_values(self::decode($this->getData(self::FIELD_TRACKING)));
+        return \array_values($this->decode($this->getData(self::FIELD_TRACKING)));
     }
 
     public function setTracking(?array $tracking): static
     {
         // Empty is read, with no events yet; null is not read yet.
-        return $this->setData(self::FIELD_TRACKING, $tracking === null ? null : self::encode(\array_values($tracking)));
+        return $this->setData(
+            self::FIELD_TRACKING,
+            $tracking === null ? null : $this->encode(\array_values($tracking)),
+        );
     }
 
     public function getTrackingSyncedAt(): ?string
     {
-        return $this->nullableString(self::FIELD_TRACKING_SYNCED_AT);
+        return $this->getNullableString(self::FIELD_TRACKING_SYNCED_AT);
     }
 
     public function setTrackingSyncedAt(?string $syncedAt): static
@@ -356,7 +378,7 @@ class Shipment extends AbstractModel implements ShipmentInterface
     public function getShipItems(): array
     {
         $qtys = [];
-        foreach (self::decode($this->getData(self::FIELD_SHIP_ITEMS)) as $id => $qty) {
+        foreach ($this->decode($this->getData(self::FIELD_SHIP_ITEMS)) as $id => $qty) {
             $qtys[(int)$id] = (float)$qty;
         }
 
@@ -365,12 +387,12 @@ class Shipment extends AbstractModel implements ShipmentInterface
 
     public function setShipItems(?array $qtys): static
     {
-        return $this->setData(self::FIELD_SHIP_ITEMS, $qtys ? self::encode((object)$qtys) : null);
+        return $this->setData(self::FIELD_SHIP_ITEMS, $qtys ? $this->encode((object)$qtys) : null);
     }
 
     public function getTargetShipmentId(): ?int
     {
-        return $this->nullableInt(self::FIELD_TARGET_SHIPMENT_ID);
+        return $this->getNullableInt(self::FIELD_TARGET_SHIPMENT_ID);
     }
 
     public function setTargetShipmentId(?int $shipmentId): static
@@ -380,7 +402,7 @@ class Shipment extends AbstractModel implements ShipmentInterface
 
     public function getExternalOrderId(): ?string
     {
-        return $this->nullableString(self::FIELD_EXTERNAL_ORDER_ID);
+        return $this->getNullableString(self::FIELD_EXTERNAL_ORDER_ID);
     }
 
     public function setExternalOrderId(?string $externalOrderId): static
@@ -390,7 +412,7 @@ class Shipment extends AbstractModel implements ShipmentInterface
 
     public function getReservedShipmentNumber(): ?string
     {
-        return $this->nullableString(self::FIELD_RESERVED_SHIPMENT_NUMBER);
+        return $this->getNullableString(self::FIELD_RESERVED_SHIPMENT_NUMBER);
     }
 
     public function setReservedShipmentNumber(?string $number): static
@@ -401,7 +423,7 @@ class Shipment extends AbstractModel implements ShipmentInterface
     public function getShipPackages(): array
     {
         $packages = [];
-        foreach (self::decode($this->getData(self::FIELD_SHIP_PACKAGES)) as $number => $package) {
+        foreach ($this->decode($this->getData(self::FIELD_SHIP_PACKAGES)) as $number => $package) {
             $packages[(int)$number] = $package;
         }
 
@@ -410,12 +432,12 @@ class Shipment extends AbstractModel implements ShipmentInterface
 
     public function setShipPackages(?array $packages): static
     {
-        return $this->setData(self::FIELD_SHIP_PACKAGES, $packages ? self::encode((object)$packages) : null);
+        return $this->setData(self::FIELD_SHIP_PACKAGES, $packages ? $this->encode((object)$packages) : null);
     }
 
     public function getLastError(): ?string
     {
-        return $this->nullableString(self::FIELD_LAST_ERROR);
+        return $this->getNullableString(self::FIELD_LAST_ERROR);
     }
 
     public function setLastError(?string $lastError): static
@@ -425,7 +447,7 @@ class Shipment extends AbstractModel implements ShipmentInterface
 
     public function getAttentionNotifiedAt(): ?string
     {
-        return $this->nullableString(self::FIELD_ATTENTION_NOTIFIED_AT);
+        return $this->getNullableString(self::FIELD_ATTENTION_NOTIFIED_AT);
     }
 
     public function setAttentionNotifiedAt(?string $notifiedAt): static
@@ -435,7 +457,7 @@ class Shipment extends AbstractModel implements ShipmentInterface
 
     public function getCreatedAt(): ?string
     {
-        return $this->nullableString(self::FIELD_CREATED_AT);
+        return $this->getNullableString(self::FIELD_CREATED_AT);
     }
 
     public function setCreatedAt(?string $createdAt): static
@@ -445,7 +467,7 @@ class Shipment extends AbstractModel implements ShipmentInterface
 
     public function getUpdatedAt(): ?string
     {
-        return $this->nullableString(self::FIELD_UPDATED_AT);
+        return $this->getNullableString(self::FIELD_UPDATED_AT);
     }
 
     public function setUpdatedAt(?string $updatedAt): static
@@ -461,41 +483,45 @@ class Shipment extends AbstractModel implements ShipmentInterface
     /**
      * @param array<mixed>|object $value an object for keys that are numbers
      *
-     * @throws \JsonException when the value can't be encoded; it's never stored as something else
+     * @throws \InvalidArgumentException when the value can't be encoded; it's never stored as something else
      */
-    private static function encode(array|object $value): string
+    private function encode(array|object $value): string
     {
-        return \json_encode($value, \JSON_UNESCAPED_UNICODE | \JSON_THROW_ON_ERROR);
+        return (string)$this->json->serialize($value);
     }
 
     /**
      * @return array<mixed>
      */
-    private static function decode(mixed $value): array
+    private function decode(mixed $value): array
     {
         if (\is_array($value)) {
             return $value;
         }
-        $decoded = \is_string($value) && $value !== '' ? \json_decode($value, true) : null;
+        try {
+            $decoded = \is_string($value) && $value !== '' ? $this->json->unserialize($value) : null;
+        } catch (\InvalidArgumentException) {
+            $decoded = null;
+        }
 
         return \is_array($decoded) ? $decoded : [];
     }
 
-    private function nullableString(string $field): ?string
+    private function getNullableString(string $field): ?string
     {
         $value = $this->getData($field);
 
         return $value === null || $value === '' ? null : (string)$value;
     }
 
-    private function nullableInt(string $field): ?int
+    private function getNullableInt(string $field): ?int
     {
         $value = $this->getData($field);
 
         return $value === null || $value === '' ? null : (int)$value;
     }
 
-    private function nullableFloat(string $field): ?float
+    private function getNullableFloat(string $field): ?float
     {
         $value = $this->getData($field);
 

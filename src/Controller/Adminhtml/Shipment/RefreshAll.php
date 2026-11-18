@@ -20,34 +20,35 @@ use Polkurier\Shipping\Model\Shipment\Status\StatusRefreshService;
  */
 class RefreshAll extends AbstractShipmentAction implements HttpPostActionInterface
 {
-    public const string ADMIN_RESOURCE = 'Polkurier_Shipping::shipments';
+    public const string ADMIN_RESOURCE = 'Magento_Sales::shipment';
+    public const string ROUTE = 'polkurier/shipment/refreshAll';
 
     public function __construct(
         Context $context,
-        RequestedShipments $requestedShipments,
+        RequestedShipmentResolver $requestedShipmentResolver,
         private readonly StatusRefreshService $statusRefreshService,
         private readonly ConfigProvider $configProvider,
         private readonly FlashMessageCollectorFactory $flashMessageCollectorFactory,
     ) {
-        parent::__construct($context, $requestedShipments);
+        parent::__construct($context, $requestedShipmentResolver);
     }
 
     public function execute(): Redirect
     {
         $flash = $this->flashMessageCollectorFactory->create();
         if (!$this->configProvider->hasCredentials()) {
-            $flash->error(ConfigProvider::credentialsMissing());
+            $flash->addError(ConfigProvider::describeMissingCredentials());
         } else {
             ['refreshed' => $refreshed, 'failed' => $failed] = $this->statusRefreshService->refreshNow();
             if ($failed === 0) {
-                $flash->success(__('%1 shipment(s) updated.', $refreshed));
+                $flash->addSuccess(__('%1 shipment(s) updated.', $refreshed));
             } else {
                 $message = __('%1 shipment(s) updated, %2 not: see the Polkurier log.', $refreshed, $failed);
-                $refreshed > 0 ? $flash->warning($message) : $flash->error($message);
+                $refreshed > 0 ? $flash->addWarning($message) : $flash->addError($message);
             }
         }
         $flash->send($this->messageManager);
 
-        return $this->back();
+        return $this->redirectBack();
     }
 }

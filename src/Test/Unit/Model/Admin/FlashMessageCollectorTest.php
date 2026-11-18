@@ -11,8 +11,8 @@ use Magento\Framework\Message\ManagerInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Polkurier\Shipping\Model\Admin\FlashMessageCollector;
-use Polkurier\Webservice\Response\TwoFactorToken;
-use Polkurier\Webservice\Response\TwoFactorToken\TransportMethodMessage;
+use Polkurier\Webservice\Dto\Response\TwoFactorToken;
+use Polkurier\Webservice\Dto\Response\TwoFactorToken\TransportMethodMessage;
 
 #[CoversClass(FlashMessageCollector::class)]
 class FlashMessageCollectorTest extends TestCase
@@ -23,26 +23,26 @@ class FlashMessageCollectorTest extends TestCase
     public function testEverythingAnActionSaysIsOneMessageOfItsGravestKind(): void
     {
         (new FlashMessageCollector())
-            ->success('10 deleted.')
-            ->warning('2 not deleted: refused.')
-            ->notice('Checked later.')
-            ->send($this->messages());
+            ->addSuccess('10 deleted.')
+            ->addWarning('2 not deleted: refused.')
+            ->addNotice('Checked later.')
+            ->send($this->createMessageManager());
 
         self::assertSame(['warning' => ['10 deleted. 2 not deleted: refused. Checked later.']], $this->sent);
     }
 
     public function testNothingToSayIsNoMessage(): void
     {
-        (new FlashMessageCollector())->warning('  ')->send($this->messages());
+        (new FlashMessageCollector())->addWarning('  ')->send($this->createMessageManager());
 
         self::assertSame([], $this->sent);
     }
 
     public function testItStartsOverOnceSent(): void
     {
-        $flash = (new FlashMessageCollector())->error('Refused.');
-        $flash->send($this->messages());
-        $flash->success('Saved.')->send($this->messages());
+        $flash = (new FlashMessageCollector())->addError('Refused.');
+        $flash->send($this->createMessageManager());
+        $flash->addSuccess('Saved.')->send($this->createMessageManager());
 
         self::assertSame(['error' => ['Refused.'], 'success' => ['Saved.']], $this->sent);
     }
@@ -51,16 +51,32 @@ class FlashMessageCollectorTest extends TestCase
     {
         self::assertSame(
             'Code sent to +48 *** *** 701; valid until 14:35.',
-            FlashMessageCollector::codeSent($this->token(new TransportMethodMessage(id: '1', name: '+48 *** *** 701'))),
+            FlashMessageCollector::formatCodeSent(
+                $this->createToken(new TransportMethodMessage(id: '1', name: '+48 *** *** 701')),
+            ),
         );
     }
 
     public function testWithoutAMethodItSaysOnlyUntilWhen(): void
     {
-        self::assertSame('Code sent; valid until 14:35.', FlashMessageCollector::codeSent($this->token(null)));
+        self::assertSame(
+            'Code sent; valid until 14:35.',
+            FlashMessageCollector::formatCodeSent($this->createToken(null)),
+        );
     }
 
-    private function messages(): ManagerInterface
+    public function testWithoutAnExpiryItSaysOnlyWhere(): void
+    {
+        self::assertSame(
+            'Code sent to +48 *** *** 701.',
+            FlashMessageCollector::formatCodeSent(
+                $this->createToken(new TransportMethodMessage(id: '1', name: '+48 *** *** 701'), expires: false),
+            ),
+        );
+        self::assertSame('Code sent.', FlashMessageCollector::formatCodeSent($this->createToken(null, expires: false)));
+    }
+
+    private function createMessageManager(): ManagerInterface
     {
         $messages = $this->createStub(ManagerInterface::class);
         foreach (['error', 'warning', 'notice', 'success'] as $type) {
@@ -75,10 +91,12 @@ class FlashMessageCollectorTest extends TestCase
         return $messages;
     }
 
-    private function token(?TransportMethodMessage $method): TwoFactorToken
+    private function createToken(?TransportMethodMessage $method, bool $expires = true): TwoFactorToken
     {
         $now = new \DateTimeImmutable('2026-10-05 14:30:00');
 
-        return new TwoFactorToken('t1', '', 'Wypłata', 1, $now, $now, $now->modify('+5 minutes'), $method);
+        $expiresAt = $expires ? $now->modify('+5 minutes') : null;
+
+        return new TwoFactorToken('t1', '', 'Wypłata', 1, $now, $now, $expiresAt, $method);
     }
 }

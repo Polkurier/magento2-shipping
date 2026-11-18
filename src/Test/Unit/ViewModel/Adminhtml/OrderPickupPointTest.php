@@ -17,8 +17,8 @@ use Polkurier\Shipping\Model\Carrier\CarrierCatalog;
 use Polkurier\Shipping\Model\Carrier\CarrierFeatureResolver;
 use Polkurier\Shipping\Model\PickupPoint\PointDescriptionBuilder;
 use Polkurier\Shipping\ViewModel\Adminhtml\OrderPickupPoint;
+use Polkurier\Webservice\Dto\Response\Carrier;
 use Polkurier\Webservice\Exception\ConnectionException;
-use Polkurier\Webservice\Response\Carrier;
 
 #[CoversClass(OrderPickupPoint::class)]
 #[AllowMockObjectsWithoutExpectations]
@@ -26,19 +26,19 @@ class OrderPickupPointTest extends TestCase
 {
     public function testAMethodThatDeliversToPointsOnlyShowsThePoint(): void
     {
-        $point = $this->point();
+        $point = $this->createPoint();
 
         self::assertSame(
             $point,
-            $this->viewModel($point, required: true)->getPoint($this->order('polkurier_INPOST_PACZKOMAT')),
+            $this->createViewModel($point, required: true)->getPoint($this->createOrder('polkurier_INPOST_PACZKOMAT')),
         );
     }
 
     public function testAPointTheShippingDescriptionNamesIsNotShownTwice(): void
     {
         self::assertNull(
-            $this->viewModel($this->point(), required: true)
-                ->getPoint($this->order(
+            $this->createViewModel($this->createPoint(), required: true)
+                ->getPoint($this->createOrder(
                     'polkurier_INPOST_PACZKOMAT',
                     'Paczkomat InPost, pickup point WAW195M (02-134 Warszawa)',
                 )),
@@ -47,7 +47,12 @@ class OrderPickupPointTest extends TestCase
 
     public function testAMethodWherePointsAreOptionalShowsNone(): void
     {
-        self::assertNull($this->viewModel($this->point(), required: false)->getPoint($this->order('polkurier_DPD')));
+        self::assertNull(
+            $this->createViewModel(
+                $this->createPoint(),
+                required: false,
+            )->getPoint($this->createOrder('polkurier_DPD')),
+        );
     }
 
     public function testAnOrderOfAnotherCarrierShowsNone(): void
@@ -61,13 +66,13 @@ class OrderPickupPointTest extends TestCase
                 $this->createStub(CarrierCatalog::class),
                 $this->createStub(CarrierFeatureResolver::class),
                 new PointDescriptionBuilder(),
-            ))->getPoint($this->order('flatrate_flatrate')),
+            ))->getPoint($this->createOrder('flatrate_flatrate')),
         );
     }
 
     public function testWithoutTheCarrierListTheStoredPointIsShown(): void
     {
-        $point = $this->point();
+        $point = $this->createPoint();
         $store = $this->createStub(OrderPointRepositoryInterface::class);
         $store->method('getForOrder')->willReturn($point);
         $catalog = $this->createStub(CarrierCatalog::class);
@@ -80,11 +85,11 @@ class OrderPickupPointTest extends TestCase
                 $catalog,
                 $this->createStub(CarrierFeatureResolver::class),
                 new PointDescriptionBuilder(),
-            ))->getPoint($this->order('polkurier_INPOST_PACZKOMAT')),
+            ))->getPoint($this->createOrder('polkurier_INPOST_PACZKOMAT')),
         );
     }
 
-    private function viewModel(OrderPointInterface $point, bool $required): OrderPickupPoint
+    private function createViewModel(OrderPointInterface $point, bool $required): OrderPickupPoint
     {
         $store = $this->createStub(OrderPointRepositoryInterface::class);
         $store->method('getForOrder')->willReturn($point);
@@ -96,7 +101,7 @@ class OrderPickupPointTest extends TestCase
         return new OrderPickupPoint($store, $catalog, $features, new PointDescriptionBuilder());
     }
 
-    private function point(): OrderPointInterface
+    private function createPoint(): OrderPointInterface
     {
         $point = $this->createStub(OrderPointInterface::class);
         $point->method('getPointId')->willReturn('WAW195M');
@@ -104,7 +109,7 @@ class OrderPickupPointTest extends TestCase
         return $point;
     }
 
-    private function order(string $shippingMethod, string $description = 'Paczkomat InPost'): Order
+    private function createOrder(string $shippingMethod, string $description = 'Paczkomat InPost'): Order
     {
         $order = $this->createStub(Order::class);
         $order->method('getShippingMethod')->willReturn($shippingMethod);

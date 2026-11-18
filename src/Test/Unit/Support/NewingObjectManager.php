@@ -12,7 +12,7 @@ use Magento\Framework\ObjectManagerInterface;
 /**
  * An object manager that creates what it's asked for with "new" and the arguments given, an
  * interface as the class preferred for it. It lets a test use Magento's real generated factories:
- * `NewingObjectManager::factory(\Polkurier\Webservice\Builder\Order\PackMessageBuilderFactory::class)`.
+ * `NewingObjectManager::createFactory(\Polkurier\Webservice\Builder\Entity\Order\PackItemBuilderFactory::class)`.
  */
 readonly class NewingObjectManager implements ObjectManagerInterface
 {
@@ -33,7 +33,7 @@ readonly class NewingObjectManager implements ObjectManagerInterface
      *
      * @return T
      */
-    public static function factory(string $factory, array $preferences = []): object
+    public static function createFactory(string $factory, array $preferences = []): object
     {
         return new $factory(new self($preferences));
     }

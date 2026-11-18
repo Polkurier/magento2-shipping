@@ -22,15 +22,16 @@ use Polkurier\Shipping\Model\Shipment\DocumentService;
  */
 class Protocol extends AbstractShipmentAction implements HttpGetActionInterface, HttpPostActionInterface
 {
-    public const string ADMIN_RESOURCE = 'Polkurier_Shipping::shipments';
+    public const string ADMIN_RESOURCE = 'Magento_Sales::shipment';
+    public const string ROUTE = 'polkurier/shipment/protocol';
 
     public function __construct(
         Context $context,
-        RequestedShipments $requestedShipments,
+        RequestedShipmentResolver $requestedShipmentResolver,
         private readonly DocumentService $documentService,
         private readonly FileFactory $fileFactory,
     ) {
-        parent::__construct($context, $requestedShipments);
+        parent::__construct($context, $requestedShipmentResolver);
     }
 
     public function execute(): ResponseInterface|ResultInterface
@@ -52,6 +53,6 @@ class Protocol extends AbstractShipmentAction implements HttpGetActionInterface,
             $this->messageManager->addErrorMessage($e->getMessage());
         }
 
-        return $this->back();
+        return $this->redirectBack();
     }
 }

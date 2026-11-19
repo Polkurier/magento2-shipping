@@ -2,43 +2,72 @@
 # as develop takes no direct pushes. The pull request is merged right away; one that can't be
 # (a conflict, a merge check) stays open for a person to finish.
 #
+# main and the tags are mirrored one way to the public https://github.com/Polkurier/magento2-shipping,
+# which Packagist reads. GitHub takes no changes of its own: each run makes its main and tags those
+# of Bitbucket, a deleted tag going with the next run. Run "mirror-to-github" by hand to sync
+# outside a push (say, after deleting a tag).
+#
 # MERGE_BACK_TOKEN: a secured repository variable holding a repository access token that can
 # create and merge pull requests.
+# The mirror pushes with the repository's Pipelines SSH key, a deploy key with write access on
+# GitHub; github.com is among the Pipelines known hosts.
 image: atlassian/default-image:4
+
+definitions:
+  steps:
+    - step: &mirror
+        name: Mirror to GitHub
+        concurrency-group: github-mirror
+        clone:
+          depth: full
+        script:
+          - |
+            set -eo pipefail
+            git fetch --prune origin "+refs/heads/main:refs/mirror/main" "+refs/tags/*:refs/tags/*"
+            git push --prune git@github.com:Polkurier/magento2-shipping.git \
+              "+refs/mirror/main:refs/heads/main" "+refs/tags/*:refs/tags/*"
 
 pipelines:
   branches:
     main:
-      - step:
-          name: Merge main into develop
-          clone:
-            depth: full
-          script:
-            - |
-              set -eo pipefail
-              git fetch origin "+refs/heads/develop:refs/remotes/origin/develop"
-              if git merge-base --is-ancestor "$BITBUCKET_COMMIT" origin/develop; then
-                echo "develop already has main."
-                exit 0
-              fi
-              api="https://api.bitbucket.org/2.0/repositories/$BITBUCKET_REPO_FULL_NAME/pullrequests"
-              auth="Authorization: Bearer $MERGE_BACK_TOKEN"
-              id=$(curl -sS --fail-with-body -G -H "$auth" "$api" \
-                --data-urlencode 'q=source.branch.name="main" AND destination.branch.name="develop" AND state="OPEN"' \
-                | python3 -c 'import json, sys; v = json.load(sys.stdin)["values"]; print(v[0]["id"] if v else "")')
-              if [ -z "$id" ]; then
-                id=$(curl -sS --fail-with-body -H "$auth" -H "Content-Type: application/json" "$api" -d '{
-                  "title": "Merge main into develop",
-                  "source": {"branch": {"name": "main"}},
-                  "destination": {"branch": {"name": "develop"}},
-                  "close_source_branch": false
-                }' | python3 -c 'import json, sys; print(json.load(sys.stdin)["id"])')
-              fi
-              if ! curl -sS --fail-with-body -H "$auth" -H "Content-Type: application/json" "$api/$id/merge" -d '{
-                "merge_strategy": "merge_commit",
-                "message": "Merge branch '\''main'\'' into develop",
-                "close_source_branch": false
-              }' > /dev/null; then
-                echo "Couldn't merge it, finish it by hand: https://bitbucket.org/$BITBUCKET_REPO_FULL_NAME/pull-requests/$id"
-                exit 1
-              fi
+      - parallel:
+          - step: *mirror
+          - step:
+              name: Merge main into develop
+              clone:
+                depth: full
+              script:
+                - |
+                  set -eo pipefail
+                  git fetch origin "+refs/heads/develop:refs/remotes/origin/develop"
+                  if git merge-base --is-ancestor "$BITBUCKET_COMMIT" origin/develop; then
+                    echo "develop already has main."
+                    exit 0
+                  fi
+                  api="https://api.bitbucket.org/2.0/repositories/$BITBUCKET_REPO_FULL_NAME/pullrequests"
+                  auth="Authorization: Bearer $MERGE_BACK_TOKEN"
+                  id=$(curl -sS --fail-with-body -G -H "$auth" "$api" \
+                    --data-urlencode 'q=source.branch.name="main" AND destination.branch.name="develop" AND state="OPEN"' \
+                    | python3 -c 'import json, sys; v = json.load(sys.stdin)["values"]; print(v[0]["id"] if v else "")')
+                  if [ -z "$id" ]; then
+                    id=$(curl -sS --fail-with-body -H "$auth" -H "Content-Type: application/json" "$api" -d '{
+                      "title": "Merge main into develop",
+                      "source": {"branch": {"name": "main"}},
+                      "destination": {"branch": {"name": "develop"}},
+                      "close_source_branch": false
+                    }' | python3 -c 'import json, sys; print(json.load(sys.stdin)["id"])')
+                  fi
+                  if ! curl -sS --fail-with-body -H "$auth" -H "Content-Type: application/json" "$api/$id/merge" -d '{
+                    "merge_strategy": "merge_commit",
+                    "message": "Merge branch '\''main'\'' into develop",
+                    "close_source_branch": false
+                  }' > /dev/null; then
+                    echo "Couldn't merge it, finish it by hand: https://bitbucket.org/$BITBUCKET_REPO_FULL_NAME/pull-requests/$id"
+                    exit 1
+                  fi
+  tags:
+    '**':
+      - step: *mirror
+  custom:
+    mirror-to-github:
+      - step: *mirror
